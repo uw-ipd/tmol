@@ -1,0 +1,827 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tmol.pack.rotamer._na_chi_sampler &#8212; TMol</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=0a30a683" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../../_static/scripts/fontawesome.js?digest=cb8930eaaf36d9849b67"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
+
+    <script src="../../../../_static/documentation_options.js?v=1190fe33"></script>
+    <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script>let toggleHintShow = 'show code';</script>
+    <script>let toggleHintHide = 'hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../../../../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/pack/rotamer/_na_chi_sampler';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/pack/rotamer/_na_chi_sampler.html" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.49" />
+  
+    
+    <script src="../../../../_static/searchtools.js"></script>
+    <script src="../../../../_static/language_data.js"></script>
+    <script src="../../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TMol</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../api_reference.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../api_reference.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../../tmol.html" class="nav-link">tmol</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.pack.rotamer._na_chi_sampler</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for tmol.pack.rotamer._na_chi_sampler</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">validate_args</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.tensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">exclusive_cumsum1d</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">PackedBlockTypes</span><span class="p">,</span>
+    <span class="n">PoseStack</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">SetPackerTask</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChiSampler</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.na_torsion</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">NaTorsionParams</span><span class="p">,</span>
+    <span class="n">N_PUCKER</span><span class="p">,</span>
+    <span class="n">POLYMER_IND</span><span class="p">,</span>
+    <span class="n">SYN_MEAN</span><span class="p">,</span>
+    <span class="n">block_type_params</span><span class="p">,</span>
+    <span class="n">polymer_index</span><span class="p">,</span>
+    <span class="n">pucker_weights</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># k in chi = mean + k * sdev_chi, by extra-chi sample level, mirroring Rosetta's</span>
+<span class="c1"># expansion of its fitted chi gaussians</span>
+<span class="n">CHI_STEPS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">0</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,),</span>
+    <span class="mi">1</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">),</span>
+    <span class="mi">2</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">),</span>
+    <span class="mi">3</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.0</span><span class="p">),</span>
+    <span class="mi">4</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">),</span>
+<span class="p">}</span>
+
+<span class="c1"># a syn well deeper than this is too rare to be worth a rotamer</span>
+<span class="n">MAX_SYN_WELL</span> <span class="o">=</span> <span class="mf">5.0</span>
+
+<span class="c1"># Sidechain root for each nucleotide proton chi. Normally the chi's pivot atom,</span>
+<span class="c1"># except for the 5'-OH: O5' roots the whole block, so the hydroxyl hydrogen</span>
+<span class="c1"># roots itself and everything upstream stays mainchain.</span>
+<span class="n">NA_PROTON_CHI_ROOT</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"chi2"</span><span class="p">:</span> <span class="s2">"O2'"</span><span class="p">,</span> <span class="s2">"chi3"</span><span class="p">:</span> <span class="s2">"HO5'"</span><span class="p">,</span> <span class="s2">"chi4"</span><span class="p">:</span> <span class="s2">"O3'"</span><span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">na_proton_chi_roots</span><span class="p">(</span><span class="n">rt</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Sidechain roots for the proton chis a nucleotide actually samples."""</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span>
+        <span class="n">NA_PROTON_CHI_ROOT</span><span class="p">[</span><span class="n">cs</span><span class="o">.</span><span class="n">chi_dihedral</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">cs</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">chi_samples</span>
+        <span class="k">if</span> <span class="n">cs</span><span class="o">.</span><span class="n">chi_dihedral</span> <span class="ow">in</span> <span class="n">NA_PROTON_CHI_ROOT</span>
+    <span class="p">)</span>
+
+
+<div class="viewcode-block" id="NaChiRotamerSampler">
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.NaChiRotamerSampler">[docs]</a>
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">NaChiRotamerSampler</span><span class="p">(</span><span class="n">ChiSampler</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Glycosidic chi rotamers for DNA and RNA, taken from the na_torsion tables.</span>
+
+<span class="sd">    Every chi generated sits at a minimum of the term that will score it: the</span>
+<span class="sd">    anti rotamer is the per-base, per-pucker mean and the syn rotamer is the</span>
+<span class="sd">    fixed syn mean, each expanded in units of that term's own sdev_chi. The</span>
+<span class="sd">    pucker comes from the input sugar, which is not itself a packing degree of</span>
+<span class="sd">    freedom.</span>
+
+<span class="sd">    The 2'-OH proton chi is expanded here rather than left to OptHSampler,</span>
+<span class="sd">    which is applied to disjoint blocks; see DunbrackChiSampler, which folds</span>
+<span class="sd">    proton chis in the same way.</span>
+<span class="sd">    """</span>
+
+    <span class="n">params</span><span class="p">:</span> <span class="n">NaTorsionParams</span>
+    <span class="n">element_for_atom_type</span><span class="p">:</span> <span class="nb">dict</span>
+    <span class="n">chi_sample_level</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">sample_syn</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">)</span>
+
+<div class="viewcode-block" id="NaChiRotamerSampler.from_database">
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.NaChiRotamerSampler.from_database">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_database</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">param_db</span><span class="p">:</span> <span class="n">ParameterDatabase</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">chi_sample_level</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">sample_syn</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">params</span><span class="o">=</span><span class="n">NaTorsionParams</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">na_torsion</span><span class="p">,</span> <span class="n">device</span><span class="p">),</span>
+            <span class="n">element_for_atom_type</span><span class="o">=</span><span class="p">{</span>
+                <span class="n">at</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">at</span><span class="o">.</span><span class="n">element</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="o">.</span><span class="n">atom_types</span>
+            <span class="p">},</span>
+            <span class="n">chi_sample_level</span><span class="o">=</span><span class="n">chi_sample_level</span><span class="p">,</span>
+            <span class="n">sample_syn</span><span class="o">=</span><span class="n">sample_syn</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NaChiRotamerSampler.sampler_name">
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.NaChiRotamerSampler.sampler_name">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sampler_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">"NaChiRotamerSampler"</span></div>
+
+
+<div class="viewcode-block" id="NaChiRotamerSampler.annotate_residue_type">
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.NaChiRotamerSampler.annotate_residue_type">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">annotate_residue_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="s2">"na_chi_sampler_params"</span><span class="p">):</span>
+            <span class="k">return</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">block_type_params</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">element_for_atom_type</span><span class="p">)</span>
+        <span class="n">chi1</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"chi1"</span><span class="p">)</span>
+        <span class="c1"># the third atom of a torsion is the one whose dof carries it</span>
+        <span class="n">p</span><span class="p">[</span><span class="s2">"chi1_atom"</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="k">if</span> <span class="n">chi1</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">chi1</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">p</span><span class="p">[</span><span class="s2">"proton_chi"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span>
+                <span class="nb">int</span><span class="p">(</span><span class="n">samp</span><span class="o">.</span><span class="n">chi_dihedral</span><span class="p">[</span><span class="mi">3</span><span class="p">:])</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="n">rt</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="p">[</span><span class="n">samp</span><span class="o">.</span><span class="n">chi_dihedral</span><span class="p">][</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                <span class="nb">tuple</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">samp</span><span class="o">.</span><span class="n">samples</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">samp</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">chi_samples</span>
+        <span class="p">]</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="s2">"na_chi_sampler_params"</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NaChiRotamerSampler.annotate_packed_block_types">
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.NaChiRotamerSampler.annotate_packed_block_types">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">annotate_packed_block_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"na_chi_sampler_cache"</span><span class="p">):</span>
+            <span class="k">return</span>
+        <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">annotate_residue_type</span><span class="p">(</span><span class="n">bt</span><span class="p">)</span>
+        <span class="n">bts</span> <span class="o">=</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+        <span class="n">n_chi</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">na_chi_sampler_params</span><span class="p">[</span><span class="s2">"proton_chi"</span><span class="p">])</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">bts</span><span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">to_t</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="n">ring</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">bt</span><span class="o">.</span><span class="n">na_chi_sampler_params</span><span class="p">[</span><span class="s2">"ring"</span><span class="p">]</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">bts</span><span class="p">])</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">bt</span><span class="o">.</span><span class="n">na_chi_sampler_params</span><span class="p">[</span><span class="s2">"base"</span><span class="p">]</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">bts</span><span class="p">])</span>
+        <span class="n">chi_atom</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">bts</span><span class="p">),</span> <span class="n">n_chi</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">combos</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">_proton_combinations</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">na_chi_sampler_params</span><span class="p">[</span><span class="s2">"proton_chi"</span><span class="p">])</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">bts</span>
+        <span class="p">]</span>
+        <span class="n">n_combos</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">combos</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="n">proton</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">bts</span><span class="p">),</span> <span class="n">n_combos</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">n_chi</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bts</span><span class="p">):</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">na_chi_sampler_params</span>
+            <span class="k">if</span> <span class="n">p</span><span class="p">[</span><span class="s2">"base"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">chi_atom</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="s2">"chi1_atom"</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">slot</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">atom</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s2">"proton_chi"</span><span class="p">]):</span>
+                <span class="n">chi_atom</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">slot</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom</span>
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">combo</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">combos</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>
+                <span class="n">proton</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">combo</span><span class="p">)]</span> <span class="o">=</span> <span class="n">combo</span>
+
+        <span class="n">cache</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">base</span><span class="o">=</span><span class="n">to_t</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+            <span class="n">ring</span><span class="o">=</span><span class="n">to_t</span><span class="p">(</span><span class="n">ring</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+            <span class="n">chi_atom</span><span class="o">=</span><span class="n">to_t</span><span class="p">(</span><span class="n">chi_atom</span><span class="p">),</span>
+            <span class="n">builds_bt</span><span class="o">=</span><span class="n">to_t</span><span class="p">(</span><span class="n">base</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span>
+            <span class="n">n_combos</span><span class="o">=</span><span class="n">to_t</span><span class="p">(</span><span class="n">n_combos</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+            <span class="n">proton</span><span class="o">=</span><span class="n">to_t</span><span class="p">(</span><span class="n">proton</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+            <span class="n">n_chi</span><span class="o">=</span><span class="n">n_chi</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"na_chi_sampler_cache"</span><span class="p">,</span> <span class="n">cache</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NaChiRotamerSampler.defines_rotamers_for_rt">
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.NaChiRotamerSampler.defines_rotamers_for_rt">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">defines_rotamers_for_rt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">annotate_residue_type</span><span class="p">(</span><span class="n">rt</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">rt</span><span class="o">.</span><span class="n">na_chi_sampler_params</span><span class="p">[</span><span class="s2">"base"</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span></div>
+
+
+<div class="viewcode-block" id="NaChiRotamerSampler.defines_rotamers_for_bts">
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.NaChiRotamerSampler.defines_rotamers_for_bts">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">defines_rotamers_for_bts</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span> <span class="n">bt_inds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">]:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">annotate_packed_block_types</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pbt</span><span class="o">.</span><span class="n">na_chi_sampler_cache</span><span class="p">[</span><span class="s2">"builds_bt"</span><span class="p">][</span><span class="n">bt_inds</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="NaChiRotamerSampler.first_sc_atoms_for_rt">
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.NaChiRotamerSampler.first_sc_atoms_for_rt">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">first_sc_atoms_for_rt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+        <span class="c1"># long-term, it probably makes more sense to generate this programatically</span>
+        <span class="c1"># e.g., the pivot atom of the first chi(?)</span>
+        <span class="c1"># the base hangs off the glycosidic nitrogen, which chi1 rotates; each</span>
+        <span class="c1"># proton chi is rooted separately so that it has something downstream</span>
+        <span class="n">chi1</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="p">[</span><span class="s2">"chi1"</span><span class="p">]</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="n">chi1</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">name</span><span class="p">,)</span> <span class="o">+</span> <span class="n">na_proton_chi_roots</span><span class="p">(</span><span class="n">rt</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_chi_sets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">pucker</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""(anti, syn) chi values in degrees for one (base, pucker) pair."""</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+        <span class="n">poly</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">polymer_index</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">base</span><span class="p">)))</span>
+        <span class="n">sdev</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">sdev_chi</span><span class="p">[</span><span class="n">poly</span><span class="p">])</span>
+        <span class="n">steps</span> <span class="o">=</span> <span class="n">CHI_STEPS</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">chi_sample_level</span><span class="p">]</span>
+        <span class="n">anti</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">chi_means</span><span class="p">[</span><span class="n">base</span><span class="p">,</span> <span class="n">pucker</span><span class="p">])</span>
+        <span class="n">chis</span> <span class="o">=</span> <span class="p">[</span><span class="n">anti</span> <span class="o">+</span> <span class="n">k</span> <span class="o">*</span> <span class="n">sdev</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">steps</span><span class="p">]</span>
+        <span class="c1"># syn rotamers RNA only (for now)</span>
+        <span class="n">syn_ok</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_syn</span> <span class="ow">and</span> <span class="n">poly</span> <span class="o">==</span> <span class="n">POLYMER_IND</span><span class="p">[</span><span class="s2">"rna"</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">syn_ok</span> <span class="ow">and</span> <span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">well_chi_syn</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">pucker</span><span class="p">,</span> <span class="n">base</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="n">MAX_SYN_WELL</span><span class="p">:</span>
+            <span class="n">chis</span> <span class="o">+=</span> <span class="p">[</span><span class="n">SYN_MEAN</span> <span class="o">+</span> <span class="n">k</span> <span class="o">*</span> <span class="n">sdev</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">steps</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">chis</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_pucker_for_blocks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">poses</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""argmax pucker state of every block's input sugar, -1 where absent."""</span>
+        <span class="n">cache</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">na_chi_sampler_cache</span>
+        <span class="n">bt</span> <span class="o">=</span> <span class="n">poses</span><span class="o">.</span><span class="n">block_type_ind64</span>
+        <span class="n">real</span> <span class="o">=</span> <span class="n">bt</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+        <span class="n">ring_local</span> <span class="o">=</span> <span class="n">cache</span><span class="p">[</span><span class="s2">"ring"</span><span class="p">][</span><span class="n">bt</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">)]</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="n">poses</span><span class="o">.</span><span class="n">block_coord_offset64</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">ok</span> <span class="o">=</span> <span class="p">(</span><span class="n">ring_local</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">real</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="p">(</span><span class="n">offset</span> <span class="o">+</span> <span class="n">ring_local</span><span class="p">)</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">n_poses</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">max_n_atoms</span> <span class="o">=</span> <span class="n">poses</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">flat</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">poses</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">max_n_atoms</span>
+            <span class="o">+</span> <span class="n">index</span>
+        <span class="p">)</span>
+        <span class="n">xyz</span> <span class="o">=</span> <span class="n">poses</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)[</span><span class="n">flat</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">*</span><span class="n">index</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="n">xyz</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ok</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">xyz</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">xyz</span><span class="p">))</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">pucker_weights</span><span class="p">(</span>
+            <span class="n">xyz</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pucker_temperature</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">*</span><span class="n">bt</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">N_PUCKER</span><span class="p">)</span>
+        <span class="n">pucker</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ok</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">pucker</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">pucker</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+<div class="viewcode-block" id="NaChiRotamerSampler.sample_chi_for_poses">
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.NaChiRotamerSampler.sample_chi_for_poses">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sample_chi_for_poses</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">poses</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="n">SetPackerTask</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span>
+        <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>  <span class="c1"># n_rots_for_gbt</span>
+        <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>  <span class="c1"># gbt_for_rotamer</span>
+        <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:],</span>  <span class="c1"># chi_defining_atom_for_rotamer</span>
+        <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="p">:],</span>  <span class="c1"># chi_for_rotamers</span>
+    <span class="p">]:</span>
+        <span class="n">pbt</span> <span class="o">=</span> <span class="n">poses</span><span class="o">.</span><span class="n">packed_block_types</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">annotate_packed_block_types</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
+        <span class="n">cache</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">na_chi_sampler_cache</span>
+
+        <span class="n">self_ind</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">conformer_sampler_index</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span>
+        <span class="n">allowed</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">per_block_conformer_sampler_allowed</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">self_ind</span><span class="p">]</span>
+        <span class="n">allowed_for_cons</span> <span class="o">=</span> <span class="n">allowed</span><span class="p">[</span><span class="n">task</span><span class="o">.</span><span class="n">cons_bt_pose</span><span class="p">,</span> <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_block</span><span class="p">]</span>
+        <span class="n">builds</span> <span class="o">=</span> <span class="n">cache</span><span class="p">[</span><span class="s2">"builds_bt"</span><span class="p">][</span><span class="n">task</span><span class="o">.</span><span class="n">cons_bt_block_type</span><span class="p">]</span>
+        <span class="n">bt_allowed</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">per_block_is_block_type_allowed</span><span class="p">[</span>
+            <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_pose</span><span class="p">,</span> <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_block</span><span class="p">,</span> <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_which_block_type</span>
+        <span class="p">]</span>
+        <span class="n">active</span> <span class="o">=</span> <span class="n">allowed_for_cons</span> <span class="o">&amp;</span> <span class="n">builds</span> <span class="o">&amp;</span> <span class="n">bt_allowed</span>
+
+        <span class="n">pucker_for_block</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pucker_for_blocks</span><span class="p">(</span><span class="n">poses</span><span class="p">,</span> <span class="n">pbt</span><span class="p">)</span>
+        <span class="n">pucker</span> <span class="o">=</span> <span class="n">pucker_for_block</span><span class="p">[</span><span class="n">task</span><span class="o">.</span><span class="n">cons_bt_pose</span><span class="p">,</span> <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_block</span><span class="p">]</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="n">cache</span><span class="p">[</span><span class="s2">"base"</span><span class="p">][</span><span class="n">task</span><span class="o">.</span><span class="n">cons_bt_block_type</span><span class="p">]</span>
+        <span class="n">active</span> <span class="o">=</span> <span class="n">active</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">pucker</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">n_chi</span> <span class="o">=</span> <span class="n">cache</span><span class="p">[</span><span class="s2">"n_chi"</span><span class="p">]</span>
+        <span class="n">n_gbt</span> <span class="o">=</span> <span class="n">active</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">bt_for_gbt</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_block_type</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+        <span class="c1"># how many chi1 values each block gets: the anti mode always, the syn</span>
+        <span class="c1"># mode when the well is shallow enough and the polymer is RNA</span>
+        <span class="n">steps</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="n">CHI_STEPS</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">chi_sample_level</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">poses</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="n">n_steps</span> <span class="o">=</span> <span class="n">steps</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">safe_base</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">poly</span> <span class="o">=</span> <span class="n">polymer_index</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
+        <span class="n">syn_ok</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">active</span>
+            <span class="o">&amp;</span> <span class="p">(</span><span class="n">poly</span> <span class="o">==</span> <span class="n">POLYMER_IND</span><span class="p">[</span><span class="s2">"rna"</span><span class="p">])</span>
+            <span class="o">&amp;</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">well_chi_syn</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">pucker</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">safe_base</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">MAX_SYN_WELL</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_syn</span><span class="p">:</span>
+            <span class="n">syn_ok</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">syn_ok</span><span class="p">)</span>
+        <span class="n">n_modes</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">syn_ok</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">n_combos</span> <span class="o">=</span> <span class="n">cache</span><span class="p">[</span><span class="s2">"n_combos"</span><span class="p">][</span><span class="n">bt_for_gbt</span><span class="p">]</span>
+        <span class="n">n_rots_for_gbt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="n">active</span><span class="p">,</span> <span class="n">n_modes</span> <span class="o">*</span> <span class="n">n_steps</span> <span class="o">*</span> <span class="n">n_combos</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">n_combos</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+        <span class="n">n_rots</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_rots_for_gbt</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">n_rots</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="n">n_rots_for_gbt</span><span class="p">,</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">poses</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_chi</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">poses</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_chi</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">poses</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+            <span class="p">)</span>
+
+        <span class="n">counts</span> <span class="o">=</span> <span class="n">n_rots_for_gbt</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="n">gbt_for_rotamer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_gbt</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">poses</span><span class="o">.</span><span class="n">device</span><span class="p">),</span> <span class="n">counts</span>
+        <span class="p">)</span>
+        <span class="c1"># index of each rotamer within its own block</span>
+        <span class="n">local</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+            <span class="n">n_rots</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">poses</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="n">exclusive_cumsum1d</span><span class="p">(</span><span class="n">counts</span><span class="p">),</span> <span class="n">counts</span><span class="p">)</span>
+
+        <span class="n">combos_per_rot</span> <span class="o">=</span> <span class="n">n_combos</span><span class="p">[</span><span class="n">gbt_for_rotamer</span><span class="p">]</span>
+        <span class="n">chi1_slot</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">local</span><span class="p">,</span> <span class="n">combos_per_rot</span><span class="p">,</span> <span class="n">rounding_mode</span><span class="o">=</span><span class="s2">"floor"</span><span class="p">)</span>
+        <span class="n">combo_slot</span> <span class="o">=</span> <span class="n">local</span> <span class="o">%</span> <span class="n">combos_per_rot</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">chi1_slot</span><span class="p">,</span> <span class="n">n_steps</span><span class="p">,</span> <span class="n">rounding_mode</span><span class="o">=</span><span class="s2">"floor"</span><span class="p">)</span>
+        <span class="n">step_ind</span> <span class="o">=</span> <span class="n">chi1_slot</span> <span class="o">%</span> <span class="n">n_steps</span>
+
+        <span class="n">rot_base</span> <span class="o">=</span> <span class="n">safe_base</span><span class="p">[</span><span class="n">gbt_for_rotamer</span><span class="p">]</span>
+        <span class="n">rot_pucker</span> <span class="o">=</span> <span class="n">pucker</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">)[</span><span class="n">gbt_for_rotamer</span><span class="p">]</span>
+        <span class="n">sdev</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">sdev_chi</span><span class="p">[</span><span class="n">poly</span><span class="p">[</span><span class="n">gbt_for_rotamer</span><span class="p">]]</span>
+        <span class="n">center</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="n">mode</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">chi_means</span><span class="p">[</span><span class="n">rot_base</span><span class="p">,</span> <span class="n">rot_pucker</span><span class="p">],</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">sdev</span><span class="p">,</span> <span class="n">SYN_MEAN</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">chi1</span> <span class="o">=</span> <span class="n">center</span> <span class="o">+</span> <span class="n">steps</span><span class="p">[</span><span class="n">step_ind</span><span class="p">]</span> <span class="o">*</span> <span class="n">sdev</span>
+
+        <span class="n">rot_bt</span> <span class="o">=</span> <span class="n">bt_for_gbt</span><span class="p">[</span><span class="n">gbt_for_rotamer</span><span class="p">]</span>
+        <span class="n">chi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">chi1</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">cache</span><span class="p">[</span><span class="s2">"proton"</span><span class="p">][</span><span class="n">rot_bt</span><span class="p">,</span> <span class="n">combo_slot</span><span class="p">]],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">n_rots_for_gbt</span><span class="p">,</span>
+            <span class="n">gbt_for_rotamer</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+            <span class="n">cache</span><span class="p">[</span><span class="s2">"chi_atom"</span><span class="p">][</span><span class="n">rot_bt</span><span class="p">],</span>
+            <span class="n">chi</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_proton_combinations</span><span class="p">(</span><span class="n">proton_chi</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Cross product of the proton-chi samples, or a single empty set."""</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">proton_chi</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[()]</span>
+    <span class="n">combos</span> <span class="o">=</span> <span class="p">[()]</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">samples</span> <span class="ow">in</span> <span class="n">proton_chi</span><span class="p">:</span>
+        <span class="n">combos</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="o">+</span> <span class="p">(</span><span class="n">s</span><span class="p">,)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">combos</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">samples</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">combos</span>
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67"></script>
+<script defer src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.21.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

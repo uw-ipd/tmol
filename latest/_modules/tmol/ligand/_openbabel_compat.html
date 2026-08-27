@@ -1,0 +1,807 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tmol.ligand._openbabel_compat &#8212; TMol</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=0a30a683" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=cb8930eaaf36d9849b67"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
+
+    <script src="../../../_static/documentation_options.js?v=1190fe33"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script>let toggleHintShow = 'show code';</script>
+    <script>let toggleHintHide = 'hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../../../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/ligand/_openbabel_compat';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/ligand/_openbabel_compat.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.49" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TMol</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.ligand._openbabel_compat</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for tmol.ligand._openbabel_compat</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""OpenBabel fallback helpers for RDKit-fragile input formats.</span>
+
+<span class="sd">RDKit's mol2 / SMILES / PDB parsers reject many real-world ligand files</span>
+<span class="sd">that OpenBabel handles fine. The helpers in this module call OpenBabel</span>
+<span class="sd">to read the input, then re-emit it as an SDF mol-block string that RDKit</span>
+<span class="sd">can ingest. The result is an ``rdkit.Chem.Mol`` indistinguishable from</span>
+<span class="sd">one produced by a successful RDKit parse, so downstream code (atom</span>
+<span class="sd">typing, residue building, scoring) needs no further changes.</span>
+
+<span class="sd">OpenBabel is a *soft* dependency. Import happens inside each helper, so</span>
+<span class="sd">the rest of ``tmol.ligand`` loads cleanly on systems without</span>
+<span class="sd">``openbabel-wheel``. The helpers raise a single descriptive error if a</span>
+<span class="sd">caller invokes them without OB installed.</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">rdkit</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chem</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="OpenBabelUnavailableError">
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.OpenBabelUnavailableError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">OpenBabelUnavailableError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Raised when an OB-fallback helper is called but ``openbabel`` is missing."""</span></div>
+
+
+
+<span class="c1"># Non-tetrahedral stereo classes. RDKit emits these for hypervalent centers</span>
+<span class="c1"># (e.g. "[P@TB17]" on a lambda-5 phosphorane), but OpenBabel's SMILES parser</span>
+<span class="c1"># does not support them and rejects the whole string.</span>
+<span class="n">_NONTETRAHEDRAL_CHIRAL_TAGS</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+    <span class="n">tag</span>
+    <span class="k">for</span> <span class="n">tag</span> <span class="ow">in</span> <span class="p">(</span>
+        <span class="nb">getattr</span><span class="p">(</span><span class="n">Chem</span><span class="o">.</span><span class="n">ChiralType</span><span class="p">,</span> <span class="s2">"CHI_TRIGONALBIPYRAMIDAL"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+        <span class="nb">getattr</span><span class="p">(</span><span class="n">Chem</span><span class="o">.</span><span class="n">ChiralType</span><span class="p">,</span> <span class="s2">"CHI_SQUAREPLANAR"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+        <span class="nb">getattr</span><span class="p">(</span><span class="n">Chem</span><span class="o">.</span><span class="n">ChiralType</span><span class="p">,</span> <span class="s2">"CHI_OCTAHEDRAL"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">tag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+<span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">strip_nontetrahedral_stereo</span><span class="p">(</span><span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Drop stereo descriptors OpenBabel cannot parse, keeping the rest.</span>
+
+<span class="sd">    Returns ``smiles`` unchanged if it has no such markers or cannot be parsed.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_NONTETRAHEDRAL_CHIRAL_TAGS</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">smiles</span>
+    <span class="n">mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="n">smiles</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">mol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">smiles</span>
+    <span class="n">stripped</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">atom</span>
+        <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetChiralTag</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_NONTETRAHEDRAL_CHIRAL_TAGS</span>
+    <span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">stripped</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">smiles</span>
+    <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">stripped</span><span class="p">:</span>
+        <span class="n">atom</span><span class="o">.</span><span class="n">SetChiralTag</span><span class="p">(</span><span class="n">Chem</span><span class="o">.</span><span class="n">ChiralType</span><span class="o">.</span><span class="n">CHI_UNSPECIFIED</span><span class="p">)</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolToSmiles</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+        <span class="s2">"stripped non-tetrahedral stereo from </span><span class="si">%d</span><span class="s2"> center(s) for OpenBabel: </span><span class="si">%s</span><span class="s2"> -&gt; </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span>
+        <span class="nb">len</span><span class="p">(</span><span class="n">stripped</span><span class="p">),</span>
+        <span class="n">smiles</span><span class="p">,</span>
+        <span class="n">out</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">normalize_azide</span><span class="p">(</span><span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Rewrite the neutral cumulated azide ``N=[N]=N`` (CACTVS notation) to the</span>
+<span class="sd">    charged form ``N=[N+]=[N-]`` that RDKit can sanitize."""</span>
+    <span class="k">return</span> <span class="n">smiles</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"N=[N]=N"</span><span class="p">,</span> <span class="s2">"N=[N+]=[N-]"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">source_atom_order_from_mapped_smiles</span><span class="p">(</span><span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""Heavy-atom source indices in SMILES/mol2 order, or None if one is unmapped.</span>
+
+<span class="sd">    Explicit input hydrogens are intentionally ignored: OpenBabel regenerates</span>
+<span class="sd">    hydrogens after protonation, while only heavy atoms retain source names.</span>
+<span class="sd">    """</span>
+    <span class="n">smiles</span> <span class="o">=</span> <span class="n">normalize_azide</span><span class="p">(</span><span class="n">strip_nontetrahedral_stereo</span><span class="p">(</span><span class="n">smiles</span><span class="p">))</span>
+    <span class="n">mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="n">smiles</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">mol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">order</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">mapnum</span> <span class="o">=</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetAtomMapNum</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">mapnum</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">order</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mapnum</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_import_openbabel</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return ``(openbabel, pybel)`` modules, or raise a clear error.</span>
+
+<span class="sd">    Imported lazily so that ``tmol.ligand`` can be loaded without the</span>
+<span class="sd">    optional ``openbabel-wheel`` dependency.</span>
+<span class="sd">    """</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">openbabel</span><span class="w"> </span><span class="kn">import</span> <span class="n">openbabel</span><span class="p">,</span> <span class="n">pybel</span>  <span class="c1"># type: ignore[import-not-found]</span>
+    <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">OpenBabelUnavailableError</span><span class="p">(</span>
+            <span class="s2">"OpenBabel fallback was requested but the 'openbabel' Python "</span>
+            <span class="s2">"package is not installed. Install with `pip install openbabel-wheel`."</span>
+        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+    <span class="k">return</span> <span class="n">openbabel</span><span class="p">,</span> <span class="n">pybel</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_obmol_to_rdkit_mol</span><span class="p">(</span><span class="n">obmol</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">sanitize</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Convert an OpenBabel ``OBMol`` into an RDKit ``Chem.Mol``.</span>
+
+<span class="sd">    Goes through a SDF / V2000 mol-block string. This preserves bond</span>
+<span class="sd">    orders, formal charges, and 3D coordinates; aromaticity is recomputed</span>
+<span class="sd">    by RDKit on sanitize.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        obmol: An OpenBabel ``OBMol`` populated with atoms, bonds, and</span>
+<span class="sd">            (usually) 3D coordinates.</span>
+<span class="sd">        sanitize: If True, sanitize the resulting RDKit Mol.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        An RDKit ``Chem.Mol``, or ``None`` if the round-trip failed.</span>
+<span class="sd">    """</span>
+    <span class="n">openbabel</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_import_openbabel</span><span class="p">()</span>
+
+    <span class="n">conv</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBConversion</span><span class="p">()</span>
+    <span class="n">conv</span><span class="o">.</span><span class="n">SetOutFormat</span><span class="p">(</span><span class="s2">"sdf"</span><span class="p">)</span>
+    <span class="n">sdf</span> <span class="o">=</span> <span class="n">conv</span><span class="o">.</span><span class="n">WriteString</span><span class="p">(</span><span class="n">obmol</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">sdf</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromMolBlock</span><span class="p">(</span><span class="n">sdf</span><span class="p">,</span> <span class="n">sanitize</span><span class="o">=</span><span class="n">sanitize</span><span class="p">,</span> <span class="n">removeHs</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">mol</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">obabel_read_mol2</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Read a TRIPOS mol2 file via OpenBabel and return an RDKit ``Chem.Mol``.</span>
+
+<span class="sd">    Use as a fallback when ``Chem.MolFromMol2File`` returns ``None`` on</span>
+<span class="sd">    valid mol2 files that RDKit's parser rejects.</span>
+
+<span class="sd">    Returns ``None`` if OB could not parse the file. Raises</span>
+<span class="sd">    :class:`OpenBabelUnavailableError` if OpenBabel is not installed.</span>
+<span class="sd">    """</span>
+    <span class="n">openbabel</span><span class="p">,</span> <span class="n">pybel</span> <span class="o">=</span> <span class="n">_import_openbabel</span><span class="p">()</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">pymol</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">pybel</span><span class="o">.</span><span class="n">readfile</span><span class="p">(</span><span class="s2">"mol2"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)))</span>
+    <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"OpenBabel could not read any molecule from </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"OpenBabel failed to parse mol2 file </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">_obmol_to_rdkit_mol</span><span class="p">(</span><span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">obabel_read_mol2_block</span><span class="p">(</span><span class="n">mol2_block</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Read a TRIPOS mol2 *string* via OpenBabel and return an RDKit ``Chem.Mol``.</span>
+
+<span class="sd">    In-memory analogue of :func:`obabel_read_mol2` — use as a fallback when</span>
+<span class="sd">    ``Chem.MolFromMol2Block`` returns ``None``. Returns ``None`` if OB could not</span>
+<span class="sd">    parse the block. Raises :class:`OpenBabelUnavailableError` if OB is missing.</span>
+<span class="sd">    """</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">pybel</span> <span class="o">=</span> <span class="n">_import_openbabel</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">pymol</span> <span class="o">=</span> <span class="n">pybel</span><span class="o">.</span><span class="n">readstring</span><span class="p">(</span><span class="s2">"mol2"</span><span class="p">,</span> <span class="n">mol2_block</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"OpenBabel failed to parse in-memory mol2 block"</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">_obmol_to_rdkit_mol</span><span class="p">(</span><span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="p">)</span>
+
+
+<span class="c1"># mmff94 fails on pentavalent phosphorous.</span>
+<span class="c1"># fallback to eem in these cases</span>
+<span class="n">_CHARGE_MODEL_FALLBACKS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"eem"</span><span class="p">,)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_compute_charges_with_fallback</span><span class="p">(</span><span class="n">openbabel</span><span class="p">,</span> <span class="n">pymol</span><span class="p">,</span> <span class="n">forcefield</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Compute charges for molecule, falling back on failure.</span>
+
+<span class="sd">    Returns the name of the model actually used.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If neither the primary model nor any fallback succeeds.</span>
+<span class="sd">    """</span>
+    <span class="n">primary</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBChargeModel</span><span class="o">.</span><span class="n">FindType</span><span class="p">(</span><span class="n">forcefield</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">primary</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">primary</span><span class="o">.</span><span class="n">ComputeCharges</span><span class="p">(</span><span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">forcefield</span>
+
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">_CHARGE_MODEL_FALLBACKS</span><span class="p">:</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBChargeModel</span><span class="o">.</span><span class="n">FindType</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">model</span><span class="o">.</span><span class="n">ComputeCharges</span><span class="p">(</span><span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="p">):</span>
+            <span class="k">continue</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s2">"</span><span class="si">%s</span><span class="s2"> partial charges are unavailable for SMILES </span><span class="si">%r</span><span class="s2">; falling back to "</span>
+            <span class="s2">"</span><span class="si">%r</span><span class="s2">. These charges come from a different model and are not directly "</span>
+            <span class="s2">"comparable to </span><span class="si">%s</span><span class="s2"> charges."</span><span class="p">,</span>
+            <span class="n">forcefield</span><span class="p">,</span>
+            <span class="n">smiles</span><span class="p">,</span>
+            <span class="n">name</span><span class="p">,</span>
+            <span class="n">forcefield</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">name</span>
+
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">"OpenBabel could not compute </span><span class="si">{</span><span class="n">forcefield</span><span class="si">}</span><span class="s2"> partial charges for "</span>
+        <span class="sa">f</span><span class="s2">"SMILES </span><span class="si">{</span><span class="n">smiles</span><span class="si">!r}</span><span class="s2">, and no fallback model "</span>
+        <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_CHARGE_MODEL_FALLBACKS</span><span class="p">)</span><span class="si">}</span><span class="s2">) could parameterize it either"</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_charged_3d_mol2_mol</span><span class="p">(</span>
+    <span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">forcefield</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"mmff94"</span><span class="p">,</span>
+    <span class="n">minimize_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Parse a SMILES, 3D-embed, charge, and rename atoms; return the pybel mol.</span>
+
+<span class="sd">    Shared core of :func:`obabel_smiles_to_mol2` (file) and</span>
+<span class="sd">    :func:`obabel_smiles_to_mol2_block` (string). Coordinates come from the</span>
+<span class="sd">    distance-geometry builder (:func:`tmol.ligand._conformer_generation.</span>
+<span class="sd">    generate_conformer`); this then computes MMFF94 partial charges (so the mol2</span>
+<span class="sd">    ``charge_type`` is normally ``MMFF94_CHARGES``) and assigns generic atom</span>
+<span class="sd">    names. MMFF94 charges are topological, so the conformer does not affect them.</span>
+
+<span class="sd">    If the named model cannot parameterize the molecule (e.g. MMFF94 has no types</span>
+<span class="sd">    for a lambda-5 phosphorane), charges come from a fallback model instead — see</span>
+<span class="sd">    :func:`_compute_charges_with_fallback`, which warns loudly.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        minimize_steps: OpenBabel conjugate-gradient cleanup steps.</span>
+<span class="sd">        seed: Fixed RNG seed for reproducible coordinates; ``None`` is random.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        OpenBabelUnavailableError: If the ``openbabel`` package is not installed.</span>
+<span class="sd">        ValueError: If RDKit rejects the chemistry, 3D generation fails, or no</span>
+<span class="sd">            partial charges can be computed.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._conformer_generation</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_conformer</span>
+
+    <span class="n">openbabel</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_import_openbabel</span><span class="p">()</span>
+    <span class="n">smiles</span> <span class="o">=</span> <span class="n">normalize_azide</span><span class="p">(</span><span class="n">strip_nontetrahedral_stereo</span><span class="p">(</span><span class="n">smiles</span><span class="p">))</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">pymol</span> <span class="o">=</span> <span class="n">generate_conformer</span><span class="p">(</span><span class="n">smiles</span><span class="p">,</span> <span class="n">minimize_steps</span><span class="o">=</span><span class="n">minimize_steps</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"failed to generate 3D coordinates for SMILES </span><span class="si">{</span><span class="n">smiles</span><span class="si">!r}</span><span class="s2">"</span>
+        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+    <span class="n">_compute_charges_with_fallback</span><span class="p">(</span><span class="n">openbabel</span><span class="p">,</span> <span class="n">pymol</span><span class="p">,</span> <span class="n">forcefield</span><span class="p">,</span> <span class="n">smiles</span><span class="p">)</span>
+    <span class="n">_assign_generic_atom_names</span><span class="p">(</span><span class="n">openbabel</span><span class="p">,</span> <span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">pymol</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">obabel_smiles_to_mol2_block</span><span class="p">(</span>
+    <span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">forcefield</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"mmff94"</span><span class="p">,</span>
+    <span class="n">minimize_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return a 3D MMFF94 mol2 as an in-memory TRIPOS string (no disk I/O).</span>
+
+<span class="sd">    Preferred over :func:`obabel_smiles_to_mol2` for high-throughput batches</span>
+<span class="sd">    (e.g. millions of SMILES): the mol2 is handed downstream as a string rather</span>
+<span class="sd">    than written to and re-read from a temp file. See</span>
+<span class="sd">    :func:`_build_charged_3d_mol2_mol` for the protocol and raised errors.</span>
+<span class="sd">    """</span>
+    <span class="n">pymol</span> <span class="o">=</span> <span class="n">_build_charged_3d_mol2_mol</span><span class="p">(</span>
+        <span class="n">smiles</span><span class="p">,</span> <span class="n">forcefield</span><span class="o">=</span><span class="n">forcefield</span><span class="p">,</span> <span class="n">minimize_steps</span><span class="o">=</span><span class="n">minimize_steps</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">pymol</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">"mol2"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">obabel_smiles_to_mol2</span><span class="p">(</span>
+    <span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">out_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">forcefield</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"mmff94"</span><span class="p">,</span>
+    <span class="n">minimize_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Generate a 3D MMFF94 mol2 from a SMILES and write it to ``out_path``.</span>
+
+<span class="sd">    File-writing wrapper around :func:`obabel_smiles_to_mol2_block`; prefer the</span>
+<span class="sd">    block form when no on-disk mol2 is required. See</span>
+<span class="sd">    :func:`_build_charged_3d_mol2_mol` for the protocol and raised errors.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The ``out_path`` written.</span>
+<span class="sd">    """</span>
+    <span class="n">pymol</span> <span class="o">=</span> <span class="n">_build_charged_3d_mol2_mol</span><span class="p">(</span>
+        <span class="n">smiles</span><span class="p">,</span> <span class="n">forcefield</span><span class="o">=</span><span class="n">forcefield</span><span class="p">,</span> <span class="n">minimize_steps</span><span class="o">=</span><span class="n">minimize_steps</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span>
+    <span class="p">)</span>
+    <span class="n">out_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">out_path</span><span class="p">)</span>
+    <span class="n">pymol</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">"mol2"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">out_path</span><span class="p">),</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out_path</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_assign_generic_atom_names</span><span class="p">(</span><span class="n">openbabel</span><span class="p">,</span> <span class="n">obmol</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Rename atoms to generic ``&lt;element&gt;&lt;1-based-per-element-index&gt;``.</span>
+
+<span class="sd">    For peptide-like ligands ``make3D`` perceives amino-acid residues and writes</span>
+<span class="sd">    PDB atom names (``CA``, ``CB``, ``OXT``) into the mol2. Those collide with</span>
+<span class="sd">    element symbols (``CA`` = carbon-alpha vs calcium), which can confuse</span>
+<span class="sd">    name-based element inference downstream. Generic names (``C1``, ``N1``, …)</span>
+<span class="sd">    are element-unambiguous and match the conventional SMILES-&gt;PDB-&gt;mol2</span>
+<span class="sd">    ligand-prep output. Chemistry (elements, coordinates, bonds, charges) is</span>
+<span class="sd">    untouched — only the labels change.</span>
+<span class="sd">    """</span>
+    <span class="n">periodic_table</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">GetPeriodicTable</span><span class="p">()</span>
+    <span class="n">counts</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBMolAtomIter</span><span class="p">(</span><span class="n">obmol</span><span class="p">):</span>
+        <span class="n">symbol</span> <span class="o">=</span> <span class="n">periodic_table</span><span class="o">.</span><span class="n">GetElementSymbol</span><span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">())</span>
+        <span class="n">counts</span><span class="p">[</span><span class="n">symbol</span><span class="p">]</span> <span class="o">=</span> <span class="n">counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">residue</span> <span class="o">=</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetResidue</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">residue</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">residue</span><span class="o">.</span><span class="n">SetAtomID</span><span class="p">(</span><span class="n">atom</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">symbol</span><span class="si">}{</span><span class="n">counts</span><span class="p">[</span><span class="n">symbol</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.21.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
