@@ -1,326 +1,115 @@
-# TMol
+<h1 align="center">TMol</h1>
 
-[![PyPI version](https://img.shields.io/pypi/v/tmol.svg)](https://pypi.org/project/tmol/)
-[![Python versions](https://img.shields.io/pypi/pyversions/tmol.svg)](https://pypi.org/project/tmol/)
-[![Downloads](https://img.shields.io/pypi/dm/tmol.svg)](https://pypi.org/project/tmol/)
-[![CI status](https://github.com/uw-ipd/tmol/actions/workflows/ci.yml/badge.svg)](https://github.com/uw-ipd/tmol/actions/workflows/ci.yml)
-[![Documentation](https://github.com/uw-ipd/tmol/actions/workflows/docs.yml/badge.svg)](https://uw-ipd.github.io/tmol/)
-[![Coverage](https://codecov.io/gh/uw-ipd/tmol/graph/badge.svg)](https://codecov.io/gh/uw-ipd/tmol)
-[![License](https://img.shields.io/github/license/uw-ipd/tmol.svg)](LICENSE)
+<p align="center"><em>Rosetta-inspired molecular modeling at PyTorch speed.</em></p>
 
-`tmol` is a GPU-accelerated PyTorch implementation of Rosetta-inspired
-all-atom molecular scoring, packing, and refinement primitives. It provides
-batched tensor representations, score derivatives, and custom C++/CUDA
-kernels.
+<p align="center">
+  <a href="https://pypi.org/project/tmol/"><img src="https://img.shields.io/pypi/v/tmol.svg" alt="PyPI version"></a>
+  <a href="https://pypi.org/project/tmol/"><img src="https://img.shields.io/pypi/pyversions/tmol.svg" alt="Python versions"></a>
+  <a href="https://pypi.org/project/tmol/"><img src="https://img.shields.io/pypi/dm/tmol.svg" alt="PyPI downloads"></a>
+  <a href="https://github.com/uw-ipd/tmol/actions/workflows/ci.yml"><img src="https://github.com/uw-ipd/tmol/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
+  <a href="https://uw-ipd.github.io/tmol/"><img src="https://github.com/uw-ipd/tmol/actions/workflows/docs.yml/badge.svg" alt="Documentation"></a>
+  <a href="https://codecov.io/gh/uw-ipd/tmol"><img src="https://codecov.io/gh/uw-ipd/tmol/graph/badge.svg" alt="Code coverage"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/uw-ipd/tmol.svg" alt="License"></a>
+</p>
 
-Full documentation: <https://uw-ipd.github.io/tmol/>
+TMol scores, packs, minimizes, and relaxes all-atom molecular structures as
+batched PyTorch tensors—on CPU or GPU, with gradients. It provides fast
+C++/CUDA kernels and modeling primitives for proteins, nucleic acids, ligands,
+and their complexes.
 
-## Table of Contents
+Explore the **[TMol documentation](https://uw-ipd.github.io/tmol/)** for
+complete installation guidance, executable tutorials, workflows, and the API
+reference.
 
-- [Installation](#installation)
-- [Usage](#usage)
-- [Integrations](#integrations)
-- [Citation](#citation)
-- [Development](#development)
+Three ways in:
 
-## Installation
+- 🚀 **Start scoring** → [quick start](#quick-start), then the full **[Quickstart](https://uw-ipd.github.io/tmol/latest/quickstart.html)**.
+- 🧬 **Build a workflow** → **[scoring, packing, minimization, FastRelax, and ligand recipes](https://uw-ipd.github.io/tmol/latest/workflows/index.html)**.
+- 🛠️ **Develop TMol** → **[contributor guide](https://uw-ipd.github.io/tmol/latest/contributor_guide.html)**.
 
-### Pre-built wheels (recommended)
+> [!NOTE]
+> TMol is not a PyRosetta compatibility layer. TMol score units are not kcal/mol
+> or calibrated Rosetta score units, and identical Rosetta trajectories or
+> numerical results should not be expected.
 
-Pre-built wheels ship with **ahead-of-time (AOT) compiled** C++/CUDA extensions, so install does not require `nvcc`.
+---
 
-tmol uses two channels:
+## Install
 
-- **PyPI**: source distribution (`sdist`) for `pip install tmol`
-- **GitHub Releases**: prebuilt CPU/GPU wheels
-
-Use the mode that fits your needs:
-
-- **Deterministic binary install (canonical):** direct wheel URL or local `--find-links`.
-- **Convenience install:** `pip install tmol` (best-effort wheel auto-fetch, source-build fallback).
-- **Forced source build:** disable fetch and compile locally.
-
-> [!IMPORTANT]
-> **v0.1.49 release matrix:** one source distribution is published to PyPI and
-> 33 prebuilt wheels (25 GPU and 8 CPU) are published on GitHub for the Python,
-> PyTorch, CUDA, and architecture combinations below. Always confirm availability on the
-> [GitHub Releases page](https://github.com/uw-ipd/tmol/releases).
-
-Starting with v0.1.42, tmol publishes these wheel variants to GitHub Releases:
-
-- GPU wheels (`manylinux_2_28_x86_64` and `manylinux_2_28_aarch64`) for:
-  - Python `cp311`: torch 2.12
-  - Python `cp312`: torch 2.8 through 2.13
-  - Python `cp313` and `cp314`: torch 2.12 and 2.13
-  - Torch/CUDA tags:
-    - `+cu129torch2.8`
-    - `+cu130torch2.9`
-    - `+cu128torch2.10` (x86_64 foundry upgrade lane)
-    - `+cu130torch2.10`
-    - `+cu128torch2.11` (Google Colab / Turing **T4** wheel — the only variant built with `sm_75`)
-    - `+cu130torch2.11`
-    - `+cu130torch2.12`
-    - `+cu132torch2.12`
-    - `+cu130torch2.13`
-- CPU wheels (`manylinux_2_28_x86_64` and `manylinux_2_28_aarch64`) for:
-  - Python `cp311`, `cp312`, `cp313`, `cp314`
-  - local version tag `+cpu`
-
-Wheel filename format:
-
-```text
-tmol-{VERSION}+{LOCAL_TAG}-cp{PYTAG}-cp{PYTAG}-manylinux_2_28_{ARCH}.whl
-```
-
-Examples:
-
-- `tmol-0.1.49+cu130torch2.13-cp313-cp313-manylinux_2_28_x86_64.whl`
-- `tmol-0.1.49+cpu-cp314-cp314-manylinux_2_28_aarch64.whl`
-
-> [!TIP]
-> CUDA wheels are forward-compatible within a major family (e.g. `cu132` wheels run on appropriate CUDA 13.x driver stacks).
-
-### System requirements (Linux wheels)
-
-The v0.1.49 GPU and CPU wheels use `manylinux_2_28` platform tags on both
-`x86_64` and `aarch64`. They require a Linux distribution with glibc 2.28 or
-newer. Torch and NVIDIA CUDA shared libraries are supplied by the matching
-PyTorch package, not bundled into tmol wheels.
-
-Wheel tags such as `cp312` and `+cu130torch2.9` select **Python**, **PyTorch**, and **CUDA** — they do not override your system's C++ runtime (`libstdc++`). If `import tmol` fails with `GLIBCXX_3.4.xx not found`, your **libstdc++ is older than the wheel was built for** (not a wrong CUDA wheel tag).
-
-**On older HPC clusters or minimal Linux images:**
-
-```bash
-# Build against your system libraries (recommended)
-TMOL_DISABLE_WHEEL_FETCH=1 pip install -e .
-
-# Or allow JIT compile at import if nvcc is available
-export TMOL_JIT_FALLBACK=1
-```
-
-Other workarounds: load a newer GCC module, `conda install -c conda-forge libstdcxx-ng` and set `LD_LIBRARY_PATH`, or use a recent container image.
-
-Check your environment:
-
-```bash
-python -c "import sys, torch; print(f'Python {sys.version_info.major}.{sys.version_info.minor}, Torch {torch.__version__}, CUDA {torch.version.cuda}')"
-```
-
-Install torch first so it matches your chosen wheel tag:
-
-```bash
-pip install "torch==2.12.*" --index-url https://download.pytorch.org/whl/cu132
-# or torch 2.13 from cu130, depending on the wheel you pick
-```
-
-#### Install by direct wheel URL (recommended)
-
-```bash
-pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu130torch2.13-cp313-cp313-manylinux_2_28_x86_64.whl"
-```
-
-#### Google Colab (Turing T4)
-
-Colab ships Python 3.12 + torch 2.8 on a T4 (`sm_75`). Use the `+cu128torch2.8`
-wheel — it is the only variant compiled for `sm_75` (it also covers A100/L4):
-
-```bash
-pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.8-cp312-cp312-manylinux_2_28_x86_64.whl"
-```
-
-#### Auto-fetch matching wheel, fallback to source build
-
-tmol supports a FlashAttention-style bootstrap when installing from PyPI `sdist`:
-
-1. During wheel build, tmol tries to download a matching prebuilt wheel from GitHub Releases.
-2. If no match is found, tmol falls back to local source build.
-
-In pip's default PEP517 isolated build environment, tmol performs **best-effort auto-detection** of CUDA/Torch lane. For deterministic behavior, pin the lane explicitly.
-
-Simplest command (safe default):
+The shortest path is:
 
 ```bash
 pip install tmol
 ```
 
-For deterministic wheel auto-fetch in isolated builds, pin the lane:
+TMol first looks for a matching prebuilt wheel and otherwise builds locally.
+For a deterministic CPU/GPU binary install, supported Python/PyTorch/CUDA
+combinations, Colab, macOS, and HPC troubleshooting, see the
+**[installation guide](https://uw-ipd.github.io/tmol/latest/installation.html)**
+and **[GitHub Releases](https://github.com/uw-ipd/tmol/releases)**.
+
+Verify the installation:
 
 ```bash
-TMOL_WHEEL_LOCAL_TAG=cu132torch2.12 pip install "tmol==X.Y.Z"
+python -c "import tmol; print(tmol.__version__)"
 ```
 
-If you want detection based on the currently active runtime environment instead, you can disable build isolation:
+---
 
-```bash
-pip install --no-build-isolation "tmol==X.Y.Z"
-```
+## Quick start
 
-Install a specific release version:
-
-```bash
-pip install "tmol==X.Y.Z"
-```
-
-If auto-detection picks the wrong wheel variant, pin the exact local tag:
-
-```bash
-TMOL_WHEEL_LOCAL_TAG=cu132torch2.12 \
-pip install "tmol==X.Y.Z"
-```
-
-Useful toggles:
-
-- `TMOL_DISABLE_WHEEL_FETCH=1`: skip prebuilt lookup and always build locally.
-- `TMOL_FORCE_BUILD=1`: same as above (explicit force-local-build path).
-- `TMOL_ENABLE_LOCAL_FETCH=1`: allow fetch even from a git checkout (`pip install .`).
-- `TMOL_WHEEL_RELEASE_TAG=vX.Y.Z`: override GitHub release tag.
-- `TMOL_WHEEL_RELEASE_BASE_URL=...`: override release base URL (mirrors/internal hosting).
-- `TMOL_WHEEL_FETCH_RETRIES=2`: number of retry attempts after the first failed request.
-- `TMOL_WHEEL_FETCH_TIMEOUT_S=20`: HTTP timeout in seconds per request.
-- `TMOL_WHEEL_FETCH_BACKOFF_S=1.5`: linear backoff multiplier between retries.
-
-#### Install from a local wheel cache (`--find-links`)
-
-```bash
-# 1) Download wheel files for your environment into ./wheels
-mkdir -p wheels
-# e.g. use browser/curl/wget from the release page
-
-# 2) Install from local directory only
-pip install --no-index --find-links ./wheels "tmol==X.Y.Z+cu132torch2.12"
-```
-
-#### CPU-only install
-
-```bash
-pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cpu-cp313-cp313-manylinux_2_28_x86_64.whl"
-```
-
-The CPU wheel works with CPU-only or CUDA torch installs; CUDA ops in tmol are unavailable.
-
-### From PyPI sdist (source-build baseline)
-
-By default, `pip install tmol` installs from PyPI `sdist`. tmol applies the auto-fetch safety policy described above and otherwise builds locally.
-
-To force local source build explicitly:
-
-```bash
-TMOL_DISABLE_WHEEL_FETCH=1 pip install tmol
-```
-
-For dev extras:
-
-```bash
-TMOL_DISABLE_WHEEL_FETCH=1 pip install "tmol[dev]"
-```
-
-> [!NOTE]
-> Current CI publishes `sdist` to PyPI and prebuilt wheels to GitHub Releases.
-> If you need deterministic binary selection, use direct wheel URL or local `--find-links`.
-
-### From source
-
-```bash
-git clone https://github.com/uw-ipd/tmol.git && cd tmol
-pip install -e ".[dev]"   # builds extensions via CMake (CUDA auto-detected)
-```
-
-If you don't have a CUDA toolkit, the build automatically falls back to CPU-only extensions. You can also force a CPU-only build explicitly:
-
-```bash
-pip install -e . -Ccmake.define.TMOL_ENABLE_CUDA=OFF
-```
-
-For macOS, install from source (CPU-only build):
-
-```bash
-pip install -e . -Ccmake.define.TMOL_ENABLE_CUDA=OFF
-```
-
-## Usage
-
-### Quick start
+Score a structure on GPU when CUDA is available, otherwise on CPU:
 
 ```python
+import torch
 import tmol
 
-# Load a structure
-pose_stack = tmol.pose_stack_from_pdb("1ubq.pdb")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+pose = tmol.pose_stack_from_pdb("input.pdb", device)
 
-# Score it
-sfxn = tmol.beta2016_score_function(pose_stack.device)
-scorer = sfxn.render_whole_pose_scoring_module(pose_stack)
-print(scorer(pose_stack.coords))
+score_function = tmol.beta2016_score_function(device)
+score = score_function.render_whole_pose_scoring_module(pose)
+print(score(pose.coords))
 ```
 
-### Minimization
+From here, use the **[interactive examples](https://uw-ipd.github.io/tmol/latest/examples_index.html)**
+to pack side chains, analyze score terms, minimize coordinates, run FastRelax,
+prepare ligands, or model nucleic acids.
 
-```python
-cart_sfxn_network = tmol.cart_sfxn_network(sfxn, pose_stack)
-optimizer = tmol.lbfgs_armijo(cart_sfxn_network.parameters())
+---
 
-def closure():
-    optimizer.zero_grad()
-    E = cart_sfxn_network().sum()
-    E.backward()
-    return E
+## What TMol provides
 
-optimizer.step(closure)
-```
+- Batched, differentiable all-atom structures backed by PyTorch tensors.
+- Rosetta-inspired score terms with CPU and CUDA implementations.
+- Side-chain packing and design, Cartesian and kinematic minimization, and FastRelax.
+- Protein, ligand, RNA, and DNA structure preparation and analysis.
+- RoseTTAFold2, OpenFold, Biotite, PDB, and canonical tensor integrations.
+- Ahead-of-time compiled wheels plus source and just-in-time build paths.
 
-### Save output
+See the **[task index](https://uw-ipd.github.io/tmol/latest/tutorial/recipe_index.html)**
+to jump from a modeling task to its maintained tutorial, workflow, and API.
 
-```python
-tmol.write_pose_stack_pdb(pose_stack, "output.pdb")
-```
-
-### Verify installation
-
-```python
-import tmol
-print(f"tmol {tmol.__version__} loaded successfully")
-```
-
-## Integrations
-
-### RosettaFold2
-
-Install tmol into your RF2 environment:
-
-```bash
-cd <tmol repo root>
-pip install -e .
-```
-
-```python
-# RF2 -> tmol
-seq, xyz, chainlens = rosettafold2_model.infer(sequence)
-pose_stack = tmol.pose_stack_from_rosettafold2(seq[0], xyz[0], chainlens[0])
-
-# tmol -> RF2
-xyz = tmol.pose_stack_to_rosettafold2(...)
-```
-
-> [!NOTE]
-> Tested on Ubuntu 20.04. Other platforms should work but are not yet verified.
-
-> [!WARNING]
-> Call `torch.set_grad_enabled(True)` before using the tmol minimizer, since RF2 disables gradients during inference by default.
-
-### OpenFold
-
-```python
-output = openfold_model.infer(sequences)
-pose_stack = tmol.pose_stack_from_openfold(output)
-```
-
-## Citation
-
-If you use tmol in your work, please cite:
-
-> Andrew Leaver-Fay, Jeff Flatten, Alex Ford, Joseph Kleinhenz, Henry Solberg, David Baker, Andrew M. Watkins, Brian Kuhlman, Frank DiMaio, *tmol: a GPU-accelerated, PyTorch implementation of Rosetta's relax protocol*, (manuscript in preparation)
+---
 
 ## Development
 
-See [DEVELOPMENT.md](DEVELOPMENT.md) for building from source, running tests, extension loading (AOT vs JIT), CI, containers, and contributing guidelines.
+```bash
+git clone https://github.com/uw-ipd/tmol.git
+cd tmol
+TMOL_DISABLE_WHEEL_FETCH=1 pip install -e ".[dev]"
+```
+
+The **[development guide](https://uw-ipd.github.io/tmol/latest/user_guide/development.html)**
+covers CMake/CUDA builds, tests, benchmarks, containers, CI, and releases.
+
+## Citation
+
+If you use TMol in your work, please cite:
+
+> Andrew Leaver-Fay, Jeff Flatten, Alex Ford, Joseph Kleinhenz, Henry Solberg,
+> David Baker, Andrew M. Watkins, Brian Kuhlman, Frank DiMaio, *tmol: a
+> GPU-accelerated, PyTorch implementation of Rosetta's relax protocol*
+> (manuscript in preparation).
+
+TMol is available under the terms in [LICENSE](LICENSE).
