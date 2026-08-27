@@ -41,9 +41,13 @@ assert_torch_cuda
 RUN_GPU=$(python -c "import torch; c=torch.cuda.get_device_capability(0); print(f'{c[0]}.{c[1]}')" 2>/dev/null || echo "n/a")
 CUDA_ARCHS="${TMOL_CI_CUDA_ARCHITECTURES:-80;86;89;90;100}"
 NVCC_VER=$(nvcc --version 2>&1 | sed -n 's/.*release \([0-9.]*\).*/\1/p' | head -1)
-case "${NVCC_VER}" in
-  11.*|12.*) CUDA_ARCHS="80;86;89;90" ;;
-esac
+if [[ "${CUDA_ARCHS}" == "native" ]]; then
+  CUDA_ARCHS="${RUN_GPU/./}"
+else
+  case "${NVCC_VER}" in
+    11.*|12.*) CUDA_ARCHS="80;86;89;90" ;;
+  esac
+fi
 unset CMAKE_CUDA_ARCHITECTURES
 export CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}"
 TORCH_ARCH_LIST=""

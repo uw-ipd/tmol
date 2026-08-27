@@ -69,6 +69,7 @@ def beta2016_score_function(
     except for the inclusion of the bond-length, bond-angle, and bond-torsion
     terms implemented by the CartBonded energy term, and the exclusion
     of the ProClose energy term (which is not implemented in tmol).
+
     Args:
         device: Target torch device.
         param_db: Optional parameter database. If omitted, uses the process

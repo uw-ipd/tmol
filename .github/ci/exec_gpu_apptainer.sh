@@ -31,6 +31,12 @@ fi
 if [[ -n "${GITHUB_RUN_NUMBER:-}" ]]; then
   env_args+=(--env "GITHUB_RUN_NUMBER=${GITHUB_RUN_NUMBER}")
 fi
+if [[ -n "${TMOL_DOCS_VERSION_MATCH:-}" ]]; then
+  env_args+=(--env "TMOL_DOCS_VERSION_MATCH=${TMOL_DOCS_VERSION_MATCH}")
+fi
+if [[ -n "${TMOL_DOCS_BASE_URL:-}" ]]; then
+  env_args+=(--env "TMOL_DOCS_BASE_URL=${TMOL_DOCS_BASE_URL}")
+fi
 
 apptainer exec --nv --fakeroot --containall \
   --bind "${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE}" \
