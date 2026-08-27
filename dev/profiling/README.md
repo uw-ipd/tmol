@@ -66,12 +66,21 @@ to replace them.
 
 `nsys` must be available in the GPU runtime. The trace command uses the CUDA
 Profiler API to exclude imports, topology construction, score-function
-rendering, and warm-up from the capture. CUDA graphs are traced at node
-granularity so their internal kernels remain visible:
+rendering, and warm-up from the capture:
 
 ```bash
 python dev/profiling/matrix.py \
   --trace --output-dir artifacts/nsys
+```
+
+Nsight's default graph-level mode keeps complete matrix captures fast and
+compact. Use the matching eager case to inspect the kernels inside a scorer.
+For a focused CUDA-graph investigation, node-level tracing is available but can
+add minutes of profiler overhead to one replay with Nsight Systems 2026.3.1:
+
+```bash
+python dev/profiling/matrix.py --trace --graph-node-trace \
+  --output-dir artifacts/graph-nodes --case score_graph-dna24-b1
 ```
 
 Each case produces:

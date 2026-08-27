@@ -185,6 +185,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--trace", action="store_true")
+    parser.add_argument(
+        "--graph-node-trace",
+        action="store_true",
+        help="trace individual CUDA graph nodes (high overhead)",
+    )
     parser.add_argument("--workflow", choices=MATRIX, action="append")
     parser.add_argument("--case", action="append", help="exact case slug to select")
     parser.add_argument("--max-iter", type=int, default=10)
@@ -248,7 +253,7 @@ def main():
                 "--capture-range=cudaProfilerApi",
                 "--capture-range-end=stop",
                 "--trace=cuda,nvtx,osrt",
-                "--cuda-graph-trace=node",
+                *(["--cuda-graph-trace=node"] if args.graph_node_trace else []),
                 "--sample=none",
                 "--cpuctxsw=none",
                 "--output",
