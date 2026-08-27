@@ -226,27 +226,47 @@ def _assert_connections_are_well_formed(
     partner_conn = inter_residue_connections64[..., 1]
     has_partner = partner >= 0
 
+    n_poses, n_blocks, n_connections = partner.shape
+    pose = torch.arange(n_poses, device=partner.device)[:, None, None]
+    block = torch.arange(n_blocks, device=partner.device)[None, :, None]
+    safe_partner = partner.clamp(0, n_blocks - 1)
+    safe_partner_conn = partner_conn.clamp(0, n_connections - 1)
+    partner_resolved = block_type_ind64[pose, safe_partner] >= 0
+    points_back = (
+        inter_residue_connections64[pose, safe_partner, safe_partner_conn, 0] == block
+    )
+    bad_mask = has_partner & (
+        (block_type_ind64[:, :, None] < 0)
+        | (partner >= n_blocks)
+        | ~partner_resolved
+        | (partner_conn < 0)
+        | (partner_conn >= n_connections)
+        | ~points_back
+    )
+    if not torch.any(bad_mask):
+        return
+
     bad = []
-    for pose, block, conn in torch.nonzero(has_partner, as_tuple=False).tolist():
-        p = int(partner[pose, block, conn])
-        pc = int(partner_conn[pose, block, conn])
-        if int(block_type_ind64[pose, block]) < 0:
-            bad.append(f"block {block} has no resolved type but connects to {p}")
-        elif int(block_type_ind64[pose, p]) < 0:
-            bad.append(f"block {block} connects to {p}, which has no resolved type")
-        elif pc < 0:
-            bad.append(f"block {block} conn {conn} names block {p} connection {pc}")
-        elif int(inter_residue_connections64[pose, p, pc, 0]) != block:
+    for pose_i, block_i, conn_i in torch.nonzero(bad_mask, as_tuple=False)[
+        :20
+    ].tolist():
+        p = int(partner[pose_i, block_i, conn_i])
+        pc = int(partner_conn[pose_i, block_i, conn_i])
+        if int(block_type_ind64[pose_i, block_i]) < 0:
+            bad.append(f"block {block_i} has no resolved type but connects to {p}")
+        elif p >= n_blocks:
+            bad.append(f"block {block_i} connects to invalid block {p}")
+        elif int(block_type_ind64[pose_i, p]) < 0:
+            bad.append(f"block {block_i} connects to {p}, which has no resolved type")
+        elif pc < 0 or pc >= n_connections:
+            bad.append(f"block {block_i} conn {conn_i} names block {p} connection {pc}")
+        else:
+            back = int(inter_residue_connections64[pose_i, p, pc, 0])
             bad.append(
-                f"block {block} conn {conn} points at block {p} conn {pc}, "
-                f"which points back at {int(inter_residue_connections64[pose, p, pc, 0])}"
+                f"block {block_i} conn {conn_i} points at block {p} conn {pc}, "
+                f"which points back at {back}"
             )
-        if bad and len(bad) >= 20:
-            break
-    if bad:
-        raise RuntimeError(
-            "malformed inter-residue connections:\n  " + "\n  ".join(bad)
-        )
+    raise RuntimeError("malformed inter-residue connections:\n  " + "\n  ".join(bad))
 
 
 @validate_args
@@ -594,7 +614,6 @@ def select_best_block_type_candidate(  # noqa: C901
         best_candidate_ind2[is_real_res],
     ]
     if torch.any(best_candidate_score >= warning_threshold):
-
         nz_is_real_candidate = torch.nonzero(is_real_candidate)
         err_msg = []
         for cand_ind in range(nz_is_real_candidate.shape[0]):

@@ -1,4 +1,5 @@
 import numpy
+import pytest
 import torch
 
 import cattr
@@ -24,6 +25,9 @@ from tmol.io.details import (
     _annotate_packed_block_types_w_canonical_res_order,
     CanonicalOrderingAnnotation,
 )
+from tmol.io.details._select_from_canonical import (
+    _assert_connections_are_well_formed,
+)
 from tmol.pose import (
     PoseStackBuilder,
     PackedBlockTypes,
@@ -33,6 +37,34 @@ from tmol.tests.io.details.test_left_justify_canonical_form import add_two_res_a
 
 def not_any_nancoord(coords):
     return torch.logical_not(torch.any(torch.isnan(coords), dim=3))
+
+
+def test_assert_connections_are_well_formed_batched(torch_device):
+    block_types = torch.zeros((16, 3), dtype=torch.int64, device=torch_device)
+    connections = torch.full((16, 3, 2, 2), -1, dtype=torch.int64, device=torch_device)
+    connections[:, 0, 0] = torch.tensor([1, 1], device=torch_device)
+    connections[:, 1, 1] = torch.tensor([0, 0], device=torch_device)
+
+    _assert_connections_are_well_formed(None, block_types, connections)
+
+
+def test_assert_connections_are_well_formed_reports_malformed(torch_device):
+    block_types = torch.zeros((1, 3), dtype=torch.int64, device=torch_device)
+    connections = torch.full((1, 3, 2, 2), -1, dtype=torch.int64, device=torch_device)
+    connections[0, 0, 0] = torch.tensor([1, 1], device=torch_device)
+    connections[0, 1, 1] = torch.tensor([2, 0], device=torch_device)
+
+    with pytest.raises(RuntimeError, match="which points back at 2"):
+        _assert_connections_are_well_formed(None, block_types, connections)
+
+
+def test_assert_connections_are_well_formed_reports_out_of_range(torch_device):
+    block_types = torch.zeros((1, 3), dtype=torch.int64, device=torch_device)
+    connections = torch.full((1, 3, 2, 2), -1, dtype=torch.int64, device=torch_device)
+    connections[0, 0, 0] = torch.tensor([3, 0], device=torch_device)
+
+    with pytest.raises(RuntimeError, match="connects to invalid block 3"):
+        _assert_connections_are_well_formed(None, block_types, connections)
 
 
 def dslf_and_his_resolved_pose_stack_from_canonical_form(

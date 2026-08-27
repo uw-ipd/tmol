@@ -74,8 +74,17 @@ def build_missing_sidechains(
 
     task.add_conformer_sampler_by_block_mask(dunbrack_sampler, block_has_missing_atoms)
     task.add_conformer_sampler_by_block_mask(fixed_sampler, block_has_missing_atoms)
-    if na_sampler is not None:
-        task.add_conformer_sampler_by_block_mask(na_sampler, block_has_missing_atoms)
+    # An empty sampler mask still makes the general rotamer builder execute the
+    # sampler's setup path. Avoid that overhead for complete protein batches.
+    if na_sampler is not None and torch.any(block_has_missing_atoms):
+        block_type_ind = pose_stack.block_type_ind64
+        real_blocks = block_type_ind >= 0
+        na_blocks = na_sampler.defines_rotamers_for_bts(
+            pose_stack.packed_block_types, block_type_ind.clamp_min(0)
+        )
+        missing_na_blocks = block_has_missing_atoms & real_blocks & na_blocks
+        if torch.any(missing_na_blocks):
+            task.add_conformer_sampler_by_block_mask(na_sampler, missing_na_blocks)
     block_does_not_have_missing_atoms = torch.logical_not(block_has_missing_atoms)
     if not no_optH:
         task.add_conformer_sampler_by_block_mask(
