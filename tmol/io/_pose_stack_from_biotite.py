@@ -24,7 +24,6 @@ from tmol.utility import (
     get_all_residue_positions,
     resolve_device,
 )
-from tmol.score import beta2016_score_function
 
 logger = logging.getLogger(__name__)
 
@@ -198,10 +197,6 @@ def pose_stack_from_biotite(  # noqa: C901
 
     from tmol.io import pose_stack_from_canonical_form
     from tmol.pack import build_missing_sidechains
-    from tmol.pack.rotamer import NaChiRotamerSampler
-    from tmol.pack.rotamer.dunbrack import (
-        create_dunbrack_sampler_from_database,
-    )
 
     if context is not None:
         if param_db is not None:
@@ -276,14 +271,9 @@ def pose_stack_from_biotite(  # noqa: C901
         has_missing_atoms or not no_optH
     )
     if needs_packing:
-        db = context.parameter_database
-        sfxn = beta2016_score_function(torch_device, param_db=db)
-        dunbrack_sampler = create_dunbrack_sampler_from_database(db, torch_device)
-        na_sampler = (
-            NaChiRotamerSampler.from_database(db, torch_device)
-            if has_missing_atoms
-            else None
-        )
+        sfxn = context._packing_score_function
+        dunbrack_sampler = context._dunbrack_sampler
+        na_sampler = context._na_sampler if has_missing_atoms else None
 
         if has_missing_atoms:
             logger.info(
