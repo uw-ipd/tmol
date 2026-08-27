@@ -148,6 +148,16 @@ def _forcefield_minimize(obmol, *, steps: int, frozen=()) -> None:
         constraints = openbabel.OBFFConstraints()
         for i in frozen:
             constraints.AddAtomConstraint(int(i) + 1)  # OB is 1-indexed
+        # ff is an obabel global
+        # if called consecutively on _isomers_, connectivity of 1st is used
+        #    for both in minimization
+        # setting up an empty molecule invalidates and forces recomputation
+        ff.Setup(openbabel.OBMol())
+        if not ff.IsSetupNeeded(obmol):
+            raise ValueError(
+                f"{name} setup cache was not invalidated; the ligand would be "
+                "minimized against another molecule's connectivity"
+            )
         if ff.Setup(obmol, constraints):
             ff.ConjugateGradients(steps)
             ff.GetCoordinates(obmol)
