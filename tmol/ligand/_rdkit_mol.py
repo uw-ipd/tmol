@@ -386,6 +386,9 @@ def rdkit_mol_from_ligand_atom_array(
         _normalize_exocyclic_aromatic_imine(mol)
     _assign_formal_charges_from_valence(mol)
 
+    # fd assign stereochemistry from input so emitted smiles is correct
+    Chem.AssignStereochemistryFrom3D(mol)
+
     if keep_hydrogens:
         arr_indices = list(range(len(atom_array)))
     else:
