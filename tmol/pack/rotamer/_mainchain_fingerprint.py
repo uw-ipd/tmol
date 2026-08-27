@@ -420,13 +420,8 @@ def find_unique_fingerprints(  # noqa: C901
 
     # we do not need to re-annotate this PackedBlockTypes object if there
     # are no sidechain samplers that it has not encountered before
-    if hasattr(pbt, "mc_atom_mapping"):
-        all_found = True
-        for bt in sampler_types:
-            if bt not in pbt.mc_atom_mapping:
-                all_found = False
-                break
-        if all_found:
+    if hasattr(pbt, "mc_fingerprints"):
+        if sampler_types.issubset(pbt.mc_fingerprints.sampler_mapping):
             return
     sampler_types = sorted(list(sampler_types))
     n_samplers = len(sampler_types)

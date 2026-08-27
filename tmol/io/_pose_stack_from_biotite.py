@@ -266,19 +266,26 @@ def pose_stack_from_biotite(  # noqa: C901
         fragment_mapping = pose_stack.split_block_mapping
     block_has_missing_atoms = opt_return_vals["block_has_missing_atoms"]
 
-    if block_has_missing_atoms is not None and torch.any(block_has_missing_atoms):
+    has_missing_atoms = block_has_missing_atoms is not None and bool(
+        torch.any(block_has_missing_atoms)
+    )
+    if has_missing_atoms:
         _assert_no_ligand_with_missing_atoms(pose_stack, block_has_missing_atoms)
 
     needs_packing = block_has_missing_atoms is not None and (
-        torch.any(block_has_missing_atoms) or not no_optH
+        has_missing_atoms or not no_optH
     )
     if needs_packing:
         db = context.parameter_database
         sfxn = beta2016_score_function(torch_device, param_db=db)
         dunbrack_sampler = create_dunbrack_sampler_from_database(db, torch_device)
-        na_sampler = NaChiRotamerSampler.from_database(db, torch_device)
+        na_sampler = (
+            NaChiRotamerSampler.from_database(db, torch_device)
+            if has_missing_atoms
+            else None
+        )
 
-        if torch.any(block_has_missing_atoms):
+        if has_missing_atoms:
             logger.info(
                 "%i blocks with missing heavy atoms",
                 torch.count_nonzero(block_has_missing_atoms),

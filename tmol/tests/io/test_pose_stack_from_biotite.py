@@ -60,6 +60,18 @@ def test_pose_stack_from_biotite_1ubq_smoke(biotite_1ubq, torch_device):
     pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
 
 
+def test_complete_protein_skips_na_sampler_setup(
+    biotite_1ubq, torch_device, monkeypatch
+):
+    from tmol.pack.rotamer import NaChiRotamerSampler
+
+    def unexpected_na_sampler(*_args, **_kwargs):
+        raise AssertionError("NA sampler is unnecessary for a complete protein")
+
+    monkeypatch.setattr(NaChiRotamerSampler, "from_database", unexpected_na_sampler)
+    pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
+
+
 # 1ubq with one residue's 3LC changed to ERR to test a non-recognized residue type
 def test_pose_stack_from_biotite_1ubq_err_smoke(biotite_1ubq_err, torch_device):
     starts = biotite.structure.get_residue_starts(biotite_1ubq_err)
