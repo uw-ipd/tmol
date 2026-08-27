@@ -119,7 +119,10 @@ docs = [
 ]
 
 [project.urls]
-repository = "https://github.com/uw-ipd/tmol"
+Documentation = "https://uw-ipd.github.io/tmol/"
+Issues = "https://github.com/uw-ipd/tmol/issues"
+Repository = "https://github.com/uw-ipd/tmol"
+Releases = "https://github.com/uw-ipd/tmol/releases"
 
 # Build settings ---------------------------------------------------------------
 [build-system]

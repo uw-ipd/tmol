@@ -23,4 +23,5 @@ API pages are authored under `docs/api/`.
 
 GitHub Actions builds documentation once per pull request. Same-repository pull
 requests publish under `previews/pr-<number>/`; pushes to `master` deploy the
-current documentation to `latest/`.
+current documentation to `latest/`. The stable public URL
+<https://uw-ipd.github.io/tmol/> redirects to that deployment.

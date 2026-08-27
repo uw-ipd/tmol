@@ -1,8 +1,11 @@
 # TMol
 
-[![PyPI](https://img.shields.io/pypi/v/tmol.svg)](https://pypi.org/project/tmol/)
-[![CI](https://github.com/uw-ipd/tmol/actions/workflows/ci.yml/badge.svg)](https://github.com/uw-ipd/tmol/actions/workflows/ci.yml)
-[![Docs](https://github.com/uw-ipd/tmol/actions/workflows/docs.yml/badge.svg)](https://uw-ipd.github.io/tmol/latest/)
+[![PyPI version](https://img.shields.io/pypi/v/tmol.svg)](https://pypi.org/project/tmol/)
+[![Python versions](https://img.shields.io/pypi/pyversions/tmol.svg)](https://pypi.org/project/tmol/)
+[![Downloads](https://img.shields.io/pypi/dm/tmol.svg)](https://pypi.org/project/tmol/)
+[![CI status](https://github.com/uw-ipd/tmol/actions/workflows/ci.yml/badge.svg)](https://github.com/uw-ipd/tmol/actions/workflows/ci.yml)
+[![Documentation](https://github.com/uw-ipd/tmol/actions/workflows/docs.yml/badge.svg)](https://uw-ipd.github.io/tmol/)
+[![Coverage](https://codecov.io/gh/uw-ipd/tmol/graph/badge.svg)](https://codecov.io/gh/uw-ipd/tmol)
 [![License](https://img.shields.io/github/license/uw-ipd/tmol.svg)](LICENSE)
 
 `tmol` is a GPU-accelerated PyTorch implementation of Rosetta-inspired
@@ -10,7 +13,7 @@ all-atom molecular scoring, packing, and refinement primitives. It provides
 batched tensor representations, score derivatives, and custom C++/CUDA
 kernels.
 
-Full documentation: <https://uw-ipd.github.io/tmol/latest/>
+Full documentation: <https://uw-ipd.github.io/tmol/>
 
 ## Table of Contents
 

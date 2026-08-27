@@ -16,6 +16,7 @@ permissions:
 
 env:
   DOCS_BASE_URL: https://uw-ipd.github.io/tmol
+  TMOL_DOCS_BASE_URL: https://uw-ipd.github.io/tmol/latest/
   SIF: /home/bench/git_ci_apptainer/tmol.sif
   SLURM_PARTITION: gpu-train
   SLURM_GRES: gpu:1
@@ -94,6 +95,22 @@ jobs:
             TARGET="previews/pr-${PR_NUMBER}"
           else
             TARGET="latest"
+            cat > gh-pages/index.html <<'HTML'
+          <!doctype html>
+          <html lang="en">
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <meta http-equiv="refresh" content="0; url=latest/">
+              <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/">
+              <title>TMol documentation</title>
+              <script>window.location.replace("latest/" + window.location.search + window.location.hash);</script>
+            </head>
+            <body>
+              <p>Continue to the <a href="latest/">latest TMol documentation</a>.</p>
+            </body>
+          </html>
+          HTML
           fi
           mkdir -p "gh-pages/${TARGET}"
           rm -f gh-pages/CNAME

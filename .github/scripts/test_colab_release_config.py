@@ -23,7 +23,7 @@ def _workflow(path: str) -> dict:
     return yaml.safe_load((ROOT / path).read_text(encoding="utf-8"))
 
 
-def test_colab_uses_published_v0147_wheel_without_source_fallback():
+def test_colab_uses_published_v0149_wheel_without_source_fallback():
     module = _load_colab_setup()
     source = (ROOT / "docs/tutorial/colab_setup.py").read_text(encoding="utf-8")
 
@@ -32,7 +32,7 @@ def test_colab_uses_published_v0147_wheel_without_source_fallback():
     assert module.RELEASE_WHEEL_CUDA == "12.8"
     assert module.RELEASE_WHEEL_PYTHON == (3, 12)
     assert module.TMOL_WHEEL.endswith(
-        "/v0.1.47/" "tmol-0.1.47+cu128torch2.11-cp312-cp312-manylinux_2_28_x86_64.whl"
+        "/v0.1.49/" "tmol-0.1.49+cu128torch2.11-cp312-cp312-manylinux_2_28_x86_64.whl"
     )
     assert "install_tutorial_source" not in source
     assert "git+https://github.com/uw-ipd/tmol.git" not in source

@@ -14,8 +14,8 @@ RELEASE_WHEEL_TORCH_MINOR = "2.11"
 RELEASE_WHEEL_CUDA = "12.8"
 RELEASE_WHEEL_PYTHON = (3, 12)
 TMOL_WHEEL = (
-    "https://github.com/uw-ipd/tmol/releases/download/v0.1.47/"
-    "tmol-0.1.47+cu128torch2.11-cp312-cp312-manylinux_2_28_x86_64.whl"
+    "https://github.com/uw-ipd/tmol/releases/download/v0.1.49/"
+    "tmol-0.1.49+cu128torch2.11-cp312-cp312-manylinux_2_28_x86_64.whl"
 )
 
 
@@ -66,7 +66,7 @@ def setup_colab(fixtures: list[str]) -> None:
         and sys.version_info[:2] == RELEASE_WHEEL_PYTHON
     ):
         raise RuntimeError(
-            "The TMol v0.1.47 Colab wheel requires Python "
+            "The TMol v0.1.49 Colab wheel requires Python "
             f"{'.'.join(map(str, RELEASE_WHEEL_PYTHON))}, PyTorch "
             f"{RELEASE_WHEEL_TORCH_MINOR}.x, and CUDA {RELEASE_WHEEL_CUDA}; "
             f"this runtime provides Python "

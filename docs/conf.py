@@ -143,6 +143,9 @@ intersphinx_mapping = {
 intersphinx_timeout = 10
 
 html_theme = "pydata_sphinx_theme"
+html_baseurl = os.environ.get(
+    "TMOL_DOCS_BASE_URL", "https://uw-ipd.github.io/tmol/latest/"
+)
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 html_title = "TMol"

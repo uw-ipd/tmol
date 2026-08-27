@@ -113,11 +113,11 @@ python -c "import sys, torch; print(f'Python {sys.version_info.major}.{sys.versi
 ## Google Colab
 
 The current Colab GPU runtime uses Python 3.12, PyTorch 2.11.0 with CUDA 12.8,
-and commonly a Turing T4 (`sm_75`). TMol v0.1.47 provides a matching wheel
+and commonly a Turing T4 (`sm_75`). TMol v0.1.49 provides a matching wheel
 compiled for T4 (`sm_75`), A100 (`sm_80`), and L4 (`sm_89`) GPUs:
 
 ```bash
-pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/v0.1.47/tmol-0.1.47+cu128torch2.11-cp312-cp312-manylinux_2_28_x86_64.whl"
+pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/v0.1.49/tmol-0.1.49+cu128torch2.11-cp312-cp312-manylinux_2_28_x86_64.whl"
 ```
 
 The tutorial bootstrap installs this wheel directly and constrains pip to keep
