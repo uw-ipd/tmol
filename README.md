@@ -1,6 +1,6 @@
 <h1 align="center">TMol</h1>
 
-<p align="center"><em>Rosetta-inspired molecular modeling at PyTorch speed.</em></p>
+<p align="center"><em>Rosetta molecular modeling at PyTorch speed.</em></p>
 
 <p align="center">
   <a href="https://pypi.org/project/tmol/"><img src="https://img.shields.io/pypi/v/tmol.svg" alt="PyPI version"></a>
@@ -26,13 +26,6 @@ Three ways in:
 - 🚀 **Start scoring** → [quick start](#quick-start), then the full **[Quickstart](https://uw-ipd.github.io/tmol/latest/quickstart.html)**.
 - 🧬 **Build a workflow** → **[scoring, packing, minimization, FastRelax, and ligand recipes](https://uw-ipd.github.io/tmol/latest/workflows/index.html)**.
 - 🛠️ **Develop TMol** → **[contributor guide](https://uw-ipd.github.io/tmol/latest/contributor_guide.html)**.
-
-> [!NOTE]
-> TMol is not a PyRosetta compatibility layer. TMol score units are not kcal/mol
-> or calibrated Rosetta score units, and identical Rosetta trajectories or
-> numerical results should not be expected.
-
----
 
 ## Install
 
