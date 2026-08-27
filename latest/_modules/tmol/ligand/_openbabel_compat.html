@@ -715,13 +715,13 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_assign_generic_atom_names</span><span class="p">(</span><span class="n">openbabel</span><span class="p">,</span> <span class="n">obmol</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Rename atoms to generic ``&lt;element&gt;&lt;1-based-per-element-index&gt;``.</span>
 
-<span class="sd">    For peptide-like ligands ``make3D`` perceives amino-acid residues and writes</span>
-<span class="sd">    PDB atom names (``CA``, ``CB``, ``OXT``) into the mol2. Those collide with</span>
-<span class="sd">    element symbols (``CA`` = carbon-alpha vs calcium), which can confuse</span>
-<span class="sd">    name-based element inference downstream. Generic names (``C1``, ``N1``, …)</span>
-<span class="sd">    are element-unambiguous and match the conventional SMILES-&gt;PDB-&gt;mol2</span>
-<span class="sd">    ligand-prep output. Chemistry (elements, coordinates, bonds, charges) is</span>
-<span class="sd">    untouched — only the labels change.</span>
+<span class="sd">    OpenBabel residue perception can write PDB atom names (``CA``, ``CB``,</span>
+<span class="sd">    ``OXT``) into the mol2 for peptide-like ligands. Those collide with element</span>
+<span class="sd">    symbols (``CA`` = carbon-alpha vs calcium), which can confuse name-based</span>
+<span class="sd">    element inference downstream. Generic names (``C1``, ``N1``, ...) are</span>
+<span class="sd">    element-unambiguous and match the conventional SMILES-&gt;PDB-&gt;mol2 ligand-prep</span>
+<span class="sd">    output. Chemistry (elements, coordinates, bonds, charges) is untouched --</span>
+<span class="sd">    only the labels change.</span>
 <span class="sd">    """</span>
     <span class="n">periodic_table</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">GetPeriodicTable</span><span class="p">()</span>
     <span class="n">counts</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
