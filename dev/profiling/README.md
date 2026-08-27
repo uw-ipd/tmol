@@ -66,7 +66,8 @@ to replace them.
 
 `nsys` must be available in the GPU runtime. The trace command uses the CUDA
 Profiler API to exclude imports, topology construction, score-function
-rendering, and warm-up from the capture:
+rendering, and warm-up from the capture. CUDA graphs are traced at node
+granularity so their internal kernels remain visible:
 
 ```bash
 python dev/profiling/matrix.py \

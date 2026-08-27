@@ -248,6 +248,7 @@ def main():
                 "--capture-range=cudaProfilerApi",
                 "--capture-range-end=stop",
                 "--trace=cuda,nvtx,osrt",
+                "--cuda-graph-trace=node",
                 "--sample=none",
                 "--cpuctxsw=none",
                 "--output",

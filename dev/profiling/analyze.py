@@ -114,6 +114,8 @@ def read_traces(run_dir: Path) -> list[dict[str, str | int | float]]:
         kernels = sections.get("kernels", [])
         api = sections.get("api", [])
         nvtx = sections.get("nvtx", [])
+        if not kernels:
+            raise RuntimeError(f"no CUDA kernel statistics in {path}")
         launches = next((row for row in api if row["Name"] == "cudaLaunchKernel"), {})
         iteration = next(
             (row for row in nvtx if "/iteration-" in row.get("Range", "")), {}
