@@ -74,7 +74,10 @@ def _short_kernel(name: str) -> str:
     for term in score_terms:
         if term != "common":
             return f"tmol::score::{term}"
-    for namespace in ("tmol::kinematics::", "at::native::", "c10::cuda::"):
+    tmol_names = re.findall(r"tmol::([a-z_]+)::([a-z_]+)", name)
+    if tmol_names:
+        return "tmol::" + "::".join(tmol_names[-1])
+    for namespace in ("at::native::", "c10::cuda::"):
         if namespace in name:
             suffix = name.split(namespace, 1)[1].split("<", 1)[0].split("(", 1)[0]
             return namespace + suffix
@@ -110,17 +113,17 @@ def _stats_sections(path: Path) -> dict[str, list[dict[str, str]]]:
 def read_traces(run_dir: Path) -> list[dict[str, str | int | float]]:
     rows = []
     for path in sorted((run_dir / "traces").glob("*.stats.csv")):
+        case = path.name.removesuffix(".stats.csv")
+        result = json.loads((run_dir / "results" / f"{case}.json").read_text())
         sections = _stats_sections(path)
         kernels = sections.get("kernels", [])
         api = sections.get("api", [])
         nvtx = sections.get("nvtx", [])
-        if not kernels:
-            raise RuntimeError(f"no CUDA kernel statistics in {path}")
         launches = next((row for row in api if row["Name"] == "cudaLaunchKernel"), {})
         iteration = next(
             (row for row in nvtx if "/iteration-" in row.get("Range", "")), {}
         )
-        top = max(kernels, key=lambda row: int(row["Total Time (ns)"]))
+        top = max(kernels, key=lambda row: int(row["Total Time (ns)"]), default={})
         nested = [
             row
             for row in nvtx
@@ -130,16 +133,17 @@ def read_traces(run_dir: Path) -> list[dict[str, str | int | float]]:
         top_range = max(nested, key=lambda row: int(row["Total Time (ns)"]), default={})
         rows.append(
             {
-                "case": path.name.removesuffix(".stats.csv"),
-                "profiled_iteration_ms": int(iteration.get("Total Time (ns)", 0)) / 1e6,
+                "case": case,
+                "profiled_wall_ms": result["median_ms"],
+                "nvtx_iteration_ms": int(iteration.get("Total Time (ns)", 0)) / 1e6,
                 "gpu_kernel_ms": sum(int(row["Total Time (ns)"]) for row in kernels)
                 / 1e6,
                 "kernel_launches": int(launches.get("Num Calls", 0)),
                 "launch_api_ms": int(launches.get("Total Time (ns)", 0)) / 1e6,
                 "top_nvtx": top_range.get("Range", "").removeprefix(":"),
                 "top_nvtx_ms": int(top_range.get("Total Time (ns)", 0)) / 1e6,
-                "top_kernel": _short_kernel(top["Name"]),
-                "top_kernel_ms": int(top["Total Time (ns)"]) / 1e6,
+                "top_kernel": _short_kernel(top.get("Name", "")),
+                "top_kernel_ms": int(top.get("Total Time (ns)", 0)) / 1e6,
             }
         )
     return rows
