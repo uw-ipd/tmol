@@ -218,6 +218,18 @@ def _git_revision() -> str:
     ).stdout.strip()
 
 
+def _git_dirty() -> bool:
+    return bool(
+        subprocess.run(
+            ["git", "status", "--porcelain", "--untracked-files=no"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+    )
+
+
 def _nvidia_driver() -> str:
     return subprocess.run(
         ["nvidia-smi", "--query-gpu=driver_version", "--format=csv,noheader"],
@@ -300,6 +312,7 @@ def run(args: argparse.Namespace) -> dict:
         "atoms_per_pose": int(pose.real_atoms[0].sum()),
         "environment": {
             "git_revision": _git_revision(),
+            "git_dirty": _git_dirty(),
             "python": platform.python_version(),
             "torch": torch.__version__,
             "tmol": tmol.__version__,

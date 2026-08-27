@@ -152,6 +152,15 @@ def _write_manifest(output_dir: Path, cases, trace: bool):
             capture_output=True,
             text=True,
         ).stdout.strip(),
+        "runner_dirty": bool(
+            subprocess.run(
+                ["git", "status", "--porcelain", "--untracked-files=no"],
+                cwd=ROOT,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+        ),
         "python": platform.python_version(),
         "nsys": (
             subprocess.run(
@@ -204,6 +213,7 @@ def main():
             complete.extend(
                 [
                     trace_dir / f"{case}.nsys-rep",
+                    trace_dir / f"{case}.sqlite",
                     trace_dir / f"{case}.stats.csv",
                 ]
             )

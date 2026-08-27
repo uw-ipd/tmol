@@ -98,8 +98,8 @@ python dev/profiling/analyze.py artifacts/nsys
 The analyzer first verifies every size and SHA-256 checksum in `manifest.json`,
 then writes `analysis/timings.md`, `analysis/timings.svg`, and
 `analysis/trace_summary.csv`. The trace summary includes the profiled iteration
-time, total GPU-kernel time, kernel-launch count and API time, and dominant
-kernel. Compare regular runs from two revisions with:
+time, total GPU-kernel time, kernel-launch count and API time, dominant NVTX
+range, and dominant kernel. Compare regular runs from two revisions with:
 
 ```bash
 python dev/profiling/analyze.py artifacts/current \

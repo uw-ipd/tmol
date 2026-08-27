@@ -37,7 +37,21 @@ def verify_manifest(run_dir: Path) -> None:
     if not path.is_file():
         return
     manifest = json.loads(path.read_text())
-    errors = []
+    errors = (
+        ["results/summary.csv"]
+        if not (run_dir / "results/summary.csv").is_file()
+        else []
+    )
+    for case in manifest["cases"]:
+        required = [f"results/{case}.json", f"logs/{case}.log"]
+        if manifest["trace"]:
+            required += [
+                f"traces/{case}.nsys-rep",
+                f"traces/{case}.sqlite",
+                f"traces/{case}.stats.csv",
+            ]
+        errors += [name for name in required if not (run_dir / name).is_file()]
+    errors = [f"missing: {name}" for name in errors]
     for entry in manifest["files"]:
         artifact = run_dir / entry["path"]
         if not artifact.is_file():
@@ -105,6 +119,13 @@ def read_traces(run_dir: Path) -> list[dict[str, str | int | float]]:
             (row for row in nvtx if "/iteration-" in row.get("Range", "")), {}
         )
         top = max(kernels, key=lambda row: int(row["Total Time (ns)"]))
+        nested = [
+            row
+            for row in nvtx
+            if "/iteration-" not in row.get("Range", "")
+            and not row.get("Range", "").endswith("/measure")
+        ]
+        top_range = max(nested, key=lambda row: int(row["Total Time (ns)"]), default={})
         rows.append(
             {
                 "case": path.name.removesuffix(".stats.csv"),
@@ -113,6 +134,8 @@ def read_traces(run_dir: Path) -> list[dict[str, str | int | float]]:
                 / 1e6,
                 "kernel_launches": int(launches.get("Num Calls", 0)),
                 "launch_api_ms": int(launches.get("Total Time (ns)", 0)) / 1e6,
+                "top_nvtx": top_range.get("Range", "").removeprefix(":"),
+                "top_nvtx_ms": int(top_range.get("Total Time (ns)", 0)) / 1e6,
                 "top_kernel": _short_kernel(top["Name"]),
                 "top_kernel_ms": int(top["Total Time (ns)"]) / 1e6,
             }
