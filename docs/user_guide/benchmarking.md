@@ -60,10 +60,12 @@ an environment manifest alongside each capture:
 
 ```bash
 python dev/profiling/matrix.py --trace --output-dir artifacts/nsys
+python dev/profiling/analyze.py artifacts/nsys
 ```
 
 See `dev/profiling/README.md` for the supported matrix, individual-case
-commands, Slurm/Apptainer usage, and the NVIDIA handoff format.
+commands, Slurm/Apptainer usage, checksum verification, timing plot, and the
+NVIDIA handoff format.
 
 ### Legacy microbenchmark profiler
 

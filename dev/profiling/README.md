@@ -86,6 +86,30 @@ Each case produces:
 The `.nsys-rep`, matching JSON, and manifest are the minimum NVIDIA handoff.
 Keep the SQLite and CSV files for analysis without the GUI.
 
+## Verify and summarize a run
+
+Turn the full result bundle into a readable table, a log-scale latency plot,
+and a compact Nsight summary:
+
+```bash
+python dev/profiling/analyze.py artifacts/nsys
+```
+
+The analyzer first verifies every size and SHA-256 checksum in `manifest.json`,
+then writes `analysis/timings.md`, `analysis/timings.svg`, and
+`analysis/trace_summary.csv`. The trace summary includes the profiled iteration
+time, total GPU-kernel time, kernel-launch count and API time, and dominant
+kernel. Compare regular runs from two revisions with:
+
+```bash
+python dev/profiling/analyze.py artifacts/current \
+  --baseline artifacts/baseline
+```
+
+This additionally writes `analysis/comparison.csv`; negative `delta_percent`
+is faster. Run regular timings and traces into separate directories because
+Nsight interception intentionally changes wall time.
+
 ## Slurm and Apptainer example
 
 Run the container itself inside the GPU allocation. Replace the two paths with
