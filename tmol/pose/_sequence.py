@@ -141,7 +141,8 @@ def _read_delimited(seq: str, start: int) -> Tuple[str, int]:
 def _one_letter_index(restype_set) -> Dict[Tuple[str, str], str]:
     index: Dict[Tuple[str, str], str] = {}
     for rt in restype_set.residue_types:
-        if rt.one_letter_code is None:
+        # always resolve to UNPATCHED
+        if rt.one_letter_code is None or ":" in rt.name:
             continue
         key = (rt.properties.polymer.backbone_type, rt.one_letter_code)
         if key in index:

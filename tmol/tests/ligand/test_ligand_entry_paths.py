@@ -231,7 +231,7 @@ CIF_INPUTS = DATA / "protein_ligand_test" / "cif_inputs"
 # A diverse subset of the DUD-derived ligand CIFs: varied ring systems,
 # heteroatoms, halogens and charged groups, to exercise the typing/rename
 # branches of the full CIF -> params path.
-_CIF_LIGANDS = ["ada", "cdk2", "cox2", "hivpr", "src", "egfr"]
+_CIF_LIGANDS = ["ada", "cdk2", "cox2", "hivrt", "src", "egfr"]
 
 
 def _load_full_array(cif_path: Path):
@@ -251,8 +251,6 @@ def test_prepare_ligand_from_cif_inputs(name: str) -> None:
     from tmol.ligand import prepare_ligand_from_cif
 
     cif = CIF_INPUTS / f"{name}.ligand.cif"
-    if not cif.exists():
-        pytest.skip(f"missing fixture {cif}")
     param_db, _ = prepare_ligand_from_cif(
         str(cif), param_db=ParameterDatabase.get_default()
     )

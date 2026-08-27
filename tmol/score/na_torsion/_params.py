@@ -78,7 +78,8 @@ def block_type_params(block_type, element_for_atom_type):
     base is -1 for anything this term does not handle, including a nucleotide
     whose sugar or glycosidic torsions cannot be resolved.
     """
-    base = BASE_FOR_NAME3.get(block_type.name3, -1)
+    # a modified nucleotide may borrow a canonical base table
+    base = BASE_FOR_NAME3.get(block_type.na_base_reference or block_type.name3, -1)
     uaids = numpy.full((N_TORSION, 4, 3), -1, dtype=numpy.int32)
     ring = numpy.full((5,), -1, dtype=numpy.int32)
     if base >= 0:

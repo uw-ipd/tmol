@@ -99,16 +99,19 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
         if hasattr(block_type, "backbone_torsion_params"):
             return
 
-        rname = block_type.name
+        # noncanonical may borrow a canonical's rama/omega tables
+        rname = block_type.rama_reference or block_type.name
         lookups = numpy.array([[rname, "_"], [rname, "PRO"]], dtype=object)
-        rama_table_inds = self.param_resolver.rama_lookup.index.get_indexer(lookups)
-        rama_table_inds = self.param_resolver.rama_lookup.iloc[rama_table_inds, :][
-            "table_id"
-        ].values
-        omega_table_inds = self.param_resolver.omega_lookup.index.get_indexer(lookups)
-        omega_table_inds = self.param_resolver.omega_lookup.iloc[omega_table_inds, :][
-            "table_id"
-        ].values
+
+        def table_inds(lookup):
+            rows = lookup.index.get_indexer(lookups)
+            inds = numpy.full(len(rows), -1, dtype=numpy.int64)
+            hit = rows != -1
+            inds[hit] = lookup.iloc[rows[hit], :]["table_id"].values
+            return inds
+
+        rama_table_inds = table_inds(self.param_resolver.rama_lookup)
+        omega_table_inds = table_inds(self.param_resolver.omega_lookup)
 
         backbone_torsion_atoms = numpy.full((3, 4), -1, dtype=uaid_t)
         if rama_table_inds[0] != -1 or rama_table_inds[1] != -1:
@@ -128,7 +131,9 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
         is_pro = numpy.full((1,), 0, dtype=numpy.int32)
 
         # TO DO: Better logic here to handle proline variants
-        if block_type.base_name == "PRO":
+        # is_pro selects the *previous* residue's prepro table, so a
+        #    proline-referencing noncanonical must set it too
+        if block_type.base_name == "PRO" or block_type.rama_reference == "PRO":
             is_pro[0] = 1
 
         bt_bbtors_params = BackboneTorsionBlockTypeParams(

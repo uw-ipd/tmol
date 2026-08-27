@@ -187,6 +187,12 @@ class RawResidueType:
     hydrogens_regenerated: bool = False
     # True only for blocks produced by user-defined ligand fragmentation.
     is_ligand_fragment: bool = False
+    # reference restype supplying each torsion potential; None = no reference
+    rama_reference: Optional[str] = None
+    dunbrack_reference: Optional[str] = None
+    na_base_reference: Optional[str] = None
+    # D-AAs: residue is mirror image of reference
+    reference_mirrored: bool = False
     # One-letter sequence code; unique only within a backbone type ...
     #   "a" is both DA and RA.
     one_letter_code: Optional[str] = None

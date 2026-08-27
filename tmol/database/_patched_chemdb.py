@@ -511,21 +511,7 @@ def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
         if set(modded) & set(newmark):
             continue
 
-        newres = RawResidueType(
-            name=res.name + ":" + variant.display_name,
-            base_name=res.base_name,
-            name3=res.name3,
-            io_equiv_class=res.io_equiv_class,
-            atoms=res.atoms,
-            atom_aliases=res.atom_aliases,
-            bonds=res.bonds,
-            connections=res.connections,
-            torsions=res.torsions,
-            icoors=res.icoors,
-            properties=res.properties,
-            chi_samples=res.chi_samples,
-            default_jump_connection_atom=res.default_jump_connection_atom,
-        )
+        newres = attr.evolve(res, name=res.name + ":" + variant.display_name)
 
         # 1. remove atoms
         for atom in variant.remove_atoms:
@@ -599,6 +585,49 @@ def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
     return newreses, newmarked
 
 
+def patch_residue(res, variants, graph_builder):
+    """Return res plus every variant form of it."""
+    # resolve against the unpatched residue
+    #   BY DESIGN ... a patch can never be made conditional on another
+    #   patch having been applied
+    applicable = [v for v in variants if v.applies_to.matches(res)]
+
+    resvariants, resvariantnames, marked_atoms = [res], [""], [[]]
+    done = False
+    while not done:
+        done = True
+
+        # newly added variants, variant names, marked atoms
+        rv_new, rvn_new, ma_new = [], [], []
+        for res_i, name_i, mark_i in zip(resvariants, resvariantnames, marked_atoms):
+            resgraph = graph_builder.from_raw_res(res_i)
+            for variant in applicable:
+                newtag = [*name_i, variant.name]
+                newtag.sort()
+                if newtag in resvariantnames or newtag in rvn_new:
+                    continue  # we already made this variant
+
+                patchgraph = read_smiles(
+                    variant.pattern,
+                    explicit_hydrogen=True,
+                    do_fill_valence=False,
+                )
+                patched_reses, mark_i_new = do_patch(
+                    res_i, variant, resgraph, patchgraph, mark_i
+                )
+
+                if len(patched_reses) > 0:
+                    rv_new.extend(patched_reses)
+                    rvn_new.extend((newtag,) * len(patched_reses))
+                    ma_new.extend(mark_i_new)
+                    done = False  # added new residues
+
+        resvariants.extend(rv_new)
+        resvariantnames.extend(rvn_new)
+        marked_atoms.extend(ma_new)
+    return resvariants
+
+
 # takes a ChemicalDatabase containing Tuple[RawResidueType] and Tuple[VariantType]
 # applies all patches to all residues types
 # returns PatchedChemicalDatabase containing only Tuple[RawResidueType]
@@ -619,51 +648,9 @@ class PatchedChemicalDatabase:
         for res in chemdb.residues:
             validate_raw_residue(res)
 
-        patched_residues, patched_residues_names = [], []
+        patched_residues = []
         for res in chemdb.residues:
-            done = False
-
-            # resolve against the unpatched residue
-            #   BY DESIGN ... a patch can never be made conditional on another
-            #   patch having been applied
-            variants = [v for v in chemdb.variants if v.applies_to.matches(res)]
-
-            resvariants, resvariantnames, marked_atoms = [res], [""], [[]]
-            while not done:
-                done = True
-
-                # newly added variants, variant names, marked atoms
-                rv_new, rvn_new, ma_new = [], [], []
-                for res_i, name_i, mark_i in zip(
-                    resvariants, resvariantnames, marked_atoms
-                ):
-                    resgraph = G.from_raw_res(res_i)
-                    for variant in variants:
-                        newtag = [*name_i, variant.name]
-                        newtag.sort()
-                        if newtag in resvariantnames or newtag in rvn_new:
-                            continue  # we already made this variant
-
-                        patchgraph = read_smiles(
-                            variant.pattern,
-                            explicit_hydrogen=True,
-                            do_fill_valence=False,
-                        )
-                        patched_reses, mark_i_new = do_patch(
-                            res_i, variant, resgraph, patchgraph, mark_i
-                        )
-
-                        if len(patched_reses) > 0:
-                            rv_new.extend(patched_reses)
-                            rvn_new.extend((newtag,) * len(patched_reses))
-                            ma_new.extend(mark_i_new)
-                            done = False  # added new residues
-
-                resvariants.extend(rv_new)
-                resvariantnames.extend(rvn_new)
-                marked_atoms.extend(ma_new)
-            patched_residues.extend(resvariants)
-            patched_residues_names.extend(resvariantnames)
+            patched_residues.extend(patch_residue(res, chemdb.variants, G))
 
         for res in patched_residues:
             validate_raw_residue(res)
@@ -673,4 +660,17 @@ class PatchedChemicalDatabase:
             atom_types=chemdb.atom_types,
             residues=patched_residues,
             variants=chemdb.variants,
+        )
+
+    def with_added_residues(self, residues, atom_types=None):
+        """Return a copy with residues patched and appended."""
+        # injection happens after from_chem_db, so patch here or the new
+        #    residues arrive with no termini forms
+        atom_types = self.atom_types if atom_types is None else tuple(atom_types)
+        G = RestypeGraphBuilder({x.name: x.element for x in atom_types})
+        added = []
+        for res in residues:
+            added.extend(patch_residue(res, self.variants, G))
+        return attr.evolve(
+            self, atom_types=atom_types, residues=(*self.residues, *added)
         )

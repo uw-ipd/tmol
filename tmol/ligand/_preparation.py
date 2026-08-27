@@ -19,6 +19,7 @@ from tmol.ligand._detect import (
     NonStandardResidueInfo,
     _METAL_SYMBOLS,
     detect_nonstandard_residues,
+    is_polymer_linking_ccd_type,
     nonstandard_residue_info_from_smiles_via_mol2,
 )
 from tmol.ligand._registry import (
@@ -257,6 +258,97 @@ def prepare_single_ligand(
     )
 
 
+def prepare_polymer_residue(
+    atom_array,
+    canonical_ordering,
+    param_db: Optional[ParameterDatabase] = None,
+    *,
+    ph: float = 7.4,
+    profile=None,
+    sample_proton_chi: bool = True,
+) -> LigandPreparation:
+    """Prepare one polymer residue: cap it, run the ligand pipeline, restore the
+    polymer connections.
+
+    atom_array is the residue as it appears in a structure, with its polymer
+    connections open; profile defaults to whichever backbone its atoms match.
+    """
+    from tmol.ligand._polymer_builder import (
+        backbone_renames,
+        to_polymer_residue_type,
+    )
+    from tmol.ligand._polymer_profile import cap_residue, profile_for_atom_array
+
+    if param_db is None:
+        param_db = ParameterDatabase.get_default()
+    if profile is None:
+        profile = profile_for_atom_array(atom_array)
+    if profile is None:
+        raise LigandPreparationError(
+            f"{atom_array.res_name[0]}: declared a polymer residue but its atoms "
+            "match no supported backbone"
+        )
+
+    capped, cap_names = cap_residue(atom_array, profile)
+    detected = detect_nonstandard_residues(capped, canonical_ordering)
+    if not detected:
+        raise LigandPreparationError(
+            f"{atom_array.res_name[0]}: capped residue was not detected as "
+            "non-standard; is its name already in the database?"
+        )
+    prep = _prepare_ligand_via_smiles(
+        detected[0], ph=ph, sample_proton_chi=sample_proton_chi
+    )
+
+    reference = {r.name: r for r in param_db.chemical.residues}[
+        profile.reference_restype
+    ]
+    default_elements = {at.name: at.element for at in param_db.chemical.atom_types}
+    elements = {
+        a.name: (prep.atom_type_elements or {}).get(
+            a.atom_type, default_elements.get(a.atom_type, "")
+        )
+        for a in prep.residue_type.atoms
+    }
+    coords = _ideal_coords_by_name(prep.residue_type)
+    residue_type = to_polymer_residue_type(
+        prep.residue_type, coords, profile, reference, elements, cap_names
+    )
+
+    kept = {a.name for a in residue_type.atoms}
+    renamed, _dropped = backbone_renames(
+        prep.residue_type, profile, elements, cap_names
+    )
+    charges = {
+        renamed.get(name, name): charge
+        for name, charge in prep.partial_charges.items()
+        if renamed.get(name, name) in kept
+    }
+    # measure cartbonded off the polymer residue's own icoors, so the backbone
+    #    terms follow the transplanted geometry rather than the conformer's
+    kept_coords = {
+        name: xyz
+        for name, xyz in _ideal_coords_by_name(residue_type).items()
+        if name in kept
+    }
+    return LigandPreparation(
+        residue_type=residue_type,
+        partial_charges=charges,
+        cartbonded_params=_build_cartbonded_params(residue_type, coords=kept_coords),
+        atom_type_elements=prep.atom_type_elements,
+    )
+
+
+def _ideal_coords_by_name(residue_type) -> dict:
+    """Conformer positions by atom name, rebuilt from the residue's icoors."""
+    import cattr
+    from tmol.chemical._restypes import RefinedResidueType
+
+    refined = cattr.structure(cattr.unstructure(residue_type), RefinedResidueType)
+    xyz = refined.compute_ideal_coords()
+    return {ic.name: np.asarray(xyz[i]) for i, ic in enumerate(refined.icoors)}
+
+
 def _cif_heavy_atom_names(ligand_info: NonStandardResidueInfo) -> set[str]:
     """Heavy-atom names of the (CIF) ligand, used to verify name matching."""
     return {
@@ -349,9 +441,11 @@ def _supported_elements(param_db: ParameterDatabase) -> set[str]:
 
 
 def _ligand_unsupported_reason(
-    lig: NonStandardResidueInfo, supported_elements: set[str]
+    lig: NonStandardResidueInfo,
+    supported_elements: set[str],
+    is_polymer: bool = False,
 ) -> str | None:
-    """Why this ligand cannot be prepared, or None if it can."""
+    """Why this residue cannot be prepared, or None if it can."""
     metals_present = sorted(
         {
             e.strip().capitalize()
@@ -379,7 +473,9 @@ def _ligand_unsupported_reason(
             "types for them"
         )
 
-    if lig.covalently_linked:
+    # a polymer residue is linked by definition; it is prepared with its
+    #    connections capped rather than as a free molecule
+    if lig.covalently_linked and not is_polymer:
         return (
             f"{lig.res_name}: ligand is covalently linked to another residue "
             "(e.g. glycan attached to protein) — not supported"
@@ -397,6 +493,7 @@ def prepare_ligands(  # noqa: C901
     sample_proton_chi: bool = True,
     strict_ligands: bool = True,
     return_fragment_definitions: bool = False,
+    chem_comp_types: dict[str, str] | None = None,
 ) -> tuple:
     """Detect, prepare, and register all non-standard residues.
 
@@ -427,6 +524,12 @@ def prepare_ligands(  # noqa: C901
         return_fragment_definitions: Internal/context-building option. If True,
             include definitions derived from ``tmol_fragment_id`` annotations
             as the third return value.
+        chem_comp_types: ``{comp_id: type}`` read from the input file's
+            ``_chem_comp`` table (see
+            :func:`tmol.ligand.chem_comp_types_from_cif`), consulted for
+            residues the CCD does not know. A polymer-linking type routes the
+            residue to :func:`prepare_polymer_residue` instead of the
+            free-molecule ligand path.
 
     Returns:
         A (ParameterDatabase, CanonicalOrdering) tuple. When
@@ -551,7 +654,9 @@ def prepare_ligands(  # noqa: C901
             )
             canonical_ordering = rebuild_canonical_ordering(param_db)
 
-    ligands = detect_nonstandard_residues(atom_array, canonical_ordering)
+    ligands = detect_nonstandard_residues(
+        atom_array, canonical_ordering, chem_comp_types=chem_comp_types
+    )
 
     if not ligands:
         logger.info("No non-standard residues detected")
@@ -569,32 +674,55 @@ def prepare_ligands(  # noqa: C901
 
     preparations: list[LigandPreparation] = []
     prepared_ligands: list[tuple[NonStandardResidueInfo, LigandPreparation]] = []
+    prepared_polymers: list[LigandPreparation] = []
     for lig in ligands:
-        reason = _ligand_unsupported_reason(lig, supported_elements)
+        is_polymer = is_polymer_linking_ccd_type(lig.ccd_type)
+        reason = _ligand_unsupported_reason(lig, supported_elements, is_polymer)
         if reason:
             _skip_or_raise(strict_ligands, reason)
             continue
 
         logger.info("Preparing %s (CCD type: %s)", lig.res_name, lig.ccd_type)
         try:
-            prep = _prepare_ligand_via_smiles(
-                lig, ph=ph, sample_proton_chi=sample_proton_chi
-            )
+            if is_polymer:
+                prep = prepare_polymer_residue(
+                    lig.atom_array,
+                    canonical_ordering,
+                    param_db,
+                    ph=ph,
+                    sample_proton_chi=sample_proton_chi,
+                )
+            else:
+                prep = _prepare_ligand_via_smiles(
+                    lig, ph=ph, sample_proton_chi=sample_proton_chi
+                )
         except LigandPreparationError:
-            raise
+            if not is_polymer:
+                raise
+            if strict_ligands:
+                raise
+            logger.warning(
+                "Skipping %s: polymer residue preparation failed", lig.res_name
+            )
+            continue
         except Exception as err:  # noqa: BLE001  SMILES/typing/build failure
+            kind = "polymer residue" if is_polymer else "ligand"
             if strict_ligands:
                 raise LigandPreparationError(
-                    f"{lig.res_name}: failed to prepare ligand ({err}). Pass "
+                    f"{lig.res_name}: failed to prepare {kind} ({err}). Pass "
                     "strict_ligands=False to skip it with a warning, or supply "
                     "prebuilt params via ligand_params_files."
                 ) from err
             logger.warning(
-                "Skipping %s: ligand preparation failed (%s)", lig.res_name, err
+                "Skipping %s: %s preparation failed (%s)", lig.res_name, kind, err
             )
             continue
         preparations.append(prep)
-        prepared_ligands.append((lig, prep))
+        # a polymer residue is not a free molecule, so it is never fragmented
+        if is_polymer:
+            prepared_polymers.append(prep)
+        else:
+            prepared_ligands.append((lig, prep))
 
     if prepared_ligands:
         for lig, prep in prepared_ligands:
@@ -635,7 +763,7 @@ def prepare_ligands(  # noqa: C901
             # Fragment residue types are an in-memory representation in this
             # first API version. Persist only the fully prepared source ligand.
             write_params_file(
-                [prep for _, prep in prepared_ligands],
+                [prep for _, prep in prepared_ligands] + prepared_polymers,
                 params_output,
                 format="tmol",
             )

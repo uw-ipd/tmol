@@ -40,6 +40,7 @@ def build_context_from_biotite(
     strict_ligands: bool = True,
     ligand_params_files: list[str] | None = None,
     sample_proton_chi: bool = True,
+    chem_comp_types: dict | None = None,
 ) -> PoseBuildContext:
     """Build the structure-independent construction context.
 
@@ -74,6 +75,10 @@ def build_context_from_biotite(
             ``chi_samples`` for polar-hydrogen rotations (driving OptHSampler).
             Enabled by default; pass False to suppress proton-chi samples. Only
             used when prepare_ligands=True.
+        chem_comp_types: ``{comp_id: type}`` from the input file's
+            ``_chem_comp`` table (see
+            ``tmol.ligand.chem_comp_types_from_cif``), consulted for residues
+            the CCD does not know. Only used when prepare_ligands=True.
 
     Returns:
         PoseBuildContext containing canonical ordering, packed block
@@ -95,6 +100,7 @@ def build_context_from_biotite(
             sample_proton_chi=sample_proton_chi,
             strict_ligands=strict_ligands,
             return_fragment_definitions=True,
+            chem_comp_types=chem_comp_types,
         )
         rts = ResidueTypeSet.from_database(param_db.chemical)
         pbt = PackedBlockTypes.from_restype_list(
@@ -137,6 +143,7 @@ def pose_stack_from_biotite(  # noqa: C901
     strict_ligands: bool = True,
     ligand_params_files: list[str] | None = None,
     sample_proton_chi: bool = True,
+    chem_comp_types: dict | None = None,
     return_context: bool = False,
     context: PoseBuildContext | None = None,
     **kwargs: object,
@@ -184,6 +191,9 @@ def pose_stack_from_biotite(  # noqa: C901
             ``chi_samples`` so OptHSampler samples ligand polar-H rotamers
             (enabled by default; pass False to disable). Only used when
             prepare_ligands=True.
+        chem_comp_types: ``{comp_id: type}`` from the input file's
+            ``_chem_comp`` table, consulted for residues the CCD does not know.
+            Only used when prepare_ligands=True.
         return_context: If True, return ``(pose_stack, PoseBuildContext)``.
         **kwargs: Additional arguments passed to pose_stack_from_canonical_form.
 
@@ -231,6 +241,7 @@ def pose_stack_from_biotite(  # noqa: C901
             strict_ligands=strict_ligands,
             ligand_params_files=ligand_params_files,
             sample_proton_chi=sample_proton_chi,
+            chem_comp_types=chem_comp_types,
         )
 
     fragment_mapping = None

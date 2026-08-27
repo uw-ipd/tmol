@@ -110,8 +110,6 @@ def inject_residue_params(
     Returns:
         A new frozen ParameterDatabase with the additional data.
     """
-    new_chem_residues = (*param_db.chemical.residues, *residue_types)
-
     new_atom_types = param_db.chemical.atom_types
     if atom_types:
         existing_names = {at.name for at in new_atom_types}
@@ -119,10 +117,10 @@ def inject_residue_params(
         if deduped:
             new_atom_types = (*new_atom_types, *deduped)
 
-    new_patched = attr.evolve(
-        param_db.chemical,
-        residues=new_chem_residues,
-        atom_types=new_atom_types,
+    # patching runs at db load
+    # injected residues get all db variants applied here
+    new_patched = param_db.chemical.with_added_residues(
+        residue_types, atom_types=new_atom_types
     )
 
     new_elec = param_db.scoring.elec

@@ -81,17 +81,53 @@ def _chem_comp_type_dict() -> dict[str, str]:
     return dict(zip(ids, types))
 
 
-def get_chem_comp_type(res_name: str) -> Optional[str]:
+def get_chem_comp_type(
+    res_name: str, chem_comp_types: Optional[dict] = None
+) -> Optional[str]:
     """Look up the CCD chemical component type for a residue name.
 
     Args:
         res_name: Three-letter residue code.
+        chem_comp_types: Types declared by the input file, consulted only for
+            residues the CCD does not know.
 
     Returns:
         The CCD type string (e.g. "NON-POLYMER", "L-PEPTIDE LINKING"),
-        or None if the code is not found in the CCD.
+        or None if the code is in neither source.
     """
-    return _chem_comp_type_dict().get(res_name.upper())
+    key = res_name.upper()
+    ccd_type = _chem_comp_type_dict().get(key)
+    if ccd_type is None and chem_comp_types:
+        declared = chem_comp_types.get(key)
+        if declared:
+            return declared.upper()
+    return ccd_type
+
+
+def chem_comp_types_from_cif(cif_path) -> dict:
+    """Read the _chem_comp.type of every component declared by a CIF file.
+
+    Structures may carry residues the CCD does not know; their declared type is
+    what says whether they are polymer-linking.
+    """
+    import biotite.structure.io.pdbx as pdbx
+
+    cif = pdbx.CIFFile.read(str(cif_path))
+    types = {}
+    for block in cif.values():
+        if "chem_comp" not in block:
+            continue
+        category = block["chem_comp"]
+        if "id" not in category or "type" not in category:
+            continue
+        ids = category["id"].as_array()
+        values = category["type"].as_array()
+        for comp_id, comp_type in zip(ids, values):
+            comp_id = str(comp_id).strip().upper()
+            comp_type = str(comp_type).strip().upper()
+            if comp_id and comp_type and comp_type != "?":
+                types[comp_id] = comp_type
+    return types
 
 
 _METAL_SYMBOLS = frozenset(
@@ -567,6 +603,7 @@ def nonstandard_residue_info_from_smiles_via_mol2(
 def detect_nonstandard_residues(
     atom_array: struc.AtomArray,
     canonical_ordering: CanonicalOrdering,
+    chem_comp_types: Optional[dict] = None,
 ) -> list[NonStandardResidueInfo]:
     """Detect residues in an AtomArray that are not in tmol's database.
 
@@ -578,6 +615,8 @@ def detect_nonstandard_residues(
         atom_array: Biotite AtomArray from a CIF or PDB file.
         canonical_ordering: The current tmol CanonicalOrdering, which
             defines known residue types.
+        chem_comp_types: ``{comp_id: type}`` declared by the input file, used
+            for residues the CCD does not know.
 
     Returns:
         A list of NonStandardResidueInfo objects, one per unique unknown
@@ -587,7 +626,9 @@ def detect_nonstandard_residues(
     seen: set[str] = set()
     results: list[NonStandardResidueInfo] = []
 
-    covalently_linked_names = _residue_names_with_cross_residue_bonds(atom_array)
+    covalently_linked_names = _residue_names_with_cross_residue_bonds(
+        atom_array, chem_comp_types=chem_comp_types
+    )
 
     residue_starts = struc.get_residue_starts(atom_array)
 
@@ -605,7 +646,7 @@ def detect_nonstandard_residues(
             mask &= atom_array.chain_id == atom_array.chain_id[start]
 
         sub = atom_array[mask]
-        ccd_type = get_chem_comp_type(res_name) or "UNKNOWN"
+        ccd_type = get_chem_comp_type(res_name, chem_comp_types) or "UNKNOWN"
 
         logger.info(
             "Detected non-standard residue %s (CCD type: %s, %d atoms)",
@@ -633,7 +674,7 @@ def detect_nonstandard_residues(
     return results
 
 
-def _is_polymer_linking_ccd_type(ccd_type: Optional[str]) -> bool:
+def is_polymer_linking_ccd_type(ccd_type: Optional[str]) -> bool:
     """Whether a CCD chemical-component type denotes a polymer-linking residue.
 
     Returns True for modified amino acids, nucleotides, and saccharides
@@ -649,6 +690,7 @@ def _is_polymer_linking_ccd_type(ccd_type: Optional[str]) -> bool:
 def _residue_names_with_cross_residue_bonds(  # noqa: C901
     atom_array: struc.AtomArray,
     spatial_cutoff: float = 1.8,
+    chem_comp_types: Optional[dict] = None,
 ) -> frozenset[str]:
     """Return the set of res_names that have at least one bond to a different residue.
 
@@ -703,7 +745,9 @@ def _residue_names_with_cross_residue_bonds(  # noqa: C901
                     continue
                 for idx in (a, b):
                     name = res_names[idx].strip()
-                    if _is_polymer_linking_ccd_type(get_chem_comp_type(name)):
+                    if is_polymer_linking_ccd_type(
+                        get_chem_comp_type(name, chem_comp_types)
+                    ):
                         linked.add(name)
 
     return frozenset(linked)

@@ -107,9 +107,13 @@ class DunbrackChiSampler(ChiSampler):
         # that the dunbrack library handles.
         # Strip away any patches and use the "base name" of the residue type to make
         # the "which library should I read from?" decision
+
+        # fd  noncanonicals may borrow a canonical's rotamers (sampling only)
+        lib_name = restype.dunbrack_reference or restype.base_name
+
         dun_lib_ind = self.dun_param_resolver._indices_from_names(
             self.dun_param_resolver.all_table_indices,
-            numpy.array([[restype.base_name]], dtype=object),
+            numpy.array([[lib_name]], dtype=object),
             device=self.device,
         )[0, 0]
 
@@ -311,7 +315,8 @@ class DunbrackChiSampler(ChiSampler):
             return False
 
         # and then what??
-        if rt.base_name == "GLY" or rt.base_name == "ALA":
+        lib_name = rt.dunbrack_reference or rt.base_name
+        if lib_name == "GLY" or lib_name == "ALA":
             return False
 
         # all amino acids except GLY and ALA?? That feels wrong
