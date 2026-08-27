@@ -652,7 +652,9 @@ class OptHSampler(ConformerSampler):
         ]  # size (n_allowed_bt,)
         nz_allowed_bt_is_optH_buildable = torch.nonzero(
             allowed_bt_is_optH_buildable, as_tuple=True
-        )[0]  # size (n_allowed_and_buildable_bt,)
+        )[
+            0
+        ]  # size (n_allowed_and_buildable_bt,)
         allowed_and_buildable_pose = task.allowed_bt_pose[
             nz_allowed_bt_is_optH_buildable
         ]
@@ -849,14 +851,11 @@ class OptHSampler(ConformerSampler):
         bt_for_flipped_rotamer = bt_for_rotamer[flipped_rotamers]
 
         is_his_rotamer = opth_cache.is_his[bt_for_rotamer]
-        is_orig_bt_rotamer = (
-            bt_for_rotamer
-            == (
-                pose_stack.block_type_ind64[
-                    task.cons_bt_pose[gbt_for_rotamer],
-                    task.cons_bt_block[gbt_for_rotamer],
-                ]
-            )
+        is_orig_bt_rotamer = bt_for_rotamer == (
+            pose_stack.block_type_ind64[
+                task.cons_bt_pose[gbt_for_rotamer],
+                task.cons_bt_block[gbt_for_rotamer],
+            ]
         )
         is_his_taut_rotamer = torch.logical_and(is_his_rotamer, ~is_orig_bt_rotamer)
         is_unflipped_rotamer = torch.zeros(
@@ -941,11 +940,7 @@ class OptHSampler(ConformerSampler):
         self,
         pose_stack: PoseStack,
         task: "SetPackerTask",  # noqa: F821
-    ) -> Tuple[
-        Tensor[torch.int32][:],
-        Tensor[torch.int32][:],
-        dict,
-    ]:
+    ) -> Tuple[Tensor[torch.int32][:], Tensor[torch.int32][:], dict,]:
         self._annotate_packed_block_types(pose_stack.packed_block_types)
 
         # ensure dunbrack and optH sampler are not _both_ specified for the same block
