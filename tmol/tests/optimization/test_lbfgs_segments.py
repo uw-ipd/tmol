@@ -35,6 +35,19 @@ def test_dense_segment_layout_helpers(torch_device):
     torch.testing.assert_close(out, expected)
 
 
+def test_contiguous_unequal_segments_use_padding(torch_device):
+    """Contiguous segments are dense only when they also have equal lengths."""
+    x = torch.nn.Parameter(torch.zeros(7, device=torch_device))
+    segment_ids = torch.tensor([0, 0, 0, 0, 1, 1, 1], device=torch_device)
+    optimizer = LBFGS_Armijo([x], segment_ids=segment_ids)
+    values = torch.arange(7, dtype=x.dtype, device=torch_device)
+
+    assert not optimizer._segments_are_dense
+    torch.testing.assert_close(
+        optimizer._seg_sum(values), torch.tensor([6.0, 15.0], device=torch_device)
+    )
+
+
 def test_batched_two_loop_matches_one_problem_at_a_time(torch_device):
     grad, dirs, stps = _history(7, 4, 13, torch.float64, torch_device)
     batched = lbfgs_two_loop(grad, dirs, stps)
