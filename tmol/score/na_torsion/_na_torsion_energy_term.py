@@ -95,6 +95,23 @@ class NaTorsionEnergyTerm(EnergyTerm):
 
     def setup_poses(self, poses: PoseStack):
         super(NaTorsionEnergyTerm, self).setup_poses(poses)
+        if hasattr(poses, "na_torsion_pose_params"):
+            return
+
+        pbt = poses.packed_block_types
+        params = _pose_indices(
+            poses.block_type_ind_for_rot,
+            pbt.na_torsion_base,
+            pbt.na_torsion_uaids,
+            pbt.na_torsion_ring,
+            pbt.na_torsion_down,
+            pbt.atom_downstream_of_conn,
+            poses.block_coord_offset,
+            poses.inter_residue_connections,
+            poses.max_n_pose_atoms,
+        )
+        poses.na_torsion_pose_params = params
+        poses.na_torsion_has_na = bool(params[1].any())
 
     def get_pose_score_term_function(self):
         return eval_na_torsion_for_pose
@@ -103,6 +120,8 @@ class NaTorsionEnergyTerm(EnergyTerm):
         return eval_na_torsion_for_rotamers
 
     def _pose_has_na(self, pose_stack):
+        if hasattr(pose_stack, "na_torsion_has_na"):
+            return pose_stack.na_torsion_has_na
         pbt = pose_stack.packed_block_types
         bt = pose_stack.block_type_ind64
         return bool(
@@ -117,6 +136,7 @@ class NaTorsionEnergyTerm(EnergyTerm):
         has_na = self._pose_has_na(pose_stack)
         return [
             has_na,
+            *pose_stack.na_torsion_pose_params,
             *self.subterm_attributes(pose_stack),
             p.weight_bb,
             p.weight_chi,
@@ -228,6 +248,13 @@ def eval_na_torsion_for_pose(
     _max_n_rots_per_pose,
     # term args
     has_na,
+    pose_base,
+    pose_is_na,
+    pose_torsion_indices,
+    pose_torsion_ok,
+    pose_ring_indices,
+    pose_ring_ok,
+    pose_prev,
     bt_base,
     bt_uaids,
     bt_ring,
@@ -261,16 +288,15 @@ def eval_na_torsion_for_pose(
         )
         return _finish((zero, zero), output_block_pair_energies)
 
-    e_bb, e_chi, e_sugar, e_well, is_na, base = na_torsion_subterms(
+    e_bb, e_chi, e_sugar, e_well = _pose_subterms(
         rot_coords,
-        block_type_ind_for_rot,
-        bt_base,
-        bt_uaids,
-        bt_ring,
-        bt_down,
-        atom_downstream_of_conn,
-        block_coord_offset,
-        inter_residue_connections,
+        pose_base,
+        pose_is_na,
+        pose_torsion_indices,
+        pose_torsion_ok,
+        pose_ring_indices,
+        pose_ring_ok,
+        pose_prev,
         backbone_means,
         backbone_sdev,
         sugar_means,
@@ -286,16 +312,106 @@ def eval_na_torsion_for_pose(
         pucker_temperature,
         bin_blend_sdev,
     )
-    poly = polymer_index(base)
+    poly = polymer_index(pose_base)
     harmonic = (
         weight_bb[poly] * e_bb + weight_chi[poly] * e_chi + weight_sugar[poly] * e_sugar
     )
     well = e_well
     zero = torch.zeros_like(harmonic)
     return _finish(
-        (torch.where(is_na, harmonic, zero), torch.where(is_na, well, zero)),
+        (
+            torch.where(pose_is_na, harmonic, zero),
+            torch.where(pose_is_na, well, zero),
+        ),
         output_block_pair_energies,
     )
+
+
+def _pose_indices(
+    block_type_ind_for_rot,
+    bt_base,
+    bt_uaids,
+    bt_ring,
+    bt_down,
+    atom_downstream_of_conn,
+    block_coord_offset,
+    inter_residue_connections,
+    max_n_atoms,
+):
+    """Resolve immutable nucleic-acid topology once for repeated scoring."""
+    n_poses, max_n_blocks = block_coord_offset.shape
+    block_type = block_type_ind_for_rot.view(n_poses, max_n_blocks).to(torch.int64)
+    real = block_type >= 0
+    bt_safe = block_type.clamp_min(0)
+    base = torch.where(real, bt_base.to(torch.int64)[bt_safe], -1)
+    is_na = base >= 0
+
+    pose, index, ok = _resolve_uaids(
+        bt_uaids[bt_safe],
+        block_type,
+        block_coord_offset,
+        inter_residue_connections,
+        atom_downstream_of_conn,
+    )
+    torsion_indices = (pose * max_n_atoms + index).clamp_min(0)
+    torsion_ok = ok.all(-1) & is_na.unsqueeze(-1)
+
+    ring_local = bt_ring.to(torch.int64)[bt_safe]
+    ring_pose = torch.arange(n_poses, device=block_type.device).view(n_poses, 1, 1)
+    ring_index = block_coord_offset.to(torch.int64).unsqueeze(-1) + ring_local
+    ring_indices = (ring_pose * max_n_atoms + ring_index).clamp_min(0)
+    ring_ok = (ring_local >= 0) & is_na.unsqueeze(-1)
+
+    down = bt_down.to(torch.int64)[bt_safe]
+    prev_block = torch.gather(
+        inter_residue_connections[..., 0].to(torch.int64),
+        2,
+        down.clamp_min(0)[..., None],
+    ).squeeze(-1)
+    has_prev = (down >= 0) & (prev_block >= 0)
+    pose_ind = torch.arange(n_poses, device=block_type.device).view(n_poses, 1)
+    prev = torch.where(
+        has_prev,
+        pose_ind * max_n_blocks + prev_block,
+        torch.full_like(prev_block, -1),
+    )
+    return base, is_na, torsion_indices, torsion_ok, ring_indices, ring_ok, prev
+
+
+def _pose_subterms(
+    rot_coords,
+    base,
+    is_na,
+    torsion_indices,
+    torsion_ok,
+    ring_indices,
+    ring_ok,
+    prev,
+    *energy_params,
+):
+    """Evaluate coordinate-dependent NA terms using pre-resolved topology."""
+    xyz = rot_coords[torsion_indices.reshape(-1)].reshape(*torsion_indices.shape, 3)
+    xyz = torch.where(
+        torsion_ok.unsqueeze(-1).unsqueeze(-1), xyz, torch.zeros_like(xyz)
+    )
+    ring_xyz = rot_coords[ring_indices.reshape(-1)].reshape(*ring_indices.shape, 3)
+    ring_xyz = torch.where(ring_ok.unsqueeze(-1), ring_xyz, torch.zeros_like(ring_xyz))
+
+    n_poses, max_n_blocks = base.shape
+
+    def flat(tensor):
+        return tensor.reshape(n_poses * max_n_blocks, *tensor.shape[2:])
+
+    energies = _subterm_energies(
+        flat(xyz),
+        flat(torsion_ok),
+        flat(ring_xyz),
+        flat(base),
+        flat(prev),
+        *energy_params,
+    )
+    shape = (n_poses, max_n_blocks)
+    return tuple(energy.reshape(shape) for energy in energies)
 
 
 def na_torsion_subterms(
@@ -328,60 +444,22 @@ def na_torsion_subterms(
     The base index carries the polymer, which the caller needs in order to pick
     the per-polymer subterm weights.
     """
-    n_poses, max_n_blocks = block_coord_offset.shape
-    max_n_atoms = rot_coords.shape[0] // n_poses
-
-    block_type = block_type_ind_for_rot.view(n_poses, max_n_blocks).to(torch.int64)
-    real = block_type >= 0
-    bt_safe = block_type.clamp_min(0)
-    base = torch.where(real, bt_base.to(torch.int64)[bt_safe], -1)
-    is_na = base >= 0
-
-    def gather_coords(pose, index, ok):
-        flat = (pose * max_n_atoms + index).clamp_min(0)
-        xyz = rot_coords[flat.reshape(-1)].reshape(*index.shape, 3)
-        return torch.where(ok.unsqueeze(-1), xyz, torch.zeros_like(xyz))
-
-    pose, index, ok = _resolve_uaids(
-        bt_uaids[bt_safe],
-        block_type,
+    n_poses = block_coord_offset.shape[0]
+    indices = _pose_indices(
+        block_type_ind_for_rot,
+        bt_base,
+        bt_uaids,
+        bt_ring,
+        bt_down,
+        atom_downstream_of_conn,
         block_coord_offset,
         inter_residue_connections,
-        atom_downstream_of_conn,
+        rot_coords.shape[0] // n_poses,
     )
-    xyz = gather_coords(pose, index, ok)
-    tor_ok = ok.all(-1) & is_na.unsqueeze(-1)
-
-    ring_local = bt_ring.to(torch.int64)[bt_safe]
-    ring_pose = torch.arange(n_poses, device=rot_coords.device).view(n_poses, 1, 1)
-    ring_index = block_coord_offset.to(torch.int64).unsqueeze(-1) + ring_local
-    ring_ok = (ring_local >= 0) & is_na.unsqueeze(-1)
-    ring_xyz = gather_coords(ring_pose.expand_as(ring_local), ring_index, ring_ok)
-
-    # index of the preceding block in the flattened pose x block axis
-    down = bt_down.to(torch.int64)[bt_safe]
-    prev_block = torch.gather(
-        inter_residue_connections[..., 0].to(torch.int64),
-        2,
-        down.clamp_min(0)[..., None],
-    ).squeeze(-1)
-    has_prev = (down >= 0) & (prev_block >= 0)
-    pose_ind = torch.arange(n_poses, device=rot_coords.device).view(n_poses, 1)
-    prev = torch.where(
-        has_prev,
-        pose_ind * max_n_blocks + prev_block,
-        torch.full_like(prev_block, -1),
-    )
-
-    def flat(t):
-        return t.reshape(n_poses * max_n_blocks, *t.shape[2:])
-
-    e_bb, e_chi, e_sugar, e_well = _subterm_energies(
-        flat(xyz),
-        flat(tor_ok),
-        flat(ring_xyz),
-        flat(base),
-        flat(prev),
+    base, is_na = indices[:2]
+    energies = _pose_subterms(
+        rot_coords,
+        *indices,
         backbone_means,
         backbone_sdev,
         sugar_means,
@@ -397,15 +475,7 @@ def na_torsion_subterms(
         pucker_temperature,
         bin_blend_sdev,
     )
-    shape = (n_poses, max_n_blocks)
-    return (
-        e_bb.reshape(shape),
-        e_chi.reshape(shape),
-        e_sugar.reshape(shape),
-        e_well.reshape(shape),
-        is_na,
-        base,
-    )
+    return (*energies, is_na, base)
 
 
 def _subterm_energies(
@@ -622,6 +692,13 @@ def eval_na_torsion_for_rotamers(
     _max_n_rots_per_pose,
     # term args
     has_na,
+    _pose_base,
+    _pose_is_na,
+    _pose_torsion_indices,
+    _pose_torsion_ok,
+    _pose_ring_indices,
+    _pose_ring_ok,
+    _pose_prev,
     bt_base,
     bt_uaids,
     bt_ring,
