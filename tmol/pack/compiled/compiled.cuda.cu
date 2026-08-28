@@ -211,6 +211,7 @@ MGPU_DEVICE int set_quench_32_order(
 //     standard Metropolis accept/reject
 template <
     int ChunkSize,
+    bool ReturnFinalScore,
     tmol::Device D,
     uint n_threads,
     typename Int,
@@ -422,8 +423,13 @@ MGPU_DEVICE float warp_wide_sim_annealing(
 
   }  // end outer loop
 
-  return ig.template total_energy_for_assignment_parallel<ChunkSize>(
-      pose, g, current_rotamer_assignment);
+  // Transition phases consume only the assignments; avoid their otherwise
+  // unused exact rescore while retaining it for ranking phases.
+  if constexpr (ReturnFinalScore) {
+    return ig.template total_energy_for_assignment_parallel<ChunkSize>(
+        pose, g, current_rotamer_assignment);
+  }
+  return 0.0f;
 }
 
 template <tmol::Device D, class IG, int ChunkSize>
@@ -618,7 +624,7 @@ struct Annealer {
       }
 
       // Full SA run with geometric cooling
-      warp_wide_sim_annealing<ChunkSize>(
+      warp_wide_sim_annealing<ChunkSize, false>(
           pose,
           traj_id,
           &state,
@@ -644,22 +650,23 @@ struct Annealer {
       }
 
       // Quench-lite to produce a score for ranking
-      float after_first_quench_lite_totalE = warp_wide_sim_annealing<ChunkSize>(
-          pose,
-          traj_id,
-          &state,
-          g,
-          ig,
-          current_rotamer_assignments_hitemp_quenchlite[pose][traj_id],
-          best_rotamer_assignments_hitemp[pose][traj_id],
-          quench_order[pose][traj_id],
-          high_temp_initial,
-          low_temp_initial,
-          1,  // quench on the (only) iteration
-          n_inner_iterations_hitemp,
-          n_rotamers,
-          true,
-          true);
+      float after_first_quench_lite_totalE =
+          warp_wide_sim_annealing<ChunkSize, true>(
+              pose,
+              traj_id,
+              &state,
+              g,
+              ig,
+              current_rotamer_assignments_hitemp_quenchlite[pose][traj_id],
+              best_rotamer_assignments_hitemp[pose][traj_id],
+              quench_order[pose][traj_id],
+              high_temp_initial,
+              low_temp_initial,
+              1,  // quench on the (only) iteration
+              n_inner_iterations_hitemp,
+              n_rotamers,
+              true,
+              true);
       if (g.thread_rank() == 0) {
         scores_hitemp[pose][traj_id] = after_first_quench_lite_totalE;
       }
@@ -697,7 +704,7 @@ struct Annealer {
       }
 
       // Low-temperature cooling trajectory
-      warp_wide_sim_annealing<ChunkSize>(
+      warp_wide_sim_annealing<ChunkSize, false>(
           pose,
           traj_id,
           &state,
@@ -716,7 +723,7 @@ struct Annealer {
 
       // Quench-lite to score for the next round of selection
       float after_lotemp_quench_lite_totalE =
-          warp_wide_sim_annealing<ChunkSize>(
+          warp_wide_sim_annealing<ChunkSize, true>(
               pose,
               traj_id,
               &state,
@@ -764,7 +771,7 @@ struct Annealer {
         best_rotamer_assignments_fullquench[pose][traj_id][i] = i_rot;
       }
 
-      warp_wide_sim_annealing<ChunkSize>(
+      warp_wide_sim_annealing<ChunkSize, false>(
           pose,
           traj_id,
           &state,
