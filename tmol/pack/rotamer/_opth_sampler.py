@@ -141,7 +141,7 @@ def _opth_fill_dofs(
     3. Write the corrected chi torsion into DOF column 3 for
        the chi-defining atom of each flip / proton-chi rotamer.
     """
-    from tmol.pack.rotamer import _build_chi_phi_c_corrections
+    from tmol.pack.rotamer import _get_chi_dof_metadata
 
     pbt = pose_stack.packed_block_types
     dev = conf_dofs_kto.device
@@ -215,47 +215,13 @@ def _opth_fill_dofs(
         conf_dofs_kto[reset_kto] = dofs_ideal_t[reset_bt, reset_k]
 
     # Write every chi override in one indexed assignment.
-    kfidx = torch.as_tensor(
-        pbt.rotamer_kinforest.kinforest_idx, dtype=torch.int64, device=dev
-    )
-    corrections = torch.as_tensor(
-        _build_chi_phi_c_corrections(pbt), dtype=torch.float32, device=dev
-    )
+    kfidx, corrections = _get_chi_dof_metadata(pbt)
     safe_chi_atoms = chi_atoms.clamp_min(0).to(torch.int64)
     rotamer_bt = bt_inds[:, None].expand_as(safe_chi_atoms)
     chi_kto = kfidx[rotamer_bt, safe_chi_atoms] + at_offs[:, None] + 1
     chi_cols = torch.arange(chi_atoms.shape[1], device=dev)[None, :]
     corrected_chi = chi_vals - corrections[rotamer_bt, chi_cols]
     conf_dofs_kto[chi_kto[chi_mask], 3] = corrected_chi[chi_mask]
-
-
-def _n_rots_for_gbt(sampler, blt, orig, orig_cache, bt, bt_cache):
-    """Return the number of rotamers OptHSampler generates for one GBT entry."""
-    # Proton chi: only for the original block type
-    if bt_cache.has_proton_chi and bt is blt.original_block_type:
-        return bt_cache.n_proton_samples
-
-    # NHQ flip
-    if sampler.flip_NHQ and orig_cache.nhq_chi_col >= 0:
-        if orig_cache.is_his:
-            # HIS/HIS_D: 2 rotamers for EVERY HIS/HIS_D considered block type
-            if bt_cache.is_his:
-                return 2
-        else:
-            # ASN/GLN: 2 rotamers only for the original block type
-            if bt is blt.original_block_type:
-                return 2
-
-    return 0
-
-
-def _chi_cols_needed(bt_cache, orig_cache, flip_NHQ):
-    """Return the minimum chi tensor width needed for a GBT with non-zero rots."""
-    if bt_cache.has_proton_chi:
-        return bt_cache.n_chi_total
-    if flip_NHQ and orig_cache.nhq_chi_col >= 0:
-        return orig_cache.nhq_chi_col + 1
-    return 1
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -616,19 +582,7 @@ class OptHSampler(ConformerSampler):
         c = c.to(dtype=torch.float64)
         return coord_dihedrals(c[:, 0], c[:, 1], c[:, 2], c[:, 3])  # (n,)
 
-    def _measure_nhq_flip_chi(self, pose_stack, coords, pose_i, block_j, orig_cache):
-        off = int(pose_stack.block_coord_offset[pose_i, block_j].item())
-        a4 = orig_cache.nhq_chi_4atoms
-        c = coords[pose_i][
-            torch.tensor(
-                [off + int(a4[k]) for k in range(4)],
-                dtype=torch.int64,
-                device=pose_stack.device,
-            )
-        ]  # (4, 3)
-        return float(coord_dihedrals(c[0:1], c[1:2], c[2:3], c[3:4])[0].item())
-
-    def _count_rots_and_measure_all_flips(self, pose_stack, task, coords):
+    def _count_rots_and_measure_all_flips(self, pose_stack, task):
         # First we have to get the list of all the blocks where we are using
         # this sampler. Next we will identify the subset of the NHQ blocks
         # where we will measure the chi dihedrals for the flip. Then we will
@@ -710,40 +664,6 @@ class OptHSampler(ConformerSampler):
                 )
                 pos_flip_chi[pose_inds_nhq, block_inds_nhq] = pos_flip_chi_nhq
         return n_rots_for_gbt, max_n_chi_cols, pos_flip_chi
-
-    def _count_rots_and_measure_flips(self, pose_stack, task, coords):
-        # pos_flip_chi[(pose_i, block_j)] = current last-chi in radians
-        pos_flip_chi = {}
-        n_rots_for_gbt_list = []
-        max_n_chi_cols = 1
-        for pose_i, one_pose_blts in enumerate(task.blts):
-            for block_j, blt in enumerate(one_pose_blts):
-                orig = blt.original_block_type
-                orig_cache = orig.opth_sampler_cache
-                opth_assigned = self in blt.conformer_samplers
-
-                # Measure chi-to-flip for NHQ
-                if opth_assigned and self.flip_NHQ and orig_cache.nhq_chi_col >= 0:
-                    pos_flip_chi[(pose_i, block_j)] = self._measure_nhq_flip_chi(
-                        pose_stack, coords, pose_i, block_j, orig_cache
-                    )
-
-                for bt in blt.considered_block_types:
-                    if not opth_assigned:
-                        n_rots_for_gbt_list.append(0)
-                        continue
-                    bt_cache = bt.opth_sampler_cache
-                    if not opth_assigned:
-                        n_rots_for_gbt_list.append(0)
-                        continue
-                    n_rots = _n_rots_for_gbt(self, blt, orig, orig_cache, bt, bt_cache)
-                    n_rots_for_gbt_list.append(n_rots)
-                    if n_rots > 0:
-                        max_n_chi_cols = max(
-                            max_n_chi_cols,
-                            _chi_cols_needed(bt_cache, orig_cache, self.flip_NHQ),
-                        )
-        return n_rots_for_gbt_list, max_n_chi_cols, pos_flip_chi
 
     def _fill_proton_chi_for_all_blocks(
         self,
@@ -951,9 +871,8 @@ class OptHSampler(ConformerSampler):
         #      max chi tensor width
         #      current last-chi angle
         # for each NHQ position in the input
-        coords = pose_stack.coords.double()  # coord_dihedrals needs float64
         n_rots_for_gbt, max_n_chi_cols, pos_flip_chi = (
-            self._count_rots_and_measure_all_flips(pose_stack, task, coords)
+            self._count_rots_and_measure_all_flips(pose_stack, task)
         )
 
         n_rots_total = int(n_rots_for_gbt.sum().item())

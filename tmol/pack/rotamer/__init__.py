@@ -39,6 +39,7 @@ from ._opth_sampler import OptHSampler, OptHSamplerRTCache  # noqa: F401
 from ._build_rotamers import (  # noqa: F401
     _build_chi4_atom_table,
     _build_chi_phi_c_corrections,
+    _get_chi_dof_metadata,
     annotate_everything,
     annotate_packed_block_types,
     annotate_restype,

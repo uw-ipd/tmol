@@ -120,6 +120,27 @@ def _build_chi_phi_c_corrections(pbt):
     return corrections
 
 
+def _get_chi_dof_metadata(pbt):
+    """Return immutable chi lookup tables on the PackedBlockTypes device."""
+    if hasattr(pbt, "_chi_dof_metadata"):
+        return pbt._chi_dof_metadata
+
+    metadata = (
+        torch.as_tensor(
+            pbt.rotamer_kinforest.kinforest_idx,
+            dtype=torch.int64,
+            device=pbt.device,
+        ),
+        torch.as_tensor(
+            _build_chi_phi_c_corrections(pbt),
+            dtype=torch.float32,
+            device=pbt.device,
+        ),
+    )
+    object.__setattr__(pbt, "_chi_dof_metadata", metadata)
+    return metadata
+
+
 def correct_phi_c_for_jump_parents(
     pbt,
     conformer_samples,
@@ -135,28 +156,19 @@ def correct_phi_c_for_jump_parents(
     """For chi-defining atoms whose kinforest parent is a jump atom, the phi_c
     written by assign_chi_dofs_from_samples does not directly map to the
     chi dihedral angle measured from coordinates.  This function:
-      1. Does a trial forward pass with the current DOFs.
-      2. For each such atom, measures the actual dihedral from the trial coords.
-      3. Adds (intended - measured) to conf_dofs_kto[atom_kto, 3] so the
+      1. Finds every sampled chi whose controlling atom has a jump parent.
+      2. If any exist, does a trial forward pass with the current DOFs.
+      3. Measures their actual dihedrals from the trial coordinates.
+      4. Adds (intended - measured) to conf_dofs_kto[atom_kto, 3] so the
          final forward pass produces the correct geometry.
     """
-    # trial forward pass to get coords in RTO
-    n_rots = block_type_ind_for_conformer_torch.shape[0]
-    n_at_total = (
-        n_atoms_offset_for_conformer_torch[-1].item()
-        + pbt.n_atoms[block_type_ind_for_conformer_torch[-1]].item()
-    )
-    trial_coords_rto = calculate_rotamer_coords(
-        pbt, n_rots, n_at_total, conformer_kinforest, nodes, scans, gens, conf_dofs_kto
-    )
-
     doftype_cpu = conformer_kinforest.doftype.cpu().numpy()
     parent_cpu = conformer_kinforest.parent.cpu().numpy()
     kfidx = pbt.rotamer_kinforest.kinforest_idx  # (n_types, max_n_atoms) numpy int32
     bt_ind_np = block_type_ind_for_conformer_torch.cpu().numpy()
     at_off_np = n_atoms_offset_for_conformer_torch.cpu().numpy()
     chi4_table = _build_chi4_atom_table(pbt)  # (n_types, max_n_chi, 4)
-    coords_np = trial_coords_rto.cpu().double().numpy()
+    corrections = []
 
     for i, sample_data in enumerate(conformer_samples):
         sample_dict = sample_data[2]
@@ -212,6 +224,25 @@ def correct_phi_c_for_jump_parents(
         intended_flat = chi_intended.numpy().reshape(-1)[valid_flat]  # (n_valid,)
         cda_kto_flat = cda_kto.reshape(-1)[valid_flat]  # (n_valid,)
 
+        corrections.append((four_abs_flat, intended_flat, cda_kto_flat))
+
+    if not corrections:
+        return
+
+    # Only conformers whose sampled chi has a jump parent need this trial
+    # forward pass. Most OptH-only builds have none, so avoid folding and
+    # copying every trial coordinate to the CPU in that common case.
+    n_rots = block_type_ind_for_conformer_torch.shape[0]
+    n_at_total = (
+        n_atoms_offset_for_conformer_torch[-1].item()
+        + pbt.n_atoms[block_type_ind_for_conformer_torch[-1]].item()
+    )
+    trial_coords_rto = calculate_rotamer_coords(
+        pbt, n_rots, n_at_total, conformer_kinforest, nodes, scans, gens, conf_dofs_kto
+    )
+    coords_np = trial_coords_rto.cpu().double().numpy()
+
+    for four_abs_flat, intended_flat, cda_kto_flat in corrections:
         # gather coordinates: (n_valid, 4, 3)
         xyzs = torch.tensor(
             coords_np[four_abs_flat], dtype=torch.float64, device=torch.device("cpu")
@@ -607,7 +638,6 @@ def merge_conformer_samples(
     # 3. chi_for_rotamers
 
     # everything needs to be on the same device
-    torch.set_printoptions(threshold=10000)
     for samples in conformer_samples:
         assert samples[0].device == samples[1].device
         assert conformer_samples[0][0].device == samples[0].device
