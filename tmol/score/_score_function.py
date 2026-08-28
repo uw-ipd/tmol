@@ -417,7 +417,7 @@ class WholePoseScoringModule:
         if not torch.is_grad_enabled() and coords.requires_grad:
             coords = coords.detach()
         unweighted = self.unweighted_scores(coords)
-        weighted = self.weights * unweighted if apply_weights else unweighted
+        weighted = unweighted.mul_(self.weights) if apply_weights else unweighted
         summed = torch.sum(weighted, dim=0) if sum_terms else weighted
 
         return summed
