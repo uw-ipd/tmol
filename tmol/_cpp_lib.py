@@ -33,11 +33,13 @@ class TmolExtensionNotBuiltError(Exception):
             "tmol C++/CUDA extensions are not built.\n"
             "  Install tmol from a pre-built wheel:\n"
             "    pip install tmol\n"
-            "  Or build from source (requires CUDA toolkit):\n"
+            "  Or build from source (CPU-only, e.g. macOS: add\n"
+            "  -Ccmake.define.TMOL_ENABLE_CUDA=OFF; CUDA needs the CUDA toolkit):\n"
             "    pip install -e .\n"
             "  On older Linux clusters, prefer:\n"
             "    TMOL_DISABLE_WHEEL_FETCH=1 pip install -e .\n"
-            "  or set TMOL_JIT_FALLBACK=1 if nvcc is available.\n"
+            "  or set TMOL_JIT_FALLBACK=1 (CPU-only needs just a C++ compiler + "
+            "ninja; nvcc only for CUDA).\n"
         )
 
 
@@ -70,7 +72,8 @@ def extension_load_error_details(exc: OSError) -> str:
             "    - Use a container with a recent base image\n"
             "    - Build tmol on this machine:\n"
             "        TMOL_DISABLE_WHEEL_FETCH=1 pip install -e .\n"
-            "    - Or set TMOL_JIT_FALLBACK=1 (requires nvcc; slower first import)"
+            "    - Or set TMOL_JIT_FALLBACK=1 (CPU-only needs just a C++ compiler "
+            "+ ninja; nvcc only for CUDA; slower first import)"
         )
 
     if "glibc_" in lower and "libc.so" in lower:

@@ -56,7 +56,7 @@ tmol's C++/CUDA kernels can be loaded in two ways:
 
 - **AOT (Ahead-Of-Time)**: Pre-compiled `.so` libraries are bundled inside the installed package (e.g., from a wheel). Operations are registered in `torch.ops.tmol_*` namespaces. This is the default and requires no compiler at runtime.
 
-- **JIT (Just-In-Time)**: Source files (`.cpp`, `.cu`) are compiled on first use via `torch.utils.cpp_extension.load()`. This requires `nvcc` and a C++ compiler to be available. Useful for kernel development where you want to edit and reload C++/CUDA code without rebuilding the whole package.
+- **JIT (Just-In-Time)**: Source files (`.cpp`, `.cu`) are compiled on first use via `torch.utils.cpp_extension.load()`. This requires a C++ compiler and `ninja`; `nvcc` is needed **only** to build the CUDA kernels. On CPU-only platforms (e.g. macOS/Apple Silicon) `cuda_if_available()` drops the `.cu` sources automatically, so JIT works with no `nvcc`. Useful for kernel development where you want to edit and reload C++/CUDA code without rebuilding the whole package.
 
 Two environment variables control which path is taken:
 
@@ -93,10 +93,13 @@ flowchart TD
 | End user                      | `pip install tmol` (sdist) | None   | AOT (compiled at install time) |
 | Kernel developer              | `pip install -e .` | `TMOL_USE_JIT=1` | JIT |
 | CI without GPU                | Pre-built wheel    | None            | AOT  |
+| macOS / CPU-only from source  | `pip install -e . -Ccmake.define.TMOL_ENABLE_CUDA=OFF` | None (or `TMOL_USE_JIT=1`) | AOT (or JIT) |
 
 ### CUDA toolkit for JIT mode
 
-JIT mode requires `nvcc` and CUDA headers. You can either:
+Building the **CUDA** kernels in JIT mode requires `nvcc` and CUDA headers.
+CPU-only JIT does not — it needs only a C++ compiler and `ninja` (this is the
+usual path on macOS/Apple Silicon). To build the CUDA kernels you can either:
 
 1. **Use a CUDA-enabled container** (NGC, conda) or set `CUDA_HOME` to point to your system CUDA toolkit.
 2. **Install the pip CUDA extra**, which downloads `nvcc` and runtime libraries:
