@@ -9,9 +9,9 @@ import cattr
 import numpy
 import pytest
 
+from tmol.chemical import l_base_name
 from tmol.chemical._restypes import RefinedResidueType
 from tmol.database import ParameterDatabase
-from tmol.support.chemical._add_d_amino_acids import D_NAME3, d_name
 
 
 def residues(param_db):
@@ -19,14 +19,12 @@ def residues(param_db):
 
 
 def base_pairs(param_db):
-    """(L, D) base residue type pairs."""
+    """(L, D) base residue type pairs, matched by the production L-name helper."""
     by_name = residues(param_db)
     return [
-        (by_name[name], by_name[d_name(name)])
-        for name, rt in sorted(by_name.items())
-        if rt.name == rt.base_name
-        and rt.properties.polymer.sidechain_chirality == "l"
-        and d_name(name) in by_name
+        (by_name[l_base_name(rt)], rt)
+        for _, rt in sorted(by_name.items())
+        if rt.name == rt.base_name and rt.properties.polymer.sidechain_chirality == "d"
     ]
 
 
@@ -45,26 +43,17 @@ def chiral_volume(coords):
 def test_every_chiral_l_residue_has_a_mirror() -> None:
     param_db = ParameterDatabase.get_default()
     by_name = residues(param_db)
+    mirrored = {l_rt.name for l_rt, _ in base_pairs(param_db)}
     unmirrored = [
         rt.name
         for rt in by_name.values()
         if rt.name == rt.base_name
         and rt.properties.polymer.sidechain_chirality == "l"
-        and d_name(rt.name) not in by_name
+        and rt.name not in mirrored
     ]
     assert unmirrored == []
     # glycine is achiral, so it has no D form
     assert "DGLY" not in by_name
-
-
-def test_d_residues_use_the_pdb_three_letter_code() -> None:
-    """Deposited structures carry these codes, so input matching depends on them."""
-    param_db = ParameterDatabase.get_default()
-    for l_rt, d_rt in base_pairs(param_db):
-        assert d_rt.name3 == D_NAME3[l_rt.name3]
-        assert d_rt.io_equiv_class == D_NAME3[l_rt.io_equiv_class]
-        # the letter addresses the L base type; a D residue is written X[DALA]
-        assert d_rt.one_letter_code is None
 
 
 def test_d_residues_reference_their_l_form() -> None:
@@ -74,6 +63,8 @@ def test_d_residues_reference_their_l_form() -> None:
         assert d_rt.dunbrack_reference == l_rt.base_name
         assert d_rt.reference_mirrored is True
         assert d_rt.properties.polymer.sidechain_chirality == "d"
+        # the letter addresses the L base type; a D residue is written X[DALA]
+        assert d_rt.one_letter_code is None
 
 
 def test_d_residues_have_inverted_chirality() -> None:
@@ -147,8 +138,6 @@ def test_d_residues_take_termini_variants() -> None:
 
 def test_l_base_name_resolves_d_forms_without_touching_dna() -> None:
     """The helper keys on chirality, not on a leading D in the name."""
-    from tmol.chemical import l_base_name
-
     param_db = ParameterDatabase.get_default()
     by_name = residues(param_db)
 

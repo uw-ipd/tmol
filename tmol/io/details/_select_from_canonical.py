@@ -10,6 +10,7 @@ from tmol.types import (
     NDArray,
     validate_args,
 )
+from tmol.chemical import l_base_name
 from tmol.io import CanonicalOrdering
 from tmol.pose import (
     PackedBlockTypes,
@@ -859,9 +860,11 @@ def _assign_var_inds_for_bt(co, bt):
     bt_is_down_term = False
     bt_is_up_term = False
     bt_is_non_default_term = False
-    bt_is_cyd = bt.base_name == "CYD"
-    bt_is_hisd = bt.base_name == "HIS_D"
-    bt_is_hispos = bt.base_name == "HIS_POS"
+    # a d-amino acid shares its l form's sidechain states
+    bt_base = l_base_name(bt)
+    bt_is_cyd = bt_base == "CYD"
+    bt_is_hisd = bt_base == "HIS_D"
+    bt_is_hispos = bt_base == "HIS_POS"
     for var_name in bt_vars[1:]:
         if var_name in co.down_termini_patches:
             bt_is_down_term = True
