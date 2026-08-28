@@ -68,6 +68,11 @@ through `build_missing_sidechains()`. By default it also places and optimizes
 hydrogens for complete residues. Pass `no_optH=True` to skip that hydrogen
 optimization path.
 
+For standard residues and the default parameter database, TMol automatically
+reuses the structure-independent construction and packing setup. If many
+structures share prepared ligand definitions, explicitly reuse a
+`PoseBuildContext` as described in the ligand guide.
+
 ```python
 pose_stack = pose_stack_from_biotite(
     structure,

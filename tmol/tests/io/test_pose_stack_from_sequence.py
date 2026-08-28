@@ -6,6 +6,7 @@ import numpy
 import pytest
 import torch
 
+from tmol.chemical import ResidueTypeSet
 from tmol.io import (
     EXTENDED_BACKBONE_TORSIONS,
     create_pose_stack_from_sequences,
@@ -145,6 +146,14 @@ def test_extended_pose_stack_device(torch_device):
     pose_stack = extended_pose_stack_from_sequences("ACD", device=torch_device)
     assert pose_stack.coords.device.type == torch_device.type
     assert pose_stack.coords.dtype == torch.float32
+
+
+def test_default_sequence_context_reuses_default_restype_set(torch_device):
+    _, context = create_pose_stack_from_sequences(
+        "ACD", device=torch_device, return_context=True
+    )
+
+    assert context.restype_set is ResidueTypeSet.get_default()
 
 
 PROTEIN_GOLD_TORSION_NAMES = {
