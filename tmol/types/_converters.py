@@ -51,7 +51,7 @@ def union_convert(union_annotation, value):
             errors.append(ex)
 
     raise TypeError(
-        "Unable to convert to any union subtype: {union_annotaion} value: {value}"
+        f"Unable to convert to any union subtype: {union_annotation} value: {value!r}"
     )
 
 
