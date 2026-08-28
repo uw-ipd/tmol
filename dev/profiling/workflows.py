@@ -2,6 +2,7 @@
 """Benchmark representative end-to-end TMol GPU workflows."""
 
 # ruff: noqa: E402 -- import the checkout containing this developer script
+# flake8: noqa
 
 from __future__ import annotations
 
@@ -36,7 +37,6 @@ from tmol.pose import PoseStackBuilder
 from tmol.relax import fast_relax
 from tmol.score import beta2016_score_function
 from tmol.utility._nvtx import nvtx_range
-
 
 DATA = ROOT / "tmol" / "tests" / "data"
 SEED = 20260827

@@ -22,6 +22,65 @@ Minimization uses ten LBFGS iterations. FastRelax uses one complete default
 four-stage ramp, with ten Cartesian LBFGS iterations per stage. These fixed
 budgets make implementations comparable; they are not convergence claims.
 
+## H200 reference result
+
+The 2026-08-27 reference run used one NVIDIA H200, driver 595.71.05, Python
+3.12.3, PyTorch 2.11.0+cu128, CUDA runtime 12.8, the
+`latent-dev-cuda13-26.06-tmol0.1.42.sif` image, AOT extensions, and runtime JIT
+disabled. These are synchronized steady-state medians; setup and warm-up are
+excluded.
+
+| Workflow and input | Batch 1 (ms) | Larger batch | Batch time (ms) | Throughput gain |
+|---|---:|---:|---:|---:|
+| score, 15-residue protein | 0.517 | 32 | 0.569 | 29.1x |
+| score, 400-residue protein | 0.735 | 4 | 1.375 | 2.1x |
+| score, 24-nt DNA | 2.729 | 32 | 2.776 | 31.5x |
+| score, protein–ligand | 0.808 | 8 | 2.295 | 2.8x |
+| Cartesian min, 15-residue protein | 41.623 | 32 | 42.117 | 31.6x |
+| Cartesian min, 24-nt DNA | 183.181 | 8 | 176.959 | 8.3x |
+| torsion min, 24-nt DNA | 238.398 | 4 | 249.866 | 3.8x |
+| FastRelax, 15-residue protein | 348.194 | 8 | 521.822 | 5.3x |
+| FastRelax, 100-residue protein | 1247.685 | 4 | 2247.399 | 2.2x |
+
+CUDA graphs pay off for repeated fixed layouts, especially nucleic acids. At
+batch 1, graph replay changed DNA forward scoring from 2.729 to 0.867 ms (3.15x)
+and forward plus coordinate gradient from 7.262 to 1.686 ms (4.31x). The RNA
+gains were 2.92x and 3.97x. A 15-residue protein gained 1.26x and 1.87x, while a
+protein–ligand case gained only 1.07x and 1.05x because its larger kernels were
+already device-bound. Graph construction remains a one-time setup cost.
+
+### Optimization and trace conclusions
+
+The nucleic-acid term previously rebuilt immutable atom indices, masks, base
+identities, ring indices, and predecessor links on every score evaluation.
+Caching them on `PoseStack` removed 67 launches per forward call. A sequential
+same-H200 A/B across DNA, RNA, and protein–DNA reduced eager forward latency by
+11–19%, eager forward plus gradient by 4–6%, and graph replay by about 11%.
+The final DNA trace has 339 launches versus 406 before the change and a 5.28 ms
+profiled wall time versus 6.11 ms. The cache adds less than 0.5 MiB in the
+largest measured NA batch and did not regress protein-only setup or scoring.
+
+The full trace matrix points to three distinct regimes:
+
+- Small protein eager scores are launch-sensitive; larger protein and
+  protein–ligand batches spend most device time in `lk_ball` and are
+  compute-bound. Batch similarly sized poses for throughput.
+- Eager NA scoring and gradients remain host/launch-bound: only 12–30% of the
+  profiled wall time is GPU activity, with 339 forward and 823–829 gradient
+  launches. CUDA graphs raise GPU occupancy to roughly 70–80% of the profiled
+  wall time without changing the fixed-layout public API.
+- NA Cartesian and torsion minimization still enqueue about 19k–28k kernels in
+  ten LBFGS iterations. FastRelax shifts from host-sensitive at a tiny protein
+  to 75–85% GPU activity for 100 residues; simulated annealing is its dominant
+  kernel. Further gains there require larger fusion or optimizer/packer changes,
+  not another small Python cleanup, and should preserve minimization trajectory
+  semantics.
+
+Treat the regular matrix as the timing source. Nsight interception materially
+inflates host-heavy workflows; use its traces to explain time, not to publish
+latency. `analyze.py` produces the complete 83-row table and SVG rather than
+embedding a stale full matrix here.
+
 ## Run one case
 
 Use an AOT build on a CUDA node for stable results:
@@ -108,9 +167,9 @@ python dev/profiling/analyze.py artifacts/nsys
 The analyzer first verifies every size and SHA-256 checksum in `manifest.json`,
 then writes `analysis/timings.md`, `analysis/timings.svg`, and
 `analysis/trace_summary.csv`. The trace summary includes the profiled iteration
-wall time, NVTX enqueue-range time, total GPU-kernel time, kernel-launch count
-and API time, largest cumulative NVTX range, and dominant kernel. Compare
-regular runs from two revisions with:
+wall time, NVTX enqueue-range time, kernel and CUDA-graph device time, ordinary
+and graph launch counts/API time, largest cumulative NVTX range, and dominant
+kernel. Compare regular runs from two revisions with:
 
 ```bash
 python dev/profiling/analyze.py artifacts/current \

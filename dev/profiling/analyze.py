@@ -10,8 +10,8 @@ import html
 import json
 import math
 import re
+import sqlite3
 from pathlib import Path
-
 
 COLORS = {
     "score": "#2563eb",
@@ -35,7 +35,7 @@ def _sha256(path: Path) -> str:
 def verify_manifest(run_dir: Path) -> None:
     path = run_dir / "manifest.json"
     if not path.is_file():
-        return
+        raise FileNotFoundError(f"no completed-run manifest: {path}")
     manifest = json.loads(path.read_text())
     errors = (
         ["results/summary.csv"]
@@ -74,6 +74,9 @@ def _short_kernel(name: str) -> str:
     for term in score_terms:
         if term != "common":
             return f"tmol::score::{term}"
+    pack = re.search(r"tmol::pack::compiled::([A-Za-z_]+)", name)
+    if pack:
+        return f"tmol::pack::compiled::{pack.group(1)}"
     tmol_names = re.findall(r"tmol::([a-z_]+)::([a-z_]+)", name)
     if tmol_names:
         return "tmol::" + "::".join(tmol_names[-1])
@@ -110,6 +113,18 @@ def _stats_sections(path: Path) -> dict[str, list[dict[str, str]]]:
     return sections
 
 
+def _graph_gpu_activity(path: Path) -> tuple[int, float]:
+    with sqlite3.connect(path) as database:
+        try:
+            count, duration = database.execute(
+                "SELECT count(*), coalesce(sum(end - start), 0) "
+                "FROM CUPTI_ACTIVITY_KIND_GRAPH_TRACE WHERE start >= 0"
+            ).fetchone()
+        except sqlite3.OperationalError:
+            return 0, 0.0
+    return count, duration / 1e6
+
+
 def read_traces(run_dir: Path) -> list[dict[str, str | int | float]]:
     rows = []
     for path in sorted((run_dir / "traces").glob("*.stats.csv")):
@@ -120,6 +135,12 @@ def read_traces(run_dir: Path) -> list[dict[str, str | int | float]]:
         api = sections.get("api", [])
         nvtx = sections.get("nvtx", [])
         launches = next((row for row in api if row["Name"] == "cudaLaunchKernel"), {})
+        graph_launches = next(
+            (row for row in api if row["Name"] == "cudaGraphLaunch"), {}
+        )
+        graph_count, graph_ms = _graph_gpu_activity(
+            run_dir / "traces" / f"{case}.sqlite"
+        )
         iteration = next(
             (row for row in nvtx if "/iteration-" in row.get("Range", "")), {}
         )
@@ -131,15 +152,21 @@ def read_traces(run_dir: Path) -> list[dict[str, str | int | float]]:
             and not row.get("Range", "").endswith("/measure")
         ]
         top_range = max(nested, key=lambda row: int(row["Total Time (ns)"]), default={})
+        kernel_ms = sum(int(row["Total Time (ns)"]) for row in kernels) / 1e6
         rows.append(
             {
                 "case": case,
                 "profiled_wall_ms": result["median_ms"],
                 "nvtx_iteration_ms": int(iteration.get("Total Time (ns)", 0)) / 1e6,
-                "gpu_kernel_ms": sum(int(row["Total Time (ns)"]) for row in kernels)
-                / 1e6,
+                "gpu_activity_ms": kernel_ms + graph_ms,
+                "gpu_kernel_ms": kernel_ms,
+                "gpu_graph_ms": graph_ms,
                 "kernel_launches": int(launches.get("Num Calls", 0)),
+                "graph_executions": graph_count,
+                "graph_launches": int(graph_launches.get("Num Calls", 0)),
                 "launch_api_ms": int(launches.get("Total Time (ns)", 0)) / 1e6,
+                "graph_launch_api_ms": int(graph_launches.get("Total Time (ns)", 0))
+                / 1e6,
                 "top_nvtx": top_range.get("Range", "").removeprefix(":"),
                 "top_nvtx_ms": int(top_range.get("Total Time (ns)", 0)) / 1e6,
                 "top_kernel": _short_kernel(top.get("Name", "")),

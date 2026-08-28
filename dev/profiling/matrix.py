@@ -12,7 +12,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 RUNNER = ROOT / "dev" / "profiling" / "workflows.py"
 
@@ -195,6 +194,8 @@ def main():
     parser.add_argument("--max-iter", type=int, default=10)
     parser.add_argument("--force", action="store_true", help="replace completed cases")
     args = parser.parse_args()
+    if args.graph_node_trace and not args.trace:
+        parser.error("--graph-node-trace requires --trace")
 
     workflows = args.workflow or list(MATRIX)
     cases = [
