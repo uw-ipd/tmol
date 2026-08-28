@@ -9,6 +9,7 @@ from tmol.types import Tensor
 from tmol.database import ParameterDatabase
 from tmol.database._yaml import safe_load
 from tmol.score import ScoreType
+from tmol.score.common import ZeroTermPoseScoringModule
 
 # force registration of the terms with the ScoreTermFactory
 from tmol.score.terms import *  # noqa: F401, F403
@@ -526,6 +527,23 @@ class BlockPairScoringModule:
     def __call__(self, coords, sum_terms=True, apply_weights=True):
         if not torch.is_grad_enabled() and coords.requires_grad:
             coords = coords.detach()
+        if sum_terms and apply_weights:
+            active_scores = []
+            active_weights = []
+            weight_offset = 0
+            for term in self.term_modules:
+                if isinstance(term, ZeroTermPoseScoringModule):
+                    weight_offset += term.shape[0]
+                    continue
+                scores = term(coords)
+                next_offset = weight_offset + scores.shape[0]
+                active_scores.append(scores)
+                active_weights.append(self.weights[weight_offset:next_offset])
+                weight_offset = next_offset
+            if active_scores:
+                unweighted = torch.cat(active_scores, dim=0)
+                weights = torch.cat(active_weights, dim=0)
+                return unweighted.mul_(weights).sum(dim=0)
         unweighted = self.unweighted_scores(coords)
         weighted = unweighted.mul_(self.weights) if apply_weights else unweighted
         summed = torch.sum(weighted, dim=0) if sum_terms else weighted
