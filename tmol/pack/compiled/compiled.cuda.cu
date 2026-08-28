@@ -59,11 +59,10 @@ struct InteractionGraph {
   TView<int64_t, 1, D> chunk_offsets_;
   TView<Real, 1, D> energy1b_;
   TView<Real, 1, D> energy2b_;
-  TView<Int, 2, D> n_neighbors_;  // [n_poses, max_n_res]
-  TView<Int, 2, D>
-      neighbor_starts_;  // [n_poses, max_n_res] exclusive prefix sum
-  TView<Int, 1, D>
-      neighbor_list_;  // [total_neighbors] flat neighbor block indices
+  TView<Int, 2, D> n_neighbors_;    // [n_poses, max_n_res]
+  TView<Int, 3, D> neighbor_list_;  // [n_poses, max_n_res, max_n_res]
+  TView<int64_t, 3, D>
+      neighbor_chunk_offset_offsets_;  // [n_poses, max_n_res, max_n_res]
 
   int n_poses_cpu() const { return pose_n_res_.size(0); }
   int max_n_res_cpu() const { return n_rotamers_for_res_.size(1); }
@@ -99,7 +98,6 @@ struct InteractionGraph {
       totalE += energy1b_[irot_global];
     }
 
-    // TO DO: iterate across upper-triangle indices only
     for (int i = g.thread_rank(); i < n_res; i += n_threads) {
       int const irot_local = rotamer_assignment[i];
       int const irot_chunk = irot_local / chunk_size;
@@ -211,6 +209,7 @@ template <
     int ChunkSize,
     bool ReturnFinalScore,
     bool EntryAssignmentIsBest,
+    bool TrackBestAssignment,
     tmol::Device D,
     uint n_threads,
     typename Int,
@@ -343,18 +342,16 @@ MGPU_DEVICE float warp_wide_sim_annealing(
               ? ig.energy1b_[global_new_rot] - ig.energy1b_[global_prev_rot]
               : 0.0f;
 
-      int const nb_start = ig.neighbor_starts_[pose][ran_res];
       int const n_nb = ig.n_neighbors_[pose][ran_res];
 
       for (int nb_idx = g.thread_rank(); nb_idx < n_nb; nb_idx += 32) {
-        int const k = ig.neighbor_list_[nb_start + nb_idx];
+        int const k = ig.neighbor_list_[pose][ran_res][nb_idx];
         int const local_k_rot = current_rotamer_assignment[k];
         int const k_chunk = local_k_rot / chunk_size;
         int const k_in_chunk = local_k_rot - k_chunk * chunk_size;
 
         int64_t const k_offset_offset =
-            ig.chunk_offset_offsets_[pose][k][ran_res];
-        if (k_offset_offset == -1) continue;
+            ig.neighbor_chunk_offset_offsets_[pose][ran_res][nb_idx];
 
         int64_t const k_new_chunk_offset =
             ig.chunk_offsets_
@@ -401,10 +398,14 @@ MGPU_DEVICE float warp_wide_sim_annealing(
           current_total_energy += total_delta_e;
         }
         current_total_energy = g.shfl(current_total_energy, 0);
-        if (current_total_energy < best_energy) {
-          best_energy = current_total_energy;
-          for (int k = g.thread_rank(); k < n_res; k += 32) {
-            best_rotamer_assignment[k] = current_rotamer_assignment[k];
+        // Pure quench phases are monotonic and consume current directly, so
+        // they do not need an O(n_res) assignment copy after every acceptance.
+        if constexpr (TrackBestAssignment) {
+          if (current_total_energy < best_energy) {
+            best_energy = current_total_energy;
+            for (int k = g.thread_rank(); k < n_res; k += 32) {
+              best_rotamer_assignment[k] = current_rotamer_assignment[k];
+            }
           }
         }
       }
@@ -499,8 +500,6 @@ struct Annealer {
         TPack<float, 2, D>::zeros({n_poses, n_fullquench_traj});
     auto current_rotamer_assignments_fullquench_t =
         TPack<int, 3, D>::zeros({n_poses, n_fullquench_traj, max_n_res});
-    auto best_rotamer_assignments_fullquench_t =
-        TPack<int, 3, D>::zeros({n_poses, n_fullquench_traj, max_n_res});
     auto sorted_fullquench_traj_t =
         TPack<int, 2, D>::zeros({n_poses, n_fullquench_traj});
 
@@ -534,8 +533,6 @@ struct Annealer {
     auto scores_fullquench = scores_fullquench_t.view;
     auto current_rotamer_assignments_fullquench =
         current_rotamer_assignments_fullquench_t.view;
-    auto best_rotamer_assignments_fullquench =
-        best_rotamer_assignments_fullquench_t.view;
     auto sorted_fullquench_traj = sorted_fullquench_traj_t.view;
 
     auto scores_final = scores_final_t.view;
@@ -625,7 +622,7 @@ struct Annealer {
       }
 
       // Full SA run with geometric cooling
-      warp_wide_sim_annealing<ChunkSize, false, false>(
+      warp_wide_sim_annealing<ChunkSize, false, false, true>(
           pose,
           &state,
           g,
@@ -641,7 +638,7 @@ struct Annealer {
           false,
           false);
 
-      // Copy best state into current and quench-lite buffer
+      // Copy best state into current and quench-lite buffer.
       for (int i = g.thread_rank(); i < n_res; i += 32) {
         int i_assignment = best_rotamer_assignments_hitemp[pose][traj_id][i];
         current_rotamer_assignments_hitemp[pose][traj_id][i] = i_assignment;
@@ -651,7 +648,7 @@ struct Annealer {
 
       // Quench-lite to produce a score for ranking
       float after_first_quench_lite_totalE =
-          warp_wide_sim_annealing<ChunkSize, true, true>(
+          warp_wide_sim_annealing<ChunkSize, true, true, false>(
               pose,
               &state,
               g,
@@ -703,7 +700,7 @@ struct Annealer {
       }
 
       // Low-temperature cooling trajectory
-      warp_wide_sim_annealing<ChunkSize, false, false>(
+      warp_wide_sim_annealing<ChunkSize, false, false, true>(
           pose,
           &state,
           g,
@@ -725,7 +722,7 @@ struct Annealer {
             best_rotamer_assignments_lotemp[pose][traj_id][i];
       }
       float after_lotemp_quench_lite_totalE =
-          warp_wide_sim_annealing<ChunkSize, true, true>(
+          warp_wide_sim_annealing<ChunkSize, true, true, false>(
               pose,
               &state,
               g,
@@ -769,16 +766,15 @@ struct Annealer {
       for (int i = g.thread_rank(); i < n_res; i += 32) {
         int i_rot = current_rotamer_assignments_lotemp[pose][source_traj][i];
         current_rotamer_assignments_fullquench[pose][traj_id][i] = i_rot;
-        best_rotamer_assignments_fullquench[pose][traj_id][i] = i_rot;
       }
 
-      warp_wide_sim_annealing<ChunkSize, false, true>(
+      warp_wide_sim_annealing<ChunkSize, false, true, false>(
           pose,
           &state,
           g,
           ig,
           current_rotamer_assignments_fullquench[pose][traj_id],
-          best_rotamer_assignments_fullquench[pose][traj_id],
+          current_rotamer_assignments_fullquench[pose][traj_id],
           quench_order[pose][traj_id],
           high_temp_later,
           low_temp_later,
@@ -787,10 +783,10 @@ struct Annealer {
           n_rotamers,
           true,
           false);
-      // rescore best assignment
+      // A greedy quench only accepts improvements, so current is also best.
       float best_totalE =
           ig.template total_energy_for_assignment_parallel<ChunkSize>(
-              pose, g, best_rotamer_assignments_fullquench[pose][traj_id]);
+              pose, g, current_rotamer_assignments_fullquench[pose][traj_id]);
       if (g.thread_rank() == 0) {
         scores_fullquench[pose][traj_id] = best_totalE;
       }
@@ -810,7 +806,7 @@ struct Annealer {
       }
       for (int i = g.thread_rank(); i < n_res; i += 32) {
         rotamer_assignments_final[pose][traj_id][i] =
-            best_rotamer_assignments_fullquench[pose][source_traj][i];
+            current_rotamer_assignments_fullquench[pose][source_traj][i];
       }
     });
 
@@ -877,12 +873,18 @@ auto AnnealerDispatch<D>::forward(
   int const n_poses_cpu = pose_n_res.size(0);
   int const max_n_res_cpu = chunk_offset_offsets.size(1);
 
-  // Build CSR neighbor list from chunk_offset_offsets.
+  // Build fixed-stride neighbor rows from chunk_offset_offsets.
   // chunk_offset_offsets[pose][b1][b2] == -1 means no interaction.
   // It is already symmetric, so we iterate each row to find neighbors.
 
-  auto n_neighbors_t = TPack<int, 2, D>::zeros({n_poses_cpu, max_n_res_cpu});
+  auto n_neighbors_t = TPack<int, 2, D>::empty({n_poses_cpu, max_n_res_cpu});
   auto n_neighbors = n_neighbors_t.view;
+  auto neighbor_list_t =
+      TPack<int, 3, D>::empty({n_poses_cpu, max_n_res_cpu, max_n_res_cpu});
+  auto neighbor_list = neighbor_list_t.view;
+  auto neighbor_chunk_offset_offsets_t =
+      TPack<int64_t, 3, D>::empty({n_poses_cpu, max_n_res_cpu, max_n_res_cpu});
+  auto neighbor_chunk_offset_offsets = neighbor_chunk_offset_offsets_t.view;
   std::shared_ptr<mgpu::standard_context_t> context = current_context(mgr);
 
   {
@@ -898,52 +900,14 @@ auto AnnealerDispatch<D>::forward(
           }
           int cnt = 0;
           for (int b2 = 0; b2 < n; ++b2) {
-            if (b2 != b && chunk_offset_offsets[pose][b][b2] != -1) ++cnt;
-          }
-          n_neighbors[pose][b] = cnt;
-        },
-        count,
-        *context);
-  }
-
-  auto neighbor_starts_t =
-      TPack<int, 2, D>::zeros({n_poses_cpu, max_n_res_cpu});
-  auto neighbor_starts = neighbor_starts_t.view;
-  int total_neighbors;
-  {
-    mgpu::mem_t<int> total(1, *context, mgpu::memory_space_host);
-    mgpu::scan<mgpu::scan_type_exc>(
-        n_neighbors.data(),
-        n_poses_cpu * max_n_res_cpu,
-        neighbor_starts.data(),
-        mgpu::plus_t<int>(),
-        total.data(),
-        *context);
-    CUDA_CHECK(cudaStreamSynchronize(context->stream()));
-    total_neighbors = total.data()[0];
-  }
-
-  auto neighbor_list_t =
-      TPack<int, 1, D>::zeros({total_neighbors > 0 ? total_neighbors : 1});
-  auto neighbor_list = neighbor_list_t.view;
-
-  {
-    int const count = n_poses_cpu * max_n_res_cpu;
-    mgpu::transform<128, 1>(
-        [=] MGPU_DEVICE(int idx) {
-          if (idx >= count) return;
-          int pose = idx / max_n_res_cpu;
-          int b = idx % max_n_res_cpu;
-          int n = pose_n_res[pose];
-          if (b >= n) {
-            return;
-          }
-          int offset = neighbor_starts[pose][b];
-          for (int b2 = 0; b2 < n; ++b2) {
             if (b2 != b && chunk_offset_offsets[pose][b][b2] != -1) {
-              neighbor_list[offset++] = b2;
+              neighbor_list[pose][b][cnt] = b2;
+              neighbor_chunk_offset_offsets[pose][b][cnt] =
+                  chunk_offset_offsets[pose][b2][b];
+              ++cnt;
             }
           }
+          n_neighbors[pose][b] = cnt;
         },
         count,
         *context);
@@ -963,8 +927,8 @@ auto AnnealerDispatch<D>::forward(
        energy1b,
        energy2b,
        n_neighbors,
-       neighbor_starts,
-       neighbor_list});
+       neighbor_list,
+       neighbor_chunk_offset_offsets});
 
   auto gen = at::get_generator_or_default<at::CUDAGeneratorImpl>(
       std::nullopt, at::cuda::detail::getDefaultCUDAGenerator());
