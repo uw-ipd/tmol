@@ -126,6 +126,11 @@ def test_calculate_ddg_accepts_single_block_indices(torch_device):
 
     torch.testing.assert_close(actual, expected)
 
+    with pytest.raises(TypeError, match="integer dtype"):
+        score_utils.calculate_block_pair_ddg(
+            Pose(), block_indices.float(), sfxn=ScoreFunction(), minimize=False
+        )
+
 
 def test_build_coord_mask_and_minimize_for_first_residue(
     biotite_1ubq: struc.AtomArray, torch_device

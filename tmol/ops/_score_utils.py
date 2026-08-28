@@ -103,6 +103,8 @@ def calculate_block_pair_ddg(
 
     single_block_indices = None
     if mask.ndim == 1 and mask.dtype != torch.bool:
+        if torch.is_floating_point(mask) or torch.is_complex(mask):
+            raise TypeError("single-block mask indices must have an integer dtype")
         if mask.shape[0] != pose_stack.n_poses:
             raise ValueError("mask must contain one block index per pose")
         single_block_indices = mask.to(device=torch_device, dtype=torch.long)
