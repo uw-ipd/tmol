@@ -290,7 +290,7 @@ def _sidechain_atom_mask_for_block_type(
     sidechain_atom_mask = pbt.atom_is_real.clone()
     for block_type_index, residue_type in enumerate(pbt.active_block_types):
         polymer = residue_type.properties.polymer
-        if polymer is None:
+        if polymer is None or not polymer.mainchain_atoms:
             continue
         mainchain_atom_indices = [
             residue_type.atom_to_idx[atom] for atom in polymer.mainchain_atoms

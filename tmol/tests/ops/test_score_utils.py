@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import pytest
 import torch
 import biotite.structure as struc
@@ -11,6 +13,25 @@ from tmol.io import (
 from tmol.pose import PoseStackBuilder
 from tmol import run_cart_min, beta2016_score_function
 import tmol.ops._score_utils as score_utils
+
+
+def test_sidechain_mask_treats_missing_mainchain_as_all_sidechain(torch_device):
+    """Polymer metadata may omit main-chain atoms for ligand-like blocks."""
+    residue_type = SimpleNamespace(
+        properties=SimpleNamespace(
+            polymer=SimpleNamespace(mainchain_atoms=None),
+        ),
+        atom_to_idx={},
+    )
+    packed_block_types = SimpleNamespace(
+        atom_is_real=torch.tensor([[True, True, False]], device=torch_device),
+        active_block_types=[residue_type],
+    )
+    pose_stack = SimpleNamespace(packed_block_types=packed_block_types)
+
+    actual = score_utils._sidechain_atom_mask_for_block_type(pose_stack)
+
+    torch.testing.assert_close(actual, packed_block_types.atom_is_real)
 
 
 @pytest.mark.parametrize("einsum", [False, True])
