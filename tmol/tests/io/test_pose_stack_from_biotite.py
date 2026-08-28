@@ -60,6 +60,40 @@ def test_pose_stack_from_biotite_1ubq_smoke(biotite_1ubq, torch_device):
     pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
 
 
+def test_complete_protein_skips_na_sampler_setup(
+    biotite_1ubq, torch_device, monkeypatch
+):
+    from tmol.pack.rotamer import NaChiRotamerSampler
+
+    def unexpected_na_sampler(*_args, **_kwargs):
+        raise AssertionError("NA sampler is unnecessary for a complete protein")
+
+    monkeypatch.setattr(NaChiRotamerSampler, "from_database", unexpected_na_sampler)
+    pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
+
+
+def test_reused_context_caches_packing_setup(biotite_1ubq, torch_device):
+    context = build_context_from_biotite(biotite_1ubq, torch_device=torch_device)
+
+    torch.manual_seed(0)
+    first = pose_stack_from_biotite(
+        biotite_1ubq, torch_device=torch_device, context=context
+    )
+    score_function = context._packing_score_function
+    dunbrack_sampler = context._dunbrack_sampler
+
+    torch.manual_seed(0)
+    second = pose_stack_from_biotite(
+        biotite_1ubq, torch_device=torch_device, context=context
+    )
+
+    assert context._packing_score_function is score_function
+    assert context._dunbrack_sampler is dunbrack_sampler
+    assert torch.equal(torch.isnan(first.coords), torch.isnan(second.coords))
+    finite = torch.isfinite(first.coords) & torch.isfinite(second.coords)
+    assert torch.equal(first.coords[finite], second.coords[finite])
+
+
 # 1ubq with one residue's 3LC changed to ERR to test a non-recognized residue type
 def test_pose_stack_from_biotite_1ubq_err_smoke(biotite_1ubq_err, torch_device):
     starts = biotite.structure.get_residue_starts(biotite_1ubq_err)

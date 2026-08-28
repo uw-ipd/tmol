@@ -179,6 +179,9 @@ def test_merge_fingerprints(default_database):  # noqa: C901
         default_database.chemical, rts, rt_list, device=torch_device
     )
     find_unique_fingerprints(pbt)
+    cached_fingerprints = pbt.mc_fingerprints
+    find_unique_fingerprints(pbt)
+    assert pbt.mc_fingerprints is cached_fingerprints
 
     # we should find that the pbt has been annotated
     # we should find that it has discovered two backbone types

@@ -1,4 +1,6 @@
 from dataclasses import dataclass, field
+from functools import cached_property
+
 from tmol.chemical import ResidueTypeSet
 from tmol.database import ParameterDatabase
 from tmol.io._canonical_ordering import CanonicalOrdering
@@ -24,3 +26,35 @@ class PoseBuildContext:
     fragment_definitions: tuple = ()
     # SMILES string -> residue type name, for ligands prepared from a sequence.
     ligand_names: dict = field(default_factory=dict)
+
+    @cached_property
+    def _packing_score_function(self):
+        """Return the score function shared by repeated pose builds."""
+        from tmol.score import beta2016_score_function
+
+        return beta2016_score_function(
+            self.packed_block_types.device,
+            param_db=self.parameter_database,
+        )
+
+    @cached_property
+    def _dunbrack_sampler(self):
+        """Return the Dunbrack sampler shared by repeated pose builds."""
+        from tmol.pack.rotamer.dunbrack import (
+            create_dunbrack_sampler_from_database,
+        )
+
+        return create_dunbrack_sampler_from_database(
+            self.parameter_database,
+            self.packed_block_types.device,
+        )
+
+    @cached_property
+    def _na_sampler(self):
+        """Return the nucleic-acid sampler shared by repeated pose builds."""
+        from tmol.pack.rotamer import NaChiRotamerSampler
+
+        return NaChiRotamerSampler.from_database(
+            self.parameter_database,
+            self.packed_block_types.device,
+        )
