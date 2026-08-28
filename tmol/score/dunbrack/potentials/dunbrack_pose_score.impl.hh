@@ -96,6 +96,7 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     TView<Int, 1, D> block_mean_table_offset,
     TView<Int, 1, D> block_rotamer_index_to_table_index,
     TView<Int, 1, D> block_semirotameric_tableset_offset,
+    TView<Int, 1, D> block_is_mirrored,
     bool output_block_pair_energies,
 
     bool compute_derivs
@@ -153,6 +154,7 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   assert(block_mean_table_offset.size(0) == n_block_types);
   assert(block_rotamer_index_to_table_index.size(0) == n_block_types);
   assert(block_semirotameric_tableset_offset.size(0) == n_block_types);
+  assert(block_is_mirrored.size(0) == n_block_types);
 
   int n_V = output_block_pair_energies ? max_n_blocks : 1;
   TPack<Real, 4, D> V_t = TPack<Real, 4, D>::zeros({3, n_poses, n_V, n_V});
@@ -247,8 +249,12 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         dihedral_atom_inds[rotamer_index][ii] << -1, -1, -1, -1;
       }
 
-      const Real PHI_DEFAULT = -60.0 * M_PI / 180;
-      const Real PSI_DEFAULT = 60.0 * M_PI / 180;
+      // a terminus has no phi or no psi, so a default stands in for it. It is
+      // a torsion like any other and must be negated for a mirrored residue,
+      // or the two forms read different points of the same table.
+      const Real mirror = block_is_mirrored[block_type_index] ? -1.0 : 1.0;
+      const Real PHI_DEFAULT = mirror * -60.0 * M_PI / 180;
+      const Real PSI_DEFAULT = mirror * 60.0 * M_PI / 180;
 
       Real dih_default = (ii == 0)   ? PHI_DEFAULT
                          : (ii == 1) ? PSI_DEFAULT
@@ -483,6 +489,7 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     TView<Int, 1, D> block_mean_table_offset,
     TView<Int, 1, D> block_rotamer_index_to_table_index,
     TView<Int, 1, D> block_semirotameric_tableset_offset,
+    TView<Int, 1, D> block_is_mirrored,
 
     TView<Real, 4, D> dTdV  // n_terms x n_poses x max_n_blocks x max_n_blocks
     ) -> TPack<Vec<Real, 3>, 2, D> {
@@ -538,6 +545,7 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
   assert(block_mean_table_offset.size(0) == n_block_types);
   assert(block_rotamer_index_to_table_index.size(0) == n_block_types);
   assert(block_semirotameric_tableset_offset.size(0) == n_block_types);
+  assert(block_is_mirrored.size(0) == n_block_types);
 
   auto dV_dx_t = TPack<Vec<Real, 3>, 2, D>::zeros({3, n_atoms});
 
@@ -625,8 +633,12 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
         dihedral_atom_inds[rotamer_index][ii] << -1, -1, -1, -1;
       }
 
-      const Real PHI_DEFAULT = -60.0 * M_PI / 180;
-      const Real PSI_DEFAULT = 60.0 * M_PI / 180;
+      // a terminus has no phi or no psi, so a default stands in for it. It is
+      // a torsion like any other and must be negated for a mirrored residue,
+      // or the two forms read different points of the same table.
+      const Real mirror = block_is_mirrored[block_type_index] ? -1.0 : 1.0;
+      const Real PHI_DEFAULT = mirror * -60.0 * M_PI / 180;
+      const Real PSI_DEFAULT = mirror * 60.0 * M_PI / 180;
 
       Real dih_default = (ii == 0)   ? PHI_DEFAULT
                          : (ii == 1) ? PSI_DEFAULT
@@ -836,6 +848,7 @@ auto DunbrackRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     TView<Int, 1, D> block_mean_table_offset,
     TView<Int, 1, D> block_rotamer_index_to_table_index,
     TView<Int, 1, D> block_semirotameric_tableset_offset,
+    TView<Int, 1, D> block_is_mirrored,
     bool output_block_pair_energies,
 
     bool compute_derivs
@@ -894,6 +907,7 @@ auto DunbrackRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   assert(block_mean_table_offset.size(0) == n_block_types);
   assert(block_rotamer_index_to_table_index.size(0) == n_block_types);
   assert(block_semirotameric_tableset_offset.size(0) == n_block_types);
+  assert(block_is_mirrored.size(0) == n_block_types);
 
   TPack<Real, 2, D> V_t;
   TPack<Int, 2, D> dispatch_indices_t;
@@ -1010,8 +1024,12 @@ auto DunbrackRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         dihedral_atom_inds[rotamer_index][ii] << -1, -1, -1, -1;
       }
 
-      const Real PHI_DEFAULT = -60.0 * M_PI / 180;
-      const Real PSI_DEFAULT = 60.0 * M_PI / 180;
+      // a terminus has no phi or no psi, so a default stands in for it. It is
+      // a torsion like any other and must be negated for a mirrored residue,
+      // or the two forms read different points of the same table.
+      const Real mirror = block_is_mirrored[block_type_index] ? -1.0 : 1.0;
+      const Real PHI_DEFAULT = mirror * -60.0 * M_PI / 180;
+      const Real PSI_DEFAULT = mirror * 60.0 * M_PI / 180;
 
       Real dih_default = (ii == 0)   ? PHI_DEFAULT
                          : (ii == 1) ? PSI_DEFAULT
@@ -1221,6 +1239,7 @@ auto DunbrackRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     TView<Int, 1, D> block_mean_table_offset,
     TView<Int, 1, D> block_rotamer_index_to_table_index,
     TView<Int, 1, D> block_semirotameric_tableset_offset,
+    TView<Int, 1, D> block_is_mirrored,
 
     TView<Real, 2, D> dTdV  // n_terms x n_rotamers
     ) -> TPack<Vec<Real, 3>, 2, D> {
@@ -1276,6 +1295,7 @@ auto DunbrackRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
   assert(block_mean_table_offset.size(0) == n_block_types);
   assert(block_rotamer_index_to_table_index.size(0) == n_block_types);
   assert(block_semirotameric_tableset_offset.size(0) == n_block_types);
+  assert(block_is_mirrored.size(0) == n_block_types);
 
   auto dV_dx_t = TPack<Vec<Real, 3>, 2, D>::zeros({3, n_atoms});
 
@@ -1358,8 +1378,12 @@ auto DunbrackRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
         dihedral_atom_inds[rotamer_index][ii] << -1, -1, -1, -1;
       }
 
-      const Real PHI_DEFAULT = -60.0 * M_PI / 180;
-      const Real PSI_DEFAULT = 60.0 * M_PI / 180;
+      // a terminus has no phi or no psi, so a default stands in for it. It is
+      // a torsion like any other and must be negated for a mirrored residue,
+      // or the two forms read different points of the same table.
+      const Real mirror = block_is_mirrored[block_type_index] ? -1.0 : 1.0;
+      const Real PHI_DEFAULT = mirror * -60.0 * M_PI / 180;
+      const Real PSI_DEFAULT = mirror * 60.0 * M_PI / 180;
 
       Real dih_default = (ii == 0)   ? PHI_DEFAULT
                          : (ii == 1) ? PSI_DEFAULT

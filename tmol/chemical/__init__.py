@@ -22,6 +22,7 @@ from ._restypes import (  # noqa: F401
     ResidueTypeSet,
     UnresolvedAtomID,
     get_element_from_atom_name,
+    l_base_name,
     one2three,
     three2one,
     uaid_t,

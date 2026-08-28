@@ -13,7 +13,7 @@ from tmol.database import (
     PatchedChemicalDatabase,
 )
 from tmol.pose import PackedBlockTypes
-from tmol.chemical import ResidueTypeSet
+from tmol.chemical import ResidueTypeSet, l_base_name
 from tmol.utility import resolve_device
 from typing import List, Mapping, Optional, Tuple, Union
 from ._canonical_form import CanonicalForm
@@ -37,13 +37,15 @@ class ordered_set:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class CysSpecialCaseIndices:
-    cys_co_aa_ind: int
+    # every equivalence class that forms disulfides, l and d alike
+    cys_co_aa_inds: Tuple[int, ...]
     sg_atom_for_co_cys: int
 
 
 @attr.s(slots=True, frozen=True)
 class HisSpecialCaseIndices:
-    his_co_aa_ind: int = attr.ib()
+    # every equivalence class of histidine, l and d alike
+    his_co_aa_inds: Tuple[int, ...] = attr.ib()
     his_ND1_in_co: int = attr.ib()
     his_NE2_in_co: int = attr.ib()
     his_HD1_in_co: int = attr.ib()
@@ -58,7 +60,7 @@ class HisSpecialCaseIndices:
     def _init_hash(self):
         return hash(
             (
-                self.his_co_aa_ind,
+                self.his_co_aa_inds,
                 self.his_ND1_in_co,
                 self.his_NE2_in_co,
                 self.his_HD1_in_co,
@@ -171,6 +173,10 @@ class CanonicalOrdering:
     restypes_required_mainchain_atoms: Mapping[str, Optional[Tuple[str, ...]]]
 
     restypes_default_termini_mapping: Mapping[str, Tuple[str, str]]
+
+    # terminal variant names, in the order they are preferred
+    NTERM_VARIANTS = ("nterm", "na5prime")
+    CTERM_VARIANTS = ("cterm", "na3prime")
     down_termini_patches: Tuple[str, ...]
     up_termini_patches: Tuple[str, ...]
     termini_patch_added_atoms: Mapping[str, Tuple[str, ...]]
@@ -181,12 +187,27 @@ class CanonicalOrdering:
     def n_restype_io_equiv_classes(self):
         return len(self.restype_io_equiv_classes)
 
+    # placeholder names an input may use when a histidine's tautomer is not
+    # yet decided; every histidine class needs them, d as well as l
+    HIS_TAUTOMER_ATOMS = ["NN", "NH", "HN"]
+
     @classmethod
-    def extra_atoms(cls):
+    def extra_atoms(cls, chemdb: PatchedChemicalDatabase = None):
+        if chemdb is None:
+            return {"HIS": list(cls.HIS_TAUTOMER_ATOMS)}
         return {
-            "HIS": ["NN", "NH", "HN"]
-            # to do: "CYS": ["HGT"]
+            equiv: list(cls.HIS_TAUTOMER_ATOMS)
+            for equiv in cls._histidine_classes(chemdb)
         }
+
+    @classmethod
+    def _histidine_classes(cls, chemdb: PatchedChemicalDatabase):
+        """Equivalence classes whose residues are histidines, l and d alike."""
+        return ordered_set(
+            restype.io_equiv_class
+            for restype in chemdb.residues
+            if l_base_name(restype) in ("HIS", "HIS_D", "HIS_POS")
+        ).ordered_vals
 
     @classmethod
     def from_chemdb(cls, chemdb: PatchedChemicalDatabase):  # noqa: C901
@@ -212,7 +233,7 @@ class CanonicalOrdering:
                     restypes_alt_atom_name_mapping[restype.name3][at.alt_name] = at.name
 
         # note that extra atoms are internal-use only and do not have "alternate" names
-        extra = cls.extra_atoms()
+        extra = cls.extra_atoms(chemdb)
         for rt_name3, atoms in extra.items():
             for at in atoms:
                 restypes_all_atom_names[rt_name3].add(at)
@@ -242,7 +263,7 @@ class CanonicalOrdering:
                 restypes_mainchain_atoms[equiv] = tuple(mc) if mc else None
         restypes_required_mainchain_atoms = cls._required_mainchain_atoms(chemdb)
 
-        default_termini_mapping = cls._temp_termini_mapping()
+        default_termini_mapping = cls._default_termini_mapping(chemdb)
         termini_patch_added_atoms = defaultdict(lambda: set([]))
 
         # we need to know which variants create down- and up termini
@@ -272,10 +293,10 @@ class CanonicalOrdering:
             up_termini_patches=up_termini_patches,
             termini_patch_added_atoms=termini_patch_added_atoms,
             cys_inds=cls._init_cys_special_case_indices(
-                ordered_restypes, restypes_ordered_atom_names
+                chemdb, ordered_restypes, restypes_ordered_atom_names
             ),
             his_inds=cls._init_his_special_case_indices(
-                ordered_restypes, restypes_ordered_atom_names
+                chemdb, ordered_restypes, restypes_ordered_atom_names
             ),
         )
 
@@ -300,64 +321,75 @@ class CanonicalOrdering:
         return required
 
     @classmethod
-    def _temp_termini_mapping(cls):
-        return {
-            "ALA": ("nterm", "cterm"),
-            "CYS": ("nterm", "cterm"),
-            "CYD": ("nterm", "cterm"),
-            "ASP": ("nterm", "cterm"),
-            "GLU": ("nterm", "cterm"),
-            "PHE": ("nterm", "cterm"),
-            "GLY": ("nterm", "cterm"),
-            "HIS": ("nterm", "cterm"),
-            "HIS_D": ("nterm", "cterm"),
-            "HIS_POS": ("nterm", "cterm"),
-            "ILE": ("nterm", "cterm"),
-            "LYS": ("nterm", "cterm"),
-            "LEU": ("nterm", "cterm"),
-            "MET": ("nterm", "cterm"),
-            "ASN": ("nterm", "cterm"),
-            "PRO": ("nterm", "cterm"),
-            "GLN": ("nterm", "cterm"),
-            "ARG": ("nterm", "cterm"),
-            "SER": ("nterm", "cterm"),
-            "THR": ("nterm", "cterm"),
-            "VAL": ("nterm", "cterm"),
-            "TRP": ("nterm", "cterm"),
-            "TYR": ("nterm", "cterm"),
-            "DA": ("na5prime", "na3prime"),
-            "DC": ("na5prime", "na3prime"),
-            "DG": ("na5prime", "na3prime"),
-            "DT": ("na5prime", "na3prime"),
-            "A": ("na5prime", "na3prime"),
-            "C": ("na5prime", "na3prime"),
-            "G": ("na5prime", "na3prime"),
-            "U": ("na5prime", "na3prime"),
-        }
+    def _default_termini_mapping(cls, chemdb: PatchedChemicalDatabase):
+        """The terminal variants each equivalence class takes.
+
+        Read from the variants the database actually carries, so a residue type
+        added to the database is covered without an edit here.
+        """
+        suffixes = {}
+        for restype in chemdb.residues:
+            _, _, tail = restype.name.partition(":")
+            if tail:
+                suffixes.setdefault(restype.io_equiv_class, set()).update(
+                    tail.split(":")
+                )
+
+        mapping = {}
+        for equiv, present in suffixes.items():
+            nterm = next((v for v in cls.NTERM_VARIANTS if v in present), None)
+            cterm = next((v for v in cls.CTERM_VARIANTS if v in present), None)
+            if nterm is not None and cterm is not None:
+                mapping[equiv] = (nterm, cterm)
+        return mapping
 
     @classmethod
     def _init_cys_special_case_indices(
-        cls, restype_name3s, restypes_ordered_atom_names
+        cls,
+        chemdb: PatchedChemicalDatabase,
+        restype_name3s,
+        restypes_ordered_atom_names,
     ):
-        if "CYS" not in restype_name3s:
-            return CysSpecialCaseIndices(
-                cys_co_aa_ind=-1,
-                sg_atom_for_co_cys=-1,
+        """The equivalence classes of cysteine, l and d alike.
+
+        Taken from the residue types themselves rather than from the presence of
+        an SG atom, which any thiol-bearing noncanonical would also have.
+        """
+        cys_classes = [
+            name
+            for name in restype_name3s
+            if any(
+                l_base_name(restype) in ("CYS", "CYD")
+                for restype in chemdb.residues
+                if restype.io_equiv_class == name
             )
-        else:
-            cys_co_aa_ind = restype_name3s.index("CYS")
-            return CysSpecialCaseIndices(
-                cys_co_aa_ind=cys_co_aa_ind,
-                sg_atom_for_co_cys=restypes_ordered_atom_names["CYS"].index("SG"),
+        ]
+        if not cys_classes:
+            return CysSpecialCaseIndices(cys_co_aa_inds=(), sg_atom_for_co_cys=-1)
+
+        sg_inds = {
+            restypes_ordered_atom_names[name].index("SG") for name in cys_classes
+        }
+        if len(sg_inds) != 1:
+            raise ValueError(
+                f"disulfide-forming classes {cys_classes} disagree on the position "
+                f"of SG in the canonical ordering: {sorted(sg_inds)}"
             )
+        return CysSpecialCaseIndices(
+            cys_co_aa_inds=tuple(restype_name3s.index(n) for n in cys_classes),
+            sg_atom_for_co_cys=sg_inds.pop(),
+        )
 
     @classmethod
     def _init_his_special_case_indices(
-        cls, restype_name3s, restypes_ordered_atom_names
+        cls, chemdb, restype_name3s, restypes_ordered_atom_names
     ):
-        if "HIS" not in restype_name3s:
+        his_classes = [
+            name for name in cls._histidine_classes(chemdb) if name in restype_name3s
+        ]
+        if not his_classes:
             return HisSpecialCaseIndices(
-                his_co_aa_ind=-1,
+                his_co_aa_inds=(),
                 his_ND1_in_co=-1,
                 his_NE2_in_co=-1,
                 his_HD1_in_co=-1,
@@ -368,13 +400,21 @@ class CanonicalOrdering:
                 his_CG_in_co=-1,
             )
         else:
-            his_co_aa_ind = restype_name3s.index("HIS")
 
             def his_at_ind(atname):
-                return restypes_ordered_atom_names["HIS"].index(atname)
+                inds = {
+                    restypes_ordered_atom_names[name].index(atname)
+                    for name in his_classes
+                }
+                if len(inds) != 1:
+                    raise ValueError(
+                        f"histidine classes {his_classes} disagree on the position "
+                        f"of {atname} in the canonical ordering: {sorted(inds)}"
+                    )
+                return inds.pop()
 
             return HisSpecialCaseIndices(
-                his_co_aa_ind=his_co_aa_ind,
+                his_co_aa_inds=tuple(restype_name3s.index(n) for n in his_classes),
                 his_ND1_in_co=his_at_ind("ND1"),
                 his_NE2_in_co=his_at_ind("NE2"),
                 his_HD1_in_co=his_at_ind("HD1"),

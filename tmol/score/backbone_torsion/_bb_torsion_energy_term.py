@@ -38,6 +38,22 @@ class BackboneTorsionPackedBlockTypesParams:
     bt_backbone_torsion_atoms: Tensor[torch.int32][:, 12, 3]
 
 
+def _invert_flag(found, block_type_name):
+    """Whether each matched lookup row asks for mirrored torsions.
+
+    A mirror negates both backbone torsions together, so a row inverting only
+    one describes a potential this term cannot express.
+    """
+    phi = found["invert_phi"].values.astype(bool)
+    psi = found["invert_psi"].values.astype(bool)
+    if (phi != psi).any():
+        raise ValueError(
+            f"{block_type_name}: a rama/omega lookup row inverts only one of "
+            "phi and psi; the mirrored tables invert both together"
+        )
+    return phi
+
+
 class BackboneTorsionEnergyTerm(EnergyTerm):
     device: torch.device
     param_resolver: BackboneTorsionParamResolver
@@ -99,19 +115,36 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
         if hasattr(block_type, "backbone_torsion_params"):
             return
 
-        # noncanonical may borrow a canonical's rama/omega tables
-        rname = block_type.rama_reference or block_type.name
+        # noncanonical may borrow a canonical's rama/omega tables. Look up the
+        #    base type: a terminus still has a peptide bond to its neighbour, so
+        #    it needs an omega table even though it has no phi or psi, and the
+        #    kernel skips omega entirely when the table index is negative.
+        rname = block_type.rama_reference or block_type.base_name
         lookups = numpy.array([[rname, "_"], [rname, "PRO"]], dtype=object)
 
-        def table_inds(lookup):
+        def table_inds(lookup, n_tables):
             rows = lookup.index.get_indexer(lookups)
             inds = numpy.full(len(rows), -1, dtype=numpy.int64)
             hit = rows != -1
-            inds[hit] = lookup.iloc[rows[hit], :]["table_id"].values
+            if not hit.any():
+                return inds
+            found = lookup.iloc[rows[hit], :]
+            inds[hit] = found["table_id"].values
+
+            # a d-aa reads its l counterpart at negated phi/psi; the resolver
+            #    stores that mirrored table at i + n_tables
+            mirrored = _invert_flag(found, block_type.name) ^ bool(
+                block_type.reference_mirrored
+            )
+            inds[hit] = numpy.where(mirrored, inds[hit] + n_tables, inds[hit])
             return inds
 
-        rama_table_inds = table_inds(self.param_resolver.rama_lookup)
-        omega_table_inds = table_inds(self.param_resolver.omega_lookup)
+        rama_table_inds = table_inds(
+            self.param_resolver.rama_lookup, self.param_resolver.n_rama_tables
+        )
+        omega_table_inds = table_inds(
+            self.param_resolver.omega_lookup, self.param_resolver.n_omega_tables
+        )
 
         backbone_torsion_atoms = numpy.full((3, 4), -1, dtype=uaid_t)
         if rama_table_inds[0] != -1 or rama_table_inds[1] != -1:

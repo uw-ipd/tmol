@@ -67,15 +67,12 @@ def create_omega_db(r3_bbdepomega_dir):
             attr.fields(OmegaBBDepDatabase).bbdep_omega_lookup.type,
         )
 
-    input_uniq_id = hash(r3_bbdepomega_dir)
-
-    uniq_id = path_lookup + "," + str(input_uniq_id)
-
-    return OmegaBBDepDatabase(
-        uniq_id=uniq_id,
+    db = OmegaBBDepDatabase(
+        uniq_id="",
         bbdep_omega_lookup=bbdep_omega_lookup,
         bbdep_omega_tables=bbdep_omega_tables,
     )
+    return attr.evolve(db, uniq_id=db.content_id())
 
 
 if __name__ == "__main__":

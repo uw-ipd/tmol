@@ -65,6 +65,11 @@ import attr
 
 from ._ref import RefDatabase  # noqa: F401
 
+# residue sets written by a support script, merged into the databases at load
+GENERATED_ELEC_FILES = ("elec_d_amino_acids.yaml",)
+GENERATED_CARTBONDED_FILES = ("cartbonded_d_amino_acids.yaml",)
+GENERATED_REF_FILES = ("ref_d_amino_acids.yaml",)
+
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class ScoringDatabase:
@@ -85,7 +90,8 @@ class ScoringDatabase:
 
         return cls(
             cartbonded=CartBondedDatabase.from_file(
-                os.path.join(path, "cartbonded.yaml")
+                os.path.join(path, "cartbonded.yaml"),
+                generated=[os.path.join(path, f) for f in GENERATED_CARTBONDED_FILES],
             ),
             genbonded=GenBondedDatabase.from_file(os.path.join(path, "genbonded.yaml")),
             disulfide=DisulfideDatabase.from_file(os.path.join(path, "disulfide.yaml")),
@@ -93,12 +99,18 @@ class ScoringDatabase:
                 os.path.join(path, "na_torsion.yaml")
             ),
             dun=DunbrackRotamerLibrary.from_file(os.path.join(path, "dunbrack.bin")),
-            elec=ElecDatabase.from_file(os.path.join(path, "elec.yaml")),
+            elec=ElecDatabase.from_file(
+                os.path.join(path, "elec.yaml"),
+                generated=[os.path.join(path, f) for f in GENERATED_ELEC_FILES],
+            ),
             hbond=HBondDatabase.from_file(os.path.join(path, "hbond.yaml")),
             ljlk=LJLKDatabase.from_file(os.path.join(path, "ljlk.yaml")),
             omega_bbdep=OmegaBBDepDatabase.from_file(
                 os.path.join(path, "omega_bbdep.zip")
             ),
             rama=RamaDatabase.from_file(os.path.join(path, "rama.zip")),
-            ref=RefDatabase.from_file(os.path.join(path, "ref.yaml")),
+            ref=RefDatabase.from_file(
+                os.path.join(path, "ref.yaml"),
+                generated=[os.path.join(path, f) for f in GENERATED_REF_FILES],
+            ),
         )

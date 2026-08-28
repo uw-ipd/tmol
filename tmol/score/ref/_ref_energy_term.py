@@ -4,7 +4,7 @@ from .._energy_term import EnergyTerm
 
 from tmol.database import ParameterDatabase
 
-from tmol.chemical import RefinedResidueType
+from tmol.chemical import RefinedResidueType, l_base_name
 from tmol.pose import (
     PackedBlockTypes,
     PoseStack,
@@ -56,9 +56,12 @@ class RefEnergyTerm(EnergyTerm):
         if getattr(block_type, "_ref_weight_src", None) is src:
             return
 
-        ref_weight = 0.0
-        if block_type.base_name in self.ref_weights:
-            ref_weight = src[block_type.base_name]
+        # read the map actually in use: a score function may override the
+        #    database weights with one covering fewer residues, so a d-amino
+        #    acid falls back to the l form it mirrors rather than to zero
+        ref_weight = src.get(block_type.base_name)
+        if ref_weight is None:
+            ref_weight = src.get(l_base_name(block_type), 0.0)
 
         setattr(block_type, "ref_weight", ref_weight)
         setattr(block_type, "_ref_weight_src", src)

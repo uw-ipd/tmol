@@ -59,7 +59,7 @@ def cf_as_tuple_from_pdb_lines(co, pdblines, device):
 def test_find_disulfide_pairs():
     co = default_canonical_ordering()
     coords = torch.zeros((1, 4, co.max_n_canonical_atoms, 3), dtype=torch.float32)
-    res_types = torch.full((1, 4), co.cys_inds.cys_co_aa_ind, dtype=torch.int32)
+    res_types = torch.full((1, 4), co.cys_inds.cys_co_aa_inds[0], dtype=torch.int32)
 
     def set_coord(res_ind, at_name, xyz):
         at_ind = co.restypes_ordered_atom_names["CYS"].index(at_name.strip())

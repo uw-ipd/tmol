@@ -259,6 +259,22 @@ class VariantType:
     applies_to: VariantScope = VariantScope()
 
 
+def l_base_name(restype) -> str:
+    """The L residue type a block type's base name corresponds to.
+
+    A d-amino acid is named after the L form it mirrors. Tautomer and disulfide
+    states belong to the sidechain, which a mirror image shares, so code keying
+    on those states must see the same name for both forms.
+    """
+    base = restype.base_name
+    if restype.properties.polymer.sidechain_chirality == "d":
+        return base[1:]
+    return base
+
+
+GENERATED_RESIDUE_FILES = ("d_amino_acids.yaml",)
+
+
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class ChemicalDatabase:
     __default = None
@@ -279,9 +295,16 @@ class ChemicalDatabase:
 
     @classmethod
     def from_file(cls, path):
-        path = os.path.join(path, "chemical.yaml")
-        with open(path, "r") as infile:
+        with open(os.path.join(path, "chemical.yaml"), "r") as infile:
             raw = safe_load(infile)
+        # residue sets written by a support script live in their own files so
+        #    regenerating one does not rewrite the hand-maintained database
+        for generated in GENERATED_RESIDUE_FILES:
+            generated_path = os.path.join(path, generated)
+            if not os.path.exists(generated_path):
+                continue
+            with open(generated_path, "r") as infile:
+                raw["residues"].extend(safe_load(infile)["residues"])
         raw = normalize_bond_tuples(raw)
 
         return cattr.structure(raw, cls)

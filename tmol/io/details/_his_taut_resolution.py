@@ -41,14 +41,20 @@ def resolve_his_tautomerization(
     Tensor[torch.float32][:, :, :, 3],
     Tensor[torch.bool][:, :, :],
 ]:
-    if canonical_ordering.his_inds.his_co_aa_ind == -1:
+    if not canonical_ordering.his_inds.his_co_aa_inds:
         return (torch.zeros_like(res_types), res_type_variants, coords, atom_is_present)
     from tmol.io.details.compiled import resolve_his_taut
 
     his_inds = canonical_ordering.his_inds
 
     his_pose_ind, his_res_ind = torch.nonzero(
-        res_types == his_inds.his_co_aa_ind, as_tuple=True
+        torch.isin(
+            res_types,
+            torch.tensor(
+                his_inds.his_co_aa_inds, dtype=res_types.dtype, device=res_types.device
+            ),
+        ),
+        as_tuple=True,
     )
     his_remapping_dst_index = torch.tile(
         torch.arange(

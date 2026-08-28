@@ -1,3 +1,5 @@
+import os
+
 import attr
 import cattr
 from tmol.database._yaml import safe_load
@@ -66,10 +68,17 @@ class CartBondedDatabase:
     hash: str
 
     @classmethod
-    def from_file(cls, path):
+    def from_file(cls, path, generated=()):
         with open(path, "r") as infile:
             resparam_dict = safe_load(infile)
-            resparam_dict["hash"] = cls._generate_hash(resparam_dict)
+        for extra in generated:
+            if not os.path.exists(extra):
+                continue
+            with open(extra, "r") as infile:
+                resparam_dict["residue_params"].update(
+                    safe_load(infile)["residue_params"]
+                )
+        resparam_dict["hash"] = cls._generate_hash(resparam_dict)
 
         return cattr.structure(resparam_dict, cls)
 

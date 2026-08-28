@@ -5,6 +5,8 @@ from typing import Tuple
 
 from tmol.types import Tensor
 
+from ._content_hash import content_hash
+
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class OmegaBBDepMappingParams:
@@ -26,7 +28,8 @@ class OmegaBBDepTables:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class OmegaBBDepDatabase:
-    uniq_id: str  # unique id for memoization
+    # content-derived; caches key on it, so it must change with the contents
+    uniq_id: str
     bbdep_omega_lookup: Tuple[OmegaBBDepMappingParams, ...]
     bbdep_omega_tables: Tuple[OmegaBBDepTables, ...]
 
@@ -43,4 +46,9 @@ class OmegaBBDepDatabase:
                 (OmegaBBDepTables, f"{_OLD}.OmegaBBDepTables"),
             ]
         ):
-            return torch.load(fname, mmap=True)
+            db = torch.load(fname, mmap=True)
+        return attr.evolve(db, uniq_id=db.content_id())
+
+    def content_id(self) -> str:
+        """Identity derived from the lookup and the tables themselves."""
+        return content_hash(self.bbdep_omega_lookup, self.bbdep_omega_tables)

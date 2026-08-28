@@ -16,7 +16,7 @@ from tmol.database import (
     ParameterDatabase,
     PatchedChemicalDatabase,
 )
-from tmol.database.chemical import RawResidueType
+from tmol.database.chemical import RawResidueType, l_base_name  # noqa: F401
 from tmol.chemical import (
     MAX_SIG_BOND_SEPARATION,
     MAX_PATHS_FROM_CONNECTION,

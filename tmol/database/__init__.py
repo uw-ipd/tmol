@@ -4,11 +4,17 @@ import os
 import attr
 from typing import List, Optional, Mapping
 
-from .chemical import AtomType, ChemicalDatabase, RawResidueType  # noqa: F401
+from .chemical import (  # noqa: F401
+    AtomType,
+    ChemicalDatabase,
+    RawResidueType,
+    l_base_name,
+)
 from ._patched_chemdb import PatchedChemicalDatabase  # noqa: F401
 from .scoring import ScoringDatabase  # noqa: F401
 from .scoring._elec import PartialCharges  # noqa: F401
 from .scoring._cartbonded import CartRes  # noqa: F401
+from .scoring._mirrored_dunbrack import with_mirrored_libraries
 
 
 @attr.s(frozen=True)
@@ -38,9 +44,69 @@ class ParameterDatabase:
     def from_file(cls, path: str) -> "ParameterDatabase":
         chemdb = ChemicalDatabase.from_file(os.path.join(path, "chemical"))
         patched_chemdb = PatchedChemicalDatabase.from_chem_db(chemdb)
-        return cls(
-            scoring=ScoringDatabase.from_file(os.path.join(path, "scoring")),
-            chemical=patched_chemdb,
+        scoring = ScoringDatabase.from_file(os.path.join(path, "scoring"))
+
+        # a d-amino acid's rotamer statistics are its l form's at negated
+        #    torsions; the mirrored libraries are built here rather than stored,
+        #    since which residues need them is a property of the chemical database
+        d_names = {
+            l_base_name(residue): residue.name
+            for residue in patched_chemdb.residues
+            if residue.name == residue.base_name
+            and residue.properties.polymer.sidechain_chirality == "d"
+        }
+        if d_names:
+            scoring = attr.evolve(
+                scoring, dun=with_mirrored_libraries(scoring.dun, d_names)
+            )
+        return cls(scoring=scoring, chemical=patched_chemdb)
+
+    def with_symmetric_gly(self) -> "ParameterDatabase":
+        """A copy whose glycine backbone tables are mirror-symmetric.
+
+        Glycine is achiral, but the tables derived from PDB statistics are not,
+        so by default a structure and its mirror image score differently. This
+        points glycine at the symmetrized tables instead; every other residue is
+        untouched, and the chirality of the other 19 is carried by their own
+        lookup rows.
+
+        Glycine's bbdep-omega tables become uniformly trans, since an achiral
+        residue has no backbone-dependent omega preference to keep.
+        """
+        rama = self.scoring.rama
+        omega = self.scoring.omega_bbdep
+
+        def retarget(rows, mapping):
+            return tuple(
+                (
+                    attr.evolve(row, table_id=mapping[row.table_id])
+                    if row.res_middle == "GLY" and row.table_id in mapping
+                    else row
+                )
+                for row in rows
+            )
+
+        rama = attr.evolve(
+            rama,
+            rama_lookup=retarget(
+                rama.rama_lookup,
+                {"GLY": "GLY_symm", "GLY_prepro": "GLY_prepro_symm"},
+            ),
+        )
+        omega = attr.evolve(
+            omega,
+            bbdep_omega_lookup=retarget(
+                omega.bbdep_omega_lookup,
+                {"gly": "gly_symm", "prepro": "prepro_gly_symm"},
+            ),
+        )
+        return attr.evolve(
+            self,
+            scoring=attr.evolve(
+                self.scoring,
+                rama=attr.evolve(rama, uniq_id=rama.content_id()),
+                omega_bbdep=attr.evolve(omega, uniq_id=omega.content_id()),
+            ),
         )
 
     def create_stable_subset(

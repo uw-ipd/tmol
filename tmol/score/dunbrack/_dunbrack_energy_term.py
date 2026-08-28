@@ -34,6 +34,10 @@ class DunbrackBlockAttrs:
     mean_table_offset: int
     rotamer_index_to_table_index_offset: int
     semirotameric_tableset_offset: int
+    # a d-amino acid reads its l form's library at negated torsions; only the
+    #    default used for a terminus needs the sign applied here, since a
+    #    torsion measured from coordinates is already mirrored
+    is_mirrored: int
 
 
 def _empty_dunbrack_attrs() -> "DunbrackBlockAttrs":
@@ -49,6 +53,7 @@ def _empty_dunbrack_attrs() -> "DunbrackBlockAttrs":
         mean_table_offset=-1,
         rotamer_index_to_table_index_offset=-1,
         semirotameric_tableset_offset=numpy.array(-1),
+        is_mirrored=0,
     )
 
 
@@ -185,6 +190,7 @@ class DunbrackEnergyTerm(EnergyTerm):
             mean_table_offset=mean_table_offset,
             rotamer_index_to_table_index_offset=rotamer_index_to_table_index_offset,
             semirotameric_tableset_offset=semirotameric_tableset_offset,
+            is_mirrored=int(polymer.sidechain_chirality == "d"),
         )
 
         setattr(block_type, "dunbrack_attrs", dunbrack_attrs)

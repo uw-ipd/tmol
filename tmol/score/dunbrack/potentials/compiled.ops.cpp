@@ -78,6 +78,7 @@ class DunbrackPoseScoreOp
       Tensor res_mean_table_offset,
       Tensor res_rotamer_index_to_table_index,
       Tensor block_semirotameric_tableset_offset,
+      Tensor block_is_mirrored,
       bool output_block_pair_energies) {
     at::Tensor score;
     at::Tensor dscore_dcoords;
@@ -144,6 +145,7 @@ class DunbrackPoseScoreOp
                       TCAST(res_mean_table_offset),
                       TCAST(res_rotamer_index_to_table_index),
                       TCAST(block_semirotameric_tableset_offset),
+                      TCAST(block_is_mirrored),
                       output_block_pair_energies,
                       rot_coords.requires_grad());
 
@@ -205,7 +207,8 @@ class DunbrackPoseScoreOp
            res_probability_table_offset,
            res_mean_table_offset,
            res_rotamer_index_to_table_index,
-           block_semirotameric_tableset_offset});
+           block_semirotameric_tableset_offset,
+           block_is_mirrored});
     } else {
       score = score.squeeze(-1).squeeze(-1);
       ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
@@ -297,6 +300,7 @@ class DunbrackPoseScoreOp
       auto res_mean_table_offset = saved[i++];
       auto res_rotamer_index_to_table_index = saved[i++];
       auto block_semirotameric_tableset_offset = saved[i++];
+      auto block_is_mirrored = saved[i++];
 
       using Int = int32_t;
 
@@ -365,6 +369,7 @@ class DunbrackPoseScoreOp
                     TCAST(res_mean_table_offset),
                     TCAST(res_rotamer_index_to_table_index),
                     TCAST(block_semirotameric_tableset_offset),
+                    TCAST(block_is_mirrored),
                     TCAST(dTdV));
 
             dV_d_pose_coords = result.tensor;
@@ -490,6 +495,7 @@ class DunbrackRotamerScoreOp
       Tensor res_mean_table_offset,
       Tensor res_rotamer_index_to_table_index,
       Tensor block_semirotameric_tableset_offset,
+      Tensor block_is_mirrored,
       bool output_block_pair_energies) {
     at::Tensor score;
     at::Tensor dscore_dcoords;
@@ -557,6 +563,7 @@ class DunbrackRotamerScoreOp
                       TCAST(res_mean_table_offset),
                       TCAST(res_rotamer_index_to_table_index),
                       TCAST(block_semirotameric_tableset_offset),
+                      TCAST(block_is_mirrored),
                       output_block_pair_energies,
                       rot_coords.requires_grad());
 
@@ -619,7 +626,8 @@ class DunbrackRotamerScoreOp
            res_probability_table_offset,
            res_mean_table_offset,
            res_rotamer_index_to_table_index,
-           block_semirotameric_tableset_offset});
+           block_semirotameric_tableset_offset,
+           block_is_mirrored});
     } else {
       ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
     }
@@ -708,6 +716,7 @@ class DunbrackRotamerScoreOp
       auto res_mean_table_offset = saved[i++];
       auto res_rotamer_index_to_table_index = saved[i++];
       auto block_semirotameric_tableset_offset = saved[i++];
+      auto block_is_mirrored = saved[i++];
 
       using Int = int32_t;
 
@@ -776,6 +785,7 @@ class DunbrackRotamerScoreOp
                     TCAST(res_mean_table_offset),
                     TCAST(res_rotamer_index_to_table_index),
                     TCAST(block_semirotameric_tableset_offset),
+                    TCAST(block_is_mirrored),
                     TCAST(dTdV));
 
             dV_d_pose_coords = result.tensor;
@@ -897,6 +907,7 @@ std::vector<Tensor> dunbrack_pose_scores_op(
     Tensor res_mean_table_offset,
     Tensor res_rotamer_index_to_table_index,
     Tensor block_semirotameric_tableset_offset,
+    Tensor block_is_mirrored,
     bool output_block_pair_energies) {
   return DunbrackPoseScoreOp<DispatchMethod>::apply(
       // common params
@@ -950,6 +961,7 @@ std::vector<Tensor> dunbrack_pose_scores_op(
       res_mean_table_offset,
       res_rotamer_index_to_table_index,
       block_semirotameric_tableset_offset,
+      block_is_mirrored,
       output_block_pair_energies);
 }
 
@@ -1006,6 +1018,7 @@ std::vector<Tensor> dunbrack_rotamer_scores_op(
     Tensor res_mean_table_offset,
     Tensor res_rotamer_index_to_table_index,
     Tensor block_semirotameric_tableset_offset,
+    Tensor block_is_mirrored,
     bool output_block_pair_energies) {
   return DunbrackRotamerScoreOp<DispatchMethod>::apply(
       // common params
@@ -1059,6 +1072,7 @@ std::vector<Tensor> dunbrack_rotamer_scores_op(
       res_mean_table_offset,
       res_rotamer_index_to_table_index,
       block_semirotameric_tableset_offset,
+      block_is_mirrored,
       output_block_pair_energies);
 }
 

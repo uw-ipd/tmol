@@ -136,10 +136,8 @@ def create_rama_database(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_di
             raw["rama_lookup"], attr.fields(RamaDatabase).rama_lookup.type
         )
 
-    input_uniq_id = hash((rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir))
-
-    uniq_id = path_lookup + "," + str(input_uniq_id)
-    return RamaDatabase(uniq_id, rama_lookup, rama_tables)
+    db = RamaDatabase("", rama_lookup, rama_tables)
+    return attr.evolve(db, uniq_id=db.content_id())
 
 
 if __name__ == "__main__":

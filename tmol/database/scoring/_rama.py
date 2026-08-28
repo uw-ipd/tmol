@@ -5,6 +5,8 @@ from typing import Tuple
 
 from tmol.types import Tensor
 
+from ._content_hash import content_hash
+
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class RamaMappingParams:
@@ -25,7 +27,8 @@ class RamaTables:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class RamaDatabase:
-    uniq_id: str  # unique id for memoization
+    # content-derived; caches key on it, so it must change with the contents
+    uniq_id: str
     rama_lookup: Tuple[RamaMappingParams, ...]
     rama_tables: Tuple[RamaTables, ...]
 
@@ -42,4 +45,9 @@ class RamaDatabase:
                 (RamaMappingParams, f"{_OLD}.RamaMappingParams"),
             ]
         ):
-            return torch.load(fname, mmap=True)
+            db = torch.load(fname, mmap=True)
+        return attr.evolve(db, uniq_id=db.content_id())
+
+    def content_id(self) -> str:
+        """Identity derived from the lookup and the tables themselves."""
+        return content_hash(self.rama_lookup, self.rama_tables)

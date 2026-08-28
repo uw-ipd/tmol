@@ -17,7 +17,7 @@ from tmol.database import ParameterDatabase
 
 # from tmol.pack.rotamer.dunbrack import _compiled  # noqa F401
 from tmol.pack import SetPackerTask
-from tmol.chemical import RefinedResidueType
+from tmol.chemical import RefinedResidueType, l_base_name
 from tmol.pose import (
     PackedBlockTypes,
     PoseStack,
@@ -88,6 +88,14 @@ class DunbrackChiSampler(ChiSampler):
     def sampler_name(cls):
         return "DunbrackChiSampler"
 
+    def _library_index(self, lib_name: str):
+        """Index of a rotamer library by name, or -1 if there is none."""
+        return self.dun_param_resolver._indices_from_names(
+            self.dun_param_resolver.all_table_indices,
+            numpy.array([[lib_name]], dtype=object),
+            device=self.device,
+        )[0, 0]
+
     @validate_args
     def annotate_residue_type(self, restype: RefinedResidueType):  # noqa: C901
         """TEMP TEMP TEMP: assume the dihedrals we care about are phi and psi"""
@@ -108,14 +116,12 @@ class DunbrackChiSampler(ChiSampler):
         # Strip away any patches and use the "base name" of the residue type to make
         # the "which library should I read from?" decision
 
-        # fd  noncanonicals may borrow a canonical's rotamers (sampling only)
-        lib_name = restype.dunbrack_reference or restype.base_name
-
-        dun_lib_ind = self.dun_param_resolver._indices_from_names(
-            self.dun_param_resolver.all_table_indices,
-            numpy.array([[lib_name]], dtype=object),
-            device=self.device,
-        )[0, 0]
+        # fd  noncanonicals may borrow a canonical's rotamers (sampling only);
+        #     a d-amino acid has a mirrored library of its own, so its own name
+        #     is tried before any reference it carries
+        dun_lib_ind = self._library_index(restype.base_name)
+        if dun_lib_ind < 0 and restype.dunbrack_reference:
+            dun_lib_ind = self._library_index(restype.dunbrack_reference)
 
         if dun_lib_ind >= 0:
             n_chi = self.dun_param_resolver.scoring_db_aux.nchi_for_table_set[
@@ -315,8 +321,7 @@ class DunbrackChiSampler(ChiSampler):
             return False
 
         # and then what??
-        lib_name = rt.dunbrack_reference or rt.base_name
-        if lib_name == "GLY" or lib_name == "ALA":
+        if l_base_name(rt) in ("GLY", "ALA"):
             return False
 
         # all amino acids except GLY and ALA?? That feels wrong

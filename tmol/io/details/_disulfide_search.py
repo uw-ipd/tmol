@@ -19,7 +19,7 @@ def find_disulfides(
     find_additional_disulfides: Optional[bool] = True,
     cutoff_dis: float = 2.5,
 ):
-    if canonical_ordering.cys_inds.cys_co_aa_ind == -1:
+    if not canonical_ordering.cys_inds.cys_co_aa_inds:
         # nothing to do: CYS is not a valid residue type
         # in the ChemicalDatabase
         return (
@@ -27,7 +27,14 @@ def find_disulfides(
             torch.zeros_like(res_types),
         )
 
-    cys_res = res_types == canonical_ordering.cys_inds.cys_co_aa_ind
+    cys_res = torch.isin(
+        res_types,
+        torch.tensor(
+            canonical_ordering.cys_inds.cys_co_aa_inds,
+            dtype=res_types.dtype,
+            device=res_types.device,
+        ),
+    )
     restype_variants = torch.full_like(res_types, 0)
     if disulfides is not None:
         # mark the disulfide-bonded residues

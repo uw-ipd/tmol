@@ -12,7 +12,7 @@ from tmol.types import (
     Tensor,
     validate_args,
 )
-from tmol.chemical import RefinedResidueType
+from tmol.chemical import RefinedResidueType, l_base_name
 from tmol.pose import (
     PackedBlockTypes,
     PoseStack,
@@ -39,7 +39,7 @@ class FixedAAChiSampler(ChiSampler):
         if rt.properties.polymer.backbone_type != "alpha":
             return False
 
-        if rt.base_name[:3] == "GLY" or rt.base_name[:3] == "ALA":
+        if l_base_name(rt) in ("GLY", "ALA"):
             return True
 
         return False
@@ -51,16 +51,17 @@ class FixedAAChiSampler(ChiSampler):
 
     @validate_args
     def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
-        if rt.base_name == "GLY":
+        base = l_base_name(rt)
+        if base == "GLY":
             return ("HA3",)
-        elif rt.base_name == "ALA":
+        elif base == "ALA":
             return ("CB",)
 
     def annotate_residue_type(self, block_type):
         if hasattr(block_type, "fixed_aa_chi_sampler_builds_bt"):
             return
         builds_bt = False
-        if block_type.base_name == "GLY" or block_type.base_name[:3] == "ALA":
+        if l_base_name(block_type) in ("GLY", "ALA"):
             builds_bt = True
         setattr(block_type, "fixed_aa_chi_sampler_builds_bt", builds_bt)
 
