@@ -30,8 +30,10 @@ from tmol.pack import SetPackerTask
 from tmol.numeric import coord_dihedrals
 
 
-def _build_chi4_atom_table(pbt):
-    """Return (n_types, max_n_chi, 4) int32 array of RTO atom indices for each chi.
+def _build_chi4_atom_table(
+    pbt: PackedBlockTypes,
+) -> NDArray[numpy.int32][:, :, 4]:
+    """Return RTO atom indices shaped ``[n_types, max_n_chi, 4]``.
 
     Entries are -1 where the residue type has fewer than max_n_chi chi angles.
     Built once and cached on pbt as _chi4_atom_table.
@@ -63,7 +65,9 @@ def _build_chi4_atom_table(pbt):
     return table
 
 
-def _build_chi_phi_c_corrections(pbt):
+def _build_chi_phi_c_corrections(
+    pbt: PackedBlockTypes,
+) -> NDArray[numpy.float32][:, :]:
     """Precompute phi_c correction per (block_type, chi_index), cached on pbt.
 
     For each chi angle the relationship between what is written to phi_c and
@@ -76,7 +80,8 @@ def _build_chi_phi_c_corrections(pbt):
     the jump frame introduces an offset) and bond-parent atoms (chi2+, where
     a non-zero torsion ICOOR introduces the offset).
 
-    Returns (n_types, max_n_chi) float32 array; 0.0 where not applicable.
+    Returns:
+        Corrections shaped ``[n_types, max_n_chi]``; 0.0 where not applicable.
     """
     if hasattr(pbt, "_chi_phi_c_corrections"):
         return pbt._chi_phi_c_corrections
@@ -120,8 +125,15 @@ def _build_chi_phi_c_corrections(pbt):
     return corrections
 
 
-def _get_chi_dof_metadata(pbt):
-    """Return immutable chi lookup tables on the PackedBlockTypes device."""
+def _get_chi_dof_metadata(
+    pbt: PackedBlockTypes,
+) -> tuple[Tensor[torch.int64][:, :], Tensor[torch.float32][:, :]]:
+    """Return immutable chi lookup tensors on the block-type device.
+
+    Returns:
+        Kinematic atom indices shaped ``[n_types, max_n_atoms]`` and phi-c
+        corrections shaped ``[n_types, max_n_chi]``.
+    """
     if hasattr(pbt, "_chi_dof_metadata"):
         return pbt._chi_dof_metadata
 

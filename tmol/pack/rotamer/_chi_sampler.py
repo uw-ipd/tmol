@@ -136,7 +136,7 @@ def copy_dofs_from_orig_to_rotamers_for_sampler(
     n_dof_atoms_offset_for_rot: Tensor[torch.int64][:],
     orig_dofs_kto: Tensor[torch.float32][:, 9],
     rot_dofs_kto: Tensor[torch.float32][:, 9],
-):
+) -> None:
     dst, src = create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler(
         poses,
         task,
@@ -162,12 +162,12 @@ def create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler(
     sampler_n_rots_for_gbt: Tensor[torch.int32][:],
     sampler_gbt_for_rotamer: Tensor[torch.int32][:],
     n_dof_atoms_offset_for_rot: Tensor[torch.int64][:],
-) -> Tuple[Tensor[torch.int64][:], Tensor[torch.int64][:]]:
-    # we want to copy from the orig_dofs tensor into the
-    # rot_dofs tensor for the "mainchain" atoms in the
-    # original residues into the appropriate positions
-    # for the rotamers thta we are building at those
-    # residues. This requires a good deal of reindexing.
+) -> tuple[Tensor[torch.int64][:], Tensor[torch.int64][:]]:
+    """Map mainchain DOFs from original residues to sampled rotamers.
+
+    Returns:
+        Destination and source indices, each shaped ``[n_copied_dofs]``.
+    """
 
     pbt = poses.packed_block_types
     n_rots_for_sampler = sampler_gbt_for_rotamer.shape[0]
@@ -341,7 +341,12 @@ def assign_chi_dofs_from_samples(
     chi_atoms: Tensor[torch.int32][:, :],
     chi: Tensor[torch.float32][:, :],
     rot_dofs_kto: Tensor[torch.float32][:, 9],
-):
+) -> None:
+    """Write sampled chis into packed ``[n_rotamer_atoms + 1, 9]`` DOFs.
+
+    ``chi_atoms`` and ``chi`` share shape ``[n_rotamers, max_n_chi]``;
+    negative atom indices mark unused chi columns.
+    """
     assert chi_atoms.shape == chi.shape
 
     n_rots_for_sampler = sampler_gbt_for_rotamer.shape[0]
