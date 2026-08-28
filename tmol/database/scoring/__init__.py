@@ -1,3 +1,5 @@
+"""Typed schemas and loaders for TMol scoring parameters."""
+
 from ._cartbonded import (  # noqa: F401
     AngleGroup,
     CartRes,
@@ -68,6 +70,8 @@ from ._ref import RefDatabase  # noqa: F401
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class ScoringDatabase:
+    """Immutable parameters for all standard TMol energy terms."""
+
     cartbonded: CartBondedDatabase
     genbonded: GenBondedDatabase
     disulfide: DisulfideDatabase
@@ -81,7 +85,10 @@ class ScoringDatabase:
     ref: RefDatabase
 
     @classmethod
-    def from_file(cls, path=os.path.dirname(__file__)):  # noqa
+    def from_file(
+        cls, path: str | os.PathLike[str] = os.path.dirname(__file__)
+    ) -> "ScoringDatabase":
+        """Load all scoring-term databases rooted at ``path``."""
 
         return cls(
             cartbonded=CartBondedDatabase.from_file(

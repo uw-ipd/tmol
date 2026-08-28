@@ -1,8 +1,10 @@
+"""Chemical and scoring parameter databases used by TMol."""
+
 from __future__ import annotations
 
 import os
 import attr
-from typing import List, Optional, Mapping
+from typing import Mapping, Optional
 
 from .chemical import AtomType, ChemicalDatabase, RawResidueType  # noqa: F401
 from ._patched_chemdb import PatchedChemicalDatabase  # noqa: F401
@@ -36,6 +38,7 @@ class ParameterDatabase:
 
     @classmethod
     def from_file(cls, path: str) -> "ParameterDatabase":
+        """Load chemical and scoring parameters rooted at ``path``."""
         chemdb = ChemicalDatabase.from_file(os.path.join(path, "chemical"))
         patched_chemdb = PatchedChemicalDatabase.from_chem_db(chemdb)
         return cls(
@@ -44,7 +47,7 @@ class ParameterDatabase:
         )
 
     def create_stable_subset(
-        self, desired_names: List[str], desired_variants: List[str]
+        self, desired_names: list[str], desired_variants: list[str]
     ) -> "ParameterDatabase":
         """Create a ParameterDatabase representing a subset of the
         RefinedResidueTypes in this PD's PatchedChemicalDatabase from a list

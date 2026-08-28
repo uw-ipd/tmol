@@ -1,4 +1,6 @@
-from typing import Tuple, Optional, NewType
+"""Typed schemas for TMol chemical parameter data."""
+
+from typing import Any, NewType, Optional, Tuple
 from tmol.utility import BondAngle, DihedralAngle
 
 import attr
@@ -20,7 +22,7 @@ def _parse_acceptor_hybridization(v, t):
 cattr.register_structure_hook(AcceptorHybridization, _parse_acceptor_hybridization)
 
 
-def normalize_bond_tuples(raw):  # noqa: C901
+def normalize_bond_tuples(raw: Any) -> Any:  # noqa: C901
     """Normalize legacy 2-field bond entries to include bond order.
 
     Historically, some YAML snippets used ``[atom1, atom2]`` for bonds.
@@ -62,12 +64,16 @@ def normalize_bond_tuples(raw):  # noqa: C901
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class Element:
+    """Chemical element name and atomic number."""
+
     name: str
     atomic_number: int
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class AtomType:
+    """Chemical atom-type properties used by scoring terms."""
+
     name: str
     element: str
     is_acceptor: bool = False
@@ -79,18 +85,24 @@ class AtomType:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class Atom:
+    """Named residue atom and its chemical atom type."""
+
     name: str = attr.ib()
     atom_type: str = attr.ib()
 
 
 @attr.s(frozen=True, slots=True)
 class AtomAlias:
+    """Alternative input name for a residue atom."""
+
     name: str = attr.ib()
     alt_name: str = attr.ib()
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class Icoor:
+    """Internal-coordinate definition for one residue atom."""
+
     name: str
     phi: DihedralAngle
     theta: BondAngle
@@ -102,6 +114,8 @@ class Icoor:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class Connection:
+    """Named inter-residue connection and its bond type."""
+
     name: str
     atom: str
     type: str = "SINGLE"
@@ -109,6 +123,8 @@ class Connection:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class UnresolvedAtom:
+    """Atom reference resolved from a name or residue connection."""
+
     atom: Optional[str] = None
     connection: Optional[str] = None
     bond_sep_from_conn: Optional[int] = None
@@ -116,6 +132,8 @@ class UnresolvedAtom:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class Torsion:
+    """Named torsion defined by four unresolved atoms."""
+
     name: str
     a: UnresolvedAtom
     b: UnresolvedAtom
@@ -125,6 +143,8 @@ class Torsion:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class ChiSamples:
+    """Discrete samples and expansions for one chi dihedral."""
+
     chi_dihedral: str
     samples: Tuple[float, ...]
     expansions: Tuple[float, ...]
@@ -132,11 +152,15 @@ class ChiSamples:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class SidechainBuilding:
+    """Side-chain construction data for one chi dihedral."""
+
     chi_samples: ChiSamples
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class PolymerProperties:
+    """Polymer identity and connectivity metadata for a residue."""
+
     is_polymer: bool
     # None for a non-polymer
     polymer_type: Optional[str]
@@ -148,6 +172,8 @@ class PolymerProperties:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class ProtonationProperties:
+    """Protonation-state metadata for a residue."""
+
     protonated_atoms: Tuple[str, ...]
     protonation_state: str
     pH: float
@@ -155,6 +181,8 @@ class ProtonationProperties:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class ChemicalProperties:
+    """Chemical classification metadata for a residue."""
+
     is_canonical: bool
     polymer: PolymerProperties
     chemical_modifications: Tuple[str, ...]
@@ -165,6 +193,8 @@ class ChemicalProperties:
 
 @attr.s(auto_attribs=True)
 class RawResidueType:
+    """Unpatched residue definition loaded from the chemical database."""
+
     name: str
     base_name: str
     name3: str
@@ -190,12 +220,15 @@ class RawResidueType:
     #   "a" is both DA and RA.
     one_letter_code: Optional[str] = None
 
-    def atom_name(self, index):
+    def atom_name(self, index: int) -> str:
+        """Return the name of the atom at ``index``."""
         return self.atoms[index].name
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class IcoorVariant:
+    """Patch operation that adds or modifies an internal coordinate."""
+
     name: str
     source: Optional[str] = None
     phi: Optional[DihedralAngle] = 0.0
@@ -208,11 +241,15 @@ class IcoorVariant:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class PolymerPropertiesVariant:
+    """Polymer-property changes made by a residue patch."""
+
     polymer_type: str
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class ChemicalPropertiesVariant:
+    """Chemical-property changes made by a residue patch."""
+
     polymer: Optional[PolymerPropertiesVariant] = None
 
 
@@ -228,7 +265,8 @@ class VariantScope:
     backbone_types: Optional[Tuple[str, ...]] = None
     base_names: Optional[Tuple[str, ...]] = None
 
-    def matches(self, res):
+    def matches(self, res: RawResidueType) -> bool:
+        """Return whether this scope accepts ``res``."""
         if self.base_names is not None and res.base_name not in self.base_names:
             return False
         backbone = res.properties.polymer.backbone_type
@@ -237,6 +275,8 @@ class VariantScope:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class VariantType:
+    """Patch that transforms a base residue into a chemical variant."""
+
     name: str
     display_name: str
     pattern: str
@@ -254,6 +294,8 @@ class VariantType:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class ChemicalDatabase:
+    """Immutable collection of chemical types, residues, and patches."""
+
     __default = None
 
     element_types: Tuple[Element, ...]
@@ -271,7 +313,8 @@ class ChemicalDatabase:
         return cls.__default
 
     @classmethod
-    def from_file(cls, path):
+    def from_file(cls, path: str | os.PathLike[str]) -> "ChemicalDatabase":
+        """Load a chemical database from a directory containing YAML data."""
         path = os.path.join(path, "chemical.yaml")
         with open(path, "r") as infile:
             raw = safe_load(infile)
