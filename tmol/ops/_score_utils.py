@@ -157,7 +157,10 @@ def calculate_block_pair_ddg(
         pose_stack = run_cart_min(pose_stack, sfxn, coord_mask)
 
     scorer = sfxn.render_block_pair_scoring_module(pose_stack)
-    block_pair_scores = scorer(pose_stack.coords, sum_terms=False)
+    defer_weights = single_block_indices is not None
+    block_pair_scores = scorer(
+        pose_stack.coords, sum_terms=False, apply_weights=not defer_weights
+    )
 
     # mask shape: [n_poses, n_blocks]
     # Use mask2 if provided, otherwise use ~mask for the second set of indices
@@ -173,6 +176,8 @@ def calculate_block_pair_ddg(
             other_mask,
             sets_are_disjoint=mask2 is None,
         )
+        term_weights = scorer.weights[:, 0, 0, 0].unsqueeze(1)
+        ddg_scores = ddg_scores * term_weights
 
     if sum_terms:
         ddg_scores = ddg_scores.sum(dim=0)

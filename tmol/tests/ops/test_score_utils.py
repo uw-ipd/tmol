@@ -100,11 +100,19 @@ def test_calculate_ddg_accepts_single_block_indices(torch_device):
 
     scores = torch.arange(2 * 2 * 4 * 4, device=torch_device, dtype=torch.float32)
     scores = scores.reshape(2, 2, 4, 4)
+    weights = torch.tensor([0.25, 1.5], device=torch_device).reshape(2, 1, 1, 1)
 
     class ScoreFunction:
         @staticmethod
         def render_block_pair_scoring_module(_pose):
-            return lambda _coords, sum_terms: scores
+            class Scorer:
+                def __init__(self):
+                    self.weights = weights
+
+                def __call__(self, _coords, sum_terms, apply_weights=True):
+                    return weights * scores if apply_weights else scores
+
+            return Scorer()
 
     block_indices = torch.tensor([0, 2], device=torch_device)
     mask = torch.zeros(2, 4, dtype=torch.bool, device=torch_device)
