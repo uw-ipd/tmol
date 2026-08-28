@@ -2,14 +2,14 @@ import attr
 import torch
 import time
 import warnings
+from collections.abc import Callable, Sequence
+from typing import Protocol
 
 from tmol.pose import PoseStack
 from tmol.score import (
     ScoreFunction,
     ScoreType,
 )
-from typing import Optional, Union
-
 from tmol.kinematics import (
     CartesianMoveMap,
     MoveMap,
@@ -25,24 +25,29 @@ from tmol.pack.rotamer import (
     IncludeCurrentSampler,
 )
 from tmol.optimization import run_cart_min, run_kin_min
+from tmol.types import Tensor
 
-# Default schedule from Jack Maguire's tuned MonomerRelax2019.txt.
-# Each entry specifies fa_rep scale fractions for the packing and minimization
-# stages of a single pack-min step.  These fractions are multiplied by the
-# starting fa_rep weight to obtain the absolute weights used during each stage.
-#
-# Entries may be:
-#   - A single float: used as both the pack and min fraction.
-#     e.g.  0.559  =>  pack at 0.559 * fa_rep_start, min at 0.559 * fa_rep_start
-#   - A dict with keys "fa_rep_pack_frac", "fa_rep_min_frac", "cst_frac": allows the
-#     packing and minimization stages to use different fa_rep fractions and to
-#     specify a constraint weight.
-#     e.g.  {"fa_rep_pack_frac": 0.040, "fa_rep_min_frac": 0.051, "cst_frac": 0.5}
-#
-# The default behavior in Rosetta3 is to ramp constraints unless you explicitly
-# say that you should not, and that is preserved here.
-#
-# Both forms may be mixed freely within a single schedule list.
+RelaxScheduleEntry = float | int | dict[str, float]
+PackerTaskOperation = Callable[[PackerTask], None]
+
+
+class RelaxMinimizer(Protocol):
+    """Callable contract for a FastRelax minimization stage."""
+
+    def __call__(
+        self,
+        pose_stack: PoseStack,
+        sfxn: ScoreFunction,
+        *,
+        fold_forest: FoldForest,
+        move_map: MoveMap | CartesianMoveMap,
+        verbose: bool,
+    ) -> PoseStack:
+        """Minimize and return the updated poses."""
+
+
+# Jack Maguire's tuned MonomerRelax2019 schedule. Fractions scale the score
+# function's initial fa_rep and constraint weights at each pack-minimize stage.
 DEFAULT_RELAX_SCHEDULE = [
     {"fa_rep_pack_frac": 0.040, "fa_rep_min_frac": 0.051, "cst_frac": 1.0},
     {"fa_rep_pack_frac": 0.265, "fa_rep_min_frac": 0.280, "cst_frac": 0.5},
@@ -52,37 +57,27 @@ DEFAULT_RELAX_SCHEDULE = [
 
 
 def _normalize_schedule(
-    schedule, constrain: bool = False, ramp_constraints: bool = False
-):
-    """Normalize a relax schedule into a list of (pack_frac, min_frac, constraint) tuples.
-
-    Accepts a list of schedule entries in either simple or complex format:
-
-    Simple format (float):
-        A single number used as both the pack and min fa_rep fraction and a
-        constraint weight determined by the constrain and ramp_constraints flags.
-        Example: ``0.559`` becomes ``(0.559, 0.559, 0.0)``.
-
-    Complex format (dict):
-        A dict with keys ``"fa_rep_pack_frac"``, ``"fa_rep_min_frac"``, and ``"cst_frac"``
-        specifying separate fa_rep fractions for the packing and minimization stages.
-        Example: ``{"fa_rep_pack_frac": 0.040, "fa_rep_min_frac": 0.051, "cst_frac": 0.5}``
-        becomes ``(0.040, 0.051, 0.5)``.
-
-    Both formats may be freely mixed within a single schedule list.
+    schedule: Sequence[RelaxScheduleEntry],
+    constrain: bool = False,
+    ramp_constraints: bool = False,
+) -> list[tuple[float, float, float]]:
+    """Normalize user schedule entries into pack, minimize, and constraint weights.
 
     Args:
-        schedule: List of floats and/or dicts.
+        schedule: Numbers, used for both fa_rep stages, or dictionaries with
+            ``fa_rep_pack_frac``, ``fa_rep_min_frac``, and optional ``cst_frac``.
+        constrain: Whether the score function has an active constraint term.
+        ramp_constraints: Whether to ramp its weight to zero.
 
     Returns:
-        List of (pack_frac, min_frac, cst_frac) tuples.
+        ``(pack_fraction, minimize_fraction, constraint_fraction)`` per step.
 
     Raises:
         ValueError: If an entry is neither a float/int nor a dict with the
             required keys.
     """
 
-    def constraint_fraction(step_index):
+    def constraint_fraction(step_index: int) -> float:
         """Determine the constraint fraction for a particular step.
 
         If ramping, ramp constraint frations down from 1.0 to 0.0 over
@@ -94,9 +89,8 @@ def _normalize_schedule(
             return 1.0
         n_steps = len(schedule)
         if step_index > n_steps // 2:
-            return 0
-        else:
-            return 1 - step_index / (n_steps / 2)
+            return 0.0
+        return 1 - step_index / (n_steps / 2)
 
     normalized = []
     for i, entry in enumerate(schedule):
@@ -120,7 +114,14 @@ def _normalize_schedule(
     return normalized
 
 
-def _default_kin_min_fn(pose_stack, sfxn, *, fold_forest, move_map, verbose):
+def _default_kin_min_fn(
+    pose_stack: PoseStack,
+    sfxn: ScoreFunction,
+    *,
+    fold_forest: FoldForest,
+    move_map: MoveMap | CartesianMoveMap,
+    verbose: bool,
+) -> PoseStack:
     """Default minimization function: kinematic (torsion-space) LBFGS."""
     return run_kin_min(
         pose_stack,
@@ -132,18 +133,15 @@ def _default_kin_min_fn(pose_stack, sfxn, *, fold_forest, move_map, verbose):
     )
 
 
-def _default_cart_min_fn(pose_stack, sfxn, *, fold_forest, move_map, verbose):
-    """Default Cartesian minimization function for use as fast_relax min_fn.
-
-    Extracts ``coord_mask`` from ``move_map`` if it is a
-    :class:`~tmol.kinematics._move_map.CartesianMoveMap`; otherwise all atoms
-    are free to move.  ``fold_forest`` is accepted but ignored.
-
-    Example usage with :func:`fast_relax`::
-
-        fast_relax(pose_stack, sfxn, palette, CartesianMoveMap(), fold_forest,
-                   min_fn=_default_cart_min_fn, ...)
-    """
+def _default_cart_min_fn(
+    pose_stack: PoseStack,
+    sfxn: ScoreFunction,
+    *,
+    fold_forest: FoldForest,
+    move_map: MoveMap | CartesianMoveMap,
+    verbose: bool,
+) -> PoseStack:
+    """Run Cartesian LBFGS using a Cartesian move map's coordinate mask."""
     coord_mask = move_map.coord_mask if isinstance(move_map, CartesianMoveMap) else None
     return run_cart_min(
         pose_stack,
@@ -158,104 +156,48 @@ def fast_relax(  # noqa: C901
     pose_stack: PoseStack,
     sfxn: ScoreFunction,
     packer_pallete: PackerPalette,
-    move_map: Union[MoveMap, CartesianMoveMap],
+    move_map: MoveMap | CartesianMoveMap,
     fold_forest: FoldForest,
     *,
-    task_operations=None,
-    num_repeats=2,
-    ramp_constraints: Optional[bool] = None,  # default True
-    schedule=None,
-    min_fn=None,
+    task_operations: Sequence[PackerTaskOperation] | None = None,
+    num_repeats: int = 2,
+    ramp_constraints: bool | None = None,  # default True
+    schedule: Sequence[RelaxScheduleEntry] | None = None,
+    min_fn: RelaxMinimizer | None = None,
     verbose: bool = False,
-):
-    """Run the FastRelax protocol: repeated rounds of rotamer packing and
-    gradient minimization with a ramped fa_rep weight schedule.
+) -> PoseStack:
+    """Relax poses through repeated side-chain packing and minimization.
 
-    This implements Jack Maguire's tuned MonomerRelax2019 protocol.  Each
-    repeat consists of several pack-min steps at increasing fa_rep fractions,
-    followed by an accept-to-best check.
+    Each repeat applies the MonomerRelax2019 fa_rep ramp and retains the
+    lowest-scoring conformation independently for every pose in the batch.
 
     Args:
-        pose_stack: The input poses to relax.
-        sfxn: Score function used for packing and minimization. If you wish
-            to use constraints during relax, then the weight on the "constraint"
-            score type must already have a non-zero value.
-        packer_pallete: Palette defining the residue types available to the
-            packer.
+        pose_stack: Input poses to relax.
+        sfxn: Packing and minimization score function. Constraints are active
+            only when its constraint weight is nonzero.
+        packer_pallete: Residue types available to the packer.
         move_map: Specifies which DOFs are free to move during minimization.
         fold_forest: Fold forest defining the kinematic connectivity.
-        task_operations: List of callables that configure a PackerTask.  Each
-            callable receives a PackerTask and modifies it in place (e.g. to
-            restrict to repacking or add chi samplers).  If None, a default
-            operation is created that restricts to repacking with Dunbrack
-            rotamers and includes the current rotamer.
-        ramp_constraints: If True, decrease the constraing weight over the first
-            half of the weight-ramping schedule from its starting value to 0.
-            If False, use the starting constraint weight for the entirety
-            of relax. The weight on the "constraint" term in the input sfxn
-            will be restored to its starting value at the end of relax.
-            Default: True. A warning message is printed if you specify
-            ramp_constraints=True but the "constraint" weight is 0.
-        num_repeats: Number of times to repeat the full schedule of pack-min
-            steps (default: 2).
-        schedule: The fa_rep / constraint ramp schedule — a list of per-step entries
-            controlling the fa_rep weight and constraints used during packing and
-            minimization. Each entry is either:
-
-            - A **float**: used as the fa_rep fraction for both packing and
-              minimization.  E.g. ``0.559`` means both stages run at
-              ``0.559 * fa_rep_start`` (specifying nothing for the constraints).
-            - A **dict** with keys ``"fa_rep_pack_frac"``,
-              ``"fa_rep_min_frac"`` and optionally ``"cst_frac"``:
-              allows different fractions for the two
-              stages and an optional constraint fraction.  E.g. ``{"fa_rep_pack_frac": 0.040, "fa_rep_min_frac":
-              0.051, "cst_frac": 0.5}``.
-
-            Both formats may be mixed within a single list.  All fractions are
-            multiplied by the starting ``fa_rep`` weight / ``constraint`` weight
-            from ``sfxn``.
-
-            If None, ``DEFAULT_RELAX_SCHEDULE`` is used (the 4-step ramp from
-            MonomerRelax2019).
-        min_fn: Callable used to minimize the pose at each pack-min step.
-            Must have the signature::
-
-                min_fn(pose_stack, sfxn, *, fold_forest, move_map, verbose)
-                    -> PoseStack
-
-            The ``fold_forest`` and ``move_map`` are passed as keyword
-            arguments so that Cartesian minimizers can accept and ignore them
-            via ``**kwargs``.
-
-            If None, the default Cartesian minimizer is used
-            (``run_cart_min`` via :func:`_default_cart_min_fn`).
-
-            Examples::
-
-                # Cartesian minimization:
-                min_fn=lambda ps, sfxn, **kw: run_cart_min(ps, sfxn)
-
-                # Kinematic minimization with torch's LBFGS + strong Wolfe:
-                def my_min(ps, sfxn, *, fold_forest, move_map, **kw):
-                    return run_kin_min(
-                        ps, sfxn, fold_forest, move_map,
-                        optimizer_cls=torch.optim.LBFGS,
-                        optimizer_kwargs={
-                            "line_search_fn": "strong_wolfe",
-                        },
-                    )
-
+        task_operations: In-place task configuration callbacks. By default,
+            restrict to repacking with Dunbrack, fixed-AA, and current rotamers.
+        num_repeats: Number of complete pack-minimize ramps.
+        ramp_constraints: Ramp an active constraint weight to zero. Defaults
+            to true; the input weight is restored after relaxation.
+        schedule: Numeric fa_rep fractions or dictionaries with separate pack,
+            minimize, and optional constraint fractions. Defaults to
+            ``DEFAULT_RELAX_SCHEDULE``.
+        min_fn: Minimizer called with the pose, score function, fold forest,
+            move map, and verbosity. Defaults to Cartesian minimization.
         verbose: Print timing information for each step.
 
     Returns:
-        The relaxed PoseStack (best-scoring across all repeats).
+        Best-scoring relaxed poses across all repeats.
     """
     if min_fn is None:
         min_fn = _default_cart_min_fn
     if schedule is None:
         schedule = DEFAULT_RELAX_SCHEDULE
 
-    # Logic for using / adding constraints
     constraint_weight_start = sfxn.get_weight(ScoreType.constraint)
     use_constraints = constraint_weight_start != 0
     if not use_constraints and ramp_constraints:
@@ -267,7 +209,7 @@ def fast_relax(  # noqa: C901
 
     steps = _normalize_schedule(schedule, use_constraints, ramp_constraints)
 
-    if len(steps) == 0:
+    if not steps:
         raise ValueError("Relax schedule must contain at least one step.")
 
     # Warn if the final step doesn't restore fa_rep to its full weight.
@@ -280,11 +222,6 @@ def fast_relax(  # noqa: C901
         )
 
     if task_operations is None:
-        # Create a default task operation that
-        # 1. builds rotamers using the Dunbrack rotamer library
-        # 2. restricts to repacking
-        # 3. includes the current rotamer
-
         torch_device = pose_stack.device
         from tmol.pack.rotamer.dunbrack import (
             create_dunbrack_sampler_from_database,
@@ -296,11 +233,8 @@ def fast_relax(  # noqa: C901
             default_database, torch_device
         )
 
-        def default_op(task):
+        def default_op(task: PackerTask) -> None:
             task.restrict_to_repacking()
-            # TO DO: Prove that bump_check does not worsen relax
-            # task.or_bump_check(True)
-
             fixed_sampler = FixedAAChiSampler()
             task.add_conformer_sampler(dun_sampler)
             task.add_conformer_sampler(fixed_sampler)
@@ -340,18 +274,36 @@ def fast_relax(  # noqa: C901
 
 
 def relax_pack_min_step(
-    pose_stack,
-    sfxn,
-    fold_forest,
-    move_map: Union[MoveMap, CartesianMoveMap],
-    packer_pallete,
-    fa_rep_pack_weight,
-    fa_rep_min_weight,
-    cst_weight,
-    task_operations,
-    min_fn,
-    verbose,
-):
+    pose_stack: PoseStack,
+    sfxn: ScoreFunction,
+    fold_forest: FoldForest,
+    move_map: MoveMap | CartesianMoveMap,
+    packer_pallete: PackerPalette,
+    fa_rep_pack_weight: float,
+    fa_rep_min_weight: float,
+    cst_weight: float,
+    task_operations: Sequence[PackerTaskOperation],
+    min_fn: RelaxMinimizer,
+    verbose: bool,
+) -> PoseStack:
+    """Execute one weighted packing and minimization stage.
+
+    Args:
+        pose_stack: Current poses.
+        sfxn: Score function whose repulsive and constraint weights are updated.
+        fold_forest: Connectivity passed to the minimizer.
+        move_map: Movable degrees of freedom passed to the minimizer.
+        packer_pallete: Residue types available during packing.
+        fa_rep_pack_weight: Repulsive weight for packing.
+        fa_rep_min_weight: Repulsive weight for minimization.
+        cst_weight: Constraint weight for both operations.
+        task_operations: In-place task configuration callbacks.
+        min_fn: Minimization callable.
+        verbose: Print synchronized stage timings.
+
+    Returns:
+        The minimized pose stack.
+    """
 
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
@@ -402,15 +354,27 @@ def relax_pack_min_step(
 def accept_best(
     sfxn: ScoreFunction,
     best_pose_stack: PoseStack,
-    best_pose_score: torch.Tensor,
+    best_pose_score: Tensor[torch.float32][:],
     candidate_pose_stack: PoseStack,
-    verbose=False,
-):
+    verbose: bool = False,
+) -> tuple[PoseStack, Tensor[torch.float32][:]]:
+    """Keep the lower-scoring conformation independently for each pose.
+
+    Args:
+        sfxn: Score function used for comparison.
+        best_pose_stack: Best poses from previous repeats.
+        best_pose_score: Best scores shaped ``[n_poses]``.
+        candidate_pose_stack: Newly minimized poses.
+        verbose: Print accepted scores.
+
+    Returns:
+        Updated best poses and scores shaped ``[n_poses]``.
+    """
     wpsm = sfxn.render_whole_pose_scoring_module(candidate_pose_stack)
     candidate_score = wpsm(candidate_pose_stack.coords)
     better_mask = candidate_score < best_pose_score
 
-    def select_better(tensor_name):
+    def select_better(tensor_name: str) -> torch.Tensor:
         tensor = getattr(best_pose_stack, tensor_name)
         new_tensor = tensor.detach().clone()
         new_tensor[better_mask] = getattr(candidate_pose_stack, tensor_name)[
@@ -440,5 +404,4 @@ def accept_best(
         new_best_pose_score = best_pose_score.detach().clone()
         new_best_pose_score[better_mask] = candidate_score[better_mask]
         return new_best_pose_stack, new_best_pose_score
-    else:  # no change
-        return best_pose_stack, best_pose_score
+    return best_pose_stack, best_pose_score

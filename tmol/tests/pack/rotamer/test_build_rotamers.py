@@ -103,7 +103,13 @@ def test_build_rotamers_smoke(default_database, ubq_pdb, torch_device, dun_sampl
     task = SetPackerTask.from_packer_task(task)
 
     poses, rotamer_set = build_rotamers(poses, task, default_database.chemical)
-    assert rotamer_set is not None
+    _, cached_rotamer_set = build_rotamers(poses, task, default_database.chemical)
+
+    torch.testing.assert_close(cached_rotamer_set.coords, rotamer_set.coords)
+    torch.testing.assert_close(
+        cached_rotamer_set.block_type_ind_for_rot,
+        rotamer_set.block_type_ind_for_rot,
+    )
 
 
 def test_construct_scans_for_rotamers(
@@ -314,12 +320,10 @@ def test_measure_pose_dofs(default_database, ubq_pdb, torch_device, dun_sampler)
         n_atoms_offset_for_conformer,
     )
 
-    n_conformers = poses.max_n_blocks
     n_atoms_total = poses.max_n_pose_atoms
 
     rotamer_coords = calculate_rotamer_coords(
         pbt,
-        n_conformers,
         n_atoms_total,
         orig_kinforest,
         nodes,
@@ -1460,8 +1464,6 @@ def test_new_rotamer_building_logic1(
 
     gbt_for_conformer_torch = _t(gbt_for_conformer, torch.int64)
 
-    n_conformers = sampler_for_conformer.shape[0]
-
     block_type_ind_for_conformer = gbt_block_type_ind[gbt_for_conformer_np]
     block_type_ind_for_conformer_torch = _t(block_type_ind_for_conformer, torch.int64)
 
@@ -1525,7 +1527,6 @@ def test_new_rotamer_building_logic1(
 
     rotamer_coords = calculate_rotamer_coords(
         pbt,
-        n_conformers,
         n_atoms_total,
         conformer_kinforest,
         nodes,

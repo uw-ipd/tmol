@@ -74,7 +74,7 @@ class IncludeCurrentSampler(ConformerSampler):
             ],
         ).to(torch.int32)
 
-        gbt_for_rotamer = torch.nonzero(n_rots_for_gbt, as_tuple=True)[0]
+        gbt_for_rotamer = n_rots_for_gbt.nonzero(as_tuple=True)[0].to(torch.int32)
         return (n_rots_for_gbt, gbt_for_rotamer, {})
 
     def fill_dofs_for_samples(

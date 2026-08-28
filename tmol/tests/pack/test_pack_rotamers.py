@@ -1,4 +1,5 @@
 import attrs
+import pytest
 import torch
 import math
 
@@ -199,7 +200,10 @@ def get_constraints_only_sfxn(default_database, torch_device):
     return sfxn
 
 
-def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
+@pytest.mark.parametrize("chunk_size", [8, 16])
+def test_pack_rotamers(
+    default_database, ubq_pdb, dun_sampler, torch_device, chunk_size
+):
     n_poses = 4
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
     pose_stack, task = setup_pose_stack_and_task(
@@ -218,7 +222,7 @@ def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
         bc_rot_to_orig_rot,
         bg_bg_energies,
         packer_energy_tables,
-    ) = build_packer_energy_tables(pose_stack, rotamer_set, sfxn)
+    ) = build_packer_energy_tables(pose_stack, rotamer_set, sfxn, chunk_size=chunk_size)
 
     _, _ = run_pack_and_assert_scores(
         pose_stack,

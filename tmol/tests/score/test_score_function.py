@@ -8,7 +8,8 @@ from tmol.score import (
     ScoreFunction,
     ScoreType,
 )
-from tmol.score._score_function import WholePoseScoringModule
+from tmol.score._score_function import BlockPairScoringModule, WholePoseScoringModule
+from tmol.score.common import ZeroTermPoseScoringModule
 from tmol.pose import (
     DEFAULT_ATOM_B_FACTOR,
     DEFAULT_ATOM_OCCUPANCY,
@@ -243,6 +244,20 @@ def test_block_pair_scoring_matches_whole_pose(ubq_pdb, default_database, torch_
     torch.testing.assert_close(
         full_score, torch.sum(block_score, dim=(1, 2)), atol=1e-3, rtol=1e-3
     )
+
+
+def test_block_pair_scoring_supports_only_invariant_zero_terms(torch_device):
+    scorer = BlockPairScoringModule(
+        torch.ones(2, device=torch_device),
+        [ZeroTermPoseScoringModule("zero", 2, 3, torch_device, 4)],
+    )
+    coords = torch.zeros((3, 1, 3), device=torch_device, requires_grad=True)
+
+    scores = scorer(coords)
+
+    assert scores.shape == (3, 4, 4)
+    assert torch.count_nonzero(scores) == 0
+    scores.sum().backward()
 
 
 def test_virtual_residue_scoring(ubq_pdb, torch_device):

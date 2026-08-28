@@ -18,9 +18,19 @@ def pack_rotamers(
     pose_stack: PoseStack,
     sfxn: ScoreFunction,
     task: PackerTask,
-    verbose=False,
-    **sa_params,
-):
+    verbose: bool = False,
+) -> PoseStack:
+    """Optimize side-chain conformers for a pose stack.
+
+    Args:
+        pose_stack: Poses whose task-enabled blocks will be packed.
+        sfxn: Score function used to rank rotamer assignments.
+        task: Allowed block types, conformers, and packing positions.
+        verbose: Print synchronized stage timings when true.
+
+    Returns:
+        A new pose stack containing the lowest-ranked assignment per pose.
+    """
 
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
@@ -48,9 +58,7 @@ def pack_rotamers(
         torch.cuda.synchronize()
     end_time4 = time.perf_counter()
 
-    scores, rotamer_assignments = run_simulated_annealing(
-        packer_energy_tables, **sa_params
-    )
+    _, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
     end_time5 = time.perf_counter()
