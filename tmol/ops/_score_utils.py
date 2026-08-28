@@ -10,7 +10,7 @@ from tmol.optimization import run_cart_min
 from tmol.types import Tensor
 
 _EINSUM_MIN_BYTES = 512 * 1024 * 1024
-_INTERACTION_DISTANCE_WORKSPACE_BYTES = 256 * 1024 * 1024
+_DEFAULT_INTERACTION_DISTANCE_WORKSPACE_BYTES = 256 * 1024 * 1024
 
 
 def _sum_cross_block_scores(
@@ -101,6 +101,7 @@ def calculate_block_pair_ddg(
     return_pose_stack: bool = False,
     *,
     memory_efficient: bool = False,
+    max_workspace_bytes: int | None = None,
 ) -> torch.Tensor | tuple[torch.Tensor, PoseStack]:
     """Score interactions between two block sets in each pose.
 
@@ -118,6 +119,8 @@ def calculate_block_pair_ddg(
         return_pose_stack: Return the packed/minimized poses with their scores.
         memory_efficient: Use a lower-memory Boolean-mask reduction. Its floating-
             point summation order may differ from the default path.
+        max_workspace_bytes: Optional temporary-memory cap for the batched
+            nearby-atom search used by minimization. Defaults to 256 MiB.
 
     Returns:
         Scores shaped ``[n_poses]`` or ``[n_terms, n_poses]``. When requested,
@@ -179,7 +182,9 @@ def calculate_block_pair_ddg(
         pose_stack = pack_rotamers(pose_stack, sfxn, task)
 
     if minimize:
-        coord_mask = build_coord_mask_for_mask_and_interacting_atoms(pose_stack, mask)
+        coord_mask = build_coord_mask_for_mask_and_interacting_atoms(
+            pose_stack, mask, max_workspace_bytes=max_workspace_bytes
+        )
         pose_stack = run_cart_min(pose_stack, sfxn, coord_mask)
 
     scorer = sfxn.render_block_pair_scoring_module(pose_stack)
@@ -379,6 +384,8 @@ def build_coord_mask_for_mask_and_interacting_atoms(
     pose_stack: PoseStack,
     mask: Tensor[torch.bool][:, :],
     interaction_distance: float = 5.0,
+    *,
+    max_workspace_bytes: int | None = None,
 ) -> Tensor[torch.bool][:, :]:
     """Select masked blocks and nearby side-chain atoms.
 
@@ -386,11 +393,21 @@ def build_coord_mask_for_mask_and_interacting_atoms(
         pose_stack: Poses containing coordinates shaped ``[n_poses, n_atoms, 3]``.
         mask: Selected blocks shaped ``[n_poses, n_blocks]``.
         interaction_distance: Maximum atom-to-selected-atom distance in Angstroms.
+        max_workspace_bytes: Temporary-memory cap for batched pairwise
+            differences. Defaults to 256 MiB; smaller values use more chunks.
 
     Returns:
         Coordinate mask shaped ``[n_poses, n_atoms]``. All atoms in selected
         blocks are included; only side-chain atoms are added from other blocks.
+
+    Raises:
+        ValueError: If ``max_workspace_bytes`` is not positive.
     """
+    if max_workspace_bytes is None:
+        max_workspace_bytes = _DEFAULT_INTERACTION_DISTANCE_WORKSPACE_BYTES
+    if max_workspace_bytes <= 0:
+        raise ValueError("max_workspace_bytes must be positive")
+
     coord_mask = res_mask_to_coord_mask(pose_stack, mask)
     sidechain_mask = build_sidechain_coord_mask(pose_stack)
     n_masked_atoms = coord_mask.sum(dim=1)
@@ -425,7 +442,7 @@ def build_coord_mask_for_mask_and_interacting_atoms(
         * (coordinate_dim + 1)
         * pose_stack.coords.element_size()
     )
-    poses_per_chunk = max(1, _INTERACTION_DISTANCE_WORKSPACE_BYTES // bytes_per_pose)
+    poses_per_chunk = max(1, max_workspace_bytes // bytes_per_pose)
     nearby_atoms = torch.empty_like(coord_mask)
     for first_pose in range(0, n_poses, poses_per_chunk):
         last_pose = min(first_pose + poses_per_chunk, n_poses)

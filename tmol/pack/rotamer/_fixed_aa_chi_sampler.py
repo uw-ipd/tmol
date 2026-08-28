@@ -104,9 +104,7 @@ class FixedAAChiSampler(ChiSampler):
         ).to(torch.int32)
 
         n_fixed_rots = torch.sum(n_rots_for_gbt).item()
-        gbt_for_rotamer = torch.nonzero(n_rots_for_gbt > 0, as_tuple=True)[0].to(
-            torch.int32
-        )
+        gbt_for_rotamer = n_rots_for_gbt.nonzero(as_tuple=True)[0].to(torch.int32)
         chi_for_rotamers = torch.zeros(
             (n_fixed_rots, 1), dtype=torch.float32, device=poses.device
         )

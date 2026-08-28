@@ -135,7 +135,7 @@ def test_calculate_ddg_accepts_single_block_indices(torch_device):
 
 
 def test_interacting_coord_mask_matches_per_pose_reference(
-    biotite_1ubq: struc.AtomArray, systems_bysize, torch_device, monkeypatch
+    biotite_1ubq: struc.AtomArray, systems_bysize, torch_device
 ):
     pose = pose_stack_from_biotite(biotite_1ubq, torch_device)
     shorter_pose = pose_stack_from_pdb(systems_bysize[40], torch_device)
@@ -192,14 +192,19 @@ def test_interacting_coord_mask_matches_per_pose_reference(
         score_utils.build_coord_mask_for_mask_and_interacting_atoms(poses, block_mask),
     )
 
-    monkeypatch.setattr(score_utils, "_INTERACTION_DISTANCE_WORKSPACE_BYTES", 1)
     assert torch.equal(
         actual,
-        score_utils.build_coord_mask_for_mask_and_interacting_atoms(poses, block_mask),
+        score_utils.build_coord_mask_for_mask_and_interacting_atoms(
+            poses, block_mask, max_workspace_bytes=1
+        ),
     )
     assert not score_utils.build_coord_mask_for_mask_and_interacting_atoms(
         poses, torch.zeros_like(block_mask)
     ).any()
+    with pytest.raises(ValueError, match="max_workspace_bytes"):
+        score_utils.build_coord_mask_for_mask_and_interacting_atoms(
+            poses, block_mask, max_workspace_bytes=0
+        )
 
 
 def test_build_coord_mask_and_minimize_for_first_residue(
