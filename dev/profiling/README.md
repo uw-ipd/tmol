@@ -32,22 +32,23 @@ excluded.
 
 | Workflow and input | Batch 1 (ms) | Larger batch | Batch time (ms) | Throughput gain |
 |---|---:|---:|---:|---:|
-| score, 15-residue protein | 0.517 | 32 | 0.569 | 29.1x |
-| score, 400-residue protein | 0.735 | 4 | 1.375 | 2.1x |
-| score, 24-nt DNA | 2.729 | 32 | 2.776 | 31.5x |
-| score, protein–ligand | 0.808 | 8 | 2.295 | 2.8x |
-| Cartesian min, 15-residue protein | 41.623 | 32 | 42.117 | 31.6x |
-| Cartesian min, 24-nt DNA | 183.181 | 8 | 176.959 | 8.3x |
-| torsion min, 24-nt DNA | 238.398 | 4 | 249.866 | 3.8x |
-| FastRelax, 15-residue protein | 348.194 | 8 | 521.822 | 5.3x |
-| FastRelax, 100-residue protein | 1247.685 | 4 | 2247.399 | 2.2x |
+| score, 15-residue protein | 0.527 | 32 | 0.557 | 30.3x |
+| score, 400-residue protein | 0.743 | 4 | 1.374 | 2.2x |
+| score, 24-nt DNA | 2.771 | 32 | 2.898 | 30.6x |
+| score, protein–ligand | 0.809 | 8 | 2.294 | 2.8x |
+| Cartesian min, 15-residue protein | 41.492 | 32 | 42.342 | 31.4x |
+| Cartesian min, 24-nt DNA | 174.446 | 8 | 170.993 | 8.2x |
+| torsion min, 24-nt DNA | 245.590 | 4 | 253.509 | 3.9x |
+| FastRelax, 15-residue protein | 349.066 | 8 | 521.468 | 5.4x |
+| FastRelax, 100-residue protein | 1238.964 | 4 | 2251.062 | 2.2x |
 
 CUDA graphs pay off for repeated fixed layouts, especially nucleic acids. At
-batch 1, graph replay changed DNA forward scoring from 2.729 to 0.867 ms (3.15x)
-and forward plus coordinate gradient from 7.262 to 1.686 ms (4.31x). The RNA
-gains were 2.92x and 3.97x. A 15-residue protein gained 1.26x and 1.87x, while a
-protein–ligand case gained only 1.07x and 1.05x because its larger kernels were
-already device-bound. Graph construction remains a one-time setup cost.
+batch 1, graph replay changed DNA forward scoring from 2.771 to 0.863 ms (3.21x)
+and forward plus coordinate gradient from 7.392 to 1.676 ms (4.41x). The RNA
+gains were 2.94x and 3.99x. A 15-residue protein gained 1.28x and 1.82x, while a
+protein–ligand case gained only 1.08x for both forward and gradient because its
+larger kernels were already device-bound. Graph construction remains a one-time
+setup cost.
 
 ### Optimization and trace conclusions
 
@@ -56,7 +57,7 @@ identities, ring indices, and predecessor links on every score evaluation.
 Caching them on `PoseStack` removed 67 launches per forward call. A sequential
 same-H200 A/B across DNA, RNA, and protein–DNA reduced eager forward latency by
 11–19%, eager forward plus gradient by 4–6%, and graph replay by about 11%.
-The final DNA trace has 339 launches versus 406 before the change and a 5.28 ms
+The final DNA trace has 339 launches versus 406 before the change and a 5.24 ms
 profiled wall time versus 6.11 ms. The cache adds less than 0.5 MiB in the
 largest measured NA batch and did not regress protein-only setup or scoring.
 
