@@ -1,6 +1,12 @@
+from __future__ import annotations
+
 import time
+from typing import TYPE_CHECKING
+
 import torch
+
 from tmol.pose import PoseStack
+from tmol.types import Tensor
 
 from tmol.kinematics import (
     FoldForest,
@@ -11,15 +17,31 @@ from tmol.score import ScoreFunction
 
 from tmol.optimization import LBFGS_Armijo
 
+if TYPE_CHECKING:
+    from tmol.optimization import CartesianSfxnNetwork, KinForestSfxnNetwork
+
 
 def build_kinforest_network(
     pose_stack: PoseStack,
     sfxn: ScoreFunction,
     ff: FoldForest,
     mm: MoveMap,
-    verbose=False,
-    kin_dtype=torch.float32,
-):
+    verbose: bool = False,
+    kin_dtype: torch.dtype = torch.float32,
+) -> KinForestSfxnNetwork:
+    """Build a differentiable kinematic scoring network for a pose stack.
+
+    Args:
+        pose_stack: Structures and topology to score.
+        sfxn: Score function to render against ``pose_stack``.
+        ff: Fold forest defining the kinematic tree.
+        mm: Internal-coordinate degrees of freedom allowed to move.
+        verbose: Print synchronized setup timings.
+        kin_dtype: Floating-point dtype for kinematic degrees of freedom.
+
+    Returns:
+        A network mapping movable kinematic degrees of freedom to pose energies.
+    """
     from tmol.kinematics import PoseStackKinematicsModule
     from tmol.optimization import KinForestSfxnNetwork
 
@@ -55,12 +77,12 @@ def build_kinforest_network(
 
 
 def run_min(
-    sfxn_module,
-    optimizer_cls=LBFGS_Armijo,
-    optimizer_kwargs=None,
-    verbose=False,
-    per_pose=True,
-):
+    sfxn_module: CartesianSfxnNetwork | KinForestSfxnNetwork,
+    optimizer_cls: type[torch.optim.Optimizer] = LBFGS_Armijo,
+    optimizer_kwargs: dict[str, object] | None = None,
+    verbose: bool = False,
+    per_pose: bool = True,
+) -> PoseStack:
     """Run minimization on any sfxn module (Cartesian or KinForest).
 
     The sfxn_module must be a torch.nn.Module whose forward() returns
@@ -101,7 +123,7 @@ def run_min(
 
     optimizer = optimizer_cls(sfxn_module.parameters(), **optimizer_kwargs)
 
-    def closure():
+    def closure() -> torch.Tensor:
         optimizer.zero_grad()
         E = sfxn_module()
         E.sum().backward()
@@ -134,14 +156,27 @@ def run_kin_min(
     sfxn: ScoreFunction,
     ff: FoldForest,
     mm: MoveMap,
-    optimizer_cls=LBFGS_Armijo,
-    optimizer_kwargs=None,
-    verbose=False,
-    kin_dtype=torch.float32,
-):
+    optimizer_cls: type[torch.optim.Optimizer] = LBFGS_Armijo,
+    optimizer_kwargs: dict[str, object] | None = None,
+    verbose: bool = False,
+    kin_dtype: torch.dtype = torch.float32,
+) -> PoseStack:
     """Run minimization on a PoseStack in internal DOF space.
 
-    Builds a KinForestSfxnNetwork and delegates to run_min().
+    Builds a ``KinForestSfxnNetwork`` and delegates to :func:`run_min`.
+
+    Args:
+        pose_stack: Structures and coordinates to minimize.
+        sfxn: Score function defining the objective.
+        ff: Fold forest defining the kinematic tree.
+        mm: Internal-coordinate degrees of freedom allowed to move.
+        optimizer_cls: Closure-based PyTorch optimizer class.
+        optimizer_kwargs: Optional optimizer constructor arguments.
+        verbose: Print synchronized setup and minimization timings.
+        kin_dtype: Floating-point dtype for kinematic degrees of freedom.
+
+    Returns:
+        A new pose stack containing the minimized coordinates.
     """
     kf_network = build_kinforest_network(
         pose_stack, sfxn, ff, mm, verbose, kin_dtype=kin_dtype
@@ -157,14 +192,25 @@ def run_kin_min(
 def run_cart_min(
     pose_stack: PoseStack,
     sfxn: ScoreFunction,
-    coord_mask=None,
-    optimizer_cls=LBFGS_Armijo,
-    optimizer_kwargs=None,
-    verbose=False,
-):
+    coord_mask: Tensor[torch.bool][:, :] | None = None,
+    optimizer_cls: type[torch.optim.Optimizer] = LBFGS_Armijo,
+    optimizer_kwargs: dict[str, object] | None = None,
+    verbose: bool = False,
+) -> PoseStack:
     """Run minimization on a PoseStack in Cartesian coordinate space.
 
-    Builds a CartesianSfxnNetwork and delegates to run_min().
+    Builds a ``CartesianSfxnNetwork`` and delegates to :func:`run_min`.
+
+    Args:
+        pose_stack: Structures and coordinates to minimize.
+        sfxn: Score function defining the objective.
+        coord_mask: Movable atoms shaped ``[pose, atom]``; ``None`` moves all.
+        optimizer_cls: Closure-based PyTorch optimizer class.
+        optimizer_kwargs: Optional optimizer constructor arguments.
+        verbose: Print synchronized setup and minimization timings.
+
+    Returns:
+        A new pose stack containing the minimized coordinates.
     """
     from tmol.optimization import CartesianSfxnNetwork
 
