@@ -5,8 +5,10 @@ import biotite.structure as struc
 from tmol.ops import build_coord_mask_for_mask_and_nearby_blocks
 from tmol.io import (
     pose_stack_from_biotite,
+    pose_stack_from_pdb,
     biotite_from_pose_stack,
 )
+from tmol.pose import PoseStackBuilder
 from tmol import run_cart_min, beta2016_score_function
 import tmol.ops._score_utils as score_utils
 
@@ -130,6 +132,74 @@ def test_calculate_ddg_accepts_single_block_indices(torch_device):
         score_utils.calculate_block_pair_ddg(
             Pose(), block_indices.float(), sfxn=ScoreFunction(), minimize=False
         )
+
+
+def test_interacting_coord_mask_matches_per_pose_reference(
+    biotite_1ubq: struc.AtomArray, systems_bysize, torch_device, monkeypatch
+):
+    pose = pose_stack_from_biotite(biotite_1ubq, torch_device)
+    shorter_pose = pose_stack_from_pdb(systems_bysize[40], torch_device)
+    poses = PoseStackBuilder.from_poses([pose, shorter_pose, pose], torch_device)
+    block_mask = torch.zeros_like(poses.block_type_ind, dtype=torch.bool)
+    block_mask[0, 0] = True
+    block_mask[1, 5] = True
+    block_mask[2, [0, 5]] = True
+
+    residue_mask = score_utils.res_mask_to_coord_mask(poses, block_mask)
+    sidechain_mask = score_utils.build_sidechain_coord_mask(poses)
+    actual = score_utils.build_coord_mask_for_mask_and_interacting_atoms(
+        poses, block_mask
+    )
+
+    expected_residue_mask = torch.zeros_like(residue_mask)
+    expected_sidechain_mask = torch.zeros_like(sidechain_mask)
+    pbt = poses.packed_block_types
+    for pose_index in range(poses.n_poses):
+        for block_index in range(poses.max_n_blocks):
+            block_type_index = int(poses.block_type_ind64[pose_index, block_index])
+            if block_type_index < 0:
+                continue
+            residue_type = pbt.active_block_types[block_type_index]
+            block_offset = int(poses.block_coord_offset64[pose_index, block_index])
+            n_atoms = int(pbt.n_atoms[block_type_index])
+            if block_mask[pose_index, block_index]:
+                expected_residue_mask[
+                    pose_index, block_offset : block_offset + n_atoms
+                ] = True
+
+            mainchain_atoms = set(residue_type.properties.polymer.mainchain_atoms)
+            for atom_index, atom in enumerate(residue_type.atoms):
+                if atom.name not in mainchain_atoms:
+                    expected_sidechain_mask[pose_index, block_offset + atom_index] = (
+                        True
+                    )
+
+    assert torch.equal(residue_mask, expected_residue_mask)
+    assert torch.equal(sidechain_mask, expected_sidechain_mask)
+
+    expected = residue_mask.clone()
+    for pose_index in range(poses.n_poses):
+        selected_coords = poses.coords[pose_index, residue_mask[pose_index]]
+        differences = poses.coords[pose_index, :, None, :] - selected_coords[None, :, :]
+        nearby = torch.sqrt((differences**2).sum(dim=2)).amin(dim=1) <= 5.0
+        expected[pose_index] |= (
+            nearby & poses.real_atoms[pose_index] & sidechain_mask[pose_index]
+        )
+
+    assert torch.equal(actual, expected)
+    assert torch.equal(
+        actual,
+        score_utils.build_coord_mask_for_mask_and_interacting_atoms(poses, block_mask),
+    )
+
+    monkeypatch.setattr(score_utils, "_INTERACTION_DISTANCE_WORKSPACE_BYTES", 1)
+    assert torch.equal(
+        actual,
+        score_utils.build_coord_mask_for_mask_and_interacting_atoms(poses, block_mask),
+    )
+    assert not score_utils.build_coord_mask_for_mask_and_interacting_atoms(
+        poses, torch.zeros_like(block_mask)
+    ).any()
 
 
 def test_build_coord_mask_and_minimize_for_first_residue(

@@ -1,18 +1,36 @@
 import torch
 
-from tmol.score import beta2016_score_function
+from tmol.database import ParameterDatabase
+from tmol.pose import PoseStack
+from tmol.score import ScoreFunction, beta2016_score_function
 from tmol.pack import pack_rotamers, PackerTask, PackerPalette
 from tmol.pack.rotamer import IncludeCurrentSampler, FixedAAChiSampler
 from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
 from tmol.optimization import run_cart_min
+from tmol.types import Tensor
 
 _EINSUM_MIN_BYTES = 512 * 1024 * 1024
+_INTERACTION_DISTANCE_WORKSPACE_BYTES = 256 * 1024 * 1024
 
 
 def _sum_cross_block_scores(
-    block_pair_scores, mask, other_mask, *, memory_efficient=False
-):
-    """Sum both orientations of block-pair scores selected by two masks."""
+    block_pair_scores: Tensor[torch.float32][:, :, :, :],
+    mask: Tensor[torch.bool][:, :],
+    other_mask: Tensor[torch.bool][:, :],
+    *,
+    memory_efficient: bool = False,
+) -> Tensor[torch.float32][:, :]:
+    """Sum both orientations selected by two block masks.
+
+    Args:
+        block_pair_scores: Scores shaped ``[n_terms, n_poses, n_blocks, n_blocks]``.
+        mask: First block set shaped ``[n_poses, n_blocks]``.
+        other_mask: Second block set with the same shape as ``mask``.
+        memory_efficient: Avoid a term-expanded selection for large inputs.
+
+    Returns:
+        Per-term, per-pose sums shaped ``[n_terms, n_poses]``.
+    """
     cross_mask = (mask.unsqueeze(2) & other_mask.unsqueeze(1)) | (
         other_mask.unsqueeze(2) & mask.unsqueeze(1)
     )
@@ -34,9 +52,23 @@ def _sum_cross_block_scores(
 
 
 def _sum_single_block_cross_scores(
-    block_pair_scores, block_indices, other_mask, *, sets_are_disjoint=False
-):
-    """Sum interactions between one block per pose and selected partners."""
+    block_pair_scores: Tensor[torch.float32][:, :, :, :],
+    block_indices: Tensor[torch.int64][:],
+    other_mask: Tensor[torch.bool][:, :],
+    *,
+    sets_are_disjoint: bool = False,
+) -> Tensor[torch.float32][:, :]:
+    """Sum interactions between one block per pose and selected partners.
+
+    Args:
+        block_pair_scores: Scores shaped ``[n_terms, n_poses, n_blocks, n_blocks]``.
+        block_indices: One selected block index per pose, shaped ``[n_poses]``.
+        other_mask: Partner blocks shaped ``[n_poses, n_blocks]``.
+        sets_are_disjoint: Skip diagonal correction when the sets cannot overlap.
+
+    Returns:
+        Per-term, per-pose sums shaped ``[n_terms, n_poses]``.
+    """
     n_terms, n_poses, n_blocks, _ = block_pair_scores.shape
     gather_rows = block_indices.reshape(1, n_poses, 1, 1).expand(
         n_terms, -1, 1, n_blocks
@@ -58,46 +90,38 @@ def _sum_single_block_cross_scores(
 
 
 def calculate_block_pair_ddg(
-    pose_stack,
-    mask,
-    mask2=None,
-    sfxn=None,
-    sum_terms=True,
-    minimize=True,
-    pack=False,
-    database=None,
-    return_pose_stack=False,
+    pose_stack: PoseStack,
+    mask: Tensor[torch.bool][:, :] | Tensor[torch.int64][:],
+    mask2: Tensor[torch.bool][:, :] | None = None,
+    sfxn: ScoreFunction | None = None,
+    sum_terms: bool = True,
+    minimize: bool = True,
+    pack: bool = False,
+    database: ParameterDatabase | None = None,
+    return_pose_stack: bool = False,
     *,
-    memory_efficient=False,
-):
-    """Calculate DDG score between two subsets of blocks within each pose, defined by 2 masks.
-    If only one mask is provided, it will use the inverse of the first mask for the second.
+    memory_efficient: bool = False,
+) -> torch.Tensor | tuple[torch.Tensor, PoseStack]:
+    """Score interactions between two block sets in each pose.
 
     Args:
-        pose_stack: The pose stack to score
-        mask: Boolean tensor of shape [n_poses, n_blocks]. True values indicate masked indices.
-            For the common single-site scan, an integer tensor of shape [n_poses] may instead
-            give the selected block in each pose. This avoids constructing and reducing a dense
-            block-pair mask; its floating-point reduction order may differ from the Boolean path.
-        mask2: Boolean tensor of shape [n_poses, n_blocks]. If not provided, it will use the inverse
-            of the first mask as the second mask.
-        sfxn: Optional score function to use. If not provided, will default to beta2016
-        sum_terms: If True, sum all score terms into a single score per pose. If False,
-            return per-term scores.
-        minimize: If True (default), run cartesian minimization on the masked atoms before
-            computing the DDG score.
-        pack: If True, pack (repack) rotamers of residues in the mask and residues adjacent
-            to the mask (computed via ``compute_block_adjacency``) before the minimization step.
-        return_pose_stack: If True, also return the (possibly packed/minimized) pose stack
-            that was actually scored, as ``(ddg_scores, pose_stack)``.
-        memory_efficient: If True, use a lower-memory interface reduction. This also supports
-            poses that select different numbers of block pairs, but may differ slightly from
-            the default result because floating-point values are summed in a different order.
+        pose_stack: Poses to score.
+        mask: First set shaped ``[n_poses, n_blocks]``. For single-site scans,
+            integer indices shaped ``[n_poses]`` avoid a dense pair-mask reduction.
+        mask2: Optional second block set. The complement of ``mask`` is used by
+            default.
+        sfxn: Score function; defaults to beta2016 on the pose device.
+        sum_terms: Sum score terms into one value per pose.
+        minimize: Minimize selected and nearby side-chain atoms before scoring.
+        pack: Repack selected and adjacent blocks before minimization.
+        database: Parameter database used to construct the Dunbrack sampler.
+        return_pose_stack: Return the packed/minimized poses with their scores.
+        memory_efficient: Use a lower-memory Boolean-mask reduction. Its floating-
+            point summation order may differ from the default path.
 
     Returns:
-        Tensor of shape [n_poses] or [n_terms, n_poses] containing the ddg score for each pose,
-        separated by terms if requested. If ``return_pose_stack`` is True, returns a tuple
-        ``(ddg_scores, pose_stack)``.
+        Scores shaped ``[n_poses]`` or ``[n_terms, n_poses]``. When requested,
+        returns ``(scores, scored_pose_stack)``.
     """
     torch_device = pose_stack.device
 
@@ -164,8 +188,6 @@ def calculate_block_pair_ddg(
         pose_stack.coords, sum_terms=False, apply_weights=not defer_weights
     )
 
-    # mask shape: [n_poses, n_blocks]
-    # Use mask2 if provided, otherwise use ~mask for the second set of indices
     other_mask = mask2 if mask2 is not None else ~mask
     if single_block_indices is None:
         ddg_scores = _sum_cross_block_scores(
@@ -190,204 +212,122 @@ def calculate_block_pair_ddg(
     return ddg_scores
 
 
-def res_mask_to_coord_mask(pose_stack, mask):
-    """Convert a block-level (residue) boolean mask to an atom-level coordinate mask.
-
-    For each pose, atoms belonging to blocks where the mask is True are marked as True
-    in the output. The output mask can be used as a ``coord_mask`` argument to
-    functions like ``run_cart_min``.
+def res_mask_to_coord_mask(
+    pose_stack: PoseStack, mask: Tensor[torch.bool][:, :]
+) -> Tensor[torch.bool][:, :]:
+    """Expand a block-level selection into an atom coordinate mask.
 
     Args:
-        pose_stack: The pose stack. Must have attributes ``coords``, ``max_n_blocks``,
-            ``max_n_block_atoms``, ``block_coord_offset64``, and ``real_atoms``.
-        mask: Boolean tensor of shape ``[n_poses, n_blocks]``. ``True`` at
-            ``mask[i, j]`` indicates that all atoms of block ``j`` in pose ``i``
-            should be marked.
+        pose_stack: Poses supplying the block-to-coordinate layout.
+        mask: Selected blocks shaped ``[n_poses, n_blocks]``.
 
     Returns:
-        Boolean tensor of shape ``[n_poses, max_n_atoms_per_pose]``, where
-        ``max_n_atoms_per_pose = pose_stack.coords.shape[1]``.
+        Selected real atoms shaped ``[n_poses, max_n_atoms]``.
     """
-    n_poses, max_n_atoms, _ = pose_stack.coords.shape
-    n_blocks = pose_stack.max_n_blocks
-    max_n_block_atoms = pose_stack.max_n_block_atoms
-
-    # Expand the block mask to per-atom indices
-    block_coord_offset64 = pose_stack.block_coord_offset64  # [n_poses, n_blocks]
-
-    # For each block, we need to know which flat coord indices are real atoms.
-    # block_coord_offset64[i, j] is the starting flat index of block j in pose i.
-    # The k-th atom (0 <= k < max_n_block_atoms) of block j has flat index
-    #   flat_idx[i, j, k] = block_coord_offset64[i, j] + k
-    #
-    # Not every k corresponds to a real atom (due to padding); we only mark
-    # those where real_expanded_pose_ats[i, j, k] is True.
-
-    # atom_local_idx[k] = k
-    atom_local_idx = (
-        torch.arange(max_n_block_atoms, device=pose_stack.device)
-        .unsqueeze(0)
-        .unsqueeze(0)
-        .expand(n_poses, n_blocks, -1)
-    )
-
-    # flat_atom_idx[i, j, k] = block_coord_offset64[i, j] + k
-    flat_atom_idx = (
-        block_coord_offset64.unsqueeze(2) + atom_local_idx
-    )  # [n_poses, n_blocks, max_n_block_atoms]
-
-    # Keep an auxiliary index for scatter: [n_poses, -1]  (in case of binning we need 2D)
-    flat_atom_idx_flat = flat_atom_idx.reshape(n_poses, -1)
-
-    # Real-atom expanded mask: [n_poses, n_blocks, max_n_block_atoms]
-    _, real_expanded_pose_ats = pose_stack.expand_coords()
-
-    # Block mask expanded to atom granularity: [n_poses, n_blocks, max_n_block_atoms]
-    block_mask_expanded = mask.unsqueeze(2).expand(-1, -1, max_n_block_atoms)
-
-    # Atom is masked if its block is masked AND it is a real atom
-    atom_is_masked = block_mask_expanded & real_expanded_pose_ats
-
-    # Flatten for scatter
-    atom_is_masked_flat = atom_is_masked.reshape(n_poses, -1)  # [n_poses, ...]
-
-    # Build output coord_mask
-    coord_mask = torch.zeros(
-        (n_poses, max_n_atoms), dtype=torch.bool, device=pose_stack.device
-    )
-
-    # Guard against out-of-range flat indices (padding in expanded view can exceed max_n_atoms)
-    valid_flat_idx = flat_atom_idx_flat < max_n_atoms
-
-    atom_is_masked_flat_safe = atom_is_masked_flat.clone()
-    atom_is_masked_flat_safe[~valid_flat_idx] = False
-
-    flat_atom_idx_flat_safe = flat_atom_idx_flat.clone()
-    flat_atom_idx_flat_safe[~valid_flat_idx] = 0
-
-    coord_mask.scatter_(1, flat_atom_idx_flat_safe, atom_is_masked_flat_safe)
-
-    return coord_mask
+    block_for_atom, _, real_atoms = _compact_atom_layout(pose_stack)
+    return mask.gather(1, block_for_atom) & real_atoms
 
 
-def build_sidechain_coord_mask(pose_stack):
-    """Build a coord_mask that selects only atoms belonging to sidechains.
-
-    For polymeric residues, sidechain atoms are defined as real atoms that are
-    NOT mainchain atoms. For non-polymeric residues, all real atoms are
-    considered sidechain atoms. The output mask can be used as a ``coord_mask``
-    argument to functions like ``run_cart_min``.
+def _compact_atom_layout(
+    pose_stack: PoseStack,
+) -> tuple[
+    Tensor[torch.int64][:, :],
+    Tensor[torch.int64][:, :],
+    Tensor[torch.bool][:, :],
+]:
+    """Map compact pose coordinates to their blocks and local atom indices.
 
     Args:
-        pose_stack: The pose stack. Must have attributes ``coords``,
-            ``max_n_blocks``, ``max_n_block_atoms``, ``block_coord_offset64``,
-            ``real_atoms``, ``block_type_ind64``, and ``packed_block_types``.
+        pose_stack: Poses whose immutable topology defines the mapping.
 
     Returns:
-        Boolean tensor of shape ``[n_poses, max_n_atoms_per_pose]``, where
-        ``max_n_atoms_per_pose = pose_stack.coords.shape[1]``. True at
-        ``coord_mask[i, j]`` indicates that atom ``j`` of pose ``i`` is a
-        sidechain atom.
+        Block indices, within-block atom indices, and real-atom flags, each
+        shaped ``[n_poses, max_n_atoms]``. The mapping is cached on the pose.
     """
+    cache_name = "_score_utils_compact_atom_layout"
+    if hasattr(pose_stack, cache_name):
+        return getattr(pose_stack, cache_name)
+
     n_poses, max_n_atoms, _ = pose_stack.coords.shape
-    n_blocks = pose_stack.max_n_blocks
-    max_n_block_atoms = pose_stack.max_n_block_atoms
+    atom_index = (
+        torch.arange(max_n_atoms, device=pose_stack.device)
+        .expand(n_poses, -1)
+        .contiguous()
+    )
+    # PoseStackBuilder leaves padded block offsets at zero. Replace them with
+    # an end sentinel so every row is sorted before the batched search.
+    block_starts = pose_stack.block_coord_offset64.masked_fill(
+        pose_stack.block_type_ind64 < 0, max_n_atoms
+    )
+    block_for_atom = torch.searchsorted(
+        block_starts.contiguous(), atom_index, right=True
+    ).sub_(1)
+    block_for_atom.clamp_(0, pose_stack.max_n_blocks - 1)
+    block_offset_for_atom = pose_stack.block_coord_offset64.gather(1, block_for_atom)
+    real_atoms = pose_stack.real_atoms
+    atom_in_block = atom_index.sub(block_offset_for_atom)
+    atom_in_block.masked_fill_(~real_atoms, 0)
+
+    layout = (block_for_atom, atom_in_block, real_atoms)
+    object.__setattr__(pose_stack, cache_name, layout)
+    return layout
+
+
+def _sidechain_atom_mask_for_block_type(
+    pose_stack: PoseStack,
+) -> Tensor[torch.bool][:, :]:
+    """Return a cached ``[n_types, max_n_block_atoms]`` side-chain mask."""
     pbt = pose_stack.packed_block_types
+    cache_name = "_sidechain_atom_mask"
+    if hasattr(pbt, cache_name):
+        return getattr(pbt, cache_name)
 
-    # Expand coords to get real atom mask [n_poses, n_blocks, max_n_block_atoms]
-    _, real_expanded_pose_ats = pose_stack.expand_coords()
-
-    # block_coord_offset64[i, j] = starting flat coord index of block j in pose i
-    block_coord_offset64 = pose_stack.block_coord_offset64  # [n_poses, n_blocks]
-
-    # atom_local_idx[i, j, k] = k  (atom index within block)
-    atom_local_idx = (
-        torch.arange(max_n_block_atoms, device=pose_stack.device)
-        .unsqueeze(0)
-        .unsqueeze(0)
-        .expand(n_poses, n_blocks, -1)
-    )
-
-    # flat_atom_idx[i, j, k] = block_coord_offset64[i, j] + k
-    flat_atom_idx = block_coord_offset64.unsqueeze(2) + atom_local_idx
-    flat_atom_idx_flat = flat_atom_idx.reshape(n_poses, -1)
-
-    # Build expanded sidechain mask [n_poses, n_blocks, max_n_block_atoms]
-    block_type_ind64 = pose_stack.block_type_ind64  # [n_poses, n_blocks]
-
-    is_sidechain_expanded = torch.zeros(
-        (n_poses, n_blocks, max_n_block_atoms),
-        dtype=torch.bool,
-        device=pose_stack.device,
-    )
-
-    for bt_idx in range(pbt.n_types):
-        rt = pbt.active_block_types[bt_idx]
-        mc_atoms = (
-            rt.properties.polymer.mainchain_atoms if rt.properties.polymer else None
-        )
-
-        # Get positions of this block type in the pose stack
-        bt_positions = block_type_ind64 == bt_idx  # [n_poses, n_blocks]
-        if not bt_positions.any():
+    sidechain_atom_mask = pbt.atom_is_real.clone()
+    for block_type_index, residue_type in enumerate(pbt.active_block_types):
+        polymer = residue_type.properties.polymer
+        if polymer is None:
             continue
+        mainchain_atom_indices = [
+            residue_type.atom_to_idx[atom] for atom in polymer.mainchain_atoms
+        ]
+        sidechain_atom_mask[block_type_index, mainchain_atom_indices] = False
 
-        # Create mask for real atoms of this block type
-        bt_real_atoms = real_expanded_pose_ats & bt_positions.unsqueeze(
-            2
-        )  # [n_poses, n_blocks, max_n_block_atoms]
-
-        if mc_atoms is not None and len(mc_atoms) > 0:
-            # Get mainchain atom indices
-            mc_atom_indices = torch.tensor(
-                [rt.atom_to_idx[at] for at in mc_atoms], device=pose_stack.device
-            )
-            # Create mask for mainchain atoms
-            mc_mask = torch.zeros(
-                max_n_block_atoms, dtype=torch.bool, device=pose_stack.device
-            )
-            mc_mask[mc_atom_indices] = True
-            # Sidechain = real atoms that are NOT mainchain
-            is_sidechain_expanded[bt_positions] = bt_real_atoms[bt_positions] & ~mc_mask
-        else:
-            # Non-polymeric: all real atoms are sidechain
-            is_sidechain_expanded[bt_positions] = bt_real_atoms[bt_positions]
-
-    # Flatten sidechain mask for scatter operation
-    is_sidechain_flat = is_sidechain_expanded.reshape(n_poses, -1)
-
-    # Build output coord_mask
-    coord_mask = torch.zeros(
-        (n_poses, max_n_atoms), dtype=torch.bool, device=pose_stack.device
-    )
-
-    # Guard against out-of-range flat indices (padding can exceed max_n_atoms)
-    valid_flat_idx = flat_atom_idx_flat < max_n_atoms
-    is_sidechain_flat_safe = is_sidechain_flat.clone()
-    is_sidechain_flat_safe[~valid_flat_idx] = False
-    flat_atom_idx_flat_safe = flat_atom_idx_flat.clone()
-    flat_atom_idx_flat_safe[~valid_flat_idx] = 0
-
-    coord_mask.scatter_(1, flat_atom_idx_flat_safe, is_sidechain_flat_safe)
-
-    return coord_mask
+    object.__setattr__(pbt, cache_name, sidechain_atom_mask)
+    return sidechain_atom_mask
 
 
-def compute_block_centroids_and_furthest_dist(pose_stack):
-    """For each block in a pose stack, compute the average coordinate (centroid)
-    of all of its atoms, as well as the distance of the furthest atom from this
-    average.
+def build_sidechain_coord_mask(
+    pose_stack: PoseStack,
+) -> Tensor[torch.bool][:, :]:
+    """Select side-chain atoms in each pose.
 
     Args:
-        pose_stack: A PoseStack object.
+        pose_stack: Poses supplying block types and coordinate layout.
 
     Returns:
-        block_centroids: Tensor of shape [n_poses, n_blocks, 3] containing
-            the average coordinate (centroid) of all real atoms in each block.
-            Padding blocks and blocks with no atoms will have NaN centroids.
-        block_furthest_dist: Tensor of shape [n_poses, n_blocks] containing
-            the distance of the furthest atom from the centroid for each block.
-            Padding blocks and blocks with no atoms will have NaN values.
+        Mask shaped ``[n_poses, max_n_atoms]``. Non-polymers contribute all
+        real atoms; polymers exclude their declared main-chain atoms.
+    """
+    block_for_atom, atom_in_block, real_atoms = _compact_atom_layout(pose_stack)
+    block_type_for_atom = pose_stack.block_type_ind64.gather(1, block_for_atom)
+    sidechain_atom_mask = _sidechain_atom_mask_for_block_type(pose_stack)
+    return (
+        sidechain_atom_mask[block_type_for_atom.clamp_min(0), atom_in_block]
+        & real_atoms
+    )
+
+
+def compute_block_centroids_and_furthest_dist(
+    pose_stack: PoseStack,
+) -> tuple[Tensor[torch.float32][:, :, 3], Tensor[torch.float32][:, :]]:
+    """Compute each block's centroid and enclosing radius.
+
+    Args:
+        pose_stack: Poses to summarize.
+
+    Returns:
+        Centroids shaped ``[n_poses, n_blocks, 3]`` and maximum distances
+        shaped ``[n_poses, n_blocks]``. Padding blocks contain NaNs.
     """
     # Expand coords to [n_poses, n_blocks, max_n_block_atoms, 3]
     expanded_coords, real_expanded_pose_ats = pose_stack.expand_coords()
@@ -435,288 +375,121 @@ def compute_block_centroids_and_furthest_dist(pose_stack):
     return block_centroids, block_furthest_dist
 
 
-def build_coord_mask_for_mask_and_interacting_atoms(pose_stack, mask):
-    # Build coord_mask: True for atoms in masked blocks and sidechain atoms within 5.0 Angstroms.
-    n_poses, max_n_atoms, _ = pose_stack.coords.shape
-    n_blocks = pose_stack.max_n_blocks
-    max_n_block_atoms = pose_stack.max_n_block_atoms
-    pbt = pose_stack.packed_block_types
-
-    # Expand coords to [n_poses, n_blocks, max_n_block_atoms, 3]
-    expanded_coords, real_expanded_pose_ats = pose_stack.expand_coords()
-
-    # Get number of atoms per block [n_poses, n_blocks]
-    # n_ats_per_block = pose_stack.n_ats_per_block
-
-    # Create atom-level mask for atoms in masked blocks
-    # block_atom_mask[i, j, k] = True if block j is masked for pose i and atom k is real
-    block_mask_expanded = mask.unsqueeze(2).expand(
-        -1, -1, max_n_block_atoms
-    )  # [n_poses, n_blocks, max_n_block_atoms]
-    atom_in_masked_block = (
-        block_mask_expanded & real_expanded_pose_ats
-    )  # [n_poses, n_blocks, max_n_block_atoms]
-
-    # Flatten to per-atom mask [n_poses, n_blocks * max_n_block_atoms]
-    atom_in_masked_block_flat = atom_in_masked_block.reshape(n_poses, -1)
-
-    # Create a mask for real atoms in the pose [n_poses, max_n_atoms]
-    real_atoms = pose_stack.real_atoms
-
-    # Map expanded atom indices to flat coords indices
-    # For each pose, the atoms are laid out contiguously in coords
-    # We need to figure out which flat index each (block, atom_in_block) pair maps to
-    block_coord_offset64 = pose_stack.block_coord_offset64  # [n_poses, n_blocks]
-
-    # Create flat indices for all atoms in expanded view
-    # atom_local_idx[i, j, k] = k (atom index within block)
-    atom_local_idx = (
-        torch.arange(max_n_block_atoms, device=pose_stack.device)
-        .unsqueeze(0)
-        .unsqueeze(0)
-        .expand(n_poses, n_blocks, -1)
-    )
-
-    # flat_atom_idx[i, j, k] = block_coord_offset64[i, j] + k
-    flat_atom_idx = (
-        block_coord_offset64.unsqueeze(2) + atom_local_idx
-    )  # [n_poses, n_blocks, max_n_block_atoms]
-    flat_atom_idx_flat = flat_atom_idx.reshape(
-        n_poses, -1
-    )  # [n_poses, n_blocks * max_n_block_atoms]
-
-    # Create coord_mask initialized to False
-    coord_mask = torch.zeros(
-        (n_poses, max_n_atoms), dtype=torch.bool, device=pose_stack.device
-    )
-
-    # Set True for atoms in masked blocks
-    # Use scatter to set the appropriate indices
-    # Only include valid flat indices (some may exceed max_n_atoms
-    # due to padding in the expanded block view).
-    valid_flat_idx = flat_atom_idx_flat < max_n_atoms
-    # Keep 2D shape; for invalid positions set src to False (no-op) and index to 0 (safe dummy)
-    atom_in_masked_block_flat_safe = atom_in_masked_block_flat.clone()
-    atom_in_masked_block_flat_safe[~valid_flat_idx] = False
-    flat_atom_idx_flat_safe = flat_atom_idx_flat.clone()
-    flat_atom_idx_flat_safe[~valid_flat_idx] = 0
-    coord_mask.scatter_(1, flat_atom_idx_flat_safe, atom_in_masked_block_flat_safe)
-
-    # Build sidechain atom mask: True for atoms that are sidechain atoms
-    # An atom is a sidechain atom if it's real and NOT a mainchain atom
-    # For non-polymeric residues, all atoms are considered sidechain
-    block_type_ind64 = pose_stack.block_type_ind64  # [n_poses, n_blocks]
-
-    # Create expanded sidechain mask [n_poses, n_blocks, max_n_block_atoms]
-    is_sidechain_expanded = torch.zeros(
-        (n_poses, n_blocks, max_n_block_atoms),
-        dtype=torch.bool,
-        device=pose_stack.device,
-    )
-
-    for bt_idx in range(pbt.n_types):
-        rt = pbt.active_block_types[bt_idx]
-        mc_atoms = (
-            rt.properties.polymer.mainchain_atoms if rt.properties.polymer else None
-        )
-
-        # Get positions of this block type in pose_stack
-        bt_positions = block_type_ind64 == bt_idx  # [n_poses, n_blocks]
-        if not bt_positions.any():
-            continue
-
-        # Create mask for real atoms of this block type
-        bt_real_atoms = real_expanded_pose_ats & bt_positions.unsqueeze(
-            2
-        )  # [n_poses, n_blocks, max_n_block_atoms]
-
-        if mc_atoms is not None and len(mc_atoms) > 0:
-            # Get mainchain atom indices
-            mc_atom_indices = torch.tensor(
-                [rt.atom_to_idx[at] for at in mc_atoms], device=pose_stack.device
-            )
-            # Create mask for mainchain atoms
-            mc_mask = torch.zeros(
-                max_n_block_atoms, dtype=torch.bool, device=pose_stack.device
-            )
-            mc_mask[mc_atom_indices] = True
-            # Sidechain = real atoms that are NOT mainchain
-            is_sidechain_expanded[bt_positions] = bt_real_atoms[bt_positions] & ~mc_mask
-        else:
-            # Non-polymeric: all real atoms are sidechain
-            is_sidechain_expanded[bt_positions] = bt_real_atoms[bt_positions]
-
-    # Now find atoms within 5.0 Angstroms of any masked atom
-    # Get coordinates of masked atoms and all real atoms
-    coords = pose_stack.coords  # [n_poses, max_n_atoms, 3]
-
-    # Create a per-pose distance computation
-    # For each pose, compute distance from each real atom to nearest masked atom
-    for p in range(n_poses):
-        # Get masked atom indices for this pose (flat indices into coords)
-        masked_flat_idx = flat_atom_idx_flat[
-            p, atom_in_masked_block_flat[p]
-        ]  # [n_masked_atoms]
-
-        if masked_flat_idx.numel() == 0:
-            continue
-
-        # Get masked atom coordinates [n_masked_atoms, 3]
-        masked_atom_coords = coords[p, masked_flat_idx, :]  # [n_masked_atoms, 3]
-
-        # Get all real atom coordinates for this pose [n_real_atoms, 3]
-        real_atom_indices = torch.nonzero(real_atoms[p], as_tuple=True)[
-            0
-        ]  # [n_real_atoms]
-        all_real_coords = coords[p, real_atom_indices, :]  # [n_real_atoms, 3]
-
-        # Compute pairwise distances [n_real_atoms, n_masked_atoms]
-        # Using broadcasting: all_real_coords[:, None, :] - masked_atom_coords[None, :, :]
-        diff = all_real_coords.unsqueeze(1) - masked_atom_coords.unsqueeze(
-            0
-        )  # [n_real_atoms, n_masked_atoms, 3]
-        distances = torch.sqrt((diff**2).sum(dim=2))  # [n_real_atoms, n_masked_atoms]
-
-        # Find atoms within 5.0 Angstroms of any masked atom.
-        min_distances = distances.min(dim=1)[0]  # [n_real_atoms]
-        nearby_atoms = min_distances <= 5.0  # [n_real_atoms]
-
-        # For nearby atoms NOT in the original mask, only include sidechain atoms
-        # First, get the expanded sidechain mask for this pose, flattened
-        is_sidechain_flat = is_sidechain_expanded[p].reshape(
-            -1
-        )  # [n_blocks * max_n_block_atoms]
-
-        # Create a per-atom sidechain mask for flat atom indices
-        # Some flat indices may exceed max_n_atoms due to padding in expanded view
-        is_sidechain_per_atom = torch.zeros(
-            max_n_atoms, dtype=torch.bool, device=pose_stack.device
-        )
-        valid_flat_idx_p = flat_atom_idx_flat[p] < max_n_atoms
-        flat_atom_idx_flat_p_safe = flat_atom_idx_flat[p][valid_flat_idx_p]
-        is_sidechain_flat_safe = is_sidechain_flat[valid_flat_idx_p]
-        is_sidechain_per_atom.scatter_(
-            0, flat_atom_idx_flat_p_safe, is_sidechain_flat_safe
-        )
-
-        # Check which nearby atoms are sidechain atoms
-        nearby_is_sidechain = is_sidechain_per_atom[real_atom_indices[nearby_atoms]]
-
-        # Determine which nearby atoms to include:
-        # - Atoms in masked blocks are always included (already in coord_mask)
-        # - Atoms NOT in masked blocks are only included if they are sidechain atoms
-        atoms_in_masked_blocks = coord_mask[p, real_atom_indices[nearby_atoms]]
-        atoms_to_add = nearby_atoms.clone()
-        atoms_to_add[nearby_atoms] = atoms_in_masked_blocks | nearby_is_sidechain
-
-        # Update coord_mask for this pose
-        coord_mask[p, real_atom_indices[atoms_to_add]] = True
-
-    return coord_mask
-
-
-def build_coord_mask_for_mask_and_nearby_blocks(pose_stack, mask):
-    """Build a coord mask starting from a per-block mask, extending to
-    sidechain atoms of blocks whose centroid is within dynamic range of
-    any masked block centroid.
-
-    All atoms from blocks in ``mask`` are unconditionally included.
-    Additionally, sidechain atoms from any *unmasked* block are included
-    if the distance between its centroid and the centroid of **any** masked
-    block is **less than the sum of their respective furthest-atom-from-centroid
-    distances**.
+def build_coord_mask_for_mask_and_interacting_atoms(
+    pose_stack: PoseStack,
+    mask: Tensor[torch.bool][:, :],
+    interaction_distance: float = 5.0,
+) -> Tensor[torch.bool][:, :]:
+    """Select masked blocks and nearby side-chain atoms.
 
     Args:
-        pose_stack: The pose stack. Must have attributes ``coords``,
-            ``max_n_blocks``, ``max_n_block_atoms``, ``block_coord_offset64``,
-            ``real_atoms``, ``block_type_ind64``, ``block_type_ind``, and
-            ``packed_block_types``.
-        mask: Boolean tensor of shape ``[n_poses, n_blocks]``.
+        pose_stack: Poses containing coordinates shaped ``[n_poses, n_atoms, 3]``.
+        mask: Selected blocks shaped ``[n_poses, n_blocks]``.
+        interaction_distance: Maximum atom-to-selected-atom distance in Angstroms.
 
     Returns:
-        Boolean tensor of shape ``[n_poses, max_n_atoms]`` suitable for
-        use as a ``coord_mask`` argument to ``run_cart_min``.
+        Coordinate mask shaped ``[n_poses, n_atoms]``. All atoms in selected
+        blocks are included; only side-chain atoms are added from other blocks.
     """
-    # ---------------------------------------------------------------
-    # 1.  All atoms from the masked blocks themselves.
-    # ---------------------------------------------------------------
     coord_mask = res_mask_to_coord_mask(pose_stack, mask)
+    sidechain_mask = build_sidechain_coord_mask(pose_stack)
+    n_masked_atoms = coord_mask.sum(dim=1)
+    max_n_masked_atoms = int(n_masked_atoms.max().item())
+    if max_n_masked_atoms == 0:
+        return coord_mask
 
-    # ---------------------------------------------------------------
-    # 2.  Per-atom sidechain mask.
-    # ---------------------------------------------------------------
+    # Pack each pose's selected coordinates into a padded dense tensor so
+    # mutants share distance kernels instead of launching once per pose.
+    n_poses, max_n_atoms, coordinate_dim = pose_stack.coords.shape
+    masked_coords = torch.zeros(
+        (n_poses, max_n_masked_atoms, coordinate_dim),
+        dtype=pose_stack.coords.dtype,
+        device=pose_stack.device,
+    )
+    masked_coords_are_real = torch.zeros(
+        (n_poses, max_n_masked_atoms), dtype=torch.bool, device=pose_stack.device
+    )
+    masked_pose, masked_atom = torch.nonzero(coord_mask, as_tuple=True)
+    first_masked_atom = torch.cumsum(n_masked_atoms, dim=0) - n_masked_atoms
+    masked_slot = torch.arange(masked_pose.shape[0], device=pose_stack.device)
+    masked_slot -= first_masked_atom[masked_pose]
+    masked_coords[masked_pose, masked_slot] = pose_stack.coords[
+        masked_pose, masked_atom
+    ]
+    masked_coords_are_real[masked_pose, masked_slot] = True
+
+    # Bound the temporary [chunk, n_atoms, n_masked_atoms, 3] difference tensor.
+    bytes_per_pose = (
+        max_n_atoms
+        * max_n_masked_atoms
+        * (coordinate_dim + 1)
+        * pose_stack.coords.element_size()
+    )
+    poses_per_chunk = max(1, _INTERACTION_DISTANCE_WORKSPACE_BYTES // bytes_per_pose)
+    nearby_atoms = torch.empty_like(coord_mask)
+    for first_pose in range(0, n_poses, poses_per_chunk):
+        last_pose = min(first_pose + poses_per_chunk, n_poses)
+        differences = (
+            pose_stack.coords[first_pose:last_pose, :, None, :]
+            - masked_coords[first_pose:last_pose, None, :, :]
+        )
+        differences.square_()
+        distances = differences.sum(dim=3).sqrt_()
+        distances.masked_fill_(
+            ~masked_coords_are_real[first_pose:last_pose, None, :], float("inf")
+        )
+        nearby_atoms[first_pose:last_pose] = distances.amin(dim=2).le(
+            interaction_distance
+        )
+
+    return coord_mask | (nearby_atoms & pose_stack.real_atoms & sidechain_mask)
+
+
+def build_coord_mask_for_mask_and_nearby_blocks(
+    pose_stack: PoseStack, mask: Tensor[torch.bool][:, :]
+) -> Tensor[torch.bool][:, :]:
+    """Select masked blocks and side chains of centroid-adjacent blocks.
+
+    Args:
+        pose_stack: Poses to select from.
+        mask: Selected blocks shaped ``[n_poses, n_blocks]``.
+
+    Returns:
+        Coordinate mask shaped ``[n_poses, max_n_atoms]``.
+    """
+    coord_mask = res_mask_to_coord_mask(pose_stack, mask)
     sidechain_mask = build_sidechain_coord_mask(pose_stack)  # [n_poses, max_n_atoms]
 
-    # ---------------------------------------------------------------
-    # 3.  Block centroids and furthest-atom-from-centroid distances.
-    # ---------------------------------------------------------------
     block_centroids, block_furthest_dist = compute_block_centroids_and_furthest_dist(
         pose_stack
     )
-
-    # ---------------------------------------------------------------
-    # 4.  Block-block adjacency matrix.
-    # ---------------------------------------------------------------
     adjacency = compute_block_adjacency(
         block_centroids, block_furthest_dist
     )  # [n_poses, n_blocks, n_blocks]
 
-    # ---------------------------------------------------------------
-    # 5.  Find unmasked blocks adjacent to any masked block.
-    # ---------------------------------------------------------------
-    # adjacency[mask] -> [n_poses, n_masked, n_blocks]
-    # any masked block adjacent to block j means block j should contribute sidechains
-    # Expand mask for broadcasting: mask[:, :, None] & adjacency
+    # A block is nearby when any selected block is adjacent to it.
     nearby_mask = (mask.unsqueeze(2) & adjacency).any(dim=1)  # [n_poses, n_blocks]
 
-    # ---------------------------------------------------------------
-    # 6.  Sidechain atoms from nearby blocks.
-    # ---------------------------------------------------------------
-    # all atoms from nearby blocks
     coord_mask_nearby = res_mask_to_coord_mask(pose_stack, nearby_mask)
-    # keep only the sidechain atoms among those
     sidechain_nearby_mask = coord_mask_nearby & sidechain_mask
-
-    # ---------------------------------------------------------------
-    # 7.  Combine: all atoms from original masked blocks + sidechain
-    #     atoms from nearby blocks.  Avoid double-counting the masked
-    #     blocks themselves (their full atoms are already in coord_mask).
-    # ---------------------------------------------------------------
-    coord_mask = coord_mask | sidechain_nearby_mask
-
-    return coord_mask
+    return coord_mask | sidechain_nearby_mask
 
 
-def compute_block_adjacency(block_centroids, block_furthest_dist, constant=5.0):
-    """Compute a boolean block-level adjacency matrix.
-
-    Two blocks *i* and *j* (in the same pose) are considered adjacent when
-    the distance between their centroids is **less than the sum of their
-    furthest-atom-from-centroid distances plus a constant**.
-
-    .. math::
-
-        \\|\\mathbf{c}_i - \\mathbf{c}_j\\|
-        < d_i + d_j + \\text{constant}
+def compute_block_adjacency(
+    block_centroids: Tensor[torch.float32][:, :, 3],
+    block_furthest_dist: Tensor[torch.float32][:, :],
+    constant: float = 5.0,
+) -> Tensor[torch.bool][:, :, :]:
+    """Find blocks whose enclosing spheres are within a fixed gap.
 
     Args:
-        block_centroids: Tensor of shape ``[n_poses, n_blocks, 3]``
-            containing the centroid coordinate of each block (e.g. as
-            returned by :func:`compute_block_centroids_and_furthest_dist`).
-        block_furthest_dist: Tensor of shape ``[n_poses, n_blocks]``
-            containing the distance of the atom furthest from the centroid
-            for each block.
-        constant: A scalar added to the sum of furthest distances.  Default
-            is ``5.0``.
+        block_centroids: Centroids shaped ``[n_poses, n_blocks, 3]``.
+        block_furthest_dist: Enclosing radii shaped ``[n_poses, n_blocks]``.
+        constant: Maximum gap between two enclosing spheres.
 
     Returns:
-        Boolean tensor of shape ``[n_poses, n_blocks, n_blocks]`` where
-        ``adjacency[p, i, j]`` is ``True`` when the two blocks *i* and *j*
-        in pose *p* are adjacent.
-
-        The diagonal is always ``False`` (a block is not adjacent to itself).
-        Padding / NaN-containing blocks are treated as not adjacent to any
-        block.
+        Adjacency shaped ``[n_poses, n_blocks, n_blocks]`` with a false
+        diagonal and false entries for padding blocks.
     """
     n_poses, n_blocks, _ = block_centroids.shape
 
