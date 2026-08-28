@@ -87,6 +87,5 @@ def update_inplace(d, keys, func, default=None, factory=dict):
             d[k] = factory()
         update_inplace(d[k], ks, func, default, factory)
         return d
-    else:
-        d[k] = func(d[k]) if (k in d) else func(default)
-        return d
+    d[k] = func(d[k]) if (k in d) else func(default)
+    return d

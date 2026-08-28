@@ -67,14 +67,13 @@ class Dim:
     def _to_size(size):
         if size in (None, Ellipsis):
             return size
-        elif isinstance(size, slice):
+        if isinstance(size, slice):
             if size.start is not None:
                 raise ValueError("Invalid slice.", size)
             if size.step is not None:
                 raise ValueError("Invalid slice.", size)
             return size.stop
-        else:
-            return int(size)
+        return int(size)
 
     size = attr.ib(converter=_to_size.__func__)
 
@@ -82,19 +81,17 @@ class Dim:
     def _valid_size(self, _, size):
         if size is None:
             return
-        elif size is Ellipsis:
+        if size is Ellipsis:
             return
-        else:
-            if not isinstance(size, int) or size < 1:
-                raise ValueError("size must be None, Ellipsis, or >1", size)
+        if not isinstance(size, int) or size < 1:
+            raise ValueError("size must be None, Ellipsis, or >1", size)
 
     def __str__(self):
         if self.size is Ellipsis:
             return "..."
-        elif self.size is None:
+        if self.size is None:
             return ":"
-        else:
-            return str(self.size)
+        return str(self.size)
 
 
 @attr.s(slots=True, frozen=True)
@@ -147,7 +144,7 @@ class Shape:
                     f"Fewer than expected dims in shape. "
                     f"expected: {self!s} received: {adims}"
                 )
-            elif not dims[0].size is Ellipsis:
+            if dims[0].size is not Ellipsis:
                 raise ValueError(
                     f"No implied broadcast to shape. "
                     f"expected: {self!s} received: {adims}"

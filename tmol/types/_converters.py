@@ -23,8 +23,7 @@ def get_converter(type_annotation):
 def constructor_convert(type_annotation, value):
     if isinstance(value, type_annotation):
         return value
-    else:
-        return type_annotation(value)
+    return type_annotation(value)
 
 
 @toolz.curry

@@ -156,8 +156,7 @@ def cuda_if_available(sources):
     """Filter cuda sources if cuda is not available."""
     if torch.cuda.is_available():
         return sources
-    else:
-        return [s for s in sources if not _is_cuda_file(s)]
+    return [s for s in sources if not _is_cuda_file(s)]
 
 
 @wraps(torch.utils.cpp_extension.load)

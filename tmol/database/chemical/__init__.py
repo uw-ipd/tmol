@@ -14,8 +14,7 @@ _acceptor_hybridizations = {"sp2", "sp3", "ring"}
 def _parse_acceptor_hybridization(v, t):
     if v in _acceptor_hybridizations:
         return v
-    else:
-        raise ValueError(f"Invalid AcceptorHybridization value: {v}")
+    raise ValueError(f"Invalid AcceptorHybridization value: {v}")
 
 
 cattr.register_structure_hook(AcceptorHybridization, _parse_acceptor_hybridization)

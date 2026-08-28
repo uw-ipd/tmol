@@ -403,5 +403,4 @@ def pose_stack_from_canonical_form(  # noqa: C901
 
     if len(opt_return_vals) > 0:
         return ps, opt_return_vals
-    else:
-        return ps
+    return ps

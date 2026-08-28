@@ -344,12 +344,11 @@ class CanonicalOrdering:
                 cys_co_aa_ind=-1,
                 sg_atom_for_co_cys=-1,
             )
-        else:
-            cys_co_aa_ind = restype_name3s.index("CYS")
-            return CysSpecialCaseIndices(
-                cys_co_aa_ind=cys_co_aa_ind,
-                sg_atom_for_co_cys=restypes_ordered_atom_names["CYS"].index("SG"),
-            )
+        cys_co_aa_ind = restype_name3s.index("CYS")
+        return CysSpecialCaseIndices(
+            cys_co_aa_ind=cys_co_aa_ind,
+            sg_atom_for_co_cys=restypes_ordered_atom_names["CYS"].index("SG"),
+        )
 
     @classmethod
     def _init_his_special_case_indices(
@@ -367,23 +366,22 @@ class CanonicalOrdering:
                 his_NN_in_co=-1,
                 his_CG_in_co=-1,
             )
-        else:
-            his_co_aa_ind = restype_name3s.index("HIS")
+        his_co_aa_ind = restype_name3s.index("HIS")
 
-            def his_at_ind(atname):
-                return restypes_ordered_atom_names["HIS"].index(atname)
+        def his_at_ind(atname):
+            return restypes_ordered_atom_names["HIS"].index(atname)
 
-            return HisSpecialCaseIndices(
-                his_co_aa_ind=his_co_aa_ind,
-                his_ND1_in_co=his_at_ind("ND1"),
-                his_NE2_in_co=his_at_ind("NE2"),
-                his_HD1_in_co=his_at_ind("HD1"),
-                his_HE2_in_co=his_at_ind("HE2"),
-                his_HN_in_co=his_at_ind("HN"),
-                his_NH_in_co=his_at_ind("NH"),
-                his_NN_in_co=his_at_ind("NN"),
-                his_CG_in_co=his_at_ind("CG"),
-            )
+        return HisSpecialCaseIndices(
+            his_co_aa_ind=his_co_aa_ind,
+            his_ND1_in_co=his_at_ind("ND1"),
+            his_NE2_in_co=his_at_ind("NE2"),
+            his_HD1_in_co=his_at_ind("HD1"),
+            his_HE2_in_co=his_at_ind("HE2"),
+            his_HN_in_co=his_at_ind("HN"),
+            his_NH_in_co=his_at_ind("NH"),
+            his_NN_in_co=his_at_ind("NN"),
+            his_CG_in_co=his_at_ind("CG"),
+        )
 
     def create_src_2_tmol_mappings(
         self, src_aa_name3s, src_atom_names_for_name3s, device

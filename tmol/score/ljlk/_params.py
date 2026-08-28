@@ -108,8 +108,7 @@ class LJLKParamResolver(ValidateAttrs):
         def at_least_1d(t):
             if t.dim() == 0:
                 return t.expand((1,))
-            else:
-                return t
+            return t
 
         global_params = LJLKGlobalParams(
             **{

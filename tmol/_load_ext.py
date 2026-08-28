@@ -106,7 +106,6 @@ def load_module(module_name: str, file: str, sources, precompiled_path: str):
         )
 
         return load(modulename(module_name), cuda_if_available(relpaths(file, sources)))
-    else:
-        import importlib
+    import importlib
 
-        return importlib.import_module(precompiled_path)
+    return importlib.import_module(precompiled_path)
