@@ -503,7 +503,6 @@ def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):  # noqa: C
         anc_uaids_backup=icoor_uaids_backup,
     )
     setattr(bt, "leaf_atom_icoor_ann", ann)
-    # return bt_icoor_geom, bt_icoor_uaids, bt_icoor_geom_backup, bt_icoor_uaids_backup
 
 
 # Max heavy neighbors a parent can have while still carrying a single H

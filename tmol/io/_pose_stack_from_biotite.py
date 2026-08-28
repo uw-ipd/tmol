@@ -970,7 +970,6 @@ def biotite_from_canonical_form(  # noqa: C901
 
     if co is None:
         co = canonical_ordering_for_biotite()
-    # rts = _restype_set_for_biotite()
 
     n_poses = cf.coords.size(0)
     n_residues = cf.coords.size(1)

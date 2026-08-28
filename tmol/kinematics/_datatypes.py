@@ -78,10 +78,6 @@ class KinForest(TensorGroup, ConvertAttrs):
 
     Indices::
         id = the TO index in KFO; i.e. kin_forest_order_2_target_order
-        # roots = KFO index for the roots of the trees in the forest;
-        #      coordinate updates for these atoms and the path they root will
-        #      proceed in parallel in the first pass of the generational
-        #      -segmented scan. These are listed in no particular order.
         parent = KFO index of the parent, in KFO
         frame_x = KFO index of self, in KFO
         frame_y = KFO index of parent, in KFO
@@ -89,7 +85,6 @@ class KinForest(TensorGroup, ConvertAttrs):
     """
 
     id: Tensor[torch.int32][...]
-    # roots: Tensor[torch.int32][...]
     doftype: Tensor[torch.int32][...]
     parent: Tensor[torch.int32][...]
     frame_x: Tensor[torch.int32][...]
@@ -110,7 +105,6 @@ class KinForest(TensorGroup, ConvertAttrs):
         """Construct a single node from element values."""
         return cls(
             id=torch.Tensor([id]),
-            # roots=torch.Tensor([]),
             doftype=torch.Tensor([doftype]),
             parent=torch.Tensor([parent]),
             frame_x=torch.Tensor([frame_x]),

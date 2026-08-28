@@ -48,12 +48,10 @@ class PoseStackKinematicsModule(torch.nn.Module):
         n_blocks = torch.sum(ps.block_type_ind != -1, dim=1).cpu().numpy()
         validate_fold_forest(n_blocks, ff.edges)
 
-        # pbt_gssps = pbt.gen_seg_scan_path_segs
         ff_edges_cpu = torch.from_numpy(ff.edges).to(torch.int32)
         kmd = construct_kin_module_data_for_pose(ps, ff_edges_cpu)
 
         def _p(t):
-            # return torch.nn.Parameter(t, requires_grad=False)
             # NOTE: I don't think ANY of these should be treated as parameters
             return t
 

@@ -162,10 +162,6 @@ def parse_atom_lines(lines):
         lines
     )
     results["b"] = numpy.vectorize(lambda s: float(s[60:66]), otypes=[float])(lines)
-    # results["segi"]       = numpy.vectorize(lambda s: str.strip(s[72:76]), otypes = [numpy.str])(lines)
-    # results["element"]    = numpy.vectorize(lambda s: str.strip(s[76:78]), otypes = [numpy.str])(lines)
-    # results["charge"]     = numpy.vectorize(lambda s: float(s[78:80]), otypes     = [numpy.float])(lines)
-
     return results
 
 
