@@ -1,7 +1,6 @@
-import torch
 import attrs
+import torch
 
-from typing import Optional, Union
 from tmol.types import Tensor
 
 from tmol.pose import PoseStack
@@ -10,6 +9,8 @@ from tmol.kinematics import (
     n_movable_bond_dof_types,
     n_movable_jump_dof_types,
 )
+
+TensorSelection = torch.Tensor | int
 
 
 @attrs.define
@@ -34,11 +35,12 @@ class CartesianMoveMap:
             :class:`~tmol.optimization._sfxn_modules.CartesianSfxnNetwork`).
     """
 
-    coord_mask: Optional[torch.Tensor] = None
+    coord_mask: torch.Tensor | None = None
 
 
 @attrs.define(slots=True, auto_attribs=True)
 class MoveMap:
+    """Hierarchical internal-coordinate degrees of freedom for a pose stack."""
 
     move_all_jumps: bool
     move_all_root_jumps: bool
@@ -80,8 +82,8 @@ class MoveMap:
     move_atom_dof_mask: Tensor[torch.bool][:, :, :, :]
 
     @classmethod
-    def from_pose_stack(cls, ps: PoseStack):
-        """Main construction utility for MoveMap."""
+    def from_pose_stack(cls, ps: PoseStack) -> "MoveMap":
+        """Construct a move map sized for ``ps`` with all movement disabled."""
         return cls(
             ps.n_poses,
             ps.max_n_blocks,
@@ -92,10 +94,10 @@ class MoveMap:
 
     def set_move_all_jump_dofs_for_jump(
         self,
-        pose_selection: Union[Tensor, int],
-        jump_selection: Optional[Union[Tensor, int]] = None,
+        pose_selection: TensorSelection,
+        jump_selection: TensorSelection | None = None,
         value: bool = True,
-    ):
+    ) -> None:
         """Enable or disable all jump dofs for a particular set of jumps on particular poses.
 
         If jump_selection is None, then the two dimensional settings tensor will be indexed by
@@ -106,10 +108,10 @@ class MoveMap:
 
     def set_move_all_jump_dofs_for_root_jump(
         self,
-        pose_selection: Union[Tensor, int],
-        root_jump_selection: Optional[Union[Tensor, int]] = None,
+        pose_selection: TensorSelection,
+        root_jump_selection: TensorSelection | None = None,
         value: bool = True,
-    ):
+    ) -> None:
         """Enable or disable all jump dofs for a particular set of root-jumps on particular poses.
 
         If root_jump_selection is None, then the two dimensional settings tensor will be indexed by
@@ -122,10 +124,10 @@ class MoveMap:
 
     def set_move_all_mc_tors_for_blocks(
         self,
-        pose_selection: Union[Tensor, int],
-        block_selection: Optional[Union[Tensor, int]] = None,
+        pose_selection: TensorSelection,
+        block_selection: TensorSelection | None = None,
         value: bool = True,
-    ):
+    ) -> None:
         """Enable or disable all DOFs for a partiular set of blocks on particular poses.
 
         If block_selection is None, then the two dimensional settings tensor will be indexed by
@@ -143,19 +145,19 @@ class MoveMap:
 
     def set_move_all_sc_tors_for_blocks(
         self,
-        pose_selection: Union[Tensor, int],
-        block_selection: Optional[Union[Tensor, int]] = None,
+        pose_selection: TensorSelection,
+        block_selection: TensorSelection | None = None,
         value: bool = True,
-    ):
+    ) -> None:
         self._assert_valid_pose_block_selection(pose_selection, block_selection)
         self._set_val_and_mask_for_2dim(pose_selection, block_selection, "scs", value)
 
     def set_move_all_named_torsions_for_blocks(
         self,
-        pose_selection: Union[Tensor, int],
-        block_selection: Optional[Union[Tensor, int]] = None,
+        pose_selection: TensorSelection,
+        block_selection: TensorSelection | None = None,
         value: bool = True,
-    ):
+    ) -> None:
         self._assert_valid_pose_block_selection(pose_selection, block_selection)
         self._set_val_and_mask_for_2dim(
             pose_selection, block_selection, "named_torsions", value
@@ -163,11 +165,11 @@ class MoveMap:
 
     def set_move_mc_tor_for_blocks(
         self,
-        pose_selection: Union[Tensor, int],
-        block_selection: Optional[Union[Tensor, int]] = None,
-        tor_selection: Optional[Union[Tensor, int]] = None,
+        pose_selection: TensorSelection,
+        block_selection: TensorSelection | None = None,
+        tor_selection: TensorSelection | None = None,
         value: bool = True,
-    ):
+    ) -> None:
         """Enable or disable partiular main-chain torsions for a particular set of blocks on particular poses.
 
         Valid combinations of block_selection and tor_selection are:
@@ -184,11 +186,11 @@ class MoveMap:
 
     def set_move_sc_tor_for_blocks(
         self,
-        pose_selection: Union[Tensor, int],
-        block_selection: Optional[Union[Tensor, int]] = None,
-        dof_selection: Optional[Union[Tensor, int]] = None,
+        pose_selection: TensorSelection,
+        block_selection: TensorSelection | None = None,
+        dof_selection: TensorSelection | None = None,
         value: bool = True,
-    ):
+    ) -> None:
         """Enable or disable partiular side-chain torsions for a particular set of blocks on particular poses."""
         self._assert_valid_pose_block_dof_selection(
             pose_selection, block_selection, dof_selection, self.max_n_named_torsions
@@ -199,11 +201,11 @@ class MoveMap:
 
     def set_move_named_torsion_for_blocks(
         self,
-        pose_selection: Union[Tensor, int],
-        block_selection: Optional[Union[Tensor, int]] = None,
-        tor_selection: Optional[Union[Tensor, int]] = None,
+        pose_selection: TensorSelection,
+        block_selection: TensorSelection | None = None,
+        tor_selection: TensorSelection | None = None,
         value: bool = True,
-    ):
+    ) -> None:
         """Enable or disable partiular named-torsions for a particular set of blocks on particular poses."""
         self._assert_valid_pose_block_dof_selection(
             pose_selection, block_selection, tor_selection, self.max_n_named_torsions
@@ -214,11 +216,11 @@ class MoveMap:
 
     def set_move_jump_dof_for_jumps(
         self,
-        pose_selection: Union[Tensor, int],
-        jump_selection: Optional[Union[Tensor, int]] = None,
-        dof_selection: Optional[Union[Tensor, int]] = None,
+        pose_selection: TensorSelection,
+        jump_selection: TensorSelection | None = None,
+        dof_selection: TensorSelection | None = None,
         value: bool = True,
-    ):
+    ) -> None:
         """Enable or disable all jump dofs for a particular set of jumps on particular poses.
 
         If jump_selection is None, then the two dimensional settings tensor will be indexed by
@@ -234,11 +236,11 @@ class MoveMap:
 
     def set_move_jump_dof_for_root_jumps(
         self,
-        pose_selection: Union[Tensor, int],
-        root_jump_selection: Optional[Union[Tensor, int]] = None,
-        dof_selection: Optional[Union[Tensor, int]] = None,
+        pose_selection: TensorSelection,
+        root_jump_selection: TensorSelection | None = None,
+        dof_selection: TensorSelection | None = None,
         value: bool = True,
-    ):
+    ) -> None:
         """Enable or disable all jump dofs for a particular set of root-jumps on particular poses.
 
         If root_jump_selection is None, then the two dimensional settings tensor will be indexed by
@@ -254,12 +256,12 @@ class MoveMap:
 
     def set_move_atom_dof_for_blocks(
         self,
-        pose_selection: Union[Tensor, int],
-        block_selection: Optional[Union[Tensor, int]] = None,
-        atom_selection: Optional[Union[Tensor, int]] = None,
-        dof_selection: Optional[Union[Tensor, int]] = None,
+        pose_selection: TensorSelection,
+        block_selection: TensorSelection | None = None,
+        atom_selection: TensorSelection | None = None,
+        dof_selection: TensorSelection | None = None,
         value: bool = True,
-    ):
+    ) -> None:
         """Enable or disable partiular atom dofs for a particular set of blocks on particular poses.
 
         Either only "pose_selection" should be not None or all four "selection" variables should be
@@ -285,23 +287,23 @@ class MoveMap:
             ] = True
 
     @property
-    def n_poses(self):
+    def n_poses(self) -> int:
         return self.move_jumps.shape[0]
 
     @property
-    def max_n_jumps(self):
+    def max_n_jumps(self) -> int:
         return self.move_jumps.shape[1]
 
     @property
-    def max_n_blocks(self):
+    def max_n_blocks(self) -> int:
         return self.move_mcs.shape[1]
 
     @property
-    def max_n_named_torsions(self):
+    def max_n_named_torsions(self) -> int:
         return self.move_named_torsion.shape[2]
 
     @property
-    def max_n_atoms_per_block(self):
+    def max_n_atoms_per_block(self) -> int:
         return self.move_atom_dof.shape[2]
 
     def __init__(
@@ -310,8 +312,8 @@ class MoveMap:
         max_n_blocks: int,
         max_n_named_torsions: int,
         max_n_atoms_per_block: int,
-        device: Optional[torch.device] = None,
-    ):
+        device: torch.device | None = None,
+    ) -> None:
         if device is None:
             device = torch.device("cpu")
 
@@ -322,10 +324,10 @@ class MoveMap:
         self.move_all_named_torsions = False
         self.non_ideal = False
 
-        def z_bool(shape):
+        def z_bool(shape: tuple[int, ...]) -> torch.Tensor:
             return torch.zeros(shape, dtype=torch.bool, device=device)
 
-        def z_bool_pb(remaining_shape=tuple()):
+        def z_bool_pb(remaining_shape: tuple[int, ...] = ()) -> torch.Tensor:
             return z_bool((n_poses, max_n_blocks) + remaining_shape)
 
         # data members on a per-residue basis; plural, representing
@@ -436,12 +438,16 @@ class MoveMap:
 
 
 class MinimizerMap:
+    """Resolved per-DOF movement mask for a pose's kinematic forest."""
+
+    dof_mask: Tensor[torch.bool][:, :, :]
+
     def __init__(
         self,
         pose_stack: PoseStack,
         kmd: KinematicModuleData,
         mm: MoveMap,
-    ):
+    ) -> None:
         from tmol.kinematics.compiled import minimizer_map_from_movemap
 
         pbt = pose_stack.packed_block_types
