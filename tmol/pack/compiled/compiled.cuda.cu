@@ -20,8 +20,6 @@
 #include <curand_kernel.h>
 #include <curand_philox4x32_x.h>
 
-#include <ctime>
-
 #include "compiled.impl.hh"
 
 namespace tmol {
@@ -219,7 +217,6 @@ template <
     typename Real>
 MGPU_DEVICE float warp_wide_sim_annealing(
     int pose,
-    int traj_id,  // debugging purposes only
     curandStatePhilox4_32_10_t* state,
     cooperative_groups::thread_block_tile<n_threads> g,
     InteractionGraph<D, Int, Real> ig,
@@ -630,7 +627,6 @@ struct Annealer {
       // Full SA run with geometric cooling
       warp_wide_sim_annealing<ChunkSize, false, false>(
           pose,
-          traj_id,
           &state,
           g,
           ig,
@@ -657,7 +653,6 @@ struct Annealer {
       float after_first_quench_lite_totalE =
           warp_wide_sim_annealing<ChunkSize, true, true>(
               pose,
-              traj_id,
               &state,
               g,
               ig,
@@ -710,7 +705,6 @@ struct Annealer {
       // Low-temperature cooling trajectory
       warp_wide_sim_annealing<ChunkSize, false, false>(
           pose,
-          traj_id,
           &state,
           g,
           ig,
@@ -733,7 +727,6 @@ struct Annealer {
       float after_lotemp_quench_lite_totalE =
           warp_wide_sim_annealing<ChunkSize, true, true>(
               pose,
-              traj_id,
               &state,
               g,
               ig,
@@ -781,7 +774,6 @@ struct Annealer {
 
       warp_wide_sim_annealing<ChunkSize, false, true>(
           pose,
-          traj_id,
           &state,
           g,
           ig,
@@ -882,8 +874,6 @@ auto AnnealerDispatch<D>::forward(
     TView<float, 1, D> energy1b,
     TView<float, 1, D> energy2b)
     -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D> > {
-  clock_t start = clock();
-
   int const n_poses_cpu = pose_n_res.size(0);
   int const max_n_res_cpu = chunk_offset_offsets.size(1);
 
