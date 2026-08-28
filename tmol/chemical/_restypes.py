@@ -319,7 +319,7 @@ class RefinedResidueType(RawResidueType):
             return self.connection_to_cidx["up"]
         return -1
 
-    def _repr_pretty_(self, p, cycle):
+    def _repr_pretty_(self, p, _cycle):
         p.text(f"RefinedResidueType(name={self.name},...)")
 
     torsion_to_uaids: Mapping[str, Tuple[UnresolvedAtomID]] = attr.ib()
