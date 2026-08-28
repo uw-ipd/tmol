@@ -288,7 +288,9 @@ class LBFGS_Armijo(Optimizer):
         # The common Cartesian-minimization layout has equally sized segments
         # stored consecutively. In that case padding is just a view/copy; keep
         # the indexed path for heterogeneous or interleaved segment layouts.
-        self._segments_are_dense = bool(torch.equal(self._pad_index, arange))
+        self._segments_are_dense = bool(
+            (counts == segment_size).all() and torch.equal(self._pad_index, arange)
+        )
 
     def _seg_sum(self, values):
         """Sum a parameter-shaped vector within each segment."""
