@@ -652,10 +652,10 @@ def select_best_block_type_candidate(  # noqa: C901
 
             if real_candidate_should_be_excluded[cand_ind]:
                 equiv_class = cand_bt.io_equiv_class
-                for l in range(
+                for atom_ind in range(
                     len(canonical_ordering.restypes_ordered_atom_names[equiv_class])
                 ):
-                    if real_candidate_provided_atoms_absent[cand_ind, l]:
+                    if real_candidate_provided_atoms_absent[cand_ind, atom_ind]:
                         err_msg.extend(
                             [
                                 str(x)
@@ -663,7 +663,7 @@ def select_best_block_type_candidate(  # noqa: C901
                                     " atom",
                                     canonical_ordering.restypes_ordered_atom_names[
                                         equiv_class
-                                    ][l],
+                                    ][atom_ind],
                                     "provided but absent from candidate",
                                     cand_bt.name + "\n",
                                 )
@@ -672,10 +672,12 @@ def select_best_block_type_candidate(  # noqa: C901
 
             if real_candidate_canonical_atom_was_not_provided[cand_ind].any():
                 equiv_class = cand_bt.io_equiv_class
-                for l in range(
+                for atom_ind in range(
                     len(canonical_ordering.restypes_ordered_atom_names[equiv_class])
                 ):
-                    if real_candidate_canonical_atom_was_not_provided[cand_ind, l]:
+                    if real_candidate_canonical_atom_was_not_provided[
+                        cand_ind, atom_ind
+                    ]:
                         err_msg.extend(
                             [
                                 str(x)
@@ -683,7 +685,7 @@ def select_best_block_type_candidate(  # noqa: C901
                                     " atom",
                                     canonical_ordering.restypes_ordered_atom_names[
                                         equiv_class
-                                    ][l],
+                                    ][atom_ind],
                                     "missing but present in candidate",
                                     cand_bt.name + "\n",
                                 )
@@ -700,8 +702,7 @@ def select_best_block_type_candidate(  # noqa: C901
         failure_threshold = 2 * warning_threshold
         if torch.any(best_candidate_score >= failure_threshold):
             raise RuntimeError(err_msg + "Best candidate exceeds failure threshold")
-        else:
-            logger.warning(err_msg)
+        logger.warning(err_msg)
 
     block_type_ind64_2 = torch.full_like(res_types64, -1)
     block_type_ind64_2[is_real_res] = block_type_candidates[
@@ -956,11 +957,11 @@ def _collect_var_combo_candidates(
                 var_combo_n_candidates[i, j, k] = len(
                     pbt_io_equiv_class_candidates[bt_name3][j][k]
                 )
-                for l, (bt, bt_ind) in enumerate(
+                for candidate_ind, (bt, bt_ind) in enumerate(
                     pbt_io_equiv_class_candidates[bt_name3][j][k]
                 ):
-                    var_combo_candidate_bt_index[i, j, k, l] = bt_ind
-                    var_combo_is_real_candidate[i, j, k, l] = True
+                    var_combo_candidate_bt_index[i, j, k, candidate_ind] = bt_ind
+                    var_combo_is_real_candidate[i, j, k, candidate_ind] = True
     return (
         var_combo_candidate_bt_index,
         var_combo_is_real_candidate,

@@ -1,6 +1,8 @@
+"""Rotamer sampling, construction, and coordinate transfer."""
+
 # Import in topological order: dependencies before dependents.
 from ._bfs_sidechain import bfs_sidechain_atoms, bfs_sidechain_atoms_jit  # noqa: F401
-from ._conformer_sampler import ConformerSampler  # noqa: F401
+from ._conformer_sampler import ConformerSample, ConformerSampler  # noqa: F401
 from ._rotamer_set import RotamerSet  # noqa: F401
 from ._single_residue_kinforest import (  # noqa: F401
     PackedRotamerKintree,
@@ -63,6 +65,7 @@ from ._build_rotamers import (  # noqa: F401
 __all__ = [
     "AtomFingerprint",
     "ChiSampler",
+    "ConformerSample",
     "ConformerSampler",
     "FallbackSampler",
     "FixedAAChiSampler",

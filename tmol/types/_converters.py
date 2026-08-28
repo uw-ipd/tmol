@@ -23,8 +23,7 @@ def get_converter(type_annotation):
 def constructor_convert(type_annotation, value):
     if isinstance(value, type_annotation):
         return value
-    else:
-        return type_annotation(value)
+    return type_annotation(value)
 
 
 @toolz.curry
@@ -46,13 +45,12 @@ def union_convert(union_annotation, value):
     errors = []
     for subtype in union_annotation.__args__:
         try:
-            result = get_converter(subtype)(value)
-            return result
+            return get_converter(subtype)(value)
         except (TypeError, ValueError) as ex:
             errors.append(ex)
 
     raise TypeError(
-        "Unable to convert to any union subtype: {union_annotaion} value: {value}"
+        f"Unable to convert to any union subtype: {union_annotation} value: {value!r}"
     )
 
 

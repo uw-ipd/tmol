@@ -606,12 +606,6 @@ class OptHSampler(ConformerSampler):
         # where we will measure the chi dihedrals for the flip. Then we will
         # count the number of rotamers for each block as well as the number
         # of chi columns.
-        # We will return:
-        # n_rots_for_gbt, max_n_chi_cols, pos_flip_chi
-        # n_rots_for_gbt: tensor[n_gbt]
-        # max_n_chi_cols: int
-        # pos_flip_chi: tensor[n_poses, max_n_blocks]
-
         pbt = pose_stack.packed_block_types
         optH_cache = pbt.opth_sample_cache
 

@@ -149,25 +149,24 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
             f"Current format version is {TMOL_FORMAT_VERSION}. "
             f"Regenerate the file with the current version."
         )
-    else:
-        file_version = str(file_version)
-        # Compare major version numbers only (the part before the first dot).
-        file_major = file_version.split(".")[0]
-        current_major = TMOL_FORMAT_VERSION.split(".")[0]
-        if file_major != current_major:
-            raise ValueError(
-                f"{path}: .tmol format version {file_version} is incompatible "
-                f"with the current format version {TMOL_FORMAT_VERSION}. "
-                f"Regenerate the file with the current writer."
-            )
-        if file_version != TMOL_FORMAT_VERSION:
-            logger.info(
-                "%s: .tmol format version %s differs from current %s "
-                "(backward-compatible minor version change)",
-                path,
-                file_version,
-                TMOL_FORMAT_VERSION,
-            )
+    file_version = str(file_version)
+    # Compare major version numbers only (the part before the first dot).
+    file_major = file_version.split(".")[0]
+    current_major = TMOL_FORMAT_VERSION.split(".")[0]
+    if file_major != current_major:
+        raise ValueError(
+            f"{path}: .tmol format version {file_version} is incompatible "
+            f"with the current format version {TMOL_FORMAT_VERSION}. "
+            f"Regenerate the file with the current writer."
+        )
+    if file_version != TMOL_FORMAT_VERSION:
+        logger.info(
+            "%s: .tmol format version %s differs from current %s "
+            "(backward-compatible minor version change)",
+            path,
+            file_version,
+            TMOL_FORMAT_VERSION,
+        )
 
     if "chemical" not in raw and (
         "residues" in raw or "residue_params" in raw or "atom_charge_parameters" in raw

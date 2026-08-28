@@ -1,3 +1,5 @@
+"""Factories for constructing standard score terms."""
+
 from ._score_term_factory import ScoreTermFactory  # noqa: F401
 from ._term_creator import TermCreator, score_term_creator  # noqa: F401
 from ._backbone_torsion_creator import BackboneTorsionTermCreator  # noqa: F401

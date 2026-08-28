@@ -76,6 +76,11 @@ class testShape(unittest.TestCase):
             for v in e["invalid"]:
                 self.assertInvalid(spec, v)
 
+        # Equal dimensions must compare by value, including integers outside
+        # CPython's small-integer cache.
+        large_dim = int("1000")
+        self.assertValid(s[large_dim], (int("1000"),))
+
     def assertValid(self, spec, array, msg=None):
         spec.validate(array)
 

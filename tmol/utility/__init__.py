@@ -1,3 +1,5 @@
+"""General-purpose helpers used throughout TMol."""
+
 from ._args import _signature, bind_to_args, ignore_unused_kwargs  # noqa: F401
 from ._attr import AttrMapping, AttrMutableMapping  # noqa: F401
 from ._auto_number import AutoNumber  # noqa: F401

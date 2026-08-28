@@ -285,14 +285,14 @@ def _assign_missing_hybridization(  # noqa: C901
     """Port Rosetta assign_hybridization_if_missing for hyb==0 cases."""
     conf = mol.GetConformer() if mol.GetNumConformers() > 0 else None
 
-    def _dihedral_deg(i: int, j: int, k: int, l: int) -> float:
+    def _dihedral_deg(i: int, j: int, k: int, m: int) -> float:
         """Compute dihedral angle for four atom indices.
 
         Args:
             i: First atom index.
             j: Second atom index.
             k: Third atom index.
-            l: Fourth atom index.
+            m: Fourth atom index.
 
         Returns:
             Signed dihedral angle in degrees.
@@ -302,7 +302,7 @@ def _assign_missing_hybridization(  # noqa: C901
         p1 = conf.GetAtomPosition(i)
         p2 = conf.GetAtomPosition(j)
         p3 = conf.GetAtomPosition(k)
-        p4 = conf.GetAtomPosition(l)
+        p4 = conf.GetAtomPosition(m)
 
         b0 = (float(p1.x - p2.x), float(p1.y - p2.y), float(p1.z - p2.z))
         b1 = (float(p3.x - p2.x), float(p3.y - p2.y), float(p3.z - p2.z))
@@ -660,14 +660,13 @@ def _classify_H(
         z = nbr.GetAtomicNum()
         if z == 6:
             return "HR" if _get_hyb(nbr, state) == 9 else "HC"
-        elif z == 8:
+        if z == 8:
             return "HO"
-        elif z == 7:
+        if z == 7:
             return "HN"
-        elif z == 16:
+        if z == 16:
             return "HS"
-        else:
-            return "HG"
+        return "HG"
     return "HG"
 
 
@@ -761,7 +760,7 @@ def _classify_N_hetero(  # noqa: C901
     if hyb == 3:
         if ntot <= 3 and nH >= 1:
             return "Nam2"
-        elif nH >= 1:
+        if nH >= 1:
             return "Nam"
         return "NG3"
 
@@ -1100,12 +1099,11 @@ def _classify_S(
     nC, nH, _, _, nS, ntot = _neighbor_counts(atom, state)
     if nC == 1 and nH == 1 and ntot == 2:
         return "Sth"
-    elif nC + nS == 2 and ntot == 2:
+    if nC + nS == 2 and ntot == 2:
         return "SR" if atom.GetIdx() in state.atms_aro else "Ssl"
-    elif ntot == 1:
+    if ntot == 1:
         return "SG2"
-    else:
-        return "SG5" if _get_hyb(atom, state) == 5 else "SG3"
+    return "SG5" if _get_hyb(atom, state) == 5 else "SG3"
 
 
 def _classify_P(

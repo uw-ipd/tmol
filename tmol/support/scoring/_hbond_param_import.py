@@ -315,8 +315,7 @@ class RosettaHBParams:
 
         if not outfile:
             return obuf.getvalue()
-        else:
-            return None
+        return None
 
 
 basetype_for_dtype = {

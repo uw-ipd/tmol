@@ -86,8 +86,9 @@ def generate_conformer(
     by a very short MMFF minimization.
 
     Args:
+        smiles: Ligand SMILES to embed and minimize.
         minimize_steps: OpenBabel conjugate-gradient steps for the final min.
-        seed: Ooptional fixed RNG seed for reproducible coordinates.
+        seed: Optional fixed RNG seed for reproducible coordinates.
 
     Raises:
         ValueError: Failures in parsing or final min.
@@ -356,25 +357,25 @@ def _planar_component_distances(atoms, r0, ang, max_iters: int = 150):
     w, V = np.linalg.eigh(-0.5 * (Jc @ (Dm**2) @ Jc))
     o = np.argsort(w)[::-1]
     Y0 = V[:, o[:2]] * np.sqrt(np.clip(w[o[:2]], 0.0, None))
-    I = torch.tensor([p[0] for p in tp])
-    J = torch.tensor([p[1] for p in tp])
-    T = torch.tensor([p[2] for p in tp], dtype=torch.double)
+    pair_i = torch.tensor([p[0] for p in tp])
+    pair_j = torch.tensor([p[1] for p in tp])
+    target_distance = torch.tensor([p[2] for p in tp], dtype=torch.double)
     Y = torch.tensor(np.ascontiguousarray(Y0), dtype=torch.double, requires_grad=True)
     opt = torch.optim.LBFGS([Y], max_iter=max_iters, line_search_fn="strong_wolfe")
 
     def closure():
         opt.zero_grad()
-        d = ((Y[I] - Y[J]) ** 2).sum(1).clamp_min(1e-12).sqrt()
-        loss = ((d - T) ** 2).sum()
+        d = ((Y[pair_i] - Y[pair_j]) ** 2).sum(1).clamp_min(1e-12).sqrt()
+        loss = ((d - target_distance) ** 2).sum()
         loss.backward()
         return loss
 
     opt.step(closure)
     Yc = Y.detach().numpy()
     return {
-        (atoms[k], atoms[l]): float(np.linalg.norm(Yc[k] - Yc[l]))
+        (atoms[k], atoms[atom_j]): float(np.linalg.norm(Yc[k] - Yc[atom_j]))
         for k in range(m)
-        for l in range(k + 1, m)
+        for atom_j in range(k + 1, m)
     }
 
 

@@ -273,7 +273,6 @@ def _append_bad_jumps_errors(
                 is_repeat_index = False
                 first_edge_w_index = -1
                 for k in range(bad_jump_numbers[i, j]):
-                    # print(f"e: {e[0]}, {e[1]}, {e[2]}, {e[3]} and k: {k} edge {edges[i, k, 0]}, {edges[i, k, 3]}")
                     if edges[i, k, 0] == EdgeType.jump and edges[i, k, 3] == e[3]:
                         is_repeat_index = True
                         first_edge_w_index = k
@@ -325,9 +324,6 @@ def validate_fold_forest(
     n_blocks: NDArray[numpy.int64][:],
     edges: NDArray[numpy.int64][:, :, 4],
 ):
-    # print("validate fold forest")
-    # print(n_blocks.shape)
-    # print(edges.shape)
     (
         good,
         bad_edges,

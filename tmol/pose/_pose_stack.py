@@ -1,6 +1,7 @@
+from typing import TYPE_CHECKING
+
 import attr
 import torch
-from typing import Optional, TYPE_CHECKING
 
 from tmol.types import Tensor
 from tmol.chemical import RefinedResidueType
@@ -16,73 +17,30 @@ if TYPE_CHECKING:
 
 @attr.s(auto_attribs=True)
 class PoseStack:
-    """The PoseStack class defines a batch (a stack) of molecular systems
+    """Batch of molecular systems with shared residue-type definitions.
 
-    The PoseStack defines the per-residue chemistry, inter-residue
-    connectivity, and coordinates of a set of molecular systems.
-    The per-residue chemistry and the connectivity are meant to be
-    constant over its lifetime; however, its coordinates are allowed
-    to change. That is, a PoseStack may have its coords tensor written
-    to without any negative consequences. Thus, you can minimize the
-    coordinates in a PoseStack. The main way to change the chemistry or
-    connectivity or even the ConstraintSet of a PoseStack is to use
-    attr.evolve to return a completely new PoseStack but replacing
-    the datamember(s) that you want to change. Such a PoseStack will be
-    a shallow copy of the original PoseStack, so the coordinates tensor
-    must always be cloned / replaced when evolving a PoseStack, or two
-    PoseStacks may point to the same coordinates tensor, and then
-    changes to the coordinates in one PoseStack would affect the other.
+    Chemistry and connectivity are fixed after construction, while ``coords``
+    may be updated in place during minimization. Use :func:`attr.evolve` for
+    structural metadata changes and replace or clone ``coords`` to avoid sharing
+    mutable coordinate storage between pose stacks.
 
-    Datamembers:
-    packed_block_types: a representation of the chemical space that this
-    PoseStack can contain. The PackedBlockTypes object aggregates a set
-    of residue-types objects (RefinedResidueTypes) and holds annotations
-    for this aggregate that must be made by the terms in the ScoreFunction
-    in order for them to efficiently perform their calculations.
-
-    coords: a tensor of [n_poses x max_n_atoms_per_pose x 3] holding the
-    cartesian coordinates of the atoms in the system. The coordinates
-    of the atoms are held in a contiguous array so that mixing very
-    large residue types (e.g. heme) and very small residue types
-    (e.g. water) does not waste memory / GPU cache.
-
-    block_coord_offset: a tensor of [n_poses x max_n_residues] holding
-    the starting indices in the coords tensor for the residues; offsets
-    for custom kernels are 32-bit integers, offset for torch functions
-    are 64-bit integers. We keep around both for performance reasons.
-
-    inter_residue_connections: a tensor of
-    [n_poses x max_n_residues x max_n_conn x 2] representing for each
-    inter-residue connection point on each residue the 1) index of
-    the residue it is connected to (sentinel of -1 for "no connection
-    defined) and the connection-point index it is connected to
-    (sentinel of -1, also).
-
-    inter_block_bondsep: a integer tensor of shape
-    [n_poses x max_n_residues x max_n_residues x max_n_conn x max_n_conn]
-    stating the number of chemical bonds that separate every pair of
-    inter-residue connections for every pair of residues -- up to a
-    maximum inter-residue separation of
-    tmol.chemical.MAX_SIG_BOND_SEPARATION (6 as of March 2024) --
-    so that the number of chemical bonds separating arbitrary
-    atom pairs may be rapidly computed for the interatomic energy
-    calculations
-
-    block_type_ind: the integer index for each block type (residue type)
-    referring to the order in which that block type appears in the
-    PoseStack's PackedBlockTypes object. A sentinel of -1 for positions
-    where there is no block type.
-
-    chain_id: the integer chain identifier for each residue
-
-    pdb_info: a PDBInfo object holding the PDB-level information that's needed
-    for writing out PDB / mmCIF files and keeping the original author labels
-    for the chains and residues + occupancy and B-factor information for the atoms;
-    none of these things are necessary for any structural manipulations or energy
-    calculations, but they are invaluable for working with structures in any kind
-    of pipeline.
-
-    device: the torch.device that this collection of structures lives on
+    Args:
+        packed_block_types: Residue types and their score-term annotations.
+        coords: Cartesian coordinates shaped ``[pose, atom, xyz]``.
+        block_coord_offset: Per-residue atom offsets shaped ``[pose, residue]``.
+        block_coord_offset64: 64-bit copy of ``block_coord_offset`` for PyTorch.
+        inter_residue_connections: Connected residue and connection indices.
+        inter_residue_connections64: 64-bit connection-index copy.
+        inter_block_bondsep: Capped bond separation between residue connections.
+        inter_block_bondsep64: 64-bit bond-separation copy.
+        block_type_ind: Packed block-type index for each residue; ``-1`` is padding.
+        block_type_ind64: 64-bit block-type-index copy.
+        chain_id: Chain index for each residue.
+        chain_id64: 64-bit chain-index copy.
+        pdb_info: Source labels, occupancy, and B-factor metadata.
+        constraint_set: Optional geometric constraints.
+        device: Device holding all pose tensors.
+        split_block_mapping: Optional mapping back to pre-split residue blocks.
     """
 
     packed_block_types: PackedBlockTypes
@@ -108,14 +66,14 @@ class PoseStack:
     chain_id64: Tensor[torch.int64][:, :]
 
     pdb_info: PDBInfo
-    constraint_set: Optional[ConstraintSet]
+    constraint_set: ConstraintSet | None
 
     device: torch.device
-    split_block_mapping: Optional["SplitBlockMapping"] = None
+    split_block_mapping: "SplitBlockMapping | None" = None
 
     #################### INIT #####################
 
-    def __attrs_post_init__(self):
+    def __attrs_post_init__(self) -> None:
         n_poses = self.block_coord_offset.size(0)
         n_blocks = self.block_coord_offset.size(1)
 
@@ -170,30 +128,30 @@ class PoseStack:
 
     #################### PROPERTIES #####################
 
-    def __len__(self):
-        """return the number of PoseStack held in this stack"""
+    def __len__(self) -> int:
+        """Return the number of poses in this stack."""
         return self.coords.shape[0]
 
     @property
-    def n_poses(self):
+    def n_poses(self) -> int:
         return self.coords.shape[0]
 
     @property
-    def max_n_blocks(self):
+    def max_n_blocks(self) -> int:
         return self.block_coord_offset.shape[1]
 
     @property
-    def max_n_atoms(self):
+    def max_n_atoms(self) -> int:
         return self.packed_block_types.max_n_atoms
 
     @property
-    def max_n_block_atoms(self):
-        """Same thing as max_n_atoms"""
+    def max_n_block_atoms(self) -> int:
+        """Return the maximum atoms in any packed residue type."""
         return self.packed_block_types.max_n_atoms
 
     @property
-    def max_n_pose_atoms(self):
-        """The largest number of atoms in any pose"""
+    def max_n_pose_atoms(self) -> int:
+        """Return the padded atom dimension of each pose."""
         return self.coords.shape[1]
 
     @property
@@ -209,8 +167,8 @@ class PoseStack:
         return n_ats_per_block
 
     @property
-    def real_atoms(self):
-        """return the boolean vector of the real atoms in the coords tensor"""
+    def real_atoms(self) -> Tensor[torch.bool][:, :]:
+        """Return the mask of real, non-padding atoms in ``coords``."""
         # get the list of real atoms to read out of pose coords
         n_ats_per_pose_arange_expanded = (
             torch.arange(self.max_n_pose_atoms, dtype=torch.int64, device=self.device)
@@ -244,8 +202,8 @@ class PoseStack:
             split_block_mapping=self.split_block_mapping,
         )
 
-    def split(self, index) -> "PoseStack":
-        """Return a single PoseStack from one containing many"""
+    def split(self, index: int) -> "PoseStack":
+        """Copy one pose into a new single-pose stack."""
         return PoseStack(
             packed_block_types=self.packed_block_types,
             coords=self.coords[index : index + 1].detach().clone(),
@@ -287,11 +245,14 @@ class PoseStack:
             ),
         )
 
-    def expand_coords(self):
-        """Load the coordinates into a 4D tensor:
-        n_poses x max_n_blocks x max_n_atoms_per_block x 3
-        making it possible to perform simple operations on the
-        per-block level in python/torch
+    def expand_coords(
+        self,
+    ) -> tuple[Tensor[torch.float32][:, :, :, 3], Tensor[torch.bool][:, :, :]]:
+        """Expand packed coordinates into residue-major layout.
+
+        Returns:
+            Coordinates shaped ``[pose, residue, residue_atom, xyz]`` and the
+            corresponding real-atom mask shaped ``[pose, residue, residue_atom]``.
         """
 
         # get the list of real atoms that we will be writing to in the 4D tensor
@@ -314,13 +275,11 @@ class PoseStack:
         return expanded_coords, real_expanded_pose_ats
 
     @property
-    def n_res_per_pose(self):
+    def n_res_per_pose(self) -> Tensor[torch.int64][:]:
         return torch.sum(self.block_type_ind >= 0, dim=1)
 
-    def is_real_block(self, pose_ind: int, block_ind: int) -> bool:
-        """Report whether a particular block on a particular pose is
-        real or just filler
-        """
+    def is_real_block(self, pose_ind: int, block_ind: int) -> torch.Tensor:
+        """Return a scalar boolean tensor indicating whether a block is real."""
         return self.block_type_ind[pose_ind, block_ind] >= 0
 
     def block_type(self, pose_ind: int, block_ind: int) -> RefinedResidueType:
@@ -330,10 +289,12 @@ class PoseStack:
             self.block_type_ind[pose_ind, block_ind]
         ]
 
-    def get_constraint_set(self):
+    def get_constraint_set(self) -> ConstraintSet | None:
+        """Return the optional constraint set associated with this pose stack."""
         return self.constraint_set
 
-    def block_identity_map(self):
+    def block_identity_map(self) -> Tensor[torch.int32][:, :]:
+        """Return each residue's padded block index for every pose."""
         identity_map = torch.zeros_like(self.block_coord_offset)
         identity_map[:, :] = torch.arange(
             self.block_coord_offset.size(1), device=self.device

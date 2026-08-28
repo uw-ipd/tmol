@@ -85,18 +85,18 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         # create a convenient datastructure for following connections
         bondmap = {}
         for bond in bonds:
-            if bond[0] not in bondmap.keys():
+            if bond[0] not in bondmap:
                 bondmap[bond[0]] = set()
             bondmap[bond[0]].add(bond[1])
 
         # get lengths
-        for atom1 in bondmap.keys():
+        for atom1 in bondmap:
             for atom2 in bondmap[atom1]:
                 if atom1 < atom2:
                     lengths.append((atom1, atom2, -1, -1))
 
         # get angles
-        for atom1 in bondmap.keys():
+        for atom1 in bondmap:
             for atom2 in bondmap[atom1]:
                 for atom3 in bondmap[atom2]:
                     if atom1 >= atom3:
@@ -104,7 +104,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
                     angles.append((atom1, atom2, atom3, -1))
 
         # get torsions
-        for atom1 in bondmap.keys():
+        for atom1 in bondmap:
             for atom2 in bondmap[atom1]:
                 for atom3 in bondmap[atom2]:
                     if atom1 == atom3:
@@ -140,8 +140,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
                 + self.cart_database.residue_params[res].improper_parameters
                 + self.cart_database.residue_params[res].hxltorsion_parameters
             )
-        else:
-            return []
+        return []
 
     def get_formatted_atoms_and_params(self, raw_params):
         fields = ["atm1", "atm2", "atm3", "atm4"]

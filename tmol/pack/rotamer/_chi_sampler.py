@@ -1,7 +1,7 @@
 import torch
 import attr
 
-from typing import Tuple
+from typing import TYPE_CHECKING, Any
 
 from tmol.types import (
     Tensor,
@@ -14,40 +14,47 @@ from tmol.pose import (
     PoseStack,
 )
 from tmol.kinematics import KinForest
-from tmol.pack.rotamer import ConformerSampler
+from tmol.pack.rotamer import ConformerSample, ConformerSampler
+
+if TYPE_CHECKING:
+    from tmol.pack import PackerTask
 
 
 @attr.s(auto_attribs=True)
 class ChiSampler(ConformerSampler):
+    """Base class for samplers that define conformers through chi angles."""
+
     @classmethod
-    def sampler_name(cls):
+    def sampler_name(cls) -> str:
+        """Return the stable name used for chi-sampler annotations."""
         raise NotImplementedError()
 
     @validate_args
-    def annotate_residue_type(self, rt: RefinedResidueType):
+    def annotate_residue_type(self, rt: RefinedResidueType) -> None:
+        """Attach optional sampler metadata to one residue type."""
         pass
 
     @validate_args
-    def annotate_packed_block_types(self, packed_block_types: PackedBlockTypes):
+    def annotate_packed_block_types(self, packed_block_types: PackedBlockTypes) -> None:
+        """Attach optional sampler metadata to packed block types."""
         pass
 
     @validate_args
-    def defines_rotamers_for_rt(self, rt: RefinedResidueType):
+    def defines_rotamers_for_rt(self, rt: RefinedResidueType) -> bool:
+        """Return whether this sampler supports a residue type."""
         raise NotImplementedError()
 
     @validate_args
-    def first_sc_atoms_for_rt(self, rt_name: str) -> Tuple[str, ...]:
+    def first_sc_atoms_for_rt(self, rt_name: str) -> tuple[str, ...]:
+        """Return side-chain roots used to transfer main-chain geometry."""
         raise NotImplementedError()
 
     def create_samples_for_poses(
         self,
         pose_stack: PoseStack,
-        task: "PackerTask",  # noqa: 821
-    ) -> Tuple[  # noqa F821
-        Tensor[torch.int32][:],  # n_rots_for_gbt
-        Tensor[torch.int32][:],  # bt_for_rotamer
-        dict,  # anything else the sampler wants to save for later
-    ]:
+        task: "PackerTask",
+    ) -> ConformerSample:
+        """Create chi samples and preserve their defining atoms and angles."""
         (
             n_rots_for_gbt,
             gbt_for_rotamer,
@@ -64,8 +71,8 @@ class ChiSampler(ConformerSampler):
         )
 
     def sample_chi_for_poses(
-        self, systems: PoseStack, task: "PackerTask"  # noqa F821
-    ) -> Tuple[
+        self, systems: PoseStack, task: "PackerTask"
+    ) -> tuple[
         Tensor[torch.int32][:, :, :],  # n_rots_for_rt
         Tensor[torch.int32][:],  # rt_for_rotamer
         Tensor[torch.int32][:, :],  # chi_defining_atom_for_rotamer
@@ -76,7 +83,7 @@ class ChiSampler(ConformerSampler):
     def fill_dofs_for_samples(
         self,
         pose_stack: PoseStack,
-        task: "PackerTask",  # noqa: 821
+        task: "PackerTask",
         orig_kinforest: KinForest,
         orig_dofs_kto: Tensor[torch.float32][:, 9],
         gbt_for_conformer: Tensor[torch.int64][:],
@@ -88,9 +95,9 @@ class ChiSampler(ConformerSampler):
         conf_inds_for_sampler: Tensor[torch.int64][:],
         sampler_n_rots_for_gbt: Tensor[torch.int32][:],
         sampler_gbt_for_rotamer: Tensor[torch.int32][:],
-        sample_dict: dict,
+        sample_dict: dict[str, Any],
         conf_dofs_kto: Tensor[torch.float32][:, 9],
-    ):
+    ) -> None:
         copy_dofs_from_orig_to_rotamers_for_sampler(
             pose_stack,
             task,

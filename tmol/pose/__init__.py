@@ -1,3 +1,5 @@
+"""Pose stacks, packed residue types, and structural metadata."""
+
 from ._constraint_set import ConstraintSet  # noqa: F401
 from ._split_block_mapping import SplitBlockEntry, SplitBlockMapping  # noqa: F401
 from ._packed_block_types import PackedBlockTypes  # noqa: F401

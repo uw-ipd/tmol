@@ -1,3 +1,5 @@
+"""Compiled B-spline interpolation operations."""
+
 from ._compiled import (  # noqa: F401
     computeCoeffs2,
     computeCoeffs3,

@@ -1,3 +1,6 @@
+from typing import Any
+
+
 class _SubscribedType(type):
     """
     This class is a placeholder to let the IDE know the attributes of the
@@ -22,7 +25,7 @@ class SubscriptableType(type):
     'SomeType'
     """
 
-    def __init_subclass__(mcs, **kwargs):
+    def __init_subclass__(mcs, **kwargs: Any) -> None:
         mcs._hash = None
         mcs.__args__ = None
         mcs.__origin__ = None
@@ -40,7 +43,7 @@ class SubscriptableType(type):
             result._after_subscription(item)
         return result
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         self_module = getattr(self, "__module__", None)
         self_qualname = getattr(self, "__qualname__", None)
         self_origin = getattr(self, "__origin__", None)
@@ -58,7 +61,7 @@ class SubscriptableType(type):
             and self_origin == other_origin
         )
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         if not getattr(self, "_hash", None):
             self_module = getattr(self, "__module__", None)
             self_qualname = getattr(self, "__qualname__", None)

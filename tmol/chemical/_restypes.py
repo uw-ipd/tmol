@@ -149,8 +149,7 @@ def get_element_from_atom_name(atom_name: str) -> str:
             if len(element) == 2:
                 if element.upper() in ["FE", "MG", "CL", "ZN", "NA", "CU"]:
                     return element.capitalize()
-                else:
-                    return element[0].upper()
+                return element[0].upper()
         else:
             break
 
@@ -310,8 +309,7 @@ class RefinedResidueType(RawResidueType):
     def _setup_down_connection_ind(self):
         if "down" in self.connection_to_cidx:
             return self.connection_to_cidx["down"]
-        else:
-            return -1
+        return -1
 
     up_connection_ind: int = attr.ib()
 
@@ -319,10 +317,9 @@ class RefinedResidueType(RawResidueType):
     def _setup_up_connection_ind(self):
         if "up" in self.connection_to_cidx:
             return self.connection_to_cidx["up"]
-        else:
-            return -1
+        return -1
 
-    def _repr_pretty_(self, p, cycle):
+    def _repr_pretty_(self, p, _cycle):
         p.text(f"RefinedResidueType(name={self.name},...)")
 
     torsion_to_uaids: Mapping[str, Tuple[UnresolvedAtomID]] = attr.ib()
@@ -471,7 +468,7 @@ class RefinedResidueType(RawResidueType):
             # create a convenient datastructure for following connections
             bondmap = {-1: []}
             for bond in self.bond_indices:
-                if bond[0] not in bondmap.keys():
+                if bond[0] not in bondmap:
                     bondmap[bond[0]] = []
                 bondmap[bond[0]].append(bond[1])
 

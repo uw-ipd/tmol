@@ -175,20 +175,6 @@ def cat_differently_sized_tensors(
     return newt, sizes, strides
 
 
-# def real_elements_of_differently_sized_tensors(tensors: List):
-#     assert len(tensors) > 0
-#     for tensor in tensors:
-#         assert len(tensor.shape) == len(tensors[0].shape)
-#         assert tensor.dtype == tensors[0].dtype
-#         assert tensor.device == tensor[0].device
-#
-#     device = tensors[0].device
-#     new_sizes = [
-#         max(t.shape[i] for t in tensors) for i in range(len(tensors[0].shape))
-#     ]
-#     arange_inds = torch.arange(new_sizes.shape[-1], dtype=torch.int64, device=device)
-
-
 def join_tensors_and_report_real_entries(tensors: List, sentinel: int = -1):
     """Concatenate a bunch of N-dimensional tensors into a single N+1-D tensor
     and report which elements out of the new tensor are real.

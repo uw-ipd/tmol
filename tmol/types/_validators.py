@@ -2,7 +2,7 @@
 
 from functools import singledispatch
 
-from typing import List, get_args
+from typing import List, get_args, get_origin
 from typing_inspect import is_tuple_type, is_union_type
 import toolz
 
@@ -26,34 +26,7 @@ def is_list_type(tp):
         get_origin(tp) is list  # Tuple prior to Python 3.7
     """
 
-    from typing_inspect import NEW_TYPING
-
-    if NEW_TYPING:
-        import sys
-        from typing import Generic, _GenericAlias
-
-        if sys.version_info[:3] >= (3, 9, 0):
-            from typing import _SpecialGenericAlias
-            from types import GenericAlias
-
-            typingGenericAlias = (_GenericAlias, _SpecialGenericAlias, GenericAlias)
-        else:
-            typingGenericAlias = (_GenericAlias,)
-
-        return (
-            tp is List
-            or isinstance(tp, typingGenericAlias)
-            and tp.__origin__ is list
-            or isinstance(tp, type)
-            and issubclass(tp, Generic)
-            and issubclass(tp, list)
-        )
-
-    # only attempt to import if we have an old version of python?
-    # is this needed? We are targetting tmol for python3.7+
-    from typing import ListMeta
-
-    return type(tp) is ListMeta
+    return tp is List or get_origin(tp) is list
 
 
 @singledispatch
@@ -61,8 +34,7 @@ def get_validator(type_annotation):
     for pred, val in _validators:
         if pred(type_annotation):
             return val(type_annotation)
-    else:
-        return validate_isinstance(type_annotation)
+    return validate_isinstance(type_annotation)
 
 
 @toolz.curry

@@ -780,6 +780,8 @@ def canonical_form_from_biotite(
             where the resulting tensors should be allocated.
         co: A CanonicalForm in case you want to use a non-default database (and thus may need
             a different mapping)
+        missing_density_distance_threshold: Maximum distance in angstroms for
+            treating a polymer gap as missing density rather than a chain break.
 
     Returns:
         CanonicalForm: A data structure containing:
@@ -968,7 +970,6 @@ def biotite_from_canonical_form(  # noqa: C901
 
     if co is None:
         co = canonical_ordering_for_biotite()
-    # rts = _restype_set_for_biotite()
 
     n_poses = cf.coords.size(0)
     n_residues = cf.coords.size(1)

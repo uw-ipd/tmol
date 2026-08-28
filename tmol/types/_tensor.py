@@ -114,9 +114,8 @@ class _TensorType(metaclass=_TensorTypeMeta):
         instance_shape = instance.shape
         if not subshape:
             return instance.shape
-        else:
-            assert len(instance_shape) >= len(subshape)
-            return instance_shape[: -len(subshape)]
+        assert len(instance_shape) >= len(subshape)
+        return instance_shape[: -len(subshape)]
 
 
 class TensorGroup:
@@ -230,8 +229,7 @@ class TensorGroup:
         diff = set(n for n in components if components[n] is not to_components[n])
         if not diff:
             return self
-        else:
-            return attr.evolve(self, **to_components)
+        return attr.evolve(self, **to_components)
 
 
 def cat(seq, dim=0, out=None):

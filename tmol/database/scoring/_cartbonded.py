@@ -82,5 +82,4 @@ class CartBondedDatabase:
     @classmethod
     def _generate_hash(cls, resparam_dict):
         serialized = json.dumps(resparam_dict, sort_keys=True)
-        hash_value = hashlib.sha256(serialized.encode("utf-8")).hexdigest()
-        return hash_value
+        return hashlib.sha256(serialized.encode("utf-8")).hexdigest()

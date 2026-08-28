@@ -92,8 +92,7 @@ def _builtin_signature(f):
 
     if getattr(f, "__text_signature__", None):
         return inspect.signature(f)
-    else:
-        return _pybind11_signature(f)
+    return _pybind11_signature(f)
 
 
 def _pybind11_doc_signatures(f):

@@ -53,7 +53,7 @@ class FixedAAChiSampler(ChiSampler):
     def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
         if rt.base_name == "GLY":
             return ("HA3",)
-        elif rt.base_name == "ALA":
+        if rt.base_name == "ALA":
             return ("CB",)
 
     def annotate_residue_type(self, block_type):

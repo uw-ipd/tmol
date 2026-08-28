@@ -206,7 +206,6 @@ def atom_records_from_coords(
     pose_atom_offsets = exclusive_cumsum1d(n_pose_atoms)
 
     # ok, let's move everything to the cpu/numpy from here forward
-    # chain_begin = chain_begin.cpu().numpy()
     block_types64 = block_types64.cpu().numpy()
     pose_like_coords = pose_like_coords.cpu().detach().numpy()
     block_coord_offset = block_coord_offset.cpu().numpy()

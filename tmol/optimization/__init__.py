@@ -1,3 +1,5 @@
+"""Minimizers and scoring-function optimization adapters."""
+
 from ._lbfgs_armijo import (  # noqa: F401
     LBFGS_Armijo,
     armijo_linesearch_segmented,

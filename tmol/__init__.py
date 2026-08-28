@@ -1,3 +1,5 @@
+"""TMol: GPU-accelerated molecular modeling with PyTorch."""
+
 # flake8: noqa
 
 # Load pre-compiled C++/CUDA extensions (TORCH_LIBRARY ops).

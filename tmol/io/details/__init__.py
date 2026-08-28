@@ -1,3 +1,5 @@
+"""Internal canonical-form and pose-construction operations."""
+
 from ._build_missing_leaf_atoms import (  # noqa: F401
     build_missing_leaf_atoms,
     BlockTypeLeafAtomsAnnotation,

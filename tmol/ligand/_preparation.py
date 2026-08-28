@@ -758,9 +758,18 @@ def prepare_ligand_from_smiles(
     requires the optional ``openbabel`` package.
 
     Args:
+        smiles: Ligand SMILES to protonate and prepare.
+        param_db: Base parameter database; defaults to the TMol database.
+        ph: Target pH used when ``protonate`` is true.
+        strict_atom_types: Fail instead of falling back for unknown atom types.
+        res_name: Optional residue-name override.
         protonate: When ``True`` (default) Dimorphite protonates ``smiles``
             first; set ``False`` to pin an already-protonated SMILES verbatim.
+        sample_proton_chi: Emit chi samples for rotatable polar hydrogens.
         seed: Fixed RNG seed for reproducible 3D coordinates; ``None`` is random.
+
+    Returns:
+        A ``(ParameterDatabase, CanonicalOrdering)`` with the ligand injected.
     """
     lig = nonstandard_residue_info_from_smiles_via_mol2(
         smiles,

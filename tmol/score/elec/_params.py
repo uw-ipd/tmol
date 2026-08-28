@@ -65,11 +65,7 @@ class ElecParamResolver(ValidateAttrs):
                 if vi in self.partial_charges[res][atm.name]:
                     return self.partial_charges[res][atm.name][vi]
 
-        partial_charge = numpy.vectorize(lookup_charge, otypes=[numpy.float32])(
-            block_type.atoms
-        )
-
-        return partial_charge
+        return numpy.vectorize(lookup_charge, otypes=[numpy.float32])(block_type.atoms)
 
     def get_bonded_path_length_mapping_for_block(self, block_type: RefinedResidueType):
         """remap bonded path length for a residue block"""

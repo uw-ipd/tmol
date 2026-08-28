@@ -58,23 +58,27 @@ Or a standard, ordering/density:
 - ``[:,4,4].dense(2).order('c')`` - ndim 3, shape (n, 4,4), 2-dense, c-contiguous
 """
 
+from collections.abc import Sequence
+from typing import Any
+
 import attr
 
 
 @attr.s(frozen=True, slots=True)
 class Dim:
+    """One dimension in a runtime-validated tensor shape."""
+
     @staticmethod
     def _to_size(size):
         if size in (None, Ellipsis):
             return size
-        elif isinstance(size, slice):
+        if isinstance(size, slice):
             if size.start is not None:
                 raise ValueError("Invalid slice.", size)
             if size.step is not None:
                 raise ValueError("Invalid slice.", size)
             return size.stop
-        else:
-            return int(size)
+        return int(size)
 
     size = attr.ib(converter=_to_size.__func__)
 
@@ -82,26 +86,28 @@ class Dim:
     def _valid_size(self, _, size):
         if size is None:
             return
-        elif size is Ellipsis:
+        if size is Ellipsis:
             return
-        else:
-            if not isinstance(size, int) or size < 1:
-                raise ValueError("size must be None, Ellipsis, or >1", size)
+        if not isinstance(size, int) or size < 1:
+            raise ValueError("size must be None, Ellipsis, or >1", size)
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.size is Ellipsis:
             return "..."
-        elif self.size is None:
+        if self.size is None:
             return ":"
-        else:
-            return str(self.size)
+        return str(self.size)
 
 
 @attr.s(slots=True, frozen=True)
 class Shape:
-    class Factory(object):
+    """Runtime-validatable tensor shape specification."""
+
+    class Factory:
+        """Construct ``Shape`` objects through subscription syntax."""
+
         @staticmethod
-        def __getitem__(args):
+        def __getitem__(args: Any) -> "Shape":
             if not isinstance(args, tuple):
                 args = (args,)
 
@@ -122,14 +128,8 @@ class Shape:
         if any(e.size is Ellipsis for e in dims[1:]):
             raise ValueError("Invalid dims", dims)
 
-    @classmethod
-    def create(cls, dims):
-        cls(dims=list(map(Dim, dims)))
-
-    def __init__(self, dims):
-        dims = list(map(Dim, dims))
-
-    def validate(self, shape):
+    def validate(self, shape: Sequence[int]) -> bool:
+        """Validate concrete dimensions against this specification."""
         dims = list(self.dims)
         adims = list(shape)
 
@@ -147,7 +147,7 @@ class Shape:
                     f"Fewer than expected dims in shape. "
                     f"expected: {self!s} received: {adims}"
                 )
-            elif not dims[0].size is Ellipsis:
+            if dims[0].size is not Ellipsis:
                 raise ValueError(
                     f"No implied broadcast to shape. "
                     f"expected: {self!s} received: {adims}"
@@ -157,7 +157,7 @@ class Shape:
         assert len(dims) == len(adims)
 
         for d, a in zip(dims, adims):
-            if d.size and d.size is not Ellipsis and d.size is not a:
+            if d.size and d.size is not Ellipsis and d.size != a:
                 raise ValueError(
                     f"Invalid dimension size. "
                     f"expected: {self!s} received: {adims} dim: {d} size: {a}"
@@ -165,7 +165,7 @@ class Shape:
 
         return True
 
-    def __call__(self, trait, value):
+    def __call__(self, _trait: Any, value: Any) -> Any:
         """Validate shape for given array."""
         try:
             self.validate(value.shape)
@@ -173,10 +173,10 @@ class Shape:
         except ValueError as vex:
             raise ValueError(f"Invalid shape: {value.shape} expected: {self}") from vex
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "[{}]".format(",".join(map(str, self.dims)))
 
-    def _repr_pretty_(self, p, cycle):
+    def _repr_pretty_(self, p: Any, cycle: bool) -> None:
         assert not cycle
 
         p.text(str(self))

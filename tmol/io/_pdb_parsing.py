@@ -1,4 +1,3 @@
-# flake8: noqa: E2
 """Utility functions for converting pdb files to/from atom records.
 
 Atom records are DataFrames with the records:
@@ -72,20 +71,20 @@ def parse_pdb(pdb_lines) -> pandas.DataFrame:
 
     # Accumulate atom lines, flagging model/chain breaks on the
     # last atom of the model/chain
-    for l in pdb_lines:
-        if l.startswith("MODEL"):
+    for line in pdb_lines:
+        if line.startswith("MODEL"):
             if model_breaks:
                 model_breaks[-1] = True
 
             if chain_breaks:
                 chain_breaks[-1] = True
 
-            model_name = l[6:].strip()
-        elif l.startswith("TER"):
+            model_name = line[6:].strip()
+        elif line.startswith("TER"):
             if chain_breaks:
                 chain_breaks[-1] = True
-        elif l.startswith("ATOM  "):
-            atom_lines.append(l)
+        elif line.startswith("ATOM  "):
+            atom_lines.append(line)
 
             chain_breaks.append(False)
 
@@ -163,10 +162,6 @@ def parse_atom_lines(lines):
         lines
     )
     results["b"] = numpy.vectorize(lambda s: float(s[60:66]), otypes=[float])(lines)
-    # results["segi"]       = numpy.vectorize(lambda s: str.strip(s[72:76]), otypes = [numpy.str])(lines)
-    # results["element"]    = numpy.vectorize(lambda s: str.strip(s[76:78]), otypes = [numpy.str])(lines)
-    # results["charge"]     = numpy.vectorize(lambda s: float(s[78:80]), otypes     = [numpy.float])(lines)
-
     return results
 
 
@@ -183,8 +178,7 @@ def format_atomn(atomn):
 
     if atomn.startswith(("H", "C", "N", "O", "S")) and len(atomn) < 4:
         return " {0:<3}".format(atomn)
-    else:
-        return "{0:<4}".format(atomn)
+    return "{0:<4}".format(atomn)
 
 
 def to_pdb_lines(atom_records):
@@ -196,8 +190,8 @@ def to_pdb_lines(atom_records):
     for model_name, records in atom_records.groupby("model"):
         yield "MODEL {}\n".format(model_name)
 
-        for l in to_atom_lines(r for _, r in records.iterrows()):
-            yield l
+        for line in to_atom_lines(r for _, r in records.iterrows()):
+            yield line
 
         yield "TER\n"
         yield "ENDMDL\n"

@@ -1,3 +1,5 @@
+"""Hydrogen-bond parameter resolution and scoring."""
+
 from ._params import (  # noqa: F401
     CompactedHBondDatabase,
     HBondPairParams,

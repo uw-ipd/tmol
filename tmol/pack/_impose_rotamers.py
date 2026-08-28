@@ -45,8 +45,6 @@ def impose_top_rotamer_assignments(
     max_n_atoms_per_block = orig_pose_stack.max_n_atoms
     max_n_molten_blocks = bc_assignment.shape[2]
     bc_assignment = bc_assignment[:, 0, :]
-    # n_assignments = bc_assignment.shape[1]
-    # print("bc_assignment", bc_assignment.shape, bc_assignment.dtype)
 
     # map from the subset of blocks and bump-checked rotamer
     # to an assignment in the original rotamer-set indexing
@@ -60,10 +58,6 @@ def impose_top_rotamer_assignments(
     is_molten_block = torch.logical_and(
         rotamer_for_nonmolten_block == -1, is_real_block
     )
-    # print("is_molten_block.unsqueeze(1).expand(-1, n_assignments, -1)", is_molten_block.unsqueeze(1).expand(-1, n_assignments, -1).shape)
-    # print("bc_assignment[is_molten_block.unsqueeze(1).expand(-1, n_assignments, -1)]", bc_assignment[is_molten_block.unsqueeze(1).expand(-1, n_assignments, -1)].shape)
-    # print("assignment[is_molten_block, :]", assignment[is_molten_block, :].shape)
-
     molten_block_arange = (
         torch.arange(max_n_molten_blocks, dtype=torch.int64, device=device)
         .unsqueeze(0)
@@ -77,16 +71,10 @@ def impose_top_rotamer_assignments(
 
     assignment[is_molten_block] = bc_rot_to_orig_rot[bc_assignment_global].reshape(-1)
 
-    # print("assignment", assignment.shape)
-    # print("assignment", assignment)
-
     # lets figure out how many atoms per pose
     new_block_type_ind64 = torch.full(
         (n_poses, max_n_blocks), -1, dtype=torch.int64, device=device
     )
-    # new_rot_for_block64 = (
-    #     assignment[:, 0, :].to(torch.int64) + rotamer_set.rot_offset_for_block
-    # )
     new_rot_for_block64 = assignment
 
     is_real_block = orig_pose_stack.block_type_ind64 != -1
@@ -274,7 +262,7 @@ def impose_top_rotamer_assignments(
         new_pdb_info = orig_pose_stack.pdb_info
 
     # now construct the new PoseStack
-    new_pose_stack = PoseStack(
+    return PoseStack(
         packed_block_types=pbt,
         coords=new_coords,
         block_coord_offset=new_n_atoms_offset32,
@@ -292,4 +280,3 @@ def impose_top_rotamer_assignments(
         device=device,
         split_block_mapping=orig_pose_stack.split_block_mapping,
     )
-    return new_pose_stack

@@ -169,8 +169,6 @@ def create_non_sidechain_fingerprint(  # noqa: C901
         n_bonds[rt.bond_indices[i, 0]] += 1
         n_nonh_bonds[rt.connection_to_idx[conn]] += 1
 
-    # mc_ancestors = numpy.full(rt.n_atoms, -1, dtype=numpy.int32)
-    # chiralities = numpy.full(rt.n_atoms, -1, dtype=numpy.int32)
     non_sc_atom_fingerprints = []
     at_for_fingerprint = {}
     fp_seen_count = {}

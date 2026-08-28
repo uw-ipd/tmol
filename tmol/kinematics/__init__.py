@@ -1,3 +1,5 @@
+"""Kinematic trees, fold forests, move maps, and coordinate transforms."""
+
 from ._fold_forest import EdgeType, FoldForest, _build_pose_fold_forest  # noqa: F401
 from ._datatypes import (  # noqa: F401
     BTGenerationalSegScanPathSegs,

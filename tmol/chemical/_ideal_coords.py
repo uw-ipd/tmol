@@ -1,26 +1,30 @@
+from typing import TYPE_CHECKING
+
 import numpy
 
+from tmol.types import NDArray
 
-def eye4():
-    """Create the identity homogeneous transform
-    Only necessary because numpy.eye(4, dtype=numpy.float32)
-    is strangely unsupported in numpy"""
+if TYPE_CHECKING:
+    from tmol.chemical import RefinedResidueType
+
+
+def eye4() -> NDArray[numpy.float32][4, 4]:
+    """Return a single-precision homogeneous identity transform."""
 
     return numpy.eye(4, dtype=numpy.float32)
 
-    # m = numpy.zeros((4, 4), dtype=numpy.float32)
-    # m[0, 0] = 1
-    # m[1, 1] = 1
-    # m[2, 2] = 1
-    # m[3, 3] = 1
-    # return m
 
-
-def normalize(v):
+def normalize(v: numpy.ndarray) -> numpy.ndarray:
+    """Return ``v`` scaled to unit length."""
     return v / numpy.linalg.norm(v)
 
 
-def frame_from_coords(p1, p2, p3):
+def frame_from_coords(
+    p1: NDArray[numpy.float32][3],
+    p2: NDArray[numpy.float32][3],
+    p3: NDArray[numpy.float32][3],
+) -> NDArray[numpy.float32][4, 4]:
+    """Construct a homogeneous frame from three Cartesian points."""
     ht = eye4()
     z = normalize(p3 - p2)
     v21 = normalize(p1 - p2)
@@ -34,11 +38,11 @@ def frame_from_coords(p1, p2, p3):
     return ht
 
 
-def rot_x(rot):
+def rot_x(rot: float) -> NDArray[numpy.float32][4, 4]:
+    """Return a homogeneous rotation about the x-axis."""
     ht = eye4()
     crot = numpy.cos(rot)
     srot = numpy.sin(rot)
-    # print("rot x", rot, crot, srot)
     ht[1, 1] = crot
     ht[2, 1] = srot
     ht[1, 2] = -srot
@@ -46,11 +50,11 @@ def rot_x(rot):
     return ht
 
 
-def rot_z(rot):
+def rot_z(rot: float) -> NDArray[numpy.float32][4, 4]:
+    """Return a homogeneous rotation about the z-axis."""
     ht = eye4()
     crot = numpy.cos(rot)
     srot = numpy.sin(rot)
-    # print("rot z", rot, crot, srot)
     ht[0, 0] = crot
     ht[1, 0] = srot
     ht[0, 1] = -srot
@@ -58,13 +62,18 @@ def rot_z(rot):
     return ht
 
 
-def trans_z(trans):
+def trans_z(trans: float) -> NDArray[numpy.float32][4, 4]:
+    """Return a homogeneous translation along the z-axis."""
     ht = eye4()
     ht[2, 3] = trans
     return ht
 
 
-def build_coords_from_icoors(icoors_ancestors, icoors_geom):
+def build_coords_from_icoors(
+    icoors_ancestors: NDArray[numpy.int32][:, 3],
+    icoors_geom: NDArray[numpy.float64][:, 3],
+) -> NDArray[numpy.float32][:, 3]:
+    """Build Cartesian coordinates from ancestor indices and internal geometry."""
     # start with atom 1 at the origin
     # place atom 2 along the x axis
     # place atom 3 in the x-y plane
@@ -98,7 +107,6 @@ def build_coords_from_icoors(icoors_ancestors, icoors_geom):
     coords[2, :] = ht_2[:3, 3]
 
     for i in range(3, icoors_ancestors.shape[0]):
-        # print("ancestors", i)
         ht_i = frame_from_coords(
             coords[icoors_ancestors[i, 2], :],
             coords[icoors_ancestors[i, 1], :],
@@ -116,7 +124,10 @@ def build_coords_from_icoors(icoors_ancestors, icoors_geom):
     return coords
 
 
-def build_ideal_coords(restype: "RefinedResidueType"):  # noqa F821
+def build_ideal_coords(
+    restype: "RefinedResidueType",
+) -> NDArray[numpy.float32][:, 3]:
+    """Build ideal Cartesian coordinates for a refined residue type."""
     # lets build a kinforest using not the prioritized bonds,
     # but the icoors; let's not even use the scan algorithm.
     # let's just build the coordinates directly from the

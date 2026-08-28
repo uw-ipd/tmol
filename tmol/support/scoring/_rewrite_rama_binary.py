@@ -47,7 +47,7 @@ def parse_lines_as_ndarrays(lines, aacol=0, phipsicol=1, probcol=3):
         if cols[0][0] == "#":
             continue
         curaa = cols[aacol]
-        if curaa not in prob_tables.keys():
+        if curaa not in prob_tables:
             prob_tables[curaa] = numpy.zeros((36, 36), dtype=float)
         phi_ind, psi_ind = (
             int(float(x)) // 10 + 18 for x in cols[phipsicol : (phipsicol + 2)]

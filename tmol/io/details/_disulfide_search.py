@@ -109,8 +109,6 @@ def find_disulf_numba(
     #    mark the two as now paired
 
     n_cys = cys_pose_ind.shape[0]
-    # oops -- doesn't work in nopython mode
-    # already_paired = restype_variants[cys_pose_ind, cys_res_ind] == 1
     already_paired = numpy.zeros(n_cys, dtype=numpy.int32)
     for i in range(n_cys):
         already_paired[i] = restype_variants[cys_pose_ind[i], cys_res_ind[i]]
@@ -150,5 +148,4 @@ def find_disulf_numba(
             restype_variants[i_pose, i_res] = 1
             restype_variants[i_pose, closest_match_res] = 1
             n_found_dslf += 1
-    found_dslf = found_dslf[:n_found_dslf]
-    return found_dslf
+    return found_dslf[:n_found_dslf]

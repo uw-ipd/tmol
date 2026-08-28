@@ -5,7 +5,9 @@ from ._validators import get_validator
 
 
 class ConvertAttrs:
-    def __attrs_post_init__(self):
+    """Convert attrs fields according to their declared annotations."""
+
+    def __attrs_post_init__(self) -> None:
         for a in self.__attrs_attrs__:
             if not a.converter:
                 object.__setattr__(
@@ -14,7 +16,9 @@ class ConvertAttrs:
 
 
 class ValidateAttrs:
-    def __attrs_post_init__(self):
+    """Validate attrs fields according to their declared annotations."""
+
+    def __attrs_post_init__(self) -> None:
         for a in self.__attrs_attrs__:
             if not a.validator:
                 try:

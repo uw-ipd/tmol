@@ -1,3 +1,5 @@
+"""Packing and minimization protocols for structural relaxation."""
+
 from ._fast_relax import (  # noqa: F401
     DEFAULT_RELAX_SCHEDULE,
     _default_cart_min_fn,
