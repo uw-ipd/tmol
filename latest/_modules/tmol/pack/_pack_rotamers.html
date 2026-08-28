@@ -422,9 +422,19 @@
     <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
     <span class="n">sfxn</span><span class="p">:</span> <span class="n">ScoreFunction</span><span class="p">,</span>
     <span class="n">task</span><span class="p">:</span> <span class="n">PackerTask</span><span class="p">,</span>
-    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="o">**</span><span class="n">sa_params</span><span class="p">,</span>
-<span class="p">):</span>
+    <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Optimize side-chain conformers for a pose stack.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        pose_stack: Poses whose task-enabled blocks will be packed.</span>
+<span class="sd">        sfxn: Score function used to rank rotamer assignments.</span>
+<span class="sd">        task: Allowed block types, conformers, and packing positions.</span>
+<span class="sd">        verbose: Print synchronized stage timings when true.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A new pose stack containing the lowest-ranked assignment per pose.</span>
+<span class="sd">    """</span>
 
     <span class="k">if</span> <span class="n">verbose</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">synchronize</span><span class="p">()</span>
@@ -452,9 +462,7 @@
         <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">synchronize</span><span class="p">()</span>
     <span class="n">end_time4</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
 
-    <span class="n">scores</span><span class="p">,</span> <span class="n">rotamer_assignments</span> <span class="o">=</span> <span class="n">run_simulated_annealing</span><span class="p">(</span>
-        <span class="n">packer_energy_tables</span><span class="p">,</span> <span class="o">**</span><span class="n">sa_params</span>
-    <span class="p">)</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">rotamer_assignments</span> <span class="o">=</span> <span class="n">run_simulated_annealing</span><span class="p">(</span><span class="n">packer_energy_tables</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">verbose</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">synchronize</span><span class="p">()</span>
     <span class="n">end_time5</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
