@@ -1,3 +1,4 @@
+import attr
 import torch
 import numpy
 import toolz
@@ -26,6 +27,10 @@ from tmol.utility import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class Atom37MappingError(ValueError):
+    """An AtomArray cannot be routed unambiguously into an Atom37 tensor."""
 
 
 @validate_args
@@ -143,6 +148,7 @@ def pose_stack_from_biotite(  # noqa: C901
     sample_proton_chi: bool = True,
     return_context: bool = False,
     context: PoseBuildContext | None = None,
+    atom37_coords: torch.Tensor | None = None,
     **kwargs: object,
 ) -> (
     PoseStack | tuple[PoseStack, dict[str, object]] | tuple[PoseStack, PoseBuildContext]
@@ -194,6 +200,14 @@ def pose_stack_from_biotite(  # noqa: C901
         context: Reusable context from ``build_context_from_biotite``. It must
             be on ``torch_device`` and is mutually exclusive with ``param_db``
             and ``prepare_ligands=True``.
+        atom37_coords: Optional coordinates shaped ``[pose, token, 37, xyz]``.
+            When supplied, mapped finite coordinates are read from this tensor
+            using the input structure's integer ``token_id`` and
+            ``atom37_slot`` annotations. Unmapped atoms and non-finite entries
+            retain the Biotite coordinates, allowing TMol to build absent leaf
+            atoms normally. The resulting pose coordinates remain connected to
+            this tensor for autograd. Geometry-based missing-density and
+            additional-disulfide detection are disabled so topology is fixed.
         **kwargs: Additional arguments passed to pose_stack_from_canonical_form.
 
     Returns:
@@ -256,7 +270,18 @@ def pose_stack_from_biotite(  # noqa: C901
         torch_device,
         co=context.canonical_ordering,
         missing_density_distance_threshold=missing_density_distance_threshold,
+        atom37_coords=atom37_coords,
     )
+
+    if atom37_coords is not None:
+        kwargs.setdefault("find_additional_disulfides", False)
+
+    caller_requested_atom_mapping = bool(kwargs.get("return_atom_mapping", False))
+    if atom37_coords is not None:
+        # Coordinate rebuilding / hydrogen optimization may return a detached
+        # coordinate tensor. Keep the canonical-to-pose mapping so the finite
+        # input coordinates can be restored afterward without name matching.
+        kwargs["return_atom_mapping"] = True
 
     result = pose_stack_from_canonical_form(
         context.canonical_ordering,
@@ -302,6 +327,17 @@ def pose_stack_from_biotite(  # noqa: C901
             na_sampler=na_sampler,
         )
 
+    if atom37_coords is not None and needs_packing:
+        pose_stack = _restore_canonical_input_coords(
+            pose_stack,
+            cf.coords,
+            opt_return_vals["can_atom_mapping"],
+            opt_return_vals["ps_atom_mapping"],
+        )
+    if atom37_coords is not None and not caller_requested_atom_mapping:
+        del opt_return_vals["can_atom_mapping"]
+        del opt_return_vals["ps_atom_mapping"]
+
     if fragment_mapping is not None:
         pose_stack.split_block_mapping = fragment_mapping
     _assert_no_nan_coords(pose_stack)
@@ -319,6 +355,38 @@ def pose_stack_from_biotite(  # noqa: C901
     if len(opt_return_vals) > (0 if return_block_has_missing_atoms else 1):
         return pose_stack, opt_return_vals
     return pose_stack
+
+
+def _restore_canonical_input_coords(
+    pose_stack: PoseStack,
+    canonical_coords: torch.Tensor,
+    canonical_atom_mapping: torch.Tensor,
+    pose_atom_mapping: torch.Tensor,
+) -> PoseStack:
+    """Restore finite canonical inputs after coordinate rebuilding or packing.
+
+    TMol's packing pipeline deliberately treats coordinates as values rather
+    than as an autograd graph. Atom37 callers need the reverse behavior: keep
+    rebuilt/optimized coordinates for missing atoms and hydrogens, but route
+    every finite input atom back to the differentiable canonical tensor. The
+    atom mapping returned by pose construction makes this a pair of indexed
+    tensor operations and avoids matching residue or atom names.
+    """
+    canonical_atom_mapping = canonical_atom_mapping.to(torch.int64)
+    pose_atom_mapping = pose_atom_mapping.to(torch.int64)
+    source_coords = canonical_coords[
+        canonical_atom_mapping[:, 0],
+        canonical_atom_mapping[:, 1],
+        canonical_atom_mapping[:, 2],
+    ]
+    finite = torch.isfinite(source_coords).all(dim=-1)
+
+    coords = pose_stack.coords.clone()
+    coords[
+        pose_atom_mapping[finite, 0],
+        pose_atom_mapping[finite, 1],
+    ] = source_coords[finite]
+    return attr.evolve(pose_stack, coords=coords)
 
 
 def _assert_no_ligand_with_missing_atoms(
@@ -758,12 +826,127 @@ def _populate_optional_atom_metadata(
     return biotite_b_factors, biotite_occupancy
 
 
+def _populate_canonical_coords_from_atom37(
+    atom37_coords: torch.Tensor,
+    biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
+    torch_device: torch.device,
+    co: CanonicalOrdering,
+    biotite_residues,
+    valid_atom_mask: numpy.ndarray,
+    valid_res_inds: numpy.ndarray,
+    valid_atom_inds: numpy.ndarray,
+) -> tuple[torch.Tensor, int]:
+    """Overlay mapped atom37 coordinates on the Biotite canonical coordinates.
+
+    Finite tensor values replace their matching Biotite atoms through one
+    differentiable indexed assignment. Unmapped and non-finite tensor entries
+    retain the reference coordinates, which is important for hydrogens and for
+    atoms that TMol may need to rebuild.
+
+    Returns:
+        The canonical coordinate tensor and its pose count.
+    """
+    if atom37_coords.ndim != 4 or atom37_coords.shape[-2:] != (37, 3):
+        raise ValueError(
+            "atom37_coords must have shape [n_poses, n_tokens, 37, 3]; "
+            f"got {tuple(atom37_coords.shape)}"
+        )
+    if atom37_coords.dtype != torch.float32:
+        raise TypeError(
+            "atom37_coords must have dtype torch.float32; " f"got {atom37_coords.dtype}"
+        )
+    if atom37_coords.device != torch_device:
+        raise ValueError(
+            f"atom37_coords is on '{atom37_coords.device}' but torch_device is "
+            f"'{torch_device}'; they must match"
+        )
+
+    categories = set(biotite_structure.get_annotation_categories())
+    missing = {"token_id", "atom37_slot"} - categories
+    if missing:
+        raise Atom37MappingError(
+            "atom37 coordinate routing requires integer Biotite annotation(s): "
+            + ", ".join(sorted(missing))
+        )
+
+    token_id = numpy.asarray(biotite_structure.token_id)
+    slot = numpy.asarray(biotite_structure.atom37_slot)
+    if not numpy.issubdtype(token_id.dtype, numpy.integer):
+        raise Atom37MappingError(
+            "Biotite token_id annotation must have an integer dtype"
+        )
+    if not numpy.issubdtype(slot.dtype, numpy.integer):
+        raise Atom37MappingError(
+            "Biotite atom37_slot annotation must have an integer dtype"
+        )
+
+    token_id = token_id.astype(numpy.int64, copy=False)[valid_atom_mask]
+    slot = slot.astype(numpy.int64, copy=False)[valid_atom_mask]
+    mapped = (token_id >= 0) & (slot >= 0)
+    if numpy.any(slot[mapped] >= 37):
+        maximum = int(slot[mapped].max())
+        raise Atom37MappingError(
+            f"atom37_slot values must be less than 37; got {maximum}"
+        )
+    if numpy.any(token_id[mapped] >= atom37_coords.shape[1]):
+        maximum = int(token_id[mapped].max())
+        raise Atom37MappingError(
+            f"token_id {maximum} exceeds atom37_coords token count "
+            f"{atom37_coords.shape[1]}"
+        )
+    if not numpy.any(mapped):
+        raise Atom37MappingError("No supported Biotite atoms map to atom37_coords")
+
+    source_pairs = numpy.column_stack((token_id[mapped], slot[mapped]))
+    if numpy.unique(source_pairs, axis=0).shape[0] != source_pairs.shape[0]:
+        raise Atom37MappingError(
+            "Each mapped Biotite atom must use a unique (token_id, atom37_slot) pair"
+        )
+
+    reference_coords, reference_n_poses = _populate_canonical_coords(
+        biotite_structure,
+        torch_device,
+        co,
+        biotite_residues,
+        valid_atom_mask,
+        valid_res_inds,
+        valid_atom_inds,
+    )
+    n_poses = atom37_coords.shape[0]
+    if reference_n_poses not in (1, n_poses):
+        raise ValueError(
+            f"Biotite structure has {reference_n_poses} poses but atom37_coords "
+            f"has {n_poses}"
+        )
+    if reference_n_poses == 1 and n_poses != 1:
+        reference_coords = reference_coords.expand(n_poses, -1, -1, -1).clone()
+
+    mapped_token_id = torch.as_tensor(token_id[mapped], device=torch_device)
+    mapped_slot = torch.as_tensor(slot[mapped], device=torch_device)
+    source_coords = atom37_coords[:, mapped_token_id, mapped_slot]
+    finite = torch.isfinite(source_coords).all(dim=-1)
+    pose_inds, source_inds = torch.nonzero(finite, as_tuple=True)
+    mapped_res_inds = torch.as_tensor(
+        numpy.asarray(valid_res_inds)[mapped], device=torch_device
+    )
+    mapped_atom_inds = torch.as_tensor(
+        numpy.asarray(valid_atom_inds)[mapped], device=torch_device
+    )
+    reference_coords[
+        pose_inds,
+        mapped_res_inds[source_inds],
+        mapped_atom_inds[source_inds],
+    ] = source_coords[pose_inds, source_inds]
+    return reference_coords, n_poses
+
+
 @validate_args
 def canonical_form_from_biotite(
     biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
     torch_device: torch.device,
     co: CanonicalOrdering | None = None,
     missing_density_distance_threshold: float = 2.4,
+    atom37_coords: torch.Tensor | None = None,
 ) -> CanonicalForm:
     """Convert a Biotite AtomArray or AtomArrayStack to a CanonicalForm.
 
@@ -782,6 +965,13 @@ def canonical_form_from_biotite(
             a different mapping)
         missing_density_distance_threshold: Maximum distance in angstroms for
             treating a polymer gap as missing density rather than a chain break.
+        atom37_coords: Optional autograd-tracked coordinate tensor
+            of shape [n_poses, n_tokens, 37, 3]. When provided, coordinates are
+            sourced from this tensor (routed by the ``token_id`` and ``atom37_slot``
+            annotations on ``biotite_structure``) instead of the static biotite
+            coordinates, and the geometry-based missing-density check is skipped so
+            the topology stays fixed and gradients flow. See
+            :func:`~tmol.io.pose_stack_from_atom37_and_biotite`.
 
     Returns:
         CanonicalForm: A data structure containing:
@@ -798,6 +988,7 @@ def canonical_form_from_biotite(
               should be treated as chemically bonded.
 
     """
+    torch_device = resolve_device(torch_device)
     if co is None:
         co = canonical_ordering_for_biotite()
 
@@ -827,24 +1018,45 @@ def canonical_form_from_biotite(
         biotite_res_name_for_atom,
         biotite_name_for_atom,
     )
-    tmol_coords, n_poses = _populate_canonical_coords(
-        biotite_structure,
-        torch_device,
-        co,
-        biotite_residues,
-        valid_atom_mask,
-        valid_res_inds,
-        valid_atom_inds,
-    )
-    biotite_b_factors, biotite_occupancy = _populate_optional_atom_metadata(
-        biotite_structure,
-        n_poses,
-        len(biotite_residues),
-        co.max_n_canonical_atoms,
-        valid_res_inds,
-        valid_atom_inds,
-        valid_atom_mask,
-    )
+    if atom37_coords is None:
+        tmol_coords, n_poses = _populate_canonical_coords(
+            biotite_structure,
+            torch_device,
+            co,
+            biotite_residues,
+            valid_atom_mask,
+            valid_res_inds,
+            valid_atom_inds,
+        )
+        biotite_b_factors, biotite_occupancy = _populate_optional_atom_metadata(
+            biotite_structure,
+            n_poses,
+            len(biotite_residues),
+            co.max_n_canonical_atoms,
+            valid_res_inds,
+            valid_atom_inds,
+            valid_atom_mask,
+        )
+    else:
+        tmol_coords, n_poses = _populate_canonical_coords_from_atom37(
+            atom37_coords,
+            biotite_structure,
+            torch_device,
+            co,
+            biotite_residues,
+            valid_atom_mask,
+            valid_res_inds,
+            valid_atom_inds,
+        )
+        biotite_b_factors, biotite_occupancy = _populate_optional_atom_metadata(
+            biotite_structure,
+            n_poses,
+            len(biotite_residues),
+            co.max_n_canonical_atoms,
+            valid_res_inds,
+            valid_atom_inds,
+            valid_atom_mask,
+        )
 
     # Format metadata for the CanonicalForm
     def copy_for_all_poses(dat):
@@ -866,7 +1078,14 @@ def canonical_form_from_biotite(
     )
     # Geometry-based missing density detection: break connections where the
     # upper atom of residue i and lower atom of residue i+1 are too far apart.
-    if missing_density_distance_threshold > 0 and len(biotite_residues) > 1:
+    # Skipped for the differentiable atom37 path: topology there is derived from
+    # chemical identity alone so it stays fixed across (possibly noisy) coordinate
+    # updates, and this check would both read a grad tensor and detach it.
+    if (
+        missing_density_distance_threshold > 0
+        and len(biotite_residues) > 1
+        and atom37_coords is None
+    ):
         _break_connections_for_missing_density(
             not_connected,
             biotite_chain_id_for_res,

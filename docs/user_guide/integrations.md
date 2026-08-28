@@ -106,3 +106,62 @@ tables from the `AtomArray` during ligand preparation. Follow
 {doc}`07 — Ligands and Parameter Files </tutorial/07_ligand_and_params>` when
 the structure contains non-standard residues; the resulting score function
 must use the ligand-extended parameter database.
+
+## Differentiable AtomWorks Atom37 coordinates
+
+For a model that predicts AtomWorks unified Atom37 coordinates, keep chemical
+identity and connectivity in its Biotite `AtomArray` and route only coordinates
+from the model tensor. Annotate each supported atom with its model `token_id`
+and `atom37_slot`, build the chemistry context once, and reuse it across model
+steps:
+
+```python
+import torch
+
+from tmol.io import (
+    build_context_from_biotite,
+    pose_stack_from_atom37_and_biotite,
+)
+from tmol.score import beta2016_score_function
+
+# atom_array is the AtomWorks-produced topology. atom37_slots is a per-atom
+# integer array from the same unified encoding; use -1 for an unmapped atom.
+atom_array.set_annotation("atom37_slot", atom37_slots)
+
+context = build_context_from_biotite(
+    atom_array,
+    atom37_coords.device,
+    prepare_ligands=True,
+    sample_proton_chi=False,
+)
+
+pose_stack = pose_stack_from_atom37_and_biotite(
+    atom37_coords,  # [pose, token, 37, xyz], float32
+    atom_array,
+    context,
+)
+sfxn = beta2016_score_function(
+    pose_stack.device,
+    param_db=context.parameter_database,
+)
+scorer = sfxn.render_whole_pose_scoring_module(pose_stack)
+score = scorer(pose_stack.coords).sum()
+score.backward()
+```
+
+A single `AtomArray` may provide topology for a batch of coordinate tensors. An
+`AtomArrayStack` must either have the same number of models as the tensor batch
+or one model that can be broadcast. Finite mapped tensor coordinates replace
+the reference coordinates; negative indices, non-finite tensor entries, and
+unmapped atoms retain their reference coordinates. TMol-generated atoms, such
+as hydrogens, are left in their built or optimized positions. Gradients from
+TMol coordinates route back to the mapped Atom37 entries even when hydrogen
+optimization is enabled. Missing, out-of-range, or ambiguous routing annotations
+raise `Atom37MappingError`, so callers can handle mapping failures without
+catching unrelated pose-construction errors.
+
+This path supports the intersection of the two chemistry systems: canonical
+protein, DNA, RNA, ordinary prepared ligands, and fragmented ligands on current
+TMol. Metal-containing ligands and covalently linked modified components require
+corresponding TMol parameterization support; the adapter does not silently drop
+them when ligand preparation is strict.
