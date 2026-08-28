@@ -46,12 +46,12 @@ def _sum_single_block_cross_scores(
     )
     rows = block_pair_scores.gather(2, gather_rows).squeeze(2)
     columns = block_pair_scores.gather(3, gather_columns).squeeze(3)
-    cross_scores = ((rows + columns) * other_mask.unsqueeze(0)).sum(dim=2)
     if sets_are_disjoint:
-        return cross_scores
+        return rows.add_(columns).mul_(other_mask.unsqueeze(0)).sum(dim=2)
 
-    diagonal_selected = other_mask.gather(1, block_indices[:, None]).squeeze(1)
     diagonal = rows.gather(2, block_indices[None, :, None].expand(n_terms, -1, 1))
+    cross_scores = rows.add_(columns).mul_(other_mask.unsqueeze(0)).sum(dim=2)
+    diagonal_selected = other_mask.gather(1, block_indices[:, None]).squeeze(1)
     # A block present in both sets contributes its diagonal score once; the row
     # plus column reduction includes it twice, so subtract one copy.
     return cross_scores - (diagonal.squeeze(2) * diagonal_selected.unsqueeze(0))
