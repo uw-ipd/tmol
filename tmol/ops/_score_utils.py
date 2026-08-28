@@ -33,6 +33,30 @@ def _sum_cross_block_scores(
     return block_pair_scores.masked_fill(~cross_mask.unsqueeze(0), 0).sum(dim=(2, 3))
 
 
+def _sum_single_block_cross_scores(
+    block_pair_scores, block_indices, other_mask, *, sets_are_disjoint=False
+):
+    """Sum interactions between one block per pose and selected partners."""
+    n_terms, n_poses, n_blocks, _ = block_pair_scores.shape
+    gather_rows = block_indices.reshape(1, n_poses, 1, 1).expand(
+        n_terms, -1, 1, n_blocks
+    )
+    gather_columns = block_indices.reshape(1, n_poses, 1, 1).expand(
+        n_terms, -1, n_blocks, 1
+    )
+    rows = block_pair_scores.gather(2, gather_rows).squeeze(2)
+    columns = block_pair_scores.gather(3, gather_columns).squeeze(3)
+    cross_scores = ((rows + columns) * other_mask.unsqueeze(0)).sum(dim=2)
+    if sets_are_disjoint:
+        return cross_scores
+
+    diagonal_selected = other_mask.gather(1, block_indices[:, None]).squeeze(1)
+    diagonal = rows.gather(2, block_indices[None, :, None].expand(n_terms, -1, 1))
+    # A block present in both sets contributes its diagonal score once; the row
+    # plus column reduction includes it twice, so subtract one copy.
+    return cross_scores - (diagonal.squeeze(2) * diagonal_selected.unsqueeze(0))
+
+
 def calculate_block_pair_ddg(
     pose_stack,
     mask,
@@ -52,6 +76,9 @@ def calculate_block_pair_ddg(
     Args:
         pose_stack: The pose stack to score
         mask: Boolean tensor of shape [n_poses, n_blocks]. True values indicate masked indices.
+            For the common single-site scan, an integer tensor of shape [n_poses] may instead
+            give the selected block in each pose. This avoids constructing and reducing a dense
+            block-pair mask; its floating-point reduction order may differ from the Boolean path.
         mask2: Boolean tensor of shape [n_poses, n_blocks]. If not provided, it will use the inverse
             of the first mask as the second mask.
         sfxn: Optional score function to use. If not provided, will default to beta2016
@@ -73,6 +100,14 @@ def calculate_block_pair_ddg(
         ``(ddg_scores, pose_stack)``.
     """
     torch_device = pose_stack.device
+
+    single_block_indices = None
+    if mask.ndim == 1 and mask.dtype != torch.bool:
+        if mask.shape[0] != pose_stack.n_poses:
+            raise ValueError("mask must contain one block index per pose")
+        single_block_indices = mask.to(device=torch_device, dtype=torch.long)
+        mask = torch.zeros_like(pose_stack.block_type_ind, dtype=torch.bool)
+        mask.scatter_(1, single_block_indices[:, None], True)
 
     if sfxn is None:
         sfxn = beta2016_score_function(torch_device)
@@ -127,9 +162,17 @@ def calculate_block_pair_ddg(
     # mask shape: [n_poses, n_blocks]
     # Use mask2 if provided, otherwise use ~mask for the second set of indices
     other_mask = mask2 if mask2 is not None else ~mask
-    ddg_scores = _sum_cross_block_scores(
-        block_pair_scores, mask, other_mask, memory_efficient=memory_efficient
-    )
+    if single_block_indices is None:
+        ddg_scores = _sum_cross_block_scores(
+            block_pair_scores, mask, other_mask, memory_efficient=memory_efficient
+        )
+    else:
+        ddg_scores = _sum_single_block_cross_scores(
+            block_pair_scores,
+            single_block_indices,
+            other_mask,
+            sets_are_disjoint=mask2 is None,
+        )
 
     if sum_terms:
         ddg_scores = ddg_scores.sum(dim=0)

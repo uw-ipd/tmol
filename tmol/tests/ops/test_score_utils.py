@@ -68,6 +68,57 @@ def test_default_sum_is_bitwise_legacy_equivalent(torch_device):
     assert torch.equal(actual, expected)
 
 
+def test_single_block_indices_match_boolean_masks(torch_device):
+    generator = torch.Generator(device=torch_device).manual_seed(29)
+    scores = torch.randn(5, 3, 7, 7, generator=generator, device=torch_device)
+    block_indices = torch.tensor([1, 4, 2], device=torch_device)
+    mask = torch.zeros(3, 7, dtype=torch.bool, device=torch_device)
+    mask.scatter_(1, block_indices[:, None], True)
+    other = torch.tensor(
+        [
+            [True, True, False, True, False, False, True],
+            [False, True, True, False, False, True, False],
+            [True, False, False, True, True, False, True],
+        ],
+        device=torch_device,
+    )
+
+    expected = score_utils._sum_cross_block_scores(
+        scores, mask, other, memory_efficient=True
+    )
+    actual = score_utils._sum_single_block_cross_scores(scores, block_indices, other)
+
+    torch.testing.assert_close(actual, expected)
+
+
+def test_calculate_ddg_accepts_single_block_indices(torch_device):
+    class Pose:
+        device = torch_device
+        n_poses = 2
+        block_type_ind = torch.zeros(2, 4, dtype=torch.int32, device=torch_device)
+        coords = torch.empty(2, 0, 3, device=torch_device)
+
+    scores = torch.arange(2 * 2 * 4 * 4, device=torch_device, dtype=torch.float32)
+    scores = scores.reshape(2, 2, 4, 4)
+
+    class ScoreFunction:
+        @staticmethod
+        def render_block_pair_scoring_module(_pose):
+            return lambda _coords, sum_terms: scores
+
+    block_indices = torch.tensor([0, 2], device=torch_device)
+    mask = torch.zeros(2, 4, dtype=torch.bool, device=torch_device)
+    mask.scatter_(1, block_indices[:, None], True)
+    expected = score_utils.calculate_block_pair_ddg(
+        Pose(), mask, sfxn=ScoreFunction(), minimize=False
+    )
+    actual = score_utils.calculate_block_pair_ddg(
+        Pose(), block_indices, sfxn=ScoreFunction(), minimize=False
+    )
+
+    torch.testing.assert_close(actual, expected)
+
+
 def test_build_coord_mask_and_minimize_for_first_residue(
     biotite_1ubq: struc.AtomArray, torch_device
 ):
