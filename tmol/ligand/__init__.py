@@ -1,3 +1,5 @@
+"""Ligand typing, preparation, fragmentation, and serialization."""
+
 from ._atom_typing import (  # noqa: F401
     AtomTypeAssignment,
     ELEMENT_SYMBOLS,

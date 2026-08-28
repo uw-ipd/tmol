@@ -1,3 +1,5 @@
+"""High-level batched scoring operations."""
+
 from ._score_utils import (  # noqa: F401
     build_coord_mask_for_mask_and_interacting_atoms,
     build_coord_mask_for_mask_and_nearby_blocks,

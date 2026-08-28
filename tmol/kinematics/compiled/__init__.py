@@ -1,3 +1,5 @@
+"""Compiled kinematics operations."""
+
 from ._compiled_ops import (  # noqa: F401
     forward_kin_op,
     forward_only_op,

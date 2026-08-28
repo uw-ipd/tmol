@@ -1,3 +1,5 @@
+"""Chemical residue types, patches, and connectivity utilities."""
+
 from ._all_bonds import bonds_and_bond_ranges  # noqa: F401
 from ._constants import MAX_PATHS_FROM_CONNECTION, MAX_SIG_BOND_SEPARATION  # noqa: F401
 from ._ideal_coords import (  # noqa: F401

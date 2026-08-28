@@ -1,3 +1,5 @@
+"""Utilities for importing and converting scoring parameters."""
+
 from ._hbond_param_import import (  # noqa: F401
     RawParams,
     RosettaHBParams,

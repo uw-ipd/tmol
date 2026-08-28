@@ -1,3 +1,5 @@
+"""Dunbrack rotamer-probability scoring."""
+
 from ._params import (  # noqa: F401
     DunbrackParamResolver,
     DunbrackParams,

@@ -1,3 +1,5 @@
+"""Rotamer sampling, construction, and coordinate transfer."""
+
 # Import in topological order: dependencies before dependents.
 from ._bfs_sidechain import bfs_sidechain_atoms, bfs_sidechain_atoms_jit  # noqa: F401
 from ._conformer_sampler import ConformerSample, ConformerSampler  # noqa: F401

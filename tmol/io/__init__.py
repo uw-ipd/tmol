@@ -1,3 +1,5 @@
+"""Structure conversion between external formats and TMol poses."""
+
 import torch
 from typing import Optional, Union
 

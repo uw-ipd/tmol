@@ -1,3 +1,5 @@
+"""Backbone torsion parameter resolution and scoring."""
+
 from ._params import (  # noqa: F401
     BackboneTorsionParamResolver,
     PackedOmegaDatabase,

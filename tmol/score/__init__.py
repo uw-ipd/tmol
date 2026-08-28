@@ -1,3 +1,5 @@
+"""Score functions, energy terms, and standard weight sets."""
+
 from __future__ import annotations
 
 import toolz.functoolz

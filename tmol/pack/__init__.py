@@ -1,3 +1,5 @@
+"""Side-chain packing tasks, energy tables, and annealing."""
+
 from ._datatypes import PackerEnergyTables  # noqa: F401
 from ._packer_task import (  # noqa: F401
     PackerPalette,

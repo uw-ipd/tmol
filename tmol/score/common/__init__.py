@@ -1,3 +1,5 @@
+"""Shared score-term interfaces and numerical helpers."""
+
 from ._convert_float64 import convert_float64  # noqa: F401
 from ._cubic_hermite_polynomial import (  # noqa: F401
     interpolate,
