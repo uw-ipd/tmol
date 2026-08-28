@@ -41,7 +41,10 @@ def create_pose_stack_from_sequences(
     tokens, chain_lengths = tokenize_sequences(seqs)
 
     if context is not None:
-        if context.packed_block_types.device.type != device.type:
+        context_device = context.packed_block_types.device
+        if context_device.type != device.type or (
+            context_device.type == "cuda" and context_device.index != device.index
+        ):
             raise ValueError(
                 f"context was built for device "
                 f"{context.packed_block_types.device} but device is {device}"
@@ -61,7 +64,10 @@ def create_pose_stack_from_sequences(
         else:
             param_db = param_db or ParameterDatabase.get_default()
             ligand_names = {}
-        restype_set = ResidueTypeSet.from_database(param_db.chemical)
+        if param_db is ParameterDatabase.get_default():
+            restype_set = ResidueTypeSet.get_default()
+        else:
+            restype_set = ResidueTypeSet.from_database(param_db.chemical)
         canonical_ordering = None
 
     names, chain_lengths = resolve_block_type_names(

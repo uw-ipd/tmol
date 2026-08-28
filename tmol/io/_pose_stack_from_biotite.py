@@ -219,7 +219,10 @@ def pose_stack_from_biotite(  # noqa: C901
                 "context= already contains prepared ligands; do not also pass "
                 "prepare_ligands=True."
             )
-        if context.packed_block_types.device.type != torch_device.type:
+        context_device = context.packed_block_types.device
+        if context_device.type != torch_device.type or (
+            context_device.type == "cuda" and context_device.index != torch_device.index
+        ):
             raise ValueError(
                 "context was built for device "
                 f"'{context.packed_block_types.device}' but torch_device is "
@@ -935,7 +938,7 @@ def packed_block_types_for_biotite(device: torch.device) -> PackedBlockTypes:
 @validate_args
 @toolz.functoolz.memoize
 def _default_pose_build_context(device: torch.device) -> PoseBuildContext:
-    """Return the shared immutable context for the default database."""
+    """Return the process-wide construction context for the default database."""
     return PoseBuildContext(
         canonical_ordering=canonical_ordering_for_biotite(),
         packed_block_types=packed_block_types_for_biotite(device),
