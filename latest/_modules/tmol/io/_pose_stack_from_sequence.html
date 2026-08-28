@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../../../_static/documentation_options.js?v=f2b49961"></script>
+    <script src="../../../_static/documentation_options.js?v=56cc1d78"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -54,7 +54,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.50" />
+  <meta name="docsearch:version" content="0.1.51" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -448,7 +448,10 @@
     <span class="n">tokens</span><span class="p">,</span> <span class="n">chain_lengths</span> <span class="o">=</span> <span class="n">tokenize_sequences</span><span class="p">(</span><span class="n">seqs</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">context</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
+        <span class="n">context_device</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span>
+        <span class="k">if</span> <span class="n">context_device</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="ow">or</span> <span class="p">(</span>
+            <span class="n">context_device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"cuda"</span> <span class="ow">and</span> <span class="n">context_device</span><span class="o">.</span><span class="n">index</span> <span class="o">!=</span> <span class="n">device</span><span class="o">.</span><span class="n">index</span>
+        <span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"context was built for device "</span>
                 <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">context</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="si">}</span><span class="s2"> but device is </span><span class="si">{</span><span class="n">device</span><span class="si">}</span><span class="s2">"</span>
@@ -468,7 +471,10 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">param_db</span> <span class="o">=</span> <span class="n">param_db</span> <span class="ow">or</span> <span class="n">ParameterDatabase</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
             <span class="n">ligand_names</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="n">restype_set</span> <span class="o">=</span> <span class="n">ResidueTypeSet</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">param_db</span> <span class="ow">is</span> <span class="n">ParameterDatabase</span><span class="o">.</span><span class="n">get_default</span><span class="p">():</span>
+            <span class="n">restype_set</span> <span class="o">=</span> <span class="n">ResidueTypeSet</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">restype_set</span> <span class="o">=</span> <span class="n">ResidueTypeSet</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">)</span>
         <span class="n">canonical_ordering</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="n">names</span><span class="p">,</span> <span class="n">chain_lengths</span> <span class="o">=</span> <span class="n">resolve_block_type_names</span><span class="p">(</span>

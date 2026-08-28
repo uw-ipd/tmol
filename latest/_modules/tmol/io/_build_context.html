@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../../../_static/documentation_options.js?v=f2b49961"></script>
+    <script src="../../../_static/documentation_options.js?v=56cc1d78"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -54,7 +54,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.50" />
+  <meta name="docsearch:version" content="0.1.51" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -403,13 +403,22 @@
                 <article class="bd-article">
                   
   <h1>Source code for tmol.io._build_context</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">cached_property</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">ResidueTypeSet</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._canonical_ordering</span><span class="w"> </span><span class="kn">import</span> <span class="n">CanonicalOrdering</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackedBlockTypes</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand</span><span class="w"> </span><span class="kn">import</span> <span class="n">LigandFragmentDefinition</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">NaChiRotamerSampler</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.dunbrack</span><span class="w"> </span><span class="kn">import</span> <span class="n">DunbrackChiSampler</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreFunction</span>
 
 
 <div class="viewcode-block" id="PoseBuildContext">
@@ -430,12 +439,12 @@
     <span class="c1"># Definitions derived from tmol_fragment_id annotations. These are carried</span>
     <span class="c1"># by reusable contexts so each compatible structure can be expanded without</span>
     <span class="c1"># repeating ligand preparation.</span>
-    <span class="n">fragment_definitions</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="p">()</span>
+    <span class="n">fragment_definitions</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">LigandFragmentDefinition</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
     <span class="c1"># SMILES string -&gt; residue type name, for ligands prepared from a sequence.</span>
-    <span class="n">ligand_names</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+    <span class="n">ligand_names</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
 
     <span class="nd">@cached_property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_packing_score_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_packing_score_function</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ScoreFunction</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return the score function shared by repeated pose builds."""</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
 
@@ -445,7 +454,7 @@
         <span class="p">)</span>
 
     <span class="nd">@cached_property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_dunbrack_sampler</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_dunbrack_sampler</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DunbrackChiSampler</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return the Dunbrack sampler shared by repeated pose builds."""</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.dunbrack</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
             <span class="n">create_dunbrack_sampler_from_database</span><span class="p">,</span>
@@ -457,7 +466,7 @@
         <span class="p">)</span>
 
     <span class="nd">@cached_property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_na_sampler</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_na_sampler</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NaChiRotamerSampler</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return the nucleic-acid sampler shared by repeated pose builds."""</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">NaChiRotamerSampler</span>
 

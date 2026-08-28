@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../../../_static/documentation_options.js?v=f2b49961"></script>
+    <script src="../../../_static/documentation_options.js?v=56cc1d78"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -54,7 +54,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.50" />
+  <meta name="docsearch:version" content="0.1.51" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -489,6 +489,7 @@
     <span class="k">if</span> <span class="n">prepare_ligands</span><span class="p">:</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand</span><span class="w"> </span><span class="kn">import</span> <span class="n">prepare_ligands</span> <span class="k">as</span> <span class="n">_prepare_ligands</span>
 
+        <span class="n">using_default_database</span> <span class="o">=</span> <span class="n">param_db</span> <span class="ow">is</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">param_db</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">param_db</span> <span class="o">=</span> <span class="n">ParameterDatabase</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
 
@@ -502,6 +503,13 @@
             <span class="n">strict_ligands</span><span class="o">=</span><span class="n">strict_ligands</span><span class="p">,</span>
             <span class="n">return_fragment_definitions</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">using_default_database</span>
+            <span class="ow">and</span> <span class="n">param_db</span> <span class="ow">is</span> <span class="n">_paramdb_for_biotite</span><span class="p">()</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="n">fragment_definitions</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="n">_default_pose_build_context</span><span class="p">(</span><span class="n">torch_device</span><span class="p">)</span>
+
         <span class="n">rts</span> <span class="o">=</span> <span class="n">ResidueTypeSet</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">)</span>
         <span class="n">pbt</span> <span class="o">=</span> <span class="n">PackedBlockTypes</span><span class="o">.</span><span class="n">from_restype_list</span><span class="p">(</span>
             <span class="n">rts</span><span class="o">.</span><span class="n">chem_db</span><span class="p">,</span> <span class="n">rts</span><span class="p">,</span> <span class="n">rts</span><span class="o">.</span><span class="n">residue_types</span><span class="p">,</span> <span class="n">torch_device</span>
@@ -515,13 +523,10 @@
         <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">param_db</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">co</span> <span class="o">=</span> <span class="n">canonical_ordering_for_biotite</span><span class="p">()</span>
-        <span class="n">pbt</span> <span class="o">=</span> <span class="n">packed_block_types_for_biotite</span><span class="p">(</span><span class="n">torch_device</span><span class="p">)</span>
-        <span class="n">db</span> <span class="o">=</span> <span class="n">_paramdb_for_biotite</span><span class="p">()</span>
-        <span class="n">rts</span> <span class="o">=</span> <span class="n">_restype_set_for_biotite</span><span class="p">()</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">db</span> <span class="o">=</span> <span class="n">param_db</span>
-        <span class="n">co</span><span class="p">,</span> <span class="n">rts</span><span class="p">,</span> <span class="n">pbt</span> <span class="o">=</span> <span class="n">_derived_types_for_param_db</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">torch_device</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_default_pose_build_context</span><span class="p">(</span><span class="n">torch_device</span><span class="p">)</span>
+
+    <span class="n">db</span> <span class="o">=</span> <span class="n">param_db</span>
+    <span class="n">co</span><span class="p">,</span> <span class="n">rts</span><span class="p">,</span> <span class="n">pbt</span> <span class="o">=</span> <span class="n">_derived_types_for_param_db</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">torch_device</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">PoseBuildContext</span><span class="p">(</span>
         <span class="n">canonical_ordering</span><span class="o">=</span><span class="n">co</span><span class="p">,</span>
         <span class="n">packed_block_types</span><span class="o">=</span><span class="n">pbt</span><span class="p">,</span>
@@ -549,7 +554,9 @@
     <span class="n">return_context</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">context</span><span class="p">:</span> <span class="n">PoseBuildContext</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PoseStack</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PoseStack</span><span class="p">,</span> <span class="n">PoseBuildContext</span><span class="p">]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="p">(</span>
+    <span class="n">PoseStack</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PoseStack</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PoseStack</span><span class="p">,</span> <span class="n">PoseBuildContext</span><span class="p">]</span>
+<span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Build a PoseStack from the output generated by Biotite.</span>
 
 <span class="sd">    To score many structures that share the same ligand(s) efficiently, build</span>
@@ -594,6 +601,9 @@
 <span class="sd">            (enabled by default; pass False to disable). Only used when</span>
 <span class="sd">            prepare_ligands=True.</span>
 <span class="sd">        return_context: If True, return ``(pose_stack, PoseBuildContext)``.</span>
+<span class="sd">        context: Reusable context from ``build_context_from_biotite``. It must</span>
+<span class="sd">            be on ``torch_device`` and is mutually exclusive with ``param_db``</span>
+<span class="sd">            and ``prepare_ligands=True``.</span>
 <span class="sd">        **kwargs: Additional arguments passed to pose_stack_from_canonical_form.</span>
 
 <span class="sd">    Returns:</span>
@@ -619,7 +629,10 @@
                 <span class="s2">"context= already contains prepared ligands; do not also pass "</span>
                 <span class="s2">"prepare_ligands=True."</span>
             <span class="p">)</span>
-        <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="n">torch_device</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
+        <span class="n">context_device</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span>
+        <span class="k">if</span> <span class="n">context_device</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="n">torch_device</span><span class="o">.</span><span class="n">type</span> <span class="ow">or</span> <span class="p">(</span>
+            <span class="n">context_device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"cuda"</span> <span class="ow">and</span> <span class="n">context_device</span><span class="o">.</span><span class="n">index</span> <span class="o">!=</span> <span class="n">torch_device</span><span class="o">.</span><span class="n">index</span>
+        <span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">"context was built for device "</span>
                 <span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">context</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="si">}</span><span class="s2">' but torch_device is "</span>
@@ -1336,6 +1349,18 @@
 
     <span class="k">return</span> <span class="n">PackedBlockTypes</span><span class="o">.</span><span class="n">from_restype_list</span><span class="p">(</span>
         <span class="n">restype_set</span><span class="o">.</span><span class="n">chem_db</span><span class="p">,</span> <span class="n">restype_set</span><span class="p">,</span> <span class="n">restype_set</span><span class="o">.</span><span class="n">residue_types</span><span class="p">,</span> <span class="n">device</span>
+    <span class="p">)</span>
+
+
+<span class="nd">@validate_args</span>
+<span class="nd">@toolz</span><span class="o">.</span><span class="n">functoolz</span><span class="o">.</span><span class="n">memoize</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_default_pose_build_context</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseBuildContext</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return the process-wide construction context for the default database."""</span>
+    <span class="k">return</span> <span class="n">PoseBuildContext</span><span class="p">(</span>
+        <span class="n">canonical_ordering</span><span class="o">=</span><span class="n">canonical_ordering_for_biotite</span><span class="p">(),</span>
+        <span class="n">packed_block_types</span><span class="o">=</span><span class="n">packed_block_types_for_biotite</span><span class="p">(</span><span class="n">device</span><span class="p">),</span>
+        <span class="n">parameter_database</span><span class="o">=</span><span class="n">_paramdb_for_biotite</span><span class="p">(),</span>
+        <span class="n">restype_set</span><span class="o">=</span><span class="n">_restype_set_for_biotite</span><span class="p">(),</span>
     <span class="p">)</span>
 
 

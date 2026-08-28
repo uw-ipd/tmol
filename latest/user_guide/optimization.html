@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../_static/documentation_options.js?v=f2b49961"></script>
+    <script src="../_static/documentation_options.js?v=56cc1d78"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -57,7 +57,7 @@
     <link rel="prev" title="Packing" href="../workflows/packing.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.50" />
+  <meta name="docsearch:version" content="0.1.51" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -503,6 +503,10 @@ parser, ambiguous-constraint layer, or a dedicated three-atom angle constraint.<
 through <code class="docutils literal notranslate"><span class="pre">build_missing_sidechains()</span></code>. By default it also places and optimizes
 hydrogens for complete residues. Pass <code class="docutils literal notranslate"><span class="pre">no_optH=True</span></code> to skip that hydrogen
 optimization path.</p>
+<p>For standard residues and the default parameter database, TMol automatically
+reuses the structure-independent construction and packing setup. If many
+structures share prepared ligand definitions, explicitly reuse a
+<code class="docutils literal notranslate"><span class="pre">PoseBuildContext</span></code> as described in the ligand guide.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pose_stack</span> <span class="o">=</span> <span class="n">pose_stack_from_biotite</span><span class="p">(</span>
     <span class="n">structure</span><span class="p">,</span>
     <span class="n">device</span><span class="p">,</span>

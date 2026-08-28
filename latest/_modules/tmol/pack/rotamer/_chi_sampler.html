@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../../../../_static/documentation_options.js?v=f2b49961"></script>
+    <script src="../../../../_static/documentation_options.js?v=56cc1d78"></script>
     <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -54,7 +54,7 @@
     <link rel="search" title="Search" href="../../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.50" />
+  <meta name="docsearch:version" content="0.1.51" />
   
     
     <script src="../../../../_static/searchtools.js"></script>
@@ -565,7 +565,7 @@
     <span class="n">n_dof_atoms_offset_for_rot</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
     <span class="n">orig_dofs_kto</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="mi">9</span><span class="p">],</span>
     <span class="n">rot_dofs_kto</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="mi">9</span><span class="p">],</span>
-<span class="p">):</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">dst</span><span class="p">,</span> <span class="n">src</span> <span class="o">=</span> <span class="n">create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler</span><span class="p">(</span>
         <span class="n">poses</span><span class="p">,</span>
         <span class="n">task</span><span class="p">,</span>
@@ -591,12 +591,12 @@
     <span class="n">sampler_n_rots_for_gbt</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
     <span class="n">sampler_gbt_for_rotamer</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
     <span class="n">n_dof_atoms_offset_for_rot</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:]]:</span>
-    <span class="c1"># we want to copy from the orig_dofs tensor into the</span>
-    <span class="c1"># rot_dofs tensor for the "mainchain" atoms in the</span>
-    <span class="c1"># original residues into the appropriate positions</span>
-    <span class="c1"># for the rotamers thta we are building at those</span>
-    <span class="c1"># residues. This requires a good deal of reindexing.</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:]]:</span>
+<span class="w">    </span><span class="sd">"""Map mainchain DOFs from original residues to sampled rotamers.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Destination and source indices, each shaped ``[n_copied_dofs]``.</span>
+<span class="sd">    """</span>
 
     <span class="n">pbt</span> <span class="o">=</span> <span class="n">poses</span><span class="o">.</span><span class="n">packed_block_types</span>
     <span class="n">n_rots_for_sampler</span> <span class="o">=</span> <span class="n">sampler_gbt_for_rotamer</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -772,7 +772,12 @@
     <span class="n">chi_atoms</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:],</span>
     <span class="n">chi</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="p">:],</span>
     <span class="n">rot_dofs_kto</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="mi">9</span><span class="p">],</span>
-<span class="p">):</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Write sampled chis into packed ``[n_rotamer_atoms + 1, 9]`` DOFs.</span>
+
+<span class="sd">    ``chi_atoms`` and ``chi`` share shape ``[n_rotamers, max_n_chi]``;</span>
+<span class="sd">    negative atom indices mark unused chi columns.</span>
+<span class="sd">    """</span>
     <span class="k">assert</span> <span class="n">chi_atoms</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">chi</span><span class="o">.</span><span class="n">shape</span>
 
     <span class="n">n_rots_for_sampler</span> <span class="o">=</span> <span class="n">sampler_gbt_for_rotamer</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
