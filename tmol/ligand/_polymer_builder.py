@@ -49,9 +49,16 @@ def sidechain_roots(profile, adj, kept, hydrogens):
     residue has two and glycine has none.
     """
     mainchain = set(profile.mainchain_atoms)
+    # a backbone with no privileged root may carry a sidechain anywhere along it
+    roots = (
+        profile.mainchain_atoms
+        if profile.sidechain_root_atoms is None
+        else profile.sidechain_root_atoms
+    )
     return [
         n
-        for n in sorted(adj.get(profile.sidechain_root_atom, ()))
+        for root in roots
+        for n in sorted(adj.get(root, ()))
         if n in kept and n not in hydrogens and n not in mainchain
     ]
 
@@ -59,12 +66,14 @@ def sidechain_roots(profile, adj, kept, hydrogens):
 def _backbone_hydrogen_names(profile, adj, hydrogens, taken):
     """Canonical names for hydrogens on the mainchain; sidechain H keep theirs.
 
-    The cartbonded wildcard terms key on these names (H-N-+C), so the backbone
-    hydrogens have to carry them. Numbering follows the pdb convention: a lone
-    hydrogen is unnumbered, a methylene pair on carbon starts at 2.
+    The cartbonded wildcard rows are the terms that span the peptide bond, and
+    they key on atom names, so the amide hydrogen has to be called H (H-N-+C,
+    and the torsions onto the next residue). No wildcard row names an alpha
+    hydrogen, so HA numbering is convention only: it follows the pdb rule that
+    a lone hydrogen is unnumbered and a methylene pair on carbon starts at 2.
     """
     renames = {}
-    for parent, _type in profile.backbone_h_types:
+    for parent in profile.renamed_h_parents:
         attached = sorted(n for n in adj.get(parent, ()) if n in hydrogens)
         if not attached:
             continue
@@ -163,7 +172,7 @@ def _sidechain_traversal(profile, adj, roots, kept, hydrogens):
 
     for root in roots:
         if root not in index:
-            walk(root, profile.sidechain_root_atom)
+            walk(root, None)
     return index
 
 
@@ -365,7 +374,7 @@ def sidechain_chirality(profile, coords, roots):
     CIP cannot be used: L-cysteine is (R) where every other L-aa is (S).
     Zero sidechain branches (glycine) or two (alpha-disubstituted) are achiral.
     """
-    if len(roots) != 1:
+    if len(roots) != 1 or len(profile.mainchain_atoms) < 3:
         return "achiral"
     n, ca, c = (coords[a] for a in profile.mainchain_atoms[:3])
     volume = numpy.dot(numpy.cross(n - ca, c - ca), coords[roots[0]] - ca)
@@ -497,6 +506,10 @@ def to_polymer_residue_type(
         icoors=icoors,
         properties=properties,
         chi_samples=tuple(chi_samples),
-        default_jump_connection_atom=profile.mainchain_atoms[1],
+        # the atom a jump anchors on: the second mainchain atom for a backbone
+        #    that has one, the only atom for a cap that does not
+        default_jump_connection_atom=profile.mainchain_atoms[
+            1 if len(profile.mainchain_atoms) > 1 else 0
+        ],
         hydrogens_regenerated=restype.hydrogens_regenerated,
     )

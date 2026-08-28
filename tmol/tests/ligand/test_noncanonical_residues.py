@@ -30,7 +30,7 @@ from tmol.ligand import (
     prepare_polymer_residue,
 )
 from tmol.ligand._preparation import _ideal_coords_by_name
-from tmol.ligand._polymer_profile import ACETYL_CAP, ALPHA_AA, METHYLAMIDE_CAP
+from tmol.ligand._polymer_profile import alpha_profile
 from tmol.ligand._registry import rebuild_canonical_ordering
 from tmol.tests.data import data_path
 
@@ -44,6 +44,11 @@ _FIXTURES: dict[str, tuple[str, float, int]] = {
     "phosphopeptide_5ema": ("SEP", -2.0, 3),
     "collagen_hyp_1bkv": ("HYP", 0.0, 1),
 }
+
+
+def _alpha():
+    """The alpha profile, as derived from the default database."""
+    return alpha_profile(ParameterDatabase.get_default().chemical)
 
 
 def _load(stem: str) -> struc.AtomArray:
@@ -65,11 +70,14 @@ def _residue(atom_array: struc.AtomArray, res_name: str) -> struc.AtomArray:
     return atom_array[mask]
 
 
-def _prepare(stem: str, res_name: str):
+def _prepare(stem: str, res_name: str, connection_atoms=None):
     param_db = ParameterDatabase.get_default()
     residue = _residue(_load(stem), res_name)
     prep = prepare_polymer_residue(
-        residue, rebuild_canonical_ordering(param_db), param_db
+        residue,
+        rebuild_canonical_ordering(param_db),
+        param_db,
+        connection_atoms=connection_atoms,
     )
     return residue, prep
 
@@ -82,7 +90,7 @@ def _assert_alpha_amino_acid(residue: struc.AtomArray, prep) -> None:
     assert len(names) == len(restype.atoms), "duplicate atom names"
 
     # the caps are scaffolding; none of them may survive into the residue type
-    assert names.isdisjoint(ALPHA_AA.cap_names)
+    assert names.isdisjoint(_alpha().cap_names)
 
     # every heavy atom of the input residue is carried through
     input_heavy = {
@@ -99,13 +107,13 @@ def _assert_alpha_amino_acid(residue: struc.AtomArray, prep) -> None:
     assert polymer.polymer_type == "amino_acid"
     assert polymer.backbone_type == "alpha"
     assert polymer.sidechain_chirality == "l"
-    assert tuple(polymer.mainchain_atoms) == ALPHA_AA.mainchain_atoms
+    assert tuple(polymer.mainchain_atoms) == _alpha().mainchain_atoms
 
     types = {a.name: a.atom_type for a in restype.atoms}
     assert types["CA"] == "CAbb"
     assert types["C"] == "CObb"
     assert types["O"] == "OCbb"
-    assert types["N"] in ALPHA_AA.amide_n_types
+    assert types["N"] in _alpha().amide_n_types
 
     torsions = [t.name for t in restype.torsions]
     assert torsions[:3] == ["phi", "psi", "omega"]
@@ -311,29 +319,30 @@ def test_smiles_path_is_not_routed_to_the_polymer_path() -> None:
 
 CAP_FIXTURE = "capped_peptide_ace_nme"
 
-# residue code -> (profile, connection, atom it attaches to, backbone typing)
+# residue code -> (connection, atom it attaches to, the atoms of the peptide
+#                  bond it makes, which are typed as backbone)
 _CAPS = {
-    "ACE": (ACETYL_CAP, "up", "C", {"CH3": "CH3", "C": "CObb", "O": "OCbb"}),
-    "NME": (METHYLAMIDE_CAP, "down", "N", {"N": "Nbb", "C": "CH3"}),
+    "ACE": ("up", "C", {"C": "CObb", "O": "OCbb"}),
+    "NME": ("down", "N", {"N": "Nbb"}),
 }
 
 
 @pytest.mark.parametrize("res_name", sorted(_CAPS))
 def test_prepare_peptide_cap(res_name: str) -> None:
     """A cap prepares to a residue type with a single polymer connection."""
-    profile, conn_name, conn_atom, types = _CAPS[res_name]
-    residue, prep = _prepare(CAP_FIXTURE, res_name)
+    conn_name, conn_atom, types = _CAPS[res_name]
+    # a cap is recognized by having exactly one connection, so it cannot be
+    #    identified without knowing where that connection is
+    residue, prep = _prepare(CAP_FIXTURE, res_name, frozenset({conn_atom}))
     restype = prep.residue_type
 
     assert {c.name: c.atom for c in restype.connections} == {conn_name: conn_atom}
-    assert profile.connections == ((conn_name, conn_atom),)
 
-    # every heavy atom survives capping, and the caps themselves do not
+    # every heavy atom of the input survives; the stubs used to cap it do not
     heavy = {a.name for a in restype.atoms if not a.name.startswith("H")}
-    assert heavy == set(profile.exact_heavy_atoms)
-    assert not heavy & set(profile.cap_names)
+    assert heavy == {str(n) for n in residue.atom_name if not str(n).startswith("H")}
 
-    # the backbone is retyped to protein types; a cap is backbone throughout
+    # the peptide bond a cap makes is real, so its atoms are typed as backbone
     assert {a.name: a.atom_type for a in restype.atoms if a.name in types} == types
 
     # no sidechain, so no chi and no handedness
@@ -361,8 +370,8 @@ def test_peptide_cap_charges_balance_across_the_pair() -> None:
     two are equal and opposite.
     """
     nets = {}
-    for res_name in _CAPS:
-        _residue_arr, prep = _prepare(CAP_FIXTURE, res_name)
+    for res_name, (_conn_name, conn_atom, _types) in _CAPS.items():
+        _residue_arr, prep = _prepare(CAP_FIXTURE, res_name, frozenset({conn_atom}))
         nets[res_name] = sum(prep.partial_charges.values())
 
     assert sum(nets.values()) == pytest.approx(0.0, abs=1e-4)
@@ -374,7 +383,7 @@ def test_prepare_ligands_routes_peptide_caps() -> None:
     param_db, canonical_ordering = prepare_ligands(
         _load(CAP_FIXTURE), param_db=ParameterDatabase.get_default()
     )
-    for res_name, (_profile, conn_name, conn_atom, _types) in _CAPS.items():
+    for res_name, (conn_name, conn_atom, _types) in _CAPS.items():
         restype = next(r for r in param_db.chemical.residues if r.name == res_name)
         assert {c.name: c.atom for c in restype.connections} == {conn_name: conn_atom}
         assert res_name in canonical_ordering.restype_io_equiv_classes
@@ -410,8 +419,39 @@ def test_a_linked_fragment_is_not_mistaken_for_a_cap() -> None:
     residue = _residue(_load("phosphopeptide_5ema"), "SEP")
     # SEP carries both of NME's atoms, and more besides
     assert {"N", "C"} <= set(residue.atom_name)
-    assert profile_for_atom_array(residue) is ALPHA_AA
+    assert profile_for_atom_array(residue) is _alpha()
 
     # a two-atom fragment whose atoms are not the cap's is not claimed either
     fragment = residue[np.isin(residue.atom_name, ["N", "CA"])]
     assert profile_for_atom_array(fragment) is None
+
+
+def test_a_cap_carries_the_peptide_bond_terms_its_names_would_miss() -> None:
+    """Cartbonded reaches across the peptide bond by atom name.
+
+    A cap does not use a backbone's names -- an acetyl's alpha-equivalent is
+    its methyl, a methylamide's is the carbon those rows call CN -- so the
+    terms spanning its peptide bond are passed over. It carries copies under
+    the names it does use, values unchanged.
+    """
+    expected = {
+        "ACE": {
+            ("CH3", "C", "+N"),
+            ("CH3", "C", "+N", "+H"),
+            ("CH3", "C", "+N", "+CN"),
+        },
+        "NME": {("C", "N", "+C", "+O"), ("C", "N", "+C", "+CA")},
+    }
+    for res_name, (_conn_name, conn_atom, _types) in _CAPS.items():
+        _residue_arr, prep = _prepare(CAP_FIXTURE, res_name, frozenset({conn_atom}))
+        params = prep.cartbonded_params
+        rows = {
+            tuple(str(a) for a in atoms)
+            for atoms in (
+                *((p.atm1, p.atm2) for p in params.length_parameters),
+                *((p.atm1, p.atm2, p.atm3) for p in params.angle_parameters),
+                *((p.atm1, p.atm2, p.atm3, p.atm4) for p in params.torsion_parameters),
+            )
+            if any(str(a).startswith("+") for a in atoms)
+        }
+        assert rows == expected[res_name], res_name

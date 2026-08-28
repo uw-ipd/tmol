@@ -13,6 +13,7 @@ from typing import Optional
 
 import attr
 import biotite.structure as struc
+import biotite.structure.info as info
 import biotite.structure.info.ccd as ccd
 import numpy as np
 from rdkit import Chem
@@ -42,6 +43,9 @@ class NonStandardResidueInfo:
         elements: Element symbols for each atom.
         coords: Cartesian coordinates of shape (n_atoms, 3).
         atom_array: The sub-AtomArray (with bonds if available).
+        connection_atom_names: Names of the atoms bonded to a neighbouring
+            residue, which is where this residue's polymer connections attach.
+            ``None`` where the source cannot say, as a bare SMILES cannot.
         partial_charges: Authoritative ``{atom_name: charge}`` map (OpenBabel
             MMFF94 charges). Set only on the mol2 / SMILES-via-mol2 reader path,
             where ``prepare_single_ligand`` consumes them directly. ``None`` for
@@ -70,6 +74,9 @@ class NonStandardResidueInfo:
     original_single_bonds: Optional[frozenset[frozenset[str]]] = None
     # source atom-array index per mol2 heavy atom (SMILES-via-mol2 path only)
     source_atom_order: Optional[tuple[int, ...]] = None
+    # atoms bonded to a neighbouring residue; empty when the residue stands
+    #    alone, None when the source cannot say (a bare SMILES)
+    connection_atom_names: Optional[frozenset[str]] = None
 
 
 @functools.cache
@@ -626,9 +633,17 @@ def detect_nonstandard_residues(
     seen: set[str] = set()
     results: list[NonStandardResidueInfo] = []
 
-    covalently_linked_names = _residue_names_with_cross_residue_bonds(
+    cross_residue_atoms = _cross_residue_bond_atoms(
         atom_array, chem_comp_types=chem_comp_types
     )
+    covalently_linked_names = frozenset(
+        res_name for _chain, _res_id, res_name in cross_residue_atoms
+    )
+    # collect by name, since all copies of a residue share one residue type.
+    #    A copy at the end of a chain is only bonded on one side.
+    connection_atoms_by_name: dict[str, set[str]] = {}
+    for (_chain, _res_id, res_name), atoms in cross_residue_atoms.items():
+        connection_atoms_by_name.setdefault(res_name, set()).update(atoms)
 
     residue_starts = struc.get_residue_starts(atom_array)
 
@@ -668,10 +683,56 @@ def detect_nonstandard_residues(
                 coords=sub.coord.copy(),
                 atom_array=sub,
                 covalently_linked=res_name in covalently_linked_names,
+                connection_atom_names=frozenset(
+                    connection_atoms_by_name.get(res_name, ())
+                ),
             )
         )
 
     return results
+
+
+@functools.cache
+def ccd_chain_end_atoms(res_name: str) -> frozenset[str]:
+    """Atoms a component bonds its chain neighbours through, per the CCD.
+
+    A component definition flags the atoms it gives up on polymerizing -- the
+    hydroxyl of the acid, a proton of the amine -- so the atoms they hang off
+    are where the chain continues. Read from the definition rather than from
+    the structure, which has already dropped whichever it used.
+
+    Empty when the component is unknown to the CCD or does not flag them; about
+    one peptide-linking component in sixteen does not.
+    """
+    key = res_name.strip().upper()
+    if not key:
+        return frozenset()
+    try:
+        flags = info.get_from_ccd("chem_comp_atom", key, "pdbx_leaving_atom_flag")
+        names = info.get_from_ccd("chem_comp_atom", key, "atom_id")
+        component = info.residue(key)
+    except Exception:
+        return frozenset()
+    if flags is None or names is None or component.bonds is None:
+        return frozenset()
+
+    leaving = {
+        str(name)
+        for name, flag in zip(names.as_array(str), flags.as_array(str))
+        if flag == "Y"
+    }
+    if not leaving:
+        return frozenset()
+
+    by_index = {i: str(n) for i, n in enumerate(component.atom_name)}
+    element = {str(n): str(e) for n, e in zip(component.atom_name, component.element)}
+    ends: set[str] = set()
+    for i, j, _order in component.bonds.as_array():
+        a, b = by_index[int(i)], by_index[int(j)]
+        for leaf, parent in ((a, b), (b, a)):
+            if leaf in leaving and parent not in leaving and element.get(parent) != "H":
+                ends.add(parent)
+    return frozenset(ends)
 
 
 def is_polymer_linking_ccd_type(ccd_type: Optional[str]) -> bool:
@@ -687,12 +748,17 @@ def is_polymer_linking_ccd_type(ccd_type: Optional[str]) -> bool:
     return "LINKING" in ccd_type or "SACCHARIDE" in ccd_type
 
 
-def _residue_names_with_cross_residue_bonds(  # noqa: C901
+def _cross_residue_bond_atoms(  # noqa: C901
     atom_array: struc.AtomArray,
     spatial_cutoff: float = 1.8,
     chem_comp_types: Optional[dict] = None,
-) -> frozenset[str]:
-    """Return the set of res_names that have at least one bond to a different residue.
+) -> dict[tuple, frozenset[str]]:
+    """Atoms of each residue instance that bond to a different residue.
+
+    Keyed by ``(chain_id, res_id, res_name)``. These atoms are where the
+    residue's polymer connections attach, which is what says where its backbone
+    ends; classifying a backbone from atom names instead mistakes a residue
+    linked through a sidechain carbon for one linked through its carbonyl.
 
     A "different residue" is identified by (chain_id, res_id, res_name) — so
     distinct instances of the same residue name (e.g. two NAGs in a glycan
@@ -715,7 +781,15 @@ def _residue_names_with_cross_residue_bonds(  # noqa: C901
     res_ids = atom_array.res_id
     res_names = atom_array.res_name
 
-    linked: set[str] = set()
+    linked: dict[tuple, set[str]] = {}
+    atom_names = atom_array.atom_name
+
+    def _key(idx: int) -> tuple:
+        chain = chain_ids[idx] if chain_ids is not None else None
+        return (chain, res_ids[idx], res_names[idx].strip())
+
+    def _record(idx: int) -> None:
+        linked.setdefault(_key(idx), set()).add(str(atom_names[idx]).strip())
 
     def _spans_residues(a: int, b: int) -> bool:
         """Whether atoms ``a`` and ``b`` belong to different residues."""
@@ -728,8 +802,8 @@ def _residue_names_with_cross_residue_bonds(  # noqa: C901
         for a, b, _ in atom_array.bonds.as_array():
             a, b = int(a), int(b)
             if _spans_residues(a, b):
-                linked.add(res_names[a].strip())
-                linked.add(res_names[b].strip())
+                _record(a)
+                _record(b)
 
     if len(atom_array) > 1:
         heavy_mask = np.char.strip(atom_array.element.astype(str)) != "H"
@@ -748,6 +822,20 @@ def _residue_names_with_cross_residue_bonds(  # noqa: C901
                     if is_polymer_linking_ccd_type(
                         get_chem_comp_type(name, chem_comp_types)
                     ):
-                        linked.add(name)
+                        _record(idx)
 
-    return frozenset(linked)
+    return {key: frozenset(names) for key, names in linked.items()}
+
+
+def _residue_names_with_cross_residue_bonds(
+    atom_array: struc.AtomArray,
+    spatial_cutoff: float = 1.8,
+    chem_comp_types: Optional[dict] = None,
+) -> frozenset[str]:
+    """Names of the residues that have at least one bond to a different residue."""
+    return frozenset(
+        res_name
+        for _chain, _res_id, res_name in _cross_residue_bond_atoms(
+            atom_array, spatial_cutoff, chem_comp_types
+        )
+    )

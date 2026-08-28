@@ -259,6 +259,68 @@ class LigandPreparation:
     atom_type_elements: Optional[dict[str, str]] = None
 
 
+def _variant_signature(base, variant):
+    """What a patch did to a residue: atoms added, removed, and retyped."""
+    before = {a.name: a.atom_type for a in base.atoms}
+    after = {a.name: a.atom_type for a in variant.atoms}
+    return (
+        frozenset(after) - frozenset(before),
+        frozenset(before) - frozenset(after),
+        frozenset(n for n in set(before) & set(after) if before[n] != after[n]),
+    )
+
+
+def terminus_charge_entries(param_db, patched_chemdb, residue_type) -> dict:
+    """``{variant name: {atom: charge}}`` for every variant a residue takes.
+
+    A patch introduces atoms the base residue has no charge for -- the acid's
+    OXT, the ammonium's protons -- so a residue injected without them cannot be
+    scored in any terminal position. The values are backbone chemistry, so they
+    come from whichever residue already in the database its patch did the same
+    thing to: matching on what the patch changed picks a residue whose nitrogen
+    is substituted the same way, with no reference named here.
+
+    Copied for the atoms the patch touched and their immediate neighbours: an
+    acid's carbon changes with the OXT hung off it though the patch leaves the
+    carbon itself alone. Further out, a reference's entry is its own charge
+    redistribution and belongs to it.
+    """
+    by_name = {r.name: r for r in patched_chemdb.residues}
+    charges: dict = {}
+    for entry in param_db.scoring.elec.atom_charge_parameters:
+        charges.setdefault(str(entry.res), {})[str(entry.atom)] = entry.charge
+
+    signatures: dict = {}
+    for name, restype in by_name.items():
+        base_name, _, suffix = name.partition(":")
+        if not suffix or base_name not in by_name or name not in charges:
+            continue
+        signatures.setdefault(
+            (suffix, _variant_signature(by_name[base_name], restype)), name
+        )
+
+    entries: dict = {}
+    for name, restype in by_name.items():
+        base_name, _, suffix = name.partition(":")
+        if base_name != residue_type.name or not suffix:
+            continue
+        added, removed, retyped = _variant_signature(residue_type, restype)
+        reference = signatures.get((suffix, (added, removed, retyped)))
+        if reference is None:
+            continue
+        neighbours = {
+            other
+            for bond in restype.bonds
+            for atom, other in (bond[:2], bond[1::-1])
+            if atom in added
+        }
+        touched = (added | retyped | neighbours) & set(charges[reference])
+        delta = {atom: charges[reference][atom] for atom in sorted(touched)}
+        if delta:
+            entries[name] = delta
+    return entries
+
+
 def inject_ligand_preparations(
     param_db: ParameterDatabase,
     preparations: list[LigandPreparation],
@@ -325,9 +387,27 @@ def inject_ligand_preparations(
         param_db,
         residue_types=[p.residue_type for p in new_preps],
         atom_types=new_atom_types or None,
-        partial_charges={p.residue_type.name: p.partial_charges for p in new_preps},
+        partial_charges=_charges_with_termini(
+            param_db, new_preps, (*param_db.chemical.atom_types, *new_atom_types)
+        ),
         cartbonded_params={p.residue_type.name: p.cartbonded_params for p in new_preps},
     )
+
+
+def _charges_with_termini(param_db, preps, atom_types) -> dict:
+    """Each preparation's charges, plus the deltas its variants need.
+
+    The variants are read off a patched copy rather than listed, so a patch
+    added to the database is covered without a change here.
+    """
+    patched = param_db.chemical.with_added_residues(
+        [p.residue_type for p in preps], atom_types=atom_types
+    )
+    charges = {}
+    for prep in preps:
+        charges[prep.residue_type.name] = prep.partial_charges
+        charges.update(terminus_charge_entries(param_db, patched, prep.residue_type))
+    return charges
 
 
 def rebuild_canonical_ordering(

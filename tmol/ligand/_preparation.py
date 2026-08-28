@@ -8,11 +8,15 @@ import itertools
 import logging
 from typing import Optional
 
+import attr
+
 import biotite.structure as struc
 import numpy as np
 from rdkit import Chem
 
 from tmol.database import ParameterDatabase
+from tmol.database.chemical import AtomAlias
+from tmol.database.scoring._cartbonded import AngleGroup
 from tmol.io import CanonicalOrdering
 from tmol.ligand._atom_typing import AtomTypeAssignment, assign_tmol_atom_types
 from tmol.ligand._detect import (
@@ -266,27 +270,76 @@ def prepare_polymer_residue(
     ph: float = 7.4,
     profile=None,
     sample_proton_chi: bool = True,
+    connection_atoms=None,
+    seed: int | None = None,
 ) -> LigandPreparation:
     """Prepare one polymer residue: cap it, run the ligand pipeline, restore the
     polymer connections.
 
     atom_array is the residue as it appears in a structure, with its polymer
     connections open; profile defaults to whichever backbone its atoms match.
+    connection_atoms names the atoms that bond to neighbouring residues, which
+    is what distinguishes a residue linked through its carbonyl from one linked
+    through a sidechain carbon.
     """
     from tmol.ligand._polymer_builder import (
         backbone_renames,
         to_polymer_residue_type,
     )
-    from tmol.ligand._polymer_profile import cap_residue, profile_for_atom_array
+    from tmol.ligand._polymer_profile import (
+        canonical_alpha_renames,
+        cap_backbone_substitution,
+        cap_residue,
+        profile_for_atom_array,
+        ring_nitrogen_angle,
+        ring_nitrogen_angle_atom,
+        substituted_wildcard_rows,
+    )
 
     if param_db is None:
         param_db = ParameterDatabase.get_default()
+    # the backbone is read from the bonds, so say so before classifying: with
+    #    no bond table every residue looks like a backbone we do not support
+    if atom_array.bonds is None or atom_array.bonds.get_bond_count() == 0:
+        raise ValueError(
+            "residue carries no bond table; read the structure with "
+            "include_bonds=True so its chemistry can be derived"
+        )
     if profile is None:
-        profile = profile_for_atom_array(atom_array)
+        profile = profile_for_atom_array(
+            atom_array, connection_atoms, param_db.chemical
+        )
     if profile is None:
+        if connection_atoms and len(connection_atoms) == 1:
+            known = next(iter(connection_atoms))
+            raise LigandPreparationError(
+                f"{atom_array.res_name[0]}: bonded to a neighbour only at "
+                f"{known}, and neither its component definition nor its "
+                "chemistry says where the backbone's other end is. Prepare it "
+                "once with prepare_polymer_residue(..., connection_atoms="
+                f'("{known}", <other end>)), save it with write_params_file, '
+                "and pass that file as params_files"
+            )
         raise LigandPreparationError(
             f"{atom_array.res_name[0]}: declared a polymer residue but its atoms "
             "match no supported backbone"
+        )
+
+    # cartbonded reaches across the peptide bond by atom name, so the few
+    #    backbone atoms it names are renamed and the input names kept as aliases
+    backbone_renames_to_canonical = canonical_alpha_renames(
+        atom_array, connection_atoms
+    )
+    atom_aliases = ()
+    if backbone_renames_to_canonical:
+        atom_array = atom_array.copy()
+        for i, name in enumerate(atom_array.atom_name):
+            canonical = backbone_renames_to_canonical.get(str(name))
+            if canonical is not None:
+                atom_array.atom_name[i] = canonical
+        atom_aliases = tuple(
+            AtomAlias(name=canonical, alt_name=actual)
+            for actual, canonical in sorted(backbone_renames_to_canonical.items())
         )
 
     capped, cap_names = cap_residue(atom_array, profile)
@@ -297,7 +350,7 @@ def prepare_polymer_residue(
             "non-standard; is its name already in the database?"
         )
     prep = _prepare_ligand_via_smiles(
-        detected[0], ph=ph, sample_proton_chi=sample_proton_chi
+        detected[0], ph=ph, sample_proton_chi=sample_proton_chi, seed=seed
     )
 
     # only a profile that transplants backbone icoors needs a donor residue
@@ -318,6 +371,11 @@ def prepare_polymer_residue(
         prep.residue_type, coords, profile, reference, elements, cap_names
     )
 
+    if atom_aliases:
+        residue_type = attr.evolve(
+            residue_type, atom_aliases=residue_type.atom_aliases + atom_aliases
+        )
+
     kept = {a.name for a in residue_type.atoms}
     renamed, _dropped = backbone_renames(
         prep.residue_type, profile, elements, cap_names
@@ -334,10 +392,61 @@ def prepare_polymer_residue(
         for name, xyz in _ideal_coords_by_name(residue_type).items()
         if name in kept
     }
+    cartbonded_params = _build_cartbonded_params(residue_type, coords=kept_coords)
+    # the angle at a ring nitrogen is only matched when the ring atom is called
+    #    CD, so a residue that calls it otherwise carries its own copy of the
+    #    row. The value is proline's: it is fitted, not derivable from geometry
+    ring_atom = ring_nitrogen_angle_atom(atom_array, connection_atoms)
+    fitted = ring_nitrogen_angle(param_db.scoring.cartbonded)
+    if ring_atom is not None and ring_atom in kept and fitted is not None:
+        x0, k = fitted
+        cartbonded_params = attr.evolve(
+            cartbonded_params,
+            angle_parameters=cartbonded_params.angle_parameters
+            + (
+                AngleGroup(
+                    atm1=ring_atom,
+                    atm2="N",
+                    atm3="+C",
+                    x0=x0,
+                    K=k,
+                    type=1,
+                ),
+            ),
+        )
+
+    # a cap does not use a backbone's atom names, so the terms reaching across
+    #    its peptide bond are passed over; it carries its own copies instead
+    if profile.name == "cap":
+        substitution = cap_backbone_substitution(
+            atom_array, profile.mainchain_atoms[0], param_db.chemical
+        )
+        if substitution is not None:
+            rows = substituted_wildcard_rows(
+                param_db.scoring.cartbonded, *substitution, kept
+            )
+            cartbonded_params = attr.evolve(
+                cartbonded_params,
+                length_parameters=cartbonded_params.length_parameters
+                + tuple(
+                    attr.evolve(p, atm1=a[0], atm2=a[1]) for a, p in rows["length"]
+                ),
+                angle_parameters=cartbonded_params.angle_parameters
+                + tuple(
+                    attr.evolve(p, atm1=a[0], atm2=a[1], atm3=a[2])
+                    for a, p in rows["angle"]
+                ),
+                torsion_parameters=cartbonded_params.torsion_parameters
+                + tuple(
+                    attr.evolve(p, atm1=a[0], atm2=a[1], atm3=a[2], atm4=a[3])
+                    for a, p in rows["torsion"]
+                ),
+            )
+
     return LigandPreparation(
         residue_type=residue_type,
         partial_charges=charges,
-        cartbonded_params=_build_cartbonded_params(residue_type, coords=kept_coords),
+        cartbonded_params=cartbonded_params,
         atom_type_elements=prep.atom_type_elements,
     )
 
@@ -387,6 +496,7 @@ def _prepare_ligand_via_smiles(
     *,
     ph: float,
     sample_proton_chi: bool,
+    seed: int | None = None,
 ) -> LigandPreparation:
     """Prepare one ligand through the unified CIF -> SMILES -> params path.
 
@@ -400,6 +510,9 @@ def _prepare_ligand_via_smiles(
         ligand_info: The detected (CIF/atom-array) ligand.
         ph: Target pH for protonation (applied in the SMILES -> mol2 step).
         sample_proton_chi: Whether to emit proton-chi samples.
+        seed: Fixed RNG seed for reproducible 3D coordinates; ``None`` is
+            random, which makes the measured bonded parameters differ between
+            runs of the same input.
 
     Returns:
         The :class:`LigandPreparation`.
@@ -413,7 +526,7 @@ def _prepare_ligand_via_smiles(
 
     try:
         smiles_info = nonstandard_residue_info_from_smiles_via_mol2(
-            smiles, res_name=ligand_info.res_name, ph=ph
+            smiles, res_name=ligand_info.res_name, ph=ph, seed=seed
         )
         prep = prepare_single_ligand(
             smiles_info,
@@ -443,7 +556,7 @@ def _supported_elements(param_db: ParameterDatabase) -> set[str]:
     }
 
 
-def _routes_to_polymer_path(lig: NonStandardResidueInfo) -> bool:
+def _routes_to_polymer_path(lig: NonStandardResidueInfo, chemdb=None) -> bool:
     """Whether this residue is prepared as a chain member rather than a molecule.
 
     The CCD type decides it for a linking component. A terminal cap is typed
@@ -458,7 +571,10 @@ def _routes_to_polymer_path(lig: NonStandardResidueInfo) -> bool:
         return True
     if not lig.covalently_linked:
         return False
-    return profile_for_atom_array(lig.atom_array) is not None
+    return (
+        profile_for_atom_array(lig.atom_array, lig.connection_atom_names, chemdb)
+        is not None
+    )
 
 
 def _ligand_unsupported_reason(
@@ -697,7 +813,7 @@ def prepare_ligands(  # noqa: C901
     prepared_ligands: list[tuple[NonStandardResidueInfo, LigandPreparation]] = []
     prepared_polymers: list[LigandPreparation] = []
     for lig in ligands:
-        is_polymer = _routes_to_polymer_path(lig)
+        is_polymer = _routes_to_polymer_path(lig, param_db.chemical)
         reason = _ligand_unsupported_reason(lig, supported_elements, is_polymer)
         if reason:
             _skip_or_raise(strict_ligands, reason)
@@ -712,6 +828,7 @@ def prepare_ligands(  # noqa: C901
                     param_db,
                     ph=ph,
                     sample_proton_chi=sample_proton_chi,
+                    connection_atoms=lig.connection_atom_names,
                 )
             else:
                 prep = _prepare_ligand_via_smiles(
