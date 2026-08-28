@@ -82,6 +82,7 @@ def build_context_from_biotite(
     if prepare_ligands:
         from tmol.ligand import prepare_ligands as _prepare_ligands
 
+        using_default_database = param_db is None
         if param_db is None:
             param_db = ParameterDatabase.get_default()
 
@@ -95,6 +96,13 @@ def build_context_from_biotite(
             strict_ligands=strict_ligands,
             return_fragment_definitions=True,
         )
+        if (
+            using_default_database
+            and param_db is _paramdb_for_biotite()
+            and not fragment_definitions
+        ):
+            return _default_pose_build_context(torch_device)
+
         rts = ResidueTypeSet.from_database(param_db.chemical)
         pbt = PackedBlockTypes.from_restype_list(
             rts.chem_db, rts, rts.residue_types, torch_device
@@ -108,13 +116,10 @@ def build_context_from_biotite(
         )
 
     if param_db is None:
-        co = canonical_ordering_for_biotite()
-        pbt = packed_block_types_for_biotite(torch_device)
-        db = _paramdb_for_biotite()
-        rts = _restype_set_for_biotite()
-    else:
-        db = param_db
-        co, rts, pbt = _derived_types_for_param_db(db, torch_device)
+        return _default_pose_build_context(torch_device)
+
+    db = param_db
+    co, rts, pbt = _derived_types_for_param_db(db, torch_device)
     return PoseBuildContext(
         canonical_ordering=co,
         packed_block_types=pbt,
@@ -924,6 +929,18 @@ def packed_block_types_for_biotite(device: torch.device) -> PackedBlockTypes:
 
     return PackedBlockTypes.from_restype_list(
         restype_set.chem_db, restype_set, restype_set.residue_types, device
+    )
+
+
+@validate_args
+@toolz.functoolz.memoize
+def _default_pose_build_context(device: torch.device) -> PoseBuildContext:
+    """Return the shared immutable context for the default database."""
+    return PoseBuildContext(
+        canonical_ordering=canonical_ordering_for_biotite(),
+        packed_block_types=packed_block_types_for_biotite(device),
+        parameter_database=_paramdb_for_biotite(),
+        restype_set=_restype_set_for_biotite(),
     )
 
 

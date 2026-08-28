@@ -94,6 +94,21 @@ def test_reused_context_caches_packing_setup(biotite_1ubq, torch_device):
     assert torch.equal(first.coords[finite], second.coords[finite])
 
 
+def test_standard_only_ligand_preparation_reuses_default_context(
+    biotite_1ubq, torch_device
+):
+    default_context = build_context_from_biotite(
+        biotite_1ubq, torch_device=torch_device
+    )
+    ligand_aware_context = build_context_from_biotite(
+        biotite_1ubq,
+        torch_device=torch_device,
+        prepare_ligands=True,
+    )
+
+    assert ligand_aware_context is default_context
+
+
 # 1ubq with one residue's 3LC changed to ERR to test a non-recognized residue type
 def test_pose_stack_from_biotite_1ubq_err_smoke(biotite_1ubq_err, torch_device):
     starts = biotite.structure.get_residue_starts(biotite_1ubq_err)
@@ -281,7 +296,6 @@ def test_sample_proton_chi_integrated_pose_build_behavior(torch_device):
         torch_device,
         prepare_ligands=True,
         sample_proton_chi=False,
-        param_db=ParameterDatabase.get_default(),
         return_context=True,
     )
     assert torch.isfinite(pose_stack.coords[pose_stack.real_atoms]).all()
