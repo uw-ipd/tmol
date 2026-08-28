@@ -429,7 +429,6 @@
     <span class="n">get_all_residue_positions</span><span class="p">,</span>
     <span class="n">resolve_device</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
@@ -608,10 +607,6 @@
 
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_canonical_form</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_missing_sidechains</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">NaChiRotamerSampler</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.dunbrack</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-        <span class="n">create_dunbrack_sampler_from_database</span><span class="p">,</span>
-    <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">context</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">param_db</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -676,19 +671,21 @@
         <span class="n">fragment_mapping</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">split_block_mapping</span>
     <span class="n">block_has_missing_atoms</span> <span class="o">=</span> <span class="n">opt_return_vals</span><span class="p">[</span><span class="s2">"block_has_missing_atoms"</span><span class="p">]</span>
 
-    <span class="k">if</span> <span class="n">block_has_missing_atoms</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">block_has_missing_atoms</span><span class="p">):</span>
+    <span class="n">has_missing_atoms</span> <span class="o">=</span> <span class="n">block_has_missing_atoms</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">bool</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">block_has_missing_atoms</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">has_missing_atoms</span><span class="p">:</span>
         <span class="n">_assert_no_ligand_with_missing_atoms</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">block_has_missing_atoms</span><span class="p">)</span>
 
     <span class="n">needs_packing</span> <span class="o">=</span> <span class="n">block_has_missing_atoms</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">block_has_missing_atoms</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">no_optH</span>
+        <span class="n">has_missing_atoms</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">no_optH</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="n">needs_packing</span><span class="p">:</span>
-        <span class="n">db</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">parameter_database</span>
-        <span class="n">sfxn</span> <span class="o">=</span> <span class="n">beta2016_score_function</span><span class="p">(</span><span class="n">torch_device</span><span class="p">,</span> <span class="n">param_db</span><span class="o">=</span><span class="n">db</span><span class="p">)</span>
-        <span class="n">dunbrack_sampler</span> <span class="o">=</span> <span class="n">create_dunbrack_sampler_from_database</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">torch_device</span><span class="p">)</span>
-        <span class="n">na_sampler</span> <span class="o">=</span> <span class="n">NaChiRotamerSampler</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">torch_device</span><span class="p">)</span>
+        <span class="n">sfxn</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">_packing_score_function</span>
+        <span class="n">dunbrack_sampler</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">_dunbrack_sampler</span>
+        <span class="n">na_sampler</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">_na_sampler</span> <span class="k">if</span> <span class="n">has_missing_atoms</span> <span class="k">else</span> <span class="kc">None</span>
 
-        <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">block_has_missing_atoms</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">has_missing_atoms</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
                 <span class="s2">"</span><span class="si">%i</span><span class="s2"> blocks with missing heavy atoms"</span><span class="p">,</span>
                 <span class="n">torch</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">block_has_missing_atoms</span><span class="p">),</span>

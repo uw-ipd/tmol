@@ -409,7 +409,7 @@
     <span class="n">Tensor</span><span class="p">,</span>
     <span class="n">validate_args</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.tensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">exclusive_cumsum1d</span><span class="p">,</span> <span class="n">stretch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.tensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">exclusive_cumsum1d</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">PackedBlockTypes</span><span class="p">,</span>
@@ -600,6 +600,9 @@
 
     <span class="n">pbt</span> <span class="o">=</span> <span class="n">poses</span><span class="o">.</span><span class="n">packed_block_types</span>
     <span class="n">n_rots_for_sampler</span> <span class="o">=</span> <span class="n">sampler_gbt_for_rotamer</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">_get_chi_dof_metadata</span>
+
+    <span class="n">kinforest_idx</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_get_chi_dof_metadata</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
 
     <span class="c1"># This could 100% be pre-computed</span>
     <span class="n">pbts_sampler_ind</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">mc_fingerprints</span><span class="o">.</span><span class="n">sampler_mapping</span><span class="p">[</span><span class="n">sampler_name</span><span class="p">]</span>
@@ -655,39 +658,34 @@
         <span class="n">is_samplers_rots_mcfp_at_inds_rto_real</span>
     <span class="p">]</span>
 
-    <span class="n">real_samplers_rots_block_type_ind_for_mcfp_ats</span> <span class="o">=</span> <span class="n">stretch</span><span class="p">(</span>
-        <span class="n">block_type_ind_for_samplers_rots</span><span class="p">,</span> <span class="n">max_n_mcfp_atoms</span>
-    <span class="p">)[</span><span class="n">is_samplers_rots_mcfp_at_inds_rto_real</span><span class="p">]</span>
+    <span class="n">samplers_rots_block_type_ind_for_mcfp_ats</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">block_type_ind_for_samplers_rots</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_rots_for_sampler</span><span class="p">,</span> <span class="n">max_n_mcfp_atoms</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">real_samplers_rots_block_type_ind_for_mcfp_ats</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">samplers_rots_block_type_ind_for_mcfp_ats</span><span class="p">[</span>
+            <span class="n">is_samplers_rots_mcfp_at_inds_rto_real</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
 
     <span class="n">samplers_rots_mcfp_at_inds_kto</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">samplers_rots_mcfp_at_inds_rto</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">samplers_rots_mcfp_at_inds_kto</span><span class="p">[</span><span class="n">is_samplers_rots_mcfp_at_inds_rto_real</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
-            <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">kinforest_idx</span><span class="p">[</span>
-                <span class="n">real_samplers_rots_block_type_ind_for_mcfp_ats</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
-                <span class="n">real_samplers_rots_mcfp_at_inds_rto</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
-            <span class="p">],</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
-            <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="n">kinforest_idx</span><span class="p">[</span>
+            <span class="n">real_samplers_rots_block_type_ind_for_mcfp_ats</span><span class="p">,</span>
+            <span class="n">real_samplers_rots_mcfp_at_inds_rto</span><span class="p">,</span>
+        <span class="p">]</span>
     <span class="p">)</span>
 
     <span class="n">is_samplers_rots_mcfp_at_inds_kto_real</span> <span class="o">=</span> <span class="n">samplers_rots_mcfp_at_inds_kto</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
     <span class="n">n_dof_atoms_offset_for_samplers_rot</span> <span class="o">=</span> <span class="n">n_dof_atoms_offset_for_rot</span><span class="p">[</span>
         <span class="n">conf_inds_for_sampler</span>
     <span class="p">]</span>
-    <span class="n">samplers_rots_mcfp_at_inds_kto</span><span class="p">[</span>
-        <span class="n">is_samplers_rots_mcfp_at_inds_kto_real</span>
-    <span class="p">]</span> <span class="o">+=</span> <span class="n">n_dof_atoms_offset_for_samplers_rot</span><span class="p">[</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">div</span><span class="p">(</span>  <span class="c1"># to do: replace with expand</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
-                <span class="n">n_rots_for_sampler</span> <span class="o">*</span> <span class="n">max_n_mcfp_atoms</span><span class="p">,</span>
-                <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
-                <span class="n">device</span><span class="o">=</span><span class="n">poses</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-            <span class="p">),</span>
-            <span class="n">max_n_mcfp_atoms</span><span class="p">,</span>
-            <span class="n">rounding_mode</span><span class="o">=</span><span class="s2">"trunc"</span><span class="p">,</span>
-        <span class="p">)[</span><span class="n">is_samplers_rots_mcfp_at_inds_kto_real</span><span class="p">]</span>
-    <span class="p">]</span>
+    <span class="n">samplers_rots_mcfp_at_inds_kto</span><span class="p">[</span><span class="n">is_samplers_rots_mcfp_at_inds_kto_real</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span>
+        <span class="n">n_dof_atoms_offset_for_samplers_rot</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_rots_for_sampler</span><span class="p">,</span> <span class="n">max_n_mcfp_atoms</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)[</span><span class="n">is_samplers_rots_mcfp_at_inds_kto_real</span><span class="p">]</span>
+    <span class="p">)</span>
 
     <span class="c1"># now get the indices in the orig_dofs array for the atoms to copy from.</span>
     <span class="c1"># The steps:</span>
@@ -709,9 +707,13 @@
         <span class="n">sampler_ind_for_orig</span><span class="p">,</span> <span class="n">orig_res_mcfp</span><span class="p">,</span> <span class="n">orig_block_type_ind</span><span class="p">,</span> <span class="p">:</span>
     <span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
 
-    <span class="n">real_orig_block_type_ind_for_orig_mcfp_ats</span> <span class="o">=</span> <span class="n">stretch</span><span class="p">(</span>
-        <span class="n">orig_block_type_ind</span><span class="p">,</span> <span class="n">max_n_mcfp_atoms</span>
-    <span class="p">)[</span><span class="n">orig_mcfp_at_inds_rto</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">n_orig_blocks</span> <span class="o">=</span> <span class="n">orig_block_type_ind</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">orig_block_type_ind_for_mcfp_ats</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">orig_block_type_ind</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_orig_blocks</span><span class="p">,</span> <span class="n">max_n_mcfp_atoms</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">real_orig_block_type_ind_for_orig_mcfp_ats</span> <span class="o">=</span> <span class="n">orig_block_type_ind_for_mcfp_ats</span><span class="p">[</span>
+        <span class="n">orig_mcfp_at_inds_rto</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="p">]</span>
 
     <span class="n">orig_dof_atom_offset</span> <span class="o">=</span> <span class="n">exclusive_cumsum1d</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">[</span><span class="n">orig_block_type_ind</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">int64</span>
@@ -719,23 +721,14 @@
 
     <span class="n">orig_mcfp_at_inds_kto</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">orig_mcfp_at_inds_rto</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">orig_mcfp_at_inds_kto</span><span class="p">[</span><span class="n">orig_mcfp_at_inds_rto</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
-            <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">kinforest_idx</span><span class="p">[</span>
-                <span class="n">real_orig_block_type_ind_for_orig_mcfp_ats</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
-                <span class="n">orig_mcfp_at_inds_rto</span><span class="p">[</span><span class="n">orig_mcfp_at_inds_rto</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
-            <span class="p">],</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
-            <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="n">kinforest_idx</span><span class="p">[</span>
+            <span class="n">real_orig_block_type_ind_for_orig_mcfp_ats</span><span class="p">,</span>
+            <span class="n">orig_mcfp_at_inds_rto</span><span class="p">[</span><span class="n">orig_mcfp_at_inds_rto</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+        <span class="p">]</span>
         <span class="o">+</span> <span class="n">orig_dof_atom_offset</span><span class="p">[</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">floor_divide</span><span class="p">(</span>  <span class="c1"># to do: replace w/ expand</span>
-                <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
-                    <span class="n">orig_block_type_ind</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">max_n_mcfp_atoms</span><span class="p">,</span>
-                    <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
-                    <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-                <span class="p">),</span>
-                <span class="n">max_n_mcfp_atoms</span><span class="p">,</span>
-            <span class="p">)</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_orig_blocks</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
+            <span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_orig_blocks</span><span class="p">,</span> <span class="n">max_n_mcfp_atoms</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
         <span class="p">][</span><span class="n">orig_mcfp_at_inds_rto</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
     <span class="p">)</span>
 
@@ -785,27 +778,21 @@
     <span class="n">n_rots_for_sampler</span> <span class="o">=</span> <span class="n">sampler_gbt_for_rotamer</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="n">max_n_chi_atoms</span> <span class="o">=</span> <span class="n">chi_atoms</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-    <span class="n">real_atoms</span> <span class="o">=</span> <span class="n">chi_atoms</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">real_atoms</span> <span class="o">=</span> <span class="n">chi_atoms</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
 
-    <span class="n">sampler_rot_ind_for_real_atom</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">floor_divide</span><span class="p">(</span>  <span class="c1"># to do: replace w/ expand</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
-            <span class="n">max_n_chi_atoms</span> <span class="o">*</span> <span class="n">n_rots_for_sampler</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span>
-        <span class="p">),</span>
-        <span class="n">max_n_chi_atoms</span><span class="p">,</span>
-    <span class="p">)[</span><span class="n">real_atoms</span><span class="p">]</span>
+    <span class="n">sampler_rot_ind_for_real_atom</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+        <span class="n">n_rots_for_sampler</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span>
+    <span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span><span class="o">.</span><span class="n">expand_as</span><span class="p">(</span><span class="n">chi_atoms</span><span class="p">)[</span><span class="n">real_atoms</span><span class="p">]</span>
     <span class="n">global_rot_ind_for_real_atom</span> <span class="o">=</span> <span class="n">conf_inds_for_sampler</span><span class="p">[</span><span class="n">sampler_rot_ind_for_real_atom</span><span class="p">]</span>
 
-    <span class="n">block_type_ind_for_rot_atom</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">block_type_ind_for_rot</span><span class="p">[</span><span class="n">global_rot_ind_for_real_atom</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-    <span class="p">)</span>
+    <span class="n">block_type_ind_for_rot_atom</span> <span class="o">=</span> <span class="n">block_type_ind_for_rot</span><span class="p">[</span><span class="n">global_rot_ind_for_real_atom</span><span class="p">]</span>
 
-    <span class="n">rot_chi_atoms_kto</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
-        <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">kinforest_idx</span><span class="p">[</span>
-            <span class="n">block_type_ind_for_rot_atom</span><span class="p">,</span> <span class="n">chi_atoms</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)[</span><span class="n">real_atoms</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-        <span class="p">],</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
-        <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-    <span class="p">)</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">_get_chi_dof_metadata</span>
+
+    <span class="n">kinforest_idx</span><span class="p">,</span> <span class="n">correction_table</span> <span class="o">=</span> <span class="n">_get_chi_dof_metadata</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
+    <span class="n">rot_chi_atoms_kto</span> <span class="o">=</span> <span class="n">kinforest_idx</span><span class="p">[</span>
+        <span class="n">block_type_ind_for_rot_atom</span><span class="p">,</span> <span class="n">chi_atoms</span><span class="p">[</span><span class="n">real_atoms</span><span class="p">]</span>
+    <span class="p">]</span>
 
     <span class="c1"># increment with the atom offsets for the source rotamer and by</span>
     <span class="c1"># one to include the virtual root</span>
@@ -814,31 +801,15 @@
     <span class="p">)</span>
 
     <span class="c1"># chi index (0, 1, 2, ...) for each real (rot, chi) entry</span>
-    <span class="n">chi_idx_for_real_atom</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
-                <span class="n">max_n_chi_atoms</span> <span class="o">*</span> <span class="n">n_rots_for_sampler</span><span class="p">,</span>
-                <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
-                <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="o">%</span> <span class="n">max_n_chi_atoms</span>
-        <span class="p">)[</span><span class="n">real_atoms</span><span class="p">]</span>
-        <span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
-        <span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-    <span class="p">)</span>
+    <span class="n">chi_idx_for_real_atom</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+        <span class="n">max_n_chi_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span>
+    <span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">expand_as</span><span class="p">(</span><span class="n">chi_atoms</span><span class="p">)[</span><span class="n">real_atoms</span><span class="p">]</span>
 
-    <span class="c1"># precomputed correction: phi_c = chi_intended - correction =&gt; chi_measured = chi_intended</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">_build_chi_phi_c_corrections</span>
-
-    <span class="n">corrections_np</span> <span class="o">=</span> <span class="n">_build_chi_phi_c_corrections</span><span class="p">(</span><span class="n">pbt</span><span class="p">)[</span>
-        <span class="n">block_type_ind_for_rot_atom</span><span class="p">,</span> <span class="n">chi_idx_for_real_atom</span>
-    <span class="p">]</span>
-    <span class="n">corrections</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
-        <span class="n">corrections_np</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">rot_dofs_kto</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span>
-    <span class="p">)</span>
+    <span class="c1"># phi_c = chi_intended - correction =&gt; chi_measured = chi_intended</span>
+    <span class="n">corrections</span> <span class="o">=</span> <span class="n">correction_table</span><span class="p">[</span><span class="n">block_type_ind_for_rot_atom</span><span class="p">,</span> <span class="n">chi_idx_for_real_atom</span><span class="p">]</span>
 
     <span class="c1"># overwrite the "downstream torsion" for the atoms that control each chi</span>
-    <span class="n">rot_dofs_kto</span><span class="p">[</span><span class="n">rot_chi_atoms_kto</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">chi</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)[</span><span class="n">real_atoms</span><span class="p">]</span> <span class="o">-</span> <span class="n">corrections</span></div>
+    <span class="n">rot_dofs_kto</span><span class="p">[</span><span class="n">rot_chi_atoms_kto</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">chi</span><span class="p">[</span><span class="n">real_atoms</span><span class="p">]</span> <span class="o">-</span> <span class="n">corrections</span></div>
 
 </pre></div>
 

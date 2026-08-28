@@ -478,8 +478,17 @@
 
     <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler_by_block_mask</span><span class="p">(</span><span class="n">dunbrack_sampler</span><span class="p">,</span> <span class="n">block_has_missing_atoms</span><span class="p">)</span>
     <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler_by_block_mask</span><span class="p">(</span><span class="n">fixed_sampler</span><span class="p">,</span> <span class="n">block_has_missing_atoms</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">na_sampler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler_by_block_mask</span><span class="p">(</span><span class="n">na_sampler</span><span class="p">,</span> <span class="n">block_has_missing_atoms</span><span class="p">)</span>
+    <span class="c1"># An empty sampler mask still makes the general rotamer builder execute the</span>
+    <span class="c1"># sampler's setup path. Avoid that overhead for complete protein batches.</span>
+    <span class="k">if</span> <span class="n">na_sampler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">block_has_missing_atoms</span><span class="p">):</span>
+        <span class="n">block_type_ind</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span>
+        <span class="n">real_blocks</span> <span class="o">=</span> <span class="n">block_type_ind</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+        <span class="n">na_blocks</span> <span class="o">=</span> <span class="n">na_sampler</span><span class="o">.</span><span class="n">defines_rotamers_for_bts</span><span class="p">(</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="n">block_type_ind</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">missing_na_blocks</span> <span class="o">=</span> <span class="n">block_has_missing_atoms</span> <span class="o">&amp;</span> <span class="n">real_blocks</span> <span class="o">&amp;</span> <span class="n">na_blocks</span>
+        <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">missing_na_blocks</span><span class="p">):</span>
+            <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler_by_block_mask</span><span class="p">(</span><span class="n">na_sampler</span><span class="p">,</span> <span class="n">missing_na_blocks</span><span class="p">)</span>
     <span class="n">block_does_not_have_missing_atoms</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">block_has_missing_atoms</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">no_optH</span><span class="p">:</span>
         <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler_by_block_mask</span><span class="p">(</span>

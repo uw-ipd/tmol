@@ -831,13 +831,8 @@
 
     <span class="c1"># we do not need to re-annotate this PackedBlockTypes object if there</span>
     <span class="c1"># are no sidechain samplers that it has not encountered before</span>
-    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"mc_atom_mapping"</span><span class="p">):</span>
-        <span class="n">all_found</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">sampler_types</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">bt</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">mc_atom_mapping</span><span class="p">:</span>
-                <span class="n">all_found</span> <span class="o">=</span> <span class="kc">False</span>
-                <span class="k">break</span>
-        <span class="k">if</span> <span class="n">all_found</span><span class="p">:</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"mc_fingerprints"</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">sampler_types</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">mc_fingerprints</span><span class="o">.</span><span class="n">sampler_mapping</span><span class="p">):</span>
             <span class="k">return</span>
     <span class="n">sampler_types</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">sampler_types</span><span class="p">))</span>
     <span class="n">n_samplers</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sampler_types</span><span class="p">)</span>

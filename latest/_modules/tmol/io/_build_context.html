@@ -404,6 +404,8 @@
                   
   <h1>Source code for tmol.io._build_context</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">cached_property</span>
+
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">ResidueTypeSet</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._canonical_ordering</span><span class="w"> </span><span class="kn">import</span> <span class="n">CanonicalOrdering</span>
@@ -430,7 +432,39 @@
     <span class="c1"># repeating ligand preparation.</span>
     <span class="n">fragment_definitions</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="p">()</span>
     <span class="c1"># SMILES string -&gt; residue type name, for ligands prepared from a sequence.</span>
-    <span class="n">ligand_names</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span></div>
+    <span class="n">ligand_names</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_packing_score_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Return the score function shared by repeated pose builds."""</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
+
+        <span class="k">return</span> <span class="n">beta2016_score_function</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">param_db</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_database</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_dunbrack_sampler</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Return the Dunbrack sampler shared by repeated pose builds."""</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.dunbrack</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+            <span class="n">create_dunbrack_sampler_from_database</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">create_dunbrack_sampler_from_database</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameter_database</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_na_sampler</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Return the nucleic-acid sampler shared by repeated pose builds."""</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">NaChiRotamerSampler</span>
+
+        <span class="k">return</span> <span class="n">NaChiRotamerSampler</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameter_database</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span></div>
 
 </pre></div>
 

@@ -522,6 +522,27 @@
     <span class="k">return</span> <span class="n">corrections</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_chi_dof_metadata</span><span class="p">(</span><span class="n">pbt</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Return immutable chi lookup tables on the PackedBlockTypes device."""</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"_chi_dof_metadata"</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">pbt</span><span class="o">.</span><span class="n">_chi_dof_metadata</span>
+
+    <span class="n">metadata</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
+            <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">kinforest_idx</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
+            <span class="n">_build_chi_phi_c_corrections</span><span class="p">(</span><span class="n">pbt</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"_chi_dof_metadata"</span><span class="p">,</span> <span class="n">metadata</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">metadata</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">correct_phi_c_for_jump_parents</span><span class="p">(</span>
     <span class="n">pbt</span><span class="p">,</span>
     <span class="n">conformer_samples</span><span class="p">,</span>
@@ -537,28 +558,19 @@
 <span class="w">    </span><span class="sd">"""For chi-defining atoms whose kinforest parent is a jump atom, the phi_c</span>
 <span class="sd">    written by assign_chi_dofs_from_samples does not directly map to the</span>
 <span class="sd">    chi dihedral angle measured from coordinates.  This function:</span>
-<span class="sd">      1. Does a trial forward pass with the current DOFs.</span>
-<span class="sd">      2. For each such atom, measures the actual dihedral from the trial coords.</span>
-<span class="sd">      3. Adds (intended - measured) to conf_dofs_kto[atom_kto, 3] so the</span>
+<span class="sd">      1. Finds every sampled chi whose controlling atom has a jump parent.</span>
+<span class="sd">      2. If any exist, does a trial forward pass with the current DOFs.</span>
+<span class="sd">      3. Measures their actual dihedrals from the trial coordinates.</span>
+<span class="sd">      4. Adds (intended - measured) to conf_dofs_kto[atom_kto, 3] so the</span>
 <span class="sd">         final forward pass produces the correct geometry.</span>
 <span class="sd">    """</span>
-    <span class="c1"># trial forward pass to get coords in RTO</span>
-    <span class="n">n_rots</span> <span class="o">=</span> <span class="n">block_type_ind_for_conformer_torch</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">n_at_total</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">n_atoms_offset_for_conformer_torch</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-        <span class="o">+</span> <span class="n">pbt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">[</span><span class="n">block_type_ind_for_conformer_torch</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-    <span class="p">)</span>
-    <span class="n">trial_coords_rto</span> <span class="o">=</span> <span class="n">calculate_rotamer_coords</span><span class="p">(</span>
-        <span class="n">pbt</span><span class="p">,</span> <span class="n">n_rots</span><span class="p">,</span> <span class="n">n_at_total</span><span class="p">,</span> <span class="n">conformer_kinforest</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">scans</span><span class="p">,</span> <span class="n">gens</span><span class="p">,</span> <span class="n">conf_dofs_kto</span>
-    <span class="p">)</span>
-
     <span class="n">doftype_cpu</span> <span class="o">=</span> <span class="n">conformer_kinforest</span><span class="o">.</span><span class="n">doftype</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
     <span class="n">parent_cpu</span> <span class="o">=</span> <span class="n">conformer_kinforest</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
     <span class="n">kfidx</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">kinforest_idx</span>  <span class="c1"># (n_types, max_n_atoms) numpy int32</span>
     <span class="n">bt_ind_np</span> <span class="o">=</span> <span class="n">block_type_ind_for_conformer_torch</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
     <span class="n">at_off_np</span> <span class="o">=</span> <span class="n">n_atoms_offset_for_conformer_torch</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
     <span class="n">chi4_table</span> <span class="o">=</span> <span class="n">_build_chi4_atom_table</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>  <span class="c1"># (n_types, max_n_chi, 4)</span>
-    <span class="n">coords_np</span> <span class="o">=</span> <span class="n">trial_coords_rto</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">double</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">corrections</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">sample_data</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">conformer_samples</span><span class="p">):</span>
         <span class="n">sample_dict</span> <span class="o">=</span> <span class="n">sample_data</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
@@ -614,6 +626,25 @@
         <span class="n">intended_flat</span> <span class="o">=</span> <span class="n">chi_intended</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)[</span><span class="n">valid_flat</span><span class="p">]</span>  <span class="c1"># (n_valid,)</span>
         <span class="n">cda_kto_flat</span> <span class="o">=</span> <span class="n">cda_kto</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)[</span><span class="n">valid_flat</span><span class="p">]</span>  <span class="c1"># (n_valid,)</span>
 
+        <span class="n">corrections</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">four_abs_flat</span><span class="p">,</span> <span class="n">intended_flat</span><span class="p">,</span> <span class="n">cda_kto_flat</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">corrections</span><span class="p">:</span>
+        <span class="k">return</span>
+
+    <span class="c1"># Only conformers whose sampled chi has a jump parent need this trial</span>
+    <span class="c1"># forward pass. Most OptH-only builds have none, so avoid folding and</span>
+    <span class="c1"># copying every trial coordinate to the CPU in that common case.</span>
+    <span class="n">n_rots</span> <span class="o">=</span> <span class="n">block_type_ind_for_conformer_torch</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">n_at_total</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">n_atoms_offset_for_conformer_torch</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="o">+</span> <span class="n">pbt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">[</span><span class="n">block_type_ind_for_conformer_torch</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+    <span class="p">)</span>
+    <span class="n">trial_coords_rto</span> <span class="o">=</span> <span class="n">calculate_rotamer_coords</span><span class="p">(</span>
+        <span class="n">pbt</span><span class="p">,</span> <span class="n">n_rots</span><span class="p">,</span> <span class="n">n_at_total</span><span class="p">,</span> <span class="n">conformer_kinforest</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">scans</span><span class="p">,</span> <span class="n">gens</span><span class="p">,</span> <span class="n">conf_dofs_kto</span>
+    <span class="p">)</span>
+    <span class="n">coords_np</span> <span class="o">=</span> <span class="n">trial_coords_rto</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">double</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">four_abs_flat</span><span class="p">,</span> <span class="n">intended_flat</span><span class="p">,</span> <span class="n">cda_kto_flat</span> <span class="ow">in</span> <span class="n">corrections</span><span class="p">:</span>
         <span class="c1"># gather coordinates: (n_valid, 4, 3)</span>
         <span class="n">xyzs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
             <span class="n">coords_np</span><span class="p">[</span><span class="n">four_abs_flat</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">)</span>
@@ -1014,7 +1045,6 @@
     <span class="c1"># 3. chi_for_rotamers</span>
 
     <span class="c1"># everything needs to be on the same device</span>
-    <span class="n">torch</span><span class="o">.</span><span class="n">set_printoptions</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">samples</span> <span class="ow">in</span> <span class="n">conformer_samples</span><span class="p">:</span>
         <span class="k">assert</span> <span class="n">samples</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="n">samples</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">device</span>
         <span class="k">assert</span> <span class="n">conformer_samples</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="n">samples</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">device</span>
