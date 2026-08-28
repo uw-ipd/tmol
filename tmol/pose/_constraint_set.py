@@ -260,8 +260,7 @@ class ConstraintSet:
         # now shift by 1 and count the differences
         diffs = constraint_blocks[:, 1:] != constraint_blocks[:, :-1]
 
-        temp = diffs.sum(dim=1) + 1
-        return temp
+        return diffs.sum(dim=1) + 1
 
     def add_constraints_to_all_poses(
         self, fn, atom_indices, params=None

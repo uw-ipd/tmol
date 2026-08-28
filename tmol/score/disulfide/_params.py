@@ -47,7 +47,7 @@ class DisulfideGlobalParams(TensorGroup):
     @classmethod
     @validate_args
     def from_database(cls, disulfide_database: DisulfideDatabase, device: torch.device):
-        global_params = DisulfideGlobalParams(
+        return DisulfideGlobalParams(
             **{
                 n: torch.tensor(v, device=device).expand((1,))
                 for n, v in cattr.unstructure(
@@ -55,5 +55,3 @@ class DisulfideGlobalParams(TensorGroup):
                 ).items()
             }
         )
-
-        return global_params

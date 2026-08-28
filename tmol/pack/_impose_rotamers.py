@@ -274,7 +274,7 @@ def impose_top_rotamer_assignments(
         new_pdb_info = orig_pose_stack.pdb_info
 
     # now construct the new PoseStack
-    new_pose_stack = PoseStack(
+    return PoseStack(
         packed_block_types=pbt,
         coords=new_coords,
         block_coord_offset=new_n_atoms_offset32,
@@ -292,4 +292,3 @@ def impose_top_rotamer_assignments(
         device=device,
         split_block_mapping=orig_pose_stack.split_block_mapping,
     )
-    return new_pose_stack

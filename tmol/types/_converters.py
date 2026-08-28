@@ -45,8 +45,7 @@ def union_convert(union_annotation, value):
     errors = []
     for subtype in union_annotation.__args__:
         try:
-            result = get_converter(subtype)(value)
-            return result
+            return get_converter(subtype)(value)
         except (TypeError, ValueError) as ex:
             errors.append(ex)
 

@@ -137,8 +137,7 @@ def _obmol_to_rdkit_mol(obmol, *, sanitize: bool = False) -> Optional[Chem.Mol]:
     if not sdf:
         return None
 
-    mol = Chem.MolFromMolBlock(sdf, sanitize=sanitize, removeHs=False)
-    return mol
+    return Chem.MolFromMolBlock(sdf, sanitize=sanitize, removeHs=False)
 
 
 def obabel_read_mol2(path: str | Path) -> Optional[Chem.Mol]:

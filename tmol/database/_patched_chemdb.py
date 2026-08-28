@@ -122,9 +122,7 @@ def update_icoor(res, patch, atoms_remove, namemap):
 
     # create final icoor list
     remove = [namemap[i] for i in atoms_remove]
-    icoor = (*(x for x in res if x.name not in remove), *new_icoor)
-
-    return icoor
+    return (*(x for x in res if x.name not in remove), *new_icoor)
 
 
 # get a list of atoms modified by a patch
@@ -459,11 +457,11 @@ def _validate_patch_icoors(patch, added_ats_and_conns):
 #    newreses - list of new residues produced by the patch (currently only support for 1)
 #    newmarked - updated list of modified atoms in new residue
 def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
-    atoms_match = (
-        lambda x, y: ("element" not in y)
-        or ("element" not in x)
-        or x["element"] == y["element"]
-    )
+    def atoms_match(x, y):
+        return (
+            ("element" not in y) or ("element" not in x) or x["element"] == y["element"]
+        )
+
     gm = iso.GraphMatcher(resgraph, patchgraph, node_match=atoms_match)
 
     added, modded, deleted = get_modified_atoms(variant)

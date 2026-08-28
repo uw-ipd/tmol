@@ -601,7 +601,7 @@ def canonical_form_from_atom_records(  # noqa: C901
     if res_not_connected is not None:
         assert res_not_connected.shape == (1, n_res, 2)
 
-    canonical_form = CanonicalForm(
+    return CanonicalForm(
         chain_id=_ti32(chain_id),
         res_types=_ti32(res_types),
         coords=_tf32(coords),
@@ -613,5 +613,3 @@ def canonical_form_from_atom_records(  # noqa: C901
         res_not_connected=res_not_connected,
         disulfides=None,
     )
-
-    return canonical_form

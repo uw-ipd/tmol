@@ -150,5 +150,4 @@ def find_disulf_numba(
             restype_variants[i_pose, i_res] = 1
             restype_variants[i_pose, closest_match_res] = 1
             n_found_dslf += 1
-    found_dslf = found_dslf[:n_found_dslf]
-    return found_dslf
+    return found_dslf[:n_found_dslf]

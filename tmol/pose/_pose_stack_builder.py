@@ -1055,10 +1055,10 @@ class PoseStackBuilder:
                 (n_poses, max_n_chains_minus1), -1, dtype=torch.int64
             )
             for i, c_lens in enumerate(chain_lengths):
-                for j, l in enumerate(c_lens):
+                for j, chain_length in enumerate(c_lens):
                     if j != len(c_lens) - 1:
                         # we will leave off the last chain from each pose
-                        chain_lengths_t[i, j] = l
+                        chain_lengths_t[i, j] = chain_length
             chain_lengths_t = chain_lengths_t.to(device)
             cl_real = chain_lengths_t != -1
             cl_offsets = torch.cumsum(chain_lengths_t, dim=1)
@@ -1255,9 +1255,7 @@ class PoseStackBuilder:
         inter_block_bondsep[bconn_pair_real] = pconn_matrix[pconn_pair_real]
 
         # now reorder so it's pose-ind x r1 x r2 x c1 x c2
-        inter_block_bondsep = torch.transpose(inter_block_bondsep, 2, 3)
-
-        return inter_block_bondsep
+        return torch.transpose(inter_block_bondsep, 2, 3)
 
     @classmethod
     @validate_args
