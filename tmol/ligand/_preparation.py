@@ -300,9 +300,12 @@ def prepare_polymer_residue(
         detected[0], ph=ph, sample_proton_chi=sample_proton_chi
     )
 
-    reference = {r.name: r for r in param_db.chemical.residues}[
-        profile.reference_restype
-    ]
+    # only a profile that transplants backbone icoors needs a donor residue
+    reference = (
+        {r.name: r for r in param_db.chemical.residues}[profile.reference_restype]
+        if profile.reference_restype is not None
+        else None
+    )
     default_elements = {at.name: at.element for at in param_db.chemical.atom_types}
     elements = {
         a.name: (prep.atom_type_elements or {}).get(
@@ -438,6 +441,24 @@ def _supported_elements(param_db: ParameterDatabase) -> set[str]:
         for at in param_db.chemical.atom_types
         if at.element and at.element.strip()
     }
+
+
+def _routes_to_polymer_path(lig: NonStandardResidueInfo) -> bool:
+    """Whether this residue is prepared as a chain member rather than a molecule.
+
+    The CCD type decides it for a linking component. A terminal cap is typed
+    NON-POLYMER there despite being part of the chain, so a covalently linked
+    residue that matches a backbone profile is routed by its chemistry instead;
+    the cap profiles match their whole atom set, so an unrelated linked
+    fragment does not qualify.
+    """
+    from tmol.ligand._polymer_profile import profile_for_atom_array
+
+    if is_polymer_linking_ccd_type(lig.ccd_type):
+        return True
+    if not lig.covalently_linked:
+        return False
+    return profile_for_atom_array(lig.atom_array) is not None
 
 
 def _ligand_unsupported_reason(
@@ -676,7 +697,7 @@ def prepare_ligands(  # noqa: C901
     prepared_ligands: list[tuple[NonStandardResidueInfo, LigandPreparation]] = []
     prepared_polymers: list[LigandPreparation] = []
     for lig in ligands:
-        is_polymer = is_polymer_linking_ccd_type(lig.ccd_type)
+        is_polymer = _routes_to_polymer_path(lig)
         reason = _ligand_unsupported_reason(lig, supported_elements, is_polymer)
         if reason:
             _skip_or_raise(strict_ligands, reason)

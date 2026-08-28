@@ -98,10 +98,11 @@ def backbone_renames(restype, profile, elements, cap_names):
 def _backbone_atom_types(profile, adj, hydrogens, current):
     """Protein atom types for the backbone; the sidechain keeps ligand types."""
     types = dict(profile.backbone_types)
-    n_atom = profile.down[1]
-    with_h, substituted = profile.amide_n_types
-    has_h = any(x in hydrogens for x in adj.get(n_atom, ()))
-    types[n_atom] = with_h if has_h else substituted
+    if profile.down is not None and profile.amide_n_types is not None:
+        n_atom = profile.down[1]
+        with_h, substituted = profile.amide_n_types
+        has_h = any(x in hydrogens for x in adj.get(n_atom, ()))
+        types[n_atom] = with_h if has_h else substituted
     for parent, h_type in profile.backbone_h_types:
         for nbr in adj.get(parent, ()):
             if nbr in hydrogens:
@@ -174,7 +175,7 @@ def _chi_torsions(profile, restype, adj, kept, hydrogens, roots, rename, element
     off an O or S: those keep a lone pair when protonated, where an N-H is
     either a planar amide or a lone-pair-less ammonium.
     """
-    mainchain = set(profile.mainchain_atoms) | {profile.down[0], profile.up[0]}
+    mainchain = set(profile.mainchain_atoms) | {n for n, _ in profile.connections}
     index = _sidechain_traversal(profile, adj, roots, kept, hydrogens)
 
     candidates = []
@@ -220,13 +221,13 @@ def _icoor_order(profile, adj, kept, hydrogens):
 
     Mirrors the canonical residues' ordering so parents always precede children.
     """
-    down_name, down_atom = profile.down
-    up_name, up_atom = profile.up
+    down_name, down_atom = profile.down if profile.down else (None, None)
+    up_name, _up_atom = profile.up if profile.up else (None, None)
     mainchain = [a for a in profile.mainchain_atoms if a in kept]
     roots = sidechain_roots(profile, adj, kept, hydrogens)
 
     placed = list(mainchain)
-    order = list(mainchain) + [up_name]
+    order = list(mainchain) + ([up_name] if up_name else [])
     # the carbonyl oxygen and anything else hanging off the mainchain heavy atoms
     bb_leaves = []
     for mc in mainchain:
@@ -265,8 +266,9 @@ def _icoor_order(profile, adj, kept, hydrogens):
     heavy = [a for a in order if a in kept and a not in hydrogens]
     order.extend(hydrogens_on([a for a in heavy if a not in mainchain]))
     order.extend(hydrogens_on([a for a in mainchain if a != down_atom]))
-    order.append(down_name)
-    order.extend(hydrogens_on([down_atom]))
+    if down_name:
+        order.append(down_name)
+        order.extend(hydrogens_on([down_atom]))
 
     missing = kept - set(order)
     if missing:
@@ -276,13 +278,11 @@ def _icoor_order(profile, adj, kept, hydrogens):
 
 def _parents(profile, adj, order):
     """(parent, grand_parent, great_grand_parent) for each entry in order."""
-    down_name, down_atom = profile.down
-    up_name, up_atom = profile.up
     mainchain = [a for a in profile.mainchain_atoms if a in set(order)]
     position = {name: i for i, name in enumerate(order)}
 
     # the connection pseudo-atoms hang off the terminal mainchain atoms
-    parent = {up_name: up_atom, down_name: down_atom}
+    parent = {name: atom for name, atom in profile.connections}
     for i, name in enumerate(mainchain):
         parent[name] = mainchain[max(i - 1, 0)]
     for name in order:
@@ -397,10 +397,7 @@ def to_polymer_residue_type(
         return renames.get(name, name)
 
     # the stub atoms mark where the neighbouring residues attach
-    placed = {
-        profile.down[0]: coords[cap_names[profile.down_partner]],
-        profile.up[0]: coords[cap_names[profile.up_partner]],
-    }
+    placed = {name: coords[cap_names[cap]] for name, cap in profile.connection_partners}
     coords = {rename(k): v for k, v in coords.items() if k not in dropped}
     coords.update(placed)
     kept = {rename(n) for n in kept}
@@ -424,20 +421,14 @@ def to_polymer_residue_type(
         for b in restype.bonds
         if b[0] not in dropped and b[1] not in dropped
     )
-    connections = (
-        Connection(
-            name=profile.down[0],
-            atom=profile.down[1],
-            type=profile.connection_bond_type,
-        ),
-        Connection(
-            name=profile.up[0], atom=profile.up[1], type=profile.connection_bond_type
-        ),
+    connections = tuple(
+        Connection(name=name, atom=atom, type=profile.connection_bond_type)
+        for name, atom in profile.connections
     )
 
     adj = _adjacency(bonds)
     # connections are not bonds, but icoor frames reference them (H's ggp is down)
-    for conn_name, conn_atom in (profile.down, profile.up):
+    for conn_name, conn_atom in profile.connections:
         adj.setdefault(conn_atom, []).append(conn_name)
         adj[conn_name] = [conn_atom]
 
@@ -448,7 +439,7 @@ def to_polymer_residue_type(
 
     # the mainchain records are shared by every residue of this backbone; take
     #    them from the reference so the backbone sits on database geometry
-    ref_icoors = {ic.name: ic for ic in reference.icoors}
+    ref_icoors = {ic.name: ic for ic in reference.icoors} if reference else {}
     icoors = tuple(
         (
             ref_icoors[ic.name]

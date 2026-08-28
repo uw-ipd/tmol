@@ -30,7 +30,7 @@ from tmol.ligand import (
     prepare_polymer_residue,
 )
 from tmol.ligand._preparation import _ideal_coords_by_name
-from tmol.ligand._polymer_profile import ALPHA_AA
+from tmol.ligand._polymer_profile import ACETYL_CAP, ALPHA_AA, METHYLAMIDE_CAP
 from tmol.ligand._registry import rebuild_canonical_ordering
 from tmol.tests.data import data_path
 
@@ -303,3 +303,115 @@ def test_smiles_path_is_not_routed_to_the_polymer_path() -> None:
     assert restype.properties.polymer.is_polymer is False
     # and it is typed as a ligand throughout: no backbone atom types
     assert not {a.atom_type for a in restype.atoms} & {"Nbb", "CAbb", "CObb", "OCbb"}
+
+
+# --------------------------------------------------------------------------- #
+# terminal caps
+# --------------------------------------------------------------------------- #
+
+CAP_FIXTURE = "capped_peptide_ace_nme"
+
+# residue code -> (profile, connection, atom it attaches to, backbone typing)
+_CAPS = {
+    "ACE": (ACETYL_CAP, "up", "C", {"CH3": "CH3", "C": "CObb", "O": "OCbb"}),
+    "NME": (METHYLAMIDE_CAP, "down", "N", {"N": "Nbb", "C": "CH3"}),
+}
+
+
+@pytest.mark.parametrize("res_name", sorted(_CAPS))
+def test_prepare_peptide_cap(res_name: str) -> None:
+    """A cap prepares to a residue type with a single polymer connection."""
+    profile, conn_name, conn_atom, types = _CAPS[res_name]
+    residue, prep = _prepare(CAP_FIXTURE, res_name)
+    restype = prep.residue_type
+
+    assert {c.name: c.atom for c in restype.connections} == {conn_name: conn_atom}
+    assert profile.connections == ((conn_name, conn_atom),)
+
+    # every heavy atom survives capping, and the caps themselves do not
+    heavy = {a.name for a in restype.atoms if not a.name.startswith("H")}
+    assert heavy == set(profile.exact_heavy_atoms)
+    assert not heavy & set(profile.cap_names)
+
+    # the backbone is retyped to protein types; a cap is backbone throughout
+    assert {a.name: a.atom_type for a in restype.atoms if a.name in types} == types
+
+    # no sidechain, so no chi and no handedness
+    assert [t.name for t in restype.torsions] == []
+    assert restype.properties.polymer.sidechain_chirality == "achiral"
+    assert restype.properties.polymer.is_polymer
+
+    # the methyl is protonated back to a full sp3 carbon
+    methyl = "CH3" if res_name == "ACE" else "C"
+    bonded = [b for b in restype.bonds if methyl in b[:2]]
+    assert sum(1 for b in bonded if any(x.startswith("H") for x in b[:2])) == 3
+
+    # the connection pseudo-atom is placed alongside the real atoms
+    coords = _ideal_coords_by_name(restype)
+    assert set(coords) == {a.name for a in restype.atoms} | {conn_name}
+    assert all(np.all(np.isfinite(xyz)) for xyz in coords.values())
+
+
+def test_peptide_cap_charges_balance_across_the_pair() -> None:
+    """Each cap keeps its share of the amide bond it was cut from.
+
+    Both caps model as n-methylacetamide -- one supplies the acetyl, the other
+    the methylamide -- so the charge transferred across the amide C-N stays with
+    whichever half retained the atom. Neither half is integral on its own; the
+    two are equal and opposite.
+    """
+    nets = {}
+    for res_name in _CAPS:
+        _residue_arr, prep = _prepare(CAP_FIXTURE, res_name)
+        nets[res_name] = sum(prep.partial_charges.values())
+
+    assert sum(nets.values()) == pytest.approx(0.0, abs=1e-4)
+    assert all(abs(net) < 0.1 for net in nets.values()), nets
+
+
+def test_prepare_ligands_routes_peptide_caps() -> None:
+    """Caps are NON-POLYMER in the CCD, so chemistry has to route them."""
+    param_db, canonical_ordering = prepare_ligands(
+        _load(CAP_FIXTURE), param_db=ParameterDatabase.get_default()
+    )
+    for res_name, (_profile, conn_name, conn_atom, _types) in _CAPS.items():
+        restype = next(r for r in param_db.chemical.residues if r.name == res_name)
+        assert {c.name: c.atom for c in restype.connections} == {conn_name: conn_atom}
+        assert res_name in canonical_ordering.restype_io_equiv_classes
+
+
+def test_an_unlinked_cap_is_not_routed_to_the_polymer_path() -> None:
+    """Only a cap that is actually bonded into a chain is a chain member."""
+    from tmol.ligand._preparation import _routes_to_polymer_path
+    from tmol.ligand._detect import detect_nonstandard_residues
+
+    param_db = ParameterDatabase.get_default()
+    canonical_ordering = rebuild_canonical_ordering(param_db)
+    linked = _load(CAP_FIXTURE)
+    detected = {
+        lig.res_name: lig
+        for lig in detect_nonstandard_residues(linked, canonical_ordering)
+    }
+    assert all(_routes_to_polymer_path(lig) for lig in detected.values())
+
+    # the same file without its declared linkages: the caps are free molecules
+    cif = pdbx.CIFFile.read(str(FIXTURE_DIR / f"{CAP_FIXTURE}.cif"))
+    del cif[next(iter(cif.keys()))]["struct_conn"]
+    unlinked = pdbx.get_structure(cif, model=1, include_bonds=True)
+    for lig in detect_nonstandard_residues(unlinked, canonical_ordering):
+        assert not lig.covalently_linked
+        assert not _routes_to_polymer_path(lig)
+
+
+def test_a_linked_fragment_is_not_mistaken_for_a_cap() -> None:
+    """Cap profiles match their whole atom set, not a subset of it."""
+    from tmol.ligand._polymer_profile import profile_for_atom_array
+
+    residue = _residue(_load("phosphopeptide_5ema"), "SEP")
+    # SEP carries both of NME's atoms, and more besides
+    assert {"N", "C"} <= set(residue.atom_name)
+    assert profile_for_atom_array(residue) is ALPHA_AA
+
+    # a two-atom fragment whose atoms are not the cap's is not claimed either
+    fragment = residue[np.isin(residue.atom_name, ["N", "CA"])]
+    assert profile_for_atom_array(fragment) is None
