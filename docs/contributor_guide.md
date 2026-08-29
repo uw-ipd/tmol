@@ -15,7 +15,7 @@ Two documentation forms serve different purposes:
 
 - `docs/workflows/` and selected `docs/user_guide/` pages are concise,
   reusable recipes that link to deeper material rather than reproducing it.
-- The top-level **Examples** section contains the nine interactive notebooks
+- The top-level **Examples** section contains the ten interactive notebooks
   in `docs/tutorial/`. They are deeper, executable walkthroughs rendered by
   nbsphinx.
 

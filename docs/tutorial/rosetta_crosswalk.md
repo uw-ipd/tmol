@@ -1,6 +1,6 @@
 # Rosetta-to-TMol crosswalk
 
-This page maps concepts used in the nine TMol tutorials to their nearest
+This page maps concepts used in the ten TMol tutorials to their nearest
 Rosetta and PyRosetta counterparts. It is not an API, numerical, or protocol
 parity claim: Rosetta is a broad modeling suite, whereas TMol provides batched,
 differentiable molecular primitives in PyTorch.
@@ -203,6 +203,15 @@ reconstruct the `.tmol` electrostatic and cartbonded sections, so arbitrary
 These facilities support preparation, registration, scoring, local pocket
 repacking, and Cartesian refinement. They do not provide native ligand docking,
 global pose search, GALigandDock, or a binding-affinity calculation.
+
+### Ligand pose-sensitivity case study
+
+{doc}`Case Study 10 <10_ligand_pose_sensitivity>` applies rigid-body
+transformations chosen independently of the score, evaluates all poses in one
+batch, and locally minimizes three diagnostic states. Its score-versus-RMSD
+analysis resembles a docking funnel diagnostic, but the workflow performs no
+global pose search, decoy generation protocol, separated-state calculation, or
+affinity prediction.
 
 ## GPU batching and external orchestration
 
