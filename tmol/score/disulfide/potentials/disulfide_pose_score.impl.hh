@@ -317,6 +317,9 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
           // coincidentally handles the case when block_ind2 == -1
           continue;
         }
+        if (dTdV[0][pose_ind][block_ind1][block_ind2] == 0) {
+          continue;
+        }
         int const block_type2 = first_rot_block_type[pose_ind][block_ind2];
         int const rot_ind2 = first_rot_for_block[pose_ind][block_ind2];
         if (rot_ind2 < 0) {

@@ -140,9 +140,11 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   } else {
     V_t = TPack<Real, 4, Dev>::zeros({2, n_poses, 1, 1});
   }
-  auto dV_dxyz_t = compute_derivs
+  // Block-pair autograd recomputes coordinate derivatives in backward.
+  bool const accumulate_derivs = compute_derivs && !output_block_pair_energies;
+  auto dV_dxyz_t = accumulate_derivs
                        ? TPack<Vec<Real, 3>, 2, Dev>::zeros({2, n_atoms})
-                       : TPack<Vec<Real, 3>, 2, Dev>::empty({2, n_atoms});
+                       : TPack<Vec<Real, 3>, 2, Dev>::empty({2, 0});
 
   auto V = V_t.view;
   auto dV_dxyz = dV_dxyz_t.view;
@@ -236,7 +238,7 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 
     // accumulate rama
     if (valid_phipsi && rama_table_ind >= 0) {
-      if (compute_derivs) {
+      if (accumulate_derivs) {
         auto rama = rama_V_dV<Dev, Real, Int>(
             phi_coords,
             psi_coords,
@@ -307,7 +309,7 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     }
 
     if (valid_phipsi && omega_table_ind >= 0) {
-      if (compute_derivs) {
+      if (accumulate_derivs) {
         auto omega = omega_bbdep_V_dV<Dev, Real, Int>(
             phi_coords,
             psi_coords,
@@ -347,7 +349,7 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
       }
     } else {
       // if rama is undefined, fall back to old version
-      if (compute_derivs) {
+      if (accumulate_derivs) {
         auto omega = omega_V_dV<Dev, Real, Int>(omega_coords, 32.8);
         accumulate<Dev, Real>::add(
             V[1][pose_ind][V_ind1][V_ind2], common::get<0>(omega));
@@ -490,6 +492,12 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
       // the upper neighbor is not a real residue: skip
       return;
     }
+
+    if (dTdV[0][pose_ind][block_ind1][block_ind2] == 0
+        && dTdV[1][pose_ind][block_ind1][block_ind2] == 0) {
+      return;
+    }
+
     int const block_type2 = first_rot_block_type[pose_ind][block_ind2];
     int const rot_ind2 = first_rot_for_block[pose_ind][block_ind2];
 
