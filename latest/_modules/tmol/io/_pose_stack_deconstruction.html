@@ -427,6 +427,16 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">canonical_form_from_pose_stack</span><span class="p">(</span>
     <span class="n">canonical_ordering</span><span class="p">:</span> <span class="n">CanonicalOrdering</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">chain_id</span><span class="o">=</span><span class="kc">None</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Convert a pose stack to canonical residue and atom tensors.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        canonical_ordering: Residue and atom ordering for the output tensors.</span>
+<span class="sd">        pose_stack: Poses to deconstruct.</span>
+<span class="sd">        chain_id: Optional integer chain identifiers shaped ``[pose, residue]``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Canonical form containing coordinates, residue metadata, and connectivity.</span>
+<span class="sd">    """</span>
     <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
     <span class="n">co</span> <span class="o">=</span> <span class="n">canonical_ordering</span>
     <span class="n">_annotate_packed_block_types_w_canonical_res_order</span><span class="p">(</span><span class="n">co</span><span class="p">,</span> <span class="n">pbt</span><span class="p">)</span>

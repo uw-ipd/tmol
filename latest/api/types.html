@@ -453,31 +453,6 @@
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.types.</span></span><span class="sig-name descname"><span class="pre">Casting</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_array.html#Casting"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.Casting" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
 <p>Casting specifications for array types, see ndarray.astype.</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmol.types.Casting.no">
-<span class="sig-name descname"><span class="pre">no</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'no'</span></em><a class="headerlink" href="#tmol.types.Casting.no" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmol.types.Casting.equiv">
-<span class="sig-name descname"><span class="pre">equiv</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'equiv'</span></em><a class="headerlink" href="#tmol.types.Casting.equiv" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmol.types.Casting.safe">
-<span class="sig-name descname"><span class="pre">safe</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'safe'</span></em><a class="headerlink" href="#tmol.types.Casting.safe" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmol.types.Casting.same_kind">
-<span class="sig-name descname"><span class="pre">same_kind</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'same_kind'</span></em><a class="headerlink" href="#tmol.types.Casting.same_kind" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmol.types.Casting.unsafe">
-<span class="sig-name descname"><span class="pre">unsafe</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'unsafe'</span></em><a class="headerlink" href="#tmol.types.Casting.unsafe" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
-
 </dd></dl>
 
 <dl class="py class">
@@ -492,27 +467,13 @@
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.types.</span></span><span class="sig-name descname"><span class="pre">Dim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_shape.html#Dim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.Dim" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>One dimension in a runtime-validated tensor shape.</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmol.types.Dim.size">
-<span class="sig-name descname"><span class="pre">size</span></span><a class="headerlink" href="#tmol.types.Dim.size" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
-
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="tmol.types.NDArray">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.types.</span></span><span class="sig-name descname"><span class="pre">NDArray</span></span><a class="reference internal" href="../_modules/tmol/types/_array.html#NDArray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.NDArray" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_TensorType</span></code></p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmol.types.NDArray.casting">
-<span class="sig-name descname"><span class="pre">casting</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#tmol.types.Casting" title="tmol.types._array.Casting"><span class="pre">Casting</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'unsafe'</span></em><a class="headerlink" href="#tmol.types.NDArray.casting" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="tmol.types.NDArray.convert">
-<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">convert</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_array.html#NDArray.convert"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.NDArray.convert" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
-
+<p>Runtime-checkable NumPy array annotation with dtype and shape metadata.</p>
 </dd></dl>
 
 <dl class="py class">
@@ -520,22 +481,12 @@
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.types.</span></span><span class="sig-name descname"><span class="pre">Shape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dims</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_shape.html#Shape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.Shape" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Runtime-validatable tensor shape specification.</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmol.types.Shape.dims">
-<span class="sig-name descname"><span class="pre">dims</span></span><a class="headerlink" href="#tmol.types.Shape.dims" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
-
 <dl class="py class">
 <dt class="sig sig-object py" id="tmol.types.Shape.Factory">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Factory</span></span><a class="reference internal" href="../_modules/tmol/types/_shape.html#Shape.Factory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.Shape.Factory" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Construct <code class="docutils literal notranslate"><span class="pre">Shape</span></code> objects through subscription syntax.</p>
 </dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmol.types.Shape.spec">
-<span class="sig-name descname"><span class="pre">spec</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;tmol.types._shape.Shape.Factory</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#tmol.types.Shape.spec" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="tmol.types.Shape.validate">
@@ -565,42 +516,14 @@
 <dt class="sig sig-object py" id="tmol.types.Tensor">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.types.</span></span><span class="sig-name descname"><span class="pre">Tensor</span></span><a class="reference internal" href="../_modules/tmol/types/_torch.html#Tensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.Tensor" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_TensorType</span></code></p>
-<dl class="py method">
-<dt class="sig sig-object py" id="tmol.types.Tensor.convert">
-<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">convert</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_torch.html#Tensor.convert"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.Tensor.convert" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
-
+<p>Runtime-checkable PyTorch tensor annotation with dtype and shape metadata.</p>
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="tmol.types.TensorGroup">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.types.</span></span><span class="sig-name descname"><span class="pre">TensorGroup</span></span><a class="reference internal" href="../_modules/tmol/types/_tensor.html#TensorGroup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.TensorGroup" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<dl class="py method">
-<dt class="sig sig-object py" id="tmol.types.TensorGroup.empty">
-<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">empty</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_tensor.html#TensorGroup.empty"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.TensorGroup.empty" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="tmol.types.TensorGroup.full">
-<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">full</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fill_value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_tensor.html#TensorGroup.full"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.TensorGroup.full" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="tmol.types.TensorGroup.ones">
-<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ones</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_tensor.html#TensorGroup.ones"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.TensorGroup.ones" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="tmol.types.TensorGroup.reshape">
-<span class="sig-name descname"><span class="pre">reshape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">shape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_tensor.html#TensorGroup.reshape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.TensorGroup.reshape" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="tmol.types.TensorGroup.shape">
-<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shape</span></span><a class="headerlink" href="#tmol.types.TensorGroup.shape" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
-
+<p>Mixin for immutable structures whose fields are tensors or tensor groups.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="tmol.types.TensorGroup.to">
 <span class="sig-name descname"><span class="pre">to</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_tensor.html#TensorGroup.to"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.TensorGroup.to" title="Link to this definition">#</a></dt>
@@ -614,11 +537,6 @@ and <a class="reference external" href="https://docs.pytorch.org/docs/2.13/tenso
 <code class="docutils literal notranslate"><span class="pre">self</span></code> is returned.</p>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="tmol.types.TensorGroup.zeros">
-<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">zeros</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_tensor.html#TensorGroup.zeros"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.TensorGroup.zeros" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
-
 </dd></dl>
 
 <dl class="py class">
@@ -631,27 +549,32 @@ and <a class="reference external" href="https://docs.pytorch.org/docs/2.13/tenso
 <dl class="py function">
 <dt class="sig sig-object py" id="tmol.types.cat">
 <span class="sig-prename descclassname"><span class="pre">tmol.types.</span></span><span class="sig-name descname"><span class="pre">cat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seq</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_tensor.html#cat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.cat" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Concatenate tensors or compatible tensor groups along a dimension.</p>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmol.types.constructor_convert">
 <span class="sig-prename descclassname"><span class="pre">tmol.types.</span></span><span class="sig-name descname"><span class="pre">constructor_convert</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_annotation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'__no__default__'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'__no__default__'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_converters.html#constructor_convert"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.constructor_convert" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Convert a value by calling the annotated type when necessary.</p>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmol.types.convert_args">
 <span class="sig-prename descclassname"><span class="pre">tmol.types.</span></span><span class="sig-name descname"><span class="pre">convert_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_functional.html#convert_args"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.convert_args" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Decorate a callable with runtime conversion of annotated values.</p>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmol.types.get_converter">
 <span class="sig-prename descclassname"><span class="pre">tmol.types.</span></span><span class="sig-name descname"><span class="pre">get_converter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_annotation</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_converters.html#get_converter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.get_converter" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Return the registered value converter for a type annotation.</p>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmol.types.get_validator">
 <span class="sig-prename descclassname"><span class="pre">tmol.types.</span></span><span class="sig-name descname"><span class="pre">get_validator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_annotation</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_validators.html#get_validator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.get_validator" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Return the registered runtime validator for a type annotation.</p>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmol.types.like_kwargs">
@@ -662,12 +585,14 @@ and <a class="reference external" href="https://docs.pytorch.org/docs/2.13/tenso
 <dl class="py function">
 <dt class="sig sig-object py" id="tmol.types.register_converter">
 <span class="sig-prename descclassname"><span class="pre">tmol.types.</span></span><span class="sig-name descname"><span class="pre">register_converter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_predicate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">converter</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_converters.html#register_converter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.register_converter" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Register a converter factory for annotations matching a predicate.</p>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmol.types.register_validator">
 <span class="sig-prename descclassname"><span class="pre">tmol.types.</span></span><span class="sig-name descname"><span class="pre">register_validator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_predicate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validator</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_validators.html#register_validator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.register_validator" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Register a validator factory for annotations matching a predicate.</p>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmol.types.torch_dtype">
@@ -680,22 +605,26 @@ and <a class="reference external" href="https://docs.pytorch.org/docs/2.13/tenso
 <dl class="py function">
 <dt class="sig sig-object py" id="tmol.types.union_convert">
 <span class="sig-prename descclassname"><span class="pre">tmol.types.</span></span><span class="sig-name descname"><span class="pre">union_convert</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">union_annotation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'__no__default__'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'__no__default__'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_converters.html#union_convert"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.union_convert" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Convert a value using the first compatible member of a union.</p>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmol.types.validate_args">
 <span class="sig-prename descclassname"><span class="pre">tmol.types.</span></span><span class="sig-name descname"><span class="pre">validate_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_functional.html#validate_args"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.validate_args" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Decorate a callable with runtime validation of annotated values.</p>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmol.types.validate_convert">
 <span class="sig-prename descclassname"><span class="pre">tmol.types.</span></span><span class="sig-name descname"><span class="pre">validate_convert</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_annotation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'__no__default__'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'__no__default__'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_converters.html#validate_convert"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.validate_convert" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Validate a value against an annotation and return it unchanged.</p>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmol.types.validate_isinstance">
 <span class="sig-prename descclassname"><span class="pre">tmol.types.</span></span><span class="sig-name descname"><span class="pre">validate_isinstance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_annotation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'__no__default__'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'__no__default__'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_validators.html#validate_isinstance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.validate_isinstance" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Require a value to be an instance of the annotated type.</p>
+</dd></dl>
 
 </section>
 
@@ -746,44 +675,19 @@ and <a class="reference external" href="https://docs.pytorch.org/docs/2.13/tenso
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.Casting"><code class="docutils literal notranslate"><span class="pre">Casting</span></code></a><ul class="nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.Casting.no"><code class="docutils literal notranslate"><span class="pre">Casting.no</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.Casting.equiv"><code class="docutils literal notranslate"><span class="pre">Casting.equiv</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.Casting.safe"><code class="docutils literal notranslate"><span class="pre">Casting.safe</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.Casting.same_kind"><code class="docutils literal notranslate"><span class="pre">Casting.same_kind</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.Casting.unsafe"><code class="docutils literal notranslate"><span class="pre">Casting.unsafe</span></code></a></li>
-</ul>
-</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.Casting"><code class="docutils literal notranslate"><span class="pre">Casting</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.ConvertAttrs"><code class="docutils literal notranslate"><span class="pre">ConvertAttrs</span></code></a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.Dim"><code class="docutils literal notranslate"><span class="pre">Dim</span></code></a><ul class="nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.Dim.size"><code class="docutils literal notranslate"><span class="pre">Dim.size</span></code></a></li>
-</ul>
-</li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.NDArray"><code class="docutils literal notranslate"><span class="pre">NDArray</span></code></a><ul class="nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.NDArray.casting"><code class="docutils literal notranslate"><span class="pre">NDArray.casting</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.NDArray.convert"><code class="docutils literal notranslate"><span class="pre">NDArray.convert()</span></code></a></li>
-</ul>
-</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.Dim"><code class="docutils literal notranslate"><span class="pre">Dim</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.NDArray"><code class="docutils literal notranslate"><span class="pre">NDArray</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.Shape"><code class="docutils literal notranslate"><span class="pre">Shape</span></code></a><ul class="nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.Shape.dims"><code class="docutils literal notranslate"><span class="pre">Shape.dims</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.Shape.Factory"><code class="docutils literal notranslate"><span class="pre">Shape.Factory</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.Shape.spec"><code class="docutils literal notranslate"><span class="pre">Shape.spec</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.Shape.validate"><code class="docutils literal notranslate"><span class="pre">Shape.validate()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.SubscriptableType"><code class="docutils literal notranslate"><span class="pre">SubscriptableType</span></code></a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.Tensor"><code class="docutils literal notranslate"><span class="pre">Tensor</span></code></a><ul class="nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.Tensor.convert"><code class="docutils literal notranslate"><span class="pre">Tensor.convert()</span></code></a></li>
-</ul>
-</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.Tensor"><code class="docutils literal notranslate"><span class="pre">Tensor</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.TensorGroup"><code class="docutils literal notranslate"><span class="pre">TensorGroup</span></code></a><ul class="nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.TensorGroup.empty"><code class="docutils literal notranslate"><span class="pre">TensorGroup.empty()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.TensorGroup.full"><code class="docutils literal notranslate"><span class="pre">TensorGroup.full()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.TensorGroup.ones"><code class="docutils literal notranslate"><span class="pre">TensorGroup.ones()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.TensorGroup.reshape"><code class="docutils literal notranslate"><span class="pre">TensorGroup.reshape()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.TensorGroup.shape"><code class="docutils literal notranslate"><span class="pre">TensorGroup.shape</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.TensorGroup.to"><code class="docutils literal notranslate"><span class="pre">TensorGroup.to()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.TensorGroup.zeros"><code class="docutils literal notranslate"><span class="pre">TensorGroup.zeros()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.ValidateAttrs"><code class="docutils literal notranslate"><span class="pre">ValidateAttrs</span></code></a></li>

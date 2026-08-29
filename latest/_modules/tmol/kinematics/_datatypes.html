@@ -538,6 +538,8 @@
 <a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.KinForestScanData">[docs]</a>
 <span class="nd">@attrs</span><span class="o">.</span><span class="n">define</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">KinForestScanData</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">,</span> <span class="n">ConvertAttrs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Node, scan-start, and generation-start tensors for a kinematic scan."""</span>
+
     <span class="n">nodes</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">]</span>
     <span class="n">scans</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">]</span>
     <span class="n">gens</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">]</span></div>
@@ -548,6 +550,8 @@
 <a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.KinematicModuleData">[docs]</a>
 <span class="nd">@attrs</span><span class="o">.</span><span class="n">define</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">KinematicModuleData</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Topology and traversal tensors required by a pose kinematics module."""</span>
+
     <span class="n">forest</span><span class="p">:</span> <span class="n">KinForest</span>
     <span class="n">scan_data_fw</span><span class="p">:</span> <span class="n">KinForestScanData</span>
     <span class="n">scan_data_bw</span><span class="p">:</span> <span class="n">KinForestScanData</span>
@@ -584,11 +588,8 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">jump</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">JumpDOF</span><span class="p">(</span><span class="n">raw</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">raw</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">9</span><span class="p">])</span>
 
-<div class="viewcode-block" id="KinDOF.clone">
-<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.KinDOF.clone">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">clone</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">KinDOF</span><span class="p">(</span><span class="n">raw</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">raw</span><span class="o">.</span><span class="n">clone</span><span class="p">())</span></div>
-</div>
 
 
 

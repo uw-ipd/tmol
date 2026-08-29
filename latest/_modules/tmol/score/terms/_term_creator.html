@@ -427,25 +427,20 @@
 <span class="sd">        will report them</span>
 <span class="sd">    """</span>
 
-<div class="viewcode-block" id="TermCreator.create_term">
-<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.terms.TermCreator.create_term">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">create_term</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">param_db</span><span class="p">:</span> <span class="n">ParameterDatabase</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
 
-
-<div class="viewcode-block" id="TermCreator.score_types">
-<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.terms.TermCreator.score_types">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">score_types</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
-</div>
 
 
 
 <div class="viewcode-block" id="score_term_creator">
 <a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.terms.score_term_creator">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">score_term_creator</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Register a term-creator class with the global score-term factory."""</span>
     <span class="n">ScoreTermFactory</span><span class="o">.</span><span class="n">factory_register</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">cls</span></div>
 

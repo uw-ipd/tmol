@@ -414,6 +414,8 @@
 <a class="viewcode-back" href="../../../api/pack.html#tmol.pack.PackerEnergyTables">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">PackerEnergyTables</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">,</span> <span class="n">ConvertAttrs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""One- and two-body energy tables plus their packed rotamer indexing."""</span>
+
     <span class="n">max_n_rotamers_per_pose</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">pose_n_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>  <span class="c1"># [n-poses]</span>
     <span class="n">pose_n_rotamers</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>  <span class="c1"># [n-poses]</span>

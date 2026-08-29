@@ -562,8 +562,6 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_set_val_and_mask_for_2dim</span><span class="p">(</span><span class="n">pose_selection</span><span class="p">,</span> <span class="n">block_selection</span><span class="p">,</span> <span class="s2">"mcs"</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="MoveMap.set_move_all_sc_tors_for_blocks">
-<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MoveMap.set_move_all_sc_tors_for_blocks">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_move_all_sc_tors_for_blocks</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">pose_selection</span><span class="p">:</span> <span class="n">TensorSelection</span><span class="p">,</span>
@@ -571,11 +569,8 @@
         <span class="n">value</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_assert_valid_pose_block_selection</span><span class="p">(</span><span class="n">pose_selection</span><span class="p">,</span> <span class="n">block_selection</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_set_val_and_mask_for_2dim</span><span class="p">(</span><span class="n">pose_selection</span><span class="p">,</span> <span class="n">block_selection</span><span class="p">,</span> <span class="s2">"scs"</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_val_and_mask_for_2dim</span><span class="p">(</span><span class="n">pose_selection</span><span class="p">,</span> <span class="n">block_selection</span><span class="p">,</span> <span class="s2">"scs"</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
 
-
-<div class="viewcode-block" id="MoveMap.set_move_all_named_torsions_for_blocks">
-<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MoveMap.set_move_all_named_torsions_for_blocks">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_move_all_named_torsions_for_blocks</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">pose_selection</span><span class="p">:</span> <span class="n">TensorSelection</span><span class="p">,</span>
@@ -585,8 +580,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_assert_valid_pose_block_selection</span><span class="p">(</span><span class="n">pose_selection</span><span class="p">,</span> <span class="n">block_selection</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_set_val_and_mask_for_2dim</span><span class="p">(</span>
             <span class="n">pose_selection</span><span class="p">,</span> <span class="n">block_selection</span><span class="p">,</span> <span class="s2">"named_torsions"</span><span class="p">,</span> <span class="n">value</span>
-        <span class="p">)</span></div>
-
+        <span class="p">)</span>
 
 <div class="viewcode-block" id="MoveMap.set_move_mc_tor_for_blocks">
 <a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MoveMap.set_move_mc_tor_for_blocks">[docs]</a>

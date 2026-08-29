@@ -738,6 +738,15 @@
     <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
     <span class="n">fold_forest_edges</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="mi">4</span><span class="p">],</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Construct the indexed forest and scan order for batched poses.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        pose_stack: Poses whose atoms will form the kinematic forest.</span>
+<span class="sd">        fold_forest_edges: Fold-forest edges shaped ``[pose, edge, 4]``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Immutable topology and traversal data for forward and backward scans.</span>
+<span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics.compiled</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">calculate_ff_edge_delays</span><span class="p">,</span>
         <span class="n">get_children</span><span class="p">,</span>

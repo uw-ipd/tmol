@@ -481,8 +481,6 @@
     <span class="n">sample_syn</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">)</span>
 
-<div class="viewcode-block" id="NaChiRotamerSampler.from_database">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.NaChiRotamerSampler.from_database">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_database</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
@@ -499,8 +497,7 @@
             <span class="n">chi_sample_level</span><span class="o">=</span><span class="n">chi_sample_level</span><span class="p">,</span>
             <span class="n">sample_syn</span><span class="o">=</span><span class="n">sample_syn</span><span class="p">,</span>
             <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
-        <span class="p">)</span></div>
-
+        <span class="p">)</span>
 
 <div class="viewcode-block" id="NaChiRotamerSampler.sampler_name">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.NaChiRotamerSampler.sampler_name">[docs]</a>
@@ -582,14 +579,11 @@
         <span class="k">return</span> <span class="n">rt</span><span class="o">.</span><span class="n">na_chi_sampler_params</span><span class="p">[</span><span class="s2">"base"</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span></div>
 
 
-<div class="viewcode-block" id="NaChiRotamerSampler.defines_rotamers_for_bts">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.NaChiRotamerSampler.defines_rotamers_for_bts">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">defines_rotamers_for_bts</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span> <span class="n">bt_inds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">]:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">annotate_packed_block_types</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">pbt</span><span class="o">.</span><span class="n">na_chi_sampler_cache</span><span class="p">[</span><span class="s2">"builds_bt"</span><span class="p">][</span><span class="n">bt_inds</span><span class="p">]</span></div>
-
+        <span class="k">return</span> <span class="n">pbt</span><span class="o">.</span><span class="n">na_chi_sampler_cache</span><span class="p">[</span><span class="s2">"builds_bt"</span><span class="p">][</span><span class="n">bt_inds</span><span class="p">]</span>
 
 <div class="viewcode-block" id="NaChiRotamerSampler.first_sc_atoms_for_rt">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.NaChiRotamerSampler.first_sc_atoms_for_rt">[docs]</a>
@@ -640,8 +634,6 @@
         <span class="n">pucker</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ok</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">pucker</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">pucker</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
 
-<div class="viewcode-block" id="NaChiRotamerSampler.sample_chi_for_poses">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.NaChiRotamerSampler.sample_chi_for_poses">[docs]</a>
     <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">sample_chi_for_poses</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">poses</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="n">SetPackerTask</span>
@@ -739,7 +731,6 @@
             <span class="n">cache</span><span class="p">[</span><span class="s2">"chi_atom"</span><span class="p">][</span><span class="n">rot_bt</span><span class="p">],</span>
             <span class="n">chi</span><span class="p">,</span>
         <span class="p">)</span></div>
-</div>
 
 
 

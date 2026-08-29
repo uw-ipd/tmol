@@ -417,6 +417,8 @@
 <div class="viewcode-block" id="CartesianSfxnNetwork">
 <a class="viewcode-back" href="../../../api/optimization.html#tmol.optimization.CartesianSfxnNetwork">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CartesianSfxnNetwork</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Differentiable score network over selected Cartesian coordinates."""</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">score_function</span><span class="p">:</span> <span class="n">ScoreFunction</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">coord_mask</span><span class="o">=</span><span class="kc">None</span>
     <span class="p">):</span>
@@ -474,8 +476,6 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">whole_pose_scoring_module</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="CartesianSfxnNetwork.pose_stack_from_dofs">
-<a class="viewcode-back" href="../../../api/optimization.html#tmol.optimization.CartesianSfxnNetwork.pose_stack_from_dofs">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">pose_stack_from_dofs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_coords_movable</span><span class="p">:</span>
             <span class="n">full_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">masked_coords</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">view_as</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span><span class="p">)</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
@@ -485,13 +485,14 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_coord_flat_idx</span>
         <span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">masked_coords</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">attrs</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">full_coords</span><span class="p">)</span></div>
-</div>
 
 
 
 <div class="viewcode-block" id="KinForestSfxnNetwork">
 <a class="viewcode-back" href="../../../api/optimization.html#tmol.optimization.KinForestSfxnNetwork">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">KinForestSfxnNetwork</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Differentiable score network over selected kinematic degrees of freedom."""</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">score_function</span><span class="p">:</span> <span class="n">ScoreFunction</span><span class="p">,</span>
@@ -586,8 +587,6 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">whole_pose_scoring_module</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="KinForestSfxnNetwork.pose_stack_from_dofs">
-<a class="viewcode-back" href="../../../api/optimization.html#tmol.optimization.KinForestSfxnNetwork.pose_stack_from_dofs">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">pose_stack_from_dofs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
         <span class="n">full_dofs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_dofs</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
@@ -598,7 +597,6 @@
         <span class="n">full_coords</span> <span class="o">=</span> <span class="n">flat_coords</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">orig_coords_shape</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">attrs</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">full_coords</span><span class="p">)</span></div>
-</div>
 
 </pre></div>
 

@@ -460,6 +460,8 @@
 <a class="viewcode-back" href="../../../api/pack.html#tmol.pack.PackerPalleteAnnotation">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">define</span><span class="p">(</span><span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">PackerPalleteAnnotation</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Cached residue-type compatibility tensors for a packer palette."""</span>
+
     <span class="n">max_n_allowed</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">n_allowed_block_types_for_block_type</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:]</span>
     <span class="n">allowed_block_types_for_block_type</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:]</span>
@@ -471,6 +473,8 @@
 <div class="viewcode-block" id="PackerPalette">
 <a class="viewcode-back" href="../../../api/pack.html#tmol.pack.PackerPalette">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">PackerPalette</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Define which residue types may replace each original residue type."""</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">pass</span>
 
@@ -483,6 +487,16 @@
         <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:],</span>
         <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:],</span>
     <span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Return residue-type choices allowed by the default palette.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            pbt: Packed residue-type collection shared by the poses.</span>
+<span class="sd">            orig: Original residue-type index for each pose and block.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The number of choices, padded choice indices, and a mask marking</span>
+<span class="sd">            each original residue type.</span>
+<span class="sd">        """</span>
         <span class="c1"># initialize the list of allowed block types for a PoseStack based on the</span>
         <span class="c1"># original block types; the logic of which block types are allowed given</span>
         <span class="c1"># the original block type is pre-computed and cached in the PackedBlockTypes</span>
@@ -528,7 +542,8 @@
 <a class="viewcode-back" href="../../../api/pack.html#tmol.pack.PackerPalette.create_restrict_to_repacking_mask">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">create_restrict_to_repacking_mask</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span> <span class="n">orig</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:]</span>
-    <span class="p">):</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:]:</span>
+<span class="w">        </span><span class="sd">"""Return choices that preserve each block's original residue name."""</span>
         <span class="c1"># initialize the restrict-to-repacking mask for a PoseStack based on the</span>
         <span class="c1"># original block types; the logic of which block types are allowed for each</span>
         <span class="c1"># starting block type can be pre-computed and cached in the PackedBlockTypes</span>
@@ -683,6 +698,7 @@
 <div class="viewcode-block" id="PackerTask">
 <a class="viewcode-back" href="../../../api/pack.html#tmol.pack.PackerTask">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">PackerTask</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Configure residue identities, conformers, and movable sites for packing."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">systems</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">palette</span><span class="p">:</span> <span class="n">PackerPalette</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pbt</span> <span class="o">=</span> <span class="n">systems</span><span class="o">.</span><span class="n">packed_block_types</span>
@@ -785,7 +801,8 @@
 
 <div class="viewcode-block" id="PackerTask.add_conformer_sampler">
 <a class="viewcode-back" href="../../../api/pack.html#tmol.pack.PackerTask.add_conformer_sampler">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">add_conformer_sampler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sampler</span><span class="p">:</span> <span class="n">ConformerSampler</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_conformer_sampler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sampler</span><span class="p">:</span> <span class="n">ConformerSampler</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Enable a conformer sampler at every block."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">conformer_samplers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sampler</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">conformer_sampler_index</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="n">sampler</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conformer_samplers</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">per_block_conformer_sampler_allowed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
@@ -809,7 +826,8 @@
 <a class="viewcode-back" href="../../../api/pack.html#tmol.pack.PackerTask.add_conformer_sampler_by_block_mask">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_conformer_sampler_by_block_mask</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">sampler</span><span class="p">:</span> <span class="n">ConformerSampler</span><span class="p">,</span> <span class="n">block_type_mask</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:]</span>
-    <span class="p">):</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Enable a conformer sampler only at selected pose/block entries."""</span>
         <span class="k">assert</span> <span class="p">(</span>
             <span class="n">block_type_mask</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">per_block_n_considered_block_types</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
         <span class="p">)</span>
@@ -828,13 +846,15 @@
 
 <div class="viewcode-block" id="PackerTask.or_expand_chi">
 <a class="viewcode-back" href="../../../api/pack.html#tmol.pack.PackerTask.or_expand_chi">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">or_expand_chi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chi_ind</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">or_expand_chi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chi_ind</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Request one extra standard-deviation sample for a chi torsion."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">per_block_chi_expansion</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="n">chi_ind</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span></div>
 
 
 <div class="viewcode-block" id="PackerTask.or_expand_chi_to">
 <a class="viewcode-back" href="../../../api/pack.html#tmol.pack.PackerTask.or_expand_chi_to">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">or_expand_chi_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chi_ind</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">sample_level</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">or_expand_chi_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chi_ind</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">sample_level</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Raise a chi torsion's expansion level without lowering it."""</span>
         <span class="c1"># max over the current sample level and the new sample level.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">per_block_chi_expansion</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="n">chi_ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">per_block_chi_expansion</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="n">chi_ind</span><span class="p">],</span> <span class="n">sample_level</span>
@@ -843,7 +863,10 @@
 
 <div class="viewcode-block" id="PackerTask.disable_packing_by_block_mask">
 <a class="viewcode-back" href="../../../api/pack.html#tmol.pack.PackerTask.disable_packing_by_block_mask">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">disable_packing_by_block_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_type_mask</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:]):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">disable_packing_by_block_mask</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">block_type_mask</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Disable packing at selected pose/block entries."""</span>
         <span class="k">assert</span> <span class="n">block_type_mask</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">device</span>
         <span class="k">assert</span> <span class="n">block_type_mask</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">per_block_is_block_type_allowed</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">per_block_is_block_type_allowed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
@@ -853,7 +876,8 @@
 
 <div class="viewcode-block" id="PackerTask.or_bump_check">
 <a class="viewcode-back" href="../../../api/pack.html#tmol.pack.PackerTask.or_bump_check">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">or_bump_check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">setting</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">or_bump_check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">setting</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Enable bump checking without allowing later calls to disable it."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_bump_check</span> <span class="o">|=</span> <span class="n">setting</span></div>
 
 
@@ -892,8 +916,6 @@
 <span class="sd">    members of the packer need.</span>
 <span class="sd">    """</span>
 
-<div class="viewcode-block" id="SetPackerTask.from_packer_task">
-<a class="viewcode-back" href="../../../api/pack.html#tmol.pack.SetPackerTask.from_packer_task">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_packer_task</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="n">PackerTask</span><span class="p">):</span>
         <span class="n">set_task</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">()</span>
@@ -976,7 +998,6 @@
         <span class="n">set_task</span><span class="o">.</span><span class="n">bump_check</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">bump_check</span>
 
         <span class="k">return</span> <span class="n">set_task</span></div>
-</div>
 
 </pre></div>
 

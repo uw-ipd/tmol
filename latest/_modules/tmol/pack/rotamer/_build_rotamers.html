@@ -992,6 +992,14 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">measure_pose_dofs</span><span class="p">(</span>
     <span class="n">poses</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">KinForest</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="mi">9</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""Measure the internal coordinates of every real residue in a pose stack.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        poses: Poses providing residue topology and Cartesian coordinates.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A residue-local kinematic forest and its measured degrees of freedom.</span>
+<span class="sd">    """</span>
     <span class="c1"># measure the DOFs for the original residues</span>
     <span class="c1"># -- first build kinforests for the original residues,</span>
     <span class="c1"># -- then call measure_dofs_from_orig_coords</span>

@@ -411,6 +411,8 @@
 <div class="viewcode-block" id="EdgeType">
 <a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.EdgeType">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">EdgeType</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">IntEnum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Kinds of directed connections represented in a fold forest."""</span>
+
     <span class="n">polymer</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">jump</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
     <span class="n">root_jump</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span></div>
@@ -640,7 +642,16 @@
 <div class="viewcode-block" id="FoldForest.from_edges">
 <a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.FoldForest.from_edges">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">from_edges</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">edges</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="nb">int</span><span class="p">][:,</span> <span class="p">:,</span> <span class="mi">4</span><span class="p">]):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_edges</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">edges</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="nb">int</span><span class="p">][:,</span> <span class="p">:,</span> <span class="mi">4</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">"FoldForest"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Construct a fold forest from a padded edge array.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            edges: Edge records shaped ``[pose, edge, 4]``. Unused entries</span>
+<span class="sd">                have ``-1`` in their edge-type column.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A fold forest with per-pose edge counts inferred from ``edges``.</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">max_n_edges</span><span class="o">=</span><span class="n">edges</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
             <span class="n">n_edges</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">edges</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>

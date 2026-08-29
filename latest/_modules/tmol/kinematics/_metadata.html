@@ -529,8 +529,6 @@
         <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="DOFMetadata.to_frame">
-<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.DOFMetadata.to_frame">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_frame</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
 
@@ -538,8 +536,7 @@
         <span class="c1"># NOTE vals_to_name_cat and other functions from</span>
         <span class="c1"># tmol.utility._categorical will silently fail if passed torch.Tensor</span>
         <span class="n">columns</span><span class="p">[</span><span class="s2">"dof_type"</span><span class="p">]</span> <span class="o">=</span> <span class="n">vals_to_name_cat</span><span class="p">(</span><span class="n">DOFTypes</span><span class="p">,</span> <span class="n">columns</span><span class="p">[</span><span class="s2">"dof_type"</span><span class="p">]</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
-        <span class="k">return</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span></div>
-
+        <span class="k">return</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span>
 
 <div class="viewcode-block" id="DOFMetadata.from_frame">
 <a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.DOFMetadata.from_frame">[docs]</a>

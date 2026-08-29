@@ -492,8 +492,6 @@
         <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="ChiSampler.sample_chi_for_poses">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.ChiSampler.sample_chi_for_poses">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">sample_chi_for_poses</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">systems</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="s2">"PackerTask"</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span>
@@ -502,8 +500,7 @@
         <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:],</span>  <span class="c1"># chi_defining_atom_for_rotamer</span>
         <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="p">:],</span>  <span class="c1"># chi_for_rotamers</span>
     <span class="p">]:</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
-
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
 
 <div class="viewcode-block" id="ChiSampler.fill_dofs_for_samples">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.ChiSampler.fill_dofs_for_samples">[docs]</a>

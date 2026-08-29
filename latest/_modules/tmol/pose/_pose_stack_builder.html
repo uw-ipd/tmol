@@ -441,6 +441,7 @@
 <div class="viewcode-block" id="PoseStackBuilder">
 <a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PoseStackBuilder">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">PoseStackBuilder</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Build heterogeneous pose stacks while preserving chemical-database identity."""</span>
 
 <div class="viewcode-block" id="PoseStackBuilder.from_poses">
 <a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PoseStackBuilder.from_poses">[docs]</a>
@@ -449,6 +450,15 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">from_poses</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">pose_stacks</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">PoseStack</span><span class="p">],</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Combine one or more pose stacks on a common device.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            pose_stacks: Pose stacks built from the same chemical database.</span>
+<span class="sd">            device: Device for the combined tensors.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A padded pose stack containing every input pose in order.</span>
+<span class="sd">        """</span>
         <span class="n">pbt0</span> <span class="o">=</span> <span class="n">pose_stacks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">packed_block_types</span>
         <span class="k">for</span> <span class="n">ps</span> <span class="ow">in</span> <span class="n">pose_stacks</span><span class="p">:</span>
             <span class="c1"># all PoseStacks must be built from the same chemical database</span>

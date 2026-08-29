@@ -413,6 +413,7 @@
 <div class="viewcode-block" id="validate_args">
 <a class="viewcode-back" href="../../../api/types.html#tmol.types.validate_args">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">validate_args</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Decorate a callable with runtime validation of annotated values."""</span>
     <span class="n">f</span><span class="o">.</span><span class="n">_signature</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
     <span class="n">f</span><span class="o">.</span><span class="n">_validators</span> <span class="o">=</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="n">get_validator</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">typing</span><span class="o">.</span><span class="n">get_type_hints</span><span class="p">(</span><span class="n">f</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
 
@@ -446,6 +447,7 @@
 <div class="viewcode-block" id="convert_args">
 <a class="viewcode-back" href="../../../api/types.html#tmol.types.convert_args">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">convert_args</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Decorate a callable with runtime conversion of annotated values."""</span>
     <span class="n">f</span><span class="o">.</span><span class="n">_signature</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
     <span class="n">f</span><span class="o">.</span><span class="n">_converters</span> <span class="o">=</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="n">get_converter</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">typing</span><span class="o">.</span><span class="n">get_type_hints</span><span class="p">(</span><span class="n">f</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
 

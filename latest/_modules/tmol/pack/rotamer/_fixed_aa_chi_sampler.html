@@ -429,6 +429,8 @@
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.FixedAAChiSampler">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">FixedAAChiSampler</span><span class="p">(</span><span class="n">ChiSampler</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Generate one ideal side-chain conformer for fixed amino acids."""</span>
+
 <div class="viewcode-block" id="FixedAAChiSampler.sampler_name">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.FixedAAChiSampler.sampler_name">[docs]</a>
     <span class="nd">@classmethod</span>
@@ -454,13 +456,10 @@
         <span class="k">return</span> <span class="kc">False</span></div>
 
 
-<div class="viewcode-block" id="FixedAAChiSampler.defines_rotamers_for_bts">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.FixedAAChiSampler.defines_rotamers_for_bts">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">defines_rotamers_for_bts</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span> <span class="n">bt_inds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="n">pbt</span><span class="o">.</span><span class="n">fixed_aa_chi_sampler_builds_bt</span><span class="p">[</span><span class="n">bt_inds</span><span class="p">]</span></div>
-
+        <span class="k">return</span> <span class="n">pbt</span><span class="o">.</span><span class="n">fixed_aa_chi_sampler_builds_bt</span><span class="p">[</span><span class="n">bt_inds</span><span class="p">]</span>
 
 <div class="viewcode-block" id="FixedAAChiSampler.first_sc_atoms_for_rt">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.FixedAAChiSampler.first_sc_atoms_for_rt">[docs]</a>
@@ -499,8 +498,6 @@
         <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"fixed_aa_chi_sampler_builds_bt"</span><span class="p">,</span> <span class="n">builds_bt</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="FixedAAChiSampler.sample_chi_for_poses">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.FixedAAChiSampler.sample_chi_for_poses">[docs]</a>
     <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">sample_chi_for_poses</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">poses</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">task</span>
@@ -542,7 +539,6 @@
             <span class="n">chi_defining_atom_for_rotamer</span><span class="p">,</span>
             <span class="n">chi_for_rotamers</span><span class="p">,</span>
         <span class="p">)</span></div>
-</div>
 
 </pre></div>
 

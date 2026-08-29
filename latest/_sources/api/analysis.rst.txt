@@ -8,5 +8,4 @@ metadata, use :func:`tmol.score.calculate_fragment_interactions`.
 .. automodule:: tmol.ops
    :members:
    :imported-members:
-   :undoc-members:
    :show-inheritance:

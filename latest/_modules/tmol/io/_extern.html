@@ -409,6 +409,7 @@
 <div class="viewcode-block" id="fetch_pdb">
 <a class="viewcode-back" href="../../../api/io.html#tmol.io.fetch_pdb">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">fetch_pdb</span><span class="p">(</span><span class="n">pdbid</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Download a PDB-format structure from the RCSB Protein Data Bank."""</span>
     <span class="k">return</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
         <span class="s2">"https://files.rcsb.org/download/</span><span class="si">%s</span><span class="s2">.pdb"</span> <span class="o">%</span> <span class="nb">str</span><span class="o">.</span><span class="n">upper</span><span class="p">(</span><span class="n">pdbid</span><span class="p">)</span>
     <span class="p">)</span><span class="o">.</span><span class="n">text</span></div>

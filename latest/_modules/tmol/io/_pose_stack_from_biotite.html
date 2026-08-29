@@ -1385,6 +1385,18 @@
     <span class="n">cf</span><span class="p">:</span> <span class="n">CanonicalForm</span><span class="p">,</span>
     <span class="n">co</span><span class="p">:</span> <span class="n">CanonicalOrdering</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArray</span> <span class="o">|</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Convert canonical TMol tensors to a Biotite atom array.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        cf: Canonical coordinates, residue identities, and metadata.</span>
+<span class="sd">        co: Canonical atom ordering. Defaults to the Biotite ordering.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        One atom array, or an atom-array stack for multiple coordinate sets.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If poses in a multi-pose input have different metadata.</span>
+<span class="sd">    """</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">struc</span>
 
     <span class="k">if</span> <span class="n">co</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>

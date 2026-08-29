@@ -474,6 +474,8 @@
 <div class="viewcode-block" id="DunbrackChiSampler">
 <a class="viewcode-back" href="../../../../../api/pack.html#tmol.pack.rotamer.dunbrack.DunbrackChiSampler">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">DunbrackChiSampler</span><span class="p">(</span><span class="n">ChiSampler</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Sample amino-acid side-chain conformers from Dunbrack libraries."""</span>
+
     <span class="n">dun_param_resolver</span><span class="p">:</span> <span class="n">DunbrackParamResolver</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
@@ -489,13 +491,10 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">device</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dun_param_resolver</span><span class="o">.</span><span class="n">device</span>
 
-<div class="viewcode-block" id="DunbrackChiSampler.from_database">
-<a class="viewcode-back" href="../../../../../api/pack.html#tmol.pack.rotamer.dunbrack.DunbrackChiSampler.from_database">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_database</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">param_resolver</span><span class="p">:</span> <span class="n">DunbrackParamResolver</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">dun_param_resolver</span><span class="o">=</span><span class="n">param_resolver</span><span class="p">)</span></div>
-
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">dun_param_resolver</span><span class="o">=</span><span class="n">param_resolver</span><span class="p">)</span>
 
 <div class="viewcode-block" id="DunbrackChiSampler.sampler_name">
 <a class="viewcode-back" href="../../../../../api/pack.html#tmol.pack.rotamer.dunbrack.DunbrackChiSampler.sampler_name">[docs]</a>
@@ -743,14 +742,11 @@
         <span class="k">return</span> <span class="kc">True</span></div>
 
 
-<div class="viewcode-block" id="DunbrackChiSampler.defines_rotamers_for_bts">
-<a class="viewcode-back" href="../../../../../api/pack.html#tmol.pack.rotamer.dunbrack.DunbrackChiSampler.defines_rotamers_for_bts">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">defines_rotamers_for_bts</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span> <span class="n">bt_inds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">]:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">annotate_packed_block_types</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">pbt</span><span class="o">.</span><span class="n">dun_sampler_cache</span><span class="o">.</span><span class="n">defines_rotamers_for_bts</span><span class="p">[</span><span class="n">bt_inds</span><span class="p">]</span></div>
-
+        <span class="k">return</span> <span class="n">pbt</span><span class="o">.</span><span class="n">dun_sampler_cache</span><span class="o">.</span><span class="n">defines_rotamers_for_bts</span><span class="p">[</span><span class="n">bt_inds</span><span class="p">]</span>
 
 <div class="viewcode-block" id="DunbrackChiSampler.first_sc_atoms_for_rt">
 <a class="viewcode-back" href="../../../../../api/pack.html#tmol.pack.rotamer.dunbrack.DunbrackChiSampler.first_sc_atoms_for_rt">[docs]</a>
@@ -760,8 +756,6 @@
         <span class="k">return</span> <span class="p">(</span><span class="s2">"CB"</span><span class="p">,)</span></div>
 
 
-<div class="viewcode-block" id="DunbrackChiSampler.sample_chi_for_poses">
-<a class="viewcode-back" href="../../../../../api/pack.html#tmol.pack.rotamer.dunbrack.DunbrackChiSampler.sample_chi_for_poses">[docs]</a>
     <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">sample_chi_for_poses</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="n">SetPackerTask</span>
@@ -978,11 +972,8 @@
             <span class="n">block_type_ind_for_bbt</span><span class="p">,</span>
             <span class="n">max_n_chi</span><span class="p">,</span>
             <span class="n">sampled_chi</span><span class="p">,</span>
-        <span class="p">)</span></div>
+        <span class="p">)</span>
 
-
-<div class="viewcode-block" id="DunbrackChiSampler.atom_indices_for_backbone_dihedral">
-<a class="viewcode-back" href="../../../../../api/pack.html#tmol.pack.rotamer.dunbrack.DunbrackChiSampler.atom_indices_for_backbone_dihedral">[docs]</a>
     <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">atom_indices_for_backbone_dihedral</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">bb_dihedral_ind</span><span class="p">:</span> <span class="nb">int</span>
@@ -1056,11 +1047,8 @@
             <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">dihe_atom_inds</span><span class="p">[</span><span class="n">real_pose</span><span class="p">,</span> <span class="n">real_block</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_inds</span>
-        <span class="k">return</span> <span class="n">dihe_atom_inds</span></div>
+        <span class="k">return</span> <span class="n">dihe_atom_inds</span>
 
-
-<div class="viewcode-block" id="DunbrackChiSampler.launch_rotamer_building">
-<a class="viewcode-back" href="../../../../../api/pack.html#tmol.pack.rotamer.dunbrack.DunbrackChiSampler.launch_rotamer_building">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">launch_rotamer_building</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">coords</span><span class="p">,</span>
@@ -1113,11 +1101,8 @@
             <span class="n">non_dunbrack_expansion_counts_for_buildable_restype</span><span class="p">,</span>
             <span class="n">prob_cumsum_limit_for_buildable_restype</span><span class="p">,</span>
             <span class="n">nchi_for_buildable_restype</span><span class="p">,</span>
-        <span class="p">)</span></div>
+        <span class="p">)</span>
 
-
-<div class="viewcode-block" id="DunbrackChiSampler.package_samples_for_output">
-<a class="viewcode-back" href="../../../../../api/pack.html#tmol.pack.rotamer.dunbrack.DunbrackChiSampler.package_samples_for_output">[docs]</a>
     <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">package_samples_for_output</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -1178,7 +1163,6 @@
             <span class="n">chi_defining_atom_for_rotamer</span><span class="p">,</span>
             <span class="n">chi_for_rotamers</span><span class="p">,</span>
         <span class="p">)</span></div>
-</div>
 
 
 

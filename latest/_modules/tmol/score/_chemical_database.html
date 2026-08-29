@@ -428,6 +428,8 @@
 <div class="viewcode-block" id="AcceptorHybridization">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.AcceptorHybridization">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">AcceptorHybridization</span><span class="p">(</span><span class="n">IntEnum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Hydrogen-bond acceptor hybridization categories."""</span>
+
     <span class="n">none</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">sp2</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="n">sp3</span> <span class="o">=</span> <span class="mi">2</span>
@@ -444,6 +446,8 @@
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.AtomTypeParams">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">AtomTypeParams</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">,</span> <span class="n">ValidateAttrs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Packed donor, acceptor, hydrogen, and hybridization atom-type flags."""</span>
+
     <span class="n">is_acceptor</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="nb">bool</span><span class="p">][</span><span class="o">...</span><span class="p">]</span>
     <span class="n">acceptor_hybridization</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][</span><span class="o">...</span><span class="p">]</span>
 

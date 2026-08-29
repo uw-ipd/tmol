@@ -1009,13 +1009,13 @@
 <a class="viewcode-back" href="../../../api/database.html#tmol.database.PatchedChemicalDatabase">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">PatchedChemicalDatabase</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Chemical database containing residue types after variant application."""</span>
+
     <span class="n">element_types</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Element</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
     <span class="n">atom_types</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">AtomType</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
     <span class="n">residues</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">RawResidueType</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
     <span class="n">variants</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">VariantType</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
 
-<div class="viewcode-block" id="PatchedChemicalDatabase.from_chem_db">
-<a class="viewcode-back" href="../../../api/database.html#tmol.database.PatchedChemicalDatabase.from_chem_db">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_chem_db</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">chemdb</span><span class="p">:</span> <span class="n">ChemicalDatabase</span><span class="p">):</span>
         <span class="n">G</span> <span class="o">=</span> <span class="n">RestypeGraphBuilder</span><span class="p">({</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">element</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">atom_types</span><span class="p">})</span>
@@ -1081,7 +1081,6 @@
             <span class="n">residues</span><span class="o">=</span><span class="n">patched_residues</span><span class="p">,</span>
             <span class="n">variants</span><span class="o">=</span><span class="n">chemdb</span><span class="o">.</span><span class="n">variants</span><span class="p">,</span>
         <span class="p">)</span></div>
-</div>
 
 </pre></div>
 

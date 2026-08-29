@@ -728,6 +728,16 @@
     <span class="n">n_blocks</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
     <span class="n">edges</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:,</span> <span class="mi">4</span><span class="p">],</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Validate batched fold-forest edges and raise with pose-specific details.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        n_blocks: Number of real blocks in each pose, shaped ``[pose]``.</span>
+<span class="sd">        edges: Fold-forest edges shaped ``[pose, edge, 4]``.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If an edge is invalid, connectivity is incomplete or cyclic,</span>
+<span class="sd">            or jump numbering is inconsistent.</span>
+<span class="sd">    """</span>
     <span class="p">(</span>
         <span class="n">good</span><span class="p">,</span>
         <span class="n">bad_edges</span><span class="p">,</span>

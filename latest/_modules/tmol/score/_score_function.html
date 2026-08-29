@@ -433,6 +433,13 @@
 <div class="viewcode-block" id="ScoreFunction">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.ScoreFunction">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">ScoreFunction</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Weighted collection of energy terms rendered for a pose topology.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        param_db: Chemical and scoring parameters used to construct terms.</span>
+<span class="sd">        device: Device on which weights and rendered scorers operate.</span>
+<span class="sd">    """</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_db</span><span class="p">:</span> <span class="n">ParameterDatabase</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_weights</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">n_score_types</span><span class="o">.</span><span class="n">value</span><span class="p">,),</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
 
@@ -470,7 +477,16 @@
 
 <div class="viewcode-block" id="ScoreFunction.set_weight">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.ScoreFunction.set_weight">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">set_weight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">st</span><span class="p">:</span> <span class="n">ScoreType</span><span class="p">,</span> <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_weight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">st</span><span class="p">:</span> <span class="n">ScoreType</span><span class="p">,</span> <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Set the weight for one score type.</span>
+
+<span class="sd">        The energy term that implements ``st`` is created lazily when the</span>
+<span class="sd">        requested weight is nonzero.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            st: Score type to update.</span>
+<span class="sd">            weight: New scalar weight.</span>
+<span class="sd">        """</span>
         <span class="c1"># Do not construct an energy term merely to assign it a zero weight.</span>
         <span class="c1"># FastRelax updates its (usually disabled) constraint weight at every</span>
         <span class="c1"># schedule step; constructing that term adds a device-to-host sync to</span>
@@ -489,21 +505,21 @@
 
 <div class="viewcode-block" id="ScoreFunction.get_weight">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.ScoreFunction.get_weight">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_weight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">st</span><span class="p">:</span> <span class="n">ScoreType</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_weight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">st</span><span class="p">:</span> <span class="n">ScoreType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return the scalar weight for ``st`` on the score-function device."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weights</span><span class="p">[</span><span class="n">st</span><span class="o">.</span><span class="n">value</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="ScoreFunction.score_type_covered_by_contained_term">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.ScoreFunction.score_type_covered_by_contained_term">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">score_type_covered_by_contained_term</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">st</span><span class="p">:</span> <span class="n">ScoreType</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">score_type_covered_by_contained_term</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">st</span><span class="p">:</span> <span class="n">ScoreType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return whether a constructed energy term implements ``st``."""</span>
         <span class="c1"># `_all_terms` is a lazily refreshed sorted cache; consulting it while</span>
         <span class="c1"># weights are being populated can miss a term already present in the</span>
         <span class="c1"># unordered source lists and construct duplicate term objects.</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_term_for_st</span><span class="p">[</span><span class="n">st</span><span class="o">.</span><span class="n">value</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span></div>
 
 
-<div class="viewcode-block" id="ScoreFunction.retrieve_term_for_score_type">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.ScoreFunction.retrieve_term_for_score_type">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">retrieve_term_for_score_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">st</span><span class="p">:</span> <span class="n">ScoreType</span><span class="p">):</span>
         <span class="n">term</span> <span class="o">=</span> <span class="n">ScoreTermFactory</span><span class="o">.</span><span class="n">create_term_for_score_type</span><span class="p">(</span>
             <span class="n">st</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_param_db</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device</span>
@@ -525,11 +541,8 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_two_body_terms_out_of_date</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_multi_body_terms_unordered</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_multi_body_terms_out_of_date</span> <span class="o">=</span> <span class="kc">True</span></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_multi_body_terms_out_of_date</span> <span class="o">=</span> <span class="kc">True</span>
 
-
-<div class="viewcode-block" id="ScoreFunction.term_for_st_has_no_other_non_zero_weights">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.ScoreFunction.term_for_st_has_no_other_non_zero_weights">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">term_for_st_has_no_other_non_zero_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">st</span><span class="p">:</span> <span class="n">ScoreType</span><span class="p">):</span>
         <span class="n">term</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_term_for_st</span><span class="p">[</span><span class="n">st</span><span class="o">.</span><span class="n">value</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">st2</span> <span class="ow">in</span> <span class="n">term</span><span class="o">.</span><span class="n">score_types</span><span class="p">():</span>
@@ -537,8 +550,7 @@
                 <span class="k">continue</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weights</span><span class="p">[</span><span class="n">st2</span><span class="o">.</span><span class="n">value</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="k">return</span> <span class="kc">False</span>
-        <span class="k">return</span> <span class="kc">True</span></div>
-
+        <span class="k">return</span> <span class="kc">True</span>
 
 <div class="viewcode-block" id="ScoreFunction.remove_term_for_score_type">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.ScoreFunction.remove_term_for_score_type">[docs]</a>
@@ -584,7 +596,8 @@
 
 <div class="viewcode-block" id="ScoreFunction.all_score_types">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.ScoreFunction.all_score_types">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">all_score_types</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">all_score_types</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">ScoreType</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Return score types in the same order as :meth:`all_terms`."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_terms_out_of_date</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_all_terms</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_score_types</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_sorted_terms</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_all_terms_unordered</span>
@@ -597,6 +610,7 @@
 <div class="viewcode-block" id="ScoreFunction.one_body_terms">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.ScoreFunction.one_body_terms">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">one_body_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Return the active one-body energy terms in score-type order."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_one_body_terms_out_of_date</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_one_body_terms</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_sorted_terms</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_one_body_terms_unordered</span>
@@ -609,6 +623,7 @@
 <div class="viewcode-block" id="ScoreFunction.two_body_terms">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.ScoreFunction.two_body_terms">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">two_body_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Return the active two-body energy terms in score-type order."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_two_body_terms_out_of_date</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_two_body_terms</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_sorted_terms</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_two_body_terms_unordered</span>
@@ -621,6 +636,7 @@
 <div class="viewcode-block" id="ScoreFunction.multi_body_terms">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.ScoreFunction.multi_body_terms">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">multi_body_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Return the active multi-body energy terms in score-type order."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_multi_body_terms_out_of_date</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_multi_body_terms</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_sorted_terms</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_multi_body_terms_unordered</span>
@@ -701,7 +717,15 @@
 
 <div class="viewcode-block" id="ScoreFunction.pre_work_initialization">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.ScoreFunction.pre_work_initialization">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">pre_work_initialization</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pre_work_initialization</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Prepare active energy terms for a pose topology.</span>
+
+<span class="sd">        Repeated calls reuse topology-dependent setup when neither the terms,</span>
+<span class="sd">        their options, nor the packed block types have changed.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            pose_stack: Poses whose topology will be scored.</span>
+<span class="sd">        """</span>
         <span class="c1"># set_options must be first, since some of the logic that follows it</span>
         <span class="c1"># may depend on the options</span>
         <span class="n">terms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_terms</span><span class="p">()</span>
@@ -734,7 +758,7 @@
 
 <div class="viewcode-block" id="ScoreFunction.set_option">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.ScoreFunction.set_option">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">set_option</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_option</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Set an option for all energy terms.</span>
 
 <span class="sd">        Options are passed to each energy term's set_options method</span>
@@ -746,7 +770,7 @@
 
 <div class="viewcode-block" id="ScoreFunction.set_options">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.ScoreFunction.set_options">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">set_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">options</span><span class="p">:</span> <span class="n">Dict</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">options</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Set the score function options by a dict.</span>
 
 <span class="sd">        This replaces the options dict entirely - any previous values</span>
@@ -758,7 +782,8 @@
 
 <div class="viewcode-block" id="ScoreFunction.weights_tensor">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.ScoreFunction.weights_tensor">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">weights_tensor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">weights_tensor</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:]:</span>
+<span class="w">        </span><span class="sd">"""Return weights aligned with the rendered term/subterm order."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weights_tensor_out_of_date</span><span class="p">:</span>
             <span class="c1"># Keep weight collection on-device. Constructing a tensor from a</span>
             <span class="c1"># Python list of CUDA scalar tensors calls ``item()`` on every</span>
@@ -833,8 +858,6 @@
         <span class="k">return</span> <span class="n">sfxn</span></div>
 
 
-<div class="viewcode-block" id="ScoreFunction.get_sorted_terms">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.ScoreFunction.get_sorted_terms">[docs]</a>
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_sorted_terms</span><span class="p">(</span><span class="n">term_list</span><span class="p">):</span>
         <span class="n">sorted_term_list</span> <span class="o">=</span> <span class="p">[]</span>
@@ -859,13 +882,14 @@
                         <span class="n">term_covered</span><span class="p">[</span><span class="n">term_st</span><span class="o">.</span><span class="n">value</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
                         <span class="n">sorted_score_type_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term_st</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">sorted_term_list</span><span class="p">,</span> <span class="n">sorted_score_type_list</span></div>
-</div>
 
 
 
 <div class="viewcode-block" id="WholePoseScoringModule">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.WholePoseScoringModule">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">WholePoseScoringModule</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Rendered energy modules that score complete poses."""</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">weights</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:],</span>
@@ -893,11 +917,8 @@
 
         <span class="k">return</span> <span class="n">summed</span>
 
-<div class="viewcode-block" id="WholePoseScoringModule.unweighted_scores">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.WholePoseScoringModule.unweighted_scores">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">unweighted_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">term</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span> <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
-
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">term</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span> <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
 <div class="viewcode-block" id="WholePoseScoringModule.enable_cuda_graphs">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.WholePoseScoringModule.enable_cuda_graphs">[docs]</a>
@@ -993,6 +1014,8 @@
 <div class="viewcode-block" id="BlockPairScoringModule">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.BlockPairScoringModule">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">BlockPairScoringModule</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Rendered energy modules that retain per-block-pair scores."""</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">weights</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:],</span>
@@ -1029,17 +1052,16 @@
 
         <span class="k">return</span> <span class="n">summed</span>
 
-<div class="viewcode-block" id="BlockPairScoringModule.unweighted_scores">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.BlockPairScoringModule.unweighted_scores">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">unweighted_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">term</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span> <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
-</div>
 
 
 
 <div class="viewcode-block" id="RotamerScoringModule">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.RotamerScoringModule">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">RotamerScoringModule</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Rendered energy modules that build sparse rotamer-pair energy tables."""</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">weights</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:],</span>

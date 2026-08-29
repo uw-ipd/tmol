@@ -423,6 +423,7 @@
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.IncludeCurrentSampler">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">IncludeCurrentSampler</span><span class="p">(</span><span class="n">ConformerSampler</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Add each packable residue's current conformation to its rotamer set."""</span>
 
 <div class="viewcode-block" id="IncludeCurrentSampler.sampler_name">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.IncludeCurrentSampler.sampler_name">[docs]</a>
@@ -452,13 +453,10 @@
         <span class="k">return</span> <span class="kc">True</span></div>
 
 
-<div class="viewcode-block" id="IncludeCurrentSampler.defines_rotamers_for_bts">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.IncludeCurrentSampler.defines_rotamers_for_bts">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">defines_rotamers_for_bts</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span> <span class="n">bt_inds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">bt_inds</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span></div>
-
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">bt_inds</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
 
 <div class="viewcode-block" id="IncludeCurrentSampler.first_sc_atoms_for_rt">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.IncludeCurrentSampler.first_sc_atoms_for_rt">[docs]</a>

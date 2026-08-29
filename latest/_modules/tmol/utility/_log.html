@@ -434,6 +434,8 @@
 <div class="viewcode-block" id="LoggerMixin">
 <a class="viewcode-back" href="../../../api/utility.html#tmol.utility.LoggerMixin">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">LoggerMixin</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Provide a lazily constructed logger named for the concrete class."""</span>
+
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">logger</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span><span class="p">:</span>
         <span class="n">logger</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_logger"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>

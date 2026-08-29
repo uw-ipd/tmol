@@ -413,23 +413,19 @@
 <a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.terms.RefTermCreator">[docs]</a>
 <span class="nd">@score_term_creator</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">RefTermCreator</span><span class="p">(</span><span class="n">TermCreator</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Create the residue reference-energy term."""</span>
+
     <span class="n">_score_types</span> <span class="o">=</span> <span class="p">[</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">ref</span><span class="p">]</span>
 
-<div class="viewcode-block" id="RefTermCreator.create_term">
-<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.terms.RefTermCreator.create_term">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">create_term</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">param_db</span><span class="p">:</span> <span class="n">ParameterDatabase</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
         <span class="kn">import</span><span class="w"> </span><span class="nn">tmol.score.ref._ref_energy_term</span>
 
-        <span class="k">return</span> <span class="n">tmol</span><span class="o">.</span><span class="n">score</span><span class="o">.</span><span class="n">ref</span><span class="o">.</span><span class="n">_ref_energy_term</span><span class="o">.</span><span class="n">RefEnergyTerm</span><span class="p">(</span><span class="n">param_db</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">tmol</span><span class="o">.</span><span class="n">score</span><span class="o">.</span><span class="n">ref</span><span class="o">.</span><span class="n">_ref_energy_term</span><span class="o">.</span><span class="n">RefEnergyTerm</span><span class="p">(</span><span class="n">param_db</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
 
-
-<div class="viewcode-block" id="RefTermCreator.score_types">
-<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.terms.RefTermCreator.score_types">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">score_types</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_score_types</span></div>
-</div>
 
 </pre></div>
 

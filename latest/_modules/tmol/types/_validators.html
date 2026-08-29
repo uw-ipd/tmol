@@ -435,6 +435,7 @@
 <a class="viewcode-back" href="../../../api/types.html#tmol.types.get_validator">[docs]</a>
 <span class="nd">@singledispatch</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_validator</span><span class="p">(</span><span class="n">type_annotation</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Return the registered runtime validator for a type annotation."""</span>
     <span class="k">for</span> <span class="n">pred</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">_validators</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">pred</span><span class="p">(</span><span class="n">type_annotation</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">val</span><span class="p">(</span><span class="n">type_annotation</span><span class="p">)</span>
@@ -513,6 +514,7 @@
 <a class="viewcode-back" href="../../../api/types.html#tmol.types.validate_isinstance">[docs]</a>
 <span class="nd">@toolz</span><span class="o">.</span><span class="n">curry</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">validate_isinstance</span><span class="p">(</span><span class="n">type_annotation</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Require a value to be an instance of the annotated type."""</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">type_annotation</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"expected </span><span class="si">{</span><span class="n">type_annotation</span><span class="si">}</span><span class="s2">, received </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span></div>
 
@@ -521,6 +523,7 @@
 <div class="viewcode-block" id="register_validator">
 <a class="viewcode-back" href="../../../api/types.html#tmol.types.register_validator">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">register_validator</span><span class="p">(</span><span class="n">type_predicate</span><span class="p">,</span> <span class="n">validator</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Register a validator factory for annotations matching a predicate."""</span>
     <span class="n">_validators</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">type_predicate</span><span class="p">,</span> <span class="n">validator</span><span class="p">))</span></div>
 
 

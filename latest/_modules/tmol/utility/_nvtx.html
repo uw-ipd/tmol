@@ -413,6 +413,7 @@
 <a class="viewcode-back" href="../../../api/utility.html#tmol.utility.nvtx_range">[docs]</a>
 <span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">nvtx_range</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Annotate a CUDA operation range when CUDA is available."""</span>
     <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">range_push</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>

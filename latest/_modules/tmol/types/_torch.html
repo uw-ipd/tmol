@@ -463,6 +463,8 @@
 <div class="viewcode-block" id="Tensor">
 <a class="viewcode-back" href="../../../api/types.html#tmol.types.Tensor">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Tensor</span><span class="p">(</span><span class="n">_TensorType</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Runtime-checkable PyTorch tensor annotation with dtype and shape metadata."""</span>
+
     <span class="n">_module</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">ClassVar</span> <span class="o">=</span> <span class="n">torch</span>
     <span class="n">_tensortype</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">ClassVar</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
 
@@ -470,8 +472,6 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">_convert_dtype</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">torch_dtype</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
 
-<div class="viewcode-block" id="Tensor.convert">
-<a class="viewcode-back" href="../../../api/types.html#tmol.types.Tensor.convert">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">convert</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
@@ -494,7 +494,6 @@
         <span class="bp">cls</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">value</span></div>
-</div>
 
 
 

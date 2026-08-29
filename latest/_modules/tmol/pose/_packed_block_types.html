@@ -523,8 +523,6 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">n_types</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">)</span>
 
-<div class="viewcode-block" id="PackedBlockTypes.from_restype_list">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PackedBlockTypes.from_restype_list">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_restype_list</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
@@ -606,18 +604,12 @@
             <span class="p">),</span>
             <span class="n">default_jump_connection_atom_inds</span><span class="o">=</span><span class="n">def_jumpconn_inds</span><span class="p">,</span>
             <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
-        <span class="p">)</span></div>
+        <span class="p">)</span>
 
-
-<div class="viewcode-block" id="PackedBlockTypes.count_max_n_atoms">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PackedBlockTypes.count_max_n_atoms">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">count_max_n_atoms</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">RefinedResidueType</span><span class="p">]):</span>
-        <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">restype</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span> <span class="k">for</span> <span class="n">restype</span> <span class="ow">in</span> <span class="n">active_block_types</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">restype</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span> <span class="k">for</span> <span class="n">restype</span> <span class="ow">in</span> <span class="n">active_block_types</span><span class="p">)</span>
 
-
-<div class="viewcode-block" id="PackedBlockTypes.count_n_atoms">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PackedBlockTypes.count_n_atoms">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">count_n_atoms</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">RefinedResidueType</span><span class="p">],</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
@@ -626,11 +618,8 @@
             <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">restype</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span> <span class="k">for</span> <span class="n">restype</span> <span class="ow">in</span> <span class="n">active_block_types</span><span class="p">],</span>
             <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
             <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
-        <span class="p">)</span></div>
+        <span class="p">)</span>
 
-
-<div class="viewcode-block" id="PackedBlockTypes.determine_real_atoms">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PackedBlockTypes.determine_real_atoms">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">determine_real_atoms</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">max_n_atoms</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">n_atoms</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
@@ -638,11 +627,8 @@
         <span class="n">n_types</span> <span class="o">=</span> <span class="n">n_atoms</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">max_n_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span>
             <span class="mi">0</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_types</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">n_atoms</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_n_atoms</span><span class="p">)</span></div>
+        <span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_types</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">n_atoms</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_n_atoms</span><span class="p">)</span>
 
-
-<div class="viewcode-block" id="PackedBlockTypes.determine_h_atoms">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PackedBlockTypes.determine_h_atoms">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">determine_h_atoms</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
@@ -661,11 +647,8 @@
             <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">at</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">atoms</span><span class="p">):</span>
                 <span class="n">atype_is_h</span> <span class="o">=</span> <span class="n">atype_element</span><span class="p">[</span><span class="n">at</span><span class="o">.</span><span class="n">atom_type</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"H"</span>
                 <span class="n">atom_is_hydrogen</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">atype_is_h</span>
-        <span class="k">return</span> <span class="n">atom_is_hydrogen</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">atom_is_hydrogen</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
 
-
-<div class="viewcode-block" id="PackedBlockTypes.join_atom_downstream_of_conn">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PackedBlockTypes.join_atom_downstream_of_conn">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">join_atom_downstream_of_conn</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">RefinedResidueType</span><span class="p">],</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
@@ -681,11 +664,8 @@
             <span class="n">atom_downstream_of_conn</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span> <span class="n">rt_adoc</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">:</span> <span class="n">rt_adoc</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">rt_adoc</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
             <span class="p">)</span>
-        <span class="k">return</span> <span class="n">atom_downstream_of_conn</span></div>
+        <span class="k">return</span> <span class="n">atom_downstream_of_conn</span>
 
-
-<div class="viewcode-block" id="PackedBlockTypes.join_atom_paths_from_conn">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PackedBlockTypes.join_atom_paths_from_conn">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">join_atom_paths_from_conn</span><span class="p">(</span>
         <span class="n">clas</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">RefinedResidueType</span><span class="p">],</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
@@ -711,8 +691,7 @@
                 <span class="n">paths</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
             <span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">atom_paths_from_conn</span></div>
-
+        <span class="k">return</span> <span class="n">atom_paths_from_conn</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_list_of_tensors_of_bt_attribute</span><span class="p">(</span>
@@ -732,8 +711,6 @@
             <span class="p">]</span>
         <span class="p">)</span>
 
-<div class="viewcode-block" id="PackedBlockTypes.join_torsion_uaids">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PackedBlockTypes.join_torsion_uaids">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">join_torsion_uaids</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="c1"># unresolved atom ids are three integers:</span>
@@ -745,11 +722,8 @@
         <span class="n">ordered_torsions</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_list_of_tensors_of_bt_attribute</span><span class="p">(</span>
             <span class="n">active_block_types</span><span class="p">,</span> <span class="s2">"ordered_torsions"</span><span class="p">,</span> <span class="n">device</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">join_tensors_and_report_real_entries</span><span class="p">(</span><span class="n">ordered_torsions</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">join_tensors_and_report_real_entries</span><span class="p">(</span><span class="n">ordered_torsions</span><span class="p">)</span>
 
-
-<div class="viewcode-block" id="PackedBlockTypes.join_is_torsion_mcs">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PackedBlockTypes.join_is_torsion_mcs">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">join_is_torsion_mcs</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="n">is_torsion_mc</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_list_of_tensors_of_bt_attribute</span><span class="p">(</span>
@@ -757,31 +731,22 @@
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">join_tensors_and_report_real_entries</span><span class="p">(</span><span class="n">is_torsion_mc</span><span class="p">,</span> <span class="nb">sentinel</span><span class="o">=</span><span class="mi">0</span><span class="p">)[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">bool</span>
-        <span class="p">)</span></div>
+        <span class="p">)</span>
 
-
-<div class="viewcode-block" id="PackedBlockTypes.join_mc_torsion_inds">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PackedBlockTypes.join_mc_torsion_inds">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">join_mc_torsion_inds</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="n">mc_torsions</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_list_of_tensors_of_bt_attribute</span><span class="p">(</span>
             <span class="n">active_block_types</span><span class="p">,</span> <span class="s2">"mc_torsions"</span><span class="p">,</span> <span class="n">device</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">join_tensors_and_report_real_entries</span><span class="p">(</span><span class="n">mc_torsions</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">join_tensors_and_report_real_entries</span><span class="p">(</span><span class="n">mc_torsions</span><span class="p">)</span>
 
-
-<div class="viewcode-block" id="PackedBlockTypes.join_sc_torsion_inds">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PackedBlockTypes.join_sc_torsion_inds">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">join_sc_torsion_inds</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="n">sc_torsions</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_list_of_tensors_of_bt_attribute</span><span class="p">(</span>
             <span class="n">active_block_types</span><span class="p">,</span> <span class="s2">"sc_torsions"</span><span class="p">,</span> <span class="n">device</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">join_tensors_and_report_real_entries</span><span class="p">(</span><span class="n">sc_torsions</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">join_tensors_and_report_real_entries</span><span class="p">(</span><span class="n">sc_torsions</span><span class="p">)</span>
 
-
-<div class="viewcode-block" id="PackedBlockTypes.join_mcsc_torsion_inds">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PackedBlockTypes.join_mcsc_torsion_inds">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">join_mcsc_torsion_inds</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="c1"># only return the joined tensor of mcsc indices, index 2 of the tuple</span>
@@ -789,31 +754,22 @@
         <span class="n">which_mcsc_torsions</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_list_of_tensors_of_bt_attribute</span><span class="p">(</span>
             <span class="n">active_block_types</span><span class="p">,</span> <span class="s2">"which_mcsc_torsion"</span><span class="p">,</span> <span class="n">device</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">join_tensors_and_report_real_entries</span><span class="p">(</span><span class="n">which_mcsc_torsions</span><span class="p">)[</span><span class="mi">2</span><span class="p">]</span></div>
+        <span class="k">return</span> <span class="n">join_tensors_and_report_real_entries</span><span class="p">(</span><span class="n">which_mcsc_torsions</span><span class="p">)[</span><span class="mi">2</span><span class="p">]</span>
 
-
-<div class="viewcode-block" id="PackedBlockTypes.join_bond_indices">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PackedBlockTypes.join_bond_indices">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">join_bond_indices</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="n">bond_indices</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_list_of_tensors_of_bt_attribute</span><span class="p">(</span>
             <span class="n">active_block_types</span><span class="p">,</span> <span class="s2">"bond_indices"</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">join_tensors_and_report_real_entries</span><span class="p">(</span><span class="n">bond_indices</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">join_tensors_and_report_real_entries</span><span class="p">(</span><span class="n">bond_indices</span><span class="p">)</span>
 
-
-<div class="viewcode-block" id="PackedBlockTypes.join_conn_indices">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PackedBlockTypes.join_conn_indices">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">join_conn_indices</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="n">conn_atoms</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_list_of_tensors_of_bt_attribute</span><span class="p">(</span>
             <span class="n">active_block_types</span><span class="p">,</span> <span class="s2">"ordered_connection_atoms"</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">join_tensors_and_report_real_entries</span><span class="p">(</span><span class="n">conn_atoms</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">join_tensors_and_report_real_entries</span><span class="p">(</span><span class="n">conn_atoms</span><span class="p">)</span>
 
-
-<div class="viewcode-block" id="PackedBlockTypes.join_polymeric_connections">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PackedBlockTypes.join_polymeric_connections">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">join_polymeric_connections</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="n">down_conn_inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
@@ -826,30 +782,21 @@
             <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
             <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">down_conn_inds</span><span class="p">,</span> <span class="n">up_conn_inds</span></div>
+        <span class="k">return</span> <span class="n">down_conn_inds</span><span class="p">,</span> <span class="n">up_conn_inds</span>
 
-
-<div class="viewcode-block" id="PackedBlockTypes.join_default_jump_connection_atom_inds">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PackedBlockTypes.join_default_jump_connection_atom_inds">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">join_default_jump_connection_atom_inds</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
             <span class="p">[</span><span class="n">bt</span><span class="o">.</span><span class="n">default_jump_connection_atom_index</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">active_block_types</span><span class="p">],</span>
             <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
             <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
-        <span class="p">)</span></div>
+        <span class="p">)</span>
 
-
-<div class="viewcode-block" id="PackedBlockTypes.inds_for_restypes">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PackedBlockTypes.inds_for_restypes">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">inds_for_restypes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">res_types</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">RefinedResidueType</span><span class="p">]):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">restype_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
             <span class="p">[</span><span class="n">residue_type</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">residue_type</span> <span class="ow">in</span> <span class="n">res_types</span><span class="p">]</span>
-        <span class="p">)</span></div>
+        <span class="p">)</span>
 
-
-<div class="viewcode-block" id="PackedBlockTypes.cpu">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PackedBlockTypes.cpu">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">cpu</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">def</span><span class="w"> </span><span class="nf">cpu_equiv</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s2">"cpu"</span><span class="p">)</span> <span class="k">else</span> <span class="n">x</span>
@@ -889,7 +836,6 @@
             <span class="k">if</span> <span class="n">self_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">new_inst</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
                 <span class="nb">setattr</span><span class="p">(</span><span class="n">new_inst</span><span class="p">,</span> <span class="n">self_key</span><span class="p">,</span> <span class="n">cpu_equiv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dict___</span><span class="p">[</span><span class="n">self_key</span><span class="p">]))</span>
         <span class="k">return</span> <span class="n">new_inst</span></div>
-</div>
 
 </pre></div>
 

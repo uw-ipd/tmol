@@ -413,29 +413,25 @@
 <a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.terms.DunbrackTermCreator">[docs]</a>
 <span class="nd">@score_term_creator</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">DunbrackTermCreator</span><span class="p">(</span><span class="n">TermCreator</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Create the Dunbrack rotamer energy term."""</span>
+
     <span class="n">_score_types</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">ScoreType</span><span class="o">.</span><span class="n">dunbrack_rot</span><span class="p">,</span>
         <span class="n">ScoreType</span><span class="o">.</span><span class="n">dunbrack_rotdev</span><span class="p">,</span>
         <span class="n">ScoreType</span><span class="o">.</span><span class="n">dunbrack_semirot</span><span class="p">,</span>
     <span class="p">]</span>
 
-<div class="viewcode-block" id="DunbrackTermCreator.create_term">
-<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.terms.DunbrackTermCreator.create_term">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">create_term</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">param_db</span><span class="p">:</span> <span class="n">ParameterDatabase</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
         <span class="kn">import</span><span class="w"> </span><span class="nn">tmol.score.dunbrack._dunbrack_energy_term</span>
 
         <span class="k">return</span> <span class="n">tmol</span><span class="o">.</span><span class="n">score</span><span class="o">.</span><span class="n">dunbrack</span><span class="o">.</span><span class="n">_dunbrack_energy_term</span><span class="o">.</span><span class="n">DunbrackEnergyTerm</span><span class="p">(</span>
             <span class="n">param_db</span><span class="p">,</span> <span class="n">device</span>
-        <span class="p">)</span></div>
+        <span class="p">)</span>
 
-
-<div class="viewcode-block" id="DunbrackTermCreator.score_types">
-<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.terms.DunbrackTermCreator.score_types">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">score_types</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_score_types</span></div>
-</div>
 
 </pre></div>
 

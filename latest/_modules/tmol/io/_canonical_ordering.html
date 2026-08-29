@@ -588,18 +588,13 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">n_restype_io_equiv_classes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">restype_io_equiv_classes</span><span class="p">)</span>
 
-<div class="viewcode-block" id="CanonicalOrdering.extra_atoms">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.CanonicalOrdering.extra_atoms">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">extra_atoms</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">{</span>
             <span class="s2">"HIS"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"NN"</span><span class="p">,</span> <span class="s2">"NH"</span><span class="p">,</span> <span class="s2">"HN"</span><span class="p">]</span>
             <span class="c1"># to do: "CYS": ["HGT"]</span>
-        <span class="p">}</span></div>
+        <span class="p">}</span>
 
-
-<div class="viewcode-block" id="CanonicalOrdering.from_chemdb">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.CanonicalOrdering.from_chemdb">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_chemdb</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">chemdb</span><span class="p">:</span> <span class="n">PatchedChemicalDatabase</span><span class="p">):</span>  <span class="c1"># noqa: C901</span>
         <span class="n">restypes</span> <span class="o">=</span> <span class="n">ordered_set</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">io_equiv_class</span> <span class="k">for</span> <span class="n">rt</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">residues</span><span class="p">)</span>
@@ -689,8 +684,7 @@
             <span class="n">his_inds</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">_init_his_special_case_indices</span><span class="p">(</span>
                 <span class="n">ordered_restypes</span><span class="p">,</span> <span class="n">restypes_ordered_atom_names</span>
             <span class="p">),</span>
-        <span class="p">)</span></div>
-
+        <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_required_mainchain_atoms</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">chemdb</span><span class="p">:</span> <span class="n">PatchedChemicalDatabase</span><span class="p">):</span>
@@ -796,8 +790,6 @@
             <span class="n">his_CG_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"CG"</span><span class="p">),</span>
         <span class="p">)</span>
 
-<div class="viewcode-block" id="CanonicalOrdering.create_src_2_tmol_mappings">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.CanonicalOrdering.create_src_2_tmol_mappings">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">create_src_2_tmol_mappings</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">src_aa_name3s</span><span class="p">,</span> <span class="n">src_atom_names_for_name3s</span><span class="p">,</span> <span class="n">device</span>
     <span class="p">):</span>
@@ -848,7 +840,6 @@
             <span class="n">_d</span><span class="p">(</span><span class="n">src_2_tmol_atom_mapping</span><span class="p">),</span>
             <span class="n">_d</span><span class="p">(</span><span class="n">src_at_is_real</span><span class="p">),</span>
         <span class="p">)</span></div>
-</div>
 
 
 

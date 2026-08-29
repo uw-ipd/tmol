@@ -413,6 +413,8 @@
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.RotamerSet">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">RotamerSet</span><span class="p">(</span><span class="n">ValidateAttrs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Packed coordinates and pose/block indexing for generated rotamers."""</span>
+
     <span class="n">n_rots_for_pose</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:]</span>
     <span class="n">rot_offset_for_pose</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:]</span>
     <span class="n">n_rots_for_block</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:]</span>
@@ -458,8 +460,6 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">n_rotamers_total</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_ind_for_rot</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
-<div class="viewcode-block" id="RotamerSet.to_atom_array">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.RotamerSet.to_atom_array">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_atom_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pbt</span><span class="p">):</span>
         <span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">struc</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_element_from_atom_name</span>
@@ -494,7 +494,6 @@
         <span class="n">atom_array</span> <span class="o">=</span> <span class="n">struc</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span>
         <span class="n">atom_array</span><span class="o">.</span><span class="n">set_annotation</span><span class="p">(</span><span class="s2">"model"</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">model_ids</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">atom_array</span></div>
-</div>
 
 </pre></div>
 

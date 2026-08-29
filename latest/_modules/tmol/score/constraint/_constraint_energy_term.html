@@ -431,6 +431,8 @@
 <div class="viewcode-block" id="ConstraintEnergyTerm">
 <a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.constraint.ConstraintEnergyTerm">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">ConstraintEnergyTerm</span><span class="p">(</span><span class="n">EnergyTerm</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Score coordinate and geometric constraints attached to a pose stack."""</span>
+
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>  <span class="c1"># = attr.ib()</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_db</span><span class="p">:</span> <span class="n">ParameterDatabase</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>

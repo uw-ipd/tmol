@@ -486,6 +486,8 @@
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.AtomFingerprint">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">AtomFingerprint</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Topology signature locating an atom relative to the main chain."""</span>
+
     <span class="n">mc_ind</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">mc_bond_dist</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">chirality</span><span class="p">:</span> <span class="nb">int</span>
@@ -498,6 +500,8 @@
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.MCFingerprint">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">MCFingerprint</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Main-chain atom fingerprint and its residue-local atom mapping."""</span>
+
     <span class="n">mc_ats</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>
     <span class="n">mc_at_fingerprints</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">AtomFingerprint</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
     <span class="n">fingerprint</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">AtomFingerprint</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
@@ -509,6 +513,8 @@
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.MCFingerprints">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">MCFingerprints</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Packed main-chain fingerprint mappings indexed by conformer sampler."""</span>
+
     <span class="n">atom_mapping</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span>  <span class="c1"># make int64</span>
     <span class="n">sampler_mapping</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>
     <span class="n">max_sampler</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>

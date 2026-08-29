@@ -416,6 +416,7 @@
 <a class="viewcode-back" href="../../../api/types.html#tmol.types.get_converter">[docs]</a>
 <span class="nd">@singledispatch</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_converter</span><span class="p">(</span><span class="n">type_annotation</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Return the registered value converter for a type annotation."""</span>
     <span class="k">for</span> <span class="n">pred</span><span class="p">,</span> <span class="n">conv</span> <span class="ow">in</span> <span class="n">_converters</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">pred</span><span class="p">(</span><span class="n">type_annotation</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">conv</span><span class="p">(</span><span class="n">type_annotation</span><span class="p">)</span>
@@ -428,6 +429,7 @@
 <a class="viewcode-back" href="../../../api/types.html#tmol.types.constructor_convert">[docs]</a>
 <span class="nd">@toolz</span><span class="o">.</span><span class="n">curry</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">constructor_convert</span><span class="p">(</span><span class="n">type_annotation</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Convert a value by calling the annotated type when necessary."""</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">type_annotation</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">value</span>
     <span class="k">return</span> <span class="n">type_annotation</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
@@ -438,6 +440,7 @@
 <a class="viewcode-back" href="../../../api/types.html#tmol.types.validate_convert">[docs]</a>
 <span class="nd">@toolz</span><span class="o">.</span><span class="n">curry</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">validate_convert</span><span class="p">(</span><span class="n">type_annotation</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Validate a value against an annotation and return it unchanged."""</span>
     <span class="n">validators</span><span class="o">.</span><span class="n">get_validator</span><span class="p">(</span><span class="n">type_annotation</span><span class="p">)(</span><span class="n">value</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">value</span></div>
@@ -448,6 +451,7 @@
 <a class="viewcode-back" href="../../../api/types.html#tmol.types.union_convert">[docs]</a>
 <span class="nd">@toolz</span><span class="o">.</span><span class="n">curry</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">union_convert</span><span class="p">(</span><span class="n">union_annotation</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Convert a value using the first compatible member of a union."""</span>
     <span class="k">for</span> <span class="n">subtype</span> <span class="ow">in</span> <span class="n">union_annotation</span><span class="o">.</span><span class="n">__args__</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">validators</span><span class="o">.</span><span class="n">get_validator</span><span class="p">(</span><span class="n">subtype</span><span class="p">)(</span><span class="n">value</span><span class="p">)</span>
@@ -471,6 +475,7 @@
 <div class="viewcode-block" id="register_converter">
 <a class="viewcode-back" href="../../../api/types.html#tmol.types.register_converter">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">register_converter</span><span class="p">(</span><span class="n">type_predicate</span><span class="p">,</span> <span class="n">converter</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Register a converter factory for annotations matching a predicate."""</span>
     <span class="n">_converters</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">type_predicate</span><span class="p">,</span> <span class="n">converter</span><span class="p">))</span></div>
 
 
