@@ -152,6 +152,7 @@ residues:
     name3: ALA
     io_equiv_class: ALA
     one_letter_code: A
+    rama_reference: ALA
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -235,6 +236,8 @@ residues:
     name3: ARG
     io_equiv_class: ARG
     one_letter_code: R
+    rama_reference: ARG
+    dunbrack_reference: ARG
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -371,6 +374,8 @@ residues:
     name3: ASN
     io_equiv_class: ASN
     one_letter_code: N
+    rama_reference: ASN
+    dunbrack_reference: ASN
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -469,6 +474,8 @@ residues:
     name3: ASP
     io_equiv_class: ASP
     one_letter_code: D
+    rama_reference: ASP
+    dunbrack_reference: ASP
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -559,6 +566,8 @@ residues:
     name3: CYS
     io_equiv_class: CYS
     one_letter_code: C
+    rama_reference: CYS
+    dunbrack_reference: CYS
     atoms:
     - { name: N   , atom_type: Nbb  }
     - { name: CA  , atom_type: CAbb }
@@ -648,6 +657,8 @@ residues:
     base_name: CYD
     name3: CYS
     io_equiv_class: CYS
+    rama_reference: CYD
+    dunbrack_reference: CYD
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -732,6 +743,8 @@ residues:
     name3: GLN
     io_equiv_class: GLN
     one_letter_code: Q
+    rama_reference: GLN
+    dunbrack_reference: GLN
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -842,6 +855,8 @@ residues:
     name3: GLU
     io_equiv_class: GLU
     one_letter_code: E
+    rama_reference: GLU
+    dunbrack_reference: GLU
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -944,6 +959,7 @@ residues:
     name3: GLY
     io_equiv_class: GLY
     one_letter_code: G
+    rama_reference: GLY
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1017,6 +1033,8 @@ residues:
     name3: HIS
     io_equiv_class: HIS
     one_letter_code: H
+    rama_reference: HIS
+    dunbrack_reference: HIS
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1124,6 +1142,8 @@ residues:
     base_name: HIS_D
     name3: HIS
     io_equiv_class: HIS
+    rama_reference: HIS_D
+    dunbrack_reference: HIS_D
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1230,6 +1250,8 @@ residues:
     base_name: HIS_POS
     name3: HIS
     io_equiv_class: HIS
+    rama_reference: HIS_POS
+    dunbrack_reference: HIS
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1339,6 +1361,8 @@ residues:
     name3: ILE
     io_equiv_class: ILE
     one_letter_code: I
+    rama_reference: ILE
+    dunbrack_reference: ILE
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1456,6 +1480,8 @@ residues:
     name3: LEU
     io_equiv_class: LEU
     one_letter_code: L
+    rama_reference: LEU
+    dunbrack_reference: LEU
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1573,6 +1599,8 @@ residues:
     name3: LYS
     io_equiv_class: LYS
     one_letter_code: K
+    rama_reference: LYS
+    dunbrack_reference: LYS
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1704,6 +1732,8 @@ residues:
     name3: MET
     io_equiv_class: MET
     one_letter_code: M
+    rama_reference: MET
+    dunbrack_reference: MET
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1815,6 +1845,8 @@ residues:
     name3: PHE
     io_equiv_class: PHE
     one_letter_code: F
+    rama_reference: PHE
+    dunbrack_reference: PHE
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1930,6 +1962,8 @@ residues:
     name3: PRO
     io_equiv_class: PRO
     one_letter_code: P
+    rama_reference: PRO
+    dunbrack_reference: PRO
     atoms:
     - { name: N   ,  atom_type: Npro }
     - { name: CA  ,  atom_type: CAbb }
@@ -2032,6 +2066,8 @@ residues:
     name3: SER
     io_equiv_class: SER
     one_letter_code: S
+    rama_reference: SER
+    dunbrack_reference: SER
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -2122,6 +2158,8 @@ residues:
     name3: THR
     io_equiv_class: THR
     one_letter_code: T
+    rama_reference: THR
+    dunbrack_reference: THR
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -2222,6 +2260,8 @@ residues:
     name3: TRP
     io_equiv_class: TRP
     one_letter_code: W
+    rama_reference: TRP
+    dunbrack_reference: TRP
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -2350,6 +2390,8 @@ residues:
     name3: TYR
     io_equiv_class: TYR
     one_letter_code: Y
+    rama_reference: TYR
+    dunbrack_reference: TYR
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -2473,6 +2515,8 @@ residues:
     name3: VAL
     io_equiv_class: VAL
     one_letter_code: V
+    rama_reference: VAL
+    dunbrack_reference: VAL
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }

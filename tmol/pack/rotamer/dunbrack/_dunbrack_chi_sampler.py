@@ -336,8 +336,14 @@ class DunbrackChiSampler(ChiSampler):
 
     @validate_args
     def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
+        """The atom chi1 rotates, which is where the sidechain starts.
+
+        Read off the residue rather than named, so a noncanonical whose
+        sidechain does not begin at an atom called CB still transfers its
+        rotamers correctly. Empty for a residue with no chi to rotate.
+        """
         assert self.defines_rotamers_for_rt(rt)
-        return ("CB",)
+        return tuple(t.c.atom for t in rt.torsions if t.name == "chi1")
 
     @validate_args
     def sample_chi_for_poses(

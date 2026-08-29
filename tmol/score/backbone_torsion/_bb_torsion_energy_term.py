@@ -115,14 +115,17 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
         if hasattr(block_type, "backbone_torsion_params"):
             return
 
-        # noncanonical may borrow a canonical's rama/omega tables. Look up the
-        #    base type: a terminus still has a peptide bond to its neighbour, so
-        #    it needs an omega table even though it has no phi or psi, and the
-        #    kernel skips omega entirely when the table index is negative.
-        rname = block_type.rama_reference or block_type.base_name
+        # every residue with backbone torsions to score names the tables it
+        #    reads, canonical ones included, so no reference means no scoring.
+        #    A terminus still has a peptide bond to its neighbour and so needs
+        #    an omega table even with no phi or psi; the kernel skips omega
+        #    entirely when the table index is negative
+        rname = block_type.rama_reference
         lookups = numpy.array([[rname, "_"], [rname, "PRO"]], dtype=object)
 
         def table_inds(lookup, n_tables):
+            if rname is None:
+                return numpy.full(len(lookups), -1, dtype=numpy.int64)
             rows = lookup.index.get_indexer(lookups)
             inds = numpy.full(len(rows), -1, dtype=numpy.int64)
             hit = rows != -1
@@ -163,10 +166,9 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
             upper_conn_id[0] = block_type.connection_to_cidx["up"]
         is_pro = numpy.full((1,), 0, dtype=numpy.int32)
 
-        # TO DO: Better logic here to handle proline variants
-        # is_pro selects the *previous* residue's prepro table, so a
-        #    proline-referencing noncanonical must set it too
-        if block_type.base_name == "PRO" or block_type.rama_reference == "PRO":
+        # is_pro selects the *previous* residue's prepro table, so it follows
+        #    the tables the residue reads rather than what it is called
+        if block_type.rama_reference == "PRO":
             is_pro[0] = 1
 
         bt_bbtors_params = BackboneTorsionBlockTypeParams(
