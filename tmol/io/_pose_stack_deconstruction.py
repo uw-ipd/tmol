@@ -20,6 +20,16 @@ from tmol.io.details import (
 def canonical_form_from_pose_stack(
     canonical_ordering: CanonicalOrdering, pose_stack: PoseStack, chain_id=None
 ):
+    """Convert a pose stack to canonical residue and atom tensors.
+
+    Args:
+        canonical_ordering: Residue and atom ordering for the output tensors.
+        pose_stack: Poses to deconstruct.
+        chain_id: Optional integer chain identifiers shaped ``[pose, residue]``.
+
+    Returns:
+        Canonical form containing coordinates, residue metadata, and connectivity.
+    """
     pbt = pose_stack.packed_block_types
     co = canonical_ordering
     _annotate_packed_block_types_w_canonical_res_order(co, pbt)

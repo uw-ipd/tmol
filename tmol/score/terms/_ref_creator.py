@@ -6,6 +6,8 @@ import torch
 
 @score_term_creator
 class RefTermCreator(TermCreator):
+    """Create the residue reference-energy term."""
+
     _score_types = [ScoreType.ref]
 
     @classmethod

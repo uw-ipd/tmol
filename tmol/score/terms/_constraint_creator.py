@@ -6,6 +6,8 @@ import torch
 
 @score_term_creator
 class ConstraintTermCreator(TermCreator):
+    """Create the pose-constraint energy term."""
+
     _score_types = [ScoreType.constraint]
 
     @classmethod

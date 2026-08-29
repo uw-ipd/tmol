@@ -19,6 +19,13 @@ if TYPE_CHECKING:
 
 
 class EnergyTerm:
+    """Base protocol for topology setup and rendering of one energy term.
+
+    Subclasses describe their score types and body order, cache topology-only
+    annotations through the ``setup_*`` hooks, and provide callable scoring
+    implementations for whole-pose and rotamer evaluation.
+    """
+
     def __init__(self, **kwargs):
         pass
 
@@ -42,18 +49,15 @@ class EnergyTerm:
         raise NotImplementedError()
 
     def setup_block_type(self, block_type: RefinedResidueType):
-        """
-        Make a one-time annotation on the block type. These annotations will
-        probably require string comparison and may be slow; they should be
+        """Make a one-time CPU annotation on a block type.
+
+        These annotations may require slow string comparisons; they should be
         performed only once, so the EnergyTerm must check that its annotation
         is not already present in the block type. Annotations should be in
         numpy data structures (and stored on the CPU).
 
-        If the annotation requires more than one array, then the EnergyTerm
-        should use a python class to store those arrays. E.g.,
-        class FooSet:
-            foo_array1: NDArray[numpy.int32][:]
-            foo_array2: NDArray[numpy.int32][:, :]
+        If the annotation requires more than one array, use a Python class to
+        store those arrays.
 
         If the kind of annotation made depends on data that may change
         between different instances of the same term, then the annotation
@@ -67,28 +71,15 @@ class EnergyTerm:
         pass
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
-        """
-        Make a one-time annotation of the packed-block types. This annotation
-        should mostly involve concatenating the previously-made numpy annotations
-        on the block types that the packed-block types contains. E.g. if the
-        EnergyTerm annotates the block types with an i-dimensional array "foo,"
-        then it should also annotate the PackedBlockTypes with an (i+1)-dimensional
-        tensor "foo" where the first dimension will index across the different
-        block types in foo in the order that those block types appear in the
-        PackedBlockTypes' list of active block types. Sometimes the size of the
-        i-dimensional arrays will differ between block types; the (i+1)-dimensional
-        tensor should be dimensioned to the maximal size for each of the i dimensions
-        among the set of dimensions of the various block types. The extra padding
-        in such cases is recommended to be filled with a sentinel value of -1.
+        """Make a one-time device annotation of the packed block types.
 
-        As with the block type annotation, if more than one tensor is required,
-        then the annotation should be a class. If the annotation is based on
-        data that might differ between instances, then the annotation should be
-        a map whose keys are determined by the data.
-
-        The EnergyMethod should begin by checking that it has not already made
-        this annotation. Any array data in the annotation should be torch
-        tensors and should live on the PackedBlockTypes' device.
+        Implementations generally pack the residue-type NumPy annotations into
+        tensors whose first dimension follows ``active_block_types``. Pad
+        variable residue dimensions with a sentinel such as ``-1`` and cache
+        all tensors on the packed block types' device. If setup depends on
+        instance-specific parameters, key the cached annotation by those
+        immutable parameters so distinct term instances cannot reuse
+        incompatible data.
         """
         pass
 

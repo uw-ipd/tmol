@@ -21,6 +21,8 @@ ClassLogger = attr.ib(
 
 
 class LoggerMixin:
+    """Provide a lazily constructed logger named for the concrete class."""
+
     @property
     def logger(self) -> logging.Logger:
         logger = getattr(self, "_logger", None)

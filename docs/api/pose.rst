@@ -9,7 +9,6 @@ stored in ``ConstraintSet``.
 .. automodule:: tmol.pose
    :members:
    :imported-members:
-   :undoc-members:
    :show-inheritance:
 
 Public defaults

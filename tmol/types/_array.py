@@ -20,6 +20,8 @@ class Casting(enum.Enum):
 
 
 class NDArray(_TensorType):
+    """Runtime-checkable NumPy array annotation with dtype and shape metadata."""
+
     _module: typing.ClassVar = numpy
     _tensortype: typing.ClassVar = numpy.ndarray
 

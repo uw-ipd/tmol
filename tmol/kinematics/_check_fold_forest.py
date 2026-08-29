@@ -324,6 +324,16 @@ def validate_fold_forest(
     n_blocks: NDArray[numpy.int64][:],
     edges: NDArray[numpy.int64][:, :, 4],
 ):
+    """Validate batched fold-forest edges and raise with pose-specific details.
+
+    Args:
+        n_blocks: Number of real blocks in each pose, shaped ``[pose]``.
+        edges: Fold-forest edges shaped ``[pose, edge, 4]``.
+
+    Raises:
+        ValueError: If an edge is invalid, connectivity is incomplete or cyclic,
+            or jump numbering is inconsistent.
+    """
     (
         good,
         bad_edges,

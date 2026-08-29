@@ -9,6 +9,8 @@ from tmol.types import (
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class RotamerSet(ValidateAttrs):
+    """Packed coordinates and pose/block indexing for generated rotamers."""
+
     n_rots_for_pose: Tensor[torch.int64][:]
     rot_offset_for_pose: Tensor[torch.int64][:]
     n_rots_for_block: Tensor[torch.int64][:, :]

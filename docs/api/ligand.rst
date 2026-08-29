@@ -7,7 +7,6 @@ from the public :mod:`tmol.ligand` package.
 .. automodule:: tmol.ligand
    :members:
    :imported-members:
-   :undoc-members:
    :show-inheritance:
 
 Public constants

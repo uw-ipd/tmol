@@ -9,6 +9,8 @@ from tmol.types import Tensor
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class IndexedBonds:
+    """Sorted atom bonds with per-atom spans for efficient neighborhood lookup."""
+
     # bonds = [ nstacks x nbonds x 2 ]
     #   with 2 = (atom1ind atom2ind)
     # bond_spans = [ nstacks x max-natoms x 2 ]

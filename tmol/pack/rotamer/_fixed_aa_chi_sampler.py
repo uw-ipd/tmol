@@ -25,6 +25,8 @@ from tmol.pack.rotamer import ChiSampler
 
 @attr.s(auto_attribs=True, frozen=True)
 class FixedAAChiSampler(ChiSampler):
+    """Generate one ideal side-chain conformer for fixed amino acids."""
+
     @classmethod
     def sampler_name(cls):
         return "FixedAAChiSampler"

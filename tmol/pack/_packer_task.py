@@ -53,6 +53,8 @@ def set_compare(x, y):
 
 @attr.define(slots=True, frozen=True)
 class PackerPalleteAnnotation:
+    """Cached residue-type compatibility tensors for a packer palette."""
+
     max_n_allowed: int
     n_allowed_block_types_for_block_type: Tensor[torch.int64][:]
     allowed_block_types_for_block_type: Tensor[torch.bool][:, :]
@@ -61,6 +63,8 @@ class PackerPalleteAnnotation:
 
 
 class PackerPalette:
+    """Define which residue types may replace each original residue type."""
+
     def __init__(self):
         pass
 
@@ -71,6 +75,16 @@ class PackerPalette:
         Tensor[torch.int64][:, :, :],
         Tensor[torch.bool][:, :, :],
     ]:
+        """Return residue-type choices allowed by the default palette.
+
+        Args:
+            pbt: Packed residue-type collection shared by the poses.
+            orig: Original residue-type index for each pose and block.
+
+        Returns:
+            The number of choices, padded choice indices, and a mask marking
+            each original residue type.
+        """
         # initialize the list of allowed block types for a PoseStack based on the
         # original block types; the logic of which block types are allowed given
         # the original block type is pre-computed and cached in the PackedBlockTypes
@@ -113,7 +127,8 @@ class PackerPalette:
 
     def create_restrict_to_repacking_mask(
         self, pbt: PackedBlockTypes, orig: Tensor[torch.int64][:, :]
-    ):
+    ) -> Tensor[torch.bool][:, :, :]:
+        """Return choices that preserve each block's original residue name."""
         # initialize the restrict-to-repacking mask for a PoseStack based on the
         # original block types; the logic of which block types are allowed for each
         # starting block type can be pre-computed and cached in the PackedBlockTypes
@@ -261,6 +276,7 @@ def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockType
 
 
 class PackerTask:
+    """Configure residue identities, conformers, and movable sites for packing."""
 
     def __init__(self, systems: PoseStack, palette: PackerPalette):
         self.pbt = systems.packed_block_types
@@ -355,7 +371,8 @@ class PackerTask:
             self.per_block_is_block_type_allowed, restriction
         )
 
-    def add_conformer_sampler(self, sampler: ConformerSampler):
+    def add_conformer_sampler(self, sampler: ConformerSampler) -> None:
+        """Enable a conformer sampler at every block."""
         self.conformer_samplers.append(sampler)
         self.conformer_sampler_index[id(sampler)] = len(self.conformer_samplers) - 1
         self.per_block_conformer_sampler_allowed = torch.cat(
@@ -376,7 +393,8 @@ class PackerTask:
 
     def add_conformer_sampler_by_block_mask(
         self, sampler: ConformerSampler, block_type_mask: Tensor[torch.bool][:, :]
-    ):
+    ) -> None:
+        """Enable a conformer sampler only at selected pose/block entries."""
         assert (
             block_type_mask.shape == self.per_block_n_considered_block_types.shape[:2]
         )
@@ -392,23 +410,29 @@ class PackerTask:
             dim=-1,
         )
 
-    def or_expand_chi(self, chi_ind: int):
+    def or_expand_chi(self, chi_ind: int) -> None:
+        """Request one extra standard-deviation sample for a chi torsion."""
         self.per_block_chi_expansion[:, :, :, chi_ind] = 1
 
-    def or_expand_chi_to(self, chi_ind: int, sample_level: int):
+    def or_expand_chi_to(self, chi_ind: int, sample_level: int) -> None:
+        """Raise a chi torsion's expansion level without lowering it."""
         # max over the current sample level and the new sample level.
         self.per_block_chi_expansion[:, :, :, chi_ind] = torch.max(
             self.per_block_chi_expansion[:, :, :, chi_ind], sample_level
         )
 
-    def disable_packing_by_block_mask(self, block_type_mask: Tensor[torch.bool][:, :]):
+    def disable_packing_by_block_mask(
+        self, block_type_mask: Tensor[torch.bool][:, :]
+    ) -> None:
+        """Disable packing at selected pose/block entries."""
         assert block_type_mask.device == self.device
         assert block_type_mask.shape == self.per_block_is_block_type_allowed.shape[:2]
         self.per_block_is_block_type_allowed = torch.logical_and(
             self.per_block_is_block_type_allowed, ~block_type_mask.unsqueeze(-1)
         )
 
-    def or_bump_check(self, setting=True):
+    def or_bump_check(self, setting: bool = True) -> None:
+        """Enable bump checking without allowing later calls to disable it."""
         self._bump_check |= setting
 
     @property

@@ -102,6 +102,8 @@ def polymer_index(base):
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class NaTorsionParams(ValidateAttrs):
+    """Device-resident nucleic-acid torsion distributions and well energies."""
+
     # means in degrees; 3 bins for alpha/gamma, 2 for beta/epsilon/zeta
     backbone_means: Tensor[torch.float32][2, 6, 3]
     backbone_n_bins: Tensor[torch.int32][2, 6]

@@ -119,6 +119,8 @@ class _TensorType(metaclass=_TensorTypeMeta):
 
 
 class TensorGroup:
+    """Mixin for immutable structures whose fields are tensors or tensor groups."""
+
     @property
     def _pure_tensor(self):
         return all(
@@ -233,6 +235,7 @@ class TensorGroup:
 
 
 def cat(seq, dim=0, out=None):
+    """Concatenate tensors or compatible tensor groups along a dimension."""
     first, *rest = seq
     return _cat_internal(first, rest, dim=dim, out=out)
 

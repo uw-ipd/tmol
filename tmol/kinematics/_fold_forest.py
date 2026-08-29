@@ -7,6 +7,8 @@ from tmol.pose import PoseStack
 
 
 class EdgeType(enum.IntEnum):
+    """Kinds of directed connections represented in a fold forest."""
+
     polymer = 0
     jump = enum.auto()
     root_jump = enum.auto()
@@ -228,7 +230,16 @@ class FoldForest:
         return cls(max_n_edges=max_n_edges, n_edges=n_edges, edges=edges)
 
     @classmethod
-    def from_edges(cls, edges: NDArray[int][:, :, 4]):
+    def from_edges(cls, edges: NDArray[int][:, :, 4]) -> "FoldForest":
+        """Construct a fold forest from a padded edge array.
+
+        Args:
+            edges: Edge records shaped ``[pose, edge, 4]``. Unused entries
+                have ``-1`` in their edge-type column.
+
+        Returns:
+            A fold forest with per-pose edge counts inferred from ``edges``.
+        """
         return cls(
             max_n_edges=edges.shape[1],
             n_edges=numpy.sum(edges[:, :, 0] != -1, axis=1),

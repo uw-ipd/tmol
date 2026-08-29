@@ -82,6 +82,8 @@ from tmol.pack.rotamer import (
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class AtomFingerprint:
+    """Topology signature locating an atom relative to the main chain."""
+
     mc_ind: int
     mc_bond_dist: int
     chirality: int
@@ -91,6 +93,8 @@ class AtomFingerprint:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class MCFingerprint:
+    """Main-chain atom fingerprint and its residue-local atom mapping."""
+
     mc_ats: NDArray[numpy.int32][:]
     mc_at_fingerprints: Tuple[AtomFingerprint, ...]
     fingerprint: Tuple[AtomFingerprint, ...]
@@ -99,6 +103,8 @@ class MCFingerprint:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class MCFingerprints:
+    """Packed main-chain fingerprint mappings indexed by conformer sampler."""
+
     atom_mapping: Tensor[torch.int32][:, :, :, :]  # make int64
     sampler_mapping: Mapping[str, int]
     max_sampler: Tensor[torch.int32][:]

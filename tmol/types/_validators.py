@@ -31,6 +31,7 @@ def is_list_type(tp):
 
 @singledispatch
 def get_validator(type_annotation):
+    """Return the registered runtime validator for a type annotation."""
     for pred, val in _validators:
         if pred(type_annotation):
             return val(type_annotation)
@@ -106,11 +107,13 @@ def validate_union(union, value):
 
 @toolz.curry
 def validate_isinstance(type_annotation, value):
+    """Require a value to be an instance of the annotated type."""
     if not isinstance(value, type_annotation):
         raise TypeError(f"expected {type_annotation}, received {type(value)!r}")
 
 
 def register_validator(type_predicate, validator):
+    """Register a validator factory for annotations matching a predicate."""
     _validators.append((type_predicate, validator))
 
 

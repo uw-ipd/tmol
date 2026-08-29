@@ -19,6 +19,7 @@ from tmol.pack.rotamer import ConformerSampler
 
 @attr.s(auto_attribs=True, frozen=True)
 class IncludeCurrentSampler(ConformerSampler):
+    """Add each packable residue's current conformation to its rotamer set."""
 
     @classmethod
     def sampler_name(cls):

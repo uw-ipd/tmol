@@ -30,6 +30,8 @@ BondCount = NewType("BondCount", int)
 
 
 class BondType(IntEnum):
+    """Supported covalent bond orders for residue-type topology."""
+
     SINGLE = 1
     DOUBLE = 2
     TRIPLE = 3
@@ -158,6 +160,8 @@ def get_element_from_atom_name(atom_name: str) -> str:
 
 @attr.s
 class RefinedResidueType(RawResidueType):
+    """Residue type augmented with indexed atoms, bonds, and kinematic metadata."""
+
     @property
     def n_atoms(self):
         return len(self.atoms)
@@ -626,6 +630,8 @@ class RefinedResidueType(RawResidueType):
 
 @attr.s(auto_attribs=True)
 class ResidueTypeSet:
+    """Collection of residue types refined from one chemical database."""
+
     __default = None
     __refined_cache = None
 

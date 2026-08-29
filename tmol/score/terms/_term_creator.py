@@ -30,5 +30,6 @@ class TermCreator:
 
 
 def score_term_creator(cls):
+    """Register a term-creator class with the global score-term factory."""
     ScoreTermFactory.factory_register(cls)
     return cls

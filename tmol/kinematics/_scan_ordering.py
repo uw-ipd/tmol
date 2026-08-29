@@ -334,6 +334,15 @@ def construct_kin_module_data_for_pose(
     pose_stack: PoseStack,
     fold_forest_edges: Tensor[torch.int32][:, :, 4],
 ):
+    """Construct the indexed forest and scan order for batched poses.
+
+    Args:
+        pose_stack: Poses whose atoms will form the kinematic forest.
+        fold_forest_edges: Fold-forest edges shaped ``[pose, edge, 4]``.
+
+    Returns:
+        Immutable topology and traversal data for forward and backward scans.
+    """
     from tmol.kinematics.compiled import (
         calculate_ff_edge_delays,
         get_children,

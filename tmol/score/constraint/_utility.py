@@ -7,6 +7,7 @@ from tmol.pose._pose_stack import PoseStack
 
 
 def constrain_all_ca(pose_stack: PoseStack) -> PoseStack:
+    """Add coordinate constraints at every available protein CA atom."""
     from tmol.pose._constraint_set import ConstraintSet
     from tmol.score.constraint._constraint_energy_term import ConstraintEnergyTerm
 
@@ -58,6 +59,8 @@ def constrain_all_ca(pose_stack: PoseStack) -> PoseStack:
 
 @attrs.define
 class MCAtomIndices:
+    """Padded main-chain atom indices for every packed block type."""
+
     max_n_mainchain_atoms: int
     n_mainchain_atoms: Tensor[torch.int64][:]
     mainchain_atoms: Tensor[torch.int64][:, :]
@@ -112,6 +115,7 @@ def _annotate_mainchain_atom_indices(packed_block_types: PackedBlockTypes) -> No
 
 
 def create_mainchain_coordinate_constraints(pose_stack: PoseStack) -> PoseStack:
+    """Add coordinate constraints for every declared polymer main-chain atom."""
     from tmol.pose._constraint_set import ConstraintSet
     from tmol.score.constraint._constraint_energy_term import ConstraintEnergyTerm
 

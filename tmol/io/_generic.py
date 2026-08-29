@@ -5,6 +5,7 @@ from functools import singledispatch
 
 @singledispatch
 def to_pdb(system):
+    """Serialize a supported molecular system to PDB text."""
     raise NotImplementedError(f"Unknown system: {system}")
 
 

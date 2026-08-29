@@ -19,6 +19,7 @@ def exclusive_cumsum(inds: NDArray[int][:]) -> NDArray[int][:]:
 def exclusive_cumsum1d(
     inds: Union[Tensor[torch.int32][:], Tensor[torch.int64][:]],
 ) -> Union[Tensor[torch.int32][:], Tensor[torch.int64][:]]:
+    """Compute a one-dimensional exclusive cumulative sum."""
     return torch.cat(
         (
             torch.tensor([0], dtype=inds.dtype, device=inds.device),
@@ -31,6 +32,7 @@ def exclusive_cumsum1d(
 def exclusive_cumsum2d(
     inds: Union[Tensor[torch.int32][:, :], Tensor[torch.int64][:, :]],
 ) -> Union[Tensor[torch.int32][:, :], Tensor[torch.int64][:, :]]:
+    """Compute an exclusive cumulative sum along the second dimension."""
     return torch.cat(
         (
             torch.zeros((inds.shape[0], 1), dtype=inds.dtype, device=inds.device),
@@ -47,6 +49,7 @@ def exclusive_cumsum2d_w_totals(
     Tuple[Tensor[torch.int32][:, :], Tensor[torch.int32][:]],
     Union[Tensor[torch.int64][:, :], Tensor[torch.int64][:]],
 ]:
+    """Return row-wise exclusive cumulative sums and inclusive row totals."""
     cumsum = torch.cumsum(inds, dim=1, dtype=inds.dtype)
     return (
         torch.cat(

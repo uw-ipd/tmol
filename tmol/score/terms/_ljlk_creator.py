@@ -6,6 +6,8 @@ import torch
 
 @score_term_creator
 class LJLKTermCreator(TermCreator):
+    """Create the Lennard-Jones and Lazaridis-Karplus energy term."""
+
     _score_types = [ScoreType.fa_ljatr, ScoreType.fa_ljrep, ScoreType.fa_lk]
 
     @classmethod

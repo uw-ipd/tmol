@@ -966,6 +966,18 @@ def biotite_from_canonical_form(  # noqa: C901
     cf: CanonicalForm,
     co: CanonicalOrdering | None = None,
 ) -> biotite.structure.AtomArray | biotite.structure.AtomArrayStack:
+    """Convert canonical TMol tensors to a Biotite atom array.
+
+    Args:
+        cf: Canonical coordinates, residue identities, and metadata.
+        co: Canonical atom ordering. Defaults to the Biotite ordering.
+
+    Returns:
+        One atom array, or an atom-array stack for multiple coordinate sets.
+
+    Raises:
+        ValueError: If poses in a multi-pose input have different metadata.
+    """
     import biotite.structure as struc
 
     if co is None:
