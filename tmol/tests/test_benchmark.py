@@ -1,6 +1,11 @@
 import pytest
 
-from ._benchmark import subfixture
+from ._benchmark import make_fixture, subfixture
+
+
+def test_make_fixture():
+    benchmark = make_fixture(max_time=0.001)
+    assert benchmark(lambda: "value") == "value"
 
 
 def test_str_join_method(benchmark):
