@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../../../_static/documentation_options.js?v=56cc1d78"></script>
+    <script src="../../../_static/documentation_options.js?v=61349712"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -54,7 +54,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.51" />
+  <meta name="docsearch:version" content="0.1.52" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -400,10 +400,9 @@
                 <article class="bd-article">
                   
   <h1>Source code for tmol.kinematics._move_map</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">attrs</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">attrs</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
@@ -412,6 +411,8 @@
     <span class="n">n_movable_bond_dof_types</span><span class="p">,</span>
     <span class="n">n_movable_jump_dof_types</span><span class="p">,</span>
 <span class="p">)</span>
+
+<span class="n">TensorSelection</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">int</span>
 
 
 <div class="viewcode-block" id="CartesianMoveMap">
@@ -438,7 +439,7 @@
 <span class="sd">            :class:`~tmol.optimization._sfxn_modules.CartesianSfxnNetwork`).</span>
 <span class="sd">    """</span>
 
-    <span class="n">coord_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
+    <span class="n">coord_mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 
 
@@ -446,6 +447,7 @@
 <a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MoveMap">[docs]</a>
 <span class="nd">@attrs</span><span class="o">.</span><span class="n">define</span><span class="p">(</span><span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">MoveMap</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Hierarchical internal-coordinate degrees of freedom for a pose stack."""</span>
 
     <span class="n">move_all_jumps</span><span class="p">:</span> <span class="nb">bool</span>
     <span class="n">move_all_root_jumps</span><span class="p">:</span> <span class="nb">bool</span>
@@ -489,8 +491,8 @@
 <div class="viewcode-block" id="MoveMap.from_pose_stack">
 <a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MoveMap.from_pose_stack">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">from_pose_stack</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ps</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">"""Main construction utility for MoveMap."""</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_pose_stack</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ps</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"MoveMap"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Construct a move map sized for ``ps`` with all movement disabled."""</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">ps</span><span class="o">.</span><span class="n">n_poses</span><span class="p">,</span>
             <span class="n">ps</span><span class="o">.</span><span class="n">max_n_blocks</span><span class="p">,</span>
@@ -504,10 +506,10 @@
 <a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MoveMap.set_move_all_jump_dofs_for_jump">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_move_all_jump_dofs_for_jump</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">pose_selection</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
-        <span class="n">jump_selection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pose_selection</span><span class="p">:</span> <span class="n">TensorSelection</span><span class="p">,</span>
+        <span class="n">jump_selection</span><span class="p">:</span> <span class="n">TensorSelection</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">value</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="p">):</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Enable or disable all jump dofs for a particular set of jumps on particular poses.</span>
 
 <span class="sd">        If jump_selection is None, then the two dimensional settings tensor will be indexed by</span>
@@ -521,10 +523,10 @@
 <a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MoveMap.set_move_all_jump_dofs_for_root_jump">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_move_all_jump_dofs_for_root_jump</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">pose_selection</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
-        <span class="n">root_jump_selection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pose_selection</span><span class="p">:</span> <span class="n">TensorSelection</span><span class="p">,</span>
+        <span class="n">root_jump_selection</span><span class="p">:</span> <span class="n">TensorSelection</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">value</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="p">):</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Enable or disable all jump dofs for a particular set of root-jumps on particular poses.</span>
 
 <span class="sd">        If root_jump_selection is None, then the two dimensional settings tensor will be indexed by</span>
@@ -540,10 +542,10 @@
 <a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MoveMap.set_move_all_mc_tors_for_blocks">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_move_all_mc_tors_for_blocks</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">pose_selection</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
-        <span class="n">block_selection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pose_selection</span><span class="p">:</span> <span class="n">TensorSelection</span><span class="p">,</span>
+        <span class="n">block_selection</span><span class="p">:</span> <span class="n">TensorSelection</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">value</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="p">):</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Enable or disable all DOFs for a partiular set of blocks on particular poses.</span>
 
 <span class="sd">        If block_selection is None, then the two dimensional settings tensor will be indexed by</span>
@@ -564,10 +566,10 @@
 <a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MoveMap.set_move_all_sc_tors_for_blocks">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_move_all_sc_tors_for_blocks</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">pose_selection</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
-        <span class="n">block_selection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pose_selection</span><span class="p">:</span> <span class="n">TensorSelection</span><span class="p">,</span>
+        <span class="n">block_selection</span><span class="p">:</span> <span class="n">TensorSelection</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">value</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="p">):</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_assert_valid_pose_block_selection</span><span class="p">(</span><span class="n">pose_selection</span><span class="p">,</span> <span class="n">block_selection</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_set_val_and_mask_for_2dim</span><span class="p">(</span><span class="n">pose_selection</span><span class="p">,</span> <span class="n">block_selection</span><span class="p">,</span> <span class="s2">"scs"</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div>
 
@@ -576,10 +578,10 @@
 <a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MoveMap.set_move_all_named_torsions_for_blocks">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_move_all_named_torsions_for_blocks</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">pose_selection</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
-        <span class="n">block_selection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pose_selection</span><span class="p">:</span> <span class="n">TensorSelection</span><span class="p">,</span>
+        <span class="n">block_selection</span><span class="p">:</span> <span class="n">TensorSelection</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">value</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="p">):</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_assert_valid_pose_block_selection</span><span class="p">(</span><span class="n">pose_selection</span><span class="p">,</span> <span class="n">block_selection</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_set_val_and_mask_for_2dim</span><span class="p">(</span>
             <span class="n">pose_selection</span><span class="p">,</span> <span class="n">block_selection</span><span class="p">,</span> <span class="s2">"named_torsions"</span><span class="p">,</span> <span class="n">value</span>
@@ -590,11 +592,11 @@
 <a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MoveMap.set_move_mc_tor_for_blocks">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_move_mc_tor_for_blocks</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">pose_selection</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
-        <span class="n">block_selection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">tor_selection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pose_selection</span><span class="p">:</span> <span class="n">TensorSelection</span><span class="p">,</span>
+        <span class="n">block_selection</span><span class="p">:</span> <span class="n">TensorSelection</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">tor_selection</span><span class="p">:</span> <span class="n">TensorSelection</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">value</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="p">):</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Enable or disable partiular main-chain torsions for a particular set of blocks on particular poses.</span>
 
 <span class="sd">        Valid combinations of block_selection and tor_selection are:</span>
@@ -614,11 +616,11 @@
 <a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MoveMap.set_move_sc_tor_for_blocks">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_move_sc_tor_for_blocks</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">pose_selection</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
-        <span class="n">block_selection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">dof_selection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pose_selection</span><span class="p">:</span> <span class="n">TensorSelection</span><span class="p">,</span>
+        <span class="n">block_selection</span><span class="p">:</span> <span class="n">TensorSelection</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">dof_selection</span><span class="p">:</span> <span class="n">TensorSelection</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">value</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="p">):</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Enable or disable partiular side-chain torsions for a particular set of blocks on particular poses."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_assert_valid_pose_block_dof_selection</span><span class="p">(</span>
             <span class="n">pose_selection</span><span class="p">,</span> <span class="n">block_selection</span><span class="p">,</span> <span class="n">dof_selection</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_n_named_torsions</span>
@@ -632,11 +634,11 @@
 <a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MoveMap.set_move_named_torsion_for_blocks">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_move_named_torsion_for_blocks</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">pose_selection</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
-        <span class="n">block_selection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">tor_selection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pose_selection</span><span class="p">:</span> <span class="n">TensorSelection</span><span class="p">,</span>
+        <span class="n">block_selection</span><span class="p">:</span> <span class="n">TensorSelection</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">tor_selection</span><span class="p">:</span> <span class="n">TensorSelection</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">value</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="p">):</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Enable or disable partiular named-torsions for a particular set of blocks on particular poses."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_assert_valid_pose_block_dof_selection</span><span class="p">(</span>
             <span class="n">pose_selection</span><span class="p">,</span> <span class="n">block_selection</span><span class="p">,</span> <span class="n">tor_selection</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_n_named_torsions</span>
@@ -650,11 +652,11 @@
 <a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MoveMap.set_move_jump_dof_for_jumps">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_move_jump_dof_for_jumps</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">pose_selection</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
-        <span class="n">jump_selection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">dof_selection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pose_selection</span><span class="p">:</span> <span class="n">TensorSelection</span><span class="p">,</span>
+        <span class="n">jump_selection</span><span class="p">:</span> <span class="n">TensorSelection</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">dof_selection</span><span class="p">:</span> <span class="n">TensorSelection</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">value</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="p">):</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Enable or disable all jump dofs for a particular set of jumps on particular poses.</span>
 
 <span class="sd">        If jump_selection is None, then the two dimensional settings tensor will be indexed by</span>
@@ -673,11 +675,11 @@
 <a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MoveMap.set_move_jump_dof_for_root_jumps">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_move_jump_dof_for_root_jumps</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">pose_selection</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
-        <span class="n">root_jump_selection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">dof_selection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pose_selection</span><span class="p">:</span> <span class="n">TensorSelection</span><span class="p">,</span>
+        <span class="n">root_jump_selection</span><span class="p">:</span> <span class="n">TensorSelection</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">dof_selection</span><span class="p">:</span> <span class="n">TensorSelection</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">value</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="p">):</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Enable or disable all jump dofs for a particular set of root-jumps on particular poses.</span>
 
 <span class="sd">        If root_jump_selection is None, then the two dimensional settings tensor will be indexed by</span>
@@ -696,12 +698,12 @@
 <a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MoveMap.set_move_atom_dof_for_blocks">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_move_atom_dof_for_blocks</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">pose_selection</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
-        <span class="n">block_selection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">atom_selection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">dof_selection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pose_selection</span><span class="p">:</span> <span class="n">TensorSelection</span><span class="p">,</span>
+        <span class="n">block_selection</span><span class="p">:</span> <span class="n">TensorSelection</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">atom_selection</span><span class="p">:</span> <span class="n">TensorSelection</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">dof_selection</span><span class="p">:</span> <span class="n">TensorSelection</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">value</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="p">):</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Enable or disable partiular atom dofs for a particular set of blocks on particular poses.</span>
 
 <span class="sd">        Either only "pose_selection" should be not None or all four "selection" variables should be</span>
@@ -728,23 +730,23 @@
 
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">n_poses</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">n_poses</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">move_jumps</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">max_n_jumps</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">max_n_jumps</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">move_jumps</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">max_n_blocks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">max_n_blocks</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">move_mcs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">max_n_named_torsions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">max_n_named_torsions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">move_named_torsion</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">max_n_atoms_per_block</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">max_n_atoms_per_block</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">move_atom_dof</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
@@ -753,8 +755,8 @@
         <span class="n">max_n_blocks</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">max_n_named_torsions</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">max_n_atoms_per_block</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="p">):</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">device</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">)</span>
 
@@ -765,10 +767,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">move_all_named_torsions</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">non_ideal</span> <span class="o">=</span> <span class="kc">False</span>
 
-        <span class="k">def</span><span class="w"> </span><span class="nf">z_bool</span><span class="p">(</span><span class="n">shape</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">z_bool</span><span class="p">(</span><span class="n">shape</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
 
-        <span class="k">def</span><span class="w"> </span><span class="nf">z_bool_pb</span><span class="p">(</span><span class="n">remaining_shape</span><span class="o">=</span><span class="nb">tuple</span><span class="p">()):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">z_bool_pb</span><span class="p">(</span><span class="n">remaining_shape</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">())</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">z_bool</span><span class="p">((</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">)</span> <span class="o">+</span> <span class="n">remaining_shape</span><span class="p">)</span>
 
         <span class="c1"># data members on a per-residue basis; plural, representing</span>
@@ -882,12 +884,16 @@
 <div class="viewcode-block" id="MinimizerMap">
 <a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MinimizerMap">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">MinimizerMap</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Resolved per-DOF movement mask for a pose's kinematic forest."""</span>
+
+    <span class="n">dof_mask</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:]</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
         <span class="n">kmd</span><span class="p">:</span> <span class="n">KinematicModuleData</span><span class="p">,</span>
         <span class="n">mm</span><span class="p">:</span> <span class="n">MoveMap</span><span class="p">,</span>
-    <span class="p">):</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics.compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">minimizer_map_from_movemap</span>
 
         <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>

@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../../../_static/documentation_options.js?v=56cc1d78"></script>
+    <script src="../../../_static/documentation_options.js?v=61349712"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -54,7 +54,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.51" />
+  <meta name="docsearch:version" content="0.1.52" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -400,9 +400,15 @@
                 <article class="bd-article">
                   
   <h1>Source code for tmol.optimization._minimizers</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
+
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">FoldForest</span><span class="p">,</span>
@@ -413,6 +419,9 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">LBFGS_Armijo</span>
 
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">CartesianSfxnNetwork</span><span class="p">,</span> <span class="n">KinForestSfxnNetwork</span>
+
 
 <div class="viewcode-block" id="build_kinforest_network">
 <a class="viewcode-back" href="../../../api/optimization.html#tmol.optimization.build_kinforest_network">[docs]</a>
@@ -421,9 +430,22 @@
     <span class="n">sfxn</span><span class="p">:</span> <span class="n">ScoreFunction</span><span class="p">,</span>
     <span class="n">ff</span><span class="p">:</span> <span class="n">FoldForest</span><span class="p">,</span>
     <span class="n">mm</span><span class="p">:</span> <span class="n">MoveMap</span><span class="p">,</span>
-    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">kin_dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
-<span class="p">):</span>
+    <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">kin_dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KinForestSfxnNetwork</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Build a differentiable kinematic scoring network for a pose stack.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        pose_stack: Structures and topology to score.</span>
+<span class="sd">        sfxn: Score function to render against ``pose_stack``.</span>
+<span class="sd">        ff: Fold forest defining the kinematic tree.</span>
+<span class="sd">        mm: Internal-coordinate degrees of freedom allowed to move.</span>
+<span class="sd">        verbose: Print synchronized setup timings.</span>
+<span class="sd">        kin_dtype: Floating-point dtype for kinematic degrees of freedom.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A network mapping movable kinematic degrees of freedom to pose energies.</span>
+<span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStackKinematicsModule</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">KinForestSfxnNetwork</span>
 
@@ -462,12 +484,12 @@
 <div class="viewcode-block" id="run_min">
 <a class="viewcode-back" href="../../../api/optimization.html#tmol.optimization.run_min">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">run_min</span><span class="p">(</span>
-    <span class="n">sfxn_module</span><span class="p">,</span>
-    <span class="n">optimizer_cls</span><span class="o">=</span><span class="n">LBFGS_Armijo</span><span class="p">,</span>
-    <span class="n">optimizer_kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">per_pose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="p">):</span>
+    <span class="n">sfxn_module</span><span class="p">:</span> <span class="n">CartesianSfxnNetwork</span> <span class="o">|</span> <span class="n">KinForestSfxnNetwork</span><span class="p">,</span>
+    <span class="n">optimizer_cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">]</span> <span class="o">=</span> <span class="n">LBFGS_Armijo</span><span class="p">,</span>
+    <span class="n">optimizer_kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">per_pose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Run minimization on any sfxn module (Cartesian or KinForest).</span>
 
 <span class="sd">    The sfxn_module must be a torch.nn.Module whose forward() returns</span>
@@ -508,7 +530,7 @@
 
     <span class="n">optimizer</span> <span class="o">=</span> <span class="n">optimizer_cls</span><span class="p">(</span><span class="n">sfxn_module</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="o">**</span><span class="n">optimizer_kwargs</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">closure</span><span class="p">():</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">closure</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
         <span class="n">E</span> <span class="o">=</span> <span class="n">sfxn_module</span><span class="p">()</span>
         <span class="n">E</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
@@ -544,14 +566,27 @@
     <span class="n">sfxn</span><span class="p">:</span> <span class="n">ScoreFunction</span><span class="p">,</span>
     <span class="n">ff</span><span class="p">:</span> <span class="n">FoldForest</span><span class="p">,</span>
     <span class="n">mm</span><span class="p">:</span> <span class="n">MoveMap</span><span class="p">,</span>
-    <span class="n">optimizer_cls</span><span class="o">=</span><span class="n">LBFGS_Armijo</span><span class="p">,</span>
-    <span class="n">optimizer_kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">kin_dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
-<span class="p">):</span>
+    <span class="n">optimizer_cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">]</span> <span class="o">=</span> <span class="n">LBFGS_Armijo</span><span class="p">,</span>
+    <span class="n">optimizer_kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">kin_dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Run minimization on a PoseStack in internal DOF space.</span>
 
-<span class="sd">    Builds a KinForestSfxnNetwork and delegates to run_min().</span>
+<span class="sd">    Builds a ``KinForestSfxnNetwork`` and delegates to :func:`run_min`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        pose_stack: Structures and coordinates to minimize.</span>
+<span class="sd">        sfxn: Score function defining the objective.</span>
+<span class="sd">        ff: Fold forest defining the kinematic tree.</span>
+<span class="sd">        mm: Internal-coordinate degrees of freedom allowed to move.</span>
+<span class="sd">        optimizer_cls: Closure-based PyTorch optimizer class.</span>
+<span class="sd">        optimizer_kwargs: Optional optimizer constructor arguments.</span>
+<span class="sd">        verbose: Print synchronized setup and minimization timings.</span>
+<span class="sd">        kin_dtype: Floating-point dtype for kinematic degrees of freedom.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A new pose stack containing the minimized coordinates.</span>
 <span class="sd">    """</span>
     <span class="n">kf_network</span> <span class="o">=</span> <span class="n">build_kinforest_network</span><span class="p">(</span>
         <span class="n">pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="n">ff</span><span class="p">,</span> <span class="n">mm</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span> <span class="n">kin_dtype</span><span class="o">=</span><span class="n">kin_dtype</span>
@@ -570,14 +605,25 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">run_cart_min</span><span class="p">(</span>
     <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
     <span class="n">sfxn</span><span class="p">:</span> <span class="n">ScoreFunction</span><span class="p">,</span>
-    <span class="n">coord_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">optimizer_cls</span><span class="o">=</span><span class="n">LBFGS_Armijo</span><span class="p">,</span>
-    <span class="n">optimizer_kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-<span class="p">):</span>
+    <span class="n">coord_mask</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">optimizer_cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">]</span> <span class="o">=</span> <span class="n">LBFGS_Armijo</span><span class="p">,</span>
+    <span class="n">optimizer_kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Run minimization on a PoseStack in Cartesian coordinate space.</span>
 
-<span class="sd">    Builds a CartesianSfxnNetwork and delegates to run_min().</span>
+<span class="sd">    Builds a ``CartesianSfxnNetwork`` and delegates to :func:`run_min`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        pose_stack: Structures and coordinates to minimize.</span>
+<span class="sd">        sfxn: Score function defining the objective.</span>
+<span class="sd">        coord_mask: Movable atoms shaped ``[pose, atom]``; ``None`` moves all.</span>
+<span class="sd">        optimizer_cls: Closure-based PyTorch optimizer class.</span>
+<span class="sd">        optimizer_kwargs: Optional optimizer constructor arguments.</span>
+<span class="sd">        verbose: Print synchronized setup and minimization timings.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A new pose stack containing the minimized coordinates.</span>
 <span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">CartesianSfxnNetwork</span>
 

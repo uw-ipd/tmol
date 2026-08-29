@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../../../_static/documentation_options.js?v=56cc1d78"></script>
+    <script src="../../../_static/documentation_options.js?v=61349712"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -54,7 +54,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.51" />
+  <meta name="docsearch:version" content="0.1.52" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -403,7 +403,9 @@
                 <article class="bd-article">
                   
   <h1>Source code for tmol.database.scoring</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">._cartbonded</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: F401</span>
+<span></span><span class="sd">"""Typed schemas and loaders for TMol scoring parameters."""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">._cartbonded</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: F401</span>
     <span class="n">AngleGroup</span><span class="p">,</span>
     <span class="n">CartRes</span><span class="p">,</span>
     <span class="n">HxlTorsionGroup</span><span class="p">,</span>
@@ -475,6 +477,8 @@
 <a class="viewcode-back" href="../../../api/database.html#tmol.database.ScoringDatabase">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ScoringDatabase</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Immutable parameters for all standard TMol energy terms."""</span>
+
     <span class="n">cartbonded</span><span class="p">:</span> <span class="n">CartBondedDatabase</span>
     <span class="n">genbonded</span><span class="p">:</span> <span class="n">GenBondedDatabase</span>
     <span class="n">disulfide</span><span class="p">:</span> <span class="n">DisulfideDatabase</span>
@@ -490,7 +494,10 @@
 <div class="viewcode-block" id="ScoringDatabase.from_file">
 <a class="viewcode-back" href="../../../api/database.html#tmol.database.ScoringDatabase.from_file">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)):</span>  <span class="c1"># noqa</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_file</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"ScoringDatabase"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Load all scoring-term databases rooted at ``path``."""</span>
 
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">cartbonded</span><span class="o">=</span><span class="n">CartBondedDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span>

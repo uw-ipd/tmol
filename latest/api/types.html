@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../_static/documentation_options.js?v=56cc1d78"></script>
+    <script src="../_static/documentation_options.js?v=61349712"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -57,7 +57,7 @@
     <link rel="prev" title="Score Terms" href="score_terms.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.51" />
+  <meta name="docsearch:version" content="0.1.52" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -484,12 +484,14 @@
 <dt class="sig sig-object py" id="tmol.types.ConvertAttrs">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.types.</span></span><span class="sig-name descname"><span class="pre">ConvertAttrs</span></span><a class="reference internal" href="../_modules/tmol/types/_attrs.html#ConvertAttrs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.ConvertAttrs" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Convert attrs fields according to their declared annotations.</p>
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="tmol.types.Dim">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.types.</span></span><span class="sig-name descname"><span class="pre">Dim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_shape.html#Dim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.Dim" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>One dimension in a runtime-validated tensor shape.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmol.types.Dim.size">
 <span class="sig-name descname"><span class="pre">size</span></span><a class="headerlink" href="#tmol.types.Dim.size" title="Link to this definition">#</a></dt>
@@ -517,6 +519,7 @@
 <dt class="sig sig-object py" id="tmol.types.Shape">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.types.</span></span><span class="sig-name descname"><span class="pre">Shape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dims</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_shape.html#Shape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.Shape" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Runtime-validatable tensor shape specification.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmol.types.Shape.dims">
 <span class="sig-name descname"><span class="pre">dims</span></span><a class="headerlink" href="#tmol.types.Shape.dims" title="Link to this definition">#</a></dt>
@@ -526,12 +529,8 @@
 <dt class="sig sig-object py" id="tmol.types.Shape.Factory">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Factory</span></span><a class="reference internal" href="../_modules/tmol/types/_shape.html#Shape.Factory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.Shape.Factory" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Construct <code class="docutils literal notranslate"><span class="pre">Shape</span></code> objects through subscription syntax.</p>
 </dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="tmol.types.Shape.create">
-<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dims</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_shape.html#Shape.create"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.Shape.create" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmol.types.Shape.spec">
@@ -540,8 +539,9 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="tmol.types.Shape.validate">
-<span class="sig-name descname"><span class="pre">validate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_shape.html#Shape.validate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.Shape.validate" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<span class="sig-name descname"><span class="pre">validate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence" title="(in Python v3.14)"><span class="pre">Sequence</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="../_modules/tmol/types/_shape.html#Shape.validate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.Shape.validate" title="Link to this definition">#</a></dt>
+<dd><p>Validate concrete dimensions against this specification.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -625,6 +625,7 @@ and <a class="reference external" href="https://docs.pytorch.org/docs/2.13/tenso
 <dt class="sig sig-object py" id="tmol.types.ValidateAttrs">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.types.</span></span><span class="sig-name descname"><span class="pre">ValidateAttrs</span></span><a class="reference internal" href="../_modules/tmol/types/_attrs.html#ValidateAttrs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.ValidateAttrs" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Validate attrs fields according to their declared annotations.</p>
 </dd></dl>
 
 <dl class="py function">
@@ -766,7 +767,6 @@ and <a class="reference external" href="https://docs.pytorch.org/docs/2.13/tenso
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.Shape"><code class="docutils literal notranslate"><span class="pre">Shape</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.Shape.dims"><code class="docutils literal notranslate"><span class="pre">Shape.dims</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.Shape.Factory"><code class="docutils literal notranslate"><span class="pre">Shape.Factory</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.Shape.create"><code class="docutils literal notranslate"><span class="pre">Shape.create()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.Shape.spec"><code class="docutils literal notranslate"><span class="pre">Shape.spec</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.types.Shape.validate"><code class="docutils literal notranslate"><span class="pre">Shape.validate()</span></code></a></li>
 </ul>

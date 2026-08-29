@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../_static/documentation_options.js?v=56cc1d78"></script>
+    <script src="../_static/documentation_options.js?v=61349712"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -57,7 +57,7 @@
     <link rel="prev" title="Pose" href="pose.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.51" />
+  <meta name="docsearch:version" content="0.1.52" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -449,7 +449,8 @@
 <h1>Relax<a class="headerlink" href="#relax" title="Link to this heading">#</a></h1>
 <p>TMol provides a Rosetta-inspired pack/minimize schedule. Its scoring, search,
 and acceptance behavior are TMol-specific.</p>
-<dl class="py function" id="module-tmol.relax">
+<p id="module-tmol.relax">Packing and minimization protocols for structural relaxation.</p>
+<dl class="py function">
 <dt class="sig sig-object py" id="tmol.relax.accept_best">
 <span class="sig-prename descclassname"><span class="pre">tmol.relax.</span></span><span class="sig-name descname"><span class="pre">accept_best</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sfxn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="score.html#tmol.score.ScoreFunction" title="tmol.score._score_function.ScoreFunction"><span class="pre">ScoreFunction</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">best_pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose._pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">best_pose_score</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">candidate_pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose._pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose._pose_stack.PoseStack"><span class="pre">PoseStack</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/tmol/relax/_fast_relax.html#accept_best"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.relax.accept_best" title="Link to this definition">#</a></dt>
 <dd><p>Keep the lower-scoring conformation independently for each pose.</p>

@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../_static/documentation_options.js?v=56cc1d78"></script>
+    <script src="../_static/documentation_options.js?v=61349712"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -57,7 +57,7 @@
     <link rel="prev" title="Kinematics" href="kinematics.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.51" />
+  <meta name="docsearch:version" content="0.1.52" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -449,7 +449,8 @@
 <h1>Ligands<a class="headerlink" href="#ligands" title="Link to this heading">#</a></h1>
 <p>Ligand detection, preparation, parameter I/O, and fragmentation are available
 from the public <a class="reference internal" href="#module-tmol.ligand" title="tmol.ligand"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmol.ligand</span></code></a> package.</p>
-<dl class="py class" id="module-tmol.ligand">
+<p id="module-tmol.ligand">Ligand typing, preparation, fragmentation, and serialization.</p>
+<dl class="py class">
 <dt class="sig sig-object py" id="tmol.ligand.FragmentConnection">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.ligand.</span></span><span class="sig-name descname"><span class="pre">FragmentConnection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fragment_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">partner_fragment_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">connection_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">partner_connection_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">atom_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">partner_atom_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">bond_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/ligand/_fragmentation.html#FragmentConnection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.ligand.FragmentConnection" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
@@ -866,10 +867,19 @@ requires the optional <code class="docutils literal notranslate"><span class="pr
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
+<li><p><strong>smiles</strong> – Ligand SMILES to protonate and prepare.</p></li>
+<li><p><strong>param_db</strong> – Base parameter database; defaults to the TMol database.</p></li>
+<li><p><strong>ph</strong> – Target pH used when <code class="docutils literal notranslate"><span class="pre">protonate</span></code> is true.</p></li>
+<li><p><strong>strict_atom_types</strong> – Fail instead of falling back for unknown atom types.</p></li>
+<li><p><strong>res_name</strong> – Optional residue-name override.</p></li>
 <li><p><strong>protonate</strong> – When <code class="docutils literal notranslate"><span class="pre">True</span></code> (default) Dimorphite protonates <code class="docutils literal notranslate"><span class="pre">smiles</span></code>
 first; set <code class="docutils literal notranslate"><span class="pre">False</span></code> to pin an already-protonated SMILES verbatim.</p></li>
+<li><p><strong>sample_proton_chi</strong> – Emit chi samples for rotatable polar hydrogens.</p></li>
 <li><p><strong>seed</strong> – Fixed RNG seed for reproducible 3D coordinates; <code class="docutils literal notranslate"><span class="pre">None</span></code> is random.</p></li>
 </ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <code class="docutils literal notranslate"><span class="pre">(ParameterDatabase,</span> <span class="pre">CanonicalOrdering)</span></code> with the ligand injected.</p>
 </dd>
 </dl>
 </dd></dl>

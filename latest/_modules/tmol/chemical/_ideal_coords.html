@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../../../_static/documentation_options.js?v=56cc1d78"></script>
+    <script src="../../../_static/documentation_options.js?v=61349712"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -54,7 +54,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.51" />
+  <meta name="docsearch:version" content="0.1.52" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -400,31 +400,35 @@
                 <article class="bd-article">
                   
   <h1>Source code for tmol.chemical._ideal_coords</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">NDArray</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">eye4</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">"""Create the identity homogeneous transform</span>
-<span class="sd">    Only necessary because numpy.eye(4, dtype=numpy.float32)</span>
-<span class="sd">    is strangely unsupported in numpy"""</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">eye4</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">][</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Return a single-precision homogeneous identity transform."""</span>
 
     <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 
-    <span class="c1"># m = numpy.zeros((4, 4), dtype=numpy.float32)</span>
-    <span class="c1"># m[0, 0] = 1</span>
-    <span class="c1"># m[1, 1] = 1</span>
-    <span class="c1"># m[2, 2] = 1</span>
-    <span class="c1"># m[3, 3] = 1</span>
-    <span class="c1"># return m</span>
 
-
-<span class="k">def</span><span class="w"> </span><span class="nf">normalize</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">normalize</span><span class="p">(</span><span class="n">v</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return ``v`` scaled to unit length."""</span>
     <span class="k">return</span> <span class="n">v</span> <span class="o">/</span> <span class="n">numpy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="frame_from_coords">
 <a class="viewcode-back" href="../../../api/chemical.html#tmol.chemical.frame_from_coords">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">frame_from_coords</span><span class="p">(</span><span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="n">p3</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">frame_from_coords</span><span class="p">(</span>
+    <span class="n">p1</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">][</span><span class="mi">3</span><span class="p">],</span>
+    <span class="n">p2</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">][</span><span class="mi">3</span><span class="p">],</span>
+    <span class="n">p3</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">][</span><span class="mi">3</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">][</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Construct a homogeneous frame from three Cartesian points."""</span>
     <span class="n">ht</span> <span class="o">=</span> <span class="n">eye4</span><span class="p">()</span>
     <span class="n">z</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">p3</span> <span class="o">-</span> <span class="n">p2</span><span class="p">)</span>
     <span class="n">v21</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">p1</span> <span class="o">-</span> <span class="n">p2</span><span class="p">)</span>
@@ -439,11 +443,11 @@
 
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">rot_x</span><span class="p">(</span><span class="n">rot</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">rot_x</span><span class="p">(</span><span class="n">rot</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">][</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Return a homogeneous rotation about the x-axis."""</span>
     <span class="n">ht</span> <span class="o">=</span> <span class="n">eye4</span><span class="p">()</span>
     <span class="n">crot</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">rot</span><span class="p">)</span>
     <span class="n">srot</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">rot</span><span class="p">)</span>
-    <span class="c1"># print("rot x", rot, crot, srot)</span>
     <span class="n">ht</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">crot</span>
     <span class="n">ht</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">srot</span>
     <span class="n">ht</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">srot</span>
@@ -451,11 +455,11 @@
     <span class="k">return</span> <span class="n">ht</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">rot_z</span><span class="p">(</span><span class="n">rot</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">rot_z</span><span class="p">(</span><span class="n">rot</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">][</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Return a homogeneous rotation about the z-axis."""</span>
     <span class="n">ht</span> <span class="o">=</span> <span class="n">eye4</span><span class="p">()</span>
     <span class="n">crot</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">rot</span><span class="p">)</span>
     <span class="n">srot</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">rot</span><span class="p">)</span>
-    <span class="c1"># print("rot z", rot, crot, srot)</span>
     <span class="n">ht</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">crot</span>
     <span class="n">ht</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">srot</span>
     <span class="n">ht</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">srot</span>
@@ -463,7 +467,8 @@
     <span class="k">return</span> <span class="n">ht</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">trans_z</span><span class="p">(</span><span class="n">trans</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">trans_z</span><span class="p">(</span><span class="n">trans</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">][</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Return a homogeneous translation along the z-axis."""</span>
     <span class="n">ht</span> <span class="o">=</span> <span class="n">eye4</span><span class="p">()</span>
     <span class="n">ht</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">trans</span>
     <span class="k">return</span> <span class="n">ht</span>
@@ -471,7 +476,11 @@
 
 <div class="viewcode-block" id="build_coords_from_icoors">
 <a class="viewcode-back" href="../../../api/chemical.html#tmol.chemical.build_coords_from_icoors">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">build_coords_from_icoors</span><span class="p">(</span><span class="n">icoors_ancestors</span><span class="p">,</span> <span class="n">icoors_geom</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">build_coords_from_icoors</span><span class="p">(</span>
+    <span class="n">icoors_ancestors</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="mi">3</span><span class="p">],</span>
+    <span class="n">icoors_geom</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">][:,</span> <span class="mi">3</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="mi">3</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Build Cartesian coordinates from ancestor indices and internal geometry."""</span>
     <span class="c1"># start with atom 1 at the origin</span>
     <span class="c1"># place atom 2 along the x axis</span>
     <span class="c1"># place atom 3 in the x-y plane</span>
@@ -505,7 +514,6 @@
     <span class="n">coords</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">ht_2</span><span class="p">[:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
 
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">icoors_ancestors</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
-        <span class="c1"># print("ancestors", i)</span>
         <span class="n">ht_i</span> <span class="o">=</span> <span class="n">frame_from_coords</span><span class="p">(</span>
             <span class="n">coords</span><span class="p">[</span><span class="n">icoors_ancestors</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">:],</span>
             <span class="n">coords</span><span class="p">[</span><span class="n">icoors_ancestors</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">:],</span>
@@ -526,7 +534,10 @@
 
 <div class="viewcode-block" id="build_ideal_coords">
 <a class="viewcode-back" href="../../../api/chemical.html#tmol.chemical.build_ideal_coords">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">build_ideal_coords</span><span class="p">(</span><span class="n">restype</span><span class="p">:</span> <span class="s2">"RefinedResidueType"</span><span class="p">):</span>  <span class="c1"># noqa F821</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">build_ideal_coords</span><span class="p">(</span>
+    <span class="n">restype</span><span class="p">:</span> <span class="s2">"RefinedResidueType"</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="mi">3</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Build ideal Cartesian coordinates for a refined residue type."""</span>
     <span class="c1"># lets build a kinforest using not the prioritized bonds,</span>
     <span class="c1"># but the icoors; let's not even use the scan algorithm.</span>
     <span class="c1"># let's just build the coordinates directly from the</span>

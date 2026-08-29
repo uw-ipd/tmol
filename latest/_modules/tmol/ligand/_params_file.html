@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../../../_static/documentation_options.js?v=56cc1d78"></script>
+    <script src="../../../_static/documentation_options.js?v=61349712"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -54,7 +54,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.51" />
+  <meta name="docsearch:version" content="0.1.52" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -553,25 +553,24 @@
             <span class="sa">f</span><span class="s2">"Current format version is </span><span class="si">{</span><span class="n">TMOL_FORMAT_VERSION</span><span class="si">}</span><span class="s2">. "</span>
             <span class="sa">f</span><span class="s2">"Regenerate the file with the current version."</span>
         <span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">file_version</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">file_version</span><span class="p">)</span>
-        <span class="c1"># Compare major version numbers only (the part before the first dot).</span>
-        <span class="n">file_major</span> <span class="o">=</span> <span class="n">file_version</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">current_major</span> <span class="o">=</span> <span class="n">TMOL_FORMAT_VERSION</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">file_major</span> <span class="o">!=</span> <span class="n">current_major</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">: .tmol format version </span><span class="si">{</span><span class="n">file_version</span><span class="si">}</span><span class="s2"> is incompatible "</span>
-                <span class="sa">f</span><span class="s2">"with the current format version </span><span class="si">{</span><span class="n">TMOL_FORMAT_VERSION</span><span class="si">}</span><span class="s2">. "</span>
-                <span class="sa">f</span><span class="s2">"Regenerate the file with the current writer."</span>
-            <span class="p">)</span>
-        <span class="k">if</span> <span class="n">file_version</span> <span class="o">!=</span> <span class="n">TMOL_FORMAT_VERSION</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                <span class="s2">"</span><span class="si">%s</span><span class="s2">: .tmol format version </span><span class="si">%s</span><span class="s2"> differs from current </span><span class="si">%s</span><span class="s2"> "</span>
-                <span class="s2">"(backward-compatible minor version change)"</span><span class="p">,</span>
-                <span class="n">path</span><span class="p">,</span>
-                <span class="n">file_version</span><span class="p">,</span>
-                <span class="n">TMOL_FORMAT_VERSION</span><span class="p">,</span>
-            <span class="p">)</span>
+    <span class="n">file_version</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">file_version</span><span class="p">)</span>
+    <span class="c1"># Compare major version numbers only (the part before the first dot).</span>
+    <span class="n">file_major</span> <span class="o">=</span> <span class="n">file_version</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">current_major</span> <span class="o">=</span> <span class="n">TMOL_FORMAT_VERSION</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">file_major</span> <span class="o">!=</span> <span class="n">current_major</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">: .tmol format version </span><span class="si">{</span><span class="n">file_version</span><span class="si">}</span><span class="s2"> is incompatible "</span>
+            <span class="sa">f</span><span class="s2">"with the current format version </span><span class="si">{</span><span class="n">TMOL_FORMAT_VERSION</span><span class="si">}</span><span class="s2">. "</span>
+            <span class="sa">f</span><span class="s2">"Regenerate the file with the current writer."</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">file_version</span> <span class="o">!=</span> <span class="n">TMOL_FORMAT_VERSION</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">"</span><span class="si">%s</span><span class="s2">: .tmol format version </span><span class="si">%s</span><span class="s2"> differs from current </span><span class="si">%s</span><span class="s2"> "</span>
+            <span class="s2">"(backward-compatible minor version change)"</span><span class="p">,</span>
+            <span class="n">path</span><span class="p">,</span>
+            <span class="n">file_version</span><span class="p">,</span>
+            <span class="n">TMOL_FORMAT_VERSION</span><span class="p">,</span>
+        <span class="p">)</span>
 
     <span class="k">if</span> <span class="s2">"chemical"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">raw</span> <span class="ow">and</span> <span class="p">(</span>
         <span class="s2">"residues"</span> <span class="ow">in</span> <span class="n">raw</span> <span class="ow">or</span> <span class="s2">"residue_params"</span> <span class="ow">in</span> <span class="n">raw</span> <span class="ow">or</span> <span class="s2">"atom_charge_parameters"</span> <span class="ow">in</span> <span class="n">raw</span>

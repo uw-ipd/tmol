@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../../../../_static/documentation_options.js?v=56cc1d78"></script>
+    <script src="../../../../_static/documentation_options.js?v=61349712"></script>
     <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -54,7 +54,7 @@
     <link rel="search" title="Search" href="../../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.51" />
+  <meta name="docsearch:version" content="0.1.52" />
   
     
     <script src="../../../../_static/searchtools.js"></script>
@@ -403,7 +403,7 @@
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Tensor</span><span class="p">,</span>
@@ -416,45 +416,55 @@
     <span class="n">PoseStack</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics</span><span class="w"> </span><span class="kn">import</span> <span class="n">KinForest</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConformerSampler</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConformerSample</span><span class="p">,</span> <span class="n">ConformerSampler</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackerTask</span>
 
 
 <div class="viewcode-block" id="ChiSampler">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.ChiSampler">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ChiSampler</span><span class="p">(</span><span class="n">ConformerSampler</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Base class for samplers that define conformers through chi angles."""</span>
+
 <div class="viewcode-block" id="ChiSampler.sampler_name">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.ChiSampler.sampler_name">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">sampler_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sampler_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return the stable name used for chi-sampler annotations."""</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="ChiSampler.annotate_residue_type">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.ChiSampler.annotate_residue_type">[docs]</a>
     <span class="nd">@validate_args</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">annotate_residue_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">annotate_residue_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Attach optional sampler metadata to one residue type."""</span>
         <span class="k">pass</span></div>
 
 
 <div class="viewcode-block" id="ChiSampler.annotate_packed_block_types">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.ChiSampler.annotate_packed_block_types">[docs]</a>
     <span class="nd">@validate_args</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">annotate_packed_block_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">annotate_packed_block_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Attach optional sampler metadata to packed block types."""</span>
         <span class="k">pass</span></div>
 
 
 <div class="viewcode-block" id="ChiSampler.defines_rotamers_for_rt">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.ChiSampler.defines_rotamers_for_rt">[docs]</a>
     <span class="nd">@validate_args</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">defines_rotamers_for_rt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">defines_rotamers_for_rt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return whether this sampler supports a residue type."""</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="ChiSampler.first_sc_atoms_for_rt">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.ChiSampler.first_sc_atoms_for_rt">[docs]</a>
     <span class="nd">@validate_args</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">first_sc_atoms_for_rt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">first_sc_atoms_for_rt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Return side-chain roots used to transfer main-chain geometry."""</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
 
@@ -463,12 +473,9 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">create_samples_for_poses</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
-        <span class="n">task</span><span class="p">:</span> <span class="s2">"PackerTask"</span><span class="p">,</span>  <span class="c1"># noqa: 821</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span>  <span class="c1"># noqa F821</span>
-        <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>  <span class="c1"># n_rots_for_gbt</span>
-        <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>  <span class="c1"># bt_for_rotamer</span>
-        <span class="nb">dict</span><span class="p">,</span>  <span class="c1"># anything else the sampler wants to save for later</span>
-    <span class="p">]:</span>
+        <span class="n">task</span><span class="p">:</span> <span class="s2">"PackerTask"</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ConformerSample</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Create chi samples and preserve their defining atoms and angles."""</span>
         <span class="p">(</span>
             <span class="n">n_rots_for_gbt</span><span class="p">,</span>
             <span class="n">gbt_for_rotamer</span><span class="p">,</span>
@@ -488,8 +495,8 @@
 <div class="viewcode-block" id="ChiSampler.sample_chi_for_poses">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.ChiSampler.sample_chi_for_poses">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">sample_chi_for_poses</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">systems</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="s2">"PackerTask"</span>  <span class="c1"># noqa F821</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">systems</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="s2">"PackerTask"</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span>
         <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:],</span>  <span class="c1"># n_rots_for_rt</span>
         <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>  <span class="c1"># rt_for_rotamer</span>
         <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:],</span>  <span class="c1"># chi_defining_atom_for_rotamer</span>
@@ -503,7 +510,7 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">fill_dofs_for_samples</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
-        <span class="n">task</span><span class="p">:</span> <span class="s2">"PackerTask"</span><span class="p">,</span>  <span class="c1"># noqa: 821</span>
+        <span class="n">task</span><span class="p">:</span> <span class="s2">"PackerTask"</span><span class="p">,</span>
         <span class="n">orig_kinforest</span><span class="p">:</span> <span class="n">KinForest</span><span class="p">,</span>
         <span class="n">orig_dofs_kto</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="mi">9</span><span class="p">],</span>
         <span class="n">gbt_for_conformer</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
@@ -515,9 +522,9 @@
         <span class="n">conf_inds_for_sampler</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
         <span class="n">sampler_n_rots_for_gbt</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
         <span class="n">sampler_gbt_for_rotamer</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
-        <span class="n">sample_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+        <span class="n">sample_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">conf_dofs_kto</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="mi">9</span><span class="p">],</span>
-    <span class="p">):</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">copy_dofs_from_orig_to_rotamers_for_sampler</span><span class="p">(</span>
             <span class="n">pose_stack</span><span class="p">,</span>
             <span class="n">task</span><span class="p">,</span>

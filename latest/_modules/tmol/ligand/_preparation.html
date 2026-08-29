@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../../../_static/documentation_options.js?v=56cc1d78"></script>
+    <script src="../../../_static/documentation_options.js?v=61349712"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -54,7 +54,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.51" />
+  <meta name="docsearch:version" content="0.1.52" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -1174,9 +1174,18 @@
 <span class="sd">    requires the optional ``openbabel`` package.</span>
 
 <span class="sd">    Args:</span>
+<span class="sd">        smiles: Ligand SMILES to protonate and prepare.</span>
+<span class="sd">        param_db: Base parameter database; defaults to the TMol database.</span>
+<span class="sd">        ph: Target pH used when ``protonate`` is true.</span>
+<span class="sd">        strict_atom_types: Fail instead of falling back for unknown atom types.</span>
+<span class="sd">        res_name: Optional residue-name override.</span>
 <span class="sd">        protonate: When ``True`` (default) Dimorphite protonates ``smiles``</span>
 <span class="sd">            first; set ``False`` to pin an already-protonated SMILES verbatim.</span>
+<span class="sd">        sample_proton_chi: Emit chi samples for rotatable polar hydrogens.</span>
 <span class="sd">        seed: Fixed RNG seed for reproducible 3D coordinates; ``None`` is random.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A ``(ParameterDatabase, CanonicalOrdering)`` with the ligand injected.</span>
 <span class="sd">    """</span>
     <span class="n">lig</span> <span class="o">=</span> <span class="n">nonstandard_residue_info_from_smiles_via_mol2</span><span class="p">(</span>
         <span class="n">smiles</span><span class="p">,</span>

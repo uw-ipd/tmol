@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../../../_static/documentation_options.js?v=56cc1d78"></script>
+    <script src="../../../_static/documentation_options.js?v=61349712"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -54,7 +54,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.51" />
+  <meta name="docsearch:version" content="0.1.52" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -757,12 +757,11 @@
                 <span class="n">cys_co_aa_ind</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
                 <span class="n">sg_atom_for_co_cys</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
             <span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">cys_co_aa_ind</span> <span class="o">=</span> <span class="n">restype_name3s</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">"CYS"</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">CysSpecialCaseIndices</span><span class="p">(</span>
-                <span class="n">cys_co_aa_ind</span><span class="o">=</span><span class="n">cys_co_aa_ind</span><span class="p">,</span>
-                <span class="n">sg_atom_for_co_cys</span><span class="o">=</span><span class="n">restypes_ordered_atom_names</span><span class="p">[</span><span class="s2">"CYS"</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">"SG"</span><span class="p">),</span>
-            <span class="p">)</span>
+        <span class="n">cys_co_aa_ind</span> <span class="o">=</span> <span class="n">restype_name3s</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">"CYS"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">CysSpecialCaseIndices</span><span class="p">(</span>
+            <span class="n">cys_co_aa_ind</span><span class="o">=</span><span class="n">cys_co_aa_ind</span><span class="p">,</span>
+            <span class="n">sg_atom_for_co_cys</span><span class="o">=</span><span class="n">restypes_ordered_atom_names</span><span class="p">[</span><span class="s2">"CYS"</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">"SG"</span><span class="p">),</span>
+        <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_init_his_special_case_indices</span><span class="p">(</span>
@@ -780,23 +779,22 @@
                 <span class="n">his_NN_in_co</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
                 <span class="n">his_CG_in_co</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
             <span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">his_co_aa_ind</span> <span class="o">=</span> <span class="n">restype_name3s</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">"HIS"</span><span class="p">)</span>
+        <span class="n">his_co_aa_ind</span> <span class="o">=</span> <span class="n">restype_name3s</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">"HIS"</span><span class="p">)</span>
 
-            <span class="k">def</span><span class="w"> </span><span class="nf">his_at_ind</span><span class="p">(</span><span class="n">atname</span><span class="p">):</span>
-                <span class="k">return</span> <span class="n">restypes_ordered_atom_names</span><span class="p">[</span><span class="s2">"HIS"</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">atname</span><span class="p">)</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">his_at_ind</span><span class="p">(</span><span class="n">atname</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">restypes_ordered_atom_names</span><span class="p">[</span><span class="s2">"HIS"</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">atname</span><span class="p">)</span>
 
-            <span class="k">return</span> <span class="n">HisSpecialCaseIndices</span><span class="p">(</span>
-                <span class="n">his_co_aa_ind</span><span class="o">=</span><span class="n">his_co_aa_ind</span><span class="p">,</span>
-                <span class="n">his_ND1_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"ND1"</span><span class="p">),</span>
-                <span class="n">his_NE2_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"NE2"</span><span class="p">),</span>
-                <span class="n">his_HD1_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"HD1"</span><span class="p">),</span>
-                <span class="n">his_HE2_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"HE2"</span><span class="p">),</span>
-                <span class="n">his_HN_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"HN"</span><span class="p">),</span>
-                <span class="n">his_NH_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"NH"</span><span class="p">),</span>
-                <span class="n">his_NN_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"NN"</span><span class="p">),</span>
-                <span class="n">his_CG_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"CG"</span><span class="p">),</span>
-            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">HisSpecialCaseIndices</span><span class="p">(</span>
+            <span class="n">his_co_aa_ind</span><span class="o">=</span><span class="n">his_co_aa_ind</span><span class="p">,</span>
+            <span class="n">his_ND1_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"ND1"</span><span class="p">),</span>
+            <span class="n">his_NE2_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"NE2"</span><span class="p">),</span>
+            <span class="n">his_HD1_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"HD1"</span><span class="p">),</span>
+            <span class="n">his_HE2_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"HE2"</span><span class="p">),</span>
+            <span class="n">his_HN_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"HN"</span><span class="p">),</span>
+            <span class="n">his_NH_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"NH"</span><span class="p">),</span>
+            <span class="n">his_NN_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"NN"</span><span class="p">),</span>
+            <span class="n">his_CG_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"CG"</span><span class="p">),</span>
+        <span class="p">)</span>
 
 <div class="viewcode-block" id="CanonicalOrdering.create_src_2_tmol_mappings">
 <a class="viewcode-back" href="../../../api/io.html#tmol.io.CanonicalOrdering.create_src_2_tmol_mappings">[docs]</a>
@@ -1026,7 +1024,7 @@
     <span class="k">if</span> <span class="n">res_not_connected</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">assert</span> <span class="n">res_not_connected</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_res</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 
-    <span class="n">canonical_form</span> <span class="o">=</span> <span class="n">CanonicalForm</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">CanonicalForm</span><span class="p">(</span>
         <span class="n">chain_id</span><span class="o">=</span><span class="n">_ti32</span><span class="p">(</span><span class="n">chain_id</span><span class="p">),</span>
         <span class="n">res_types</span><span class="o">=</span><span class="n">_ti32</span><span class="p">(</span><span class="n">res_types</span><span class="p">),</span>
         <span class="n">coords</span><span class="o">=</span><span class="n">_tf32</span><span class="p">(</span><span class="n">coords</span><span class="p">),</span>
@@ -1038,8 +1036,6 @@
         <span class="n">res_not_connected</span><span class="o">=</span><span class="n">res_not_connected</span><span class="p">,</span>
         <span class="n">disulfides</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">canonical_form</span>
 </pre></div>
 
                 </article>
