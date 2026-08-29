@@ -1,6 +1,7 @@
 import copy
 
 import itertools
+from dataclasses import replace
 
 import numpy
 import torch
@@ -26,6 +27,7 @@ from tmol.pose import (
     DEFAULT_ATOM_OCCUPANCY,
     PoseStack,
     ConstraintSet,
+    SplitBlockMapping,
 )
 from tmol.utility.tensor import (
     exclusive_cumsum1d,
@@ -51,7 +53,8 @@ class PoseStackBuilder:
             device: Device for the combined tensors.
 
         Returns:
-            A padded pose stack containing every input pose in order.
+            A padded pose stack containing every input pose in order. Split-
+            block mappings are concatenated when present.
         """
         pbt0 = pose_stacks[0].packed_block_types
         for ps in pose_stacks:
@@ -113,6 +116,9 @@ class PoseStackBuilder:
             n_poses=n_poses,
             ps_offset=ps_offset,
         )
+        split_block_mapping = cls._split_block_mapping_from_pose_stacks(
+            packed_block_types, pose_stacks
+        )
 
         def i64(t):
             return t.to(torch.int64)
@@ -132,8 +138,46 @@ class PoseStackBuilder:
             chain_id64=i64(chain_id),
             pdb_info=pdb_info,
             constraint_set=constraint_set,
-            device=device,
+            device=coords.device,
+            split_block_mapping=split_block_mapping,
         )
+
+    @staticmethod
+    def _split_block_mapping_from_pose_stacks(
+        packed_block_types: PackedBlockTypes,
+        pose_stacks: List[PoseStack],
+    ) -> SplitBlockMapping | None:
+        """Concatenate split-block metadata and remap original block types."""
+        if not any(
+            pose_stack.split_block_mapping is not None
+            and pose_stack.split_block_mapping.entries
+            for pose_stack in pose_stacks
+        ):
+            return None
+
+        block_type_index_by_name = {
+            block_type.name: index
+            for index, block_type in enumerate(packed_block_types.active_block_types)
+        }
+        combined_entries = []
+        pose_offset = 0
+        for pose_stack in pose_stacks:
+            mapping = pose_stack.split_block_mapping
+            if mapping is not None:
+                source_block_types = pose_stack.packed_block_types.active_block_types
+                combined_entries.extend(
+                    replace(
+                        entry,
+                        pose_ind=pose_offset + entry.pose_ind,
+                        orig_block_type_ind=block_type_index_by_name[
+                            source_block_types[entry.orig_block_type_ind].name
+                        ],
+                    )
+                    for entry in mapping.entries
+                )
+            pose_offset += pose_stack.n_poses
+
+        return SplitBlockMapping(entries=tuple(combined_entries))
 
     @classmethod
     @validate_args
