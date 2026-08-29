@@ -197,6 +197,7 @@ def test_interacting_coord_mask_matches_per_pose_reference(
 
     assert torch.equal(residue_mask, expected_residue_mask)
     assert torch.equal(sidechain_mask, expected_sidechain_mask)
+    assert score_utils.build_sidechain_coord_mask(poses) is sidechain_mask
 
     expected = residue_mask.clone()
     for pose_index in range(poses.n_poses):
@@ -222,6 +223,12 @@ def test_interacting_coord_mask_matches_per_pose_reference(
     assert not score_utils.build_coord_mask_for_mask_and_interacting_atoms(
         poses, torch.zeros_like(block_mask)
     ).any()
+    assert torch.equal(
+        score_utils.build_coord_mask_for_mask_and_interacting_atoms(
+            poses, block_mask, interaction_distance=-1
+        ),
+        residue_mask,
+    )
     with pytest.raises(ValueError, match="max_workspace_bytes"):
         score_utils.build_coord_mask_for_mask_and_interacting_atoms(
             poses, block_mask, max_workspace_bytes=0

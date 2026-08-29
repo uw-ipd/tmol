@@ -313,13 +313,19 @@ def build_sidechain_coord_mask(
         Mask shaped ``[n_poses, max_n_atoms]``. Non-polymers contribute all
         real atoms; polymers exclude their declared main-chain atoms.
     """
+    cache_name = "_score_utils_sidechain_coord_mask"
+    if hasattr(pose_stack, cache_name):
+        return getattr(pose_stack, cache_name)
+
     block_for_atom, atom_in_block, real_atoms = _compact_atom_layout(pose_stack)
     block_type_for_atom = pose_stack.block_type_ind64.gather(1, block_for_atom)
     sidechain_atom_mask = _sidechain_atom_mask_for_block_type(pose_stack)
-    return (
+    coord_mask = (
         sidechain_atom_mask[block_type_for_atom.clamp_min(0), atom_in_block]
         & real_atoms
     )
+    object.__setattr__(pose_stack, cache_name, coord_mask)
+    return coord_mask
 
 
 def compute_block_centroids_and_furthest_dist(
@@ -409,6 +415,9 @@ def build_coord_mask_for_mask_and_interacting_atoms(
         raise ValueError("max_workspace_bytes must be positive")
 
     coord_mask = res_mask_to_coord_mask(pose_stack, mask)
+    if interaction_distance < 0:
+        return coord_mask
+
     sidechain_mask = build_sidechain_coord_mask(pose_stack)
     n_masked_atoms = coord_mask.sum(dim=1)
     max_n_masked_atoms = int(n_masked_atoms.max().item())
@@ -435,7 +444,7 @@ def build_coord_mask_for_mask_and_interacting_atoms(
     ]
     masked_coords_are_real[masked_pose, masked_slot] = True
 
-    # Bound the temporary [chunk, n_atoms, n_masked_atoms, 3] difference tensor.
+    # Bound the temporary [chunk, n_atoms, n_masked, 3] difference tensor.
     bytes_per_pose = (
         max_n_atoms
         * max_n_masked_atoms
@@ -451,12 +460,12 @@ def build_coord_mask_for_mask_and_interacting_atoms(
             - masked_coords[first_pose:last_pose, None, :, :]
         )
         differences.square_()
-        distances = differences.sum(dim=3).sqrt_()
-        distances.masked_fill_(
+        squared_distances = differences.sum(dim=3)
+        squared_distances.masked_fill_(
             ~masked_coords_are_real[first_pose:last_pose, None, :], float("inf")
         )
-        nearby_atoms[first_pose:last_pose] = distances.amin(dim=2).le(
-            interaction_distance
+        nearby_atoms[first_pose:last_pose] = squared_distances.amin(dim=2).le(
+            interaction_distance * interaction_distance
         )
 
     return coord_mask | (nearby_atoms & pose_stack.real_atoms & sidechain_mask)

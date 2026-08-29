@@ -3,6 +3,8 @@
 import torch
 import pytest
 
+import tmol.pack.rotamer._na_chi_sampler as na_chi_sampler_module
+
 from tmol.io import (
     default_canonical_ordering,
     default_packed_block_types,
@@ -69,6 +71,7 @@ def test_na_sampler_chi_sit_at_scored_minima(
     assert chi.shape[0] > 0
     assert int(n_rots.sum()) == gbt_for_rot.shape[0]
     assert chi.shape[0] == gbt_for_rot.shape[0]
+    assert gbt_for_rot.dtype == torch.int32
 
     allowed = torch.cat(
         (
@@ -127,6 +130,43 @@ def test_na_sampler_chi_level_widens_the_rotamer_set(
         rna_pdb, default_database, torch_device, chi_sample_level=1
     )
     assert int(n_rots_1.sum()) == 3 * int(n_rots_0.sum())
+
+
+def test_na_sampler_measures_only_enabled_na_puckers(
+    protein_dna_pdb, default_database, torch_device, monkeypatch
+):
+    """Protein blocks in a mixed complex must not enter the sugar-pucker kernel."""
+    poses = _pose_stack(protein_dna_pdb, torch_device)
+    sampler = NaChiRotamerSampler.from_database(default_database, torch_device)
+    task = _set_task(poses, sampler)
+    sampler.annotate_packed_block_types(poses.packed_block_types)
+    sampler_index = task.conformer_sampler_index[id(sampler)]
+    allowed = task.per_block_conformer_sampler_allowed[
+        task.cons_bt_pose, task.cons_bt_block, sampler_index
+    ]
+    builds = poses.packed_block_types.na_chi_sampler_cache["builds_bt"][
+        task.cons_bt_block_type
+    ]
+    block_type_allowed = task.per_block_is_block_type_allowed[
+        task.cons_bt_pose, task.cons_bt_block, task.cons_bt_which_block_type
+    ]
+    active = allowed & builds & block_type_allowed
+    active_pose = task.cons_bt_pose[active]
+    active_block = task.cons_bt_block[active]
+    expected = torch.unique(active_pose * poses.max_n_blocks + active_block).numel()
+    assert 0 < expected < task.cons_bt_block_type.shape[0]
+
+    calls = []
+    original = na_chi_sampler_module.pucker_weights
+
+    def record_pucker_count(xyz, temperature):
+        calls.append(xyz.shape[0])
+        return original(xyz, temperature)
+
+    monkeypatch.setattr(na_chi_sampler_module, "pucker_weights", record_pucker_count)
+    sampler.sample_chi_for_poses(poses, task)
+
+    assert calls == [expected]
 
 
 @pytest.mark.parametrize("fixture", ["dna_pdb", "rna_pdb"])
