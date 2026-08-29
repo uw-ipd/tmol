@@ -32,6 +32,11 @@ corresponding Tutorials for deeper analysis.
     <span class="docs-card-title">Packing and local design</span>
     <span class="docs-card-description">Configure conformer samplers, repack selected blocks, and run explicit mutation-score experiments.</span>
   </a>
+  <a class="docs-card" href="protein_interfaces.html">
+    <span class="docs-card-kicker">Interrogate</span>
+    <span class="docs-card-title">Protein interfaces</span>
+    <span class="docs-card-description">Define partners by author labels, map block-pair contributions, and batch explicit local mutation experiments.</span>
+  </a>
   <a class="docs-card" href="../user_guide/optimization.html">
     <span class="docs-card-kicker">Refine</span>
     <span class="docs-card-title">Minimization and FastRelax</span>
@@ -65,6 +70,7 @@ gpu_batching
 
 ../user_guide/scoring
 packing
+protein_interfaces
 ../user_guide/optimization
 ```
 
