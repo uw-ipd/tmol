@@ -65,7 +65,7 @@ class TermScoringModule(torch.nn.Module):
 
         self.term_score_poses = term_score_poses
 
-    def _build_static_tails(self, block_pair_scoring):
+    def _build_static_tails(self, block_pair_scoring: bool) -> None:
         # Pre-build the non-coordinate argument list used by every forward.
         # Float64 scoring is mainly used by gradcheck, so defer those copies
         # until a float64 input actually arrives.
@@ -73,7 +73,7 @@ class TermScoringModule(torch.nn.Module):
         self._static_tail_f32 = tuple(tail) + (block_pair_scoring,)
         self._static_tail_f64 = None
 
-    def _static_tail_for_coords(self, coords):
+    def _static_tail_for_coords(self, coords: torch.Tensor) -> tuple[object, ...]:
         if coords.dtype != torch.float64:
             return self._static_tail_f32
         if self._static_tail_f64 is None:
