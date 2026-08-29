@@ -105,10 +105,9 @@ class FixedAAChiSampler(ChiSampler):
             is_bt_faas_allowed_and_built_by, cons_bt_is_allowed
         ).to(torch.int32)
 
-        n_fixed_rots = torch.sum(n_rots_for_gbt).item()
         gbt_for_rotamer = n_rots_for_gbt.nonzero(as_tuple=True)[0].to(torch.int32)
         chi_for_rotamers = torch.zeros(
-            (n_fixed_rots, 1), dtype=torch.float32, device=poses.device
+            (gbt_for_rotamer.shape[0], 1), dtype=torch.float32, device=poses.device
         )
         chi_defining_atom_for_rotamer = torch.full_like(
             chi_for_rotamers, -1, dtype=torch.int32

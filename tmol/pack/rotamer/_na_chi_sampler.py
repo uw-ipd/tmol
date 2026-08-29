@@ -192,26 +192,27 @@ class NaChiRotamerSampler(ChiSampler):
             chis += [SYN_MEAN + k * sdev for k in steps]
         return chis
 
-    def _pucker_for_blocks(self, poses: PoseStack, pbt: PackedBlockTypes):
-        """argmax pucker state of every block's input sugar, -1 where absent."""
+    def _pucker_for_blocks(
+        self,
+        poses: PoseStack,
+        pbt: PackedBlockTypes,
+        pose_indices: Tensor[torch.int64][:],
+        block_indices: Tensor[torch.int64][:],
+        block_type_indices: Tensor[torch.int64][:],
+    ) -> Tensor[torch.int64][:]:
+        """Return the most likely input-sugar pucker for selected blocks."""
         cache = pbt.na_chi_sampler_cache
-        bt = poses.block_type_ind64
-        real = bt >= 0
-        ring_local = cache["ring"][bt.clamp_min(0)]
-        offset = poses.block_coord_offset64.unsqueeze(-1)
-        ok = (ring_local >= 0) & real.unsqueeze(-1)
+        ring_local = cache["ring"][block_type_indices]
+        offset = poses.block_coord_offset64[pose_indices, block_indices].unsqueeze(-1)
+        ok = ring_local >= 0
         index = (offset + ring_local).clamp_min(0)
-        n_poses = bt.shape[0]
         max_n_atoms = poses.coords.shape[1]
-        flat = (
-            torch.arange(n_poses, device=poses.device).view(-1, 1, 1) * max_n_atoms
-            + index
-        )
+        flat = pose_indices.unsqueeze(-1) * max_n_atoms + index
         xyz = poses.coords.reshape(-1, 3)[flat.reshape(-1)].reshape(*index.shape, 3)
         xyz = torch.where(ok.unsqueeze(-1), xyz, torch.zeros_like(xyz))
         w = pucker_weights(
             xyz.reshape(-1, 5, 3), self.params.pucker_temperature
-        ).reshape(*bt.shape, N_PUCKER)
+        ).reshape(pose_indices.shape[0], N_PUCKER)
         pucker = w.argmax(dim=-1)
         return torch.where(ok.all(-1), pucker, torch.full_like(pucker, -1))
 
@@ -237,8 +238,27 @@ class NaChiRotamerSampler(ChiSampler):
         ]
         active = allowed_for_cons & builds & bt_allowed
 
-        pucker_for_block = self._pucker_for_blocks(poses, pbt)
-        pucker = pucker_for_block[task.cons_bt_pose, task.cons_bt_block]
+        active_gbt = torch.nonzero(active, as_tuple=True)[0]
+        pucker = torch.full_like(task.cons_bt_pose, -1)
+        if active_gbt.numel() > 0:
+            active_pose = task.cons_bt_pose[active_gbt]
+            active_block = task.cons_bt_block[active_gbt]
+            active_global_block = active_pose * poses.max_n_blocks + active_block
+            unique_global_block, inverse = torch.unique_consecutive(
+                active_global_block, return_inverse=True
+            )
+            unique_pose = torch.div(
+                unique_global_block, poses.max_n_blocks, rounding_mode="floor"
+            )
+            unique_block = unique_global_block % poses.max_n_blocks
+            unique_pucker = self._pucker_for_blocks(
+                poses,
+                pbt,
+                unique_pose,
+                unique_block,
+                poses.block_type_ind64[unique_pose, unique_block],
+            )
+            pucker[active_gbt] = unique_pucker[inverse]
         base = cache["base"][task.cons_bt_block_type]
         active = active & (pucker >= 0)
 
@@ -277,14 +297,19 @@ class NaChiRotamerSampler(ChiSampler):
                 torch.zeros((0, n_chi), dtype=torch.float32, device=poses.device),
             )
 
-        counts = n_rots_for_gbt.to(torch.int64)
+        counts = n_rots_for_gbt
+        # Reuse the synchronized total so these kernels need not infer it again.
         gbt_for_rotamer = torch.repeat_interleave(
-            torch.arange(n_gbt, dtype=torch.int64, device=poses.device), counts
+            torch.arange(n_gbt, dtype=torch.int32, device=poses.device),
+            counts,
+            output_size=n_rots,
         )
         # index of each rotamer within its own block
         local = torch.arange(
-            n_rots, dtype=torch.int64, device=poses.device
-        ) - torch.repeat_interleave(exclusive_cumsum1d(counts), counts)
+            n_rots, dtype=torch.int32, device=poses.device
+        ) - torch.repeat_interleave(
+            exclusive_cumsum1d(counts), counts, output_size=n_rots
+        )
 
         combos_per_rot = n_combos[gbt_for_rotamer]
         chi1_slot = torch.div(local, combos_per_rot, rounding_mode="floor")
@@ -308,7 +333,7 @@ class NaChiRotamerSampler(ChiSampler):
         )
         return (
             n_rots_for_gbt,
-            gbt_for_rotamer.to(torch.int32),
+            gbt_for_rotamer,
             cache["chi_atom"][rot_bt],
             chi,
         )
