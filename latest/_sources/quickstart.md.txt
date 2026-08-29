@@ -101,7 +101,7 @@ energies. See the {doc}`scoring and analysis guide </user_guide/scoring>`.
 
 ## Choose the next path
 
-- Work through the eight {doc}`interactive examples </examples_index>` for
+- Work through the nine {doc}`interactive examples </examples_index>` for
   complete, executable tutorials with molecular viewers and exercises.
 - Use the {doc}`workflow hub </workflows/index>` for short, reusable recipes.
 - Search the {doc}`task index </tutorial/recipe_index>` when you already know

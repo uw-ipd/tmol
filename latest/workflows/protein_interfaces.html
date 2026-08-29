@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Minimization and FastRelax &#8212; TMol</title>
+    <title>Protein-interface analysis &#8212; TMol</title>
   
   
   
@@ -48,13 +48,13 @@
     <script>let toggleOpenOnPrint = 'true';</script>
     <script src="../_static/togglebutton.js?v=b8b12719"></script>
     <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
-    <script>DOCUMENTATION_OPTIONS.pagename = 'user_guide/optimization';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'workflows/protein_interfaces';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
-    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/user_guide/optimization.html" />
+    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/workflows/protein_interfaces.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Ligand Preparation" href="ligands.html" />
-    <link rel="prev" title="Protein-interface analysis" href="../workflows/protein_interfaces.html" />
+    <link rel="next" title="Minimization and FastRelax" href="../user_guide/optimization.html" />
+    <link rel="prev" title="Packing" href="packing.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="0.1.52" />
@@ -147,7 +147,7 @@
 
 
 <li class="nav-item current active">
-  <a class="nav-link nav-internal" href="../workflows/index.html">
+  <a class="nav-link nav-internal" href="index.html">
     Workflows
   </a>
 </li>
@@ -276,7 +276,7 @@
 
 
 <li class="nav-item current active">
-  <a class="nav-link nav-internal" href="../workflows/index.html">
+  <a class="nav-link nav-internal" href="index.html">
     Workflows
   </a>
 </li>
@@ -361,26 +361,26 @@
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
   <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Prepare structures</span></p>
 <ul class="nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="../workflows/structure_io.html">Structure I/O and visualization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="integrations.html">Model and structure integrations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../workflows/gpu_batching.html">GPU batching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="structure_io.html">Structure I/O and visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/integrations.html">Model and structure integrations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gpu_batching.html">GPU batching</a></li>
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Score, design, and refine</span></p>
 <ul class="current nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="scoring.html">Scoring and analysis</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../workflows/packing.html">Packing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../workflows/protein_interfaces.html">Protein-interface analysis</a></li>
-<li class="toctree-l1 current active"><a class="current reference internal" href="#">Minimization and FastRelax</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/scoring.html">Scoring and analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="packing.html">Packing</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Protein-interface analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/optimization.html">Minimization and FastRelax</a></li>
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Specialized chemistry</span></p>
 <ul class="nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="ligands.html">Ligand Preparation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../workflows/nucleic_acids.html">Nucleic acids</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/ligands.html">Ligand Preparation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nucleic_acids.html">Nucleic acids</a></li>
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Develop and benchmark</span></p>
 <ul class="nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="benchmarking.html">Benchmarking</a></li>
-<li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/benchmarking.html">Benchmarking</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/development.html">Development</a></li>
 </ul>
 </div>
 </nav></div>
@@ -422,9 +422,9 @@
       </a>
     </li>
     
-    <li class="breadcrumb-item"><a href="../workflows/index.html" class="nav-link">Workflows</a></li>
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Workflows</a></li>
     
-    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Minimization and FastRelax</span></li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Protein-interface analysis</span></li>
   </ul>
 </nav>
 </div>
@@ -441,134 +441,90 @@
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <section id="minimization-and-fastrelax">
-<h1>Minimization and FastRelax<a class="headerlink" href="#minimization-and-fastrelax" title="Link to this heading">#</a></h1>
-<p>This guide collects concise recipes for preparation, constraints, minimization,
-and relax. The tutorials explain coordinate choices, masks, and schedules in
-depth.</p>
+  <section id="protein-interface-analysis">
+<h1>Protein-interface analysis<a class="headerlink" href="#protein-interface-analysis" title="Link to this heading">#</a></h1>
+<p>Use this recipe to score a declared protein–protein interface and prepare an
+explicit batch of local mutation experiments. The case study develops the full
+workflow on neighboring KcsA subunits and visualizes the native hotspots and
+packed variants.</p>
 <blockquote>
 <div><ul class="simple">
-<li><p><strong>Prerequisites:</strong> <a class="reference internal" href="scoring.html"><span class="doc">Scoring</span></a> and, for relax,
-<a class="reference internal" href="../workflows/packing.html"><span class="doc">Packing</span></a>.</p></li>
-<li><p><strong>Deep tutorials:</strong> <a class="reference internal" href="../tutorial/05_minimization_constraints_kinematics.html"><span class="doc">05 — Minimization, Constraints, and Kinematics</span></a> and
-<a class="reference internal" href="../tutorial/06_fast_relax.html"><span class="doc">06 — FastRelax</span></a>.</p></li>
-<li><p><strong>Related workflows:</strong> <a class="reference internal" href="ligands.html"><span class="doc">Ligand preparation</span></a> and
-<a class="reference internal" href="../workflows/nucleic_acids.html"><span class="doc">Nucleic acids</span></a>.</p></li>
-<li><p><strong>API reference:</strong> <a class="reference internal" href="../api/optimization.html"><span class="doc">Optimization</span></a>,
-<a class="reference internal" href="../api/kinematics.html"><span class="doc">Kinematics</span></a>, and <a class="reference internal" href="../api/relax.html"><span class="doc">Relax</span></a>.</p></li>
-<li><p><strong>Rosetta mapping:</strong> <a class="reference internal" href="../tutorial/rosetta_crosswalk.html"><span class="doc">Minimization, constraints, kinematics, and FastRelax</span></a>.</p></li>
+<li><p><strong>Prerequisites:</strong> A prepared multi-chain <code class="docutils literal notranslate"><span class="pre">PoseStack</span></code> and a score function
+built from the same parameter database.</p></li>
+<li><p><strong>Deep example:</strong> <a class="reference internal" href="../tutorial/09_protein_interface_hotspot_scan.html"><span class="doc">09 — Map and Test a Protein Interface</span></a>.</p></li>
+<li><p><strong>Related workflows:</strong> <a class="reference internal" href="../user_guide/scoring.html"><span class="doc">Scoring</span></a>,
+<a class="reference internal" href="packing.html"><span class="doc">Packing</span></a>, and
+<a class="reference internal" href="gpu_batching.html"><span class="doc">GPU batching</span></a>.</p></li>
+<li><p><strong>API reference:</strong> <a class="reference internal" href="../api/score.html"><span class="doc">Scoring</span></a>,
+<a class="reference internal" href="../api/pack.html"><span class="doc">Packing</span></a>, and <a class="reference internal" href="../api/analysis.html"><span class="doc">Analysis helpers</span></a>.</p></li>
+<li><p><strong>Rosetta mapping:</strong> <a class="reference internal" href="../tutorial/rosetta_crosswalk.html"><span class="doc">Packing, design, and mutation scans</span></a>.</p></li>
 </ul>
 </div></blockquote>
-<p>TMol exposes hydrogen placement, missing-side-chain rebuild, Cartesian and
-kinematic minimization, constraints, and relax. Fixed-sequence repacking is
-covered separately in the <a class="reference internal" href="../workflows/packing.html"><span class="doc">Packing workflow</span></a>.</p>
-<section id="cartesian-minimization">
-<h2>Cartesian Minimization<a class="headerlink" href="#cartesian-minimization" title="Link to this heading">#</a></h2>
-<p>Use <code class="docutils literal notranslate"><span class="pre">run_cart_min()</span></code> to optimize coordinates directly:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_cart_min</span>
-
-<span class="n">minimized_pose_stack</span> <span class="o">=</span> <span class="n">run_cart_min</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">)</span>
+<section id="define-partners-from-metadata">
+<h2>Define partners from metadata<a class="headerlink" href="#define-partners-from-metadata" title="Link to this heading">#</a></h2>
+<p>Do not assume chain boundaries from block positions. Build masks from the
+author labels retained in <code class="docutils literal notranslate"><span class="pre">pdb_info</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">chain_labels</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">chain_labels</span>
+<span class="n">partner_a</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">chain_labels</span> <span class="o">==</span> <span class="s2">"A"</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+<span class="n">partner_b</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">chain_labels</span> <span class="o">==</span> <span class="s2">"B"</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Pass a boolean coordinate mask to restrict which atoms move:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">coord_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
-<span class="n">coord_mask</span><span class="p">[:,</span> <span class="n">ligand_atom_indices</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
-<span class="n">minimized_pose_stack</span> <span class="o">=</span> <span class="n">run_cart_min</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="n">coord_mask</span><span class="o">=</span><span class="n">coord_mask</span><span class="p">)</span>
-</pre></div>
-</div>
+<p>Each mask has shape <code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">max_n_blocks]</span></code>. Verify the selected chains and
+block counts before scoring; author labels, insertion codes, missing regions,
+and model-specific preprocessing determine the actual layout.</p>
 </section>
-<section id="constraints">
-<h2>Constraints<a class="headerlink" href="#constraints" title="Link to this heading">#</a></h2>
-<p>Constraints affect optimization only when they are attached to the pose and the
-score function gives the constraint term a nonzero weight. This helper returns a
-new pose with harmonic coordinate restraints targeting a copy of each residue
-type’s declared main-chain atom coordinates:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.constraint</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_mainchain_coordinate_constraints</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreType</span>
+<section id="score-the-interface">
+<h2>Score the interface<a class="headerlink" href="#score-the-interface" title="Link to this heading">#</a></h2>
+<p>The convenience reduction sums both stored orientations between the masks:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ops</span><span class="w"> </span><span class="kn">import</span> <span class="n">calculate_block_pair_ddg</span>
 
-<span class="n">constrained_pose</span> <span class="o">=</span> <span class="n">create_mainchain_coordinate_constraints</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
-<span class="n">sfxn</span><span class="o">.</span><span class="n">set_weight</span><span class="p">(</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">constraint</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
-<span class="n">minimized_pose_stack</span> <span class="o">=</span> <span class="n">run_cart_min</span><span class="p">(</span><span class="n">constrained_pose</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>The helper uses a 0.5 Å harmonic standard deviation. For the standard amino-acid
-types, the declared main-chain atoms are N, CA, and C, not O. The lower-level
-<code class="docutils literal notranslate"><span class="pre">ConstraintSet</span></code> and <code class="docutils literal notranslate"><span class="pre">ConstraintEnergyTerm</span></code> interfaces support harmonic and
-bounded atom-pair distances, harmonic coordinates, and circular-harmonic
-four-atom torsions. TMol does not currently provide Rosetta’s constraint-file
-parser, ambiguous-constraint layer, or a dedicated three-atom angle constraint.</p>
-</section>
-<section id="missing-side-chains-and-hydrogens">
-<h2>Missing Side Chains and Hydrogens<a class="headerlink" href="#missing-side-chains-and-hydrogens" title="Link to this heading">#</a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">pose_stack_from_biotite()</span></code> automatically routes blocks with missing heavy atoms
-through <code class="docutils literal notranslate"><span class="pre">build_missing_sidechains()</span></code>. By default it also places and optimizes
-hydrogens for complete residues. Pass <code class="docutils literal notranslate"><span class="pre">no_optH=True</span></code> to skip that hydrogen
-optimization path.</p>
-<p>For standard residues and the default parameter database, TMol automatically
-reuses the structure-independent construction and packing setup. If many
-structures share prepared ligand definitions, explicitly reuse a
-<code class="docutils literal notranslate"><span class="pre">PoseBuildContext</span></code> as described in the ligand guide.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pose_stack</span> <span class="o">=</span> <span class="n">pose_stack_from_biotite</span><span class="p">(</span>
-    <span class="n">structure</span><span class="p">,</span>
-    <span class="n">device</span><span class="p">,</span>
-    <span class="n">prepare_ligands</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">no_optH</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-<span class="p">)</span>
-</pre></div>
-</div>
-<p>Ligand heavy atoms must be present in the input. TMol can prepare and protonate
-ligands, but the side-chain-rebuild sampler only handles polymer residues.</p>
-</section>
-<section id="kinematic-minimization">
-<h2>Kinematic Minimization<a class="headerlink" href="#kinematic-minimization" title="Link to this heading">#</a></h2>
-<p>Kinematic minimization optimizes internal degrees of freedom over a fold forest:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics</span><span class="w"> </span><span class="kn">import</span> <span class="n">FoldForest</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics</span><span class="w"> </span><span class="kn">import</span> <span class="n">MoveMap</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_kin_min</span>
-
-<span class="n">fold_forest</span> <span class="o">=</span> <span class="n">FoldForest</span><span class="o">.</span><span class="n">reasonable_fold_forest</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
-<span class="n">move_map</span> <span class="o">=</span> <span class="n">MoveMap</span><span class="o">.</span><span class="n">from_pose_stack</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
-<span class="n">move_map</span><span class="o">.</span><span class="n">move_all_named_torsions</span> <span class="o">=</span> <span class="kc">True</span>
-<span class="n">kin_minimized</span> <span class="o">=</span> <span class="n">run_kin_min</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="n">fold_forest</span><span class="p">,</span> <span class="n">move_map</span><span class="p">)</span>
-</pre></div>
-</div>
-<p><code class="docutils literal notranslate"><span class="pre">CartesianMoveMap</span></code> and <code class="docutils literal notranslate"><span class="pre">MoveMap</span></code> control different spaces. A
-<code class="docutils literal notranslate"><span class="pre">CartesianMoveMap</span></code> is a lightweight wrapper around a boolean atom-coordinate
-mask; it is used by Cartesian FastRelax and does not describe torsions or
-jumps. A <code class="docutils literal notranslate"><span class="pre">MoveMap</span></code> controls internal main-chain, side-chain, named-torsion, and
-rigid-body jump DOFs for kinematic minimization. Constructing a <code class="docutils literal notranslate"><span class="pre">MoveMap</span></code> does
-not enable those DOFs: set the relevant flags or per-residue masks explicitly,
-as above.</p>
-<p>Use Cartesian minimization when an atom coordinate mask is the natural control
-surface. Use kinematic minimization when torsion and rigid-body DOFs should be
-the optimization variables.</p>
-</section>
-<section id="relax">
-<h2>Relax<a class="headerlink" href="#relax" title="Link to this heading">#</a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">fast_relax()</span></code> combines repacking and minimization over a schedule of
-score-function weights:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics</span><span class="w"> </span><span class="kn">import</span> <span class="n">CartesianMoveMap</span><span class="p">,</span> <span class="n">FoldForest</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackerPalette</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.relax</span><span class="w"> </span><span class="kn">import</span> <span class="n">fast_relax</span>
-
-<span class="n">palette</span> <span class="o">=</span> <span class="n">PackerPalette</span><span class="p">()</span>
-<span class="n">move_map</span> <span class="o">=</span> <span class="n">CartesianMoveMap</span><span class="p">()</span>  <span class="c1"># coord_mask=None allows all atom coordinates</span>
-<span class="n">fold_forest</span> <span class="o">=</span> <span class="n">FoldForest</span><span class="o">.</span><span class="n">reasonable_fold_forest</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
-
-<span class="n">relaxed_pose_stack</span> <span class="o">=</span> <span class="n">fast_relax</span><span class="p">(</span>
+<span class="n">interface_by_term</span> <span class="o">=</span> <span class="n">calculate_block_pair_ddg</span><span class="p">(</span>
     <span class="n">pose_stack</span><span class="p">,</span>
-    <span class="n">sfxn</span><span class="p">,</span>
-    <span class="n">palette</span><span class="p">,</span>
-    <span class="n">move_map</span><span class="p">,</span>
-    <span class="n">fold_forest</span><span class="p">,</span>
+    <span class="n">partner_a</span><span class="p">,</span>
+    <span class="n">partner_b</span><span class="p">,</span>
+    <span class="n">sfxn</span><span class="o">=</span><span class="n">score_function</span><span class="p">,</span>
+    <span class="n">sum_terms</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">minimize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">pack</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
 </div>
-<p>The default minimizer is Cartesian and reads
-<code class="docutils literal notranslate"><span class="pre">CartesianMoveMap.coord_mask</span></code>; the fold forest is accepted by the common
-protocol but is not used by that minimizer. To minimize kinematic degrees of
-freedom, pass a configured <code class="docutils literal notranslate"><span class="pre">MoveMap</span></code>, a <code class="docutils literal notranslate"><span class="pre">FoldForest</span></code>, and a compatible
-kinematic <code class="docutils literal notranslate"><span class="pre">min_fn</span></code>.</p>
+<p>Despite the helper’s historical name, this is a weighted cross-mask score from
+one complex. It is not a binding free energy. For residue-pair analysis, render
+a block-pair scorer and add <code class="docutils literal notranslate"><span class="pre">matrix[i,</span> <span class="pre">j]</span> <span class="pre">+</span> <span class="pre">matrix[j,</span> <span class="pre">i]</span></code>; one orientation alone
+can miss an interaction.</p>
+</section>
+<section id="batch-explicit-mutations">
+<h2>Batch explicit mutations<a class="headerlink" href="#batch-explicit-mutations" title="Link to this heading">#</a></h2>
+<p>Construct one pose per requested site/state, then restrict task choices
+monotonically:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">scan_batch</span> <span class="o">=</span> <span class="n">PoseStackBuilder</span><span class="o">.</span><span class="n">from_poses</span><span class="p">([</span><span class="n">pose_stack</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_requests</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+<span class="n">task</span> <span class="o">=</span> <span class="n">PackerTask</span><span class="p">(</span><span class="n">scan_batch</span><span class="p">,</span> <span class="n">PackerPalette</span><span class="p">())</span>
+
+<span class="n">mutation_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">scan_batch</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+<span class="n">mutation_mask</span><span class="p">[</span><span class="n">mutant_pose_indices</span><span class="p">,</span> <span class="n">target_block_indices</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="n">task</span><span class="o">.</span><span class="n">restrict_to_repacking</span><span class="p">(</span><span class="o">~</span><span class="n">mutation_mask</span><span class="p">)</span>
+<span class="n">task</span><span class="o">.</span><span class="n">restrict_absent_name3s</span><span class="p">({</span><span class="s2">"ALA"</span><span class="p">},</span> <span class="n">mutation_mask</span><span class="p">)</span>
+<span class="n">task</span><span class="o">.</span><span class="n">disable_packing_by_block_mask</span><span class="p">(</span><span class="o">~</span><span class="n">local_shells</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Add the appropriate conformer samplers and call <code class="docutils literal notranslate"><span class="pre">pack_rotamers()</span></code> once on the
+batch. Include an independently repacked WT control for each site, use the same
+declared shell for its WT/mutant pair, verify all non-target identities, and
+record stochastic outcomes rather than presenting a single pack as converged.</p>
+<p>For one target block per pose, pass an integer index tensor to
+<code class="docutils literal notranslate"><span class="pre">calculate_block_pair_ddg()</span></code> together with the partner mask. That indexed route
+avoids a dense target-mask reduction.</p>
+</section>
+<section id="interpret-the-result">
+<h2>Interpret the result<a class="headerlink" href="#interpret-the-result" title="Link to this heading">#</a></h2>
+<p>Report the exact computational experiment: score function and weights, input
+and preparation, partner masks, packing shell, allowed identities, samplers,
+device, number of outcomes, minimization settings, and comparison rule. A
+mutant-minus-repacked-WT value from one complex is a <strong>score change</strong>, not a
+thermodynamic ΔΔG. Binding claims require explicitly modeled states and a
+validated protocol beyond this lower-level recipe.</p>
 </section>
 </section>
 
@@ -583,20 +539,20 @@ kinematic <code class="docutils literal notranslate"><span class="pre">min_fn</s
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="../workflows/protein_interfaces.html"
+       href="packing.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Protein-interface analysis</p>
+        <p class="prev-next-title">Packing</p>
       </div>
     </a>
     <a class="right-next"
-       href="ligands.html"
+       href="../user_guide/optimization.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Ligand Preparation</p>
+        <p class="prev-next-title">Minimization and FastRelax</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -619,18 +575,17 @@ kinematic <code class="docutils literal notranslate"><span class="pre">min_fn</s
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cartesian-minimization">Cartesian Minimization</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#constraints">Constraints</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#missing-side-chains-and-hydrogens">Missing Side Chains and Hydrogens</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#kinematic-minimization">Kinematic Minimization</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#relax">Relax</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#define-partners-from-metadata">Define partners from metadata</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#score-the-interface">Score the interface</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#batch-explicit-mutations">Batch explicit mutations</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#interpret-the-result">Interpret the result</a></li>
 </ul>
   </nav></div>
 
   <div class="sidebar-secondary-item">
 
   <div class="tocsection sourcelink">
-    <a href="../_sources/user_guide/optimization.md.txt">
+    <a href="../_sources/workflows/protein_interfaces.md.txt">
       <i class="fa-solid fa-file-lines"></i> Show Source
     </a>
   </div>

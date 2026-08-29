@@ -359,7 +359,7 @@
 <nav class="bd-docs-nav bd-links"
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
-  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Interactive tutorials</span></p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Core interactive tutorials</span></p>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="01_working_with_tmol.html">Tutorial 01 — Working with TMol</a></li>
 <li class="toctree-l1"><a class="reference internal" href="02_gpu_batching.html">Tutorial 02 — GPU Batching with TMol</a></li>
@@ -369,6 +369,10 @@
 <li class="toctree-l1"><a class="reference internal" href="06_fast_relax.html">Tutorial 06 — FastRelax</a></li>
 <li class="toctree-l1"><a class="reference internal" href="07_ligand_and_params.html">Tutorial 07 — Ligands and Parameter Files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="08_nucleic_acids.html">Tutorial 08 — Working with DNA and RNA</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Integrated case studies</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="09_protein_interface_hotspot_scan.html">Case Study 09 — Map and Test a Protein Interface</a></li>
 </ul>
 <ul class="current nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="recipe_index.html">Task index</a></li>
@@ -435,7 +439,7 @@
                   
   <section id="rosetta-to-tmol-crosswalk">
 <h1>Rosetta-to-TMol crosswalk<a class="headerlink" href="#rosetta-to-tmol-crosswalk" title="Link to this heading">#</a></h1>
-<p>This page maps concepts used in the eight TMol tutorials to their nearest
+<p>This page maps concepts used in the nine TMol tutorials to their nearest
 Rosetta and PyRosetta counterparts. It is not an API, numerical, or protocol
 parity claim: Rosetta is a broad modeling suite, whereas TMol provides batched,
 differentiable molecular primitives in PyTorch.</p>
@@ -539,6 +543,16 @@ A caller can explicitly construct variants, define a local packing shell,
 repack/minimize each variant, and compare scores. Such deltas describe that
 specific computational experiment; they are not a built-in scan or physical
 delta-delta G.</p>
+<section id="protein-interface-case-study">
+<h3>Protein-interface case study<a class="headerlink" href="#protein-interface-case-study" title="Link to this heading">#</a></h3>
+<p><a class="reference internal" href="09_protein_interface_hotspot_scan.html"><span class="doc">Case Study 09</span></a> demonstrates that
+explicit composition on a neighboring KcsA subunit interface: author-label
+masks define the partners, both orientations of the block-pair tensor define
+native contributions, and matched WT/alanine local-repacking tasks share one
+batch. The example is closest in teaching intent to Rosetta interface analysis
+and the PyRosetta point-mutation scan, but it is not an <code class="docutils literal notranslate"><span class="pre">InterfaceAnalyzer</span></code>,
+docking protocol, alanine-scanning application, or binding-energy calculation.</p>
+</section>
 </section>
 <section id="minimization-constraints-and-kinematics">
 <h2>Minimization, constraints, and kinematics<a class="headerlink" href="#minimization-constraints-and-kinematics" title="Link to this heading">#</a></h2>
@@ -706,7 +720,10 @@ and the TMol source as appropriate rather than inferring a fit-specific paper.</
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#molecular-objects-and-chemical-types">Molecular objects and chemical types</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#i-o-selections-and-options">I/O, selections, and options</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#scoring-and-analysis">Scoring and analysis</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#packing-design-and-mutation-scans">Packing, design, and mutation scans</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#packing-design-and-mutation-scans">Packing, design, and mutation scans</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protein-interface-case-study">Protein-interface case study</a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#minimization-constraints-and-kinematics">Minimization, constraints, and kinematics</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#fastrelax">FastRelax</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ligands-and-residue-parameter-files">Ligands and residue-parameter files</a></li>
