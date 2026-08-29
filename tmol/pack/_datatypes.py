@@ -10,6 +10,8 @@ from tmol.types import (
 
 @attr.s(auto_attribs=True, frozen=True)
 class PackerEnergyTables(TensorGroup, ConvertAttrs):
+    """One- and two-body energy tables plus their packed rotamer indexing."""
+
     max_n_rotamers_per_pose: int
     pose_n_res: Tensor[torch.int32][:]  # [n-poses]
     pose_n_rotamers: Tensor[torch.int32][:]  # [n-poses]

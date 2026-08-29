@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import copy
 import os
+import re
 from pathlib import Path
 
 import nbformat
@@ -23,6 +24,10 @@ TUTORIAL_NOTEBOOKS = (
 )
 TUTORIAL_REF = "master"
 KERNEL_STARTUP_TIMEOUT = 180
+CPU_CUDA_RUNTIME_NOISE = re.compile(
+    r"^W\d{4} .* torch/utils/cpp_extension\.py:\d+\] "
+    r"No CUDA runtime is found, using CUDA_HOME='[^']*'\n?$"
+)
 
 
 def _validate_tutorial_entrypoints(notebook, path: Path) -> None:
@@ -63,6 +68,27 @@ def _without_gpu_cells(notebook):
     return notebook
 
 
+def _remove_expected_cpu_cuda_noise(notebook) -> None:
+    """Remove PyTorch's expected no-CUDA warning from published CPU outputs."""
+    for cell in notebook.cells:
+        if cell.cell_type != "code":
+            continue
+        retained = []
+        for output in cell.outputs:
+            if output.output_type != "stream":
+                retained.append(output)
+                continue
+            text = "".join(
+                line
+                for line in output.text.splitlines(keepends=True)
+                if not CPU_CUDA_RUNTIME_NOISE.fullmatch(line)
+            )
+            if text:
+                output.text = text
+                retained.append(output)
+        cell.outputs = retained
+
+
 def execute_notebook(
     path: Path,
     timeout: int,
@@ -85,6 +111,8 @@ def execute_notebook(
         resources={"metadata": {"path": str(path.parent.resolve())}},
     )
     client.execute()
+    if not include_gpu_cells:
+        _remove_expected_cpu_cuda_noise(executed)
     if write:
         # Preserve the authored source (including GPU examples), but copy the
         # CPU execution results used by nbsphinx into the CI workspace.

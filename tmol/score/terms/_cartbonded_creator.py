@@ -6,6 +6,8 @@ import torch
 
 @score_term_creator
 class CartBondedTermCreator(TermCreator):
+    """Create the Cartesian bonded-geometry energy term."""
+
     _score_types = [
         ScoreType.cart_lengths,
         ScoreType.cart_angles,

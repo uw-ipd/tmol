@@ -37,12 +37,22 @@ from tmol.utility.tensor import (
 
 
 class PoseStackBuilder:
+    """Build heterogeneous pose stacks while preserving chemical-database identity."""
 
     @classmethod
     @validate_args
     def from_poses(
         cls, pose_stacks: List[PoseStack], device: torch.device
     ) -> PoseStack:
+        """Combine one or more pose stacks on a common device.
+
+        Args:
+            pose_stacks: Pose stacks built from the same chemical database.
+            device: Device for the combined tensors.
+
+        Returns:
+            A padded pose stack containing every input pose in order.
+        """
         pbt0 = pose_stacks[0].packed_block_types
         for ps in pose_stacks:
             # all PoseStacks must be built from the same chemical database

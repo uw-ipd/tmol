@@ -13,6 +13,8 @@ from tmol.kinematics.compiled import inverse_kin
 
 
 class CartesianSfxnNetwork(torch.nn.Module):
+    """Differentiable score network over selected Cartesian coordinates."""
+
     def __init__(
         self, score_function: ScoreFunction, pose_stack: PoseStack, coord_mask=None
     ):
@@ -79,6 +81,8 @@ class CartesianSfxnNetwork(torch.nn.Module):
 
 
 class KinForestSfxnNetwork(torch.nn.Module):
+    """Differentiable score network over selected kinematic degrees of freedom."""
+
     def __init__(
         self,
         score_function: ScoreFunction,

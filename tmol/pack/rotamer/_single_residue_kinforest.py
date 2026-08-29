@@ -19,6 +19,8 @@ from tmol.pose import PackedBlockTypes
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class RotamerKintree:
+    """Residue-local kinematic tree and scan ordering in NumPy form."""
+
     kinforest_idx: NDArray[numpy.int32][
         :
     ]  # mapping from restype order to kinforest order
@@ -39,6 +41,8 @@ class RotamerKintree:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class PackedRotamerKintree:
+    """Padded batch of residue-local kinematic trees."""
+
     kinforest_idx: NDArray[numpy.int32][
         :, :
     ]  # mapping from restype order to kinforest order
@@ -60,9 +64,6 @@ class PackedRotamerKintree:
 
 @validate_args
 def construct_single_residue_kinforest(restype: RefinedResidueType):
-    from tmol.kinematics.compiled import inverse_kin
-    from tmol.utility.ndarray import invert_mapping
-
     """Create a kinforest for a single residue and its associated
     scan ordering data.
 
@@ -74,6 +75,9 @@ def construct_single_residue_kinforest(restype: RefinedResidueType):
 
     Also create the backbone fingerprint
     """
+    from tmol.kinematics.compiled import inverse_kin
+    from tmol.utility.ndarray import invert_mapping
+
     if hasattr(restype, "rotamer_kinforest"):
         return
 

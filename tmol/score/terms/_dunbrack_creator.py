@@ -6,6 +6,8 @@ import torch
 
 @score_term_creator
 class DunbrackTermCreator(TermCreator):
+    """Create the Dunbrack rotamer energy term."""
+
     _score_types = [
         ScoreType.dunbrack_rot,
         ScoreType.dunbrack_rotdev,

@@ -6,6 +6,8 @@ import torch
 
 @score_term_creator
 class LKBallTermCreator(TermCreator):
+    """Create the orientation-dependent LK-ball solvation energy term."""
+
     _score_types = [
         ScoreType.lk_ball_iso,
         ScoreType.lk_ball,

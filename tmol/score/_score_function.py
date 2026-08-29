@@ -26,6 +26,13 @@ SFXN_FORMAT_VERSION: str = "1.0"
 
 
 class ScoreFunction:
+    """Weighted collection of energy terms rendered for a pose topology.
+
+    Args:
+        param_db: Chemical and scoring parameters used to construct terms.
+        device: Device on which weights and rendered scorers operate.
+    """
+
     def __init__(self, param_db: ParameterDatabase, device: torch.device):
         self._weights = torch.zeros((ScoreType.n_score_types.value,), device=device)
 
@@ -61,7 +68,16 @@ class ScoreFunction:
 
         self.term_options = {}
 
-    def set_weight(self, st: ScoreType, weight: float):
+    def set_weight(self, st: ScoreType, weight: float) -> None:
+        """Set the weight for one score type.
+
+        The energy term that implements ``st`` is created lazily when the
+        requested weight is nonzero.
+
+        Args:
+            st: Score type to update.
+            weight: New scalar weight.
+        """
         # Do not construct an energy term merely to assign it a zero weight.
         # FastRelax updates its (usually disabled) constraint weight at every
         # schedule step; constructing that term adds a device-to-host sync to
@@ -77,10 +93,12 @@ class ScoreFunction:
         self._weights[st.value] = weight
         self._weights_tensor_out_of_date = True
 
-    def get_weight(self, st: ScoreType):
+    def get_weight(self, st: ScoreType) -> torch.Tensor:
+        """Return the scalar weight for ``st`` on the score-function device."""
         return self._weights[st.value]
 
-    def score_type_covered_by_contained_term(self, st: ScoreType):
+    def score_type_covered_by_contained_term(self, st: ScoreType) -> bool:
+        """Return whether a constructed energy term implements ``st``."""
         # `_all_terms` is a lazily refreshed sorted cache; consulting it while
         # weights are being populated can miss a term already present in the
         # unordered source lists and construct duplicate term objects.
@@ -154,7 +172,8 @@ class ScoreFunction:
 
         return self._all_terms
 
-    def all_score_types(self):
+    def all_score_types(self) -> list[ScoreType]:
+        """Return score types in the same order as :meth:`all_terms`."""
         if self._all_terms_out_of_date:
             self._all_terms, self._all_score_types = self.get_sorted_terms(
                 self._all_terms_unordered
@@ -164,6 +183,7 @@ class ScoreFunction:
         return self._all_score_types
 
     def one_body_terms(self):
+        """Return the active one-body energy terms in score-type order."""
         if self._one_body_terms_out_of_date:
             self._one_body_terms, _ = self.get_sorted_terms(
                 self._one_body_terms_unordered
@@ -173,6 +193,7 @@ class ScoreFunction:
         return self._one_body_terms
 
     def two_body_terms(self):
+        """Return the active two-body energy terms in score-type order."""
         if self._two_body_terms_out_of_date:
             self._two_body_terms, _ = self.get_sorted_terms(
                 self._two_body_terms_unordered
@@ -182,6 +203,7 @@ class ScoreFunction:
         return self._two_body_terms
 
     def multi_body_terms(self):
+        """Return the active multi-body energy terms in score-type order."""
         if self._multi_body_terms_out_of_date:
             self._multi_body_terms, _ = self.get_sorted_terms(
                 self._multi_body_terms_unordered
@@ -250,7 +272,15 @@ class ScoreFunction:
         ]
         return RotamerScoringModule(self.weights_tensor(), term_modules)
 
-    def pre_work_initialization(self, pose_stack: PoseStack):
+    def pre_work_initialization(self, pose_stack: PoseStack) -> None:
+        """Prepare active energy terms for a pose topology.
+
+        Repeated calls reuse topology-dependent setup when neither the terms,
+        their options, nor the packed block types have changed.
+
+        Args:
+            pose_stack: Poses whose topology will be scored.
+        """
         # set_options must be first, since some of the logic that follows it
         # may depend on the options
         terms = self.all_terms()
@@ -280,7 +310,7 @@ class ScoreFunction:
         for energy_term in terms:
             energy_term.setup_poses(pose_stack)
 
-    def set_option(self, key: str, value):
+    def set_option(self, key: str, value) -> None:
         """Set an option for all energy terms.
 
         Options are passed to each energy term's set_options method
@@ -289,7 +319,7 @@ class ScoreFunction:
         self.term_options[key] = value
         self._options_version += 1
 
-    def set_options(self, options: Dict):
+    def set_options(self, options: Dict) -> None:
         """Set the score function options by a dict.
 
         This replaces the options dict entirely - any previous values
@@ -298,7 +328,8 @@ class ScoreFunction:
         self.term_options = options
         self._options_version += 1
 
-    def weights_tensor(self):
+    def weights_tensor(self) -> Tensor[torch.float32][:]:
+        """Return weights aligned with the rendered term/subterm order."""
         if self._weights_tensor_out_of_date:
             # Keep weight collection on-device. Constructing a tensor from a
             # Python list of CUDA scalar tensors calls ``item()`` on every
@@ -396,6 +427,8 @@ class ScoreFunction:
 
 
 class WholePoseScoringModule:
+    """Rendered energy modules that score complete poses."""
+
     def __init__(
         self,
         weights: Tensor[torch.float32][:],
@@ -514,6 +547,8 @@ class _InferenceCUDAGraph:
 
 
 class BlockPairScoringModule:
+    """Rendered energy modules that retain per-block-pair scores."""
+
     def __init__(
         self,
         weights: Tensor[torch.float32][:],
@@ -555,6 +590,8 @@ class BlockPairScoringModule:
 
 
 class RotamerScoringModule:
+    """Rendered energy modules that build sparse rotamer-pair energy tables."""
+
     def __init__(
         self,
         weights: Tensor[torch.float32][:],

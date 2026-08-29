@@ -21,6 +21,8 @@ from enum import IntEnum
 
 
 class AcceptorHybridization(IntEnum):
+    """Hydrogen-bond acceptor hybridization categories."""
+
     none = 0
     sp2 = 1
     sp3 = 2
@@ -34,6 +36,8 @@ AcceptorHybridization._index = pandas.Index([None, "sp2", "sp3", "ring"])
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class AtomTypeParams(TensorGroup, ValidateAttrs):
+    """Packed donor, acceptor, hydrogen, and hybridization atom-type flags."""
+
     is_acceptor: Tensor[bool][...]
     acceptor_hybridization: Tensor[torch.int32][...]
 

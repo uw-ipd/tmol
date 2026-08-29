@@ -6,6 +6,8 @@ import torch
 
 @score_term_creator
 class HBondTermCreator(TermCreator):
+    """Create the hydrogen-bond energy term."""
+
     _score_types = [ScoreType.hbond]
 
     @classmethod

@@ -122,6 +122,8 @@ class KinForest(TensorGroup, ConvertAttrs):
 
 @attrs.define(auto_attribs=True, frozen=True)
 class KinForestScanData(TensorGroup, ConvertAttrs):
+    """Node, scan-start, and generation-start tensors for a kinematic scan."""
+
     nodes: Tensor[torch.int]
     scans: Tensor[torch.int]
     gens: Tensor[torch.int]
@@ -129,6 +131,8 @@ class KinForestScanData(TensorGroup, ConvertAttrs):
 
 @attrs.define(auto_attribs=True, frozen=True)
 class KinematicModuleData:
+    """Topology and traversal tensors required by a pose kinematics module."""
+
     forest: KinForest
     scan_data_fw: KinForestScanData
     scan_data_bw: KinForestScanData

@@ -6,6 +6,8 @@ import torch
 
 @score_term_creator
 class NaTorsionTermCreator(TermCreator):
+    """Create the nucleic-acid torsion energy term."""
+
     _score_types = [ScoreType.na_torsion, ScoreType.na_torsion_well]
 
     @classmethod

@@ -9,6 +9,7 @@ from ._converters import get_converter
 
 
 def validate_args(f):
+    """Decorate a callable with runtime validation of annotated values."""
     f._signature = inspect.signature(f)
     f._validators = {n: get_validator(v) for n, v in typing.get_type_hints(f).items()}
 
@@ -39,6 +40,7 @@ def validate_args(f):
 
 
 def convert_args(f):
+    """Decorate a callable with runtime conversion of annotated values."""
     f._signature = inspect.signature(f)
     f._converters = {n: get_converter(v) for n, v in typing.get_type_hints(f).items()}
 

@@ -588,6 +588,14 @@ def measure_dofs_from_orig_coords(
 def measure_pose_dofs(
     poses: PoseStack,
 ) -> tuple[KinForest, Tensor[torch.float32][:, 9]]:
+    """Measure the internal coordinates of every real residue in a pose stack.
+
+    Args:
+        poses: Poses providing residue topology and Cartesian coordinates.
+
+    Returns:
+        A residue-local kinematic forest and its measured degrees of freedom.
+    """
     # measure the DOFs for the original residues
     # -- first build kinforests for the original residues,
     # -- then call measure_dofs_from_orig_coords

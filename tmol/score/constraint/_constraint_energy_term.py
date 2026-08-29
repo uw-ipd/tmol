@@ -24,6 +24,8 @@ class HiddenPrints:
 
 
 class ConstraintEnergyTerm(EnergyTerm):
+    """Score coordinate and geometric constraints attached to a pose stack."""
+
     device: torch.device  # = attr.ib()
 
     def __init__(self, param_db: ParameterDatabase, device: torch.device):

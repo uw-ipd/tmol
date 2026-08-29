@@ -134,14 +134,17 @@ class PoseStack:
 
     @property
     def n_poses(self) -> int:
+        """Return the number of poses in the stack."""
         return self.coords.shape[0]
 
     @property
     def max_n_blocks(self) -> int:
+        """Return the padded residue count per pose."""
         return self.block_coord_offset.shape[1]
 
     @property
     def max_n_atoms(self) -> int:
+        """Return the maximum atom count among packed residue types."""
         return self.packed_block_types.max_n_atoms
 
     @property
@@ -276,6 +279,7 @@ class PoseStack:
 
     @property
     def n_res_per_pose(self) -> Tensor[torch.int64][:]:
+        """Return the number of real residues in each pose."""
         return torch.sum(self.block_type_ind >= 0, dim=1)
 
     def is_real_block(self, pose_ind: int, block_ind: int) -> torch.Tensor:

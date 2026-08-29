@@ -30,8 +30,9 @@ Example:
             assert mult == add
 """
 
-import types
+import inspect
 import logging
+import types
 import warnings
 
 from functools import singledispatch
@@ -41,6 +42,13 @@ import toolz
 
 import pytest_benchmark
 from pytest_benchmark.fixture import BenchmarkFixture
+
+
+def _new_benchmark_fixture(**kwargs) -> BenchmarkFixture:
+    """Construct a fixture across supported pytest-benchmark releases."""
+    if "precision" in inspect.signature(BenchmarkFixture).parameters:
+        kwargs.update(precision=3, confidence=0.95)
+    return BenchmarkFixture(**kwargs)
 
 
 def make_fixture(
@@ -74,7 +82,7 @@ def make_fixture(
 
     node = types.SimpleNamespace(name=name, _nodeid=name)
 
-    benchmark = pytest_benchmark.fixture.BenchmarkFixture(
+    benchmark = _new_benchmark_fixture(
         node=node,
         add_stats=add_stats if add_stats is not None else lambda s: None,
         min_rounds=min_rounds,
@@ -91,8 +99,6 @@ def make_fixture(
         cprofile=cprofile,
         cprofile_loops=cprofile_loops,
         cprofile_dump=cprofile_dump,
-        precision=3,
-        confidence=0.95,
     )
 
     benchmark.extra_info.update(extra_info)
@@ -118,7 +124,7 @@ def make_subfixture(
         name=parent.name + name_suffix, _nodeid=parent.fullname + name_suffix
     )
 
-    benchmark = pytest_benchmark.fixture.BenchmarkFixture(
+    benchmark = _new_benchmark_fixture(
         node=node,
         disable_gc=parent._disable_gc,
         timer=pytest_benchmark.utils.NameWrapper(parent._timer),
@@ -135,8 +141,6 @@ def make_subfixture(
         cprofile=parent.cprofile,
         cprofile_loops=parent.cprofile_loops,
         cprofile_dump=parent.cprofile_dump,
-        precision=3,
-        confidence=0.95,
     )
 
     benchmark.extra_info.update(parent.extra_info)

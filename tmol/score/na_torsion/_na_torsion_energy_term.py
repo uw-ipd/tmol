@@ -34,6 +34,8 @@ SUGAR_SLOTS = (DELTA, TORSION_IND["nu4"], TORSION_IND["nu0"], TORSION_IND["nu1"]
 
 
 class NaTorsionEnergyTerm(EnergyTerm):
+    """Score nucleic-acid backbone, sugar-pucker, and glycosidic torsions."""
+
     device: torch.device
 
     def __init__(self, param_db: ParameterDatabase, device: torch.device):
@@ -281,6 +283,7 @@ def eval_na_torsion_for_pose(
     weight_sugar,
     output_block_pair_energies: bool,
 ):
+    """Evaluate nucleic-acid torsion energies for packed rotamer coordinates."""
     if not has_na:
         n_poses, max_n_blocks = block_coord_offset.shape
         zero = torch.zeros(

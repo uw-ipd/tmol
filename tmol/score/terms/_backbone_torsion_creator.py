@@ -6,6 +6,8 @@ import torch
 
 @score_term_creator
 class BackboneTorsionTermCreator(TermCreator):
+    """Create the protein backbone torsion energy term."""
+
     _score_types = [ScoreType.rama, ScoreType.omega]
 
     @classmethod

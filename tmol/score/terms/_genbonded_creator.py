@@ -6,6 +6,8 @@ import torch
 
 @score_term_creator
 class GenBondedTermCreator(TermCreator):
+    """Create the general bonded-torsion energy term."""
+
     _score_types = [
         ScoreType.gen_torsions,
     ]

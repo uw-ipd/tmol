@@ -7,7 +7,6 @@ the conformations considered by the packer.
 .. automodule:: tmol.pack
    :members:
    :imported-members:
-   :undoc-members:
    :show-inheritance:
 
 Rotamer sampling
@@ -16,11 +15,9 @@ Rotamer sampling
 .. automodule:: tmol.pack.rotamer
    :members:
    :imported-members:
-   :undoc-members:
    :show-inheritance:
 
 .. automodule:: tmol.pack.rotamer.dunbrack
    :members:
    :imported-members:
-   :undoc-members:
    :show-inheritance:

@@ -6,6 +6,8 @@ import torch
 
 @score_term_creator
 class ElecTermCreator(TermCreator):
+    """Create the electrostatic energy term."""
+
     _score_types = [ScoreType.fa_elec]
 
     @classmethod

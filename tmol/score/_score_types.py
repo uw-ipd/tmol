@@ -2,6 +2,8 @@ from tmol.utility import AutoNumber
 
 
 class ScoreType(AutoNumber):
+    """Stable indices for energy terms in score-function weight tensors."""
+
     fa_ljatr = ()
     fa_ljrep = ()
     fa_lk = ()

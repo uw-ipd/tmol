@@ -602,6 +602,8 @@ def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
 # returns PatchedChemicalDatabase containing only Tuple[RawResidueType]
 @attr.s(auto_attribs=True)
 class PatchedChemicalDatabase:
+    """Chemical database containing residue types after variant application."""
+
     element_types: Tuple[Element, ...]
     atom_types: Tuple[AtomType, ...]
     residues: Tuple[RawResidueType, ...]

@@ -107,6 +107,7 @@ Nucleic-acid term
 .. automodule:: tmol.score.na_torsion
    :members:
    :imported-members:
+   :exclude-members: NaTorsionEnergyTerm
    :show-inheritance:
 
 The public parameter aliases and fitted-model constants are also available
@@ -140,6 +141,7 @@ Constraints
 .. automodule:: tmol.score.constraint
    :members:
    :imported-members:
+   :exclude-members: ConstraintEnergyTerm
    :show-inheritance:
 
 .. currentmodule:: tmol.score.constraint
@@ -161,5 +163,4 @@ a :class:`tmol.score.ScoreFunction` rather than instantiate creators directly.
 .. automodule:: tmol.score.terms
    :members:
    :imported-members:
-   :undoc-members:
    :show-inheritance:

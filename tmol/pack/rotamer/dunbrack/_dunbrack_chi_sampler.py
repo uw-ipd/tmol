@@ -64,6 +64,8 @@ class DunSamplerPBTCache:
 # ParamResolver.
 # @attr.s(auto_attribs=True, slots=True, frozen=True)
 class DunbrackChiSampler(ChiSampler):
+    """Sample amino-acid side-chain conformers from Dunbrack libraries."""
+
     dun_param_resolver: DunbrackParamResolver
 
     def __eq__(self, other):

@@ -6,6 +6,8 @@ import torch
 
 @score_term_creator
 class DisulfideTermCreator(TermCreator):
+    """Create the disulfide-geometry energy term."""
+
     _score_types = [ScoreType.disulfide]
 
     @classmethod

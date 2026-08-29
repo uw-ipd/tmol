@@ -53,6 +53,8 @@ def like_kwargs(t: torch.Tensor):
 
 
 class Tensor(_TensorType):
+    """Runtime-checkable PyTorch tensor annotation with dtype and shape metadata."""
+
     _module: typing.ClassVar = torch
     _tensortype: typing.ClassVar = torch.Tensor
 
