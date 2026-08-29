@@ -298,13 +298,18 @@ class NaChiRotamerSampler(ChiSampler):
             )
 
         counts = n_rots_for_gbt
+        # Reuse the synchronized total so these kernels need not infer it again.
         gbt_for_rotamer = torch.repeat_interleave(
-            torch.arange(n_gbt, dtype=torch.int32, device=poses.device), counts
+            torch.arange(n_gbt, dtype=torch.int32, device=poses.device),
+            counts,
+            output_size=n_rots,
         )
         # index of each rotamer within its own block
         local = torch.arange(
             n_rots, dtype=torch.int32, device=poses.device
-        ) - torch.repeat_interleave(exclusive_cumsum1d(counts), counts)
+        ) - torch.repeat_interleave(
+            exclusive_cumsum1d(counts), counts, output_size=n_rots
+        )
 
         combos_per_rot = n_combos[gbt_for_rotamer]
         chi1_slot = torch.div(local, combos_per_rot, rounding_mode="floor")

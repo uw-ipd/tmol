@@ -888,11 +888,13 @@ class OptHSampler(ConformerSampler):
                 ),
             )
         rot_offset_for_gbt = exclusive_cumsum1d(n_rots_for_gbt)
+        # Reuse the synchronized total and keep the existing int32 indices.
         gbt_for_rotamer = torch.repeat_interleave(
             torch.arange(
                 n_rots_for_gbt.shape[0], dtype=torch.int32, device=pose_stack.device
             ),
-            n_rots_for_gbt.to(torch.int64),
+            n_rots_for_gbt,
+            output_size=n_rots_total,
         )
         chi_defining_atom_for_rotamer = torch.full(
             (n_rots_total, max_n_chi_cols),
