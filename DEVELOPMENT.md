@@ -218,13 +218,12 @@ tail -f /net/scratch/kdidi/actions-runner/runner.log
 ## Releasing
 
 The version in a development checkout is not proof that a release has been
-published. As of 2026-07-17, GitHub Releases and PyPI contain v0.1.40; v0.1.42
-is the next validated release candidate. Check the GitHub Releases page before
-using a versioned wheel URL.
+published. Check both GitHub Releases and PyPI before choosing the next version
+or using a versioned wheel URL; published versions and artifacts are immutable.
 
 1. Bump `project.version` in `pyproject.toml`.
 2. Commit the version bump and ensure both `CI` and `Wheel smoke test` pass.
-3. Create and push the matching version tag (for example `v0.1.42`):
+3. Create and push the matching version tag (for example `vX.Y.Z`):
    - `publish.yml` triggers only from a pushed `v*` tag.
    - The workflow rejects tags that do not match `project.version`.
 4. Wait for workflow completion:
@@ -235,7 +234,7 @@ using a versioned wheel URL.
    - `upload`
 5. Verify release artifacts:
    - PyPI sdist upload succeeds.
-   - GitHub prerelease `vX.Y.Z` exists and contains exactly 32 manylinux wheel files: 24 GPU and 8 CPU.
+   - GitHub prerelease `vX.Y.Z` exists and contains exactly 33 manylinux wheel files: 25 GPU and 8 CPU.
 6. Install using explicit wheel files (recommended):
    - Install matching PyTorch/CUDA first.
    - Install from GitHub release wheel URL (or pinned `tmol==X.Y.Z+...` with `--find-links`).
@@ -269,4 +268,3 @@ Pre-commit runs `clang-format` (C++) and `black` (Python) on staged files. If fo
 ### Pull requests
 
 All changes to master go through pull requests. PRs are merged via squash or rebase to keep a linear history. Each PR should be an atomic unit of work.
-
