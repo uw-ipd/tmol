@@ -108,6 +108,7 @@ nbsphinx_thumbnails = {
     "tutorial/06_fast_relax": "_static/tutorials/06_fast_relax.png",
     "tutorial/07_ligand_and_params": "_static/tutorials/07_ligand_and_params.png",
     "tutorial/08_nucleic_acids": "_static/tutorials/08_nucleic_acids.png",
+    "tutorial/09_protein_interface_hotspot_scan": "_static/tutorials/09_protein_interface_hotspot_scan.png",
 }
 nbsphinx_epilog = r"""
 ----

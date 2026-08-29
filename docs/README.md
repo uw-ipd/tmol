@@ -15,8 +15,8 @@ make -C docs html
 The rendered site is written to `docs/_build/html`.
 
 Task-oriented recipes are grouped by `docs/workflows/index.md`, even when an
-existing source file remains under `docs/user_guide/`. The eight numbered
-Tutorials live under `docs/tutorial/`; the smoke command executes them before
+existing source file remains under `docs/user_guide/`. The nine numbered
+notebooks live under `docs/tutorial/`; the smoke command executes them before
 nbsphinx renders their saved outputs and interactive viewers.
 
 API pages are authored under `docs/api/`.

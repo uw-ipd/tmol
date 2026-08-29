@@ -1,6 +1,6 @@
 # Rosetta-to-TMol crosswalk
 
-This page maps concepts used in the eight TMol tutorials to their nearest
+This page maps concepts used in the nine TMol tutorials to their nearest
 Rosetta and PyRosetta counterparts. It is not an API, numerical, or protocol
 parity claim: Rosetta is a broad modeling suite, whereas TMol provides batched,
 differentiable molecular primitives in PyTorch.
@@ -111,6 +111,16 @@ A caller can explicitly construct variants, define a local packing shell,
 repack/minimize each variant, and compare scores. Such deltas describe that
 specific computational experiment; they are not a built-in scan or physical
 delta-delta G.
+
+### Protein-interface case study
+
+{doc}`Case Study 09 <09_protein_interface_hotspot_scan>` demonstrates that
+explicit composition on a neighboring KcsA subunit interface: author-label
+masks define the partners, both orientations of the block-pair tensor define
+native contributions, and matched WT/alanine local-repacking tasks share one
+batch. The example is closest in teaching intent to Rosetta interface analysis
+and the PyRosetta point-mutation scan, but it is not an `InterfaceAnalyzer`,
+docking protocol, alanine-scanning application, or binding-energy calculation.
 
 ## Minimization, constraints, and kinematics
 

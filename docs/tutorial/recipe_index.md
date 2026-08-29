@@ -34,6 +34,7 @@ want a complete walkthrough rather than a lookup table.
 | Build default, empty, or focused score functions | {doc}`Scoring workflow </user_guide/scoring>`; {doc}`Tutorial 03 <03_scoring_and_analysis>` | See the {doc}`score API </api/score>` and {doc}`term map </api/score_terms>`. |
 | Score a pose or backpropagate through coordinates | {doc}`Scoring workflow </user_guide/scoring>`; {doc}`Tutorial 03 <03_scoring_and_analysis>` | Render a module for the current pose layout and call it with coordinates. |
 | Analyze weighted or unweighted block pairs | {doc}`Scoring workflow </user_guide/scoring>`; {doc}`Tutorial 03 <03_scoring_and_analysis>` | Directed accounting can require both matrix orientations for an unordered pair. |
+| Map a protein interface and test selected alanine substitutions | {doc}`Protein-interface workflow </workflows/protein_interfaces>`; {doc}`Case Study 09 <09_protein_interface_hotspot_scan>` | Compose author-label masks, both block-pair orientations, and matched local-repacking tasks. Report one-complex score changes, not thermodynamic ΔΔG. |
 | Reweight an interface differentiably | {doc}`Tutorial 03 <03_scoring_and_analysis>` | Apply an explicit analytical weight tensor before summing and backpropagating. |
 | Add distance, coordinate, or torsion constraints | {doc}`Optimization workflow </user_guide/optimization>`; {doc}`Tutorial 05 <05_minimization_constraints_kinematics>` | See the {doc}`constraint API </api/score_terms>`. `constrain_all_ca()` is protein-specific; main-chain restraints follow block declarations. |
 
