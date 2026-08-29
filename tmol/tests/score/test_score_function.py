@@ -246,6 +246,36 @@ def test_block_pair_scoring_matches_whole_pose(ubq_pdb, default_database, torch_
     )
 
 
+def test_block_pair_gradients_respect_sparse_upstream_weights(
+    ubq_pdb, default_database, torch_device
+):
+    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
+    scorer = beta2016_score_function(
+        torch_device, default_database
+    ).render_block_pair_scoring_module(pose_stack)
+
+    n_blocks = pose_stack.max_n_blocks
+    split = n_blocks // 2
+    cross_mask = torch.zeros(
+        (1, n_blocks, n_blocks), device=torch_device, dtype=pose_stack.coords.dtype
+    )
+    cross_mask[:, :split, split:] = 1
+    cross_mask[:, split:, :split] = 1
+    all_pairs = torch.ones_like(cross_mask)
+
+    def gradient(upstream: torch.Tensor) -> torch.Tensor:
+        coords = pose_stack.coords.detach().clone().requires_grad_(True)
+        score = (scorer(coords) * upstream).sum()
+        return torch.autograd.grad(score, coords)[0]
+
+    sparse_gradient = gradient(cross_mask)
+    reference_gradient = gradient(all_pairs) - gradient(all_pairs - cross_mask)
+
+    torch.testing.assert_close(
+        sparse_gradient, reference_gradient, atol=2e-3, rtol=2e-3
+    )
+
+
 def test_block_pair_scoring_supports_only_invariant_zero_terms(torch_device):
     scorer = BlockPairScoringModule(
         torch.ones(2, device=torch_device),

@@ -811,6 +811,10 @@ class LKBallPoseScoreDispatch {
       for (int i = 0; i < 4; ++i) {
         local_dTdV[i] = dTdV[i][pose_ind][weight_block1][weight_block2];
       }
+      if (block_pair_scoring && local_dTdV[0] == 0 && local_dTdV[1] == 0
+          && local_dTdV[2] == 0 && local_dTdV[3] == 0) {
+        return;
+      }
 
       auto lk_ball_atom_derivs =
           ([=] TMOL_DEVICE_FUNC(

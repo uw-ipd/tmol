@@ -156,9 +156,11 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
   int n_V = output_block_pair_energies ? max_n_blocks : 1;
   TPack<Real, 4, D> V_t = TPack<Real, 4, D>::zeros({3, n_poses, n_V, n_V});
-  auto dV_dx_t = compute_derivs
+  // Block-pair autograd recomputes coordinate derivatives in backward.
+  bool const accumulate_derivs = compute_derivs && !output_block_pair_energies;
+  auto dV_dx_t = accumulate_derivs
                      ? TPack<Vec<Real, 3>, 2, D>::zeros({3, n_atoms})
-                     : TPack<Vec<Real, 3>, 2, D>::empty({3, n_atoms});
+                     : TPack<Vec<Real, 3>, 2, D>::empty({3, 0});
 
   auto dihedral_atom_inds_t =
       TPack<Vec<Int, DIH_N_ATOMS>, 2, D>::zeros({n_rots, max_n_dih});
@@ -166,10 +168,11 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   auto dihedral_values_t = TPack<Real, 2, D>::zeros({n_rots, max_n_dih});
   auto dihedral_values = dihedral_values_t.view;
   auto dihedral_deriv_t =
-      compute_derivs ? TPack<Eigen::Matrix<Real, DIH_N_ATOMS, 3>, 2, D>::zeros(
-                           {n_rots, max_n_dih})
-                     : TPack<Eigen::Matrix<Real, DIH_N_ATOMS, 3>, 2, D>::empty(
-                           {n_rots, max_n_dih});
+      accumulate_derivs
+          ? TPack<Eigen::Matrix<Real, DIH_N_ATOMS, 3>, 2, D>::zeros(
+                {n_rots, max_n_dih})
+          : TPack<Eigen::Matrix<Real, DIH_N_ATOMS, 3>, 2, D>::empty(
+                {n_rots, max_n_dih});
   auto dihedral_deriv = dihedral_deriv_t.view;
 
   auto rotameric_rottable_assignment_t = TPack<Int, 1, D>::zeros({n_rots});
@@ -180,18 +183,18 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       semirotameric_rottable_assignment_t.view;
 
   auto dneglnprob_rot_dbb_xyz_t =
-      compute_derivs ? TPack<CoordQuad, 2, D>::zeros({n_rots, 2})
-                     : TPack<CoordQuad, 2, D>::empty({n_rots, 2});
+      accumulate_derivs ? TPack<CoordQuad, 2, D>::zeros({n_rots, 2})
+                        : TPack<CoordQuad, 2, D>::empty({n_rots, 2});
   auto dneglnprob_rot_dbb_xyz = dneglnprob_rot_dbb_xyz_t.view;
 
   auto drotchi_devpen_dtor_xyz_t =
-      compute_derivs ? TPack<CoordQuad, 2, D>::zeros({n_rots, 3})
-                     : TPack<CoordQuad, 2, D>::empty({n_rots, 3});
+      accumulate_derivs ? TPack<CoordQuad, 2, D>::zeros({n_rots, 3})
+                        : TPack<CoordQuad, 2, D>::empty({n_rots, 3});
   auto drotchi_devpen_dtor_xyz = drotchi_devpen_dtor_xyz_t.view;
 
   auto dneglnprob_nonrot_dtor_xyz_t =
-      compute_derivs ? TPack<CoordQuad, 2, D>::zeros({n_rots, 3})
-                     : TPack<CoordQuad, 2, D>::empty({n_rots, 3});
+      accumulate_derivs ? TPack<CoordQuad, 2, D>::zeros({n_rots, 3})
+                        : TPack<CoordQuad, 2, D>::empty({n_rots, 3});
   auto dneglnprob_nonrot_dtor_xyz = dneglnprob_nonrot_dtor_xyz_t.view;
 
   auto V = V_t.view;
@@ -261,7 +264,7 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
                          : (ii == 1) ? PSI_DEFAULT
                                      : 0.0;
 
-      if (compute_derivs) {
+      if (accumulate_derivs) {
         measure_dihedral_V_dV(
             TensorAccessor<Vec<Real, 3>, 1, D>(rot_coords),
             dihedral_atom_inds[rotamer_index][ii],
@@ -301,7 +304,7 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           rotameric_rottable_assignment[rotamer_index],
           dneglnprob_rot_dbb_xyz[rotamer_index],
           dihedral_deriv[rotamer_index],
-          compute_derivs);
+          accumulate_derivs);
 
       if (output_block_pair_energies) {
         V[0][pose_index][block_index][block_index] = prob;
@@ -309,7 +312,7 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         common::accumulate<D, Real>::add(V[0][pose_index][0][0], prob);
       }
 
-      if (compute_derivs) {
+      if (accumulate_derivs) {
         // Note that we will accumulate all of the dV_dx derivatives
         // into the phi and psi definiing atoms of the _first rotamers_
         // of residues i+1 and i-1 respectively. This is dedicedly weird
@@ -352,10 +355,10 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           // Out
           drotchi_devpen_dtor_xyz[rotamer_index],
           dihedral_deriv[rotamer_index],
-          compute_derivs);
+          accumulate_derivs);
       rotameric_chi_dev_penalty += Erotdev;
 
-      if (compute_derivs) {
+      if (accumulate_derivs) {
         Vec<Int, DIH_N_ATOMS> tor0_ats = dihedral_atom_inds[rotamer_index][0];
         Vec<Int, DIH_N_ATOMS> tor1_ats = dihedral_atom_inds[rotamer_index][1];
         Vec<Int, DIH_N_ATOMS> tor2_ats =
@@ -405,7 +408,7 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
           dneglnprob_nonrot_dtor_xyz[rotamer_index],
           dihedral_deriv[rotamer_index],
-          compute_derivs);
+          accumulate_derivs);
 
       if (output_block_pair_energies) {
         V[2][pose_index][block_index][block_index] = Esemi;
@@ -413,7 +416,7 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         common::accumulate<D, Real>::add(V[2][pose_index][0][0], Esemi);
       }
 
-      if (compute_derivs) {
+      if (accumulate_derivs) {
         int last = block_n_chi[block_type_index] + 1;  // = +2 - 1
         Vec<Int, DIH_N_ATOMS> tor0_ats = dihedral_atom_inds[rotamer_index][0];
         Vec<Int, DIH_N_ATOMS> tor1_ats = dihedral_atom_inds[rotamer_index][1];
@@ -599,6 +602,12 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
       // in non-rotamer scoring (both whole-pose and block-pair scoring)
       // we will launch n_poses * max_n_blocks_per_pose threads
       // with some threads being launched for blocks with -1 block type.
+      return;
+    }
+
+    if (dTdV[0][pose_index][block_index][block_index] == 0
+        && dTdV[1][pose_index][block_index][block_index] == 0
+        && dTdV[2][pose_index][block_index][block_index] == 0) {
       return;
     }
 

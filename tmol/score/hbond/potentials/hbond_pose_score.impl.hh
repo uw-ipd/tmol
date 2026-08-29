@@ -77,7 +77,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
     if (cp_separation < 5) {                                   \
       return Real(0.0);                                        \
     }                                                          \
-    if (compute_derivs) {                                      \
+    if (accumulate_derivs) {                                   \
       Real val = hbond_atom_energy_and_derivs_full<TILE_SIZE>( \
           don_ind,                                             \
           acc_ind,                                             \
@@ -585,9 +585,11 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 
   assert(max_n_interblock_bonds <= MAX_N_CONN);
 
-  auto dV_dcoords_t = compute_derivs
+  // Block-pair autograd recomputes coordinate derivatives in backward.
+  bool const accumulate_derivs = compute_derivs && !output_block_pair_energies;
+  auto dV_dcoords_t = accumulate_derivs
                           ? TPack<Vec<Real, 3>, 2, Dev>::zeros({1, n_atoms})
-                          : TPack<Vec<Real, 3>, 2, Dev>::empty({1, n_atoms});
+                          : TPack<Vec<Real, 3>, 2, Dev>::empty({1, 0});
   auto dV_dcoords = dV_dcoords_t.view;
 
   auto scratch_rot_spheres_t =
@@ -926,6 +928,10 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
       return;
     }
 
+    if (dTdV[0][pose_ind][block_ind1][block_ind2] == 0) {
+      return;
+    }
+
     int const block_type1 = block_type_ind_for_rot[rot_ind1];
     int const block_type2 = block_type_ind_for_rot[rot_ind2];
 
@@ -1223,6 +1229,7 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 
   assert(max_n_interblock_bonds <= MAX_N_CONN);
 
+  bool const accumulate_derivs = compute_derivs;
   auto dV_dcoords_t = TPack<Vec<Real, 3>, 2, Dev>::zeros({1, n_atoms});
   auto dV_dcoords = dV_dcoords_t.view;
 

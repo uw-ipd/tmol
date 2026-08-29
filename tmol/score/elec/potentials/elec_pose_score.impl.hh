@@ -503,9 +503,11 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   assert(block_type_intra_repr_path_distance.size(1) == max_n_block_atoms);
   assert(block_type_intra_repr_path_distance.size(2) == max_n_block_atoms);
 
-  auto dV_dcoords_t = compute_derivs
+  // Block-pair autograd recomputes coordinate derivatives in backward.
+  bool const accumulate_derivs = compute_derivs && !output_block_pair_energies;
+  auto dV_dcoords_t = accumulate_derivs
                           ? TPack<Vec<Real, 3>, 2, D>::zeros({1, n_atoms})
-                          : TPack<Vec<Real, 3>, 2, D>::empty({1, n_atoms});
+                          : TPack<Vec<Real, 3>, 2, D>::empty({1, 0});
   auto dV_dcoords = dV_dcoords_t.view;
 
   auto scratch_rot_spheres_t =
@@ -1038,6 +1040,10 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     int const rot_ind2 = rot_offset_for_block[pose_ind][block_ind2];
 
     if (scratch_rot_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
+      return;
+    }
+
+    if (dTdV[0][pose_ind][block_ind1][block_ind2] == 0) {
       return;
     }
 
