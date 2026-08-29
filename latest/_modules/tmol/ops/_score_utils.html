@@ -723,13 +723,19 @@
 <span class="sd">        Mask shaped ``[n_poses, max_n_atoms]``. Non-polymers contribute all</span>
 <span class="sd">        real atoms; polymers exclude their declared main-chain atoms.</span>
 <span class="sd">    """</span>
+    <span class="n">cache_name</span> <span class="o">=</span> <span class="s2">"_score_utils_sidechain_coord_mask"</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">cache_name</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">cache_name</span><span class="p">)</span>
+
     <span class="n">block_for_atom</span><span class="p">,</span> <span class="n">atom_in_block</span><span class="p">,</span> <span class="n">real_atoms</span> <span class="o">=</span> <span class="n">_compact_atom_layout</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
     <span class="n">block_type_for_atom</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">block_for_atom</span><span class="p">)</span>
     <span class="n">sidechain_atom_mask</span> <span class="o">=</span> <span class="n">_sidechain_atom_mask_for_block_type</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
-    <span class="k">return</span> <span class="p">(</span>
+    <span class="n">coord_mask</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">sidechain_atom_mask</span><span class="p">[</span><span class="n">block_type_for_atom</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">atom_in_block</span><span class="p">]</span>
         <span class="o">&amp;</span> <span class="n">real_atoms</span>
-    <span class="p">)</span></div>
+    <span class="p">)</span>
+    <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">cache_name</span><span class="p">,</span> <span class="n">coord_mask</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">coord_mask</span></div>
 
 
 
@@ -825,6 +831,9 @@
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"max_workspace_bytes must be positive"</span><span class="p">)</span>
 
     <span class="n">coord_mask</span> <span class="o">=</span> <span class="n">res_mask_to_coord_mask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">interaction_distance</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">coord_mask</span>
+
     <span class="n">sidechain_mask</span> <span class="o">=</span> <span class="n">build_sidechain_coord_mask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
     <span class="n">n_masked_atoms</span> <span class="o">=</span> <span class="n">coord_mask</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">max_n_masked_atoms</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_masked_atoms</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
@@ -851,7 +860,7 @@
     <span class="p">]</span>
     <span class="n">masked_coords_are_real</span><span class="p">[</span><span class="n">masked_pose</span><span class="p">,</span> <span class="n">masked_slot</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
 
-    <span class="c1"># Bound the temporary [chunk, n_atoms, n_masked_atoms, 3] difference tensor.</span>
+    <span class="c1"># Bound the temporary [chunk, n_atoms, n_masked, 3] difference tensor.</span>
     <span class="n">bytes_per_pose</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">max_n_atoms</span>
         <span class="o">*</span> <span class="n">max_n_masked_atoms</span>
@@ -867,12 +876,12 @@
             <span class="o">-</span> <span class="n">masked_coords</span><span class="p">[</span><span class="n">first_pose</span><span class="p">:</span><span class="n">last_pose</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
         <span class="p">)</span>
         <span class="n">differences</span><span class="o">.</span><span class="n">square_</span><span class="p">()</span>
-        <span class="n">distances</span> <span class="o">=</span> <span class="n">differences</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">sqrt_</span><span class="p">()</span>
-        <span class="n">distances</span><span class="o">.</span><span class="n">masked_fill_</span><span class="p">(</span>
+        <span class="n">squared_distances</span> <span class="o">=</span> <span class="n">differences</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">squared_distances</span><span class="o">.</span><span class="n">masked_fill_</span><span class="p">(</span>
             <span class="o">~</span><span class="n">masked_coords_are_real</span><span class="p">[</span><span class="n">first_pose</span><span class="p">:</span><span class="n">last_pose</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="nb">float</span><span class="p">(</span><span class="s2">"inf"</span><span class="p">)</span>
         <span class="p">)</span>
-        <span class="n">nearby_atoms</span><span class="p">[</span><span class="n">first_pose</span><span class="p">:</span><span class="n">last_pose</span><span class="p">]</span> <span class="o">=</span> <span class="n">distances</span><span class="o">.</span><span class="n">amin</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">le</span><span class="p">(</span>
-            <span class="n">interaction_distance</span>
+        <span class="n">nearby_atoms</span><span class="p">[</span><span class="n">first_pose</span><span class="p">:</span><span class="n">last_pose</span><span class="p">]</span> <span class="o">=</span> <span class="n">squared_distances</span><span class="o">.</span><span class="n">amin</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">le</span><span class="p">(</span>
+            <span class="n">interaction_distance</span> <span class="o">*</span> <span class="n">interaction_distance</span>
         <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">coord_mask</span> <span class="o">|</span> <span class="p">(</span><span class="n">nearby_atoms</span> <span class="o">&amp;</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">real_atoms</span> <span class="o">&amp;</span> <span class="n">sidechain_mask</span><span class="p">)</span></div>
