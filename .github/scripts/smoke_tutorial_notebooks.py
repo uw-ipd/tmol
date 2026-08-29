@@ -22,6 +22,7 @@ TUTORIAL_NOTEBOOKS = (
     "07_ligand_and_params.ipynb",
     "08_nucleic_acids.ipynb",
     "09_protein_interface_hotspot_scan.ipynb",
+    "10_ligand_pose_sensitivity.ipynb",
 )
 TUTORIAL_REF = "master"
 KERNEL_STARTUP_TIMEOUT = 180
@@ -132,7 +133,7 @@ def main() -> int:
         "notebooks",
         nargs="*",
         type=Path,
-        help="Notebook paths (defaults to the nine published tutorials when present)",
+        help="Notebook paths (defaults to the ten published tutorials when present)",
     )
     parser.add_argument(
         "--timeout",
