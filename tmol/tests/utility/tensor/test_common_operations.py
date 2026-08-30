@@ -7,6 +7,8 @@ from tmol.utility.tensor import (
     stretch,
     stretch2,
     exclusive_cumsum1d,
+    exclusive_cumsum2d,
+    exclusive_cumsum2d_and_totals,
     nplus1d_tensor_from_list,
     cat_differently_sized_tensors,
     join_tensors_and_report_real_entries,
@@ -59,6 +61,21 @@ def test_exclusive_cumsum():
     excumsum = exclusive_cumsum1d(t)
     gold = numpy.arange(50, dtype=numpy.int64)
     numpy.testing.assert_equal(excumsum, gold)
+
+
+@pytest.mark.parametrize("dtype", (torch.int32, torch.int64))
+def test_exclusive_cumsums_preserve_empty_shapes(torch_device, dtype):
+    one_dim = torch.empty(0, dtype=dtype, device=torch_device)
+    two_dim = torch.empty((3, 0), dtype=dtype, device=torch_device)
+
+    one_dim_result = exclusive_cumsum1d(one_dim)
+    two_dim_result = exclusive_cumsum2d(two_dim)
+    two_dim_with_totals, totals = exclusive_cumsum2d_and_totals(two_dim)
+
+    assert one_dim_result.shape == one_dim.shape
+    assert two_dim_result.shape == two_dim.shape
+    assert two_dim_with_totals.shape == two_dim.shape
+    torch.testing.assert_close(totals, torch.zeros(3, dtype=dtype, device=torch_device))
 
 
 @pytest.mark.parametrize(

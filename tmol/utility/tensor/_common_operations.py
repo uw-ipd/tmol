@@ -55,14 +55,10 @@ def exclusive_cumsum1d(inds: IntTensor1D) -> IntTensor1D:
         inds: Values to accumulate.
 
     Returns:
-        Prefix sums with a zero in the first position.
+        Same-shaped prefix sums where each value is the sum of preceding
+        elements. An empty input remains empty.
     """
-    return torch.cat(
-        (
-            torch.tensor([0], dtype=inds.dtype, device=inds.device),
-            torch.cumsum(inds, 0, dtype=inds.dtype).narrow(0, 0, inds.shape[0] - 1),
-        )
-    )
+    return torch.cumsum(inds, dim=0, dtype=inds.dtype) - inds
 
 
 @validate_args
@@ -73,15 +69,10 @@ def exclusive_cumsum2d(inds: IntTensor2D) -> IntTensor2D:
         inds: Values to accumulate along dimension one.
 
     Returns:
-        Row-wise prefix sums with zeros in the first column.
+        Same-shaped row-wise prefix sums where each value is the sum of
+        preceding columns. Zero-width inputs remain zero-width.
     """
-    return torch.cat(
-        (
-            torch.zeros((inds.shape[0], 1), dtype=inds.dtype, device=inds.device),
-            torch.cumsum(inds, dim=1, dtype=inds.dtype)[:, :-1],
-        ),
-        dim=1,
-    )
+    return torch.cumsum(inds, dim=1, dtype=inds.dtype) - inds
 
 
 @validate_args
@@ -97,19 +88,16 @@ def exclusive_cumsum2d_and_totals(
         inds: Values to accumulate along dimension one.
 
     Returns:
-        The exclusive prefix sums and the sum of each row.
+        The same-shaped exclusive prefix sums and the sum of each row. A
+        zero-width row has a total of zero.
     """
     cs = torch.cumsum(inds, dim=1, dtype=inds.dtype)
-    return (
-        torch.cat(
-            (
-                torch.zeros((inds.shape[0], 1), dtype=inds.dtype, device=inds.device),
-                cs[:, :-1],
-            ),
-            dim=1,
-        ),
-        cs[:, -1],
+    totals = (
+        cs[:, -1]
+        if inds.shape[1]
+        else torch.zeros(inds.shape[0], dtype=inds.dtype, device=inds.device)
     )
+    return cs - inds, totals
 
 
 def print_row_numbered_tensor(tensor: torch.Tensor) -> None:
