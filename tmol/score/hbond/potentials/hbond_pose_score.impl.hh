@@ -783,8 +783,8 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
           scratch_rot_neighbors,
           Real(5.5));
 
-  DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
-      mgr, n_poses * max_n_upper_triangle_inds, eval_energies);
+  DeviceDispatch<Dev>::template foreach_pose_workgroup<launch_t>(
+      mgr, n_poses, max_n_upper_triangle_inds, eval_energies);
 
   // DeviceDispatch<Dev>::synchronize_device();
   return {output_t, dV_dcoords_t, scratch_rot_neighbors_t};
@@ -1050,8 +1050,8 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
         store_calculated_energies);
   });
 
-  DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
-      mgr, n_poses * max_n_upper_triangle_inds, eval_derivs);
+  DeviceDispatch<Dev>::template foreach_pose_workgroup<launch_t>(
+      mgr, n_poses, max_n_upper_triangle_inds, eval_derivs);
 
   return dV_dcoords_t;
 }

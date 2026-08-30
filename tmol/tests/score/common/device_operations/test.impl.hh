@@ -78,6 +78,23 @@ auto DevOpsTests<D>::test_foreach_workgroup(TView<int32_t, 1, D> src)
 }
 
 template <tmol::Device D>
+auto DevOpsTests<D>::test_foreach_pose_workgroup(TView<int32_t, 2, D> src)
+    -> TPack<int32_t, 2, D> {
+  ContextManager mgr;
+  int const n_poses = src.size(0);
+  int const workgroups_per_pose = src.size(1);
+  auto dst_t = TPack<int32_t, 2, D>::empty({n_poses, workgroups_per_pose});
+  auto dst = dst_t.view;
+  DO<D>::template foreach_pose_workgroup<launch_t>(
+      mgr, n_poses, workgroups_per_pose, [=] EIGEN_DEVICE_FUNC(int wg) {
+        int const pose = wg / workgroups_per_pose;
+        int const pose_wg = wg % workgroups_per_pose;
+        dst[pose][pose_wg] = src[pose][pose_wg] + wg;
+      });
+  return dst_t;
+}
+
+template <tmol::Device D>
 auto DevOpsTests<D>::test_scan_inclusive(TView<int32_t, 1, D> src)
     -> TPack<int32_t, 1, D> {
   ContextManager mgr;

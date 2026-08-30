@@ -1156,22 +1156,24 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
           max_dis);
 
   if (output_block_pair_energies) {
-    DeviceOperations<D>::template foreach_workgroup<launch_t>(
-        mgr, n_poses * max_n_upper_triangle_inds, eval_energies_by_block);
+    DeviceOperations<D>::template foreach_pose_workgroup<launch_t>(
+        mgr, n_poses, max_n_upper_triangle_inds, eval_energies_by_block);
   } else {
     int const n_workgroups = n_poses * max_n_upper_triangle_inds;
     if (!require_gradient && n_workgroups >= min_high_occupancy_workgroups) {
-      DeviceOperations<D>::template foreach_workgroup<launch_t_high_occupancy>(
-          mgr, n_workgroups, eval_energies_by_block);
+      DeviceOperations<D>::template foreach_pose_workgroup<
+          launch_t_high_occupancy>(
+          mgr, n_poses, max_n_upper_triangle_inds, eval_energies_by_block);
     } else if (!require_gradient) {
-      DeviceOperations<D>::template foreach_workgroup<launch_t>(
-          mgr, n_workgroups, eval_energies_by_block);
+      DeviceOperations<D>::template foreach_pose_workgroup<launch_t>(
+          mgr, n_poses, max_n_upper_triangle_inds, eval_energies_by_block);
     } else if (n_workgroups >= min_high_occupancy_workgroups) {
-      DeviceOperations<D>::template foreach_workgroup<launch_t_high_occupancy>(
-          mgr, n_workgroups, eval_energies);
+      DeviceOperations<D>::template foreach_pose_workgroup<
+          launch_t_high_occupancy>(
+          mgr, n_poses, max_n_upper_triangle_inds, eval_energies);
     } else {
-      DeviceOperations<D>::template foreach_workgroup<launch_t>(
-          mgr, n_workgroups, eval_energies);
+      DeviceOperations<D>::template foreach_pose_workgroup<launch_t>(
+          mgr, n_poses, max_n_upper_triangle_inds, eval_energies);
     }
   }
 
@@ -1494,8 +1496,8 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::backward(
   // 3: launch a kernel to evaluate lj/lk between pairs of blocks
   // within striking distance
 
-  DeviceOperations<D>::template foreach_workgroup<launch_t>(
-      mgr, n_poses * max_n_upper_triangle_inds, eval_derivs);
+  DeviceOperations<D>::template foreach_pose_workgroup<launch_t>(
+      mgr, n_poses, max_n_upper_triangle_inds, eval_derivs);
 
   return dV_dcoords_t;
 }
