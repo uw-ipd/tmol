@@ -459,6 +459,7 @@
     <span class="n">ATOMWORKS_NAME3S</span><span class="p">,</span>
     <span class="n">ATOMWORKS_ATOM37_NAMES</span><span class="p">,</span>
     <span class="n">pose_stack_from_atomworks</span><span class="p">,</span>
+    <span class="n">pose_stack_from_atom37_and_biotite</span><span class="p">,</span>
     <span class="n">canonical_form_from_atomworks</span><span class="p">,</span>
     <span class="n">atomworks_from_pose_stack</span><span class="p">,</span>
     <span class="n">canonical_ordering_for_atomworks</span><span class="p">,</span>
@@ -469,6 +470,7 @@
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_element_from_atom_name</span>  <span class="c1"># noqa: F401</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">._pose_stack_from_biotite</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: F401</span>
+    <span class="n">Atom37MappingError</span><span class="p">,</span>
     <span class="n">build_context_from_biotite</span><span class="p">,</span>
     <span class="n">pose_stack_from_biotite</span><span class="p">,</span>
     <span class="n">biotite_from_pose_stack</span><span class="p">,</span>
@@ -498,6 +500,7 @@
 <span class="p">)</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">"Atom37MappingError"</span><span class="p">,</span>
     <span class="s2">"CanonicalForm"</span><span class="p">,</span>
     <span class="s2">"CanonicalOrdering"</span><span class="p">,</span>
     <span class="s2">"PoseBuildContext"</span><span class="p">,</span>
@@ -525,6 +528,7 @@
     <span class="s2">"packed_block_types_for_openfold"</span><span class="p">,</span>
     <span class="s2">"packed_block_types_for_rosettafold2"</span><span class="p">,</span>
     <span class="s2">"pose_stack_from_atomworks"</span><span class="p">,</span>
+    <span class="s2">"pose_stack_from_atom37_and_biotite"</span><span class="p">,</span>
     <span class="s2">"pose_stack_from_biotite"</span><span class="p">,</span>
     <span class="s2">"pose_stack_from_openfold"</span><span class="p">,</span>
     <span class="s2">"pose_stack_from_pdb"</span><span class="p">,</span>

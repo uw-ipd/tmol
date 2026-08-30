@@ -454,6 +454,21 @@
         <span class="p">)</span>
 
     <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_opth_score_function</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ScoreFunction</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return beta2016 without terms invariant under OptH sampling."""</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreType</span><span class="p">,</span> <span class="n">beta2016_score_function</span>
+
+        <span class="n">score_function</span> <span class="o">=</span> <span class="n">beta2016_score_function</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">param_db</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_database</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># OptH changes proton chis and terminal NHQ groups, never the protein</span>
+        <span class="c1"># backbone. Avoid scoring rama/omega for every candidate rotamer.</span>
+        <span class="n">score_function</span><span class="o">.</span><span class="n">set_weight</span><span class="p">(</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">rama</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">score_function</span><span class="o">.</span><span class="n">set_weight</span><span class="p">(</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">omega</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">score_function</span>
+
+    <span class="nd">@cached_property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_dunbrack_sampler</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DunbrackChiSampler</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return the Dunbrack sampler shared by repeated pose builds."""</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.dunbrack</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>

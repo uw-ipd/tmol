@@ -407,10 +407,12 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">toolz</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_args</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">ResidueTypeSet</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._build_context</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseBuildContext</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">CanonicalForm</span><span class="p">,</span>
     <span class="n">CanonicalOrdering</span><span class="p">,</span>
@@ -524,6 +526,73 @@
     <span class="n">pbt</span> <span class="o">=</span> <span class="n">packed_block_types_for_atomworks</span><span class="p">(</span><span class="n">cf</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">pose_stack_from_canonical_form</span><span class="p">(</span><span class="n">co</span><span class="p">,</span> <span class="n">pbt</span><span class="p">,</span> <span class="o">*</span><span class="n">cf</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="pose_stack_from_atom37_and_biotite">
+<a class="viewcode-back" href="../../../api/io.html#tmol.io.pose_stack_from_atom37_and_biotite">[docs]</a>
+<span class="nd">@validate_args</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">pose_stack_from_atom37_and_biotite</span><span class="p">(</span>
+    <span class="n">atom37_coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">biotite_structure</span><span class="p">:</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArray</span> <span class="o">|</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">,</span>
+    <span class="n">context</span><span class="p">:</span> <span class="n">PoseBuildContext</span><span class="p">,</span>
+    <span class="n">no_optH</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Build a differentiable PoseStack from atom37 coordinates and a topology.</span>
+
+<span class="sd">    Unlike :func:`pose_stack_from_atomworks`, this supports any chemistry shared</span>
+<span class="sd">    by AtomWorks and the supplied TMol context (including ordinary ligands and</span>
+<span class="sd">    nucleic acids): the *chemical topology* is taken from</span>
+<span class="sd">    ``biotite_structure`` while the *coordinates* come from the</span>
+<span class="sd">    autograd-tracked ``atom37_coords`` tensor. This is the entry point for</span>
+<span class="sd">    differentiable scoring/guidance over atomized inputs, where the same fixed</span>
+<span class="sd">    topology is scored repeatedly as coordinates move.</span>
+
+<span class="sd">    Build ``context`` once with :func:`build_context_from_biotite` (with</span>
+<span class="sd">    ``prepare_ligands=True`` when ligands are present) and reuse it every step.</span>
+<span class="sd">    ``biotite_structure`` is used only for its chemical identity, so a single</span>
+<span class="sd">    reference structure can be reused across steps regardless of its coordinates.</span>
+<span class="sd">    It must carry two integer annotations that map each atom into the atom37</span>
+<span class="sd">    tensor: ``token_id`` (the token axis) and ``atom37_slot`` (the 0..36 slot).</span>
+
+<span class="sd">    Topology is derived from chemical identity alone -- ``missing_density`` breaks</span>
+<span class="sd">    and automatic disulfide detection (both coordinate-dependent) are disabled --</span>
+<span class="sd">    so the block types, termini, and atom count stay fixed as coordinates change.</span>
+<span class="sd">    This adapter does not classify or allowlist residue types or elements: newly</span>
+<span class="sd">    supported PTMs, ions, and metals work through the same API once they are</span>
+<span class="sd">    represented by the supplied context and canonical ordering.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    atom37_coords : Tensor, shape [n_poses, n_tokens, 37, 3]</span>
+<span class="sd">        Autograd-tracked coordinates in the atomworks atom37 layout.</span>
+<span class="sd">    biotite_structure : biotite AtomArray</span>
+<span class="sd">        Reference topology carrying ``token_id`` and ``atom37_slot`` annotations.</span>
+<span class="sd">    context : PoseBuildContext</span>
+<span class="sd">        Structure-independent context from :func:`build_context_from_biotite`.</span>
+<span class="sd">    no_optH : bool</span>
+<span class="sd">        Run TMol's hydrogen optimization pipeline when False (default). Pass</span>
+<span class="sd">        True to leave newly built hydrogens at ideal positions.</span>
+<span class="sd">    **kwargs</span>
+<span class="sd">        Additional arguments forwarded to ``pose_stack_from_biotite``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    PoseStack</span>
+<span class="sd">        Whose ``coords`` carry gradients back to ``atom37_coords``.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_biotite</span>
+
+    <span class="k">return</span> <span class="n">pose_stack_from_biotite</span><span class="p">(</span>
+        <span class="n">biotite_structure</span><span class="p">,</span>
+        <span class="n">atom37_coords</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">context</span><span class="o">=</span><span class="n">context</span><span class="p">,</span>
+        <span class="n">missing_density_distance_threshold</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">atom37_coords</span><span class="o">=</span><span class="n">atom37_coords</span><span class="p">,</span>
+        <span class="n">no_optH</span><span class="o">=</span><span class="n">no_optH</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span></div>
 
 
 

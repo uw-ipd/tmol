@@ -540,6 +540,68 @@ tables from the <code class="docutils literal notranslate"><span class="pre">Ato
 the structure contains non-standard residues; the resulting score function
 must use the ligand-extended parameter database.</p>
 </section>
+<section id="differentiable-atomworks-atom37-coordinates">
+<h2>Differentiable AtomWorks Atom37 coordinates<a class="headerlink" href="#differentiable-atomworks-atom37-coordinates" title="Link to this heading">#</a></h2>
+<p>For a model that predicts AtomWorks unified Atom37 coordinates, keep chemical
+identity and connectivity in its Biotite <code class="docutils literal notranslate"><span class="pre">AtomArray</span></code> and route only coordinates
+from the model tensor. Annotate each supported atom with its model <code class="docutils literal notranslate"><span class="pre">token_id</span></code>
+and <code class="docutils literal notranslate"><span class="pre">atom37_slot</span></code>, build the chemistry context once, and reuse it across model
+steps:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">build_context_from_biotite</span><span class="p">,</span>
+    <span class="n">pose_stack_from_atom37_and_biotite</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
+
+<span class="c1"># atom_array is the AtomWorks-produced topology. atom37_slots is a per-atom</span>
+<span class="c1"># integer array from the same unified encoding; use -1 for an unmapped atom.</span>
+<span class="n">atom_array</span><span class="o">.</span><span class="n">set_annotation</span><span class="p">(</span><span class="s2">"atom37_slot"</span><span class="p">,</span> <span class="n">atom37_slots</span><span class="p">)</span>
+
+<span class="n">context</span> <span class="o">=</span> <span class="n">build_context_from_biotite</span><span class="p">(</span>
+    <span class="n">atom_array</span><span class="p">,</span>
+    <span class="n">atom37_coords</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="n">prepare_ligands</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">pose_stack</span> <span class="o">=</span> <span class="n">pose_stack_from_atom37_and_biotite</span><span class="p">(</span>
+    <span class="n">atom37_coords</span><span class="p">,</span>  <span class="c1"># [sample, token, 37, xyz], float32</span>
+    <span class="n">atom_array</span><span class="p">,</span>
+    <span class="n">context</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">sfxn</span> <span class="o">=</span> <span class="n">beta2016_score_function</span><span class="p">(</span>
+    <span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="n">param_db</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">parameter_database</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">scorer</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
+<span class="n">score</span> <span class="o">=</span> <span class="n">scorer</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+<span class="n">score</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>A single call handles one sample or a whole same-topology batch; hydrogen
+optimization is enabled by default. For high-throughput diffusion or search,
+reuse <code class="docutils literal notranslate"><span class="pre">context</span></code> for every compatible candidate and render each scoring module
+once per topology and batch shape. Pass <code class="docutils literal notranslate"><span class="pre">no_optH=True</span></code> only when ideal hydrogen
+placement is an intentional speed/accuracy tradeoff.</p>
+<p>A single <code class="docutils literal notranslate"><span class="pre">AtomArray</span></code> may provide topology for a batch of coordinate tensors. An
+<code class="docutils literal notranslate"><span class="pre">AtomArrayStack</span></code> must either have the same number of models as the tensor batch
+or one model that can be broadcast. Finite mapped tensor coordinates replace
+the reference coordinates; negative indices, non-finite tensor entries, and
+unmapped atoms retain their reference coordinates. TMol-generated atoms, such
+as hydrogens, are left in their built or optimized positions. Gradients from
+TMol coordinates route back to the mapped Atom37 entries even when hydrogen
+optimization is enabled. Missing, out-of-range, or ambiguous routing annotations
+raise <code class="docutils literal notranslate"><span class="pre">Atom37MappingError</span></code>, so callers can handle mapping failures without
+catching unrelated pose-construction errors.</p>
+<p>This path supports the intersection of the two chemistry systems: canonical
+protein, DNA, RNA, ordinary prepared ligands, and fragmented ligands on current
+TMol. Metal-containing ligands and covalently linked modified components require
+corresponding TMol parameterization support. The adapter has no residue or
+element allowlist, so those chemistries use this same interface once a context
+can represent them; strict ligand preparation does not silently drop them in
+the meantime.</p>
+</section>
 </section>
 
 
@@ -592,6 +654,7 @@ must use the ligand-extended parameter database.</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#rosettafold2">RoseTTAFold2</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#openfold">OpenFold</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#biotite-and-atomarray">Biotite and AtomArray</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#differentiable-atomworks-atom37-coordinates">Differentiable AtomWorks Atom37 coordinates</a></li>
 </ul>
   </nav></div>
 
