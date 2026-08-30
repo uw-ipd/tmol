@@ -55,6 +55,10 @@ jobs:
             runs-on: macos-15
             build_workers: 2
             test_workers: 2
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_COMPRESS: "true"
+      CCACHE_MAXSIZE: 750M
     steps:
       - uses: actions/checkout@v5
         with:
@@ -64,10 +68,32 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: install compiler cache
+        run: |
+          if [ "$RUNNER_OS" = macOS ]; then
+            brew install ccache
+          else
+            sudo apt-get update
+            sudo apt-get install --yes ccache
+          fi
+
+      - name: restore compiler cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: tmol-ccache-v1-${{ matrix.platform }}-${{ hashFiles('CMakeLists.txt', 'pyproject.toml', 'cmake/**') }}-${{ github.sha }}
+          restore-keys: |
+            tmol-ccache-v1-${{ matrix.platform }}-${{ hashFiles('CMakeLists.txt', 'pyproject.toml', 'cmake/**') }}-
+            tmol-ccache-v1-${{ matrix.platform }}-
+
       - name: build CPU-only package
         env:
           MAX_JOBS: ${{ matrix.build_workers }}
         run: .github/ci/build_cpu_package.sh
+
+      - name: report compiler cache
+        if: always()
+        run: ccache --show-stats
 
       - name: test
         env:

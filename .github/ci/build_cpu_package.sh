@@ -25,6 +25,16 @@ uv pip install 'cmake>=3.18,<4' 'scikit-build-core>=0.10' ninja \
 
 export CMAKE_PREFIX_PATH
 CMAKE_PREFIX_PATH=$(python -c 'import torch; print(torch.utils.cmake_prefix_path)')
-MAX_JOBS="${MAX_JOBS:-4}" uv pip install --no-build-isolation -e '.[dev]' \
-  -Ccmake.define.TMOL_ENABLE_CUDA=OFF \
+cmake_args=(
+  -Ccmake.define.TMOL_ENABLE_CUDA=OFF
   -Ccmake.define.TMOL_BUILD_TESTS=ON
+)
+if command -v ccache >/dev/null; then
+  ccache --max-size="${CCACHE_MAXSIZE:-750M}"
+  ccache --zero-stats
+  cmake_args+=(
+    -Ccmake.define.CMAKE_CXX_COMPILER_LAUNCHER=ccache
+  )
+fi
+MAX_JOBS="${MAX_JOBS:-4}" uv pip install --no-build-isolation -e '.[dev]' \
+  "${cmake_args[@]}"
