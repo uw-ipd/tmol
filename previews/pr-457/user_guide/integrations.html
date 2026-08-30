@@ -567,7 +567,7 @@ steps:</p>
 <span class="p">)</span>
 
 <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">pose_stack_from_atom37_and_biotite</span><span class="p">(</span>
-    <span class="n">atom37_coords</span><span class="p">,</span>  <span class="c1"># [pose, token, 37, xyz], float32</span>
+    <span class="n">atom37_coords</span><span class="p">,</span>  <span class="c1"># [sample, token, 37, xyz], float32</span>
     <span class="n">atom_array</span><span class="p">,</span>
     <span class="n">context</span><span class="p">,</span>
 <span class="p">)</span>
@@ -580,6 +580,11 @@ steps:</p>
 <span class="n">score</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
 </pre></div>
 </div>
+<p>A single call handles one sample or a whole same-topology batch; hydrogen
+optimization is enabled by default. For high-throughput diffusion or search,
+reuse <code class="docutils literal notranslate"><span class="pre">context</span></code> for every compatible candidate and render each scoring module
+once per topology and batch shape. Pass <code class="docutils literal notranslate"><span class="pre">no_optH=True</span></code> only when ideal hydrogen
+placement is an intentional speed/accuracy tradeoff.</p>
 <p>A single <code class="docutils literal notranslate"><span class="pre">AtomArray</span></code> may provide topology for a batch of coordinate tensors. An
 <code class="docutils literal notranslate"><span class="pre">AtomArrayStack</span></code> must either have the same number of models as the tensor batch
 or one model that can be broadcast. Finite mapped tensor coordinates replace

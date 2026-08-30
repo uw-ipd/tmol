@@ -435,21 +435,20 @@
 <span class="sd">      FixedAAChiSampler for amino acids, NaChiRotamerSampler for nucleotides.</span>
 <span class="sd">      The input conformation is not included as a rotamer because the sidechain</span>
 <span class="sd">      is incomplete.</span>
-<span class="sd">    - All other real blocks (leaf-only or no missing atoms): OptHSampler, which</span>
-<span class="sd">      keeps heavy atoms fixed and samples proton chi angles and NHQ flips.</span>
+<span class="sd">    - Complete blocks supported by OptHSampler: keep heavy atoms fixed while</span>
+<span class="sd">      sampling proton chi angles and NHQ flips.</span>
 <span class="sd">      The two sets are disjoint: NaChiRotamerSampler expands the RNA 2'-OH</span>
 <span class="sd">      itself, exactly as DunbrackChiSampler expands protein proton chis, so a</span>
 <span class="sd">      block must never be given both.</span>
-<span class="sd">      FallbackSampler (always present by default) covers residue types that</span>
-<span class="sd">      OptH does not handle (ALA, GLY, etc.).</span>
+<span class="sd">    - Complete blocks that OptHSampler cannot change (ALA, GLY, etc.) are</span>
+<span class="sd">      frozen instead of becoming one-rotamer packing positions.</span>
 
 <span class="sd">    When no_optH=True the old behavior is preserved: only Dunbrack runs for</span>
 <span class="sd">    blocks with missing heavy atoms; all other blocks are frozen.</span>
 
 <span class="sd">    Note: IncludeCurrentSampler is intentionally not used.  For Dunbrack</span>
 <span class="sd">    blocks the native conformation is broken and must not appear as a rotamer.</span>
-<span class="sd">    For OptH blocks, OptH includes native as rotamer-0 for NHQ residues and</span>
-<span class="sd">    FallbackSampler covers the rest.</span>
+<span class="sd">    For OptH blocks, OptH includes native as rotamer-0 for NHQ residues.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        pose_stack: The pose stack to process.</span>
@@ -491,9 +490,17 @@
             <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler_by_block_mask</span><span class="p">(</span><span class="n">na_sampler</span><span class="p">,</span> <span class="n">missing_na_blocks</span><span class="p">)</span>
     <span class="n">block_does_not_have_missing_atoms</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">block_has_missing_atoms</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">no_optH</span><span class="p">:</span>
-        <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler_by_block_mask</span><span class="p">(</span>
-            <span class="n">opth_sampler</span><span class="p">,</span> <span class="n">block_does_not_have_missing_atoms</span>
+        <span class="n">block_type_ind</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span>
+        <span class="n">real_blocks</span> <span class="o">=</span> <span class="n">block_type_ind</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+        <span class="n">complete_blocks</span> <span class="o">=</span> <span class="n">block_does_not_have_missing_atoms</span> <span class="o">&amp;</span> <span class="n">real_blocks</span>
+        <span class="n">opth_blocks</span> <span class="o">=</span> <span class="n">complete_blocks</span> <span class="o">&amp;</span> <span class="n">opth_sampler</span><span class="o">.</span><span class="n">defines_rotamers_for_bts</span><span class="p">(</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="n">block_type_ind</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
         <span class="p">)</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler_by_block_mask</span><span class="p">(</span><span class="n">opth_sampler</span><span class="p">,</span> <span class="n">opth_blocks</span><span class="p">)</span>
+        <span class="c1"># The fallback sampler would otherwise turn every complete ALA/GLY/etc.</span>
+        <span class="c1"># into a one-rotamer molten position. Freezing blocks that OptH cannot</span>
+        <span class="c1"># change gives identical coordinates and a smaller interaction graph.</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">disable_packing_by_block_mask</span><span class="p">(</span><span class="n">complete_blocks</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">opth_blocks</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">task</span><span class="o">.</span><span class="n">disable_packing_by_block_mask</span><span class="p">(</span><span class="n">block_does_not_have_missing_atoms</span><span class="p">)</span>
 

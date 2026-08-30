@@ -611,20 +611,19 @@ members of the packer need.</p>
 FixedAAChiSampler for amino acids, NaChiRotamerSampler for nucleotides.
 The input conformation is not included as a rotamer because the sidechain
 is incomplete.</p></li>
-<li><p>All other real blocks (leaf-only or no missing atoms): OptHSampler, which
-keeps heavy atoms fixed and samples proton chi angles and NHQ flips.
+<li><p>Complete blocks supported by OptHSampler: keep heavy atoms fixed while
+sampling proton chi angles and NHQ flips.
 The two sets are disjoint: NaChiRotamerSampler expands the RNA 2’-OH
 itself, exactly as DunbrackChiSampler expands protein proton chis, so a
-block must never be given both.
-FallbackSampler (always present by default) covers residue types that
-OptH does not handle (ALA, GLY, etc.).</p></li>
+block must never be given both.</p></li>
+<li><p>Complete blocks that OptHSampler cannot change (ALA, GLY, etc.) are
+frozen instead of becoming one-rotamer packing positions.</p></li>
 </ul>
 <p>When no_optH=True the old behavior is preserved: only Dunbrack runs for
 blocks with missing heavy atoms; all other blocks are frozen.</p>
 <p>Note: IncludeCurrentSampler is intentionally not used.  For Dunbrack
 blocks the native conformation is broken and must not appear as a rotamer.
-For OptH blocks, OptH includes native as rotamer-0 for NHQ residues and
-FallbackSampler covers the rest.</p>
+For OptH blocks, OptH includes native as rotamer-0 for NHQ residues.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">

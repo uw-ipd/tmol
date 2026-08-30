@@ -536,7 +536,7 @@
     <span class="n">atom37_coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">biotite_structure</span><span class="p">:</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArray</span> <span class="o">|</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">,</span>
     <span class="n">context</span><span class="p">:</span> <span class="n">PoseBuildContext</span><span class="p">,</span>
-    <span class="n">no_optH</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">no_optH</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Build a differentiable PoseStack from atom37 coordinates and a topology.</span>
@@ -569,8 +569,8 @@
 <span class="sd">    context : PoseBuildContext</span>
 <span class="sd">        Structure-independent context from :func:`build_context_from_biotite`.</span>
 <span class="sd">    no_optH : bool</span>
-<span class="sd">        Leave newly built hydrogens at ideal positions when True (default).</span>
-<span class="sd">        Pass False to run TMol's hydrogen optimization pipeline.</span>
+<span class="sd">        Run TMol's hydrogen optimization pipeline when False (default). Pass</span>
+<span class="sd">        True to leave newly built hydrogens at ideal positions.</span>
 <span class="sd">    **kwargs</span>
 <span class="sd">        Additional arguments forwarded to ``pose_stack_from_biotite``.</span>
 
