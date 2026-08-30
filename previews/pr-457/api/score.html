@@ -1,0 +1,980 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Scoring &#8212; TMol</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=0a30a683" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../_static/scripts/fontawesome.js?digest=cb8930eaaf36d9849b67"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
+
+    <script src="../_static/documentation_options.js?v=61349712"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script>let toggleHintShow = 'show code';</script>
+    <script>let toggleHintHide = 'hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/score';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/api/score.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Analysis Operations" href="analysis.html" />
+    <link rel="prev" title="Relax" href="relax.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.52" />
+  
+    
+    <script src="../_static/searchtools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script src="../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TMol</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../api_reference.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../api_reference.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="top_level.html">Top-level API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chemical.html">Chemical Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="database.html">Parameter Database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="io.html">Input and Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kinematics.html">Kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ligand.html">Ligands</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="numeric.html">Numerical Utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="optimization.html">Optimization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pack.html">Packing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pose.html">Pose</a></li>
+<li class="toctree-l1"><a class="reference internal" href="relax.html">Relax</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Scoring</a></li>
+<li class="toctree-l1"><a class="reference internal" href="analysis.html">Analysis Operations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="score_terms.html">Score Terms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="types.html">Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utility.html">Utilities</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../concepts.html">Concepts</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html">Core architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../datatypes.html">Data model and conventions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../terminology.html">Terminology and modeling choices</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../api_reference.html" class="nav-link">API reference</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Scoring</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="scoring">
+<h1>Scoring<a class="headerlink" href="#scoring" title="Link to this heading">#</a></h1>
+<p>Use <a class="reference internal" href="#tmol.score.beta2016_score_function" title="tmol.score.beta2016_score_function"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmol.score.beta2016_score_function()</span></code></a> for the standard configured
+score function, or construct <a class="reference internal" href="#tmol.score.ScoreFunction" title="tmol.score.ScoreFunction"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.ScoreFunction</span></code></a> and set
+individual <a class="reference internal" href="#tmol.score.ScoreType" title="tmol.score.ScoreType"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.ScoreType</span></code></a> weights.</p>
+<p id="module-tmol.score">Score functions, energy terms, and standard weight sets.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.AcceptorHybridization">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.</span></span><span class="sig-name descname"><span class="pre">AcceptorHybridization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_chemical_database.html#AcceptorHybridization"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.AcceptorHybridization" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.IntEnum" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
+<p>Hydrogen-bond acceptor hybridization categories.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.AtomTypeParamResolver">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.</span></span><span class="sig-name descname"><span class="pre">AtomTypeParamResolver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#tmol.score.AtomTypeParams" title="tmol.score._chemical_database.AtomTypeParams"><span class="pre">AtomTypeParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_chemical_database.html#AtomTypeParamResolver"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.AtomTypeParamResolver" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="types.html#tmol.types.ValidateAttrs" title="tmol.types._attrs.ValidateAttrs"><code class="xref py py-class docutils literal notranslate"><span class="pre">ValidateAttrs</span></code></a></p>
+<p>Container for global/type/pair parameters, indexed by atom type name.</p>
+<p>Param resolver stores pair parameters for a collection of atom types, using
+a pandas Index to map from string atom type to a resolver-specific integer type
+index.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.AtomTypeParamResolver.from_database">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_database</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">chemical_database</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ChemicalDatabase" title="tmol.database.chemical.ChemicalDatabase"><span class="pre">ChemicalDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_chemical_database.html#AtomTypeParamResolver.from_database"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.AtomTypeParamResolver.from_database" title="Link to this definition">#</a></dt>
+<dd><p>Initialize param resolver for all atom types in database.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.AtomTypeParamResolver.type_idx">
+<span class="sig-name descname"><span class="pre">type_idx</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atom_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="types.html#tmol.types.NDArray" title="tmol.types._array.NDArray"><span class="pre">NDArray</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><span class="pre">Tensor</span></a></span></span><a class="reference internal" href="../_modules/tmol/score/_chemical_database.html#AtomTypeParamResolver.type_idx"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.AtomTypeParamResolver.type_idx" title="Link to this definition">#</a></dt>
+<dd><p>Convert array of atom type names to parameter indices.</p>
+<p>pandas.Index.get_indexer only operates on 1-d input arrays. Coerces
+higher-dimensional arrays, as may be produced via broadcasting, into
+lower-dimensional views to resolver parameter indices.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.AtomTypeParams">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.</span></span><span class="sig-name descname"><span class="pre">AtomTypeParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">is_acceptor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">acceptor_hybridization</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_donor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_hydrogen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_hydroxyl</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_polarh</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><span class="pre">Tensor</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_chemical_database.html#AtomTypeParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.AtomTypeParams" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="types.html#tmol.types.TensorGroup" title="tmol.types._tensor.TensorGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">TensorGroup</span></code></a>, <a class="reference internal" href="types.html#tmol.types.ValidateAttrs" title="tmol.types._attrs.ValidateAttrs"><code class="xref py py-class docutils literal notranslate"><span class="pre">ValidateAttrs</span></code></a></p>
+<p>Packed donor, acceptor, hydrogen, and hybridization atom-type flags.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.BlockPairScoringModule">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.</span></span><span class="sig-name descname"><span class="pre">BlockPairScoringModule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_modules</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Sequence" title="(in Python v3.14)"><span class="pre">Sequence</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.pytorch.org/docs/2.13/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.13)"><span class="pre">Module</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#BlockPairScoringModule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.BlockPairScoringModule" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Rendered energy modules that retain per-block-pair scores.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.FragmentInteractionScores">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.</span></span><span class="sig-name descname"><span class="pre">FragmentInteractionScores</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scores</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mapping</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="pose.html#tmol.pose.SplitBlockEntry" title="tmol.pose._split_block_mapping.SplitBlockEntry"><span class="pre">SplitBlockEntry</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_LegacyFragmentRecord</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_fragment_interactions.html#FragmentInteractionScores"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.FragmentInteractionScores" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Per-fragment interactions with an explicitly selected partner.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.IndexedBonds">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.</span></span><span class="sig-name descname"><span class="pre">IndexedBonds</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bonds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><span class="pre">Tensor</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#slice" title="(in Python v3.14)"><span class="pre">slice</span></a><span class="p"><span class="pre">(</span></span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#slice" title="(in Python v3.14)"><span class="pre">slice</span></a><span class="p"><span class="pre">(</span></span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">2</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bond_spans</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><span class="pre">Tensor</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#slice" title="(in Python v3.14)"><span class="pre">slice</span></a><span class="p"><span class="pre">(</span></span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#slice" title="(in Python v3.14)"><span class="pre">slice</span></a><span class="p"><span class="pre">(</span></span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">2</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_bonded_atom.html#IndexedBonds"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.IndexedBonds" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Sorted atom bonds with per-atom spans for efficient neighborhood lookup.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.IndexedBonds.to_directed">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">to_directed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">src_bonds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_bonded_atom.html#IndexedBonds.to_directed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.IndexedBonds.to_directed" title="Link to this definition">#</a></dt>
+<dd><p>Convert a potentially-undirected bond-table into dense, directed bonds.
+The input “bonds” tensor is a two dimensional array of nbonds x 3,
+where the 2nd dimension holds [stack index, atom 1 index, atom 2 index].</p>
+<p>Eg. Converts
+[[0, 0, 1], [0, 0, 2]]
+into
+[[0, 0, 1], [0, 1, 0], [0, 0, 2], [0, 2, 0]]</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.RotamerScoringModule">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.</span></span><span class="sig-name descname"><span class="pre">RotamerScoringModule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_modules</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Sequence" title="(in Python v3.14)"><span class="pre">Sequence</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.pytorch.org/docs/2.13/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.13)"><span class="pre">Module</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#RotamerScoringModule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.RotamerScoringModule" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Rendered energy modules that build sparse rotamer-pair energy tables.</p>
+<p>Large identical index layouts are combined before sparse coalescing to
+avoid retaining and sorting redundant block-pair indices.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.ScoreFunction">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.</span></span><span class="sig-name descname"><span class="pre">ScoreFunction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#ScoreFunction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ScoreFunction" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Weighted collection of energy terms rendered for a pose topology.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>param_db</strong> – Chemical and scoring parameters used to construct terms.</p></li>
+<li><p><strong>device</strong> – Device on which weights and rendered scorers operate. An
+unindexed CUDA device resolves to the current CUDA device.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ScoreFunction.all_score_types">
+<span class="sig-name descname"><span class="pre">all_score_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#tmol.score.ScoreType" title="tmol.score._score_types.ScoreType"><span class="pre">ScoreType</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#ScoreFunction.all_score_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ScoreFunction.all_score_types" title="Link to this definition">#</a></dt>
+<dd><p>Return score types in the same order as <a class="reference internal" href="#tmol.score.ScoreFunction.all_terms" title="tmol.score.ScoreFunction.all_terms"><code class="xref py py-meth docutils literal notranslate"><span class="pre">all_terms()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ScoreFunction.all_terms">
+<span class="sig-name descname"><span class="pre">all_terms</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#ScoreFunction.all_terms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ScoreFunction.all_terms" title="Link to this definition">#</a></dt>
+<dd><p>Grant read access to the list of terms.</p>
+<p>Do not modify this list directly</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ScoreFunction.from_sfxn_file">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_sfxn_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param_db</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#ScoreFunction.from_sfxn_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ScoreFunction.from_sfxn_file" title="Link to this definition">#</a></dt>
+<dd><p>Create a ScoreFunction from a YAML weights file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> – Path to a YAML file containing a <code class="docutils literal notranslate"><span class="pre">weights</span></code> dict mapping
+score type names (as in <code class="docutils literal notranslate"><span class="pre">ScoreType</span></code>) to their weights, as well
+as any other options to configure the score function.</p></li>
+<li><p><strong>param_db</strong> – ParameterDatabase instance.</p></li>
+<li><p><strong>device</strong> – Target torch device.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Configured ScoreFunction with all weights from the file applied.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ScoreFunction.get_weight">
+<span class="sig-name descname"><span class="pre">get_weight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">st</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#tmol.score.ScoreType" title="tmol.score._score_types.ScoreType"><span class="pre">ScoreType</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><span class="pre">Tensor</span></a></span></span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#ScoreFunction.get_weight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ScoreFunction.get_weight" title="Link to this definition">#</a></dt>
+<dd><p>Return the scalar weight for <code class="docutils literal notranslate"><span class="pre">st</span></code> on the score-function device.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ScoreFunction.multi_body_terms">
+<span class="sig-name descname"><span class="pre">multi_body_terms</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#ScoreFunction.multi_body_terms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ScoreFunction.multi_body_terms" title="Link to this definition">#</a></dt>
+<dd><p>Return the active multi-body energy terms in score-type order.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ScoreFunction.one_body_terms">
+<span class="sig-name descname"><span class="pre">one_body_terms</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#ScoreFunction.one_body_terms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ScoreFunction.one_body_terms" title="Link to this definition">#</a></dt>
+<dd><p>Return the active one-body energy terms in score-type order.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ScoreFunction.pre_work_initialization">
+<span class="sig-name descname"><span class="pre">pre_work_initialization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose._pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#ScoreFunction.pre_work_initialization"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ScoreFunction.pre_work_initialization" title="Link to this definition">#</a></dt>
+<dd><p>Prepare active energy terms for a pose topology.</p>
+<p>Repeated calls reuse topology-dependent setup when neither the terms,
+their options, nor the packed block types have changed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pose_stack</strong> – Poses whose topology will be scored.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ScoreFunction.remove_term_for_score_type">
+<span class="sig-name descname"><span class="pre">remove_term_for_score_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">st</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#tmol.score.ScoreType" title="tmol.score._score_types.ScoreType"><span class="pre">ScoreType</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#ScoreFunction.remove_term_for_score_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ScoreFunction.remove_term_for_score_type" title="Link to this definition">#</a></dt>
+<dd><p>Remove the term containing <code class="docutils literal notranslate"><span class="pre">st</span></code> once all its weights are zero.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ScoreFunction.render_block_pair_scoring_module">
+<span class="sig-name descname"><span class="pre">render_block_pair_scoring_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose._pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#ScoreFunction.render_block_pair_scoring_module"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ScoreFunction.render_block_pair_scoring_module" title="Link to this definition">#</a></dt>
+<dd><p>Create an object designed to evaluate the score of a set of Poses
+repeatedly as the Poses change their conformation, e.g., as in
+minimization. This object will derive from torch.nn.Module and
+it will contain a set of objects rendered by the ScoreFunction’s
+terms that themselves are derived from torch.nn.Module. This
+object’s __call__ will return a tensor of weighted energies of
+shape (n_poses, max_n_blocks, max_n_blocks).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ScoreFunction.render_rotamer_scoring_module">
+<span class="sig-name descname"><span class="pre">render_rotamer_scoring_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose._pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rotamer_set</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pack.html#tmol.pack.rotamer.RotamerSet" title="tmol.pack.rotamer.RotamerSet"><span class="pre">RotamerSet</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#tmol.score.RotamerScoringModule" title="tmol.score.RotamerScoringModule"><span class="pre">RotamerScoringModule</span></a></span></span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#ScoreFunction.render_rotamer_scoring_module"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ScoreFunction.render_rotamer_scoring_module" title="Link to this definition">#</a></dt>
+<dd><p>Render a weighted sparse scorer for one rotamer set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pose_stack</strong> – Poses whose fixed background interacts with the
+rotamers.</p></li>
+<li><p><strong>rotamer_set</strong> – Candidate conformers and their pose/block indexing.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A callable that accepts rotamer coordinates and returns an
+uncoalesced sparse COO tensor shaped
+<code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">n_rotamers,</span> <span class="pre">n_rotamers]</span></code>. Call <code class="docutils literal notranslate"><span class="pre">coalesce()</span></code> before
+reading its indices or values.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ScoreFunction.render_whole_pose_scoring_module">
+<span class="sig-name descname"><span class="pre">render_whole_pose_scoring_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose._pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">cuda_graph</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#ScoreFunction.render_whole_pose_scoring_module"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ScoreFunction.render_whole_pose_scoring_module" title="Link to this definition">#</a></dt>
+<dd><p>Create an object designed to evaluate the score of a set of Poses
+repeatedly as the Poses change their conformation, e.g., as in
+minimization. This object will derive from torch.nn.Module and
+it will contain a set of objects rendered by the ScoreFunction’s
+terms that themselves are derived from torch.nn.Module. This
+object’s __call__ will return a tensor of weighted energies of
+shape (n_poses,).</p>
+<p>Set <code class="docutils literal notranslate"><span class="pre">cuda_graph</span></code> to <code class="docutils literal notranslate"><span class="pre">&quot;forward&quot;</span></code> for repeated inference,
+<code class="docutils literal notranslate"><span class="pre">&quot;forward_backward&quot;</span></code> for repeated scoring with coordinate gradients,
+or <code class="docutils literal notranslate"><span class="pre">True</span></code> to capture both paths. Graph capture requires CUDA and a
+fixed coordinate shape, dtype, and device. Forward-only replay reuses
+its output buffer; clone an output that must survive the next call.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ScoreFunction.score_type_covered_by_contained_term">
+<span class="sig-name descname"><span class="pre">score_type_covered_by_contained_term</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">st</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#tmol.score.ScoreType" title="tmol.score._score_types.ScoreType"><span class="pre">ScoreType</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#ScoreFunction.score_type_covered_by_contained_term"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ScoreFunction.score_type_covered_by_contained_term" title="Link to this definition">#</a></dt>
+<dd><p>Return whether a constructed energy term implements <code class="docutils literal notranslate"><span class="pre">st</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ScoreFunction.set_option">
+<span class="sig-name descname"><span class="pre">set_option</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#ScoreFunction.set_option"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ScoreFunction.set_option" title="Link to this definition">#</a></dt>
+<dd><p>Set an option for all energy terms.</p>
+<p>Options are passed to each energy term’s set_options method
+as a dictionary during pre_work_initialization.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ScoreFunction.set_options">
+<span class="sig-name descname"><span class="pre">set_options</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><span class="pre">Dict</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#ScoreFunction.set_options"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ScoreFunction.set_options" title="Link to this definition">#</a></dt>
+<dd><p>Set the score function options by a dict.</p>
+<p>This replaces the options dict entirely - any previous values
+are gone.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ScoreFunction.set_weight">
+<span class="sig-name descname"><span class="pre">set_weight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">st</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#tmol.score.ScoreType" title="tmol.score._score_types.ScoreType"><span class="pre">ScoreType</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#ScoreFunction.set_weight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ScoreFunction.set_weight" title="Link to this definition">#</a></dt>
+<dd><p>Set the weight for one score type.</p>
+<p>The energy term that implements <code class="docutils literal notranslate"><span class="pre">st</span></code> is created lazily when the
+requested weight is nonzero.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>st</strong> – Score type to update.</p></li>
+<li><p><strong>weight</strong> – New scalar weight.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ScoreFunction.two_body_terms">
+<span class="sig-name descname"><span class="pre">two_body_terms</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#ScoreFunction.two_body_terms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ScoreFunction.two_body_terms" title="Link to this definition">#</a></dt>
+<dd><p>Return the active two-body energy terms in score-type order.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ScoreFunction.weights_tensor">
+<span class="sig-name descname"><span class="pre">weights_tensor</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><span class="pre">Tensor</span></a></span></span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#ScoreFunction.weights_tensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ScoreFunction.weights_tensor" title="Link to this definition">#</a></dt>
+<dd><p>Return weights aligned with the rendered term/subterm order.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.ScoreType">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.</span></span><span class="sig-name descname"><span class="pre">ScoreType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_score_types.html#ScoreType"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ScoreType" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="utility.html#tmol.utility.AutoNumber" title="tmol.utility._auto_number.AutoNumber"><code class="xref py py-class docutils literal notranslate"><span class="pre">AutoNumber</span></code></a></p>
+<p>Stable indices for energy terms in score-function weight tensors.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.WholePoseScoringModule">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.</span></span><span class="sig-name descname"><span class="pre">WholePoseScoringModule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_modules</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Sequence" title="(in Python v3.14)"><span class="pre">Sequence</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.pytorch.org/docs/2.13/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.13)"><span class="pre">Module</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#WholePoseScoringModule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.WholePoseScoringModule" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Rendered energy modules that score complete poses.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.WholePoseScoringModule.enable_cuda_graphs">
+<span class="sig-name descname"><span class="pre">enable_cuda_graphs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">example_coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'both'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#WholePoseScoringModule.enable_cuda_graphs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.WholePoseScoringModule.enable_cuda_graphs" title="Link to this definition">#</a></dt>
+<dd><p>Capture the default weighted score for a fixed coordinate shape.</p>
+<p>The returned scorer accepts new coordinate values with the same shape,
+dtype, and device and retains forward and backward support. Calls that
+request unweighted or unsummed terms continue to use the eager path.
+Forward-only replay reuses its output buffer.</p>
+<p><code class="docutils literal notranslate"><span class="pre">mode</span></code> may be <code class="docutils literal notranslate"><span class="pre">&quot;forward&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;forward_backward&quot;</span></code>, or <code class="docutils literal notranslate"><span class="pre">&quot;both&quot;</span></code>.
+Capture has a one-time cost and retains static buffers, so select only
+the paths that will be reused. Calling this method again is a no-op for
+paths that are already captured.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.score.beta2016_score_function">
+<span class="sig-prename descclassname"><span class="pre">tmol.score.</span></span><span class="sig-name descname"><span class="pre">beta2016_score_function</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#tmol.score.ScoreFunction" title="tmol.score._score_function.ScoreFunction"><span class="pre">ScoreFunction</span></a></span></span><a class="reference internal" href="../_modules/tmol/score.html#beta2016_score_function"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.beta2016_score_function" title="Link to this definition">#</a></dt>
+<dd><p>Return a ScoreFunction implementing the beta_nov2016_cart score function
+of Rosetta3.</p>
+<p>Note that in Rosetta3, beta_nov2016 and beta_nov2016_cart are identical
+except for the inclusion of the bond-length, bond-angle, and bond-torsion
+terms implemented by the CartBonded energy term, and the exclusion
+of the ProClose energy term (which is not implemented in tmol).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>device</strong> – Target torch device.</p></li>
+<li><p><strong>param_db</strong> – Optional parameter database. If omitted, uses the process
+default parameter database and a memoized score function.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Configured <cite>ScoreFunction</cite>.</p>
+</dd>
+</dl>
+<p>When <cite>param_db</cite> is provided, this creates a fresh score function
+(no memoization — caller owns database lifecycle).</p>
+<p>See:
+<a class="reference external" href="https://pubs.acs.org/doi/10.1021/acs.jctc.6b0081">https://pubs.acs.org/doi/10.1021/acs.jctc.6b0081</a> and
+<a class="reference external" href="https://pubs.acs.org/doi/full/10.1021/acs.jctc.7b00125">https://pubs.acs.org/doi/full/10.1021/acs.jctc.7b00125</a></p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.score.calculate_fragment_interactions">
+<span class="sig-prename descclassname"><span class="pre">tmol.score.</span></span><span class="sig-name descname"><span class="pre">calculate_fragment_interactions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose.PoseStack"><span class="pre">PoseStack</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">partner_mask</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor[torch.bool][:,</span> <span class="pre">:]</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">sfxn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#tmol.score.ScoreFunction" title="tmol.score.ScoreFunction"><span class="pre">ScoreFunction</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mapping</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.SplitBlockMapping" title="tmol.pose.SplitBlockMapping"><span class="pre">SplitBlockMapping</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_LegacyFragmentMapping</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sum_terms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#tmol.score.FragmentInteractionScores" title="tmol.score.FragmentInteractionScores"><span class="pre">FragmentInteractionScores</span></a></span></span><a class="reference internal" href="../_modules/tmol/score/_fragment_interactions.html#calculate_fragment_interactions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.calculate_fragment_interactions" title="Link to this definition">#</a></dt>
+<dd><p>Return each ligand fragment’s interaction with <code class="docutils literal notranslate"><span class="pre">partner_mask</span></code>.</p>
+<p>The connected multi-block pose is scored once. Fragment-fragment entries
+remain in the block-pair matrix and are not silently assigned to either
+fragment. <code class="docutils literal notranslate"><span class="pre">sfxn</span></code> must use the same ligand-extended parameter database as
+<code class="docutils literal notranslate"><span class="pre">pose_stack</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pose_stack</strong> – Connected poses with identical fragment block layouts.</p></li>
+<li><p><strong>partner_mask</strong> – Partner blocks shaped <code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">max_n_blocks]</span></code>. The
+mask must exclude every ligand fragment block.</p></li>
+<li><p><strong>sfxn</strong> – Score function built from the pose’s parameter database.</p></li>
+<li><p><strong>mapping</strong> – Optional split-block mapping. By default the mapping attached
+to <code class="docutils literal notranslate"><span class="pre">pose_stack</span></code> is used. Legacy fragmented-ligand mappings remain
+accepted for compatibility.</p></li>
+<li><p><strong>sum_terms</strong> – Sum the score-term dimension when true.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Fragment scores shaped <code class="docutils literal notranslate"><span class="pre">[n_terms,</span> <span class="pre">n_poses,</span> <span class="pre">n_fragments]</span></code>, or
+<code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">n_fragments]</span></code> when <code class="docutils literal notranslate"><span class="pre">sum_terms</span></code> is true, plus the pose-zero
+mapping records that define the fragment columns.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.14)"><strong>TypeError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">partner_mask</span></code> is not Boolean.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If the mask, score function, or mapping is incompatible
+    with the poses.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">SFXN_FORMAT_VERSION</span></code></p></td>
+<td><p>str(object='') -&gt; str str(bytes_or_buffer[, encoding[, errors]]) -&gt; str</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="relax.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Relax</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="analysis.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Analysis Operations</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.AcceptorHybridization"><code class="docutils literal notranslate"><span class="pre">AcceptorHybridization</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.AtomTypeParamResolver"><code class="docutils literal notranslate"><span class="pre">AtomTypeParamResolver</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.AtomTypeParamResolver.from_database"><code class="docutils literal notranslate"><span class="pre">AtomTypeParamResolver.from_database()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.AtomTypeParamResolver.type_idx"><code class="docutils literal notranslate"><span class="pre">AtomTypeParamResolver.type_idx()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.AtomTypeParams"><code class="docutils literal notranslate"><span class="pre">AtomTypeParams</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.BlockPairScoringModule"><code class="docutils literal notranslate"><span class="pre">BlockPairScoringModule</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.FragmentInteractionScores"><code class="docutils literal notranslate"><span class="pre">FragmentInteractionScores</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.IndexedBonds"><code class="docutils literal notranslate"><span class="pre">IndexedBonds</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.IndexedBonds.to_directed"><code class="docutils literal notranslate"><span class="pre">IndexedBonds.to_directed()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.RotamerScoringModule"><code class="docutils literal notranslate"><span class="pre">RotamerScoringModule</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ScoreFunction"><code class="docutils literal notranslate"><span class="pre">ScoreFunction</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ScoreFunction.all_score_types"><code class="docutils literal notranslate"><span class="pre">ScoreFunction.all_score_types()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ScoreFunction.all_terms"><code class="docutils literal notranslate"><span class="pre">ScoreFunction.all_terms()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ScoreFunction.from_sfxn_file"><code class="docutils literal notranslate"><span class="pre">ScoreFunction.from_sfxn_file()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ScoreFunction.get_weight"><code class="docutils literal notranslate"><span class="pre">ScoreFunction.get_weight()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ScoreFunction.multi_body_terms"><code class="docutils literal notranslate"><span class="pre">ScoreFunction.multi_body_terms()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ScoreFunction.one_body_terms"><code class="docutils literal notranslate"><span class="pre">ScoreFunction.one_body_terms()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ScoreFunction.pre_work_initialization"><code class="docutils literal notranslate"><span class="pre">ScoreFunction.pre_work_initialization()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ScoreFunction.remove_term_for_score_type"><code class="docutils literal notranslate"><span class="pre">ScoreFunction.remove_term_for_score_type()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ScoreFunction.render_block_pair_scoring_module"><code class="docutils literal notranslate"><span class="pre">ScoreFunction.render_block_pair_scoring_module()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ScoreFunction.render_rotamer_scoring_module"><code class="docutils literal notranslate"><span class="pre">ScoreFunction.render_rotamer_scoring_module()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ScoreFunction.render_whole_pose_scoring_module"><code class="docutils literal notranslate"><span class="pre">ScoreFunction.render_whole_pose_scoring_module()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ScoreFunction.score_type_covered_by_contained_term"><code class="docutils literal notranslate"><span class="pre">ScoreFunction.score_type_covered_by_contained_term()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ScoreFunction.set_option"><code class="docutils literal notranslate"><span class="pre">ScoreFunction.set_option()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ScoreFunction.set_options"><code class="docutils literal notranslate"><span class="pre">ScoreFunction.set_options()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ScoreFunction.set_weight"><code class="docutils literal notranslate"><span class="pre">ScoreFunction.set_weight()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ScoreFunction.two_body_terms"><code class="docutils literal notranslate"><span class="pre">ScoreFunction.two_body_terms()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ScoreFunction.weights_tensor"><code class="docutils literal notranslate"><span class="pre">ScoreFunction.weights_tensor()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ScoreType"><code class="docutils literal notranslate"><span class="pre">ScoreType</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.WholePoseScoringModule"><code class="docutils literal notranslate"><span class="pre">WholePoseScoringModule</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.WholePoseScoringModule.enable_cuda_graphs"><code class="docutils literal notranslate"><span class="pre">WholePoseScoringModule.enable_cuda_graphs()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.beta2016_score_function"><code class="docutils literal notranslate"><span class="pre">beta2016_score_function()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.calculate_fragment_interactions"><code class="docutils literal notranslate"><span class="pre">calculate_fragment_interactions()</span></code></a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="../_sources/api/score.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.21.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

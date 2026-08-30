@@ -1,0 +1,747 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tmol.ligand._params_file &#8212; TMol</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=0a30a683" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=cb8930eaaf36d9849b67"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
+
+    <script src="../../../_static/documentation_options.js?v=61349712"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script>let toggleHintShow = 'show code';</script>
+    <script>let toggleHintHide = 'hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../../../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/ligand/_params_file';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/ligand/_params_file.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.52" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TMol</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.ligand._params_file</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for tmol.ligand._params_file</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""tmol YAML params file format for ligand residue types.</span>
+
+<span class="sd">Provides load/write/inject functions for a unified YAML format that</span>
+<span class="sd">bundles residue type definitions, cartbonded parameters, and electrostatic</span>
+<span class="sd">charges in a single file.  The top-level shape mirrors ``ParameterDatabase``:</span>
+
+<span class="sd">    version: "1.0"</span>
+<span class="sd">    chemical:</span>
+<span class="sd">      residues:</span>
+<span class="sd">        - name: LIG</span>
+<span class="sd">          base_name: LIG</span>
+<span class="sd">          atoms: [...]</span>
+<span class="sd">          bonds: [...]</span>
+<span class="sd">          icoors: [...]</span>
+<span class="sd">          properties: {...}</span>
+<span class="sd">          # atom_aliases / chi_samples / default_jump_connection_atom optional</span>
+<span class="sd">    elec:</span>
+<span class="sd">      atom_charge_parameters:</span>
+<span class="sd">        - {res: LIG, atom: C1, charge: 0.123}</span>
+<span class="sd">    cartbonded:</span>
+<span class="sd">      residue_params:</span>
+<span class="sd">        LIG:</span>
+<span class="sd">          length_parameters: [...]</span>
+<span class="sd">          angle_parameters: [...]</span>
+<span class="sd">          torsion_parameters: [...]</span>
+<span class="sd">          improper_parameters: [...]</span>
+<span class="sd">          hxltorsion_parameters: []</span>
+
+<span class="sd">Each subsection's schema matches the corresponding canonical database</span>
+<span class="sd">YAML so entries can be copy-pasted between params files and</span>
+<span class="sd">``chemical.yaml`` / ``cartbonded.yaml`` / ``elec.yaml``.</span>
+<span class="sd">"""</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">cattr</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database._yaml</span><span class="w"> </span><span class="kn">import</span> <span class="n">safe_load</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RawResidueType</span><span class="p">,</span> <span class="n">normalize_bond_tuples</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.scoring</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CartRes</span><span class="p">,</span>
+    <span class="n">PartialCharges</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">LigandPreparation</span>
+
+
+<span class="c1"># Current .tmol format version.  Bump the major version on breaking</span>
+<span class="c1"># schema changes; bump the minor version on backward-compatible additions.</span>
+<span class="c1"># The version string is written into every .tmol file and checked on load.</span>
+<span class="n">TMOL_FORMAT_VERSION</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"1.0"</span>
+
+<span class="n">_RAW_RESIDUE_DEFAULTS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"atom_aliases"</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="s2">"chi_samples"</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="s2">"default_jump_connection_atom"</span><span class="p">:</span> <span class="s2">""</span><span class="p">,</span>
+    <span class="c1"># The ligand pipeline writes empty `torsions` (gen_bonded handles</span>
+    <span class="c1"># ligand torsions); supply a default so files written without the</span>
+    <span class="c1"># key still load via cattr.</span>
+    <span class="s2">"torsions"</span><span class="p">:</span> <span class="p">[],</span>
+<span class="p">}</span>
+
+<span class="n">_POLYMER_PROPERTIES_DEFAULTS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"is_polymer"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s2">"polymer_type"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="s2">"backbone_type"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="s2">"mainchain_atoms"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="s2">"sidechain_chirality"</span><span class="p">:</span> <span class="s2">""</span><span class="p">,</span>
+    <span class="s2">"termini_variants"</span><span class="p">:</span> <span class="p">[],</span>
+<span class="p">}</span>
+
+<span class="n">_PROTONATION_PROPERTIES_DEFAULTS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"protonated_atoms"</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="s2">"protonation_state"</span><span class="p">:</span> <span class="s2">"neutral"</span><span class="p">,</span>
+    <span class="s2">"pH"</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">_CHEMICAL_PROPERTIES_DEFAULTS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"is_canonical"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s2">"chemical_modifications"</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="s2">"connectivity"</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="s2">"virtual"</span><span class="p">:</span> <span class="p">[],</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_fill_properties_defaults</span><span class="p">(</span><span class="n">props</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Fill missing fields in a residue ``properties`` dict with defaults."""</span>
+    <span class="n">polymer</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">_POLYMER_PROPERTIES_DEFAULTS</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">props</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"polymer"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})}</span>
+    <span class="n">protonation</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="o">**</span><span class="n">_PROTONATION_PROPERTIES_DEFAULTS</span><span class="p">,</span>
+        <span class="o">**</span><span class="p">(</span><span class="n">props</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"protonation"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}),</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="o">**</span><span class="n">_CHEMICAL_PROPERTIES_DEFAULTS</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">props</span><span class="p">,</span>
+        <span class="s2">"polymer"</span><span class="p">:</span> <span class="n">polymer</span><span class="p">,</span>
+        <span class="s2">"protonation"</span><span class="p">:</span> <span class="n">protonation</span><span class="p">,</span>
+    <span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_structure_residue</span><span class="p">(</span><span class="n">item</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">RawResidueType</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Apply defaults for optional fields, then structure into RawResidueType."""</span>
+    <span class="n">populated</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">_RAW_RESIDUE_DEFAULTS</span><span class="p">,</span> <span class="o">**</span><span class="n">item</span><span class="p">}</span>
+    <span class="k">if</span> <span class="s2">"properties"</span> <span class="ow">in</span> <span class="n">populated</span><span class="p">:</span>
+        <span class="n">populated</span><span class="p">[</span><span class="s2">"properties"</span><span class="p">]</span> <span class="o">=</span> <span class="n">_fill_properties_defaults</span><span class="p">(</span><span class="n">populated</span><span class="p">[</span><span class="s2">"properties"</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">cattr</span><span class="o">.</span><span class="n">structure</span><span class="p">(</span><span class="n">populated</span><span class="p">,</span> <span class="n">RawResidueType</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="load_params_file">
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.load_params_file">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_params_file</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="s2">"LigandPreparation"</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Load a tmol params YAML file as a list of ``LigandPreparation``.</span>
+
+<span class="sd">    The returned list is the same abstraction the AtomArray pipeline</span>
+<span class="sd">    produces (see :func:`tmol.ligand.prepare_single_ligand`), so the</span>
+<span class="sd">    caller can pass it directly to</span>
+<span class="sd">    :func:`tmol.ligand._registry.inject_ligand_preparations` regardless</span>
+<span class="sd">    of which input form (file or AtomArray) it came from.</span>
+
+<span class="sd">    The ``.tmol`` schema is the nested</span>
+<span class="sd">    ``chemical:`` / ``elec:`` / ``cartbonded:`` shape — files using the</span>
+<span class="sd">    legacy flat schema (top-level ``residues:`` etc.) raise a</span>
+<span class="sd">    ``ValueError`` pointing at the migration.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">LigandPreparation</span>
+
+    <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">path</span><span class="o">.</span><span class="n">open</span><span class="p">()</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">raw</span> <span class="o">=</span> <span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Expected mapping at YAML root, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="c1"># --- .tmol format version check ---</span>
+    <span class="n">file_version</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"version"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">file_version</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s2">"</span><span class="si">%s</span><span class="s2">: no 'version' field found; assuming format </span><span class="si">%s</span><span class="s2"> "</span>
+            <span class="s2">"(consider regenerating this file with the current writer)"</span><span class="p">,</span>
+            <span class="n">path</span><span class="p">,</span>
+            <span class="n">TMOL_FORMAT_VERSION</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">: no 'version' field found for .tmol file. "</span>
+            <span class="sa">f</span><span class="s2">"Current format version is </span><span class="si">{</span><span class="n">TMOL_FORMAT_VERSION</span><span class="si">}</span><span class="s2">. "</span>
+            <span class="sa">f</span><span class="s2">"Regenerate the file with the current version."</span>
+        <span class="p">)</span>
+    <span class="n">file_version</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">file_version</span><span class="p">)</span>
+    <span class="c1"># Compare major version numbers only (the part before the first dot).</span>
+    <span class="n">file_major</span> <span class="o">=</span> <span class="n">file_version</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">current_major</span> <span class="o">=</span> <span class="n">TMOL_FORMAT_VERSION</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">file_major</span> <span class="o">!=</span> <span class="n">current_major</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">: .tmol format version </span><span class="si">{</span><span class="n">file_version</span><span class="si">}</span><span class="s2"> is incompatible "</span>
+            <span class="sa">f</span><span class="s2">"with the current format version </span><span class="si">{</span><span class="n">TMOL_FORMAT_VERSION</span><span class="si">}</span><span class="s2">. "</span>
+            <span class="sa">f</span><span class="s2">"Regenerate the file with the current writer."</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">file_version</span> <span class="o">!=</span> <span class="n">TMOL_FORMAT_VERSION</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">"</span><span class="si">%s</span><span class="s2">: .tmol format version </span><span class="si">%s</span><span class="s2"> differs from current </span><span class="si">%s</span><span class="s2"> "</span>
+            <span class="s2">"(backward-compatible minor version change)"</span><span class="p">,</span>
+            <span class="n">path</span><span class="p">,</span>
+            <span class="n">file_version</span><span class="p">,</span>
+            <span class="n">TMOL_FORMAT_VERSION</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="s2">"chemical"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">raw</span> <span class="ow">and</span> <span class="p">(</span>
+        <span class="s2">"residues"</span> <span class="ow">in</span> <span class="n">raw</span> <span class="ow">or</span> <span class="s2">"residue_params"</span> <span class="ow">in</span> <span class="n">raw</span> <span class="ow">or</span> <span class="s2">"atom_charge_parameters"</span> <span class="ow">in</span> <span class="n">raw</span>
+    <span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">: top-level keys 'residues'/'residue_params'/"</span>
+            <span class="s2">"'atom_charge_parameters' indicate the deprecated flat schema. "</span>
+            <span class="s2">"Migrate to the nested schema with 'chemical:', 'elec:', and "</span>
+            <span class="s2">"'cartbonded:' top-level keys."</span>
+        <span class="p">)</span>
+
+    <span class="n">chem</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"chemical"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="n">elec</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"elec"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="n">cart</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"cartbonded"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+
+    <span class="n">res_list</span> <span class="o">=</span> <span class="n">chem</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"residues"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]</span>
+    <span class="n">normalize_bond_tuples</span><span class="p">({</span><span class="s2">"residues"</span><span class="p">:</span> <span class="n">res_list</span><span class="p">})</span>
+    <span class="n">residues</span> <span class="o">=</span> <span class="p">[</span><span class="n">_structure_residue</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">res_list</span><span class="p">]</span>
+
+    <span class="n">cb_raw</span> <span class="o">=</span> <span class="n">cart</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"residue_params"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="n">cart_by_res</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">):</span> <span class="n">cattr</span><span class="o">.</span><span class="n">structure</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="n">CartRes</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">payload</span> <span class="ow">in</span> <span class="n">cb_raw</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="p">}</span>
+
+    <span class="n">charges_by_res</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">elec</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"atom_charge_parameters"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]:</span>
+        <span class="n">pc</span> <span class="o">=</span> <span class="n">cattr</span><span class="o">.</span><span class="n">structure</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">PartialCharges</span><span class="p">)</span>
+        <span class="n">charges_by_res</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">pc</span><span class="o">.</span><span class="n">res</span><span class="p">,</span> <span class="p">{})[</span><span class="n">pc</span><span class="o">.</span><span class="n">atom</span><span class="p">]</span> <span class="o">=</span> <span class="n">pc</span><span class="o">.</span><span class="n">charge</span>
+
+    <span class="n">preps</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">rt</span> <span class="ow">in</span> <span class="n">residues</span><span class="p">:</span>
+        <span class="n">charges</span> <span class="o">=</span> <span class="n">charges_by_res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">charges</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">"</span><span class="si">%s</span><span class="s2">: no elec charges in </span><span class="si">%s</span><span class="s2"> -- all partial charges will be 0.0"</span><span class="p">,</span>
+                <span class="n">rt</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">path</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="n">preps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">LigandPreparation</span><span class="p">(</span>
+                <span class="n">residue_type</span><span class="o">=</span><span class="n">rt</span><span class="p">,</span>
+                <span class="n">partial_charges</span><span class="o">=</span><span class="n">charges</span><span class="p">,</span>
+                <span class="n">cartbonded_params</span><span class="o">=</span><span class="n">cart_by_res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">_empty_cartres</span><span class="p">()),</span>
+                <span class="n">atom_type_elements</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">preps</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_empty_cartres</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">CartRes</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Construct an empty ``CartRes`` container.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ``CartRes`` with all parameter collections initialized empty.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">CartRes</span><span class="p">(</span>
+        <span class="n">length_parameters</span><span class="o">=</span><span class="p">(),</span>
+        <span class="n">angle_parameters</span><span class="o">=</span><span class="p">(),</span>
+        <span class="n">torsion_parameters</span><span class="o">=</span><span class="p">(),</span>
+        <span class="n">improper_parameters</span><span class="o">=</span><span class="p">(),</span>
+        <span class="n">hxltorsion_parameters</span><span class="o">=</span><span class="p">(),</span>
+    <span class="p">)</span>
+
+
+<div class="viewcode-block" id="inject_params_file">
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.inject_params_file">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">inject_params_file</span><span class="p">(</span>
+    <span class="n">param_db</span><span class="p">:</span> <span class="n">ParameterDatabase</span><span class="p">,</span>
+    <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">strict_atom_types</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParameterDatabase</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Load a single ``.tmol`` file and inject it into a ParameterDatabase."""</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">inject_ligand_preparations</span>
+
+    <span class="k">return</span> <span class="n">inject_ligand_preparations</span><span class="p">(</span>
+        <span class="n">param_db</span><span class="p">,</span> <span class="n">load_params_file</span><span class="p">(</span><span class="n">path</span><span class="p">),</span> <span class="n">strict_atom_types</span><span class="o">=</span><span class="n">strict_atom_types</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="inject_params_files">
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.inject_params_files">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">inject_params_files</span><span class="p">(</span>
+    <span class="n">param_db</span><span class="p">:</span> <span class="n">ParameterDatabase</span><span class="p">,</span>
+    <span class="n">paths</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">strict_atom_types</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParameterDatabase</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Load multiple ``.tmol`` files and inject them in one shot."""</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">inject_ligand_preparations</span>
+
+    <span class="n">preps</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">:</span>
+        <span class="n">preps</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">load_params_file</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">inject_ligand_preparations</span><span class="p">(</span>
+        <span class="n">param_db</span><span class="p">,</span> <span class="n">preps</span><span class="p">,</span> <span class="n">strict_atom_types</span><span class="o">=</span><span class="n">strict_atom_types</span>
+    <span class="p">)</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.21.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

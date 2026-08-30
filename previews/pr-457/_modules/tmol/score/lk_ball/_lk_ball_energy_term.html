@@ -1,0 +1,858 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tmol.score.lk_ball._lk_ball_energy_term &#8212; TMol</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=0a30a683" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../../_static/scripts/fontawesome.js?digest=cb8930eaaf36d9849b67"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
+
+    <script src="../../../../_static/documentation_options.js?v=61349712"></script>
+    <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script>let toggleHintShow = 'show code';</script>
+    <script>let toggleHintHide = 'hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../../../../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/score/lk_ball/_lk_ball_energy_term';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/score/lk_ball/_lk_ball_energy_term.html" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.52" />
+  
+    
+    <script src="../../../../_static/searchtools.js"></script>
+    <script src="../../../../_static/language_data.js"></script>
+    <script src="../../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TMol</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../api_reference.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../api_reference.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../../tmol.html" class="nav-link">tmol</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../score.html" class="nav-link">tmol.score</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.score.lk_ball._lk_ball_energy_term</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for tmol.score.lk_ball._lk_ball_energy_term</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">._params</span><span class="w"> </span><span class="kn">import</span> <span class="n">LKBallBlockTypeParams</span><span class="p">,</span> <span class="n">LKBallPackedBlockTypesParams</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.._atom_type_dependent_term</span><span class="w"> </span><span class="kn">import</span> <span class="n">AtomTypeDependentTerm</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..hbond._hbond_dependent_term</span><span class="w"> </span><span class="kn">import</span> <span class="n">HBondDependentTerm</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..ljlk._params</span><span class="w"> </span><span class="kn">import</span> <span class="n">LJLKGlobalParams</span><span class="p">,</span> <span class="n">LJLKParamResolver</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">PackedBlockTypes</span><span class="p">,</span>
+    <span class="n">PoseStack</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.common</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">arg_tile_subset_indices</span><span class="p">,</span>
+    <span class="n">convert_float64</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="LKBallEnergyTerm">
+<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.lk_ball.LKBallEnergyTerm">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LKBallEnergyTerm</span><span class="p">(</span><span class="n">AtomTypeDependentTerm</span><span class="p">,</span> <span class="n">HBondDependentTerm</span><span class="p">):</span>
+    <span class="n">tile_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">HBondDependentTerm</span><span class="o">.</span><span class="n">tile_size</span>
+    <span class="n">ljlk_global_params</span><span class="p">:</span> <span class="n">LJLKGlobalParams</span>
+    <span class="n">ljlk_param_resolver</span><span class="p">:</span> <span class="n">LJLKParamResolver</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_db</span><span class="p">:</span> <span class="n">ParameterDatabase</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">LKBallEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">param_db</span><span class="o">=</span><span class="n">param_db</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ljlk_param_resolver</span> <span class="o">=</span> <span class="n">LJLKParamResolver</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span>
+            <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">,</span> <span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">ljlk</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tile_size</span> <span class="o">=</span> <span class="n">LKBallEnergyTerm</span><span class="o">.</span><span class="n">tile_size</span>
+
+        <span class="c1"># Precompute the stacked lk-ball global-parameter tensors</span>
+        <span class="c1"># These depend only on static values from ljlk_param_resolver globals,</span>
+        <span class="c1">#   so they can be built once rather than on every forward</span>
+        <span class="n">gp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ljlk_param_resolver</span><span class="o">.</span><span class="n">global_params</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_max_dis</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">ljlk</span><span class="o">.</span><span class="n">global_parameters</span><span class="o">.</span><span class="n">max_dis</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lk_ball_global_params</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+            <span class="nb">tuple</span><span class="p">(</span>
+                <span class="n">t</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="p">(</span>
+                    <span class="n">gp</span><span class="o">.</span><span class="n">lj_hbond_dis</span><span class="p">,</span>
+                    <span class="n">gp</span><span class="o">.</span><span class="n">lj_hbond_OH_donor_dis</span><span class="p">,</span>
+                    <span class="n">gp</span><span class="o">.</span><span class="n">lj_hbond_hdis</span><span class="p">,</span>
+                    <span class="n">gp</span><span class="o">.</span><span class="n">lkb_water_dist</span><span class="p">,</span>
+                    <span class="n">gp</span><span class="o">.</span><span class="n">max_dis</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">),</span>
+            <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lk_ball_water_gen_global_params</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+            <span class="nb">tuple</span><span class="p">(</span>
+                <span class="n">t</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="p">(</span>
+                    <span class="n">gp</span><span class="o">.</span><span class="n">lkb_water_dist</span><span class="p">,</span>
+                    <span class="n">gp</span><span class="o">.</span><span class="n">lkb_water_angle_sp2</span><span class="p">,</span>
+                    <span class="n">gp</span><span class="o">.</span><span class="n">lkb_water_angle_sp3</span><span class="p">,</span>
+                    <span class="n">gp</span><span class="o">.</span><span class="n">lkb_water_angle_ring</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">),</span>
+            <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">class_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">"LKBall"</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">score_types</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">tmol.score.terms._lk_ball_creator</span>
+
+        <span class="k">return</span> <span class="n">tmol</span><span class="o">.</span><span class="n">score</span><span class="o">.</span><span class="n">terms</span><span class="o">.</span><span class="n">_lk_ball_creator</span><span class="o">.</span><span class="n">LKBallTermCreator</span><span class="o">.</span><span class="n">score_types</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">n_bodies</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">2</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">setup_block_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_type</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">LKBallEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_block_type</span><span class="p">(</span><span class="n">block_type</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"lk_ball_params"</span><span class="p">):</span>
+            <span class="k">return</span>
+
+        <span class="c1"># we are going to order the data needed for score evaluation around the</span>
+        <span class="c1"># idea that, first, we will bin all the atoms into groups of "tile_size"</span>
+        <span class="c1"># and examine tile_size atoms from one residue against tile_size atoms</span>
+        <span class="c1"># of another residue.</span>
+        <span class="c1"># within each tile, the data is further structured as follows:</span>
+        <span class="c1"># polar atoms -- i.e. those with attached waters -- are going to be listed</span>
+        <span class="c1"># first and all remaining heavy atoms will be listed second.</span>
+        <span class="c1"># Each tile will list the number of polar atoms (heavy atoms with waters</span>
+        <span class="c1"># attached) and the number of "occluder" atoms (heavy atoms with waters</span>
+        <span class="c1"># attached and heavy atoms without waters attached) and then</span>
+        <span class="c1"># the tile indices of those atoms (in a single array with the first</span>
+        <span class="c1"># n_polar atoms representing the heavy atoms with attached waters).</span>
+        <span class="c1"># The lk-ball properties needed to evaluate the energy will be stored</span>
+        <span class="c1"># also in polars-before-non-polars order.</span>
+
+        <span class="n">hbbt_params</span> <span class="o">=</span> <span class="n">block_type</span><span class="o">.</span><span class="n">hbbt_params</span>
+        <span class="n">n_tiles</span> <span class="o">=</span> <span class="n">hbbt_params</span><span class="o">.</span><span class="n">tile_donH_inds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">atom_is_polar</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">block_type</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,),</span> <span class="kc">False</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="n">atom_is_polar</span><span class="p">[</span><span class="n">hbbt_params</span><span class="o">.</span><span class="n">don_hvy_inds</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">atom_is_polar</span><span class="p">[</span><span class="n">hbbt_params</span><span class="o">.</span><span class="n">acc_inds</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">polar_inds</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">atom_is_polar</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+        <span class="n">tile_size</span> <span class="o">=</span> <span class="n">LKBallEnergyTerm</span><span class="o">.</span><span class="n">tile_size</span>
+        <span class="n">tiled_polar_orig_inds</span><span class="p">,</span> <span class="n">tile_n_polar</span> <span class="o">=</span> <span class="n">arg_tile_subset_indices</span><span class="p">(</span>
+            <span class="n">polar_inds</span><span class="p">,</span> <span class="n">tile_size</span><span class="p">,</span> <span class="n">block_type</span><span class="o">.</span><span class="n">n_atoms</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="p">)</span>
+        <span class="n">tiled_polar_orig_inds</span> <span class="o">=</span> <span class="n">tiled_polar_orig_inds</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_tiles</span><span class="p">,</span> <span class="n">tile_size</span><span class="p">)</span>
+
+        <span class="n">is_tiled_polar</span> <span class="o">=</span> <span class="n">tiled_polar_orig_inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">tiled_polars</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">n_tiles</span><span class="p">,</span> <span class="n">tile_size</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">tiled_polars</span><span class="p">[</span><span class="n">is_tiled_polar</span><span class="p">]</span> <span class="o">=</span> <span class="n">polar_inds</span>
+
+        <span class="c1"># ASSUMPTION! either h or hvy; change when VRTS are added!</span>
+        <span class="c1"># Grace: lk parameters for VRTs should not affect score even if included,</span>
+        <span class="c1"># it would just be slightly inefficient</span>
+        <span class="n">atom_is_heavy</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="n">hbbt_params</span><span class="o">.</span><span class="n">is_hydrogen</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># "apolar" here means "does not build waters"; e.g. proline's N would be</span>
+        <span class="c1"># considered apolar.</span>
+        <span class="n">atom_is_heavy_apolar</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+            <span class="n">atom_is_heavy</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="n">atom_is_polar</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">heavy_apolar_inds</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">atom_is_heavy_apolar</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+        <span class="n">tiled_heavy_apolar_orig_inds</span><span class="p">,</span> <span class="n">tile_n_apolar</span> <span class="o">=</span> <span class="n">arg_tile_subset_indices</span><span class="p">(</span>
+            <span class="n">heavy_apolar_inds</span><span class="p">,</span> <span class="n">tile_size</span><span class="p">,</span> <span class="n">block_type</span><span class="o">.</span><span class="n">n_atoms</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="p">)</span>
+        <span class="n">tiled_heavy_apolar_orig_inds</span> <span class="o">=</span> <span class="n">tiled_heavy_apolar_orig_inds</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">n_tiles</span><span class="p">,</span> <span class="n">tile_size</span>
+        <span class="p">)</span>
+        <span class="n">is_tiled_heavy_apolar</span> <span class="o">=</span> <span class="n">tiled_heavy_apolar_orig_inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">tiled_heavy_apolar</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">n_tiles</span><span class="p">,</span> <span class="n">tile_size</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">tiled_heavy_apolar</span><span class="p">[</span><span class="n">is_tiled_heavy_apolar</span><span class="p">]</span> <span class="o">=</span> <span class="n">heavy_apolar_inds</span>
+
+        <span class="c1"># now lets combine the heavy polar indices and the heavy non-polar indices</span>
+        <span class="n">tiled_pols_and_occs</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">tiled_polars</span><span class="p">)</span>
+        <span class="n">tile_n_occ</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">tile_n_polar</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_tiles</span><span class="p">):</span>
+            <span class="n">tile_n_occ</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">tile_n_polar</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">tile_n_apolar</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">tile_n_polar</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">tile_n_occ</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">tiled_pols_and_occs</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">r</span><span class="p">]</span> <span class="o">=</span> <span class="n">tiled_heavy_apolar</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span> <span class="n">tile_n_apolar</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
+        <span class="n">is_pol_or_occ</span> <span class="o">=</span> <span class="n">tiled_pols_and_occs</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+
+        <span class="c1"># ok, now let's collect the properties of the atoms in this block</span>
+        <span class="c1"># needed for LKBallTypeParams (see properties/params.hh)</span>
+        <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"atom_types"</span><span class="p">)</span>
+        <span class="n">at</span> <span class="o">=</span> <span class="n">block_type</span><span class="o">.</span><span class="n">atom_types</span>
+        <span class="n">type_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ljlk_param_resolver</span><span class="o">.</span><span class="n">type_params</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">))</span>
+        <span class="n">bt_lj_radius</span> <span class="o">=</span> <span class="n">type_params</span><span class="o">.</span><span class="n">lj_radius</span><span class="p">[</span><span class="n">at</span><span class="p">]</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="n">bt_lk_dgfree</span> <span class="o">=</span> <span class="n">type_params</span><span class="o">.</span><span class="n">lk_dgfree</span><span class="p">[</span><span class="n">at</span><span class="p">]</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="n">bt_lk_lambda</span> <span class="o">=</span> <span class="n">type_params</span><span class="o">.</span><span class="n">lk_lambda</span><span class="p">[</span><span class="n">at</span><span class="p">]</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="n">bt_lk_coeff</span> <span class="o">=</span> <span class="o">-</span><span class="n">bt_lk_dgfree</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="mf">5.56832799683</span> <span class="o">*</span> <span class="n">bt_lk_lambda</span><span class="p">)</span>
+        <span class="n">bt_lk_inv_lambda2</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">bt_lk_lambda</span> <span class="o">*</span> <span class="n">bt_lk_lambda</span><span class="p">)</span>
+        <span class="n">bt_lk_volume</span> <span class="o">=</span> <span class="n">type_params</span><span class="o">.</span><span class="n">lk_volume</span><span class="p">[</span><span class="n">at</span><span class="p">]</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="n">bt_is_donor</span> <span class="o">=</span> <span class="n">type_params</span><span class="o">.</span><span class="n">is_donor</span><span class="p">[</span><span class="n">at</span><span class="p">]</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="n">bt_is_hydroxyl</span> <span class="o">=</span> <span class="n">type_params</span><span class="o">.</span><span class="n">is_hydroxyl</span><span class="p">[</span><span class="n">at</span><span class="p">]</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="n">bt_is_polarh</span> <span class="o">=</span> <span class="n">type_params</span><span class="o">.</span><span class="n">is_polarh</span><span class="p">[</span><span class="n">at</span><span class="p">]</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="n">bt_is_acceptor</span> <span class="o">=</span> <span class="n">type_params</span><span class="o">.</span><span class="n">is_acceptor</span><span class="p">[</span><span class="n">at</span><span class="p">]</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="n">bt_is_carbon_lk</span> <span class="o">=</span> <span class="n">type_params</span><span class="o">.</span><span class="n">is_carbon_lk</span><span class="p">[</span><span class="n">at</span><span class="p">]</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+        <span class="n">bt_lk_ball_at_params</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="n">bt_lj_radius</span><span class="p">,</span>
+                <span class="n">bt_lk_coeff</span><span class="p">,</span>
+                <span class="n">bt_lk_inv_lambda2</span><span class="p">,</span>
+                <span class="n">bt_lk_volume</span><span class="p">,</span>
+                <span class="n">bt_is_donor</span><span class="p">,</span>
+                <span class="n">bt_is_hydroxyl</span><span class="p">,</span>
+                <span class="n">bt_is_polarh</span><span class="p">,</span>
+                <span class="n">bt_is_acceptor</span><span class="p">,</span>
+                <span class="n">bt_is_carbon_lk</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">tiled_bt_lk_ball_at_params</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">n_tiles</span><span class="p">,</span> <span class="n">tile_size</span><span class="p">,</span> <span class="mi">9</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span>
+        <span class="p">)</span>
+        <span class="n">tiled_bt_lk_ball_at_params</span><span class="p">[</span><span class="n">is_pol_or_occ</span><span class="p">]</span> <span class="o">=</span> <span class="n">bt_lk_ball_at_params</span><span class="p">[</span>
+            <span class="n">tiled_pols_and_occs</span><span class="p">[</span><span class="n">is_pol_or_occ</span><span class="p">]</span>
+        <span class="p">]</span>
+
+        <span class="c1"># The kernel expects tile_pol_occ_inds to contain tile-local atom</span>
+        <span class="c1"># indices (0..tile_size-1) — it reconstructs the full block-atom</span>
+        <span class="c1"># index as `pol_start + pol_tile_ind`. Until here we have been</span>
+        <span class="c1"># tracking full block-atom indices so the per-atom params lookup</span>
+        <span class="c1"># above works; now convert to tile-local for the output tensor.</span>
+        <span class="n">tile_pol_occ_inds</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="n">tiled_pols_and_occs</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">tiled_pols_and_occs</span> <span class="o">%</span> <span class="n">tile_size</span><span class="p">,</span>
+            <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+        <span class="n">bt_lk_ball_params</span> <span class="o">=</span> <span class="n">LKBallBlockTypeParams</span><span class="p">(</span>
+            <span class="n">tile_n_polar_atoms</span><span class="o">=</span><span class="n">tile_n_polar</span><span class="p">,</span>
+            <span class="n">tile_n_occluder_atoms</span><span class="o">=</span><span class="n">tile_n_occ</span><span class="p">,</span>
+            <span class="n">tile_pol_occ_inds</span><span class="o">=</span><span class="n">tile_pol_occ_inds</span><span class="p">,</span>
+            <span class="n">tile_lk_ball_params</span><span class="o">=</span><span class="n">tiled_bt_lk_ball_at_params</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"lk_ball_params"</span><span class="p">,</span> <span class="n">bt_lk_ball_params</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">setup_packed_block_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">LKBallEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_packed_block_types</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"lk_ball_params"</span><span class="p">):</span>
+            <span class="k">return</span>
+        <span class="n">n_types</span> <span class="o">=</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_types</span>
+        <span class="n">n_tiles</span> <span class="o">=</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">hbpbt_params</span><span class="o">.</span><span class="n">tile_donH_inds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">tile_size</span> <span class="o">=</span> <span class="n">LKBallEnergyTerm</span><span class="o">.</span><span class="n">tile_size</span>
+
+        <span class="n">tile_n_polar_atoms</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">n_types</span><span class="p">,</span> <span class="n">n_tiles</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">tile_n_occluder_atoms</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">n_types</span><span class="p">,</span> <span class="n">n_tiles</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">tile_pol_occ_inds</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">n_types</span><span class="p">,</span> <span class="n">n_tiles</span><span class="p">,</span> <span class="n">tile_size</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span>
+        <span class="p">)</span>
+        <span class="n">tile_lk_ball_params</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">n_types</span><span class="p">,</span> <span class="n">n_tiles</span><span class="p">,</span> <span class="n">tile_size</span><span class="p">,</span> <span class="mi">9</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span>
+        <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">):</span>
+            <span class="n">i_lkbp</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">lk_ball_params</span>
+            <span class="n">i_n_tiles</span> <span class="o">=</span> <span class="n">i_lkbp</span><span class="o">.</span><span class="n">tile_n_polar_atoms</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="n">tile_n_polar_atoms</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">i_n_tiles</span><span class="p">]</span> <span class="o">=</span> <span class="n">i_lkbp</span><span class="o">.</span><span class="n">tile_n_polar_atoms</span>
+            <span class="n">tile_n_occluder_atoms</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">i_n_tiles</span><span class="p">]</span> <span class="o">=</span> <span class="n">i_lkbp</span><span class="o">.</span><span class="n">tile_n_occluder_atoms</span>
+            <span class="n">tile_pol_occ_inds</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">i_n_tiles</span><span class="p">]</span> <span class="o">=</span> <span class="n">i_lkbp</span><span class="o">.</span><span class="n">tile_pol_occ_inds</span>
+            <span class="n">tile_lk_ball_params</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">i_n_tiles</span><span class="p">]</span> <span class="o">=</span> <span class="n">i_lkbp</span><span class="o">.</span><span class="n">tile_lk_ball_params</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">_t</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="n">lk_ball_params</span> <span class="o">=</span> <span class="n">LKBallPackedBlockTypesParams</span><span class="p">(</span>
+            <span class="n">tile_n_polar_atoms</span><span class="o">=</span><span class="n">_t</span><span class="p">(</span><span class="n">tile_n_polar_atoms</span><span class="p">),</span>
+            <span class="n">tile_n_occluder_atoms</span><span class="o">=</span><span class="n">_t</span><span class="p">(</span><span class="n">tile_n_occluder_atoms</span><span class="p">),</span>
+            <span class="n">tile_pol_occ_inds</span><span class="o">=</span><span class="n">_t</span><span class="p">(</span><span class="n">tile_pol_occ_inds</span><span class="p">),</span>
+            <span class="n">tile_lk_ball_params</span><span class="o">=</span><span class="n">_t</span><span class="p">(</span><span class="n">tile_lk_ball_params</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"lk_ball_params"</span><span class="p">,</span> <span class="n">lk_ball_params</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">setup_poses</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">LKBallEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_poses</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">pose_score_lk_ball</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.lk_ball.potentials</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+            <span class="n">lk_ball_pose_score</span><span class="p">,</span>
+            <span class="n">gen_pose_waters</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">common_args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">block_pair_scoring</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">args</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="o">*</span><span class="n">common_args</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_conn</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">conn_atom</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_all_bonds</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">all_bonds</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">atom_all_bond_ranges</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">hbpbt_params</span><span class="o">.</span><span class="n">tile_n_donH</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">hbpbt_params</span><span class="o">.</span><span class="n">tile_n_acc</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">hbpbt_params</span><span class="o">.</span><span class="n">tile_donH_inds</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">hbpbt_params</span><span class="o">.</span><span class="n">tile_donH_hvy_inds</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">hbpbt_params</span><span class="o">.</span><span class="n">tile_which_donH_of_donH_hvy</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">hbpbt_params</span><span class="o">.</span><span class="n">tile_acc_inds</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">hbpbt_params</span><span class="o">.</span><span class="n">tile_acceptor_hybridization</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">hbpbt_params</span><span class="o">.</span><span class="n">tile_acceptor_n_attached_H</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">hbpbt_params</span><span class="o">.</span><span class="n">is_hydrogen</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_lk_ball_water_gen_global_params</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ljlk_param_resolver</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">lkb_water_tors_sp2</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ljlk_param_resolver</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">lkb_water_tors_sp3</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ljlk_param_resolver</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">lkb_water_tors_ring</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="n">common_args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">:</span>
+            <span class="n">convert_float64</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+
+        <span class="n">water_coords</span> <span class="o">=</span> <span class="n">gen_pose_waters</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+
+        <span class="n">args</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="o">*</span><span class="n">common_args</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">min_block_bondsep</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_block_bondsep</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_conn</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">conn_atom</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">lk_ball_params</span><span class="o">.</span><span class="n">tile_n_polar_atoms</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">lk_ball_params</span><span class="o">.</span><span class="n">tile_n_occluder_atoms</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">lk_ball_params</span><span class="o">.</span><span class="n">tile_pol_occ_inds</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">lk_ball_params</span><span class="o">.</span><span class="n">tile_lk_ball_params</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">bond_separation</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_lk_ball_global_params</span><span class="p">,</span>
+            <span class="c1"># max_dis as host scalar for detect-neighbors call</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_max_dis</span><span class="p">,</span>
+            <span class="n">water_coords</span><span class="p">,</span>
+            <span class="n">block_pair_scoring</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="n">common_args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">:</span>
+            <span class="n">convert_float64</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">lk_ball_pose_score</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">rotamer_score_lk_ball</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.lk_ball.potentials</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+            <span class="n">lk_ball_rotamer_score</span><span class="p">,</span>
+            <span class="n">gen_pose_waters</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">common_args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">block_pair_scoring</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">args</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="o">*</span><span class="n">common_args</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_conn</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">conn_atom</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_all_bonds</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">all_bonds</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">atom_all_bond_ranges</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">hbpbt_params</span><span class="o">.</span><span class="n">tile_n_donH</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">hbpbt_params</span><span class="o">.</span><span class="n">tile_n_acc</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">hbpbt_params</span><span class="o">.</span><span class="n">tile_donH_inds</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">hbpbt_params</span><span class="o">.</span><span class="n">tile_donH_hvy_inds</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">hbpbt_params</span><span class="o">.</span><span class="n">tile_which_donH_of_donH_hvy</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">hbpbt_params</span><span class="o">.</span><span class="n">tile_acc_inds</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">hbpbt_params</span><span class="o">.</span><span class="n">tile_acceptor_hybridization</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">hbpbt_params</span><span class="o">.</span><span class="n">tile_acceptor_n_attached_H</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">hbpbt_params</span><span class="o">.</span><span class="n">is_hydrogen</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_lk_ball_water_gen_global_params</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ljlk_param_resolver</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">lkb_water_tors_sp2</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ljlk_param_resolver</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">lkb_water_tors_sp3</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ljlk_param_resolver</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">lkb_water_tors_ring</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="n">common_args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">:</span>
+            <span class="n">convert_float64</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+
+        <span class="n">water_coords</span> <span class="o">=</span> <span class="n">gen_pose_waters</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+
+        <span class="n">args</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="o">*</span><span class="n">common_args</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">min_block_bondsep</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_block_bondsep</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_conn</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">conn_atom</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">lk_ball_params</span><span class="o">.</span><span class="n">tile_n_polar_atoms</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">lk_ball_params</span><span class="o">.</span><span class="n">tile_n_occluder_atoms</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">lk_ball_params</span><span class="o">.</span><span class="n">tile_pol_occ_inds</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">lk_ball_params</span><span class="o">.</span><span class="n">tile_lk_ball_params</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">bond_separation</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_lk_ball_global_params</span><span class="p">,</span>
+            <span class="c1"># max_dis as host scalar for detect-neighbors call</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_max_dis</span><span class="p">,</span>
+            <span class="n">water_coords</span><span class="p">,</span>
+            <span class="n">block_pair_scoring</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="n">common_args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">:</span>
+            <span class="n">convert_float64</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">lk_ball_rotamer_score</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_pose_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose_score_lk_ball</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_rotamer_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rotamer_score_lk_ball</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_score_term_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">pose_stack</span><span class="p">]</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67"></script>
+<script defer src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.21.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
