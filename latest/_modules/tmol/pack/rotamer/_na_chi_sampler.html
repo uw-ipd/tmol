@@ -429,6 +429,7 @@
     <span class="n">polymer_index</span><span class="p">,</span>
     <span class="n">pucker_weights</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility._device</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_device</span>
 
 <span class="c1"># k in chi = mean + k * sdev_chi, by extra-chi sample level, mirroring Rosetta's</span>
 <span class="c1"># expansion of its fitted chi gaussians</span>
@@ -481,6 +482,8 @@
     <span class="n">sample_syn</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">)</span>
 
+<div class="viewcode-block" id="NaChiRotamerSampler.from_database">
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.NaChiRotamerSampler.from_database">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_database</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
@@ -488,7 +491,19 @@
         <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
         <span class="n">chi_sample_level</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
         <span class="n">sample_syn</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="p">):</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"NaChiRotamerSampler"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Create a nucleic-acid chi sampler on a concrete device.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            param_db: Source scoring and chemical parameters.</span>
+<span class="sd">            device: Target device. Unindexed CUDA resolves to the current GPU.</span>
+<span class="sd">            chi_sample_level: Number of standard-deviation expansion levels.</span>
+<span class="sd">            sample_syn: Include eligible syn rotamers when true.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A sampler whose parameters and device metadata agree.</span>
+<span class="sd">        """</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="n">resolve_device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">params</span><span class="o">=</span><span class="n">NaTorsionParams</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">na_torsion</span><span class="p">,</span> <span class="n">device</span><span class="p">),</span>
             <span class="n">element_for_atom_type</span><span class="o">=</span><span class="p">{</span>
@@ -497,7 +512,8 @@
             <span class="n">chi_sample_level</span><span class="o">=</span><span class="n">chi_sample_level</span><span class="p">,</span>
             <span class="n">sample_syn</span><span class="o">=</span><span class="n">sample_syn</span><span class="p">,</span>
             <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="p">)</span></div>
+
 
 <div class="viewcode-block" id="NaChiRotamerSampler.sampler_name">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.NaChiRotamerSampler.sampler_name">[docs]</a>

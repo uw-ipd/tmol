@@ -19,3 +19,10 @@ Public aliases and units
    ClassLogger
    DihedralAngle
    ureg
+
+Tensor utilities
+----------------
+
+.. automodule:: tmol.utility.tensor
+   :members:
+   :imported-members:

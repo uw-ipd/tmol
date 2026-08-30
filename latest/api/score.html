@@ -499,7 +499,7 @@ lower-dimensional views to resolver parameter indices.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="tmol.score.FragmentInteractionScores">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.</span></span><span class="sig-name descname"><span class="pre">FragmentInteractionScores</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scores</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mapping</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_fragment_interactions.html#FragmentInteractionScores"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.FragmentInteractionScores" title="Link to this definition">#</a></dt>
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.</span></span><span class="sig-name descname"><span class="pre">FragmentInteractionScores</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scores</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mapping</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="pose.html#tmol.pose.SplitBlockEntry" title="tmol.pose._split_block_mapping.SplitBlockEntry"><span class="pre">SplitBlockEntry</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_LegacyFragmentRecord</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_fragment_interactions.html#FragmentInteractionScores"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.FragmentInteractionScores" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Per-fragment interactions with an explicitly selected partner.</p>
 </dd></dl>
@@ -528,6 +528,8 @@ into
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.</span></span><span class="sig-name descname"><span class="pre">RotamerScoringModule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_modules</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Sequence" title="(in Python v3.14)"><span class="pre">Sequence</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.pytorch.org/docs/2.13/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.13)"><span class="pre">Module</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#RotamerScoringModule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.RotamerScoringModule" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Rendered energy modules that build sparse rotamer-pair energy tables.</p>
+<p>Large identical index layouts are combined before sparse coalescing to
+avoid retaining and sorting redundant block-pair indices.</p>
 </dd></dl>
 
 <dl class="py class">
@@ -539,7 +541,8 @@ into
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>param_db</strong> – Chemical and scoring parameters used to construct terms.</p></li>
-<li><p><strong>device</strong> – Device on which weights and rendered scorers operate.</p></li>
+<li><p><strong>device</strong> – Device on which weights and rendered scorers operate. An
+unindexed CUDA device resolves to the current CUDA device.</p></li>
 </ul>
 </dd>
 </dl>
@@ -627,14 +630,23 @@ shape (n_poses, max_n_blocks, max_n_blocks).</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="tmol.score.ScoreFunction.render_rotamer_scoring_module">
-<span class="sig-name descname"><span class="pre">render_rotamer_scoring_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose._pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rotamer_set</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pack.html#tmol.pack.rotamer.RotamerSet" title="tmol.pack.rotamer.RotamerSet"><span class="pre">RotamerSet</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#ScoreFunction.render_rotamer_scoring_module"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ScoreFunction.render_rotamer_scoring_module" title="Link to this definition">#</a></dt>
-<dd><p>Create an object designed to evaluate the score a RotamerSet
-repeatedly as the Poses change their conformation, e.g., as in
-minimization. This object will derive from torch.nn.Module and
-it will contain a set of objects rendered by the ScoreFunction’s
-terms that themselves are derived from torch.nn.Module. This
-object’s __call__ will return a tensor of weighted energies of
-shape (n_poses, max_n_blocks, max_n_blocks).</p>
+<span class="sig-name descname"><span class="pre">render_rotamer_scoring_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose._pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rotamer_set</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pack.html#tmol.pack.rotamer.RotamerSet" title="tmol.pack.rotamer.RotamerSet"><span class="pre">RotamerSet</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#tmol.score.RotamerScoringModule" title="tmol.score.RotamerScoringModule"><span class="pre">RotamerScoringModule</span></a></span></span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#ScoreFunction.render_rotamer_scoring_module"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ScoreFunction.render_rotamer_scoring_module" title="Link to this definition">#</a></dt>
+<dd><p>Render a weighted sparse scorer for one rotamer set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pose_stack</strong> – Poses whose fixed background interacts with the
+rotamers.</p></li>
+<li><p><strong>rotamer_set</strong> – Candidate conformers and their pose/block indexing.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A callable that accepts rotamer coordinates and returns an
+uncoalesced sparse COO tensor shaped
+<code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">n_rotamers,</span> <span class="pre">n_rotamers]</span></code>. Call <code class="docutils literal notranslate"><span class="pre">coalesce()</span></code> before
+reading its indices or values.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -764,18 +776,36 @@ default parameter database and a memoized score function.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmol.score.calculate_fragment_interactions">
-<span class="sig-prename descclassname"><span class="pre">tmol.score.</span></span><span class="sig-name descname"><span class="pre">calculate_fragment_interactions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">partner_mask</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">sfxn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mapping</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sum_terms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_fragment_interactions.html#calculate_fragment_interactions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.calculate_fragment_interactions" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmol.score.</span></span><span class="sig-name descname"><span class="pre">calculate_fragment_interactions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose.PoseStack"><span class="pre">PoseStack</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">partner_mask</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor[torch.bool][:,</span> <span class="pre">:]</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">sfxn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#tmol.score.ScoreFunction" title="tmol.score.ScoreFunction"><span class="pre">ScoreFunction</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mapping</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.SplitBlockMapping" title="tmol.pose.SplitBlockMapping"><span class="pre">SplitBlockMapping</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_LegacyFragmentMapping</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sum_terms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#tmol.score.FragmentInteractionScores" title="tmol.score.FragmentInteractionScores"><span class="pre">FragmentInteractionScores</span></a></span></span><a class="reference internal" href="../_modules/tmol/score/_fragment_interactions.html#calculate_fragment_interactions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.calculate_fragment_interactions" title="Link to this definition">#</a></dt>
 <dd><p>Return each ligand fragment’s interaction with <code class="docutils literal notranslate"><span class="pre">partner_mask</span></code>.</p>
 <p>The connected multi-block pose is scored once. Fragment-fragment entries
 remain in the block-pair matrix and are not silently assigned to either
-fragment.</p>
-<p><code class="docutils literal notranslate"><span class="pre">sfxn</span></code> is required and must be built from the same ligand-extended
-parameter database used to construct <code class="docutils literal notranslate"><span class="pre">pose_stack</span></code>.</p>
+fragment. <code class="docutils literal notranslate"><span class="pre">sfxn</span></code> must use the same ligand-extended parameter database as
+<code class="docutils literal notranslate"><span class="pre">pose_stack</span></code>.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#tmol.score.FragmentInteractionScores" title="tmol.score.FragmentInteractionScores"><code class="xref py py-class docutils literal notranslate"><span class="pre">FragmentInteractionScores</span></code></a>. <code class="docutils literal notranslate"><span class="pre">scores</span></code> has shape
-<code class="docutils literal notranslate"><span class="pre">[n_terms,</span> <span class="pre">n_poses,</span> <span class="pre">n_fragments]</span></code> or <code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">n_fragments]</span></code> when
-<code class="docutils literal notranslate"><span class="pre">sum_terms</span></code> is true.</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pose_stack</strong> – Connected poses with identical fragment block layouts.</p></li>
+<li><p><strong>partner_mask</strong> – Partner blocks shaped <code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">max_n_blocks]</span></code>. The
+mask must exclude every ligand fragment block.</p></li>
+<li><p><strong>sfxn</strong> – Score function built from the pose’s parameter database.</p></li>
+<li><p><strong>mapping</strong> – Optional split-block mapping. By default the mapping attached
+to <code class="docutils literal notranslate"><span class="pre">pose_stack</span></code> is used. Legacy fragmented-ligand mappings remain
+accepted for compatibility.</p></li>
+<li><p><strong>sum_terms</strong> – Sum the score-term dimension when true.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Fragment scores shaped <code class="docutils literal notranslate"><span class="pre">[n_terms,</span> <span class="pre">n_poses,</span> <span class="pre">n_fragments]</span></code>, or
+<code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">n_fragments]</span></code> when <code class="docutils literal notranslate"><span class="pre">sum_terms</span></code> is true, plus the pose-zero
+mapping records that define the fragment columns.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.14)"><strong>TypeError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">partner_mask</span></code> is not Boolean.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If the mask, score function, or mapping is incompatible
+    with the poses.</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>

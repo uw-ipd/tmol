@@ -1175,7 +1175,8 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        param_db: The parameter database containing Dunbrack parameters</span>
-<span class="sd">        device: The device to use for the sampler</span>
+<span class="sd">        device: The device to use for the sampler. An unindexed CUDA device</span>
+<span class="sd">            resolves to the current CUDA device.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        DunbrackChiSampler: Configured sampler for rotamer building</span>

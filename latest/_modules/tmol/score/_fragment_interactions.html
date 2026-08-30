@@ -403,9 +403,39 @@
                 <article class="bd-article">
                   
   <h1>Source code for tmol.score._fragment_interactions</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._split_block_mapping</span><span class="w"> </span><span class="kn">import</span> <span class="n">SplitBlockEntry</span><span class="p">,</span> <span class="n">SplitBlockMapping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score._score_function</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreFunction</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_LegacyFragmentRecord</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Fields consumed from the compatibility ligand mapping."""</span>
+
+    <span class="n">pose_index</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">block_index</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">pose_residue_label</span><span class="p">:</span> <span class="nb">int</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_LegacyFragmentMapping</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Structural type for the compatibility fragmented-ligand mapping."""</span>
+
+    <span class="n">blocks</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">_LegacyFragmentRecord</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+
+<span class="n">FragmentRecord</span> <span class="o">=</span> <span class="n">SplitBlockEntry</span> <span class="o">|</span> <span class="n">_LegacyFragmentRecord</span>
+
+
+<span class="n">_FRAGMENT_REDUCTION_WORKSPACE_BYTES</span> <span class="o">=</span> <span class="mi">256</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span>
 
 
 <div class="viewcode-block" id="FragmentInteractionScores">
@@ -415,46 +445,205 @@
 <span class="w">    </span><span class="sd">"""Per-fragment interactions with an explicitly selected partner."""</span>
 
     <span class="n">scores</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
-    <span class="n">mapping</span><span class="p">:</span> <span class="nb">tuple</span></div>
+    <span class="n">mapping</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">FragmentRecord</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span></div>
 
+
+
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_NormalizedFragmentRecord</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Common indexing fields for current and compatibility mappings."""</span>
+
+    <span class="n">pose_index</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">block_index</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">column_key</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">source</span><span class="p">:</span> <span class="n">FragmentRecord</span>
+
+
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_FragmentMappingData</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Validated mapping indices cached on one pose topology."""</span>
+
+    <span class="n">source_mapping</span><span class="p">:</span> <span class="n">SplitBlockMapping</span> <span class="o">|</span> <span class="n">_LegacyFragmentMapping</span>
+    <span class="n">fragment_records</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">FragmentRecord</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">record_linear_indices</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:]</span>
+    <span class="n">fragment_block_indices</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_fragment_mapping_data</span><span class="p">(</span>
+    <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
+    <span class="n">mapping</span><span class="p">:</span> <span class="n">SplitBlockMapping</span> <span class="o">|</span> <span class="n">_LegacyFragmentMapping</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_FragmentMappingData</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Normalize and cache current or compatibility mapping records."""</span>
+    <span class="n">cached</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="s2">"_fragment_interaction_mapping_data"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">tensor_device</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="o">.</span><span class="n">device</span>
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="nb">isinstance</span><span class="p">(</span><span class="n">cached</span><span class="p">,</span> <span class="n">_FragmentMappingData</span><span class="p">)</span>
+        <span class="ow">and</span> <span class="n">cached</span><span class="o">.</span><span class="n">source_mapping</span> <span class="ow">is</span> <span class="n">mapping</span>
+        <span class="ow">and</span> <span class="n">cached</span><span class="o">.</span><span class="n">record_linear_indices</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="n">tensor_device</span>
+    <span class="p">):</span>
+        <span class="k">return</span> <span class="n">cached</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mapping</span><span class="p">,</span> <span class="n">SplitBlockMapping</span><span class="p">):</span>
+        <span class="n">records</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+            <span class="n">_NormalizedFragmentRecord</span><span class="p">(</span>
+                <span class="n">pose_index</span><span class="o">=</span><span class="n">entry</span><span class="o">.</span><span class="n">pose_ind</span><span class="p">,</span>
+                <span class="n">block_index</span><span class="o">=</span><span class="n">entry</span><span class="o">.</span><span class="n">block_ind</span><span class="p">,</span>
+                <span class="n">column_key</span><span class="o">=</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">block_ind</span><span class="p">,),</span>
+                <span class="n">source</span><span class="o">=</span><span class="n">entry</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">mapping</span><span class="o">.</span><span class="n">entries</span>
+        <span class="p">)</span>
+        <span class="n">require_pose_zero_record</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">records</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+            <span class="n">_NormalizedFragmentRecord</span><span class="p">(</span>
+                <span class="n">pose_index</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">pose_index</span><span class="p">,</span>
+                <span class="n">block_index</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">block_index</span><span class="p">,</span>
+                <span class="n">column_key</span><span class="o">=</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">pose_residue_label</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">block_index</span><span class="p">),</span>
+                <span class="n">source</span><span class="o">=</span><span class="n">record</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">mapping</span><span class="o">.</span><span class="n">blocks</span>
+        <span class="p">)</span>
+        <span class="n">require_pose_zero_record</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="n">records_by_pose</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">_NormalizedFragmentRecord</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">[]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">records</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
+            <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">record</span><span class="o">.</span><span class="n">pose_index</span> <span class="o">&lt;</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span>
+            <span class="ow">and</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">record</span><span class="o">.</span><span class="n">block_index</span> <span class="o">&lt;</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_blocks</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"Fragment mapping entry is outside the pose stack: "</span>
+                <span class="sa">f</span><span class="s2">"pose </span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">pose_index</span><span class="si">}</span><span class="s2">, block </span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">block_index</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="n">records_by_pose</span><span class="p">[</span><span class="n">record</span><span class="o">.</span><span class="n">pose_index</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+
+    <span class="n">pose_zero_records</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+        <span class="nb">sorted</span><span class="p">(</span><span class="n">records_by_pose</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">record</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">block_index</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">require_pose_zero_record</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">pose_zero_records</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"split_block_mapping has no entries for pose 0"</span><span class="p">)</span>
+
+    <span class="n">expected_columns</span> <span class="o">=</span> <span class="p">{</span><span class="n">record</span><span class="o">.</span><span class="n">column_key</span> <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">pose_zero_records</span><span class="p">}</span>
+    <span class="k">for</span> <span class="n">pose_records</span> <span class="ow">in</span> <span class="n">records_by_pose</span><span class="p">:</span>
+        <span class="n">pose_columns</span> <span class="o">=</span> <span class="p">{</span><span class="n">record</span><span class="o">.</span><span class="n">column_key</span> <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">pose_records</span><span class="p">}</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pose_columns</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">pose_records</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Fragment mapping contains duplicate columns in one pose"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">pose_columns</span> <span class="o">!=</span> <span class="n">expected_columns</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"Fragment mappings must use identical block topology in every pose"</span>
+            <span class="p">)</span>
+
+    <span class="n">data</span> <span class="o">=</span> <span class="n">_FragmentMappingData</span><span class="p">(</span>
+        <span class="n">source_mapping</span><span class="o">=</span><span class="n">mapping</span><span class="p">,</span>
+        <span class="n">fragment_records</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">source</span> <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">pose_zero_records</span><span class="p">),</span>
+        <span class="n">record_linear_indices</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">record</span><span class="o">.</span><span class="n">pose_index</span> <span class="o">*</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_blocks</span> <span class="o">+</span> <span class="n">record</span><span class="o">.</span><span class="n">block_index</span>
+                <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">records</span>
+            <span class="p">],</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">tensor_device</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">fragment_block_indices</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">record</span><span class="o">.</span><span class="n">block_index</span> <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">pose_zero_records</span><span class="p">],</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">tensor_device</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">pose_stack</span><span class="o">.</span><span class="n">_fragment_interaction_mapping_data</span> <span class="o">=</span> <span class="n">data</span>
+    <span class="k">return</span> <span class="n">data</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_sum_fragment_partner_scores</span><span class="p">(</span>
+    <span class="n">block_pair_scores</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">partner_mask</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:],</span>
+    <span class="n">fragment_block_indices</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">max_workspace_bytes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">_FRAGMENT_REDUCTION_WORKSPACE_BYTES</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Reduce both block-matrix orientations for many fragments at once.</span>
+
+<span class="sd">    The gathered rows and columns are chunked so that their combined temporary</span>
+<span class="sd">    storage stays near ``max_workspace_bytes``. This keeps the number of CUDA</span>
+<span class="sd">    launches independent of the number of fragments within each chunk.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        block_pair_scores: Weighted scores shaped</span>
+<span class="sd">            ``[n_terms, n_poses, n_blocks, n_blocks]``.</span>
+<span class="sd">        partner_mask: Selected partner blocks shaped ``[n_poses, n_blocks]``.</span>
+<span class="sd">        fragment_block_indices: Fragment block columns shared by every pose,</span>
+<span class="sd">            shaped ``[n_fragments]``.</span>
+<span class="sd">        max_workspace_bytes: Target upper bound for the two gathered score</span>
+<span class="sd">            tensors in one reduction chunk.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Scores shaped ``[n_terms, n_poses, n_fragments]``.</span>
+<span class="sd">    """</span>
+    <span class="n">n_terms</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">,</span> <span class="n">n_blocks</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">block_pair_scores</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">n_fragments</span> <span class="o">=</span> <span class="n">fragment_block_indices</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">n_fragments</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">n_terms</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">n_poses</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">n_blocks</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">zero_scores</span> <span class="o">=</span> <span class="n">block_pair_scores</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">zero_scores</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_terms</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">,</span> <span class="n">n_fragments</span><span class="p">)</span>
+
+    <span class="n">bytes_per_fragment</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="mi">2</span> <span class="o">*</span> <span class="n">n_terms</span> <span class="o">*</span> <span class="n">n_poses</span> <span class="o">*</span> <span class="n">n_blocks</span> <span class="o">*</span> <span class="n">block_pair_scores</span><span class="o">.</span><span class="n">element_size</span><span class="p">()</span>
+    <span class="p">)</span>
+    <span class="n">fragments_per_chunk</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_workspace_bytes</span> <span class="o">//</span> <span class="n">bytes_per_fragment</span><span class="p">)</span>
+    <span class="n">partner_weights</span> <span class="o">=</span> <span class="n">partner_mask</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">block_pair_scores</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="n">partials</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">fragment_indices</span> <span class="ow">in</span> <span class="n">fragment_block_indices</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">fragments_per_chunk</span><span class="p">):</span>
+        <span class="n">selected_scores</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">index_select</span><span class="p">(</span><span class="n">block_pair_scores</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">fragment_indices</span><span class="p">)</span>
+        <span class="n">selected_scores</span><span class="o">.</span><span class="n">add_</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">index_select</span><span class="p">(</span><span class="n">block_pair_scores</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">fragment_indices</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">partials</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">"tpfb,pb-&gt;tpf"</span><span class="p">,</span> <span class="n">selected_scores</span><span class="p">,</span> <span class="n">partner_weights</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">partials</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">partials</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">partials</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="calculate_fragment_interactions">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.calculate_fragment_interactions">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">calculate_fragment_interactions</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
-    <span class="n">pose_stack</span><span class="p">,</span>
-    <span class="n">partner_mask</span><span class="p">,</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">calculate_fragment_interactions</span><span class="p">(</span>
+    <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
+    <span class="n">partner_mask</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:],</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">sfxn</span><span class="p">,</span>
-    <span class="n">mapping</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">sum_terms</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-<span class="p">):</span>
+    <span class="n">sfxn</span><span class="p">:</span> <span class="n">ScoreFunction</span><span class="p">,</span>
+    <span class="n">mapping</span><span class="p">:</span> <span class="n">SplitBlockMapping</span> <span class="o">|</span> <span class="n">_LegacyFragmentMapping</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">sum_terms</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FragmentInteractionScores</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Return each ligand fragment's interaction with ``partner_mask``.</span>
 
 <span class="sd">    The connected multi-block pose is scored once. Fragment-fragment entries</span>
 <span class="sd">    remain in the block-pair matrix and are not silently assigned to either</span>
-<span class="sd">    fragment.</span>
+<span class="sd">    fragment. ``sfxn`` must use the same ligand-extended parameter database as</span>
+<span class="sd">    ``pose_stack``.</span>
 
-<span class="sd">    ``sfxn`` is required and must be built from the same ligand-extended</span>
-<span class="sd">    parameter database used to construct ``pose_stack``.</span>
+<span class="sd">    Args:</span>
+<span class="sd">        pose_stack: Connected poses with identical fragment block layouts.</span>
+<span class="sd">        partner_mask: Partner blocks shaped ``[n_poses, max_n_blocks]``. The</span>
+<span class="sd">            mask must exclude every ligand fragment block.</span>
+<span class="sd">        sfxn: Score function built from the pose's parameter database.</span>
+<span class="sd">        mapping: Optional split-block mapping. By default the mapping attached</span>
+<span class="sd">            to ``pose_stack`` is used. Legacy fragmented-ligand mappings remain</span>
+<span class="sd">            accepted for compatibility.</span>
+<span class="sd">        sum_terms: Sum the score-term dimension when true.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        :class:`FragmentInteractionScores`. ``scores`` has shape</span>
-<span class="sd">        ``[n_terms, n_poses, n_fragments]`` or ``[n_poses, n_fragments]`` when</span>
-<span class="sd">        ``sum_terms`` is true.</span>
+<span class="sd">        Fragment scores shaped ``[n_terms, n_poses, n_fragments]``, or</span>
+<span class="sd">        ``[n_poses, n_fragments]`` when ``sum_terms`` is true, plus the pose-zero</span>
+<span class="sd">        mapping records that define the fragment columns.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        TypeError: If ``partner_mask`` is not Boolean.</span>
+<span class="sd">        ValueError: If the mask, score function, or mapping is incompatible</span>
+<span class="sd">            with the poses.</span>
 <span class="sd">    """</span>
-
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._split_block_mapping</span><span class="w"> </span><span class="kn">import</span> <span class="n">SplitBlockMapping</span>
-
     <span class="k">if</span> <span class="n">mapping</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">sbm</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="s2">"split_block_mapping"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mapping</span><span class="p">,</span> <span class="n">SplitBlockMapping</span><span class="p">):</span>
-        <span class="n">sbm</span> <span class="o">=</span> <span class="n">mapping</span>
-        <span class="n">mapping</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># use new path</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">sbm</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># use legacy path with the provided FragmentedLigandPoseMapping</span>
-
-    <span class="k">if</span> <span class="n">sbm</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">mapping</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">mapping</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="s2">"split_block_mapping"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">mapping</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"No split-block mapping was supplied or attached to the pose"</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">partner_mask</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -470,93 +659,23 @@
             <span class="s2">"sfxn is required and must use the ligand-extended parameter database"</span>
         <span class="p">)</span>
 
-    <span class="c1"># Use split_block_mapping when no explicit mapping was provided.</span>
-    <span class="c1"># Fragment block indices are the same across all poses (topology is canonical),</span>
-    <span class="c1"># so pose-0 entries define the column layout for every pose.</span>
-    <span class="k">if</span> <span class="n">sbm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">pose0_entries</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">sbm</span><span class="o">.</span><span class="n">entries</span> <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">pose_ind</span> <span class="o">==</span> <span class="mi">0</span><span class="p">),</span>
-            <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">e</span><span class="p">:</span> <span class="n">e</span><span class="o">.</span><span class="n">block_ind</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">pose0_entries</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"split_block_mapping has no entries for pose 0"</span><span class="p">)</span>
-        <span class="n">expected_block_inds</span> <span class="o">=</span> <span class="p">{</span><span class="n">e</span><span class="o">.</span><span class="n">block_ind</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">pose0_entries</span><span class="p">}</span>
-        <span class="k">for</span> <span class="n">pose_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span><span class="p">):</span>
-            <span class="n">pose_block_inds</span> <span class="o">=</span> <span class="p">{</span>
-                <span class="n">e</span><span class="o">.</span><span class="n">block_ind</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">sbm</span><span class="o">.</span><span class="n">entries</span> <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">pose_ind</span> <span class="o">==</span> <span class="n">pose_index</span>
-            <span class="p">}</span>
-            <span class="k">if</span> <span class="n">pose_block_inds</span> <span class="o">!=</span> <span class="n">expected_block_inds</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s2">"Fragment mappings must use identical block topology in every pose"</span>
-                <span class="p">)</span>
-        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">sbm</span><span class="o">.</span><span class="n">entries</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">partner_mask</span><span class="p">[</span><span class="n">entry</span><span class="o">.</span><span class="n">pose_ind</span><span class="p">,</span> <span class="n">entry</span><span class="o">.</span><span class="n">block_ind</span><span class="p">]):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"partner_mask must not include ligand fragment blocks"</span><span class="p">)</span>
+    <span class="n">mapping_data</span> <span class="o">=</span> <span class="n">_fragment_mapping_data</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">mapping</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">partner_mask</span><span class="o">.</span><span class="n">flatten</span><span class="p">()[</span><span class="n">mapping_data</span><span class="o">.</span><span class="n">record_linear_indices</span><span class="p">]</span><span class="o">.</span><span class="n">any</span><span class="p">()):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"partner_mask must not include ligand fragment blocks"</span><span class="p">)</span>
 
-        <span class="n">scorer</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_block_pair_scoring_module</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
-        <span class="n">block_pair_scores</span> <span class="o">=</span> <span class="n">scorer</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span> <span class="n">sum_terms</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="n">n_terms</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">block_pair_scores</span><span class="o">.</span><span class="n">shape</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">n_terms</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">pose0_entries</span><span class="p">)),</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">block_pair_scores</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="n">device</span><span class="o">=</span><span class="n">block_pair_scores</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="k">for</span> <span class="n">frag_idx</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pose0_entries</span><span class="p">):</span>
-            <span class="n">b</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">block_ind</span>
-            <span class="n">result</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">frag_idx</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">block_pair_scores</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">b</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">partner_mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-            <span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span>
-                <span class="n">block_pair_scores</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="n">b</span><span class="p">]</span> <span class="o">*</span> <span class="n">partner_mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-            <span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
-                <span class="n">dim</span><span class="o">=</span><span class="mi">2</span>
-            <span class="p">)</span>
-        <span class="k">if</span> <span class="n">sum_terms</span><span class="p">:</span>
-            <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">FragmentInteractionScores</span><span class="p">(</span><span class="n">scores</span><span class="o">=</span><span class="n">result</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">pose0_entries</span><span class="p">))</span>
-
-    <span class="c1"># Legacy path: explicit FragmentedLigandPoseMapping passed as mapping=</span>
-    <span class="n">fragment_records</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
-        <span class="nb">sorted</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">record</span> <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">mapping</span><span class="o">.</span><span class="n">blocks</span> <span class="k">if</span> <span class="n">record</span><span class="o">.</span><span class="n">pose_index</span> <span class="o">==</span> <span class="mi">0</span><span class="p">),</span>
-            <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">record</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">block_index</span><span class="p">,</span>
-        <span class="p">)</span>
-    <span class="p">)</span>
-    <span class="n">expected_columns</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">pose_residue_label</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">block_index</span><span class="p">)</span> <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">fragment_records</span>
-    <span class="p">}</span>
-    <span class="k">for</span> <span class="n">pose_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span><span class="p">):</span>
-        <span class="n">pose_columns</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">pose_residue_label</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">block_index</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">mapping</span><span class="o">.</span><span class="n">blocks</span>
-            <span class="k">if</span> <span class="n">record</span><span class="o">.</span><span class="n">pose_index</span> <span class="o">==</span> <span class="n">pose_index</span>
-        <span class="p">}</span>
-        <span class="k">if</span> <span class="n">pose_columns</span> <span class="o">!=</span> <span class="n">expected_columns</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">"Fragment mappings must use identical block topology in every pose"</span>
-            <span class="p">)</span>
-    <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">mapping</span><span class="o">.</span><span class="n">blocks</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">partner_mask</span><span class="p">[</span><span class="n">record</span><span class="o">.</span><span class="n">pose_index</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">block_index</span><span class="p">]):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"partner_mask must not include ligand fragment blocks"</span><span class="p">)</span>
     <span class="n">scorer</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_block_pair_scoring_module</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
     <span class="n">block_pair_scores</span> <span class="o">=</span> <span class="n">scorer</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span> <span class="n">sum_terms</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">n_terms</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">block_pair_scores</span><span class="o">.</span><span class="n">shape</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-        <span class="p">(</span><span class="n">n_terms</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">fragment_records</span><span class="p">)),</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">block_pair_scores</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="n">device</span><span class="o">=</span><span class="n">block_pair_scores</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">_sum_fragment_partner_scores</span><span class="p">(</span>
+        <span class="n">block_pair_scores</span><span class="p">,</span>
+        <span class="n">partner_mask</span><span class="p">,</span>
+        <span class="n">mapping_data</span><span class="o">.</span><span class="n">fragment_block_indices</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="k">for</span> <span class="n">fragment_index</span><span class="p">,</span> <span class="n">record</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fragment_records</span><span class="p">):</span>
-        <span class="n">block_index</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">block_index</span>
-        <span class="n">result</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">fragment_index</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">block_pair_scores</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">block_index</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">partner_mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span>
-            <span class="n">block_pair_scores</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="n">block_index</span><span class="p">]</span> <span class="o">*</span> <span class="n">partner_mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
-            <span class="n">dim</span><span class="o">=</span><span class="mi">2</span>
-        <span class="p">)</span>
     <span class="k">if</span> <span class="n">sum_terms</span><span class="p">:</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">FragmentInteractionScores</span><span class="p">(</span><span class="n">scores</span><span class="o">=</span><span class="n">result</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="n">fragment_records</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">FragmentInteractionScores</span><span class="p">(</span>
+        <span class="n">scores</span><span class="o">=</span><span class="n">result</span><span class="p">,</span>
+        <span class="n">mapping</span><span class="o">=</span><span class="n">mapping_data</span><span class="o">.</span><span class="n">fragment_records</span><span class="p">,</span>
+    <span class="p">)</span></div>
 
 </pre></div>
 

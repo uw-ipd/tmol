@@ -415,6 +415,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database._yaml</span><span class="w"> </span><span class="kn">import</span> <span class="n">safe_load</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreType</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.common</span><span class="w"> </span><span class="kn">import</span> <span class="n">ZeroTermPoseScoringModule</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility._device</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_device</span>
 
 <span class="c1"># force registration of the terms with the ScoreTermFactory</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.terms</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>  <span class="c1"># noqa: F401, F403</span>
@@ -429,6 +430,10 @@
 <span class="c1"># .sfxn file and checked on load.</span>
 <span class="n">SFXN_FORMAT_VERSION</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"1.0"</span>
 
+<span class="c1"># Exact CUDA tensor equality synchronizes with the host. Only pay that cost</span>
+<span class="c1"># when one duplicate sparse index layout would retain at least 16 MiB.</span>
+<span class="n">_ROTAMER_LAYOUT_DEDUP_MIN_BYTES</span> <span class="o">=</span> <span class="mi">16</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span>
+
 
 <div class="viewcode-block" id="ScoreFunction">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.ScoreFunction">[docs]</a>
@@ -437,10 +442,12 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        param_db: Chemical and scoring parameters used to construct terms.</span>
-<span class="sd">        device: Device on which weights and rendered scorers operate.</span>
+<span class="sd">        device: Device on which weights and rendered scorers operate. An</span>
+<span class="sd">            unindexed CUDA device resolves to the current CUDA device.</span>
 <span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_db</span><span class="p">:</span> <span class="n">ParameterDatabase</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="n">resolve_device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_weights</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">n_score_types</span><span class="o">.</span><span class="n">value</span><span class="p">,),</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_all_terms</span> <span class="o">=</span> <span class="p">[]</span>
@@ -698,14 +705,19 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
         <span class="n">rotamer_set</span><span class="p">:</span> <span class="s2">"RotamerSet"</span><span class="p">,</span>  <span class="c1"># noqa: F405</span>
-    <span class="p">):</span>
-<span class="w">        </span><span class="sd">"""Create an object designed to evaluate the score a RotamerSet</span>
-<span class="sd">        repeatedly as the Poses change their conformation, e.g., as in</span>
-<span class="sd">        minimization. This object will derive from torch.nn.Module and</span>
-<span class="sd">        it will contain a set of objects rendered by the ScoreFunction's</span>
-<span class="sd">        terms that themselves are derived from torch.nn.Module. This</span>
-<span class="sd">        object's __call__ will return a tensor of weighted energies of</span>
-<span class="sd">        shape (n_poses, max_n_blocks, max_n_blocks).</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"RotamerScoringModule"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Render a weighted sparse scorer for one rotamer set.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            pose_stack: Poses whose fixed background interacts with the</span>
+<span class="sd">                rotamers.</span>
+<span class="sd">            rotamer_set: Candidate conformers and their pose/block indexing.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A callable that accepts rotamer coordinates and returns an</span>
+<span class="sd">            uncoalesced sparse COO tensor shaped</span>
+<span class="sd">            ``[n_poses, n_rotamers, n_rotamers]``. Call ``coalesce()`` before</span>
+<span class="sd">            reading its indices or values.</span>
 <span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_work_initialization</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
         <span class="n">term_modules</span> <span class="o">=</span> <span class="p">[</span>
@@ -1060,7 +1072,11 @@
 <div class="viewcode-block" id="RotamerScoringModule">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.RotamerScoringModule">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">RotamerScoringModule</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Rendered energy modules that build sparse rotamer-pair energy tables."""</span>
+<span class="w">    </span><span class="sd">"""Rendered energy modules that build sparse rotamer-pair energy tables.</span>
+
+<span class="sd">    Large identical index layouts are combined before sparse coalescing to</span>
+<span class="sd">    avoid retaining and sorting redundant block-pair indices.</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -1072,17 +1088,18 @@
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span> <span class="o">=</span> <span class="n">term_modules</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_grad_enabled</span><span class="p">()</span> <span class="ow">and</span> <span class="n">coords</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">:</span>
             <span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
         <span class="c1"># Accumulate weighted values and their indices across all terms at the</span>
         <span class="c1"># dense [nnz] level.  This avoids torch.stack on sparse tensors, which</span>
         <span class="c1"># previously created a [n_subterms, n_poses, n_rots, n_rots] 4D sparse</span>
         <span class="c1"># tensor whose index storage grew as n_subterms × nnz × 4 int32.</span>
-        <span class="n">all_values</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">all_indices</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">n_poses</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="n">n_rots</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">all_values</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">all_indices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">layouts_by_nnz</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">n_poses</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">n_rots</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">weights_offset</span> <span class="o">=</span> <span class="mi">0</span>
 
         <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span><span class="p">:</span>
@@ -1093,8 +1110,28 @@
             <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">weights_offset</span> <span class="p">:</span> <span class="n">weights_offset</span> <span class="o">+</span> <span class="n">n_subterms</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
             <span class="n">weighted_values</span> <span class="o">=</span> <span class="p">(</span><span class="n">w</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">scores</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
-            <span class="n">all_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">weighted_values</span><span class="p">)</span>
-            <span class="n">all_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
+            <span class="c1"># Several terms share the same block-pair dispatch. Combine their</span>
+            <span class="c1"># values now so the sparse coalesce does not sort another copy of</span>
+            <span class="c1"># the same, potentially multi-gigabyte, index layout.</span>
+            <span class="n">deduplicate_layout</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">indices</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">*</span> <span class="n">indices</span><span class="o">.</span><span class="n">element_size</span><span class="p">()</span>
+                <span class="o">&gt;=</span> <span class="n">_ROTAMER_LAYOUT_DEDUP_MIN_BYTES</span>
+            <span class="p">)</span>
+            <span class="n">candidate_layouts</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">layouts_by_nnz</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">indices</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">())</span> <span class="k">if</span> <span class="n">deduplicate_layout</span> <span class="k">else</span> <span class="p">()</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">layout_index</span> <span class="ow">in</span> <span class="n">candidate_layouts</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">all_indices</span><span class="p">[</span><span class="n">layout_index</span><span class="p">]):</span>
+                    <span class="n">all_values</span><span class="p">[</span><span class="n">layout_index</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">all_values</span><span class="p">[</span><span class="n">layout_index</span><span class="p">]</span> <span class="o">+</span> <span class="n">weighted_values</span>
+                    <span class="p">)</span>
+                    <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">layout_index</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">all_indices</span><span class="p">)</span>
+                <span class="n">all_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">weighted_values</span><span class="p">)</span>
+                <span class="n">all_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">deduplicate_layout</span><span class="p">:</span>
+                    <span class="n">layouts_by_nnz</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">indices</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">layout_index</span><span class="p">)</span>
             <span class="n">weights_offset</span> <span class="o">+=</span> <span class="n">n_subterms</span>
 
             <span class="k">if</span> <span class="n">n_poses</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>

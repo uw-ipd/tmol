@@ -416,6 +416,7 @@
     <span class="n">ResidueTypeSet</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">PatchedChemicalDatabase</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility._device</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_device</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.tensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">join_tensors_and_report_real_entries</span>
 
 
@@ -523,6 +524,8 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">n_types</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">)</span>
 
+<div class="viewcode-block" id="PackedBlockTypes.from_restype_list">
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PackedBlockTypes.from_restype_list">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_restype_list</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
@@ -530,7 +533,20 @@
         <span class="n">restype_set</span><span class="p">:</span> <span class="n">ResidueTypeSet</span><span class="p">,</span>
         <span class="n">active_block_types</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">RefinedResidueType</span><span class="p">],</span>
         <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-    <span class="p">):</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"PackedBlockTypes"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Pack residue-type metadata onto a concrete torch device.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            chem_db: Chemical database shared by the residue types.</span>
+<span class="sd">            restype_set: Source residue-type collection.</span>
+<span class="sd">            active_block_types: Ordered residue types to pack.</span>
+<span class="sd">            device: Target device. An unindexed CUDA device resolves to the</span>
+<span class="sd">                current CUDA device.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Packed residue-type tensors and their concrete device metadata.</span>
+<span class="sd">        """</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="n">resolve_device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
         <span class="n">max_n_atoms</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">count_max_n_atoms</span><span class="p">(</span><span class="n">active_block_types</span><span class="p">)</span>
         <span class="n">n_atoms</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">count_n_atoms</span><span class="p">(</span><span class="n">active_block_types</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
         <span class="n">atom_is_real</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">determine_real_atoms</span><span class="p">(</span><span class="n">max_n_atoms</span><span class="p">,</span> <span class="n">n_atoms</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
@@ -604,7 +620,8 @@
             <span class="p">),</span>
             <span class="n">default_jump_connection_atom_inds</span><span class="o">=</span><span class="n">def_jumpconn_inds</span><span class="p">,</span>
             <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="p">)</span></div>
+
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">count_max_n_atoms</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">RefinedResidueType</span><span class="p">]):</span>

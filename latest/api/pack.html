@@ -985,6 +985,25 @@ proton chis in the same way.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="tmol.pack.rotamer.NaChiRotamerSampler.from_database">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_database</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">chi_sample_level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_syn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#tmol.pack.rotamer.NaChiRotamerSampler" title="tmol.pack.rotamer._na_chi_sampler.NaChiRotamerSampler"><span class="pre">NaChiRotamerSampler</span></a></span></span><a class="reference internal" href="../_modules/tmol/pack/rotamer/_na_chi_sampler.html#NaChiRotamerSampler.from_database"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.pack.rotamer.NaChiRotamerSampler.from_database" title="Link to this definition">#</a></dt>
+<dd><p>Create a nucleic-acid chi sampler on a concrete device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>param_db</strong> – Source scoring and chemical parameters.</p></li>
+<li><p><strong>device</strong> – Target device. Unindexed CUDA resolves to the current GPU.</p></li>
+<li><p><strong>chi_sample_level</strong> – Number of standard-deviation expansion levels.</p></li>
+<li><p><strong>sample_syn</strong> – Include eligible syn rotamers when true.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A sampler whose parameters and device metadata agree.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="tmol.pack.rotamer.NaChiRotamerSampler.sampler_name">
 <em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sampler_name</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/pack/rotamer/_na_chi_sampler.html#NaChiRotamerSampler.sampler_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.pack.rotamer.NaChiRotamerSampler.sampler_name" title="Link to this definition">#</a></dt>
 <dd><p>Return the stable name used for chi-sampler annotations.</p>
@@ -1168,7 +1187,8 @@ repeatedly in the creation of the DunSamplerPBTCache</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>param_db</strong> – The parameter database containing Dunbrack parameters</p></li>
-<li><p><strong>device</strong> – The device to use for the sampler</p></li>
+<li><p><strong>device</strong> – The device to use for the sampler. An unindexed CUDA device
+resolves to the current CUDA device.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1312,6 +1332,7 @@ repeatedly in the creation of the DunSamplerPBTCache</p>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.pack.rotamer.NaChiRotamerSampler.annotate_residue_type"><code class="docutils literal notranslate"><span class="pre">NaChiRotamerSampler.annotate_residue_type()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.pack.rotamer.NaChiRotamerSampler.defines_rotamers_for_rt"><code class="docutils literal notranslate"><span class="pre">NaChiRotamerSampler.defines_rotamers_for_rt()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.pack.rotamer.NaChiRotamerSampler.first_sc_atoms_for_rt"><code class="docutils literal notranslate"><span class="pre">NaChiRotamerSampler.first_sc_atoms_for_rt()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.pack.rotamer.NaChiRotamerSampler.from_database"><code class="docutils literal notranslate"><span class="pre">NaChiRotamerSampler.from_database()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.pack.rotamer.NaChiRotamerSampler.sampler_name"><code class="docutils literal notranslate"><span class="pre">NaChiRotamerSampler.sampler_name()</span></code></a></li>
 </ul>
 </li>

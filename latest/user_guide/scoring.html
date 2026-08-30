@@ -537,6 +537,32 @@ any requested minimization. Use <code class="docutils literal notranslate"><span
 coordinates are part of the result, and <code class="docutils literal notranslate"><span class="pre">sum_terms=False</span></code> to inspect score
 terms separately.</p>
 </section>
+<section id="fragmented-ligand-attribution">
+<h2>Fragmented-ligand attribution<a class="headerlink" href="#fragmented-ligand-attribution" title="Link to this heading">#</a></h2>
+<p>For a ligand represented by connected fragment blocks, attribute its
+interaction with an explicit partner mask in one connected-pose score:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">calculate_fragment_interactions</span>
+
+<span class="n">fragment_scores</span> <span class="o">=</span> <span class="n">calculate_fragment_interactions</span><span class="p">(</span>
+    <span class="n">pose_stack</span><span class="p">,</span>
+    <span class="n">protein_block_mask</span><span class="p">,</span>
+    <span class="n">sfxn</span><span class="o">=</span><span class="n">sfxn</span><span class="p">,</span>
+    <span class="n">sum_terms</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">fragment_scores.scores</span></code> has shape
+<code class="docutils literal notranslate"><span class="pre">[n_terms,</span> <span class="pre">n_poses,</span> <span class="pre">n_fragments]</span></code>; set <code class="docutils literal notranslate"><span class="pre">sum_terms=True</span></code> for
+<code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">n_fragments]</span></code>. The fragment columns follow
+<code class="docutils literal notranslate"><span class="pre">fragment_scores.mapping</span></code>. Every pose in the stack must use the same fragment
+block layout, and the partner mask must exclude those fragment blocks.</p>
+<p>Keep the fragments in one <code class="docutils literal notranslate"><span class="pre">PoseStack</span></code> and call this function once. It renders
+one block-pair scorer and reduces all fragment columns together, preserving
+autograd through the connected complex. Calling a complete scoring workflow
+once per fragment repeats scorer and kernel-launch overhead. Rebuilding
+separated fragment poses additionally changes the physical system by removing
+the connected multi-block context.</p>
+</section>
 </section>
 
 
@@ -588,6 +614,7 @@ terms separately.</p>
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ligand-aware-scoring">Ligand-aware Scoring</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#block-pair-scores">Block-pair Scores</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#fragmented-ligand-attribution">Fragmented-ligand attribution</a></li>
 </ul>
   </nav></div>
 
