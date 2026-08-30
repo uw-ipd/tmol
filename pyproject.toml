@@ -85,6 +85,7 @@ dev = [
     "pytest-instafail>=0.5",
     "pytest-repeat>=0.9",
     "pytest-watch>=4.2",
+    "pytest-xdist>=3.6",
     # Interactive
     "ipython>=8.0",
     # Visualization

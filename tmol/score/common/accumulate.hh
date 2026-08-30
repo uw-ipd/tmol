@@ -23,34 +23,19 @@ struct accumulate<
     tmol::Device::CPU,
     T,
     typename std::enable_if<std::is_arithmetic<T>::value>::type> {
+  // CPU accumulation is intentionally non-atomic. Parallel callers must write
+  // to disjoint output elements, as pose-parallel scoring does.
   static def add(T& target, const T& val) -> T {
-    //  // Try the atomic-add solution from stack overflow:
-    //  //
-    //  https://stackoverflow.com/questions/48746540/are-there-any-more-efficient-ways-for-atomically-adding-two-floats
-    //  int *ip_x= reinterpret_cast<int*>( &target ); //1
-    //  int expected= __atomic_load_n( ip_x, __ATOMIC_SEQ_CST ); //2
-    //  int desired;
-    //  do  {
-    //    float sum= *reinterpret_cast<T*>( &expected ) + val; //3
-    //    desired=   *reinterpret_cast<int*>( &sum );
-    //  } while( ! __atomic_compare_exchange_n( ip_x, &expected, desired, //4
-    //                                          /* weak = */ true,
-    //                                          __ATOMIC_SEQ_CST,
-    //                                          __ATOMIC_SEQ_CST ) );
-    //
     T old_target = target;
     target += val;
     return old_target;
   }
 
-  // This is safe to use when all threads are going to write to the same address
   template <class A>
   static def add_one_dst(A& target, int ind, const T& val) -> void {
     target[ind] += val;
   }
 
-  // All threads must write to the same ind1; threads may write to different
-  // ind0s. The CPU version is safe as long as there's only one thread.
   template <class A>
   static def add_two_dim_one_dst(A& target, int ind0, int ind1, const T& val)
       -> void {
@@ -80,58 +65,7 @@ struct accumulate<
       accumulate<D, T>::add_two_dim_one_dst(target, ind, i, val[i]);
     }
   }
-
-  template <class A>
-  static def add_two_dim_one_dst(A& target, int ind0, int ind1, const V& val)
-      -> void {
-    // ???
-  }
 };
-
-#ifndef __CUDACC__
-// Compile this reduction class only for CPU
-
-template <tmol::Device D, typename T, class Enable = void>
-struct reduce {};
-
-template <typename T>
-struct reduce<
-    tmol::Device::CPU,
-    T,
-    typename std::enable_if<std::is_arithmetic<T>::value>::type> {
-  template <class G, class OP>
-  static def reduce_to_head(G&, const T& val, OP) -> T {
-    T retval = val;
-    return retval;
-  }
-
-  template <class G, class OP>
-  static def reduce_to_all(G&, const T& val, OP) -> T {
-    T retval = val;
-    return retval;
-  }
-};
-
-template <tmol::Device D, int N, typename T>
-struct reduce<
-    D,
-    Eigen::Matrix<T, N, 1>,
-    typename std::enable_if<std::is_arithmetic<T>::value>::type> {
-  typedef Eigen::Matrix<T, N, 1> V;
-  template <class G, class OP>
-  static def reduce_to_head(G&, const V& val, OP) -> T {
-    V retval = val;
-    return retval;
-  }
-
-  template <class G, class OP>
-  static def reduce_to_all(G&, const V& val, OP) -> T {
-    V retval = val;
-    return retval;
-  }
-};
-
-#endif
 
 #ifdef __CUDACC__
 
@@ -183,7 +117,7 @@ struct accumulate<
   }
 
   // All threads must write to the same ind1; threads may write to different
-  // ind0s. The CPU version is safe as long as there's only one thread.
+  // ind0s.
   template <class A>
   static def add_two_dim_one_dst(A& target, int ind0, int ind1, const T& val)
       -> void {

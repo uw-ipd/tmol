@@ -844,11 +844,11 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
   // 3
   if (output_block_pair_energies || !compute_derivs) {
-    DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-        mgr, n_poses * max_n_upper_triangle_inds, eval_energies_by_block);
+    DeviceDispatch<D>::template foreach_pose_workgroup<launch_t>(
+        mgr, n_poses, max_n_upper_triangle_inds, eval_energies_by_block);
   } else {
-    DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-        mgr, n_poses * max_n_upper_triangle_inds, eval_energies);
+    DeviceDispatch<D>::template foreach_pose_workgroup<launch_t>(
+        mgr, n_poses, max_n_upper_triangle_inds, eval_energies);
   }
 
   return {output_t, dV_dcoords_t, scratch_rot_neighbors_t};
@@ -1121,8 +1121,8 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
 
   // Since we have the sphere overlap results from the forward pass,
   // there's only a single kernel launch here
-  DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-      mgr, n_poses * max_n_upper_triangle_inds, eval_derivs);
+  DeviceDispatch<D>::template foreach_pose_workgroup<launch_t>(
+      mgr, n_poses, max_n_upper_triangle_inds, eval_derivs);
 
   return dV_dcoords_t;
 }

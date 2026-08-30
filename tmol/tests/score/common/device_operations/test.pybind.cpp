@@ -15,6 +15,10 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
       &CPU::test_foreach_combination_triple,
       "src"_a);
   m.def("test_foreach_workgroup", &CPU::test_foreach_workgroup, "src"_a);
+  m.def(
+      "test_foreach_pose_workgroup",
+      &CPU::test_foreach_pose_workgroup,
+      "src"_a);
   m.def("test_scan_inclusive", &CPU::test_scan_inclusive, "src"_a);
   m.def("test_scan_exclusive", &CPU::test_scan_exclusive, "src"_a);
   m.def(
@@ -54,6 +58,10 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
       &CUDA::test_foreach_combination_triple,
       "src"_a);
   m.def("test_foreach_workgroup", &CUDA::test_foreach_workgroup, "src"_a);
+  m.def(
+      "test_foreach_pose_workgroup",
+      &CUDA::test_foreach_pose_workgroup,
+      "src"_a);
   m.def("test_scan_inclusive", &CUDA::test_scan_inclusive, "src"_a);
   m.def("test_scan_exclusive", &CUDA::test_scan_exclusive, "src"_a);
   m.def(

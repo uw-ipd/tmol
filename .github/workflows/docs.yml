@@ -3,12 +3,13 @@ name: Docs
 on:
   # Build previews for stacked PRs as well as PRs targeting the main branch.
   pull_request:
+    types: [opened, synchronize, reopened, closed]
   push:
     branches: [master]
   workflow_dispatch:
 
 concurrency:
-  group: docs-${{ github.ref }}
+  group: docs-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -16,24 +17,18 @@ permissions:
 
 env:
   DOCS_BASE_URL: https://uw-ipd.github.io/tmol
-  TMOL_DOCS_BASE_URL: https://uw-ipd.github.io/tmol/latest/
-  SIF: /home/bench/git_ci_apptainer/tmol.sif
-  SLURM_PARTITION: gpu-train
-  SLURM_GRES: gpu:1
-  SLURM_CPUS_PER_TASK: 16
-  SLURM_MEM: 128G
-  SLURM_TIME: 03:00:00
-  SLURM_EXCLUDE: g2548
-  SRUN_GPU_MAX_ATTEMPTS: 5
-  SRUN_GPU_RETRY_SLEEP: 10
-  # Docs exercise the allocated GPU but do not publish a binary wheel.
-  TMOL_CI_CUDA_ARCHITECTURES: native
 
 jobs:
   docs:
     name: build docs
-    runs-on: [self-hosted, gpu]
-    timeout-minutes: 360
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      TMOL_DOCS_BASE_URL: https://uw-ipd.github.io/tmol/latest/
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_COMPRESS: "true"
+      CCACHE_MAXSIZE: 750M
     steps:
       - uses: actions/checkout@v5
         with:
@@ -44,17 +39,28 @@ jobs:
         with:
           python-version: "3.12"
 
-      - run: .github/ci/restore_source_timestamps.sh
-      - run: .github/ci/setup_ci_venv.sh
-
-      - name: Execute tutorials and build docs
-        env:
-          GPU_ALLOC_SENTINEL: ${{ github.workspace }}/.gpu_alloc_started
+      - name: install compiler cache
         run: |
-          rm -f "$GPU_ALLOC_SENTINEL"
-          .github/ci/srun_gpu_retry.sh <<'SCRIPT'
-          .github/ci/exec_gpu_apptainer.sh .github/ci/run_docs_gpu_work.sh
-          SCRIPT
+          sudo apt-get update
+          sudo apt-get install --yes ccache
+
+      - name: restore compiler cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: tmol-ccache-v1-linux-x86_64-${{ hashFiles('CMakeLists.txt', 'pyproject.toml', 'cmake/**') }}-${{ github.sha }}
+          restore-keys: |
+            tmol-ccache-v1-linux-x86_64-${{ hashFiles('CMakeLists.txt', 'pyproject.toml', 'cmake/**') }}-
+            tmol-ccache-v1-linux-x86_64-
+
+      - name: build CPU-only package
+        env:
+          MAX_JOBS: 4
+          TMOL_INSTALL_EXTRAS: dev,docs
+        run: .github/ci/build_cpu_package.sh
+
+      - name: execute tutorials and build docs
+        run: .github/ci/run_docs_cpu_work.sh
 
       - name: Upload rendered docs
         uses: actions/upload-artifact@v4

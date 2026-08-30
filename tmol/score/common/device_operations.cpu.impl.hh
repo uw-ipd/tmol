@@ -4,6 +4,8 @@
 error_this_should_not_be_compiled();  // nvcc should not include this file
 #endif
 
+#include <ATen/Parallel.h>
+
 #include "device_operations.hh"
 #include <tmol/utility/tensor/context_manager.hh>
 
@@ -46,6 +48,24 @@ struct DeviceOperations<tmol::Device::CPU> {
     for (int i = 0; i < n_workgroups; ++i) {
       f(i);
     }
+  }
+
+  template <typename launch_t, typename Func>
+  static void foreach_pose_workgroup(
+      ContextManager& mgr, int n_poses, int workgroups_per_pose, Func f) {
+    if (n_poses <= 1) {
+      foreach_workgroup<launch_t>(mgr, n_poses * workgroups_per_pose, f);
+      return;
+    }
+
+    at::parallel_for(0, n_poses, 1, [=](int64_t begin, int64_t end) {
+      for (int64_t pose = begin; pose < end; ++pose) {
+        int const first_workgroup = pose * workgroups_per_pose;
+        for (int i = 0; i < workgroups_per_pose; ++i) {
+          f(first_workgroup + i);
+        }
+      }
+    });
   }
 
   template <mgpu::scan_type_t scan_type, typename T, typename OP>

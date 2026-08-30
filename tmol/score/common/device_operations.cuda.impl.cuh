@@ -79,6 +79,12 @@ struct DeviceOperations<tmol::Device::CUDA> {
     mgpu::cta_launch<launch_t>(wrapper, n_workgroups, *context);
   }
 
+  template <typename launch_t, typename Func>
+  static void foreach_pose_workgroup(
+      ContextManager& mgr, int n_poses, int workgroups_per_pose, Func f) {
+    foreach_workgroup<launch_t>(mgr, n_poses * workgroups_per_pose, f);
+  }
+
   template <mgpu::scan_type_t scan_type, typename T, typename OP>
   static void scan(ContextManager& mgr, T* src, T* dst, int n, OP op) {
     // mgpu::standard_context_t context;

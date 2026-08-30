@@ -136,7 +136,6 @@ class TermWholePoseScoringModule(TermPoseScoringModule):
         super(TermWholePoseScoringModule, self).__init__(
             classname, pose_stack, term_parameters, term_score_poses
         )
-        self.count = 0
         self._build_static_tails(False)
 
     def forward(

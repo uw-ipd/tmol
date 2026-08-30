@@ -20,7 +20,6 @@ class HBondSingleResData {
   int block_ind;
   int block_type;
   int rot_coord_offset;
-  int block_coord_offset;  // TODO: delete
   int n_atoms;
   int n_conn;
   Real* coords;

@@ -160,6 +160,9 @@ endif()
 
 find_package(Torch REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
+# Linux Torch wheels require OpenMP compiler flags for at::parallel_for;
+# platforms using Torch's native thread pool do not.
+find_package(OpenMP COMPONENTS CXX QUIET)
 
 find_library(TORCH_PYTHON_LIBRARY torch_python PATHS "${TORCH_INSTALL_PREFIX}/lib" NO_DEFAULT_PATH)
 message(STATUS "tmol: TORCH_PYTHON_LIBRARY = ${TORCH_PYTHON_LIBRARY}")
@@ -330,11 +333,9 @@ set(_C_SOURCES
   # score/cartbonded
   tmol/score/cartbonded/potentials/compiled.ops.cpp
   tmol/score/cartbonded/potentials/cartbonded_pose_score.cpu.cpp
-  tmol/score/cartbonded/potentials/cartbonded_pose_score.cuda.cu
   # score/genbonded
   tmol/score/genbonded/potentials/compiled.ops.cpp
   tmol/score/genbonded/potentials/genbonded_pose_score.cpu.cpp
-  tmol/score/genbonded/potentials/genbonded_pose_score.cuda.cu
   # score/constraint
   tmol/score/constraint/potentials/compiled.ops.cpp
   tmol/score/constraint/potentials/constraint_score.cpu.cpp
@@ -370,6 +371,7 @@ if(TMOL_HAS_CUDA)
     tmol/pose/compiled/apsp.cuda.cu
     tmol/score/backbone_torsion/potentials/backbone_torsion_pose_score.cuda.cu
     tmol/score/cartbonded/potentials/cartbonded_pose_score.cuda.cu
+    tmol/score/genbonded/potentials/genbonded_pose_score.cuda.cu
     tmol/score/constraint/potentials/constraint_score.cuda.cu
     tmol/score/disulfide/potentials/disulfide_pose_score.cuda.cu
     tmol/score/dunbrack/potentials/dunbrack_pose_score.cuda.cu
@@ -402,6 +404,9 @@ if(TMOL_HAS_CUDA)
   tmol_set_cuda_flags(_C)
 else()
   tmol_set_cpp_flags(_C)
+endif()
+if(OpenMP_CXX_FOUND)
+  target_link_libraries(_C PRIVATE OpenMP::OpenMP_CXX)
 endif()
 install(TARGETS _C DESTINATION tmol)
 
@@ -483,7 +488,7 @@ if(TMOL_BUILD_TESTS)
     tmol/tests/utility/datastructures/in_place_heap.cpp
   )
 
-  # --- pybind CUDA test extensions (skipped in CPU-only builds) ---
+  # --- mixed-backend and CUDA-only test extensions ---
 
   if(TMOL_HAS_CUDA)
     tmol_add_pybind_cuda_ext(
@@ -527,6 +532,26 @@ if(TMOL_BUILD_TESTS)
       tmol/tests/pack/rotamer/dunbrack/compiled.pybind.cpp
       tmol/tests/pack/rotamer/dunbrack/test_cpu.cpp
       tmol/tests/pack/rotamer/dunbrack/test_cuda.cu
+    )
+  else()
+    # These extensions exercise both backends. Keep their CPU tests available
+    # when CI intentionally builds without a CUDA toolchain.
+    tmol_add_pybind_cpp_ext(
+      test_bonded_atom "tmol/tests/score/bonded_atom" "_ext"
+      tmol/tests/score/bonded_atom/test.pybind.cpp
+      tmol/tests/score/bonded_atom/test_cpu.cpp
+    )
+
+    tmol_add_pybind_cpp_ext(
+      test_device_operations "tmol/tests/score/common/device_operations" "_ext"
+      tmol/tests/score/common/device_operations/test.pybind.cpp
+      tmol/tests/score/common/device_operations/test_cpu.cpp
+    )
+
+    tmol_add_pybind_cpp_ext(
+      test_dunbrack_ext "tmol/tests/pack/rotamer/dunbrack" "_ext"
+      tmol/tests/pack/rotamer/dunbrack/compiled.pybind.cpp
+      tmol/tests/pack/rotamer/dunbrack/test_cpu.cpp
     )
   endif()
 

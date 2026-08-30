@@ -26,6 +26,13 @@ struct DeviceOperations {
   template <typename launch_t, typename Func>
   static void foreach_workgroup(ContextManager& mgr, int n_workgroups, Func f);
 
+  /// Run pose-grouped workgroups, parallelizing independent poses on CPU.
+  /// The callback receives a flattened pose-major workgroup index; workgroups
+  /// from different poses must not write to shared output elements.
+  template <typename launch_t, typename Func>
+  static void foreach_pose_workgroup(
+      ContextManager& mgr, int n_poses, int workgroups_per_pose, Func f);
+
   // Note that dst[0] should be initialized to the identity value (e.g. 0) if
   // scan_type is exclusive.
   template <mgpu::scan_type_t scan_type, typename T, typename OP>

@@ -674,8 +674,8 @@ class LKBallPoseScoreDispatch {
             scratch_rot_neighbors,
             max_dis);
     // 3 Only the forward pass in this calculation
-    DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
-        mgr, n_poses * max_n_upper_triangle_inds, eval_energies_by_block);
+    DeviceDispatch<Dev>::template foreach_pose_workgroup<launch_t>(
+        mgr, n_poses, max_n_upper_triangle_inds, eval_energies_by_block);
 
     return {output_t, scratch_rot_neighbors_t};
   }
@@ -981,8 +981,8 @@ class LKBallPoseScoreDispatch {
 
     // Since we have the sphere overlap results from the forward pass,
     // there's only a single kernel launch here
-    DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
-        mgr, n_poses * max_n_upper_triangle_inds, eval_derivs);
+    DeviceDispatch<Dev>::template foreach_pose_workgroup<launch_t>(
+        mgr, n_poses, max_n_upper_triangle_inds, eval_derivs);
 
     return {dV_d_pose_coords_t, dV_d_water_coords_t};
   }

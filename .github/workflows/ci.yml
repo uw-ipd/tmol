@@ -1,39 +1,146 @@
-# CI — one job on the fela self-hosted runner (user bench).
-#
-# Checkout + venv bootstrap on the runner; lint before Slurm. One gpu-train srun
-# runs build → CPU tests → CUDA tests → benchmarks (see run_ci_gpu_work.sh).
+# CI uses independent hosted CPU and self-hosted GPU lanes. Keeping CPU work off
+# the scarce GPU runner gives quick feedback even while DIGS is busy.
 
 name: CI
 
 on:
   push:
-    branches: [master, "kdidi/**"]
+    branches: [master]
   pull_request:
     branches: [master]
+    types: [opened, synchronize, reopened, closed]
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-env:
-  SIF: /home/bench/git_ci_apptainer/tmol.sif
-  SLURM_PARTITION: gpu-train
-  SLURM_GRES: gpu:1
-  SLURM_CPUS_PER_TASK: 16
-  SLURM_MEM: 128G
-  SLURM_TIME: 06:00:00
-  # Exclude GPU nodes with known hardware faults. g2548 hit an uncorrectable
-  # ECC memory error (cudaErrorECCUncorrectable) that erroring out the whole
-  # CUDA test lane; drop this once the node's GPU is reset/repaired.
-  SLURM_EXCLUDE: g2548
-  SRUN_GPU_MAX_ATTEMPTS: 5
-  SRUN_GPU_RETRY_SLEEP: 10
-
 jobs:
-  ci:
-    name: ci
+  lint:
+    name: lint
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: lint
+        run: |
+          python -m pip install pre-commit
+          pre-commit run --all-files --show-diff-on-failure
+
+  cpu:
+    name: pytest (cpu, ${{ matrix.platform }})
+    if: github.event.action != 'closed'
+    runs-on: ${{ matrix.runs-on }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux-x86_64
+            runs-on: ubuntu-latest
+            build_workers: 4
+            test_workers: 6
+          - platform: linux-aarch64
+            runs-on: ubuntu-24.04-arm
+            build_workers: 4
+            test_workers: 4
+          - platform: macos-arm64
+            runs-on: macos-15
+            build_workers: 2
+            test_workers: 2
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_COMPRESS: "true"
+      CCACHE_MAXSIZE: 750M
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: install compiler cache
+        run: |
+          if [ "$RUNNER_OS" = macOS ]; then
+            brew install ccache
+          else
+            sudo apt-get update
+            sudo apt-get install --yes ccache
+          fi
+
+      - name: restore compiler cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: tmol-ccache-v1-${{ matrix.platform }}-${{ hashFiles('CMakeLists.txt', 'pyproject.toml', 'cmake/**') }}-${{ github.sha }}
+          restore-keys: |
+            tmol-ccache-v1-${{ matrix.platform }}-${{ hashFiles('CMakeLists.txt', 'pyproject.toml', 'cmake/**') }}-
+            tmol-ccache-v1-${{ matrix.platform }}-
+
+      - name: build CPU-only package
+        env:
+          MAX_JOBS: ${{ matrix.build_workers }}
+        run: .github/ci/build_cpu_package.sh
+
+      - name: report compiler cache
+        if: always()
+        run: ccache --show-stats
+
+      - name: test
+        env:
+          CPU_PYTEST_WORKERS: ${{ matrix.test_workers }}
+        run: .github/ci/run_cpu_tests.sh
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-cpu-${{ matrix.platform }}
+          path: |
+            testing.cpu.junit.xml
+            coverage.cpu.xml
+          if-no-files-found: ignore
+
+      - uses: test-summary/action@v2
+        if: always() && hashFiles('testing.cpu.junit.xml') != ''
+        with:
+          paths: testing.cpu.junit.xml
+
+      - uses: codecov/codecov-action@v5
+        if: always() && matrix.platform == 'linux-x86_64'
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ github.workspace }}/coverage.cpu.xml
+          flags: cpu
+          fail_ci_if_error: true
+
+  gpu:
+    name: pytest (cuda)
+    if: github.event.action != 'closed'
     runs-on: [self-hosted, gpu]
     timeout-minutes: 720
+    needs: lint
+    env:
+      SIF: /home/bench/git_ci_apptainer/tmol.sif
+      SLURM_PARTITION: gpu-train
+      SLURM_GRES: gpu:1
+      SLURM_CPUS_PER_TASK: 16
+      SLURM_MEM: 128G
+      SLURM_TIME: 06:00:00
+      # Exclude the node with a known uncorrectable ECC fault until repaired.
+      SLURM_EXCLUDE: g2548
+      SRUN_GPU_MAX_ATTEMPTS: 5
+      SRUN_GPU_RETRY_SLEEP: 10
+      # PR tests need only the architecture of the allocated DIGS GPU.
+      TMOL_CI_CUDA_ARCHITECTURES: native
     steps:
       - uses: actions/checkout@v5
         with:
@@ -41,18 +148,6 @@ jobs:
 
       - run: .github/ci/restore_source_timestamps.sh
       - run: .github/ci/setup_ci_venv.sh
-
-      - name: lint
-        run: |
-          apptainer exec --nv --fakeroot --containall \
-            --bind "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
-            --pwd "$GITHUB_WORKSPACE" \
-            "$SIF" bash <<'LINT'
-          set -ex
-          source .venv/bin/activate
-          uv pip install pre-commit
-          pre-commit run --all-files --show-diff-on-failure
-          LINT
 
       - name: build and test
         env:
@@ -66,11 +161,10 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-results
+          name: test-results-cuda
           path: |
-            testing.cpu.junit.xml
             testing.cuda.junit.xml
-            coverage.xml
+            coverage.cuda.xml
           if-no-files-found: ignore
 
       - uses: actions/upload-artifact@v4
@@ -83,12 +177,26 @@ jobs:
       - uses: test-summary/action@v2
         if: always()
         with:
-          paths: |
-            testing.*.junit.xml
+          paths: testing.cuda.junit.xml
 
       - uses: codecov/codecov-action@v5
         if: always()
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ github.workspace }}/coverage.xml
+          files: ${{ github.workspace }}/coverage.cuda.xml
+          flags: cuda
           fail_ci_if_error: true
+
+  # Preserve the historical required-check name while the work executes in
+  # parallel jobs.
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+    if: always() && github.event.action != 'closed'
+    needs: [lint, cpu, gpu]
+    steps:
+      - name: require every CI lane
+        run: |
+          test "${{ needs.lint.result }}" = success
+          test "${{ needs.cpu.result }}" = success
+          test "${{ needs.gpu.result }}" = success
