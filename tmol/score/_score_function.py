@@ -24,6 +24,10 @@ logger = logging.getLogger(__name__)
 # .sfxn file and checked on load.
 SFXN_FORMAT_VERSION: str = "1.0"
 
+# Exact CUDA tensor equality synchronizes with the host. Only pay that cost
+# when one duplicate sparse index layout would retain at least 16 MiB.
+_ROTAMER_LAYOUT_DEDUP_MIN_BYTES = 16 * 1024 * 1024
+
 
 class ScoreFunction:
     """Weighted collection of energy terms rendered for a pose topology.
@@ -256,14 +260,19 @@ class ScoreFunction:
         self,
         pose_stack: PoseStack,
         rotamer_set: "RotamerSet",  # noqa: F405
-    ):
-        """Create an object designed to evaluate the score a RotamerSet
-        repeatedly as the Poses change their conformation, e.g., as in
-        minimization. This object will derive from torch.nn.Module and
-        it will contain a set of objects rendered by the ScoreFunction's
-        terms that themselves are derived from torch.nn.Module. This
-        object's __call__ will return a tensor of weighted energies of
-        shape (n_poses, max_n_blocks, max_n_blocks).
+    ) -> "RotamerScoringModule":
+        """Render a weighted sparse scorer for one rotamer set.
+
+        Args:
+            pose_stack: Poses whose fixed background interacts with the
+                rotamers.
+            rotamer_set: Candidate conformers and their pose/block indexing.
+
+        Returns:
+            A callable that accepts rotamer coordinates and returns an
+            uncoalesced sparse COO tensor shaped
+            ``[n_poses, n_rotamers, n_rotamers]``. Call ``coalesce()`` before
+            reading its indices or values.
         """
         self.pre_work_initialization(pose_stack)
         term_modules = [
@@ -590,7 +599,11 @@ class BlockPairScoringModule:
 
 
 class RotamerScoringModule:
-    """Rendered energy modules that build sparse rotamer-pair energy tables."""
+    """Rendered energy modules that build sparse rotamer-pair energy tables.
+
+    Large identical index layouts are combined before sparse coalescing to
+    avoid retaining and sorting redundant block-pair indices.
+    """
 
     def __init__(
         self,
@@ -602,17 +615,18 @@ class RotamerScoringModule:
         )
         self.term_modules = term_modules
 
-    def __call__(self, coords):
+    def __call__(self, coords: torch.Tensor) -> torch.Tensor:
         if not torch.is_grad_enabled() and coords.requires_grad:
             coords = coords.detach()
         # Accumulate weighted values and their indices across all terms at the
         # dense [nnz] level.  This avoids torch.stack on sparse tensors, which
         # previously created a [n_subterms, n_poses, n_rots, n_rots] 4D sparse
         # tensor whose index storage grew as n_subterms × nnz × 4 int32.
-        all_values = []
-        all_indices = []
-        n_poses = None
-        n_rots = None
+        all_values: list[torch.Tensor] = []
+        all_indices: list[torch.Tensor] = []
+        layouts_by_nnz: dict[int, list[int]] = {}
+        n_poses: int | None = None
+        n_rots: int | None = None
         weights_offset = 0
 
         for term in self.term_modules:
@@ -623,8 +637,28 @@ class RotamerScoringModule:
             w = self.weights[weights_offset : weights_offset + n_subterms, 0, 0, 0]
             weighted_values = (w[:, None] * scores).sum(dim=0)
 
-            all_values.append(weighted_values)
-            all_indices.append(indices)
+            # Several terms share the same block-pair dispatch. Combine their
+            # values now so the sparse coalesce does not sort another copy of
+            # the same, potentially multi-gigabyte, index layout.
+            deduplicate_layout = (
+                indices.numel() * indices.element_size()
+                >= _ROTAMER_LAYOUT_DEDUP_MIN_BYTES
+            )
+            candidate_layouts = (
+                layouts_by_nnz.get(indices.shape[1], ()) if deduplicate_layout else ()
+            )
+            for layout_index in candidate_layouts:
+                if torch.equal(indices, all_indices[layout_index]):
+                    all_values[layout_index] = (
+                        all_values[layout_index] + weighted_values
+                    )
+                    break
+            else:
+                layout_index = len(all_indices)
+                all_values.append(weighted_values)
+                all_indices.append(indices)
+                if deduplicate_layout:
+                    layouts_by_nnz.setdefault(indices.shape[1], []).append(layout_index)
             weights_offset += n_subterms
 
             if n_poses is None:
