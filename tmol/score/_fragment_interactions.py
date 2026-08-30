@@ -55,7 +55,7 @@ class _NormalizedFragmentRecord:
 class _FragmentMappingData:
     """Validated mapping indices cached on one pose topology."""
 
-    source_mapping: object
+    source_mapping: SplitBlockMapping | _LegacyFragmentMapping
     fragment_records: tuple[FragmentRecord, ...]
     record_linear_indices: Tensor[torch.int64][:]
     fragment_block_indices: Tensor[torch.int64][:]
@@ -102,6 +102,14 @@ def _fragment_mapping_data(
         [] for _ in range(pose_stack.n_poses)
     ]
     for record in records:
+        if not (
+            0 <= record.pose_index < pose_stack.n_poses
+            and 0 <= record.block_index < pose_stack.max_n_blocks
+        ):
+            raise ValueError(
+                "Fragment mapping entry is outside the pose stack: "
+                f"pose {record.pose_index}, block {record.block_index}"
+            )
         records_by_pose[record.pose_index].append(record)
 
     pose_zero_records = tuple(
@@ -113,6 +121,8 @@ def _fragment_mapping_data(
     expected_columns = {record.column_key for record in pose_zero_records}
     for pose_records in records_by_pose:
         pose_columns = {record.column_key for record in pose_records}
+        if len(pose_columns) != len(pose_records):
+            raise ValueError("Fragment mapping contains duplicate columns in one pose")
         if pose_columns != expected_columns:
             raise ValueError(
                 "Fragment mappings must use identical block topology in every pose"

@@ -1,7 +1,90 @@
+from types import SimpleNamespace
+from typing import cast
+
 import pytest
 import torch
 
-from tmol.score._fragment_interactions import _sum_fragment_partner_scores
+from tmol.pose import PoseStack, SplitBlockMapping
+from tmol.score._fragment_interactions import (
+    _LegacyFragmentMapping,
+    _fragment_mapping_data,
+    _sum_fragment_partner_scores,
+)
+
+
+def _pose_topology(torch_device: torch.device) -> PoseStack:
+    return cast(
+        PoseStack,
+        SimpleNamespace(
+            n_poses=2,
+            max_n_blocks=4,
+            block_type_ind=torch.zeros((2, 4), dtype=torch.int32, device=torch_device),
+        ),
+    )
+
+
+def _legacy_mapping(*records: tuple[int, int, int]) -> _LegacyFragmentMapping:
+    return cast(
+        _LegacyFragmentMapping,
+        SimpleNamespace(
+            blocks=tuple(
+                SimpleNamespace(
+                    pose_index=pose_index,
+                    block_index=block_index,
+                    pose_residue_label=residue_label,
+                )
+                for pose_index, block_index, residue_label in records
+            )
+        ),
+    )
+
+
+def test_fragment_mapping_normalizes_legacy_records(
+    torch_device: torch.device,
+) -> None:
+    pose_stack = _pose_topology(torch_device)
+    mapping = _legacy_mapping(
+        (0, 3, 8),
+        (0, 1, 7),
+        (1, 3, 8),
+        (1, 1, 7),
+    )
+
+    data = _fragment_mapping_data(pose_stack, mapping)
+
+    assert [record.block_index for record in data.fragment_records] == [1, 3]
+    torch.testing.assert_close(
+        data.record_linear_indices,
+        torch.tensor([3, 1, 7, 5], dtype=torch.int64, device=torch_device),
+    )
+    assert _fragment_mapping_data(pose_stack, mapping) is data
+
+
+@pytest.mark.parametrize(
+    ("mapping", "message"),
+    [
+        (SplitBlockMapping(entries=()), "no entries for pose 0"),
+        (
+            _legacy_mapping((0, 1, 7), (1, 2, 7)),
+            "identical block topology",
+        ),
+        (
+            _legacy_mapping((0, 4, 7), (1, 4, 7)),
+            "outside the pose stack",
+        ),
+        (
+            _legacy_mapping((0, 1, 7), (0, 1, 7), (1, 1, 7)),
+            "duplicate columns",
+        ),
+    ],
+)
+def test_fragment_mapping_rejects_invalid_topology(
+    torch_device: torch.device,
+    mapping: SplitBlockMapping | _LegacyFragmentMapping,
+    message: str,
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        _fragment_mapping_data(_pose_topology(torch_device), mapping)
 
 
 def _reference_fragment_partner_scores(
