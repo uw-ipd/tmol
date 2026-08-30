@@ -487,6 +487,18 @@ while coordinates change, and its outputs can participate in autograd:</p>
 <span class="n">score</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
 </pre></div>
 </div>
+<section id="cpu-batch-throughput">
+<h2>CPU batch throughput<a class="headerlink" href="#cpu-batch-throughput" title="Link to this heading">#</a></h2>
+<p>Whole-pose CPU scoring parallelizes independent poses through PyTorch’s
+intra-op thread pool. Set the pool from the cores actually allocated to the
+process, and normally do not assign more scoring threads than poses:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">torch</span><span class="o">.</span><span class="n">set_num_threads</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">allocated_physical_cores</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>The pose boundary keeps gradients race-free, so a one-pose batch does not gain
+intra-pose parallelism. When several processes or data-loader workers score at
+once, divide the available cores between them to avoid oversubscription.</p>
+</section>
 <section id="ligand-aware-scoring">
 <h2>Ligand-aware Scoring<a class="headerlink" href="#ligand-aware-scoring" title="Link to this heading">#</a></h2>
 <p>When a structure introduces ligand residue types at load time, the score
@@ -612,6 +624,7 @@ the connected multi-block context.</p>
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cpu-batch-throughput">CPU batch throughput</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ligand-aware-scoring">Ligand-aware Scoring</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#block-pair-scores">Block-pair Scores</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#fragmented-ligand-attribution">Fragmented-ligand attribution</a></li>

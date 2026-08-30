@@ -587,10 +587,11 @@ apptainer<span class="w"> </span>run<span class="w"> </span>--nv<span class="w">
 </section>
 <section id="ci">
 <h2>CI<a class="headerlink" href="#ci" title="Link to this heading">#</a></h2>
-<p>GitHub Actions runs linting, CPU tests, CUDA tests, and benchmarks on the
-self-hosted GPU runner. The docs workflow builds Sphinx docs on PRs and pushes
-to <code class="docutils literal notranslate"><span class="pre">master</span></code>; PR builds upload rendered HTML artifacts and same-repository PRs
-also publish preview docs under the Pages site.</p>
+<p>GitHub Actions runs linting, the Linux x86-64, Linux aarch64, and Apple Silicon
+CPU suites, and CPU documentation builds on hosted runners. CUDA tests,
+benchmarks, and the CUDA-only tutorial smoke tests use the self-hosted DIGS
+runner. PR docs builds upload rendered HTML artifacts; same-repository PRs also
+publish previews under the Pages site.</p>
 </section>
 <section id="releasing">
 <h2>Releasing<a class="headerlink" href="#releasing" title="Link to this heading">#</a></h2>

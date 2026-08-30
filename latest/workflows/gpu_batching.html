@@ -496,6 +496,18 @@ sides of each timed call, and report multiple repeats:</p>
 </div>
 <p>Measure total batch latency and throughput separately. First-call compilation
 time should not be mixed into steady-state kernel timing.</p>
+<p>For repeated default weighted scoring with a fixed coordinate shape, dtype,
+and device, capture the launches once and replay them:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">graphed_scorer</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span>
+    <span class="n">batch</span><span class="p">,</span> <span class="n">cuda_graph</span><span class="o">=</span><span class="s2">"forward"</span>
+<span class="p">)</span>
+<span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+    <span class="n">scores</span> <span class="o">=</span> <span class="n">graphed_scorer</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Forward-only replay reuses its output buffer. Clone <code class="docutils literal notranslate"><span class="pre">scores</span></code> when it must remain
+unchanged across the next call. CUDA graphs mainly reduce launch overhead; they
+do not replace batching or improve kernels that already dominate runtime.</p>
 </section>
 <section id="chunk-larger-workloads">
 <h2>Chunk larger workloads<a class="headerlink" href="#chunk-larger-workloads" title="Link to this heading">#</a></h2>
