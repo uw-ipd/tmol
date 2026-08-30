@@ -2,10 +2,22 @@ name: Wheel smoke test
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [master]
+    paths:
+      - .github/workflows/_build_macos_wheel.yml
+      - .github/workflows/_build_wheel.yml
+      - .github/workflows/publish.yml
+      - .github/workflows/wheel-smoke.yml
+      - scripts/validate_release_manifest.py
+      - scripts/set_release_wheel_version.py
+      - tmol_build_backend.py
+      - tmol/tests/test_build_backend.py
   push:
     branches:
       - fix/torch-2.13-wheels
       - fix/manylinux-wheels
+      - fix/cpu-release-matrix
 
 concurrency:
   group: wheel-smoke-${{ github.ref }}
@@ -14,6 +26,7 @@ concurrency:
 jobs:
   build:
     name: ${{ matrix.label }}
+    if: github.event_name != 'pull_request'
     strategy:
       fail-fast: false
       matrix:
@@ -291,7 +304,7 @@ jobs:
             torch-version: "2.13"
             torch-package-version: "2.13.0"
             torch-index-url: "https://download.pytorch.org/whl/cpu"
-            local-tag: "cpu"
+            local-tag: "cputorch2.13"
             enable-cuda: false
             container-image: unused-for-manylinux-cpu
             runs-on: ubuntu-22.04
@@ -302,7 +315,7 @@ jobs:
             torch-version: "2.13"
             torch-package-version: "2.13.0"
             torch-index-url: "https://download.pytorch.org/whl/cpu"
-            local-tag: "cpu"
+            local-tag: "cputorch2.13"
             enable-cuda: false
             container-image: unused-for-manylinux-cpu
             runs-on: ubuntu-22.04
@@ -314,7 +327,7 @@ jobs:
             torch-version: "2.13"
             torch-package-version: "2.13.0"
             torch-index-url: "https://download.pytorch.org/whl/cpu"
-            local-tag: "cpu"
+            local-tag: "cputorch2.13"
             enable-cuda: false
             container-image: unused-for-manylinux-cpu
             runs-on: ubuntu-22.04
@@ -325,7 +338,7 @@ jobs:
             torch-version: "2.13"
             torch-package-version: "2.13.0"
             torch-index-url: "https://download.pytorch.org/whl/cpu"
-            local-tag: "cpu"
+            local-tag: "cputorch2.13"
             enable-cuda: false
             container-image: unused-for-manylinux-cpu
             runs-on: ubuntu-22.04
@@ -336,7 +349,7 @@ jobs:
             torch-version: "2.13"
             torch-package-version: "2.13.0"
             torch-index-url: "https://download.pytorch.org/whl/cpu"
-            local-tag: "cpu"
+            local-tag: "cputorch2.13"
             enable-cuda: false
             container-image: unused-for-manylinux-cpu
             runs-on: ubuntu-24.04-arm
@@ -347,7 +360,7 @@ jobs:
             torch-version: "2.13"
             torch-package-version: "2.13.0"
             torch-index-url: "https://download.pytorch.org/whl/cpu"
-            local-tag: "cpu"
+            local-tag: "cputorch2.13"
             enable-cuda: false
             container-image: unused-for-manylinux-cpu
             runs-on: ubuntu-24.04-arm
@@ -359,7 +372,7 @@ jobs:
             torch-version: "2.13"
             torch-package-version: "2.13.0"
             torch-index-url: "https://download.pytorch.org/whl/cpu"
-            local-tag: "cpu"
+            local-tag: "cputorch2.13"
             enable-cuda: false
             container-image: unused-for-manylinux-cpu
             runs-on: ubuntu-24.04-arm
@@ -370,7 +383,7 @@ jobs:
             torch-version: "2.13"
             torch-package-version: "2.13.0"
             torch-index-url: "https://download.pytorch.org/whl/cpu"
-            local-tag: "cpu"
+            local-tag: "cputorch2.13"
             enable-cuda: false
             container-image: unused-for-manylinux-cpu
             runs-on: ubuntu-24.04-arm
@@ -390,9 +403,163 @@ jobs:
       use-manylinux-build: true
       target-arch: ${{ matrix.arch }}
 
+  build-linux-cpu:
+    name: "smoke py3.12 CPU ${{ matrix.arch }}"
+    if: github.event_name == 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runs-on: ubuntu-22.04
+            arch: x86_64
+          - runs-on: ubuntu-24.04-arm
+            arch: aarch64
+    uses: ./.github/workflows/_build_wheel.yml
+    with:
+      runs-on: ${{ matrix.runs-on }}
+      container-image: unused-for-manylinux-cpu
+      torch-version: "2.13"
+      torch-package-version: "2.13.0"
+      python-version: "3.12"
+      label: "smoke py3.12 CPU ${{ matrix.arch }}"
+      pip-torch-cuda-url: "https://download.pytorch.org/whl/cpu"
+      enable-cuda: false
+      use-manylinux-build: true
+      target-arch: ${{ matrix.arch }}
+
+  test-linux-cpu:
+    name: "install cp312 cputorch2.13 ${{ matrix.arch }}"
+    needs: build-linux-cpu
+    if: github.event_name == 'pull_request'
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runs-on: ubuntu-22.04
+            arch: x86_64
+          - runs-on: ubuntu-24.04-arm
+            arch: aarch64
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheel-cp312-cputorch2.13-${{ matrix.arch }}
+          path: wheels
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install wheel with its PyTorch ABI
+        run: |
+          set -euo pipefail
+          set -- wheels/*.whl
+          test "$#" -eq 1
+          expected="tmol-*+cputorch2.13-cp312-cp312-manylinux_2_28_${{ matrix.arch }}.whl"
+          case "$(basename "$1")" in
+            $expected) ;;
+            *)
+              echo "Unexpected Linux CPU wheel: $1"
+              exit 1
+              ;;
+          esac
+          python -m pip install --upgrade pip
+          python -m pip install 'torch==2.13.0' \
+            --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install "$1"
+
+      - name: Load native extensions
+        working-directory: /tmp
+        run: |
+          python - <<'PY'
+          from importlib.metadata import version
+
+          import torch
+          import tmol
+          from tmol._cpp_lib import _ensure_loaded
+
+          assert torch.__version__.startswith("2.13.")
+          assert torch.version.cuda is None
+          assert version("tmol").endswith("+cputorch2.13")
+          _ensure_loaded()
+          print("tmol", tmol.__version__)
+          print("torch", torch.__version__)
+          PY
+
+  build-macos-cpu:
+    name: "smoke py${{ matrix.python-version }} CPU macOS arm64"
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+    uses: ./.github/workflows/_build_macos_wheel.yml
+    with:
+      python-version: ${{ matrix.python-version }}
+      torch-package-version: "2.13.0"
+      label: "smoke py${{ matrix.python-version }} CPU macOS arm64"
+
+  test-macos-cpu:
+    name: "install cp${{ matrix.python-tag }} cputorch2.13 macOS arm64"
+    needs: build-macos-cpu
+    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { python-version: "3.11", python-tag: "311" }
+          - { python-version: "3.12", python-tag: "312" }
+          - { python-version: "3.13", python-tag: "313" }
+          - { python-version: "3.14", python-tag: "314" }
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheel-cp${{ matrix.python-tag }}-cputorch2.13-arm64
+          path: wheels
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install wheel with its PyTorch ABI
+        run: |
+          set -euo pipefail
+          set -- wheels/*.whl
+          test "$#" -eq 1
+          case "$(basename "$1")" in
+            tmol-*+cputorch2.13-cp${{ matrix.python-tag }}-cp${{ matrix.python-tag }}-macosx_14_0_arm64.whl) ;;
+            *)
+              echo "Unexpected Apple Silicon wheel: $1"
+              exit 1
+              ;;
+          esac
+          python -m pip install --upgrade pip
+          python -m pip install 'torch==2.13.0'
+          python -m pip install "$1"
+
+      - name: Load native extensions
+        working-directory: /tmp
+        run: |
+          python - <<'PY'
+          import platform
+          from importlib.metadata import version
+
+          import torch
+          import tmol
+          from tmol._cpp_lib import _ensure_loaded
+
+          assert platform.machine() == "arm64"
+          assert torch.__version__.startswith("2.13.")
+          assert torch.version.cuda is None
+          assert version("tmol").endswith("+cputorch2.13")
+          _ensure_loaded()
+          print("tmol", tmol.__version__)
+          print("torch", torch.__version__)
+          PY
+
   test:
     name: "install cp${{ matrix.python-tag }} ${{ matrix.local-tag }} ${{ matrix.arch }}"
     needs: build
+    if: github.event_name != 'pull_request'
     strategy:
       fail-fast: false
       matrix:
@@ -421,14 +588,14 @@ jobs:
           - { python-version: "3.13", python-tag: "313", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cu130", local-tag: "cu130torch2.13", enable-cuda: true, runs-on: ubuntu-24.04-arm, arch: aarch64 }
           - { python-version: "3.14", python-tag: "314", torch-package-version: "2.12.0", torch-minor: "2.12", torch-index-url: "https://download.pytorch.org/whl/cu132", local-tag: "cu132torch2.12", enable-cuda: true, runs-on: ubuntu-24.04-arm, arch: aarch64 }
           - { python-version: "3.14", python-tag: "314", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cu130", local-tag: "cu130torch2.13", enable-cuda: true, runs-on: ubuntu-24.04-arm, arch: aarch64 }
-          - { python-version: "3.11", python-tag: "311", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cpu", local-tag: "cpu", enable-cuda: false, runs-on: ubuntu-22.04, arch: x86_64 }
-          - { python-version: "3.12", python-tag: "312", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cpu", local-tag: "cpu", enable-cuda: false, runs-on: ubuntu-22.04, arch: x86_64, portability: true }
-          - { python-version: "3.13", python-tag: "313", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cpu", local-tag: "cpu", enable-cuda: false, runs-on: ubuntu-22.04, arch: x86_64 }
-          - { python-version: "3.14", python-tag: "314", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cpu", local-tag: "cpu", enable-cuda: false, runs-on: ubuntu-22.04, arch: x86_64 }
-          - { python-version: "3.11", python-tag: "311", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cpu", local-tag: "cpu", enable-cuda: false, runs-on: ubuntu-24.04-arm, arch: aarch64 }
-          - { python-version: "3.12", python-tag: "312", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cpu", local-tag: "cpu", enable-cuda: false, runs-on: ubuntu-24.04-arm, arch: aarch64, portability: true }
-          - { python-version: "3.13", python-tag: "313", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cpu", local-tag: "cpu", enable-cuda: false, runs-on: ubuntu-24.04-arm, arch: aarch64 }
-          - { python-version: "3.14", python-tag: "314", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cpu", local-tag: "cpu", enable-cuda: false, runs-on: ubuntu-24.04-arm, arch: aarch64 }
+          - { python-version: "3.11", python-tag: "311", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cpu", local-tag: "cputorch2.13", enable-cuda: false, runs-on: ubuntu-22.04, arch: x86_64 }
+          - { python-version: "3.12", python-tag: "312", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cpu", local-tag: "cputorch2.13", enable-cuda: false, runs-on: ubuntu-22.04, arch: x86_64, portability: true }
+          - { python-version: "3.13", python-tag: "313", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cpu", local-tag: "cputorch2.13", enable-cuda: false, runs-on: ubuntu-22.04, arch: x86_64 }
+          - { python-version: "3.14", python-tag: "314", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cpu", local-tag: "cputorch2.13", enable-cuda: false, runs-on: ubuntu-22.04, arch: x86_64 }
+          - { python-version: "3.11", python-tag: "311", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cpu", local-tag: "cputorch2.13", enable-cuda: false, runs-on: ubuntu-24.04-arm, arch: aarch64 }
+          - { python-version: "3.12", python-tag: "312", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cpu", local-tag: "cputorch2.13", enable-cuda: false, runs-on: ubuntu-24.04-arm, arch: aarch64, portability: true }
+          - { python-version: "3.13", python-tag: "313", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cpu", local-tag: "cputorch2.13", enable-cuda: false, runs-on: ubuntu-24.04-arm, arch: aarch64 }
+          - { python-version: "3.14", python-tag: "314", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cpu", local-tag: "cputorch2.13", enable-cuda: false, runs-on: ubuntu-24.04-arm, arch: aarch64 }
     runs-on: ${{ matrix.runs-on }}
     steps:
       - uses: actions/checkout@v5
@@ -501,10 +668,13 @@ jobs:
 
           expected_torch = os.environ["EXPECTED_TORCH"]
           expected_local_tag = os.environ["EXPECTED_LOCAL_TAG"]
+          assert importlib.metadata.version("tmol").endswith(
+              f"+{expected_local_tag}"
+          )
           actual_torch = ".".join(torch.__version__.split(".")[:2])
           assert actual_torch == expected_torch, (actual_torch, expected_torch)
 
-          if expected_local_tag != "cpu":
+          if not expected_local_tag.startswith("cpu"):
               expected_cuda = re.search(r"cu(\d+)torch", expected_local_tag).group(1)
               actual_cuda = re.sub(r"[^0-9]", "", torch.version.cuda or "")[:3]
               assert actual_cuda == expected_cuda, (actual_cuda, expected_cuda)
@@ -559,6 +729,7 @@ jobs:
   gpu-runtime-smoke:
     name: "self-hosted gpu runtime wheel smoke"
     needs: build
+    if: github.event_name != 'pull_request'
     runs-on: [self-hosted, gpu]
     env:
       SIF: /home/bench/git_ci_apptainer/tmol.sif

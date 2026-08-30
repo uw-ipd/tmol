@@ -63,13 +63,16 @@ except ModuleNotFoundError as _import_error:
 _PROJECT_ROOT = Path(__file__).resolve().parent
 _DEFAULT_RELEASE_BASE_URL = "https://github.com/uw-ipd/tmol/releases/download"
 _PYPROJECT_VERSION_RE = re.compile(r'^version\s*=\s*"([^"]+)"\s*$')
-_SUPPORTED_ARCHES = {"x86_64": "x86_64", "amd64": "x86_64", "aarch64": "aarch64"}
+_SUPPORTED_LINUX_ARCHES = {
+    "x86_64": "x86_64",
+    "amd64": "x86_64",
+    "aarch64": "aarch64",
+}
 _RELEASE_URL_ENV = "TMOL_WHEEL_RELEASE_BASE_URL"
 _RELEASE_TAG_ENV = "TMOL_WHEEL_RELEASE_TAG"
 _LOCAL_TAG_ENV = "TMOL_WHEEL_LOCAL_TAG"
 _FORCE_BUILD_ENV = "TMOL_FORCE_BUILD"
 _DISABLE_FETCH_ENV = "TMOL_DISABLE_WHEEL_FETCH"
-_ALLOW_CPU_FALLBACK_ENV = "TMOL_WHEEL_ALLOW_CPU_FALLBACK"
 _ENABLE_LOCAL_FETCH_ENV = "TMOL_ENABLE_LOCAL_FETCH"
 _FETCH_TIMEOUT_ENV = "TMOL_WHEEL_FETCH_TIMEOUT_S"
 _FETCH_RETRIES_ENV = "TMOL_WHEEL_FETCH_RETRIES"
@@ -122,7 +125,19 @@ def _python_tag() -> str:
 
 def _linux_arch_tag() -> str | None:
     machine = platform.machine().lower()
-    return _SUPPORTED_ARCHES.get(machine)
+    return _SUPPORTED_LINUX_ARCHES.get(machine)
+
+
+def _wheel_platform_tags() -> list[str]:
+    system = platform.system().lower()
+    if system == "linux":
+        arch = _linux_arch_tag()
+        if arch is None:
+            return []
+        return [f"manylinux_2_28_{arch}", f"linux_{arch}"]
+    if system == "darwin" and platform.machine().lower() in {"arm64", "aarch64"}:
+        return ["macosx_14_0_arm64"]
+    return []
 
 
 def _torch_major_minor() -> str | None:
@@ -179,27 +194,15 @@ def _candidate_local_tags() -> list[str]:
             # matrix uses stable cu130 wheels on both architectures.
             candidates.extend(["cu128torch2.10", "cu130torch2.10"])
     elif torch_mm and not cuda_tag:
-        candidates.append("cpu")
-    elif _env_true(_ALLOW_CPU_FALLBACK_ENV):
-        candidates.append("cpu")
+        candidates.append(f"cputorch{torch_mm}")
 
     return _dedupe_keep_order(candidates)
 
 
 def _candidate_wheel_filenames() -> list[str]:
-    if platform.system().lower() != "linux":
-        return []
-    arch = _linux_arch_tag()
-    if not arch:
-        return []
-
     version = _read_project_version()
     py_tag = _python_tag()
-    platform_tags: list[str]
-    if arch == "x86_64":
-        platform_tags = ["manylinux_2_28_x86_64", "linux_x86_64"]
-    else:
-        platform_tags = ["manylinux_2_28_aarch64", "linux_aarch64"]
+    platform_tags = _wheel_platform_tags()
 
     candidates: list[str] = []
     for local_tag in _candidate_local_tags():

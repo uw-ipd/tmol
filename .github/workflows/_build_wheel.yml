@@ -6,7 +6,6 @@ on:
       runs-on:
         required: true
         type: string
-        default: ubuntu-22.04
       container-image:
         required: true
         type: string
@@ -24,7 +23,6 @@ on:
       python-version:
         required: true
         type: string
-        default: "3.12"
       label:
         required: true
         type: string
@@ -273,7 +271,7 @@ jobs:
             echo "WHEEL_LOCAL_TAG=cu${CUDA_VERSION}torch${TORCH_VERSION}" >> "$GITHUB_ENV"
           else
             echo "WHEEL_CUDA_VERSION=cpu" >> "$GITHUB_ENV"
-            echo "WHEEL_LOCAL_TAG=cpu" >> "$GITHUB_ENV"
+            echo "WHEEL_LOCAL_TAG=cputorch${TORCH_VERSION}" >> "$GITHUB_ENV"
           fi
 
           if [ "${{ inputs.enable-cuda }}" != "true" ]; then
@@ -343,6 +341,12 @@ jobs:
               'cmake>=3.18,<4' 'scikit-build-core>=0.10' ninja 'packaging>=24.2' 'pybind11>=2.12' auditwheel
           "
 
+      - name: Set ABI-qualified wheel version
+        run: |
+          docker exec "$BUILDER" \
+            "${TARGET_VENV}/bin/python" \
+            scripts/set_release_wheel_version.py "$WHEEL_LOCAL_TAG"
+
       - name: Build wheel
         run: |
           docker exec \
@@ -407,12 +411,17 @@ jobs:
             scripts/repair_linux_wheel.sh dist
           '
 
-      - name: Rename wheel with local tag
+      - name: Record wheel name
         run: |
           docker exec "$BUILDER" bash -c "
             cd /workspace
-            wheel_name=\$(ls dist/*whl | xargs -n 1 basename | sed \"s/-/+${WHEEL_LOCAL_TAG}-/2\")
-            ls dist/*whl | xargs -I {} mv {} dist/\${wheel_name}
+            set -- dist/*.whl
+            test \"\$#\" -eq 1
+            wheel_name=\$(basename \"\$1\")
+            case \"\${wheel_name}\" in
+              tmol-*+${WHEEL_LOCAL_TAG}-*.whl) ;;
+              *) echo \"Unexpected wheel name: \${wheel_name}\"; exit 1 ;;
+            esac
             echo \${wheel_name}
           " | tail -1 > /tmp/wheel_name.txt
           wheel_name=$(cat /tmp/wheel_name.txt)

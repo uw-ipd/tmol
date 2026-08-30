@@ -93,7 +93,7 @@ def test_colab_release_lanes_match_publish_and_smoke_matrices():
         if step.get("name") == "Validate release wheel manifest"
     )
     assert "--gpu-count 25" in manifest_step["run"]
-    assert "--cpu-count 8" in manifest_step["run"]
+    assert "--cpu-count 12" in manifest_step["run"]
     assert "--require cu128torch2.11:cp312:x86_64" in manifest_step["run"]
     assert "--require cu128torch2.8:cp312:x86_64" not in manifest_step["run"]
 
@@ -108,6 +108,15 @@ def test_colab_release_lanes_match_publish_and_smoke_matrices():
     assert any(row.get("local-tag") == "cu128torch2.11" for row in test_rows)
     assert any(row.get("local-tag") == "cu129torch2.8" for row in build_rows)
     assert any(row.get("local-tag") == "cu129torch2.8" for row in test_rows)
+    assert smoke["jobs"]["build-macos-cpu"]["strategy"]["matrix"]["python-version"] == [
+        "3.11",
+        "3.12",
+        "3.13",
+        "3.14",
+    ]
+    assert len(smoke["jobs"]["test-macos-cpu"]["strategy"]["matrix"]["include"]) == 4
+    assert len(smoke["jobs"]["build-linux-cpu"]["strategy"]["matrix"]["include"]) == 2
+    assert len(smoke["jobs"]["test-linux-cpu"]["strategy"]["matrix"]["include"]) == 2
 
 
 def test_docs_workflow_uses_hosted_cpu_and_gpu_ci_executes_gpu_cells():

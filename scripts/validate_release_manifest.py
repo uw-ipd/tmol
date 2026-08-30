@@ -10,7 +10,7 @@ from pathlib import Path
 
 WHEEL_RE = re.compile(
     r"^tmol-(?P<version>[^+]+)\+"
-    r"(?P<local>cpu|cu\d+torch\d+\.\d+)-"
+    r"(?P<local>cputorch\d+\.\d+|cu\d+torch\d+\.\d+)-"
     r"cp(?P<python>\d+)-cp(?P=python)-"
     r"(?P<platform>[^.]+)\.whl$"
 )
@@ -26,6 +26,8 @@ class Wheel:
 
     @property
     def arch(self) -> str:
+        if self.platform.endswith("_arm64"):
+            return "arm64"
         if self.platform.endswith("_x86_64"):
             return "x86_64"
         if self.platform.endswith("_aarch64"):
@@ -74,8 +76,8 @@ def main() -> None:
     if len(versions) != 1:
         raise SystemExit(f"expected one release version, found: {sorted(versions)}")
 
-    gpu = [wheel for wheel in wheels if wheel.local != "cpu"]
-    cpu = [wheel for wheel in wheels if wheel.local == "cpu"]
+    gpu = [wheel for wheel in wheels if not wheel.local.startswith("cpu")]
+    cpu = [wheel for wheel in wheels if wheel.local.startswith("cpu")]
     if len(gpu) != args.gpu_count:
         raise SystemExit(f"expected {args.gpu_count} GPU wheels, found {len(gpu)}")
     if len(cpu) != args.cpu_count:

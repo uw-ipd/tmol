@@ -1,0 +1,97 @@
+name: ~Build Apple Silicon wheel template
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        required: true
+        type: string
+      torch-package-version:
+        required: true
+        type: string
+      label:
+        required: true
+        type: string
+
+jobs:
+  build-wheel:
+    name: ${{ inputs.label }}
+    runs-on: macos-15
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "14.0"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Verify native Apple Silicon runner
+        run: test "$(uname -m)" = arm64
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install \
+            "torch==${{ inputs.torch-package-version }}" \
+            'cmake>=3.18,<4' 'scikit-build-core>=0.10' ninja \
+            'packaging>=24.2' 'pybind11>=2.12' delocate
+
+      - name: Set ABI-qualified wheel version
+        run: |
+          torch_minor=$(python -c \
+            'import torch; print(".".join(torch.__version__.split(".")[:2]))')
+          python scripts/set_release_wheel_version.py "cputorch${torch_minor}"
+          echo "WHEEL_LOCAL_TAG=cputorch${torch_minor}" >> "$GITHUB_ENV"
+
+      - name: Build CPU-only wheel
+        env:
+          MAX_JOBS: 2
+        run: |
+          export CMAKE_PREFIX_PATH
+          CMAKE_PREFIX_PATH=$(python -c 'import torch; print(torch.utils.cmake_prefix_path)')
+          python -m pip wheel . --no-build-isolation --no-deps -w dist \
+            -Ccmake.define.TMOL_ENABLE_CUDA=OFF
+
+      - name: Validate and repair native dependencies
+        run: |
+          export DYLD_LIBRARY_PATH
+          DYLD_LIBRARY_PATH=$(python -c \
+            'from pathlib import Path; import torch; print(Path(torch.__file__).parent / "lib")')
+          mkdir repaired
+          delocate-wheel \
+            --check-archs \
+            --require-archs arm64 \
+            --exclude libtorch \
+            --exclude libc10 \
+            --exclude libshm \
+            --exclude libomp \
+            --wheel-dir repaired \
+            dist/*.whl
+          rm dist/*.whl
+          mv repaired/*.whl dist/
+
+      - name: Validate ABI-qualified CPU local version
+        run: |
+          set -- dist/*.whl
+          test "$#" -eq 1
+          wheel="$1"
+          wheel_name=$(basename "$wheel")
+          case "$wheel_name" in
+            tmol-*+${WHEEL_LOCAL_TAG}-*-macosx_14_0_arm64.whl) ;;
+            *)
+              echo "Unexpected Apple Silicon wheel tag: $wheel_name"
+              exit 1
+              ;;
+          esac
+          python_tag=$(python -c \
+            'import sys; print(f"cp{sys.version_info.major}{sys.version_info.minor}")')
+          echo "PYTHON_TAG=${python_tag}" >> "$GITHUB_ENV"
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheel-${{ env.PYTHON_TAG }}-${{ env.WHEEL_LOCAL_TAG }}-arm64
+          path: dist/*.whl
