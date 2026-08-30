@@ -309,7 +309,11 @@ def pose_stack_from_biotite(  # noqa: C901
         has_missing_atoms or not no_optH
     )
     if needs_packing:
-        sfxn = context._packing_score_function
+        sfxn = (
+            context._packing_score_function
+            if has_missing_atoms
+            else context._opth_score_function
+        )
         dunbrack_sampler = context._dunbrack_sampler
         na_sampler = context._na_sampler if has_missing_atoms else None
 

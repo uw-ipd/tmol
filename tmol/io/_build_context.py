@@ -47,6 +47,21 @@ class PoseBuildContext:
         )
 
     @cached_property
+    def _opth_score_function(self) -> ScoreFunction:
+        """Return beta2016 without terms invariant under OptH sampling."""
+        from tmol.score import ScoreType, beta2016_score_function
+
+        score_function = beta2016_score_function(
+            self.packed_block_types.device,
+            param_db=self.parameter_database,
+        )
+        # OptH changes proton chis and terminal NHQ groups, never the protein
+        # backbone. Avoid scoring rama/omega for every candidate rotamer.
+        score_function.set_weight(ScoreType.rama, 0)
+        score_function.set_weight(ScoreType.omega, 0)
+        return score_function
+
+    @cached_property
     def _dunbrack_sampler(self) -> DunbrackChiSampler:
         """Return the Dunbrack sampler shared by repeated pose builds."""
         from tmol.pack.rotamer.dunbrack import (
