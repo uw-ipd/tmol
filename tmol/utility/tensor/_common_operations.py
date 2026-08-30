@@ -244,10 +244,23 @@ def join_tensors_and_report_real_entries(
     n_elements = torch.tensor(
         [t.shape[0] for t in tensors], dtype=torch.int32, device=device
     )
-    combo = pad_sequence(tensors, batch_first=True, padding_value=sentinel)
+    padding_value = float(sentinel)
+    padding_is_exact = (
+        first.is_floating_point()
+        or first.is_complex()
+        or int(padding_value) == sentinel
+    )
+    combo = pad_sequence(
+        tensors,
+        batch_first=True,
+        padding_value=padding_value if padding_is_exact else 0.0,
+    )
     real = torch.arange(
         combo.shape[1], dtype=n_elements.dtype, device=device
     ).unsqueeze(0) < n_elements.unsqueeze(1)
+    if not padding_is_exact:
+        padding_mask = (~real).reshape(real.shape + (1,) * (combo.ndim - 2))
+        combo.masked_fill_(padding_mask, sentinel)
 
     return n_elements, real, combo
 

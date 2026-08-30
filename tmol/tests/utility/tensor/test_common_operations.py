@@ -214,6 +214,18 @@ def test_join_tensors_preserves_gradients_and_empty_entries(torch_device):
     assert all(torch.all(tensor.grad == 1) for tensor in tensors)
 
 
+def test_join_tensors_preserves_large_integer_sentinel(torch_device):
+    sentinel = 2**60 + 1
+    tensors = [
+        torch.tensor([1], dtype=torch.int64, device=torch_device),
+        torch.tensor([2, 3], dtype=torch.int64, device=torch_device),
+    ]
+
+    _, _, joined = join_tensors_and_report_real_entries(tensors, sentinel=sentinel)
+
+    assert joined[0, 1] == sentinel
+
+
 def test_invert_mapping(torch_device):
     a_2_b = torch.tensor([5, 4, 7, 1, 2, 0], dtype=torch.int32, device=torch_device)
     b_2_a = invert_mapping(a_2_b, 8)
