@@ -149,6 +149,9 @@ def pose_stack_from_atom37_and_biotite(
     Topology is derived from chemical identity alone -- ``missing_density`` breaks
     and automatic disulfide detection (both coordinate-dependent) are disabled --
     so the block types, termini, and atom count stay fixed as coordinates change.
+    This adapter does not classify or allowlist residue types or elements: newly
+    supported PTMs, ions, and metals work through the same API once they are
+    represented by the supplied context and canonical ordering.
 
     Parameters
     ----------

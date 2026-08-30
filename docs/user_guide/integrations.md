@@ -132,7 +132,6 @@ context = build_context_from_biotite(
     atom_array,
     atom37_coords.device,
     prepare_ligands=True,
-    sample_proton_chi=False,
 )
 
 pose_stack = pose_stack_from_atom37_and_biotite(
@@ -169,5 +168,7 @@ catching unrelated pose-construction errors.
 This path supports the intersection of the two chemistry systems: canonical
 protein, DNA, RNA, ordinary prepared ligands, and fragmented ligands on current
 TMol. Metal-containing ligands and covalently linked modified components require
-corresponding TMol parameterization support; the adapter does not silently drop
-them when ligand preparation is strict.
+corresponding TMol parameterization support. The adapter has no residue or
+element allowlist, so those chemistries use this same interface once a context
+can represent them; strict ligand preparation does not silently drop them in
+the meantime.
