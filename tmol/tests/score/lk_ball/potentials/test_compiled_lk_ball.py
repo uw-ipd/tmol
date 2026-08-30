@@ -200,6 +200,55 @@ def test_lk_bridge_fraction_overlapping_waters():
     )
 
 
+def test_lk_ball_skips_sparse_nan_waters(ljlk_params, atype_params):
+    from ._compiled import LKBallScore
+
+    tensor = torch.DoubleTensor
+    nan_water = tensor([math.nan, math.nan, math.nan])
+    water_i = tensor([0.0, 0.0, 0.0])
+    water_j = tensor([0.1, 0.1, 0.0])
+
+    sparse_waters_i = torch.stack([nan_water, water_i])
+    sparse_waters_j = torch.stack([nan_water, water_j])
+    packed_waters_i = torch.stack([water_i, nan_water])
+    packed_waters_j = torch.stack([water_j, nan_water])
+
+    score = LKBallScore(ljlk_params, atype_params)
+    bonded_path_length = tensor([5.0])[()]
+
+    def score_and_coord_grads(waters_i, waters_j):
+        coord_i = tensor([0.0, 0.0, 0.0]).requires_grad_(True)
+        coord_j = tensor([4.32664, 0.0, 0.0]).requires_grad_(True)
+        energies = score.apply(
+            coord_i,
+            coord_j,
+            waters_i,
+            waters_j,
+            bonded_path_length,
+            "OOC",
+            "OOC",
+        )
+        grads = torch.autograd.grad(energies.sum(), (coord_i, coord_j))
+        return energies, grads
+
+    sparse_energies, sparse_grads = score_and_coord_grads(
+        sparse_waters_i, sparse_waters_j
+    )
+    packed_energies, packed_grads = score_and_coord_grads(
+        packed_waters_i, packed_waters_j
+    )
+
+    assert torch.any(sparse_energies != 0)
+    torch.testing.assert_close(sparse_energies, packed_energies)
+    torch.testing.assert_close(sparse_grads, packed_grads)
+
+    no_waters = torch.stack([nan_water, nan_water])
+    no_water_energies, no_water_grads = score_and_coord_grads(no_waters, no_waters)
+    torch.testing.assert_close(no_water_energies, torch.zeros_like(no_water_energies))
+    for grad in no_water_grads:
+        torch.testing.assert_close(grad, torch.zeros_like(grad))
+
+
 def lkball_score_and_gradcheck(
     ljlk_params,
     atype_params,

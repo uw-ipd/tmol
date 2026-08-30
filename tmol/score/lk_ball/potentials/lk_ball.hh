@@ -67,10 +67,8 @@ struct lk_fraction {
     if (d2_low < 0.0) d2_low = 0.0;
 
     Real wted_d2_delta = 0;
-    // Water generation writes valid waters first and leaves the remaining
-    // slots as contiguous NaN padding.
     for (int w = 0; w < MAX_WATER; ++w) {
-      if (std::isnan(WI(w, 0))) break;
+      if (std::isnan(WI(w, 0))) continue;
       Real d2_delta = (J - WI.row(w).transpose()).squaredNorm() - d2_low;
       wted_d2_delta += std::exp(-d2_delta);
     }
@@ -100,9 +98,8 @@ struct lk_fraction {
     Real3 d_wted_d2_delta_d_J = Real3::Zero();
     WatersMat d_wted_d2_delta_d_WI = WatersMat::Zero();
 
-    // Generated water rows are valid-first, followed by NaN padding.
     for (int w = 0; w < MAX_WATER; ++w) {
-      if (std::isnan(WI(w, 0))) break;
+      if (std::isnan(WI(w, 0))) continue;
       Real3 delta_Jw = J - WI.row(w).transpose();
       Real d2_delta = delta_Jw.squaredNorm() - d2_low;
       Real exp_d2_delta = std::exp(-d2_delta);
@@ -194,11 +191,10 @@ struct lk_bridge_fraction {
 
     // water overlap
     Real wted_d2_delta = 0.0;
-    // Generated water rows are valid-first, followed by NaN padding.
     for (int wi = 0; wi < MAX_WATER; wi++) {
-      if (std::isnan(WI(wi, 0))) break;
+      if (std::isnan(WI(wi, 0))) continue;
       for (int wj = 0; wj < MAX_WATER; wj++) {
-        if (std::isnan(WJ(wj, 0))) break;
+        if (std::isnan(WJ(wj, 0))) continue;
         Real d2_delta =
             (WI.row(wi) - WJ.row(wj)).squaredNorm() - overlap_gap_A2;
         wted_d2_delta += std::exp(-d2_delta);
@@ -243,11 +239,10 @@ struct lk_bridge_fraction {
     WatersMat d_wted_d2_delta_d_WI = WatersMat::Zero();
     WatersMat d_wted_d2_delta_d_WJ = WatersMat::Zero();
 
-    // Generated water rows are valid-first, followed by NaN padding.
     for (int wi = 0; wi < MAX_WATER; wi++) {
-      if (std::isnan(WI(wi, 0))) break;
+      if (std::isnan(WI(wi, 0))) continue;
       for (int wj = 0; wj < MAX_WATER; wj++) {
-        if (std::isnan(WJ(wj, 0))) break;
+        if (std::isnan(WJ(wj, 0))) continue;
         Real3 delta_ij = WI.row(wi) - WJ.row(wj);
         Real d2_delta = delta_ij.squaredNorm() - overlap_gap_A2;
         Real exp_d2_delta = std::exp(-d2_delta);
@@ -373,6 +368,13 @@ struct lk_ball_score {
   typedef Eigen::Matrix<Real, 3, 1> Real3;
   typedef Eigen::Matrix<Real, MAX_WATER, 3> WatersMat;
 
+  static def has_water(WatersMat const& waters) -> bool {
+    for (int w = 0; w < MAX_WATER; ++w) {
+      if (!std::isnan(waters(w, 0))) return true;
+    }
+    return false;
+  }
+
   static def V(
       Real3 I,
       Real3 J,
@@ -387,7 +389,7 @@ struct lk_ball_score {
     using tmol::score::ljlk::potentials::lk_isotropic_pair;
 
     // No j-against-i score if I has no attached waters.
-    if (std::isnan(WI(0, 0))) {
+    if (!has_water(WI)) {
       return {0, 0, 0, 0};
     }
 
@@ -438,7 +440,7 @@ struct lk_ball_score {
     using tmol::score::ljlk::potentials::lk_isotropic_pair;
 
     // No j-against-i score if I has no attached waters.
-    if (std::isnan(WI(0, 0))) {
+    if (!has_water(WI)) {
       return lk_ball_dVt<Real, MAX_WATER>::Zero();
     }
 
@@ -545,7 +547,7 @@ struct lk_ball_score {
     using tmol::score::ljlk::potentials::lj_sigma;
     using tmol::score::ljlk::potentials::lk_isotropic_pair;
 
-    if (std::isnan(WI(0, 0))) {
+    if (!has_water(WI)) {
       return lk_ball_weighted_dVt<Real, MAX_WATER>::Zero();
     }
 
@@ -1330,7 +1332,7 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
     if (std::isnan(
             polar_block_dat
                 .water_coords[3 * (MAX_N_WATER * polar_atom_tile_ind + i)]))
-      break;
+      continue;
     water_accum_derivs(
         polar_block_dat, polar_start + polar_atom_tile_ind, i, dV.dWI);
   }
@@ -1338,7 +1340,7 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
     if (std::isnan(
             occluder_block_dat
                 .water_coords[3 * (MAX_N_WATER * occluder_atom_tile_ind + i)]))
-      break;
+      continue;
     water_accum_derivs(
         occluder_block_dat, occluder_start + occluder_atom_tile_ind, i, dV.dWJ);
   }
