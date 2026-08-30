@@ -608,9 +608,10 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     });
     DeviceDispatch<D>::template for_each_in_workgroup<nt>(reduce_energies);
   });
-  DeviceDispatch<D>::template foreach_workgroup<launch_t>(
+  DeviceDispatch<D>::template foreach_pose_workgroup<launch_t>(
       mgr,
-      n_poses * max_n_blocks * (max_n_conns + 1),
+      n_poses,
+      max_n_blocks * (max_n_conns + 1),
       eval_subgraphs_for_interaction);
 
   return {V_t, dV_dx_t};
@@ -988,9 +989,10 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     // we are only computing derivatives in this pass and don't need the score
     // a second time
   });
-  DeviceDispatch<D>::template foreach_workgroup<launch_t>(
+  DeviceDispatch<D>::template foreach_pose_workgroup<launch_t>(
       mgr,
-      n_poses * max_n_blocks * (max_n_conns + 1),
+      n_poses,
+      max_n_blocks * (max_n_conns + 1),
       eval_subgraphs_for_interaction);
 
   return dV_dx_t;

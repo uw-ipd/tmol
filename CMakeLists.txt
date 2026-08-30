@@ -160,6 +160,9 @@ endif()
 
 find_package(Torch REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
+# Linux Torch wheels require OpenMP compiler flags for at::parallel_for;
+# platforms using Torch's native thread pool do not.
+find_package(OpenMP COMPONENTS CXX QUIET)
 
 find_library(TORCH_PYTHON_LIBRARY torch_python PATHS "${TORCH_INSTALL_PREFIX}/lib" NO_DEFAULT_PATH)
 message(STATUS "tmol: TORCH_PYTHON_LIBRARY = ${TORCH_PYTHON_LIBRARY}")
@@ -401,6 +404,9 @@ if(TMOL_HAS_CUDA)
   tmol_set_cuda_flags(_C)
 else()
   tmol_set_cpp_flags(_C)
+endif()
+if(OpenMP_CXX_FOUND)
+  target_link_libraries(_C PRIVATE OpenMP::OpenMP_CXX)
 endif()
 install(TARGETS _C DESTINATION tmol)
 

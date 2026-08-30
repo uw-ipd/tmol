@@ -49,6 +49,20 @@ score = scorer(coords).sum()
 score.backward()
 ```
 
+## CPU batch throughput
+
+Whole-pose CPU scoring parallelizes independent poses through PyTorch's
+intra-op thread pool. Set the pool from the cores actually allocated to the
+process, and normally do not assign more scoring threads than poses:
+
+```python
+torch.set_num_threads(min(n_poses, allocated_physical_cores))
+```
+
+The pose boundary keeps gradients race-free, so a one-pose batch does not gain
+intra-pose parallelism. When several processes or data-loader workers score at
+once, divide the available cores between them to avoid oversubscription.
+
 ## Ligand-aware Scoring
 
 When a structure introduces ligand residue types at load time, the score

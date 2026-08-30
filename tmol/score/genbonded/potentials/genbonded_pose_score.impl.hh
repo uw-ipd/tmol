@@ -685,9 +685,10 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::forward(
     DeviceOps<D>::template for_each_in_workgroup<nt>(reduce_and_write);
   });
 
-  DeviceOps<D>::template foreach_workgroup<launch_t>(
+  DeviceOps<D>::template foreach_pose_workgroup<launch_t>(
       mgr,
-      n_poses * max_n_blocks * (max_n_conns + 1),
+      n_poses,
+      max_n_blocks * (max_n_conns + 1),
       eval_torsions_for_interaction);
 
   return {V_t, dV_dx_t};
@@ -941,9 +942,10 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::backward(
     // add.
   });
 
-  DeviceOps<D>::template foreach_workgroup<launch_t>(
+  DeviceOps<D>::template foreach_pose_workgroup<launch_t>(
       mgr,
-      n_poses * max_n_blocks * (max_n_conns + 1),
+      n_poses,
+      max_n_blocks * (max_n_conns + 1),
       eval_torsions_for_interaction);
 
   return dV_dx_t;

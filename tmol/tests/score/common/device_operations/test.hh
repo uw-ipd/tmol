@@ -27,6 +27,10 @@ struct DevOpsTests {
   static auto test_foreach_workgroup(TView<int32_t, 1, D> src)
       -> TPack<int32_t, 1, D>;
 
+  // dst[pose][wg] = src[pose][wg] + flattened workgroup index
+  static auto test_foreach_pose_workgroup(TView<int32_t, 2, D> src)
+      -> TPack<int32_t, 2, D>;
+
   static auto test_scan_inclusive(TView<int32_t, 1, D> src)
       -> TPack<int32_t, 1, D>;
 

@@ -100,6 +100,13 @@ def test_foreach_workgroup_large(ext, torch_device):
     assert torch.equal(result.cpu(), expected)
 
 
+def test_foreach_pose_workgroup(ext, torch_device):
+    src = torch.zeros(8, 17, dtype=torch.int32, device=torch_device)
+    result = ext.test_foreach_pose_workgroup(src)
+    expected = torch.arange(8 * 17, dtype=torch.int32).reshape(8, 17)
+    assert torch.equal(result.cpu(), expected)
+
+
 # ---------------------------------------------------------------------------
 # scan inclusive: cumulative prefix sum (inclusive)
 # ---------------------------------------------------------------------------
