@@ -2,10 +2,12 @@
 import torch
 import numpy
 import toolz
+import biotite.structure
 
 from tmol.types import validate_args
 from tmol.chemical import ResidueTypeSet
 from tmol.database import ParameterDatabase
+from tmol.io._build_context import PoseBuildContext
 from tmol.io import (
     CanonicalForm,
     CanonicalOrdering,
@@ -117,6 +119,70 @@ def pose_stack_from_atomworks(
     pbt = packed_block_types_for_atomworks(cf.coords.device)
 
     return pose_stack_from_canonical_form(co, pbt, *cf, **kwargs)
+
+
+@validate_args
+def pose_stack_from_atom37_and_biotite(
+    atom37_coords: torch.Tensor,
+    biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
+    context: PoseBuildContext,
+    no_optH: bool = False,
+    **kwargs,
+) -> PoseStack:
+    """Build a differentiable PoseStack from atom37 coordinates and a topology.
+
+    Unlike :func:`pose_stack_from_atomworks`, this supports any chemistry shared
+    by AtomWorks and the supplied TMol context (including ordinary ligands and
+    nucleic acids): the *chemical topology* is taken from
+    ``biotite_structure`` while the *coordinates* come from the
+    autograd-tracked ``atom37_coords`` tensor. This is the entry point for
+    differentiable scoring/guidance over atomized inputs, where the same fixed
+    topology is scored repeatedly as coordinates move.
+
+    Build ``context`` once with :func:`build_context_from_biotite` (with
+    ``prepare_ligands=True`` when ligands are present) and reuse it every step.
+    ``biotite_structure`` is used only for its chemical identity, so a single
+    reference structure can be reused across steps regardless of its coordinates.
+    It must carry two integer annotations that map each atom into the atom37
+    tensor: ``token_id`` (the token axis) and ``atom37_slot`` (the 0..36 slot).
+
+    Topology is derived from chemical identity alone -- ``missing_density`` breaks
+    and automatic disulfide detection (both coordinate-dependent) are disabled --
+    so the block types, termini, and atom count stay fixed as coordinates change.
+    This adapter does not classify or allowlist residue types or elements: newly
+    supported PTMs, ions, and metals work through the same API once they are
+    represented by the supplied context and canonical ordering.
+
+    Parameters
+    ----------
+    atom37_coords : Tensor, shape [n_poses, n_tokens, 37, 3]
+        Autograd-tracked coordinates in the atomworks atom37 layout.
+    biotite_structure : biotite AtomArray
+        Reference topology carrying ``token_id`` and ``atom37_slot`` annotations.
+    context : PoseBuildContext
+        Structure-independent context from :func:`build_context_from_biotite`.
+    no_optH : bool
+        Run TMol's hydrogen optimization pipeline when False (default). Pass
+        True to leave newly built hydrogens at ideal positions.
+    **kwargs
+        Additional arguments forwarded to ``pose_stack_from_biotite``.
+
+    Returns
+    -------
+    PoseStack
+        Whose ``coords`` carry gradients back to ``atom37_coords``.
+    """
+    from tmol.io import pose_stack_from_biotite
+
+    return pose_stack_from_biotite(
+        biotite_structure,
+        atom37_coords.device,
+        context=context,
+        missing_density_distance_threshold=0.0,
+        atom37_coords=atom37_coords,
+        no_optH=no_optH,
+        **kwargs,
+    )
 
 
 @validate_args

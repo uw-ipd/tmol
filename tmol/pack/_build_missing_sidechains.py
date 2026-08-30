@@ -31,21 +31,20 @@ def build_missing_sidechains(
       FixedAAChiSampler for amino acids, NaChiRotamerSampler for nucleotides.
       The input conformation is not included as a rotamer because the sidechain
       is incomplete.
-    - All other real blocks (leaf-only or no missing atoms): OptHSampler, which
-      keeps heavy atoms fixed and samples proton chi angles and NHQ flips.
+    - Complete blocks supported by OptHSampler: keep heavy atoms fixed while
+      sampling proton chi angles and NHQ flips.
       The two sets are disjoint: NaChiRotamerSampler expands the RNA 2'-OH
       itself, exactly as DunbrackChiSampler expands protein proton chis, so a
       block must never be given both.
-      FallbackSampler (always present by default) covers residue types that
-      OptH does not handle (ALA, GLY, etc.).
+    - Complete blocks that OptHSampler cannot change (ALA, GLY, etc.) are
+      frozen instead of becoming one-rotamer packing positions.
 
     When no_optH=True the old behavior is preserved: only Dunbrack runs for
     blocks with missing heavy atoms; all other blocks are frozen.
 
     Note: IncludeCurrentSampler is intentionally not used.  For Dunbrack
     blocks the native conformation is broken and must not appear as a rotamer.
-    For OptH blocks, OptH includes native as rotamer-0 for NHQ residues and
-    FallbackSampler covers the rest.
+    For OptH blocks, OptH includes native as rotamer-0 for NHQ residues.
 
     Args:
         pose_stack: The pose stack to process.
@@ -87,9 +86,17 @@ def build_missing_sidechains(
             task.add_conformer_sampler_by_block_mask(na_sampler, missing_na_blocks)
     block_does_not_have_missing_atoms = torch.logical_not(block_has_missing_atoms)
     if not no_optH:
-        task.add_conformer_sampler_by_block_mask(
-            opth_sampler, block_does_not_have_missing_atoms
+        block_type_ind = pose_stack.block_type_ind64
+        real_blocks = block_type_ind >= 0
+        complete_blocks = block_does_not_have_missing_atoms & real_blocks
+        opth_blocks = complete_blocks & opth_sampler.defines_rotamers_for_bts(
+            pose_stack.packed_block_types, block_type_ind.clamp_min(0)
         )
+        task.add_conformer_sampler_by_block_mask(opth_sampler, opth_blocks)
+        # The fallback sampler would otherwise turn every complete ALA/GLY/etc.
+        # into a one-rotamer molten position. Freezing blocks that OptH cannot
+        # change gives identical coordinates and a smaller interaction graph.
+        task.disable_packing_by_block_mask(complete_blocks & ~opth_blocks)
     else:
         task.disable_packing_by_block_mask(block_does_not_have_missing_atoms)
 

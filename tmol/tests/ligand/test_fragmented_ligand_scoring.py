@@ -295,6 +295,33 @@ def test_fragmentation_uses_ligand_already_in_parameter_database(torch_device):
     assert frag_names == ["LG1.1", "LG1.2"]
 
 
+def test_fragmented_ligand_preserves_atom37_routing(torch_device):
+    from tmol.io import pose_stack_from_atom37_and_biotite
+
+    structure, params_path, preparation = _load_fixture()
+    annotated = _annotate_at_bridge(structure, preparation)
+    _, context, _ = _build(annotated, params_path, torch_device, fragmented=True)
+
+    n_atoms = annotated.array_length()
+    annotated.set_annotation("token_id", np.arange(n_atoms, dtype=np.int64))
+    annotated.set_annotation("atom37_slot", np.ones(n_atoms, dtype=np.int64))
+    atom37 = torch.full(
+        (1, n_atoms, 37, 3),
+        torch.nan,
+        dtype=torch.float32,
+        device=torch_device,
+    )
+    atom37[0, :, 1] = torch.as_tensor(annotated.coord, device=torch_device)
+    atom37.requires_grad_(True)
+
+    pose = pose_stack_from_atom37_and_biotite(atom37, annotated, context)
+
+    assert len(pose.split_block_mapping.entries) == 2
+    assert torch.isfinite(pose.coords[pose.real_atoms]).all()
+    pose.coords[pose.real_atoms].sum().backward()
+    assert torch.count_nonzero(atom37.grad) > 0
+
+
 def test_fragment_interactions_validate_inputs(torch_device):
     from tmol.score import calculate_fragment_interactions
 

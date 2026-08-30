@@ -86,3 +86,40 @@ def test_build_missing_sidechains_skips_na_sampler_for_complete_pose(
     )
 
     assert result is pose_stack
+
+
+def test_build_missing_sidechains_freezes_complete_non_opth_blocks(
+    ubq_pdb, torch_device, dun_sampler, monkeypatch
+):
+    """Do not send chemically immutable blocks through one-rotamer packing."""
+    from tmol.pack.rotamer import OptHSampler
+
+    pose_stack = pose_stack_from_pdb_and_resnums(ubq_pdb, torch_device)
+    missing = torch.zeros(
+        (pose_stack.n_poses, pose_stack.max_n_blocks),
+        dtype=torch.bool,
+        device=torch_device,
+    )
+    captured = {}
+
+    def capture_task(pose_stack, _sfxn, task, **_kwargs):
+        captured["task"] = task
+        return pose_stack
+
+    monkeypatch.setattr(build_missing_sidechains_module, "pack_rotamers", capture_task)
+    build_missing_sidechains(
+        pose_stack=pose_stack,
+        sfxn=beta2016_score_function(torch_device),
+        dunbrack_sampler=dun_sampler,
+        no_optH=False,
+        block_has_missing_atoms=missing,
+    )
+
+    real = pose_stack.block_type_ind64 >= 0
+    supported = real & OptHSampler().defines_rotamers_for_bts(
+        pose_stack.packed_block_types,
+        pose_stack.block_type_ind64.clamp_min(0),
+    )
+    task = captured["task"]
+    packable = task.per_block_is_block_type_allowed.any(dim=2) & real
+    torch.testing.assert_close(packable, supported)
