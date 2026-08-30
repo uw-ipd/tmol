@@ -14,10 +14,11 @@ else
   uv pip install torch --index-url https://download.pytorch.org/whl/cpu
 fi
 if [ "$(uname -m)" = aarch64 ]; then
-  # biotraj has no aarch64 wheel and its sdist omits NumPy from its isolated
-  # build requirements.
-  uv pip install numpy
-  uv pip install biotraj --no-build-isolation
+  # biotraj has no Linux aarch64 wheel, and its sdist omits both build
+  # requirements and VCS version metadata. Build the matching tag explicitly.
+  uv pip install numpy Cython hatchling hatch-vcs
+  uv pip install --no-build-isolation \
+    'biotraj @ git+https://github.com/biotite-dev/biotraj.git@v1.2.2'
 fi
 uv pip install 'cmake>=3.18,<4' 'scikit-build-core>=0.10' ninja \
   'packaging>=24.2' 'pybind11>=2.12'
