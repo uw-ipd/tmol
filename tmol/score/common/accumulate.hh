@@ -117,7 +117,7 @@ struct accumulate<
   }
 
   // All threads must write to the same ind1; threads may write to different
-  // ind0s. The CPU version is safe as long as there's only one thread.
+  // ind0s.
   template <class A>
   static def add_two_dim_one_dst(A& target, int ind0, int ind1, const T& val)
       -> void {
