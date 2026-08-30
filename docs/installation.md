@@ -83,6 +83,10 @@ The same CPU-only path is the normal macOS source install:
 pip install -e . -Ccmake.define.TMOL_ENABLE_CUDA=OFF
 ```
 
+CPU source builds are tested on Linux x86-64, Linux aarch64, and Apple
+Silicon. Native Windows is not currently supported; use a Linux environment
+such as WSL2.
+
 ## Linux Runtime Notes
 
 Release wheels use `manylinux_2_28` platform tags on `x86_64` and `aarch64`.
