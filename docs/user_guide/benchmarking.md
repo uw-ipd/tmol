@@ -53,22 +53,6 @@ Ancillary benchmark plots live near the tests as `plot_*.py` scripts.
 
 ## Profiling
 
-For complete scoring, minimization, and FastRelax workflows, use the modern
-Nsight Systems harness in `dev/profiling`. It covers protein, nucleic-acid, and
-ligand systems, eager and CUDA-graph scoring, multiple batch sizes, and writes
-an environment manifest alongside each capture:
-
-```bash
-python dev/profiling/matrix.py --trace --output-dir artifacts/nsys
-python dev/profiling/analyze.py artifacts/nsys
-```
-
-See `dev/profiling/README.md` for the supported matrix, individual-case
-commands, Slurm/Apptainer usage, checksum verification, timing plot, and the
-NVIDIA handoff format.
-
-### Legacy microbenchmark profiler
-
 `dev/bin/profile_benchmark` wraps the legacy `nvprof` command and the TMol
 pytest CUDA-profile hook:
 
