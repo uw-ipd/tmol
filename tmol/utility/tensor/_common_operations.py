@@ -49,6 +49,14 @@ def stretch2(t: IntTensor2D, count: RepeatCount) -> IntTensor2D:
 
 @validate_args
 def exclusive_cumsum1d(inds: IntTensor1D) -> IntTensor1D:
+    """Compute an exclusive prefix sum over a one-dimensional integer tensor.
+
+    Args:
+        inds: Values to accumulate.
+
+    Returns:
+        Prefix sums with a zero in the first position.
+    """
     return torch.cat(
         (
             torch.tensor([0], dtype=inds.dtype, device=inds.device),
@@ -59,6 +67,14 @@ def exclusive_cumsum1d(inds: IntTensor1D) -> IntTensor1D:
 
 @validate_args
 def exclusive_cumsum2d(inds: IntTensor2D) -> IntTensor2D:
+    """Compute exclusive prefix sums along each row of an integer tensor.
+
+    Args:
+        inds: Values to accumulate along dimension one.
+
+    Returns:
+        Row-wise prefix sums with zeros in the first column.
+    """
     return torch.cat(
         (
             torch.zeros((inds.shape[0], 1), dtype=inds.dtype, device=inds.device),
@@ -75,6 +91,14 @@ def exclusive_cumsum2d_and_totals(
     tuple[Tensor[torch.int32][:, :], Tensor[torch.int32][:]]
     | tuple[Tensor[torch.int64][:, :], Tensor[torch.int64][:]]
 ):
+    """Compute row-wise exclusive prefix sums and inclusive row totals.
+
+    Args:
+        inds: Values to accumulate along dimension one.
+
+    Returns:
+        The exclusive prefix sums and the sum of each row.
+    """
     cs = torch.cumsum(inds, dim=1, dtype=inds.dtype)
     return (
         torch.cat(
