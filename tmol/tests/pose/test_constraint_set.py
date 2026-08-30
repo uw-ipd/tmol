@@ -1,4 +1,5 @@
 import attr
+import pytest
 import torch
 
 from tmol.pose import (
@@ -8,6 +9,12 @@ from tmol.pose import (
 from tmol.score.constraint import ConstraintEnergyTerm
 
 from tmol.io import pose_stack_from_pdb
+
+
+def _zero_constraint(atoms: torch.Tensor, params: torch.Tensor) -> torch.Tensor:
+    """Return zero energy for a constraint with no parameters."""
+    assert params.shape[1] == 0
+    return torch.zeros(atoms.shape[0], dtype=atoms.dtype, device=atoms.device)
 
 
 def test_constraint_set_empty_initialization(torch_device):
@@ -21,6 +28,56 @@ def test_constraint_set_empty_initialization(torch_device):
     assert cs.constraint_num_unique_blocks.shape == (0,)
     assert cs.constraint_unique_blocks.shape == (0, 3)
     assert len(cs.constraint_functions) == 0
+
+
+def test_constraint_set_replicates_parameterless_constraints(torch_device):
+    cs = ConstraintSet.create_empty(torch_device, n_poses=2)
+    atom_indices = torch.tensor(
+        [[[0, 1], [1, 2]]], dtype=torch.int64, device=torch_device
+    )
+
+    result = cs.add_constraints_to_all_poses(_zero_constraint, atom_indices)
+
+    expected_atoms = torch.tensor(
+        [
+            [[0, 0, 1], [0, 1, 2]],
+            [[1, 0, 1], [1, 1, 2]],
+        ],
+        dtype=torch.int32,
+        device=torch_device,
+    )
+    torch.testing.assert_close(result.constraint_atoms[:, :2], expected_atoms)
+    assert result.constraint_atoms.dtype == torch.int32
+    assert result.constraint_atoms.device == torch.device(torch_device)
+    assert result.constraint_params.shape == (2, 0)
+    assert result.constraint_num_unique_blocks.dtype == torch.int32
+    torch.testing.assert_close(
+        result.constraint_num_unique_blocks,
+        torch.tensor([2, 2], dtype=torch.int32, device=torch_device),
+    )
+    torch.testing.assert_close(
+        result.constraint_unique_blocks,
+        torch.tensor([[0, 0, 1], [1, 0, 1]], dtype=torch.int32, device=torch_device),
+    )
+
+
+def test_constraint_set_validates_inputs():
+    cs = ConstraintSet.create_empty(torch.device("cpu"), n_poses=1)
+
+    with pytest.raises(ValueError, match="atom_indices must have shape"):
+        cs.add_constraints(_zero_constraint, torch.zeros((1, 2), dtype=torch.int32))
+    with pytest.raises(ValueError, match="between 1 and 4 atoms"):
+        cs.add_constraints(_zero_constraint, torch.zeros((1, 0, 3), dtype=torch.int32))
+    with pytest.raises(TypeError, match="must contain 32- or 64-bit integers"):
+        cs.add_constraints(
+            _zero_constraint, torch.zeros((1, 2, 3), dtype=torch.float32)
+        )
+    with pytest.raises(ValueError, match="params must have shape"):
+        cs.add_constraints(
+            _zero_constraint,
+            torch.zeros((1, 2, 3), dtype=torch.int32),
+            torch.zeros((2, 0), dtype=torch.float32),
+        )
 
 
 def test_constraint_set_add_constraints(torch_device, ubq_pdb):
@@ -214,7 +271,6 @@ def test_split_constraint_set(default_database, ubq_pdb, torch_device):
             (poses[i].max_n_blocks - 1, 2), 0, dtype=torch.float32, device=torch_device
         )
         for j in range(poses[i].max_n_blocks - 1):
-
             ij_res1_type = poses[i].block_type(0, j)
             ij_res2_type = poses[i].block_type(0, j + 1)
             cnstr_atoms1[j, 0] = torch.tensor([0, j, ij_res1_type.atom_to_idx["C"]])

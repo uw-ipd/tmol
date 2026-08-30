@@ -1,25 +1,31 @@
-import torch
-import attr
+from collections.abc import Callable, Sequence
 
-from typing import Optional, Tuple
+import attr
+import torch
+
 from tmol.types import Tensor
 from tmol.utility.tensor import exclusive_cumsum1d
+
+ConstraintFunction = Callable[
+    [Tensor[torch.float32][:, :, 3], Tensor[torch.float32][:, :]],
+    Tensor[torch.float32][:],
+]
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
 class ConstraintSet:
-    """ """
+    """Immutable collection of geometric constraints for a batch of poses."""
 
     MAX_N_ATOMS = 4
 
     device: torch.device
     n_poses: int
-    constraint_function_inds: Tensor[torch.int][:]
-    constraint_atoms: Tensor[torch.int][:, 4, 3]
+    constraint_function_inds: Tensor[torch.int32][:]
+    constraint_atoms: Tensor[torch.int32][:, 4, 3]
     constraint_params: Tensor[torch.float32][:, :]
-    constraint_num_unique_blocks: Tensor[torch.int][:]
-    constraint_unique_blocks: Tensor[torch.int][:, :]
-    constraint_functions: Tuple
+    constraint_num_unique_blocks: Tensor[torch.int32][:]
+    constraint_unique_blocks: Tensor[torch.int32][:, 3]
+    constraint_functions: tuple[ConstraintFunction, ...]
 
     @classmethod
     def create_empty(cls, device: torch.device, n_poses: int) -> "ConstraintSet":
@@ -45,11 +51,11 @@ class ConstraintSet:
     @classmethod
     def concatenate(  # noqa: C901
         cls,
-        constraint_sets: Tuple[Optional["ConstraintSet"], ...],
+        constraint_sets: Sequence["ConstraintSet | None"],
         from_multiple_pose_stacks: bool = True,
-        n_poses: Optional[int] = None,
-        ps_offset: Optional[Tensor[torch.int64][:]] = None,
-    ) -> Optional["ConstraintSet"]:
+        n_poses: int | None = None,
+        ps_offset: Tensor[torch.int64][:] | None = None,
+    ) -> "ConstraintSet | None":
         """Concatenate multiple ConstraintSets into a single ConstraintSet.
 
         This function is particularly useful if you're creating a PoseStack from multiple
@@ -213,7 +219,7 @@ class ConstraintSet:
             constraint_unique_blocks=self.constraint_unique_blocks.to(device),
         )
 
-    def split(self, index) -> "ConstraintSet":
+    def split(self, index: int) -> "ConstraintSet":
         """Split out a single pose's worth of constraints from a batch."""
         # find the constraints that apply to this pose
         is_constraint_for_pose = self.constraint_atoms[:, :, 0] == index
@@ -252,54 +258,88 @@ class ConstraintSet:
 
     #################### PROPERTIES #####################
 
-    def count_unique_blocks(self, atom_indices):
-        # sorted_blocks_per_constraint, _ = atom_indices[:,:,1]
-        # now shift by 1 and count the differences
-        # diffs = sorted_blocks_per_constraint[:, 1:] != sorted_blocks_per_constraint[:, :-1]
+    @staticmethod
+    def count_unique_blocks(
+        atom_indices: Tensor[torch.int32][:, :, 3],
+    ) -> Tensor[torch.int32][:]:
+        """Count distinct consecutive blocks referenced by each constraint."""
         constraint_blocks = atom_indices[:, :, 1]
-        # now shift by 1 and count the differences
         diffs = constraint_blocks[:, 1:] != constraint_blocks[:, :-1]
-
-        return diffs.sum(dim=1) + 1
+        return diffs.sum(dim=1, dtype=torch.int32) + 1
 
     def add_constraints_to_all_poses(
-        self, fn, atom_indices, params=None
+        self,
+        fn: ConstraintFunction,
+        atom_indices: Tensor[torch.int32][:, :, :],
+        params: Tensor[torch.float32][:, :] | None = None,
     ) -> "ConstraintSet":
-        """If all Poses in the PoseStack should be constrained in the same way, then
-        this convenience function will take a list of atom indices for a single Pose
-        and replicate them across all the Poses in the PoseStack."""
-        if atom_indices.size(2) == 3:
+        """Add the same constraints to every pose in the batch.
+
+        Args:
+            fn: Function that scores coordinates and per-constraint parameters.
+            atom_indices: Integer ``[constraint, atom, block/atom]`` indices, or
+                full ``[constraint, atom, pose/block/atom]`` indices.
+            params: Optional float ``[constraint, parameter]`` values.
+
+        Returns:
+            A new constraint set containing the replicated constraints.
+        """
+        if atom_indices.ndim == 3 and atom_indices.size(2) == 3:
             # if we just drop the "which-pose-is-it-from? dimension", then
             # the normal call to add_constraints will apply it to all poses
             atom_indices = atom_indices[:, :, 1:3]
         return self.add_constraints(fn, atom_indices, params)
 
     def add_constraints(
-        self, fn, atom_indices, params=None
+        self,
+        fn: ConstraintFunction,
+        atom_indices: Tensor[torch.int32][:, :, :],
+        params: Tensor[torch.float32][:, :] | None = None,
     ) -> "ConstraintSet":  # noqa: C901
-        """
-        Create a new ConstraintSet that includes all the old constraints plus the new ones.
+        """Return a constraint set containing the existing and new constraints.
 
-        atom_indices: either (n_constraints, n_atoms, 3) or (n_constraints, n_atoms, 2)
-                      If the latter, the constraint will be applied to all poses
+        Args:
+            fn: Function that scores coordinates and per-constraint parameters.
+            atom_indices: Integer ``[constraint, atom, pose/block/atom]`` indices.
+                Omitting the pose column applies each constraint to every pose.
+            params: Optional float ``[constraint, parameter]`` values.
+
+        Returns:
+            A new constraint set containing the added constraints.
         """
+        if atom_indices.ndim != 3 or atom_indices.size(2) not in (2, 3):
+            raise ValueError("atom_indices must have shape [constraint, atom, 2 or 3]")
+        if not 0 < atom_indices.size(1) <= self.MAX_N_ATOMS:
+            raise ValueError(
+                f"constraints must contain between 1 and {self.MAX_N_ATOMS} atoms"
+            )
+        if atom_indices.dtype not in (torch.int32, torch.int64):
+            raise TypeError("atom_indices must contain 32- or 64-bit integers")
+
+        atom_indices = atom_indices.to(device=self.device, dtype=torch.int32)
+        if params is not None:
+            if params.ndim != 2 or params.size(0) != atom_indices.size(0):
+                raise ValueError(
+                    "params must have shape [constraint, parameter] with one row "
+                    "per constraint"
+                )
+            params = params.to(device=self.device, dtype=torch.float32)
+
         empty_at_start = len(self.constraint_functions) == 0
 
-        def find_or_insert(value, lst):
-            if value in lst:
-                return lst.index(value)
-            lst.append(value)
-            return lst.index(value)
-
         constraint_functions_list = list(self.constraint_functions)
-        fn_index = find_or_insert(fn, constraint_functions_list)
+        try:
+            fn_index = constraint_functions_list.index(fn)
+        except ValueError:
+            constraint_functions_list.append(fn)
+            fn_index = len(constraint_functions_list) - 1
 
         if (
             atom_indices.size(2) == 2
         ):  # The user did not input pose indices, copy to all poses
             filled_atom_indices = torch.zeros(
                 (atom_indices.size(0), atom_indices.size(1), 3),
-                dtype=torch.float32,
+                dtype=torch.int32,
                 device=self.device,
             )
             filled_atom_indices[:, :, 1:3] = atom_indices
@@ -385,7 +425,11 @@ class ConstraintSet:
         )
         if params is not None:
             new_params = params
-        max_params = max(new_params.size(1), self.constraint_params.size(1))
+        max_params = (
+            new_params.size(1)
+            if empty_at_start
+            else max(new_params.size(1), self.constraint_params.size(1))
+        )
         if not empty_at_start:
             t1 = torch.zeros(
                 (self.constraint_params.size(0), max_params),
@@ -412,14 +456,18 @@ class ConstraintSet:
             constraint_functions=tuple(constraint_functions_list),
         )
 
-    @classmethod
-    def replicate_constraints(cls, n_poses, c_atms, c_params):
+    @staticmethod
+    def replicate_constraints(
+        n_poses: int,
+        c_atms: Tensor[torch.int32][:, :, 3],
+        c_params: Tensor[torch.float32][:, :] | None,
+    ) -> tuple[Tensor[torch.int32][:, :, 3], Tensor[torch.float32][:, :] | None]:
+        """Replicate pose-independent constraints and optional parameters."""
         ncnstr = c_atms.size(0)
-        natoms = c_atms.size(1)
 
         atoms = c_atms.repeat(n_poses, 1, 1)
-        params = c_params.repeat(n_poses, 1)
-        poses = torch.arange(0, n_poses).repeat_interleave(natoms * ncnstr)
-        atoms[:, :, 0] = poses.view(n_poses * ncnstr, natoms)
+        params = None if c_params is None else c_params.repeat(n_poses, 1)
+        poses = torch.arange(n_poses, dtype=atoms.dtype, device=atoms.device)
+        atoms[:, :, 0] = poses.repeat_interleave(ncnstr).unsqueeze(1)
 
         return atoms, params
