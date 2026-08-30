@@ -14,6 +14,10 @@ def test_concatenate_pose_stacks_ctor(ubq_pdb, default_database, torch_device):
     assert poses.coords.shape == (2, 962, 3)  # fd 959->961 for nterm
     assert poses.inter_block_bondsep.shape == (2, 60, 60, 3, 3)
     assert poses.device == torch_device
+    torch.testing.assert_close(
+        poses.block_ind_for_rot,
+        torch.arange(60, dtype=torch.int32, device=torch_device).repeat(2),
+    )
 
 
 def test_create_pose_from_sequence(fresh_default_packed_block_types, torch_device):

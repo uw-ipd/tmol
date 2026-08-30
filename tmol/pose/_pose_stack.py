@@ -77,9 +77,11 @@ class PoseStack:
         n_poses = self.block_coord_offset.size(0)
         n_blocks = self.block_coord_offset.size(1)
 
-        block_inds = torch.zeros_like(self.block_coord_offset)
-        block_inds[:, :] = torch.arange(0, n_blocks)
-        self.block_ind_for_rot = block_inds.flatten()
+        self.block_ind_for_rot = torch.arange(
+            n_blocks,
+            dtype=self.block_coord_offset.dtype,
+            device=self.block_coord_offset.device,
+        ).repeat(n_poses)
 
         pose_inds = (
             torch.arange(0, n_poses, dtype=torch.int32, device=self.device)
