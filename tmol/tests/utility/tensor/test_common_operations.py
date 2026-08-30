@@ -78,6 +78,20 @@ def test_exclusive_cumsums_preserve_empty_shapes(torch_device, dtype):
     torch.testing.assert_close(totals, torch.zeros(3, dtype=dtype, device=torch_device))
 
 
+@pytest.mark.parametrize("dtype", (torch.int32, torch.int64))
+def test_exclusive_cumsums_preserve_values_and_dtype(torch_device, dtype):
+    values = torch.tensor([[3, -1, 4], [0, 2, 5]], dtype=dtype, device=torch_device)
+    expected = torch.tensor([[0, 3, 2], [0, 0, 2]], dtype=dtype, device=torch_device)
+    expected_totals = torch.tensor([6, 7], dtype=dtype, device=torch_device)
+
+    torch.testing.assert_close(exclusive_cumsum2d(values), expected)
+    actual, totals = exclusive_cumsum2d_and_totals(values)
+    torch.testing.assert_close(actual, expected)
+    torch.testing.assert_close(totals, expected_totals)
+    assert actual.dtype == dtype
+    assert totals.dtype == dtype
+
+
 @pytest.mark.parametrize(
     ("values", "first_row"),
     (([5, 6], "tensor([[0, 5]"), ([[5, 6], [7, 8]], "tensor([[0, 5, 6]")),
