@@ -1,5 +1,6 @@
 import cattr
 import numpy
+import pytest
 import torch
 
 import tmol.pack.rotamer.dunbrack._compiled  # noqa F401
@@ -71,6 +72,26 @@ def test_annotate_residue_type(default_database):
         tyr_restype.dun_sampler_cache.chi_defining_atom[2]
         == tyr_restype.atom_to_idx["OH"]
     )
+
+
+def test_sampler_resolves_unindexed_cuda(default_database, torch_device):
+    if torch_device.type != "cuda":
+        pytest.skip("Requires CUDA")
+
+    sampler = create_dunbrack_sampler_from_database(
+        default_database, torch.device("cuda")
+    )
+    concrete_sampler = create_dunbrack_sampler_from_database(
+        default_database, torch_device
+    )
+    keyword_resolver = DunbrackParamResolver.from_database(
+        dun_database=default_database.scoring.dun,
+        device=torch.device("cuda"),
+    )
+
+    assert sampler.device == torch_device
+    assert sampler.dun_param_resolver is concrete_sampler.dun_param_resolver
+    assert sampler.dun_param_resolver is keyword_resolver
 
 
 def test_annotate_packed_block_types(default_database, torch_device):

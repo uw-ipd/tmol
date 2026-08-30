@@ -10,6 +10,7 @@ from tmol.database import ParameterDatabase
 from tmol.database._yaml import safe_load
 from tmol.score import ScoreType
 from tmol.score.common import ZeroTermPoseScoringModule
+from tmol.utility._device import resolve_device
 
 # force registration of the terms with the ScoreTermFactory
 from tmol.score.terms import *  # noqa: F401, F403
@@ -30,10 +31,12 @@ class ScoreFunction:
 
     Args:
         param_db: Chemical and scoring parameters used to construct terms.
-        device: Device on which weights and rendered scorers operate.
+        device: Device on which weights and rendered scorers operate. An
+            unindexed CUDA device resolves to the current CUDA device.
     """
 
     def __init__(self, param_db: ParameterDatabase, device: torch.device):
+        device = resolve_device(device)
         self._weights = torch.zeros((ScoreType.n_score_types.value,), device=device)
 
         self._all_terms = []
