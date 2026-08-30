@@ -136,7 +136,7 @@ context = build_context_from_biotite(
 )
 
 pose_stack = pose_stack_from_atom37_and_biotite(
-    atom37_coords,  # [pose, token, 37, xyz], float32
+    atom37_coords,  # [sample, token, 37, xyz], float32
     atom_array,
     context,
 )
@@ -148,6 +148,12 @@ scorer = sfxn.render_whole_pose_scoring_module(pose_stack)
 score = scorer(pose_stack.coords).sum()
 score.backward()
 ```
+
+A single call handles one sample or a whole same-topology batch; hydrogen
+optimization is enabled by default. For high-throughput diffusion or search,
+reuse `context` for every compatible candidate and render each scoring module
+once per topology and batch shape. Pass `no_optH=True` only when ideal hydrogen
+placement is an intentional speed/accuracy tradeoff.
 
 A single `AtomArray` may provide topology for a batch of coordinate tensors. An
 `AtomArrayStack` must either have the same number of models as the tensor batch

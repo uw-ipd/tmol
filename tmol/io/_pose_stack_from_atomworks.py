@@ -126,7 +126,7 @@ def pose_stack_from_atom37_and_biotite(
     atom37_coords: torch.Tensor,
     biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
     context: PoseBuildContext,
-    no_optH: bool = True,
+    no_optH: bool = False,
     **kwargs,
 ) -> PoseStack:
     """Build a differentiable PoseStack from atom37 coordinates and a topology.
@@ -159,8 +159,8 @@ def pose_stack_from_atom37_and_biotite(
     context : PoseBuildContext
         Structure-independent context from :func:`build_context_from_biotite`.
     no_optH : bool
-        Leave newly built hydrogens at ideal positions when True (default).
-        Pass False to run TMol's hydrogen optimization pipeline.
+        Run TMol's hydrogen optimization pipeline when False (default). Pass
+        True to leave newly built hydrogens at ideal positions.
     **kwargs
         Additional arguments forwarded to ``pose_stack_from_biotite``.
 

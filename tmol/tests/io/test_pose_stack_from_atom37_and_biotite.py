@@ -169,7 +169,6 @@ def test_atom37_gradients_survive_hydrogen_optimization(biotite_1ubq, torch_devi
         atom37,
         structure,
         context,
-        no_optH=False,
     )
 
     pose.coords[pose.real_atoms].sum().backward()
