@@ -563,7 +563,6 @@ steps:</p>
     <span class="n">atom_array</span><span class="p">,</span>
     <span class="n">atom37_coords</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
     <span class="n">prepare_ligands</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">sample_proton_chi</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">pose_stack_from_atom37_and_biotite</span><span class="p">(</span>
@@ -598,8 +597,10 @@ catching unrelated pose-construction errors.</p>
 <p>This path supports the intersection of the two chemistry systems: canonical
 protein, DNA, RNA, ordinary prepared ligands, and fragmented ligands on current
 TMol. Metal-containing ligands and covalently linked modified components require
-corresponding TMol parameterization support; the adapter does not silently drop
-them when ligand preparation is strict.</p>
+corresponding TMol parameterization support. The adapter has no residue or
+element allowlist, so those chemistries use this same interface once a context
+can represent them; strict ligand preparation does not silently drop them in
+the meantime.</p>
 </section>
 </section>
 

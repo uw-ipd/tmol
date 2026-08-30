@@ -722,7 +722,11 @@
         <span class="n">has_missing_atoms</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">no_optH</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="n">needs_packing</span><span class="p">:</span>
-        <span class="n">sfxn</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">_packing_score_function</span>
+        <span class="n">sfxn</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">_packing_score_function</span>
+            <span class="k">if</span> <span class="n">has_missing_atoms</span>
+            <span class="k">else</span> <span class="n">context</span><span class="o">.</span><span class="n">_opth_score_function</span>
+        <span class="p">)</span>
         <span class="n">dunbrack_sampler</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">_dunbrack_sampler</span>
         <span class="n">na_sampler</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">_na_sampler</span> <span class="k">if</span> <span class="n">has_missing_atoms</span> <span class="k">else</span> <span class="kc">None</span>
 
@@ -1342,18 +1346,17 @@
     <span class="n">mapped_slot</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">slot</span><span class="p">[</span><span class="n">mapped</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span><span class="p">)</span>
     <span class="n">source_coords</span> <span class="o">=</span> <span class="n">atom37_coords</span><span class="p">[:,</span> <span class="n">mapped_token_id</span><span class="p">,</span> <span class="n">mapped_slot</span><span class="p">]</span>
     <span class="n">finite</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">source_coords</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">pose_inds</span><span class="p">,</span> <span class="n">source_inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">finite</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">mapped_res_inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
         <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">valid_res_inds</span><span class="p">)[</span><span class="n">mapped</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span>
     <span class="p">)</span>
     <span class="n">mapped_atom_inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
         <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">valid_atom_inds</span><span class="p">)[</span><span class="n">mapped</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span>
     <span class="p">)</span>
-    <span class="n">reference_coords</span><span class="p">[</span>
-        <span class="n">pose_inds</span><span class="p">,</span>
-        <span class="n">mapped_res_inds</span><span class="p">[</span><span class="n">source_inds</span><span class="p">],</span>
-        <span class="n">mapped_atom_inds</span><span class="p">[</span><span class="n">source_inds</span><span class="p">],</span>
-    <span class="p">]</span> <span class="o">=</span> <span class="n">source_coords</span><span class="p">[</span><span class="n">pose_inds</span><span class="p">,</span> <span class="n">source_inds</span><span class="p">]</span>
+    <span class="n">reference_coords</span><span class="p">[:,</span> <span class="n">mapped_res_inds</span><span class="p">,</span> <span class="n">mapped_atom_inds</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">finite</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">source_coords</span><span class="p">,</span>
+        <span class="n">reference_coords</span><span class="p">[:,</span> <span class="n">mapped_res_inds</span><span class="p">,</span> <span class="n">mapped_atom_inds</span><span class="p">],</span>
+    <span class="p">)</span>
     <span class="k">return</span> <span class="n">reference_coords</span><span class="p">,</span> <span class="n">n_poses</span>
 
 
@@ -1447,15 +1450,6 @@
             <span class="n">valid_res_inds</span><span class="p">,</span>
             <span class="n">valid_atom_inds</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">biotite_b_factors</span><span class="p">,</span> <span class="n">biotite_occupancy</span> <span class="o">=</span> <span class="n">_populate_optional_atom_metadata</span><span class="p">(</span>
-            <span class="n">biotite_structure</span><span class="p">,</span>
-            <span class="n">n_poses</span><span class="p">,</span>
-            <span class="nb">len</span><span class="p">(</span><span class="n">biotite_residues</span><span class="p">),</span>
-            <span class="n">co</span><span class="o">.</span><span class="n">max_n_canonical_atoms</span><span class="p">,</span>
-            <span class="n">valid_res_inds</span><span class="p">,</span>
-            <span class="n">valid_atom_inds</span><span class="p">,</span>
-            <span class="n">valid_atom_mask</span><span class="p">,</span>
-        <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">tmol_coords</span><span class="p">,</span> <span class="n">n_poses</span> <span class="o">=</span> <span class="n">_populate_canonical_coords_from_atom37</span><span class="p">(</span>
             <span class="n">atom37_coords</span><span class="p">,</span>
@@ -1467,15 +1461,15 @@
             <span class="n">valid_res_inds</span><span class="p">,</span>
             <span class="n">valid_atom_inds</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">biotite_b_factors</span><span class="p">,</span> <span class="n">biotite_occupancy</span> <span class="o">=</span> <span class="n">_populate_optional_atom_metadata</span><span class="p">(</span>
-            <span class="n">biotite_structure</span><span class="p">,</span>
-            <span class="n">n_poses</span><span class="p">,</span>
-            <span class="nb">len</span><span class="p">(</span><span class="n">biotite_residues</span><span class="p">),</span>
-            <span class="n">co</span><span class="o">.</span><span class="n">max_n_canonical_atoms</span><span class="p">,</span>
-            <span class="n">valid_res_inds</span><span class="p">,</span>
-            <span class="n">valid_atom_inds</span><span class="p">,</span>
-            <span class="n">valid_atom_mask</span><span class="p">,</span>
-        <span class="p">)</span>
+    <span class="n">biotite_b_factors</span><span class="p">,</span> <span class="n">biotite_occupancy</span> <span class="o">=</span> <span class="n">_populate_optional_atom_metadata</span><span class="p">(</span>
+        <span class="n">biotite_structure</span><span class="p">,</span>
+        <span class="n">n_poses</span><span class="p">,</span>
+        <span class="nb">len</span><span class="p">(</span><span class="n">biotite_residues</span><span class="p">),</span>
+        <span class="n">co</span><span class="o">.</span><span class="n">max_n_canonical_atoms</span><span class="p">,</span>
+        <span class="n">valid_res_inds</span><span class="p">,</span>
+        <span class="n">valid_atom_inds</span><span class="p">,</span>
+        <span class="n">valid_atom_mask</span><span class="p">,</span>
+    <span class="p">)</span>
 
     <span class="c1"># Format metadata for the CanonicalForm</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">copy_for_all_poses</span><span class="p">(</span><span class="n">dat</span><span class="p">):</span>

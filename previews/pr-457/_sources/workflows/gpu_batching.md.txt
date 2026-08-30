@@ -59,6 +59,21 @@ for _ in range(repeats):
 Measure total batch latency and throughput separately. First-call compilation
 time should not be mixed into steady-state kernel timing.
 
+For repeated default weighted scoring with a fixed coordinate shape, dtype,
+and device, capture the launches once and replay them:
+
+```python
+graphed_scorer = sfxn.render_whole_pose_scoring_module(
+    batch, cuda_graph="forward"
+)
+with torch.no_grad():
+    scores = graphed_scorer(batch.coords)
+```
+
+Forward-only replay reuses its output buffer. Clone `scores` when it must remain
+unchanged across the next call. CUDA graphs mainly reduce launch overhead; they
+do not replace batching or improve kernels that already dominate runtime.
+
 ## Chunk larger workloads
 
 Batch size is limited by padding and operation-specific intermediates. Choose a

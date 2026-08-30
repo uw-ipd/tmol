@@ -941,7 +941,10 @@ It must carry two integer annotations that map each atom into the atom37
 tensor: <code class="docutils literal notranslate"><span class="pre">token_id</span></code> (the token axis) and <code class="docutils literal notranslate"><span class="pre">atom37_slot</span></code> (the 0..36 slot).</p>
 <p>Topology is derived from chemical identity alone – <code class="docutils literal notranslate"><span class="pre">missing_density</span></code> breaks
 and automatic disulfide detection (both coordinate-dependent) are disabled –
-so the block types, termini, and atom count stay fixed as coordinates change.</p>
+so the block types, termini, and atom count stay fixed as coordinates change.
+This adapter does not classify or allowlist residue types or elements: newly
+supported PTMs, ions, and metals work through the same API once they are
+represented by the supplied context and canonical ordering.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">

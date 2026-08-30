@@ -559,6 +559,9 @@
 <span class="sd">    Topology is derived from chemical identity alone -- ``missing_density`` breaks</span>
 <span class="sd">    and automatic disulfide detection (both coordinate-dependent) are disabled --</span>
 <span class="sd">    so the block types, termini, and atom count stay fixed as coordinates change.</span>
+<span class="sd">    This adapter does not classify or allowlist residue types or elements: newly</span>
+<span class="sd">    supported PTMs, ions, and metals work through the same API once they are</span>
+<span class="sd">    represented by the supplied context and canonical ordering.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
