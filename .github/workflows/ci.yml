@@ -1,7 +1,5 @@
-# CI — one job on the fela self-hosted runner (user bench).
-#
-# Checkout + venv bootstrap on the runner; lint before Slurm. One gpu-train srun
-# runs build → CPU tests → CUDA tests → benchmarks (see run_ci_gpu_work.sh).
+# CI uses independent hosted CPU and self-hosted GPU lanes. Keeping CPU work off
+# the scarce GPU runner gives quick feedback even while DIGS is busy.
 
 name: CI
 
@@ -28,12 +26,77 @@ env:
   SLURM_EXCLUDE: g2548
   SRUN_GPU_MAX_ATTEMPTS: 5
   SRUN_GPU_RETRY_SLEEP: 10
+  # Pull-request tests execute on one allocated GPU. Compile only that GPU's
+  # architecture here; release wheel jobs retain the full architecture matrix.
+  TMOL_CI_CUDA_ARCHITECTURES: native
 
 jobs:
-  ci:
-    name: ci
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: lint
+        run: |
+          python -m pip install pre-commit
+          pre-commit run --all-files --show-diff-on-failure
+
+  cpu:
+    name: pytest (cpu)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: build CPU-only package
+        run: .github/ci/build_cpu_package.sh
+
+      - name: test
+        env:
+          CPU_PYTEST_WORKERS: 4
+        run: .github/ci/run_cpu_tests.sh
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-cpu
+          path: |
+            testing.cpu.junit.xml
+            coverage.cpu.xml
+          if-no-files-found: ignore
+
+      - uses: test-summary/action@v2
+        if: always()
+        with:
+          paths: testing.cpu.junit.xml
+
+      - uses: codecov/codecov-action@v5
+        if: always()
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ github.workspace }}/coverage.cpu.xml
+          flags: cpu
+          fail_ci_if_error: true
+
+  gpu:
+    name: pytest (cuda)
     runs-on: [self-hosted, gpu]
     timeout-minutes: 720
+    needs: lint
     steps:
       - uses: actions/checkout@v5
         with:
@@ -41,18 +104,6 @@ jobs:
 
       - run: .github/ci/restore_source_timestamps.sh
       - run: .github/ci/setup_ci_venv.sh
-
-      - name: lint
-        run: |
-          apptainer exec --nv --fakeroot --containall \
-            --bind "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
-            --pwd "$GITHUB_WORKSPACE" \
-            "$SIF" bash <<'LINT'
-          set -ex
-          source .venv/bin/activate
-          uv pip install pre-commit
-          pre-commit run --all-files --show-diff-on-failure
-          LINT
 
       - name: build and test
         env:
@@ -66,11 +117,10 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-results
+          name: test-results-cuda
           path: |
-            testing.cpu.junit.xml
             testing.cuda.junit.xml
-            coverage.xml
+            coverage.cuda.xml
           if-no-files-found: ignore
 
       - uses: actions/upload-artifact@v4
@@ -83,12 +133,26 @@ jobs:
       - uses: test-summary/action@v2
         if: always()
         with:
-          paths: |
-            testing.*.junit.xml
+          paths: testing.cuda.junit.xml
 
       - uses: codecov/codecov-action@v5
         if: always()
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ github.workspace }}/coverage.xml
+          files: ${{ github.workspace }}/coverage.cuda.xml
+          flags: cuda
           fail_ci_if_error: true
+
+  # Preserve the historical required-check name while the work executes in
+  # parallel jobs.
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [lint, cpu, gpu]
+    steps:
+      - name: require every CI lane
+        run: |
+          test "${{ needs.lint.result }}" = success
+          test "${{ needs.cpu.result }}" = success
+          test "${{ needs.gpu.result }}" = success

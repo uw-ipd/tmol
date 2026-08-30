@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# All GPU-allocation work in one Slurm job: build, CPU tests, CUDA tests, benchmarks.
+# All GPU-allocation work in one Slurm job: build, CUDA tests, benchmarks.
 #
-# Invoked inside apptainer on a gpu-train node (see ci.yml). CPU tests run on the
-# same node with CUDA_VISIBLE_DEVICES="" — no separate cpu-partition srun.
+# Invoked inside apptainer on a gpu-train node (see ci.yml). CPU tests run in a
+# separate GitHub-hosted job and do not occupy the GPU allocation.
 set -euo pipefail
 
 : "${GITHUB_WORKSPACE:?}"
@@ -17,9 +17,6 @@ source .venv/bin/activate
 
 echo "=== build ==="
 .github/ci/build_package.sh
-
-echo "=== tests (CPU) ==="
-.github/ci/run_cpu_tests.sh
 
 echo "=== tests (CUDA) ==="
 .github/ci/run_gpu_tests.sh
