@@ -17,18 +17,6 @@ permissions:
 
 env:
   DOCS_BASE_URL: https://uw-ipd.github.io/tmol
-  TMOL_DOCS_BASE_URL: https://uw-ipd.github.io/tmol/latest/
-  SIF: /home/bench/git_ci_apptainer/tmol.sif
-  SLURM_PARTITION: gpu-train
-  SLURM_GRES: gpu:1
-  SLURM_CPUS_PER_TASK: 16
-  SLURM_MEM: 128G
-  SLURM_TIME: 03:00:00
-  SLURM_EXCLUDE: g2548
-  SRUN_GPU_MAX_ATTEMPTS: 5
-  SRUN_GPU_RETRY_SLEEP: 10
-  # Docs exercise the allocated GPU but do not publish a binary wheel.
-  TMOL_CI_CUDA_ARCHITECTURES: native
 
 jobs:
   docs:
@@ -36,6 +24,19 @@ jobs:
     if: github.event.action != 'closed'
     runs-on: [self-hosted, gpu]
     timeout-minutes: 360
+    env:
+      TMOL_DOCS_BASE_URL: https://uw-ipd.github.io/tmol/latest/
+      SIF: /home/bench/git_ci_apptainer/tmol.sif
+      SLURM_PARTITION: gpu-train
+      SLURM_GRES: gpu:1
+      SLURM_CPUS_PER_TASK: 16
+      SLURM_MEM: 128G
+      SLURM_TIME: 03:00:00
+      SLURM_EXCLUDE: g2548
+      SRUN_GPU_MAX_ATTEMPTS: 5
+      SRUN_GPU_RETRY_SLEEP: 10
+      # Docs exercise the allocated DIGS GPU but publish no binary wheel.
+      TMOL_CI_CUDA_ARCHITECTURES: native
     steps:
       - uses: actions/checkout@v5
         with:

@@ -14,23 +14,6 @@ concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-env:
-  SIF: /home/bench/git_ci_apptainer/tmol.sif
-  SLURM_PARTITION: gpu-train
-  SLURM_GRES: gpu:1
-  SLURM_CPUS_PER_TASK: 16
-  SLURM_MEM: 128G
-  SLURM_TIME: 06:00:00
-  # Exclude GPU nodes with known hardware faults. g2548 hit an uncorrectable
-  # ECC memory error (cudaErrorECCUncorrectable) that erroring out the whole
-  # CUDA test lane; drop this once the node's GPU is reset/repaired.
-  SLURM_EXCLUDE: g2548
-  SRUN_GPU_MAX_ATTEMPTS: 5
-  SRUN_GPU_RETRY_SLEEP: 10
-  # Pull-request tests execute on one allocated GPU. Compile only that GPU's
-  # architecture here; release wheel jobs retain the full architecture matrix.
-  TMOL_CI_CUDA_ARCHITECTURES: native
-
 jobs:
   lint:
     name: lint
@@ -119,6 +102,19 @@ jobs:
     runs-on: [self-hosted, gpu]
     timeout-minutes: 720
     needs: lint
+    env:
+      SIF: /home/bench/git_ci_apptainer/tmol.sif
+      SLURM_PARTITION: gpu-train
+      SLURM_GRES: gpu:1
+      SLURM_CPUS_PER_TASK: 16
+      SLURM_MEM: 128G
+      SLURM_TIME: 06:00:00
+      # Exclude the node with a known uncorrectable ECC fault until repaired.
+      SLURM_EXCLUDE: g2548
+      SRUN_GPU_MAX_ATTEMPTS: 5
+      SRUN_GPU_RETRY_SLEEP: 10
+      # PR tests need only the architecture of the allocated DIGS GPU.
+      TMOL_CI_CUDA_ARCHITECTURES: native
     steps:
       - uses: actions/checkout@v5
         with:

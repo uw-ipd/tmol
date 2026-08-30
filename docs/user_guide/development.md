@@ -117,10 +117,10 @@ apptainer run --nv --bind "$(pwd):/tmol_host" tmol-dev.sif
 
 ## CI
 
-GitHub Actions runs linting, CPU tests, CUDA tests, and benchmarks on the
-self-hosted GPU runner. The docs workflow builds Sphinx docs on PRs and pushes
-to `master`; PR builds upload rendered HTML artifacts and same-repository PRs
-also publish preview docs under the Pages site.
+GitHub Actions runs linting and the Linux x86-64, Linux aarch64, and Apple
+Silicon CPU suites on hosted runners. CUDA tests, benchmarks, and executable
+documentation use the self-hosted DIGS runner. PR docs builds upload rendered
+HTML artifacts; same-repository PRs also publish previews under the Pages site.
 
 ## Releasing
 
