@@ -1,6 +1,8 @@
 import torch
 import numpy
+import pytest
 
+from tmol.tests import requires_cuda
 from tmol.utility.tensor import (
     stretch,
     stretch2,
@@ -9,6 +11,7 @@ from tmol.utility.tensor import (
     cat_differently_sized_tensors,
     join_tensors_and_report_real_entries,
     invert_mapping,
+    print_row_numbered_tensor,
 )
 
 
@@ -41,6 +44,44 @@ def test_exclusive_cumsum():
     excumsum = exclusive_cumsum1d(t)
     gold = numpy.arange(50, dtype=numpy.int64)
     numpy.testing.assert_equal(excumsum, gold)
+
+
+@pytest.mark.parametrize(
+    ("values", "first_row"),
+    (([5, 6], "tensor([[0, 5]"), ([[5, 6], [7, 8]], "tensor([[0, 5, 6]")),
+)
+def test_print_row_numbered_tensor(values, first_row, torch_device, capsys):
+    tensor = torch.tensor(values, dtype=torch.int32, device=torch_device)
+
+    print_row_numbered_tensor(tensor)
+
+    output = capsys.readouterr().out
+    assert first_row in output
+
+
+def test_tensor_sequence_validation():
+    one_dim = torch.zeros((1,), dtype=torch.float32)
+    two_dim = torch.zeros((1, 1), dtype=torch.float32)
+
+    with pytest.raises(ValueError, match="one- or two-dimensional"):
+        print_row_numbered_tensor(torch.zeros((1, 1, 1)))
+    with pytest.raises(ValueError, match="at least one tensor"):
+        nplus1d_tensor_from_list([])
+    with pytest.raises(ValueError, match="same number of dimensions"):
+        nplus1d_tensor_from_list([one_dim, two_dim])
+    with pytest.raises(ValueError, match="same dtype"):
+        cat_differently_sized_tensors([one_dim, one_dim.to(torch.float64)])
+    with pytest.raises(ValueError, match="same shape after dimension zero"):
+        join_tensors_and_report_real_entries([torch.zeros((1, 2)), torch.zeros((2, 3))])
+
+
+@requires_cuda
+def test_tensor_sequence_validation_rejects_mixed_devices():
+    cpu = torch.zeros((1, 2))
+    cuda = cpu.to("cuda")
+
+    with pytest.raises(ValueError, match="same device"):
+        cat_differently_sized_tensors([cpu, cuda])
 
 
 def test_nplus1d_tensor_from_list():
@@ -112,10 +153,10 @@ def test_cat_diff_sized_tensors_w_diff_sizes():
 
 
 def test_join_tensors_and_report_real_entries(torch_device):
-    t1 = torch.full((2, 4, 3), 1, dtype=torch.int32)
-    t2 = torch.full((3, 4, 3), 2, dtype=torch.int32)
-    t3 = torch.full((4, 4, 3), 3, dtype=torch.int32)
-    t4 = torch.full((5, 4, 3), 4, dtype=torch.int32)
+    t1 = torch.full((2, 4, 3), 1, dtype=torch.int32, device=torch_device)
+    t2 = torch.full((3, 4, 3), 2, dtype=torch.int32, device=torch_device)
+    t3 = torch.full((4, 4, 3), 3, dtype=torch.int32, device=torch_device)
+    t4 = torch.full((5, 4, 3), 4, dtype=torch.int32, device=torch_device)
     tensors = [t1, t2, t3, t4]
 
     n_elem, real_elem, joined_elements = join_tensors_and_report_real_entries(tensors)
@@ -142,3 +183,14 @@ def test_invert_mapping(torch_device):
     assert b_2_a.device == torch_device
     b_2_a_gold = numpy.array([5, 3, 4, -1, 1, 0, -1, 2], dtype=numpy.int32)
     numpy.testing.assert_equal(b_2_a_gold, b_2_a.cpu().numpy())
+
+
+def test_invert_mapping_infers_output_size(torch_device):
+    a_2_b = torch.tensor([2, 0], dtype=torch.int64, device=torch_device)
+
+    b_2_a = invert_mapping(a_2_b)
+
+    torch.testing.assert_close(
+        b_2_a, torch.tensor([1, -1, 0], dtype=torch.int64, device=torch_device)
+    )
+    assert invert_mapping.__doc__ is not None

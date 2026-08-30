@@ -1,13 +1,18 @@
+from collections.abc import Sequence
+
 import torch
-from typing import List, Tuple, Union, Optional
+
 from tmol.types import (
     Tensor,
     validate_args,
 )
 
+IntTensor1D = Tensor[torch.int32][:] | Tensor[torch.int64][:]
+IntTensor2D = Tensor[torch.int32][:, :] | Tensor[torch.int64][:, :]
+
 
 @validate_args
-def stretch(t: Union[Tensor[torch.int32][:], Tensor[torch.int64][:]], count):
+def stretch(t: IntTensor1D, count: int) -> IntTensor1D:
     """take an input tensor and "repeat" each element count times.
     stretch(tensor([0, 1, 2, 3]), 3) returns:
          tensor([0 0 0 1 1 1 2 2 2 3 3 3]
@@ -17,7 +22,7 @@ def stretch(t: Union[Tensor[torch.int32][:], Tensor[torch.int64][:]], count):
 
 
 @validate_args
-def stretch2(t: Union[Tensor[torch.int32][:, :], Tensor[torch.int64][:, :]], count):
+def stretch2(t: IntTensor2D, count: int) -> IntTensor2D:
     """take an input 2D tensor and "repeat" each element count times.
     stretch2(tensor([[0, 1, 2, 3], [4, 5, 6, 7]]), 3) returns:
          tensor([[0 0 0 1 1 1 2 2 2 3 3 3],[4 4 4 5 5 5 6 6 6 7 7 7]])
@@ -33,9 +38,7 @@ def stretch2(t: Union[Tensor[torch.int32][:, :], Tensor[torch.int64][:, :]], cou
 
 
 @validate_args
-def exclusive_cumsum1d(
-    inds: Union[Tensor[torch.int32][:], Tensor[torch.int64][:]],
-) -> Union[Tensor[torch.int32][:], Tensor[torch.int64][:]]:
+def exclusive_cumsum1d(inds: IntTensor1D) -> IntTensor1D:
     return torch.cat(
         (
             torch.tensor([0], dtype=inds.dtype, device=inds.device),
@@ -45,9 +48,7 @@ def exclusive_cumsum1d(
 
 
 @validate_args
-def exclusive_cumsum2d(
-    inds: Union[Tensor[torch.int32][:, :], Tensor[torch.int64][:, :]],
-) -> Union[Tensor[torch.int32][:, :], Tensor[torch.int64][:, :]]:
+def exclusive_cumsum2d(inds: IntTensor2D) -> IntTensor2D:
     return torch.cat(
         (
             torch.zeros((inds.shape[0], 1), dtype=inds.dtype, device=inds.device),
@@ -59,11 +60,11 @@ def exclusive_cumsum2d(
 
 @validate_args
 def exclusive_cumsum2d_and_totals(
-    inds: Union[Tensor[torch.int32][:, :], Tensor[torch.int64][:, :]],
-) -> Union[
-    Tuple[Tensor[torch.int32][:, :], Tensor[torch.int32][:]],
-    Tuple[Tensor[torch.int64][:, :], Tensor[torch.int64][:]],
-]:
+    inds: IntTensor2D,
+) -> (
+    tuple[Tensor[torch.int32][:, :], Tensor[torch.int32][:]]
+    | tuple[Tensor[torch.int64][:, :], Tensor[torch.int64][:]]
+):
     cs = torch.cumsum(inds, dim=1, dtype=inds.dtype)
     return (
         torch.cat(
@@ -77,49 +78,50 @@ def exclusive_cumsum2d_and_totals(
     )
 
 
-def print_row_numbered_tensor(tensor):
+def print_row_numbered_tensor(tensor: torch.Tensor) -> None:
+    """Print a one- or two-dimensional tensor with zero-based row indices."""
+    if tensor.ndim not in (1, 2):
+        raise ValueError("tensor must be one- or two-dimensional")
+    row_numbers = torch.arange(
+        tensor.shape[0], dtype=tensor.dtype, device=tensor.device
+    ).reshape(-1, 1)
     if len(tensor.shape) == 1:
-        print(
-            torch.cat(
-                (
-                    torch.arange(tensor.shape[0], dtype=tensor.dtype).reshape(-1, 1),
-                    tensor.reshape(-1, 1),
-                ),
-                1,
-            )
-        )
+        print(torch.cat((row_numbers, tensor.reshape(-1, 1)), dim=1))
     else:
-        print(
-            torch.cat(
-                (
-                    torch.arange(tensor.shape[0], dtype=tensor.dtype).reshape(-1, 1),
-                    tensor,
-                ),
-                1,
-            )
-        )
+        print(torch.cat((row_numbers, tensor), dim=1))
 
 
-# @validate_args
+def _validate_tensor_sequence(tensors: Sequence[torch.Tensor]) -> torch.Tensor:
+    """Return the first tensor after validating shared structural metadata."""
+    if not tensors:
+        raise ValueError("at least one tensor is required")
+
+    first = tensors[0]
+    for tensor in tensors[1:]:
+        if tensor.ndim != first.ndim:
+            raise ValueError("all tensors must have the same number of dimensions")
+        if tensor.dtype != first.dtype:
+            raise ValueError("all tensors must have the same dtype")
+        if tensor.device != first.device:
+            raise ValueError("all tensors must be on the same device")
+    return first
+
+
 def nplus1d_tensor_from_list(
-    tensors: List,
-):  # -> Tuple[Tensor, Tensor[torch.long][:,:], Tensor[torch.long][:,:]] :
-    assert len(tensors) > 0
+    tensors: Sequence[torch.Tensor],
+) -> tuple[torch.Tensor, Tensor[torch.int64][:, :], Tensor[torch.int64][:, :]]:
+    """Pad tensors into a new leading dimension and report shape metadata."""
+    first = _validate_tensor_sequence(tensors)
 
-    for tensor in tensors:
-        assert len(tensor.shape) == len(tensors[0].shape)
-        assert tensor.dtype == tensors[0].dtype
-        assert tensor.device == tensors[0].device
-
-    max_sizes = [max(t.shape[i] for t in tensors) for i in range(len(tensors[0].shape))]
+    max_sizes = [max(t.shape[i] for t in tensors) for i in range(first.ndim)]
     newdimsizes = [len(tensors)] + max_sizes
 
-    newt = torch.zeros(newdimsizes, dtype=tensors[0].dtype, device=tensors[0].device)
+    newt = torch.zeros(newdimsizes, dtype=first.dtype, device=first.device)
     sizes = torch.zeros(
-        (len(tensors), tensors[0].dim()), dtype=torch.int64, device=tensors[0].device
+        (len(tensors), first.dim()), dtype=torch.int64, device=first.device
     )
     strides = torch.zeros(
-        (len(tensors), tensors[0].dim()), dtype=torch.int64, device=tensors[0].device
+        (len(tensors), first.dim()), dtype=torch.int64, device=first.device
     )
 
     for i, t in enumerate(tensors):
@@ -133,28 +135,25 @@ def nplus1d_tensor_from_list(
 
 
 def cat_differently_sized_tensors(
-    tensors: List,
-):
-    assert len(tensors) > 0
-    for tensor in tensors:
-        assert len(tensor.shape) == len(tensors[0].shape)
-        assert tensor.dtype == tensors[0].dtype
-        assert tensor.device == tensor[0].device
+    tensors: Sequence[torch.Tensor],
+) -> tuple[torch.Tensor, Tensor[torch.int64][:, :], Tensor[torch.int64][:, :]]:
+    """Concatenate padded tensors along dimension zero and report metadata."""
+    first = _validate_tensor_sequence(tensors)
 
-    new_sizes = [max(t.shape[i] for t in tensors) for i in range(len(tensors[0].shape))]
+    new_sizes = [max(t.shape[i] for t in tensors) for i in range(first.ndim)]
     catdim_sizes = [t.shape[0] for t in tensors]
     n_entries_for_catdim = sum(catdim_sizes)
     new_sizes[0] = n_entries_for_catdim
 
-    device = tensors[0].device
+    device = first.device
 
-    newt = torch.zeros(new_sizes, dtype=tensors[0].dtype, device=device)
+    newt = torch.zeros(new_sizes, dtype=first.dtype, device=device)
 
     sizes = torch.zeros(
-        (n_entries_for_catdim, tensors[0].dim() - 1), dtype=torch.int64, device=device
+        (n_entries_for_catdim, first.dim() - 1), dtype=torch.int64, device=device
     )
     strides = torch.zeros(
-        (n_entries_for_catdim, tensors[0].dim() - 1), dtype=torch.int64, device=device
+        (n_entries_for_catdim, first.dim() - 1), dtype=torch.int64, device=device
     )
     strides[:] = torch.unsqueeze(
         torch.tensor(newt.stride()[1:], dtype=torch.int64, device=device), dim=0
@@ -175,7 +174,9 @@ def cat_differently_sized_tensors(
     return newt, sizes, strides
 
 
-def join_tensors_and_report_real_entries(tensors: List, sentinel: int = -1):
+def join_tensors_and_report_real_entries(
+    tensors: Sequence[torch.Tensor], sentinel: int = -1
+) -> tuple[Tensor[torch.int32][:], Tensor[torch.bool][:, :], torch.Tensor]:
     """Concatenate a bunch of N-dimensional tensors into a single N+1-D tensor
     and report which elements out of the new tensor are real.
     The tensors may have different sizes for dimension 0 but should have the
@@ -183,17 +184,15 @@ def join_tensors_and_report_real_entries(tensors: List, sentinel: int = -1):
     dtype and live on the same device.
     """
 
-    assert len(tensors) > 0
-    for t in tensors:
-        assert t.device == tensors[0].device
-        assert t.dtype == tensors[0].dtype
-        assert t.shape[1:] == tensors[0].shape[1:]
+    first = _validate_tensor_sequence(tensors)
+    if any(t.shape[1:] != first.shape[1:] for t in tensors[1:]):
+        raise ValueError("all tensors must have the same shape after dimension zero")
 
-    device = tensors[0].device
-    dtype = tensors[0].dtype
+    device = first.device
+    dtype = first.dtype
 
     max_d0 = max(t.shape[0] for t in tensors)
-    new_shape = (len(tensors), max_d0) + tensors[0].shape[1:]
+    new_shape = (len(tensors), max_d0) + first.shape[1:]
 
     n_elements = torch.tensor(
         [t.shape[0] for t in tensors], dtype=torch.int32, device=device
@@ -202,21 +201,20 @@ def join_tensors_and_report_real_entries(tensors: List, sentinel: int = -1):
     combo = torch.full(new_shape, sentinel, dtype=dtype, device=device)
     real = torch.full((len(tensors), max_d0), False, dtype=torch.bool, device=device)
     for i, t in enumerate(tensors):
-        combo[i, : n_elements[i]] = t
-        real[i, : n_elements[i]] = True
+        combo[i, : t.shape[0]] = t
+        real[i, : t.shape[0]] = True
 
     return n_elements, real, combo
 
 
 def invert_mapping(
-    a_2_b: Union[Tensor[torch.int32][:], Tensor[torch.int64][:]],
-    n_elements_b: Optional[int] = None,
-    sentinel: Optional[int] = -1,
-):
-    Union[Tensor[torch.int32][:], Tensor[torch.int64][:]]
-    """Create the inverse mapping, b_2_a, given the input mapping, a_2_b"""
+    a_2_b: IntTensor1D,
+    n_elements_b: int | None = None,
+    sentinel: int = -1,
+) -> IntTensor1D:
+    """Create the inverse mapping ``b_2_a`` for an input mapping ``a_2_b``."""
     if n_elements_b is None:
-        n_elements_b = torch.max(a_2_b) + 1
+        n_elements_b = int(torch.max(a_2_b).item()) + 1
 
     b_2_a = torch.full(
         (n_elements_b,), sentinel, dtype=a_2_b.dtype, device=a_2_b.device
