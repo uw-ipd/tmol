@@ -101,7 +101,7 @@ jobs:
           if-no-files-found: ignore
 
       - uses: test-summary/action@v2
-        if: always()
+        if: always() && hashFiles('testing.cpu.junit.xml') != ''
         with:
           paths: testing.cpu.junit.xml
 

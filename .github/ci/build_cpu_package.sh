@@ -13,6 +13,12 @@ if [ "$(uname -s)" = Darwin ]; then
 else
   uv pip install torch --index-url https://download.pytorch.org/whl/cpu
 fi
+if [ "$(uname -m)" = aarch64 ]; then
+  # biotraj has no aarch64 wheel and its sdist omits NumPy from its isolated
+  # build requirements.
+  uv pip install numpy
+  uv pip install biotraj --no-build-isolation
+fi
 uv pip install 'cmake>=3.18,<4' 'scikit-build-core>=0.10' ninja \
   'packaging>=24.2' 'pybind11>=2.12'
 
