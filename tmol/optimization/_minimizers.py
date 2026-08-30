@@ -16,6 +16,7 @@ from tmol.kinematics import (
 from tmol.score import ScoreFunction
 
 from tmol.optimization import LBFGS_Armijo
+from tmol.utility._device import synchronize_device
 
 if TYPE_CHECKING:
     from tmol.optimization import CartesianSfxnNetwork, KinForestSfxnNetwork
@@ -45,25 +46,25 @@ def build_kinforest_network(
     from tmol.kinematics import PoseStackKinematicsModule
     from tmol.optimization import KinForestSfxnNetwork
 
-    if verbose and torch.cuda.is_available():
-        torch.cuda.synchronize()
+    if verbose:
+        synchronize_device(pose_stack.device)
     start_time = time.perf_counter()
 
     kin_module = PoseStackKinematicsModule(pose_stack, ff)
-    if verbose and torch.cuda.is_available():
-        torch.cuda.synchronize()
+    if verbose:
+        synchronize_device(pose_stack.device)
     end_time1 = time.perf_counter()
 
     minimizer_map = MinimizerMap(pose_stack, kin_module.kmd, mm)
-    if verbose and torch.cuda.is_available():
-        torch.cuda.synchronize()
+    if verbose:
+        synchronize_device(pose_stack.device)
     end_time2 = time.perf_counter()
 
     kf_network = KinForestSfxnNetwork(
         sfxn, pose_stack, kin_module, minimizer_map.dof_mask, kin_dtype=kin_dtype
     )
-    if verbose and torch.cuda.is_available():
-        torch.cuda.synchronize()
+    if verbose:
+        synchronize_device(pose_stack.device)
     end_time3 = time.perf_counter()
 
     if verbose:
@@ -108,8 +109,9 @@ def run_min(
     if optimizer_kwargs is None:
         optimizer_kwargs = {}
 
-    if verbose and torch.cuda.is_available():
-        torch.cuda.synchronize()
+    timing_device = next(sfxn_module.parameters()).device if verbose else None
+    if timing_device is not None:
+        synchronize_device(timing_device)
     start_time = time.perf_counter()
 
     segment_ids = getattr(sfxn_module, "segment_ids", None)
@@ -129,17 +131,17 @@ def run_min(
         E.sum().backward()
         return E if segmented else E.sum()
 
-    if verbose and torch.cuda.is_available():
-        torch.cuda.synchronize()
+    if timing_device is not None:
+        synchronize_device(timing_device)
     end_time1 = time.perf_counter()
     optimizer.step(closure)
-    if verbose and torch.cuda.is_available():
-        torch.cuda.synchronize()
+    if timing_device is not None:
+        synchronize_device(timing_device)
     end_time2 = time.perf_counter()
 
     new_pose_stack = sfxn_module.pose_stack_from_dofs()
-    if verbose and torch.cuda.is_available():
-        torch.cuda.synchronize()
+    if timing_device is not None:
+        synchronize_device(timing_device)
     end_time3 = time.perf_counter()
 
     if verbose:

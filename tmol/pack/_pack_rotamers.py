@@ -1,5 +1,6 @@
-import torch
 import time
+
+import torch
 
 from tmol.pose import PoseStack
 from tmol.score import ScoreFunction
@@ -12,6 +13,7 @@ from tmol.pack import (
     impose_top_rotamer_assignments,
 )
 from tmol.pack.rotamer import build_rotamers
+from tmol.utility._device import synchronize_device
 
 
 def pack_rotamers(
@@ -32,16 +34,16 @@ def pack_rotamers(
         A new pose stack containing the lowest-ranked assignment per pose.
     """
 
-    if verbose and torch.cuda.is_available():
-        torch.cuda.synchronize()
+    if verbose:
+        synchronize_device(pose_stack.device)
     start_time = time.perf_counter()
 
     task = SetPackerTask.from_packer_task(task)
     pbt = pose_stack.packed_block_types
 
     pose_stack, rotamer_set = build_rotamers(pose_stack, task, pbt.chem_db)
-    if verbose and torch.cuda.is_available():
-        torch.cuda.synchronize()
+    if verbose:
+        synchronize_device(pose_stack.device)
     end_time1 = time.perf_counter()
 
     (
@@ -54,13 +56,13 @@ def pack_rotamers(
         end_time3,
     ) = _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=verbose)
 
-    if verbose and torch.cuda.is_available():
-        torch.cuda.synchronize()
+    if verbose:
+        synchronize_device(pose_stack.device)
     end_time4 = time.perf_counter()
 
     _, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
-    if verbose and torch.cuda.is_available():
-        torch.cuda.synchronize()
+    if verbose:
+        synchronize_device(pose_stack.device)
     end_time5 = time.perf_counter()
 
     new_pose_stack = impose_top_rotamer_assignments(
@@ -72,8 +74,8 @@ def pack_rotamers(
         bc_rot_to_orig_rot,
         rotamer_assignments,
     )
-    if verbose and torch.cuda.is_available():
-        torch.cuda.synchronize()
+    if verbose:
+        synchronize_device(pose_stack.device)
     end_time6 = time.perf_counter()
 
     if verbose:
@@ -96,8 +98,8 @@ def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=Fals
     energies = rotamer_scoring_module(rotamer_set.coords)
     energies = energies.coalesce()
 
-    if verbose and torch.cuda.is_available():
-        torch.cuda.synchronize()
+    if verbose:
+        synchronize_device(pose_stack.device)
     end_time2 = time.perf_counter()
 
     chunk_size = 16
@@ -132,8 +134,8 @@ def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=Fals
         energies.values(),
         verbose,
     )
-    if verbose and torch.cuda.is_available():
-        torch.cuda.synchronize()
+    if verbose:
+        synchronize_device(pose_stack.device)
     end_time3 = time.perf_counter()
 
     packer_energy_tables = PackerEnergyTables(
