@@ -368,6 +368,7 @@ if(TMOL_HAS_CUDA)
     tmol/pose/compiled/apsp.cuda.cu
     tmol/score/backbone_torsion/potentials/backbone_torsion_pose_score.cuda.cu
     tmol/score/cartbonded/potentials/cartbonded_pose_score.cuda.cu
+    tmol/score/genbonded/potentials/genbonded_pose_score.cuda.cu
     tmol/score/constraint/potentials/constraint_score.cuda.cu
     tmol/score/disulfide/potentials/disulfide_pose_score.cuda.cu
     tmol/score/dunbrack/potentials/dunbrack_pose_score.cuda.cu
