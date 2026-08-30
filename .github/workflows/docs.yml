@@ -3,12 +3,13 @@ name: Docs
 on:
   # Build previews for stacked PRs as well as PRs targeting the main branch.
   pull_request:
+    types: [opened, synchronize, reopened, closed]
   push:
     branches: [master]
   workflow_dispatch:
 
 concurrency:
-  group: docs-${{ github.ref }}
+  group: docs-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -32,6 +33,7 @@ env:
 jobs:
   docs:
     name: build docs
+    if: github.event.action != 'closed'
     runs-on: [self-hosted, gpu]
     timeout-minutes: 360
     steps:

@@ -8,9 +8,10 @@ on:
     branches: [master, "kdidi/**"]
   pull_request:
     branches: [master]
+    types: [opened, synchronize, reopened, closed]
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
@@ -33,6 +34,7 @@ env:
 jobs:
   lint:
     name: lint
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -51,6 +53,7 @@ jobs:
 
   cpu:
     name: pytest (cpu)
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -94,6 +97,7 @@ jobs:
 
   gpu:
     name: pytest (cuda)
+    if: github.event.action != 'closed'
     runs-on: [self-hosted, gpu]
     timeout-minutes: 720
     needs: lint
@@ -148,7 +152,7 @@ jobs:
   ci:
     name: ci
     runs-on: ubuntu-latest
-    if: always()
+    if: always() && github.event.action != 'closed'
     needs: [lint, cpu, gpu]
     steps:
       - name: require every CI lane
