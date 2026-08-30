@@ -6,7 +6,13 @@ python -m venv .venv
 source .venv/bin/activate
 
 python -m pip install --upgrade pip uv
-uv pip install torch --index-url https://download.pytorch.org/whl/cpu
+if [ "$(uname -s)" = Darwin ]; then
+  # PyPI supplies the native Apple Silicon build; the PyTorch CPU index is
+  # specific to Linux and Windows.
+  uv pip install torch
+else
+  uv pip install torch --index-url https://download.pytorch.org/whl/cpu
+fi
 uv pip install 'cmake>=3.18,<4' 'scikit-build-core>=0.10' ninja \
   'packaging>=24.2' 'pybind11>=2.12'
 

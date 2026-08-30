@@ -52,10 +52,26 @@ jobs:
           pre-commit run --all-files --show-diff-on-failure
 
   cpu:
-    name: pytest (cpu)
+    name: pytest (cpu, ${{ matrix.platform }})
     if: github.event.action != 'closed'
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
+    runs-on: ${{ matrix.runs-on }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux-x86_64
+            runs-on: ubuntu-latest
+            build_workers: 4
+            test_workers: 6
+          - platform: linux-aarch64
+            runs-on: ubuntu-24.04-arm
+            build_workers: 4
+            test_workers: 4
+          - platform: macos-arm64
+            runs-on: macos-15
+            build_workers: 2
+            test_workers: 2
     steps:
       - uses: actions/checkout@v5
         with:
@@ -66,19 +82,19 @@ jobs:
           python-version: "3.12"
 
       - name: build CPU-only package
+        env:
+          MAX_JOBS: ${{ matrix.build_workers }}
         run: .github/ci/build_cpu_package.sh
 
       - name: test
         env:
-          # A small oversubscription improved this four-core lane by 10% in a
-          # controlled full-suite benchmark by reducing the long-test tail.
-          CPU_PYTEST_WORKERS: 6
+          CPU_PYTEST_WORKERS: ${{ matrix.test_workers }}
         run: .github/ci/run_cpu_tests.sh
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-results-cpu
+          name: test-results-cpu-${{ matrix.platform }}
           path: |
             testing.cpu.junit.xml
             coverage.cpu.xml
@@ -90,7 +106,7 @@ jobs:
           paths: testing.cpu.junit.xml
 
       - uses: codecov/codecov-action@v5
-        if: always()
+        if: always() && matrix.platform == 'linux-x86_64'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ github.workspace }}/coverage.cpu.xml
