@@ -1,4 +1,5 @@
 import numpy
+import torch
 
 from tmol.pose import PackedBlockTypes
 
@@ -90,11 +91,12 @@ def test_packed_block_types_ordered_torsions(
 def test_packed_block_types_device(
     fresh_default_restype_set, default_database, torch_device
 ):
+    requested_device = torch.device(torch_device.type)
     pbt = PackedBlockTypes.from_restype_list(
         default_database.chemical,
         fresh_default_restype_set,
         fresh_default_restype_set.residue_types,
-        torch_device,
+        requested_device,
     )
 
     assert pbt.atom_is_real.device == torch_device

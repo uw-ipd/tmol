@@ -46,7 +46,11 @@ def _sample(pdb_lines, default_database, torch_device, **kwargs):
 
 
 def test_na_sampler_builds_for_nucleotides_only(default_database, torch_device):
-    sampler = NaChiRotamerSampler.from_database(default_database, torch_device)
+    sampler = NaChiRotamerSampler.from_database(
+        default_database, torch.device(torch_device.type)
+    )
+    assert sampler.device == torch_device
+    assert sampler.params.chi_means.device == torch_device
     pbt = default_packed_block_types(torch_device)
     for bt in pbt.active_block_types:
         assert sampler.defines_rotamers_for_rt(bt) == (

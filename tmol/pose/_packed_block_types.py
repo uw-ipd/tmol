@@ -14,6 +14,7 @@ from tmol.chemical import (
     ResidueTypeSet,
 )
 from tmol.database import PatchedChemicalDatabase
+from tmol.utility._device import resolve_device
 from tmol.utility.tensor import join_tensors_and_report_real_entries
 
 
@@ -126,7 +127,20 @@ class PackedBlockTypes:
         restype_set: ResidueTypeSet,
         active_block_types: Sequence[RefinedResidueType],
         device: torch.device,
-    ):
+    ) -> "PackedBlockTypes":
+        """Pack residue-type metadata onto a concrete torch device.
+
+        Args:
+            chem_db: Chemical database shared by the residue types.
+            restype_set: Source residue-type collection.
+            active_block_types: Ordered residue types to pack.
+            device: Target device. An unindexed CUDA device resolves to the
+                current CUDA device.
+
+        Returns:
+            Packed residue-type tensors and their concrete device metadata.
+        """
+        device = resolve_device(device)
         max_n_atoms = cls.count_max_n_atoms(active_block_types)
         n_atoms = cls.count_n_atoms(active_block_types, device)
         atom_is_real = cls.determine_real_atoms(max_n_atoms, n_atoms, device)

@@ -11,7 +11,10 @@ from tmol.io import pose_stack_from_pdb
 
 
 def test_constraint_set_empty_initialization(torch_device):
-    cs = ConstraintSet.create_empty(torch_device, 1)
+    requested_device = torch.device(torch_device.type)
+    created = ConstraintSet.create_empty(requested_device, 1)
+    assert created.device == torch_device
+    cs = created.to(requested_device)
 
     assert cs.device == torch_device
     assert cs.n_poses == 1

@@ -34,6 +34,7 @@ from tmol.utility.tensor import (
     stretch,
     stretch2,
 )
+from tmol.utility._device import resolve_device
 
 
 class PoseStackBuilder:
@@ -53,6 +54,7 @@ class PoseStackBuilder:
         Returns:
             A padded pose stack containing every input pose in order.
         """
+        device = resolve_device(device)
         pbt0 = pose_stacks[0].packed_block_types
         for ps in pose_stacks:
             # all PoseStacks must be built from the same chemical database

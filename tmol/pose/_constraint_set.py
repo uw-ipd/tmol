@@ -3,12 +3,13 @@ import attr
 
 from typing import Optional, Tuple
 from tmol.types import Tensor
+from tmol.utility._device import resolve_device
 from tmol.utility.tensor import exclusive_cumsum1d
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
 class ConstraintSet:
-    """ """
+    """Immutable batched coordinate constraints and their tensor storage."""
 
     MAX_N_ATOMS = 4
 
@@ -23,6 +24,8 @@ class ConstraintSet:
 
     @classmethod
     def create_empty(cls, device: torch.device, n_poses: int) -> "ConstraintSet":
+        """Create an empty constraint set on a concrete device."""
+        device = resolve_device(device)
         return ConstraintSet(
             device=device,
             n_poses=n_poses,
@@ -203,6 +206,8 @@ class ConstraintSet:
         )
 
     def to(self, device: torch.device) -> "ConstraintSet":
+        """Return a copy whose tensors and metadata use ``device``."""
+        device = resolve_device(device)
         return attr.evolve(
             self,
             device=device,
