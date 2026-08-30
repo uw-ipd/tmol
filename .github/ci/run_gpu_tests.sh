@@ -14,7 +14,7 @@ source .venv/bin/activate
 assert_torch_cuda
 
 COVERAGE_FILE="${GITHUB_WORKSPACE}/.coverage.cuda" \
-  pytest -p no:rerunfailures -s -v --durations=25 \
+  pytest -p no:rerunfailures -ra --durations=25 \
   --cov="${GITHUB_WORKSPACE}/tmol" \
   --cov-report="xml:${GITHUB_WORKSPACE}/coverage.cuda.xml" \
   --junitxml="${GITHUB_WORKSPACE}/testing.cuda.junit.xml" -k "cuda"

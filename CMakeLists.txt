@@ -528,6 +528,26 @@ if(TMOL_BUILD_TESTS)
       tmol/tests/pack/rotamer/dunbrack/test_cpu.cpp
       tmol/tests/pack/rotamer/dunbrack/test_cuda.cu
     )
+  else()
+    # These extensions exercise both backends. Keep their CPU tests available
+    # when CI intentionally builds without a CUDA toolchain.
+    tmol_add_pybind_cpp_ext(
+      test_bonded_atom "tmol/tests/score/bonded_atom" "_ext"
+      tmol/tests/score/bonded_atom/test.pybind.cpp
+      tmol/tests/score/bonded_atom/test_cpu.cpp
+    )
+
+    tmol_add_pybind_cpp_ext(
+      test_device_operations "tmol/tests/score/common/device_operations" "_ext"
+      tmol/tests/score/common/device_operations/test.pybind.cpp
+      tmol/tests/score/common/device_operations/test_cpu.cpp
+    )
+
+    tmol_add_pybind_cpp_ext(
+      test_dunbrack_ext "tmol/tests/pack/rotamer/dunbrack" "_ext"
+      tmol/tests/pack/rotamer/dunbrack/compiled.pybind.cpp
+      tmol/tests/pack/rotamer/dunbrack/test_cpu.cpp
+    )
   endif()
 
 endif()

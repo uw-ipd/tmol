@@ -11,7 +11,7 @@ export OPENBLAS_NUM_THREADS="${OPENBLAS_NUM_THREADS:-1}"
 export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
 
 CUDA_VISIBLE_DEVICES="" COVERAGE_FILE="${GITHUB_WORKSPACE}/.coverage.cpu" \
-  pytest -p no:rerunfailures -s -v --durations=25 \
+  pytest -p no:rerunfailures -ra --durations=25 \
   -n "${CPU_PYTEST_WORKERS}" --dist=worksteal \
   --cov="${GITHUB_WORKSPACE}/tmol" \
   --cov-report="xml:${GITHUB_WORKSPACE}/coverage.cpu.xml" \

@@ -12,6 +12,6 @@ uv pip install 'cmake>=3.18,<4' 'scikit-build-core>=0.10' ninja \
 
 export CMAKE_PREFIX_PATH
 CMAKE_PREFIX_PATH=$(python -c 'import torch; print(torch.utils.cmake_prefix_path)')
-MAX_JOBS="${MAX_JOBS:-2}" uv pip install -v --no-build-isolation -e '.[dev]' \
+MAX_JOBS="${MAX_JOBS:-2}" uv pip install --no-build-isolation -e '.[dev]' \
   -Ccmake.define.TMOL_ENABLE_CUDA=OFF \
   -Ccmake.define.TMOL_BUILD_TESTS=ON
