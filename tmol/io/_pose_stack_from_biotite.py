@@ -925,18 +925,17 @@ def _populate_canonical_coords_from_atom37(
     mapped_slot = torch.as_tensor(slot[mapped], device=torch_device)
     source_coords = atom37_coords[:, mapped_token_id, mapped_slot]
     finite = torch.isfinite(source_coords).all(dim=-1)
-    pose_inds, source_inds = torch.nonzero(finite, as_tuple=True)
     mapped_res_inds = torch.as_tensor(
         numpy.asarray(valid_res_inds)[mapped], device=torch_device
     )
     mapped_atom_inds = torch.as_tensor(
         numpy.asarray(valid_atom_inds)[mapped], device=torch_device
     )
-    reference_coords[
-        pose_inds,
-        mapped_res_inds[source_inds],
-        mapped_atom_inds[source_inds],
-    ] = source_coords[pose_inds, source_inds]
+    reference_coords[:, mapped_res_inds, mapped_atom_inds] = torch.where(
+        finite.unsqueeze(-1),
+        source_coords,
+        reference_coords[:, mapped_res_inds, mapped_atom_inds],
+    )
     return reference_coords, n_poses
 
 
