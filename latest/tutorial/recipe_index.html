@@ -54,7 +54,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Rosetta-to-TMol crosswalk" href="rosetta_crosswalk.html" />
-    <link rel="prev" title="Case Study 09 — Map and Test a Protein Interface" href="09_protein_interface_hotspot_scan.html" />
+    <link rel="prev" title="Case Study 10 — Ligand Pose Sensitivity and Local Rescue" href="10_ligand_pose_sensitivity.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="0.1.52" />
@@ -373,6 +373,7 @@
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Integrated case studies</span></p>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="09_protein_interface_hotspot_scan.html">Case Study 09 — Map and Test a Protein Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="10_ligand_pose_sensitivity.html">Case Study 10 — Ligand Pose Sensitivity and Local Rescue</a></li>
 </ul>
 <ul class="current nav bd-sidenav">
 <li class="toctree-l1 current active"><a class="current reference internal" href="#">Task index</a></li>
@@ -590,7 +591,11 @@ want a complete walkthrough rather than a lookup table.</p>
 <td><p><a class="reference internal" href="../user_guide/ligands.html"><span class="doc">Ligand workflow</span></a>; <a class="reference internal" href="07_ligand_and_params.html"><span class="doc">Tutorial 07</span></a></p></td>
 <td><p>Start from authoritative CIF/MOL2 chemistry. The Rosetta <code class="docutils literal notranslate"><span class="pre">.params</span></code> writer is syntactic and experimental.</p></td>
 </tr>
-<tr class="row-odd"><td><p>Score or pack DNA/RNA</p></td>
+<tr class="row-odd"><td><p>Score controlled ligand-pose decoys and locally refine diagnostic states</p></td>
+<td><p><a class="reference internal" href="10_ligand_pose_sensitivity.html"><span class="doc">Case Study 10</span></a></p></td>
+<td><p>Reuse one ligand-aware context, batch matched rigid-body decoys, and report pose sensitivity rather than docking or binding affinity.</p></td>
+</tr>
+<tr class="row-even"><td><p>Score or pack DNA/RNA</p></td>
 <td><p><a class="reference internal" href="../workflows/nucleic_acids.html"><span class="doc">Nucleic-acid workflow</span></a>; <a class="reference internal" href="08_nucleic_acids.html"><span class="doc">Tutorial 08</span></a></p></td>
 <td><p>Sugar-pucker sampling and full RosettaDNA/RNA protocols are not implemented.</p></td>
 </tr>
@@ -623,12 +628,12 @@ implementation.</p></li>
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="09_protein_interface_hotspot_scan.html"
+       href="10_ligand_pose_sensitivity.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Case Study 09 — Map and Test a Protein Interface</p>
+        <p class="prev-next-title">Case Study 10 — Ligand Pose Sensitivity and Local Rescue</p>
       </div>
     </a>
     <a class="right-next"

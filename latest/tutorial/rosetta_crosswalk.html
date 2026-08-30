@@ -373,6 +373,7 @@
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Integrated case studies</span></p>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="09_protein_interface_hotspot_scan.html">Case Study 09 — Map and Test a Protein Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="10_ligand_pose_sensitivity.html">Case Study 10 — Ligand Pose Sensitivity and Local Rescue</a></li>
 </ul>
 <ul class="current nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="recipe_index.html">Task index</a></li>
@@ -439,7 +440,7 @@
                   
   <section id="rosetta-to-tmol-crosswalk">
 <h1>Rosetta-to-TMol crosswalk<a class="headerlink" href="#rosetta-to-tmol-crosswalk" title="Link to this heading">#</a></h1>
-<p>This page maps concepts used in the nine TMol tutorials to their nearest
+<p>This page maps concepts used in the ten TMol tutorials to their nearest
 Rosetta and PyRosetta counterparts. It is not an API, numerical, or protocol
 parity claim: Rosetta is a broad modeling suite, whereas TMol provides batched,
 differentiable molecular primitives in PyTorch.</p>
@@ -629,6 +630,15 @@ reconstruct the <code class="docutils literal notranslate"><span class="pre">.tm
 <p>These facilities support preparation, registration, scoring, local pocket
 repacking, and Cartesian refinement. They do not provide native ligand docking,
 global pose search, GALigandDock, or a binding-affinity calculation.</p>
+<section id="ligand-pose-sensitivity-case-study">
+<h3>Ligand pose-sensitivity case study<a class="headerlink" href="#ligand-pose-sensitivity-case-study" title="Link to this heading">#</a></h3>
+<p><a class="reference internal" href="10_ligand_pose_sensitivity.html"><span class="doc">Case Study 10</span></a> applies rigid-body
+transformations chosen independently of the score, evaluates all poses in one
+batch, and locally minimizes three diagnostic states. Its score-versus-RMSD
+analysis resembles a docking funnel diagnostic, but the workflow performs no
+global pose search, decoy generation protocol, separated-state calculation, or
+affinity prediction.</p>
+</section>
 </section>
 <section id="gpu-batching-and-external-orchestration">
 <h2>GPU batching and external orchestration<a class="headerlink" href="#gpu-batching-and-external-orchestration" title="Link to this heading">#</a></h2>
@@ -726,7 +736,10 @@ and the TMol source as appropriate rather than inferring a fit-specific paper.</
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#minimization-constraints-and-kinematics">Minimization, constraints, and kinematics</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#fastrelax">FastRelax</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ligands-and-residue-parameter-files">Ligands and residue-parameter files</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ligands-and-residue-parameter-files">Ligands and residue-parameter files</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#ligand-pose-sensitivity-case-study">Ligand pose-sensitivity case study</a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#gpu-batching-and-external-orchestration">GPU batching and external orchestration</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#dna-and-rna">DNA and RNA</a></li>
 </ul>
