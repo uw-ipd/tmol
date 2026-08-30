@@ -69,9 +69,6 @@ struct accumulate<
 
 #ifdef __CUDACC__
 
-template <tmol::Device D, typename T, class Enable = void>
-struct reduce {};
-
 template <typename T>
 struct accumulate<
     tmol::Device::CUDA,
