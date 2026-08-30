@@ -1,9 +1,10 @@
-import attr
-import torch
 import time
 import warnings
 from collections.abc import Callable, Sequence
 from typing import Protocol
+
+import attr
+import torch
 
 from tmol.pose import PoseStack
 from tmol.score import (
@@ -26,6 +27,7 @@ from tmol.pack.rotamer import (
 )
 from tmol.optimization import run_cart_min, run_kin_min
 from tmol.types import Tensor
+from tmol.utility._device import synchronize_device
 
 RelaxScheduleEntry = float | int | dict[str, float]
 PackerTaskOperation = Callable[[PackerTask], None]
@@ -305,8 +307,8 @@ def relax_pack_min_step(
         The minimized pose stack.
     """
 
-    if verbose and torch.cuda.is_available():
-        torch.cuda.synchronize()
+    if verbose:
+        synchronize_device(pose_stack.device)
     start_time = time.perf_counter()
     task = PackerTask(pose_stack, packer_pallete)
     for op in task_operations:
@@ -318,8 +320,8 @@ def relax_pack_min_step(
         print(
             f"packing with fa_rep of {fa_rep_pack_weight: .2f} and constraint weight of {cst_weight: .2f}"
         )
-    if verbose and torch.cuda.is_available():
-        torch.cuda.synchronize()
+    if verbose:
+        synchronize_device(pose_stack.device)
     end_time1 = time.perf_counter()
     packed_pose_stack = pack_rotamers(pose_stack, sfxn, task, verbose)
 
@@ -328,8 +330,8 @@ def relax_pack_min_step(
         print(
             f"minimizing with fa_rep of {fa_rep_min_weight: .2f} and constraint weight of {cst_weight: .2f}"
         )
-    if verbose and torch.cuda.is_available():
-        torch.cuda.synchronize()
+    if verbose:
+        synchronize_device(pose_stack.device)
     end_time2 = time.perf_counter()
     minimized_pose_stack = min_fn(
         packed_pose_stack,
@@ -338,8 +340,8 @@ def relax_pack_min_step(
         move_map=move_map,
         verbose=verbose,
     )
-    if verbose and torch.cuda.is_available():
-        torch.cuda.synchronize()
+    if verbose:
+        synchronize_device(pose_stack.device)
     end_time3 = time.perf_counter()
 
     if verbose:
