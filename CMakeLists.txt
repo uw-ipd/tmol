@@ -483,7 +483,7 @@ if(TMOL_BUILD_TESTS)
     tmol/tests/utility/datastructures/in_place_heap.cpp
   )
 
-  # --- pybind CUDA test extensions (skipped in CPU-only builds) ---
+  # --- mixed-backend and CUDA-only test extensions ---
 
   if(TMOL_HAS_CUDA)
     tmol_add_pybind_cuda_ext(
