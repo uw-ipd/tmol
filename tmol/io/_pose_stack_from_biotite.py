@@ -1031,15 +1031,6 @@ def canonical_form_from_biotite(
             valid_res_inds,
             valid_atom_inds,
         )
-        biotite_b_factors, biotite_occupancy = _populate_optional_atom_metadata(
-            biotite_structure,
-            n_poses,
-            len(biotite_residues),
-            co.max_n_canonical_atoms,
-            valid_res_inds,
-            valid_atom_inds,
-            valid_atom_mask,
-        )
     else:
         tmol_coords, n_poses = _populate_canonical_coords_from_atom37(
             atom37_coords,
@@ -1051,15 +1042,15 @@ def canonical_form_from_biotite(
             valid_res_inds,
             valid_atom_inds,
         )
-        biotite_b_factors, biotite_occupancy = _populate_optional_atom_metadata(
-            biotite_structure,
-            n_poses,
-            len(biotite_residues),
-            co.max_n_canonical_atoms,
-            valid_res_inds,
-            valid_atom_inds,
-            valid_atom_mask,
-        )
+    biotite_b_factors, biotite_occupancy = _populate_optional_atom_metadata(
+        biotite_structure,
+        n_poses,
+        len(biotite_residues),
+        co.max_n_canonical_atoms,
+        valid_res_inds,
+        valid_atom_inds,
+        valid_atom_mask,
+    )
 
     # Format metadata for the CanonicalForm
     def copy_for_all_poses(dat):
