@@ -402,13 +402,6 @@ if(TMOL_HAS_CUDA)
   tmol_set_cuda_flags(_C)
 else()
   tmol_set_cpp_flags(_C)
-  # Most CPU translation units pay the substantial cost of parsing PyTorch's
-  # C++ API. Share that work within the monolithic CPU target; CUDA builds keep
-  # their established compilation path unchanged.
-  target_precompile_headers(_C PRIVATE
-    <torch/torch.h>
-    <torch/script.h>
-  )
 endif()
 install(TARGETS _C DESTINATION tmol)
 
