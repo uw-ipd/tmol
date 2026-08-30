@@ -17,6 +17,12 @@ def _zero_constraint(atoms: torch.Tensor, params: torch.Tensor) -> torch.Tensor:
     return torch.zeros(atoms.shape[0], dtype=atoms.dtype, device=atoms.device)
 
 
+def _one_constraint(atoms: torch.Tensor, params: torch.Tensor) -> torch.Tensor:
+    """Return unit energy for a constraint with no parameters."""
+    assert params.shape[1] == 0
+    return torch.ones(atoms.shape[0], dtype=atoms.dtype, device=atoms.device)
+
+
 def test_constraint_set_empty_initialization(torch_device):
     cs = ConstraintSet.create_empty(torch_device, 1)
 
@@ -58,6 +64,27 @@ def test_constraint_set_replicates_parameterless_constraints(torch_device):
     torch.testing.assert_close(
         result.constraint_unique_blocks,
         torch.tensor([[0, 0, 1], [1, 0, 1]], dtype=torch.int32, device=torch_device),
+    )
+
+
+def test_constraint_set_concatenation_remaps_functions_on_device(torch_device):
+    atom_indices = torch.tensor([[[0, 0, 0]]], dtype=torch.int32, device=torch_device)
+    first = ConstraintSet.create_empty(torch_device, n_poses=1)
+    first = first.add_constraints(_zero_constraint, atom_indices)
+    first = first.add_constraints(_one_constraint, atom_indices)
+    second = ConstraintSet.create_empty(torch_device, n_poses=1)
+    second = second.add_constraints(_one_constraint, atom_indices)
+    second = second.add_constraints(_zero_constraint, atom_indices)
+
+    combined = ConstraintSet.concatenate(
+        [first, second], from_multiple_pose_stacks=False
+    )
+
+    assert combined is not None
+    assert combined.constraint_functions == (_zero_constraint, _one_constraint)
+    torch.testing.assert_close(
+        combined.constraint_function_inds,
+        torch.tensor([0, 1, 1, 0], dtype=torch.int32, device=torch_device),
     )
 
 

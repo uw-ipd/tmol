@@ -14,7 +14,7 @@ ConstraintFunction = Callable[
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
 class ConstraintSet:
-    """Immutable collection of geometric constraints for a batch of poses."""
+    """ """
 
     MAX_N_ATOMS = 4
 
@@ -56,17 +56,19 @@ class ConstraintSet:
         n_poses: int | None = None,
         ps_offset: Tensor[torch.int64][:] | None = None,
     ) -> "ConstraintSet | None":
-        """Concatenate multiple ConstraintSets into a single ConstraintSet.
+        """Combine constraint sets while deduplicating their scoring functions.
 
-        This function is particularly useful if you're creating a PoseStack from multiple
-        PoseStacks, each of which has its own ConstraintSet. In that case, n_poses
-        and ps_offset will be readily available. In this use case, "from_multiple_pose_stacks"
-        should be set to True.
+        Args:
+            constraint_sets: Constraint sets to combine; ``None`` entries are
+                retained when calculating pose offsets.
+            from_multiple_pose_stacks: Shift pose indices between inputs when
+                true. When false, all inputs describe the same pose batch.
+            n_poses: Pose count for the result, inferred when omitted.
+            ps_offset: Per-input pose offsets, inferred when omitted.
 
-        The other use case is in creating multiple types of constraints for a single
-        PoseStack and then combining them in a single go. This will be more efficient
-        than repeatedly invoking add_constraints() as it skips the N^2 copy operations.
-        In this use case, "from_multiple_pose_stacks" should be set to False.
+        Returns:
+            The combined constraint set, or ``None`` when every input is
+            ``None``.
         """
 
         device = None
@@ -113,36 +115,29 @@ class ConstraintSet:
             )
         )
 
-        constraint_functions_list = []
-        constraint_function_inds = []
-        for i, cs in enumerate(constraint_sets):
-            if cs is not None:
-                constraint_function_inds.append([])
-                for j, func in enumerate(cs.constraint_functions):
-                    found_existing = False
-                    for k, func_existing in enumerate(constraint_functions_list):
-                        if func_existing == func:
-                            constraint_function_inds[-1].append(k)
-                            found_existing = True
-                            break
-                    if not found_existing:
-                        constraint_functions_list.append(func)
-                        constraint_function_inds[-1].append(
-                            len(constraint_functions_list) - 1
-                        )
+        constraint_functions_list: list[ConstraintFunction] = []
+        remapped_function_inds: list[Tensor[torch.int32][:]] = []
+        for cs in constraint_sets:
+            if cs is None:
+                continue
+            # Remap each source set at once on-device. Indexing this Python
+            # mapping with CUDA scalars would synchronize once per constraint.
+            function_remap: list[int] = []
+            for function in cs.constraint_functions:
+                try:
+                    function_index = constraint_functions_list.index(function)
+                except ValueError:
+                    constraint_functions_list.append(function)
+                    function_index = len(constraint_functions_list) - 1
+                function_remap.append(function_index)
+            function_remap_tensor = torch.tensor(
+                function_remap, dtype=torch.int32, device=device
+            )
+            remapped_function_inds.append(
+                function_remap_tensor[cs.constraint_function_inds]
+            )
 
-        # now let's figure out the new contraint_function_inds
-        # for the combined set
-        new_constraint_function_inds = torch.tensor(
-            [
-                constraint_function_inds[i][cs.constraint_function_inds[j]]
-                for i, cs in enumerate(constraint_sets)
-                if cs is not None
-                for j in range(cs.constraint_function_inds.size(0))
-            ],
-            device=device,
-            dtype=torch.int32,
-        )
+        new_constraint_function_inds = torch.cat(remapped_function_inds)
         n_constraints = new_constraint_function_inds.size(0)
         new_constraint_atoms = torch.full(
             (n_constraints, cls.MAX_N_ATOMS, 3), -1, dtype=torch.int32, device=device
@@ -199,6 +194,7 @@ class ConstraintSet:
         )
 
     def clone(self) -> "ConstraintSet":
+        """Return a copy with independent tensor storage."""
         return attr.evolve(
             self,
             constraint_function_inds=self.constraint_function_inds.clone(),
