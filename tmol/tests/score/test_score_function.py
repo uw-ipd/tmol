@@ -3,12 +3,17 @@ import numpy
 import os
 import pytest
 
+from tmol.score import _score_function as score_function_module
 from tmol.score import (
     _non_memoized_beta2016,
     ScoreFunction,
     ScoreType,
 )
-from tmol.score._score_function import BlockPairScoringModule, WholePoseScoringModule
+from tmol.score._score_function import (
+    BlockPairScoringModule,
+    RotamerScoringModule,
+    WholePoseScoringModule,
+)
 from tmol.score.common import ZeroTermPoseScoringModule
 from tmol.pose import (
     DEFAULT_ATOM_B_FACTOR,
@@ -171,6 +176,54 @@ def test_no_grad_scoring_detaches_coordinates():
     with torch.no_grad():
         scorer(coords)
     assert not term.input_requires_grad
+
+
+def test_rotamer_scorer_combines_identical_sparse_layouts(
+    torch_device: torch.device,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(score_function_module, "_ROTAMER_LAYOUT_DEDUP_MIN_BYTES", 0)
+
+    class SparseTerm(torch.nn.Module):
+        def __init__(self, scores: torch.Tensor, indices: torch.Tensor) -> None:
+            super().__init__()
+            self.scores = scores
+            self.indices = indices
+            self.n_poses = 1
+            self.n_rots = 3
+
+        def forward(self, coords: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+            return self.scores * coords, self.indices
+
+    shared = torch.tensor(
+        [[0, 0], [0, 1], [1, 0]], dtype=torch.int32, device=torch_device
+    )
+    distinct = torch.tensor(
+        [[0, 0], [0, 2], [2, 1]], dtype=torch.int32, device=torch_device
+    )
+    terms = [
+        SparseTerm(torch.tensor([[1.0, 2.0]], device=torch_device), shared),
+        SparseTerm(torch.tensor([[3.0, 4.0]], device=torch_device), shared.clone()),
+        SparseTerm(torch.tensor([[5.0, 6.0]], device=torch_device), distinct),
+    ]
+    scorer = RotamerScoringModule(
+        torch.tensor([1.0, 2.0, 4.0], device=torch_device), terms
+    )
+    coords = torch.ones((), device=torch_device, requires_grad=True)
+
+    scores = scorer(coords)
+    dense_scores = scores.to_dense()
+
+    assert scores._nnz() == 4
+    torch.testing.assert_close(
+        dense_scores,
+        torch.tensor(
+            [[[0.0, 7.0, 20.0], [10.0, 0.0, 0.0], [0.0, 24.0, 0.0]]],
+            device=torch_device,
+        ),
+    )
+    dense_scores.sum().backward()
+    torch.testing.assert_close(coords.grad, torch.tensor(61.0, device=torch_device))
 
 
 def test_cuda_graphed_protein_score_matches_eager(ubq_pdb, torch_device):
