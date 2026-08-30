@@ -27,6 +27,7 @@ from tmol.score.na_torsion import (
     polymer_index,
     pucker_weights,
 )
+from tmol.utility._device import resolve_device
 
 # k in chi = mean + k * sdev_chi, by extra-chi sample level, mirroring Rosetta's
 # expansion of its fitted chi gaussians
@@ -84,7 +85,19 @@ class NaChiRotamerSampler(ChiSampler):
         device: torch.device,
         chi_sample_level: int = 0,
         sample_syn: bool = True,
-    ):
+    ) -> "NaChiRotamerSampler":
+        """Create a nucleic-acid chi sampler on a concrete device.
+
+        Args:
+            param_db: Source scoring and chemical parameters.
+            device: Target device. Unindexed CUDA resolves to the current GPU.
+            chi_sample_level: Number of standard-deviation expansion levels.
+            sample_syn: Include eligible syn rotamers when true.
+
+        Returns:
+            A sampler whose parameters and device metadata agree.
+        """
+        device = resolve_device(device)
         return cls(
             params=NaTorsionParams.from_database(param_db.scoring.na_torsion, device),
             element_for_atom_type={

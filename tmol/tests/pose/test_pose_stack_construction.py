@@ -9,10 +9,15 @@ from tmol.pose import PoseStackBuilder
 def test_concatenate_pose_stacks_ctor(ubq_pdb, default_database, torch_device):
     p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=40)
     p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=60)
-    poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
+    poses = PoseStackBuilder.from_poses([p1, p2], torch.device(torch_device.type))
     assert poses.block_type_ind.shape == (2, 60)
     assert poses.coords.shape == (2, 962, 3)  # fd 959->961 for nterm
     assert poses.inter_block_bondsep.shape == (2, 60, 60, 3, 3)
+    assert poses.device == torch_device
+    torch.testing.assert_close(
+        poses.block_ind_for_rot,
+        torch.arange(60, dtype=torch.int32, device=torch_device).repeat(2),
+    )
 
 
 def test_create_pose_from_sequence(fresh_default_packed_block_types, torch_device):

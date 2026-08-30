@@ -1,12 +1,12 @@
+import itertools
+from typing import Any
+
 import attr
 import cattr
-
 import numpy
 import pandas
 import torch
-
 import toolz.functoolz
-import itertools
 
 from tmol.types import (
     NDArray,
@@ -26,6 +26,16 @@ from tmol.utility.tensor import (
     nplus1d_tensor_from_list,
     cat_differently_sized_tensors,
 )
+from tmol.utility._device import resolve_device
+
+
+def _dunbrack_database_cache_key(
+    args: tuple[Any, ...], kwargs: dict[str, Any]
+) -> tuple[DunbrackRotamerLibrary, str, int | None]:
+    """Key Dunbrack parameters by database and concrete device."""
+    dun_database = args[1] if len(args) > 1 else kwargs["dun_database"]
+    device = resolve_device(args[2] if len(args) > 2 else kwargs["device"])
+    return dun_database, device.type, device.index
 
 
 @attr.s(auto_attribs=True)
@@ -149,9 +159,11 @@ class DunbrackParamResolver(ValidateAttrs):
     @validate_args
     @toolz.functoolz.memoize(
         cache=_from_dun_db_cache,
-        key=lambda args, kwargs: (args[1], args[2].type, args[2].index),
+        key=_dunbrack_database_cache_key,
     )
     def from_database(cls, dun_database: DunbrackRotamerLibrary, device: torch.device):
+        """Load and cache parameters on a concrete torch device."""
+        device = resolve_device(device)
         all_rotlibs = [
             rotlib
             for rotlib in itertools.chain(

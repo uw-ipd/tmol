@@ -747,7 +747,8 @@ def create_dunbrack_sampler_from_database(
 
     Args:
         param_db: The parameter database containing Dunbrack parameters
-        device: The device to use for the sampler
+        device: The device to use for the sampler. An unindexed CUDA device
+            resolves to the current CUDA device.
 
     Returns:
         DunbrackChiSampler: Configured sampler for rotamer building

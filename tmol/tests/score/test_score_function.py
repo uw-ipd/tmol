@@ -46,6 +46,16 @@ def test_pose_score_smoke(ubq_pdb, default_database, torch_device):
     assert scores is not None
 
 
+def test_score_function_resolves_unindexed_cuda(default_database, torch_device):
+    if torch_device.type != "cuda":
+        pytest.skip("Requires CUDA")
+
+    sfxn = ScoreFunction(default_database, torch.device("cuda"))
+
+    assert sfxn._device == torch_device
+    assert sfxn._weights.device == torch_device
+
+
 def test_whole_pose_gradients_respect_per_pose_upstream_weights(
     ubq_pdb, default_database, torch_device
 ):
