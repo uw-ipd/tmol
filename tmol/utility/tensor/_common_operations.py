@@ -120,7 +120,14 @@ def _validate_tensor_sequence(tensors: Sequence[torch.Tensor]) -> torch.Tensor:
 def nplus1d_tensor_from_list(
     tensors: Sequence[torch.Tensor],
 ) -> tuple[torch.Tensor, Tensor[torch.int64][:, :], Tensor[torch.int64][:, :]]:
-    """Pad tensors into a new leading dimension and report shape metadata."""
+    """Pad tensors into a new leading dimension and report shape metadata.
+
+    Args:
+        tensors: Same-rank tensors with a shared dtype and device.
+
+    Returns:
+        The padded tensor, original sizes, and strides into the padded tensor.
+    """
     first = _validate_tensor_sequence(tensors)
 
     max_sizes = [max(t.shape[i] for t in tensors) for i in range(first.ndim)]
@@ -147,7 +154,14 @@ def nplus1d_tensor_from_list(
 def cat_differently_sized_tensors(
     tensors: Sequence[torch.Tensor],
 ) -> tuple[torch.Tensor, Tensor[torch.int64][:, :], Tensor[torch.int64][:, :]]:
-    """Concatenate padded tensors along dimension zero and report metadata."""
+    """Concatenate padded tensors along dimension zero and report metadata.
+
+    Args:
+        tensors: Same-rank tensors with a shared dtype and device.
+
+    Returns:
+        The padded concatenation, original trailing sizes, and output strides.
+    """
     first = _validate_tensor_sequence(tensors)
 
     new_sizes = [max(t.shape[i] for t in tensors) for i in range(first.ndim)]
@@ -187,11 +201,14 @@ def cat_differently_sized_tensors(
 def join_tensors_and_report_real_entries(
     tensors: Sequence[torch.Tensor], sentinel: int = -1
 ) -> tuple[Tensor[torch.int32][:], Tensor[torch.bool][:, :], torch.Tensor]:
-    """Concatenate a bunch of N-dimensional tensors into a single N+1-D tensor
-    and report which elements out of the new tensor are real.
-    The tensors may have different sizes for dimension 0 but should have the
-    same size for all other dimensions. They must all have the same
-    dtype and live on the same device.
+    """Pad tensors along dimension zero and identify their real entries.
+
+    Args:
+        tensors: Tensors with matching trailing dimensions, dtype, and device.
+        sentinel: Value used to pad missing entries.
+
+    Returns:
+        Per-tensor lengths, a validity mask, and the padded tensor batch.
     """
 
     first = _validate_tensor_sequence(tensors)
@@ -216,7 +233,16 @@ def invert_mapping(
     n_elements_b: int | torch.Tensor | None = None,
     sentinel: int = -1,
 ) -> IntTensor1D:
-    """Create the inverse mapping ``b_2_a`` for an input mapping ``a_2_b``."""
+    """Create the inverse mapping ``b_2_a`` for an input mapping ``a_2_b``.
+
+    Args:
+        a_2_b: One-dimensional integer mapping from A indices to B indices.
+        n_elements_b: Output size, inferred from ``a_2_b`` when omitted.
+        sentinel: Value assigned to B indices without a corresponding A index.
+
+    Returns:
+        A mapping from B indices back to A indices.
+    """
     if n_elements_b is None:
         n_elements_b = torch.max(a_2_b) + 1
 
