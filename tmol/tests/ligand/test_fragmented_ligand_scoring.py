@@ -24,7 +24,7 @@ from tmol.ligand._fragmentation import (
     _unsplit_old_to_new,
     _unsplit_per_pose_blocks,
 )
-from tmol.pose import SplitBlockEntry, SplitBlockMapping
+from tmol.pose import PoseStackBuilder, SplitBlockEntry, SplitBlockMapping
 
 DATA_DIR = Path(__file__).parent.parent / "data" / "protein_ligand_test"
 TARGET = "ace"
@@ -438,6 +438,59 @@ def test_fragment_mapping_is_stable_for_atom_array_stack(torch_device):
     assert len(split_mapping.entries) == 2
     assert {e.pose_ind for e in split_mapping.entries} == {0}
     assert len({e.block_ind for e in split_mapping.entries}) == 2
+
+
+def test_pose_stack_builder_preserves_fragment_mapping(torch_device):
+    from tmol.score import (
+        beta2016_score_function,
+        calculate_fragment_interactions,
+    )
+
+    structure, params_path, preparation = _load_fixture()
+    annotated = _annotate_at_bridge(structure, preparation)
+    pose, context, mapping = _build(
+        annotated, params_path, torch_device, fragmented=True
+    )
+
+    # A generic ``cuda`` request must still record the concrete tensor device.
+    builder_device = torch.device(torch_device.type)
+    batched = PoseStackBuilder.from_poses([pose, pose], builder_device)
+    assert batched.device == batched.coords.device
+    batched_mapping = batched.split_block_mapping
+    assert batched_mapping is not None
+    assert len(batched_mapping.entries) == 2 * len(mapping.entries)
+    assert {entry.pose_ind for entry in batched_mapping.entries} == {0, 1}
+    source_orig_names = {
+        pose.packed_block_types.active_block_types[entry.orig_block_type_ind].name
+        for entry in mapping.entries
+    }
+    combined_orig_names = {
+        batched.packed_block_types.active_block_types[entry.orig_block_type_ind].name
+        for entry in batched_mapping.entries
+    }
+    assert combined_orig_names == source_orig_names
+
+    fragment_mask = _fragment_block_mask(batched, batched_mapping)
+    partner_mask = ~fragment_mask & (batched.block_type_ind >= 0)
+    sfxn = beta2016_score_function(torch_device, param_db=context.parameter_database)
+    interactions = calculate_fragment_interactions(
+        batched,
+        partner_mask,
+        sfxn=sfxn,
+        sum_terms=False,
+    ).scores
+
+    torch.testing.assert_close(interactions[:, 0], interactions[:, 1])
+
+    invalid_partner_mask = partner_mask.clone()
+    first_fragment = batched_mapping.entries[0]
+    invalid_partner_mask[first_fragment.pose_ind, first_fragment.block_ind] = True
+    with pytest.raises(ValueError, match="must not include ligand fragment"):
+        calculate_fragment_interactions(
+            batched,
+            invalid_partner_mask,
+            sfxn=sfxn,
+        )
 
 
 def test_fragmented_ligand_minimize_and_pack_e2e():

@@ -106,3 +106,32 @@ binding free energy or delta-delta G.
 any requested minimization. Use `return_pose_stack=True` when the refined
 coordinates are part of the result, and `sum_terms=False` to inspect score
 terms separately.
+
+## Fragmented-ligand attribution
+
+For a ligand represented by connected fragment blocks, attribute its
+interaction with an explicit partner mask in one connected-pose score:
+
+```python
+from tmol.score import calculate_fragment_interactions
+
+fragment_scores = calculate_fragment_interactions(
+    pose_stack,
+    protein_block_mask,
+    sfxn=sfxn,
+    sum_terms=False,
+)
+```
+
+`fragment_scores.scores` has shape
+`[n_terms, n_poses, n_fragments]`; set `sum_terms=True` for
+`[n_poses, n_fragments]`. The fragment columns follow
+`fragment_scores.mapping`. Every pose in the stack must use the same fragment
+block layout, and the partner mask must exclude those fragment blocks.
+
+Keep the fragments in one `PoseStack` and call this function once. It renders
+one block-pair scorer and reduces all fragment columns together, preserving
+autograd through the connected complex. Calling a complete scoring workflow
+once per fragment repeats scorer and kernel-launch overhead. Rebuilding
+separated fragment poses additionally changes the physical system by removing
+the connected multi-block context.
