@@ -21,5 +21,11 @@ echo "=== build ==="
 echo "=== tests (CUDA) ==="
 .github/ci/run_gpu_tests.sh
 
+echo "=== execute GPU tutorial smokes ==="
+python .github/scripts/smoke_tutorial_notebooks.py \
+  docs/tutorial/02_gpu_batching.ipynb \
+  docs/tutorial/06_fast_relax.ipynb \
+  --execution-device cuda
+
 echo "=== benchmarks ==="
 .github/ci/run_benchmarks.sh

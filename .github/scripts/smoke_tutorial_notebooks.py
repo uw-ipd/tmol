@@ -50,18 +50,22 @@ def _validate_tutorial_entrypoints(notebook, path: Path) -> None:
         raise ValueError(f"{path} does not use the current tutorial bootstrap")
 
 
+def _is_gpu_only_cell(cell) -> bool:
+    """Return whether a notebook cell is explicitly marked as GPU-only."""
+    if cell.cell_type != "code":
+        return False
+    tags = cell.get("metadata", {}).get("tags", [])
+    has_source_tag = any(
+        line.strip() == "#| tags: [gpu-only]" for line in cell.source.splitlines()[:3]
+    )
+    return "gpu-only" in tags or has_source_tag
+
+
 def _without_gpu_cells(notebook):
     """Copy a notebook and replace ``gpu-only`` cells with a CPU skip."""
     notebook = copy.deepcopy(notebook)
     for cell in notebook.cells:
-        if cell.cell_type != "code":
-            continue
-        tags = cell.get("metadata", {}).get("tags", [])
-        has_source_tag = any(
-            line.strip() == "#| tags: [gpu-only]"
-            for line in cell.source.splitlines()[:3]
-        )
-        if "gpu-only" in tags or has_source_tag:
+        if _is_gpu_only_cell(cell):
             cell.source = (
                 "print('Skipped by CPU smoke execution: this cell requires CUDA.')"
             )
@@ -120,6 +124,8 @@ def execute_notebook(
         # CPU execution results used by nbsphinx into the CI workspace.
         for source_cell, executed_cell in zip(notebook.cells, executed.cells):
             if source_cell.cell_type != "code":
+                continue
+            if not include_gpu_cells and _is_gpu_only_cell(source_cell):
                 continue
             source_cell.outputs = executed_cell.outputs
             source_cell.execution_count = executed_cell.execution_count

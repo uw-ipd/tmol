@@ -110,18 +110,18 @@ def test_colab_release_lanes_match_publish_and_smoke_matrices():
     assert any(row.get("local-tag") == "cu129torch2.8" for row in test_rows)
 
 
-def test_docs_workflow_executes_gpu_only_notebook_cells():
+def test_docs_workflow_uses_hosted_cpu_and_gpu_ci_executes_gpu_cells():
     docs = _workflow(".github/workflows/docs.yml")
     job = docs["jobs"]["docs"]
-    assert job["runs-on"] == ["self-hosted", "gpu"]
+    assert job["runs-on"] == "ubuntu-latest"
     execution_step = next(
         step
         for step in job["steps"]
-        if step.get("name") == "Execute tutorials and build docs"
+        if step.get("name") == "execute tutorials and build docs"
     )
-    assert ".github/ci/srun_gpu_retry.sh" in execution_step["run"]
+    assert execution_step["run"] == ".github/ci/run_docs_cpu_work.sh"
 
-    script = (ROOT / ".github/ci/run_docs_gpu_work.sh").read_text(encoding="utf-8")
-    assert "02_gpu_batching.ipynb" in script
-    assert "06_fast_relax.ipynb" in script
-    assert "--execution-device cuda" in script
+    gpu_script = (ROOT / ".github/ci/run_ci_gpu_work.sh").read_text(encoding="utf-8")
+    assert "02_gpu_batching.ipynb" in gpu_script
+    assert "06_fast_relax.ipynb" in gpu_script
+    assert "--execution-device cuda" in gpu_script

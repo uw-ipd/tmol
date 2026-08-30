@@ -36,5 +36,6 @@ if command -v ccache >/dev/null; then
     -Ccmake.define.CMAKE_CXX_COMPILER_LAUNCHER=ccache
   )
 fi
-MAX_JOBS="${MAX_JOBS:-4}" uv pip install --no-build-isolation -e '.[dev]' \
+extras="${TMOL_INSTALL_EXTRAS:-dev}"
+MAX_JOBS="${MAX_JOBS:-4}" uv pip install --no-build-isolation -e ".[${extras}]" \
   "${cmake_args[@]}"
