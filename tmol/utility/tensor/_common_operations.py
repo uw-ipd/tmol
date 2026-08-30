@@ -9,24 +9,33 @@ from tmol.types import (
 
 IntTensor1D = Tensor[torch.int32][:] | Tensor[torch.int64][:]
 IntTensor2D = Tensor[torch.int32][:, :] | Tensor[torch.int64][:, :]
+RepeatCount = int | torch.Tensor
 
 
 @validate_args
-def stretch(t: IntTensor1D, count: int) -> IntTensor1D:
-    """take an input tensor and "repeat" each element count times.
-    stretch(tensor([0, 1, 2, 3]), 3) returns:
-         tensor([0 0 0 1 1 1 2 2 2 3 3 3]
-    this is equivalent to numpy's repeat
+def stretch(t: IntTensor1D, count: RepeatCount) -> IntTensor1D:
+    """Repeat each element of a one-dimensional integer tensor.
+
+    Args:
+        t: Values to repeat.
+        count: Number of repeats, as an integer or scalar integer tensor.
+
+    Returns:
+        A flattened tensor with each input element repeated ``count`` times.
     """
     return t.repeat(count).view(count, -1).permute(1, 0).contiguous().view(-1)
 
 
 @validate_args
-def stretch2(t: IntTensor2D, count: int) -> IntTensor2D:
-    """take an input 2D tensor and "repeat" each element count times.
-    stretch2(tensor([[0, 1, 2, 3], [4, 5, 6, 7]]), 3) returns:
-         tensor([[0 0 0 1 1 1 2 2 2 3 3 3],[4 4 4 5 5 5 6 6 6 7 7 7]])
-    this is equivalent to numpy's repeat
+def stretch2(t: IntTensor2D, count: RepeatCount) -> IntTensor2D:
+    """Repeat each element along the second dimension of an integer tensor.
+
+    Args:
+        t: Two-dimensional values to repeat.
+        count: Number of repeats, as an integer or scalar integer tensor.
+
+    Returns:
+        A tensor with each row element repeated ``count`` times.
     """
     return (
         t.repeat(1, count)
@@ -209,12 +218,12 @@ def join_tensors_and_report_real_entries(
 
 def invert_mapping(
     a_2_b: IntTensor1D,
-    n_elements_b: int | None = None,
+    n_elements_b: int | torch.Tensor | None = None,
     sentinel: int = -1,
 ) -> IntTensor1D:
     """Create the inverse mapping ``b_2_a`` for an input mapping ``a_2_b``."""
     if n_elements_b is None:
-        n_elements_b = int(torch.max(a_2_b).item()) + 1
+        n_elements_b = torch.max(a_2_b) + 1
 
     b_2_a = torch.full(
         (n_elements_b,), sentinel, dtype=a_2_b.dtype, device=a_2_b.device

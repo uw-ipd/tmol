@@ -39,6 +39,21 @@ def test_stretch2_i32(torch_device):
     assert t2.device == torch_device
 
 
+def test_stretch_accepts_scalar_tensor_count(torch_device):
+    count = torch.tensor(2, dtype=torch.int32, device=torch_device)
+    one_dim = torch.tensor([1, 2], dtype=torch.int32, device=torch_device)
+    two_dim = one_dim.reshape(1, 2)
+
+    torch.testing.assert_close(
+        stretch(one_dim, count),
+        torch.tensor([1, 1, 2, 2], dtype=torch.int32, device=torch_device),
+    )
+    torch.testing.assert_close(
+        stretch2(two_dim, count),
+        torch.tensor([[1, 1, 2, 2]], dtype=torch.int32, device=torch_device),
+    )
+
+
 def test_exclusive_cumsum():
     t = torch.ones((50,), dtype=torch.long)
     excumsum = exclusive_cumsum1d(t)
