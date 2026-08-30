@@ -44,13 +44,15 @@ def test_build_missing_sidechains_no_optH(ubq_pdb, torch_device, dun_sampler):
     block_has_missing_atoms[0, 40:60] = True
     block_has_missing_atoms[2, 10:20] = True
     sfxn = beta2016_score_function(torch_device)
-    build_missing_sidechains(
-        pose_stack=pn,
-        sfxn=sfxn,
-        dunbrack_sampler=dun_sampler,
-        no_optH=True,
-        block_has_missing_atoms=block_has_missing_atoms,
-    )
+    # A fully frozen middle pose must remain safe across repeated anneals.
+    for _ in range(2):
+        build_missing_sidechains(
+            pose_stack=pn,
+            sfxn=sfxn,
+            dunbrack_sampler=dun_sampler,
+            no_optH=True,
+            block_has_missing_atoms=block_has_missing_atoms,
+        )
 
 
 def test_build_missing_sidechains_skips_na_sampler_for_complete_pose(

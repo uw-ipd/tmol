@@ -612,6 +612,13 @@ struct Annealer {
         segment_heads_lotemp[pose] = pose * n_lotemp_simA_traj;
         segment_heads_fullquench[pose] = pose * n_fullquench_traj;
       }
+      // A fully frozen pose has no valid random-rotamer domain.
+      if (n_res == 0) {
+        if (g.thread_rank() == 0) {
+          scores_hitemp[pose][traj_id] = 0.0f;
+        }
+        return;
+      }
 
       // Random initial assignment
       for (int i = g.thread_rank(); i < n_res; i += 32) {
@@ -691,6 +698,12 @@ struct Annealer {
       if (g.thread_rank() == 0) {
         sorted_lotemp_traj[pose][traj_id] = traj_id;
       }
+      if (n_res == 0) {
+        if (g.thread_rank() == 0) {
+          scores_lotemp[pose][traj_id] = 0.0f;
+        }
+        return;
+      }
 
       // Seed from the selected hitemp trajectory's best state
       for (int i = g.thread_rank(); i < n_res; i += 32) {
@@ -761,6 +774,12 @@ struct Annealer {
 
       if (g.thread_rank() == 0) {
         sorted_fullquench_traj[pose][traj_id] = traj_id;
+      }
+      if (n_res == 0) {
+        if (g.thread_rank() == 0) {
+          scores_fullquench[pose][traj_id] = 0.0f;
+        }
+        return;
       }
 
       for (int i = g.thread_rank(); i < n_res; i += 32) {
