@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 
 import torch
+from torch.nn.utils.rnn import pad_sequence
 
 from tmol.types import (
     Tensor,
@@ -198,20 +199,14 @@ def join_tensors_and_report_real_entries(
         raise ValueError("all tensors must have the same shape after dimension zero")
 
     device = first.device
-    dtype = first.dtype
-
-    max_d0 = max(t.shape[0] for t in tensors)
-    new_shape = (len(tensors), max_d0) + first.shape[1:]
 
     n_elements = torch.tensor(
         [t.shape[0] for t in tensors], dtype=torch.int32, device=device
     )
-
-    combo = torch.full(new_shape, sentinel, dtype=dtype, device=device)
-    real = torch.full((len(tensors), max_d0), False, dtype=torch.bool, device=device)
-    for i, t in enumerate(tensors):
-        combo[i, : t.shape[0]] = t
-        real[i, : t.shape[0]] = True
+    combo = pad_sequence(tensors, batch_first=True, padding_value=sentinel)
+    real = torch.arange(
+        combo.shape[1], dtype=n_elements.dtype, device=device
+    ).unsqueeze(0) < n_elements.unsqueeze(1)
 
     return n_elements, real, combo
 

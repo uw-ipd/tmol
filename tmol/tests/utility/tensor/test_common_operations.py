@@ -190,6 +190,30 @@ def test_join_tensors_and_report_real_entries(torch_device):
     numpy.testing.assert_equal(joined_elements_gold, joined_elements.cpu().numpy())
 
 
+def test_join_tensors_preserves_gradients_and_empty_entries(torch_device):
+    tensors = [
+        torch.randn((length, 2), device=torch_device, requires_grad=True)
+        for length in (0, 3, 1)
+    ]
+
+    n_elements, real, joined = join_tensors_and_report_real_entries(tensors)
+    joined.sum().backward()
+
+    torch.testing.assert_close(
+        n_elements,
+        torch.tensor([0, 3, 1], dtype=torch.int32, device=torch_device),
+    )
+    torch.testing.assert_close(
+        real,
+        torch.tensor(
+            [[False, False, False], [True, True, True], [True, False, False]],
+            device=torch_device,
+        ),
+    )
+    assert all(tensor.grad is not None for tensor in tensors)
+    assert all(torch.all(tensor.grad == 1) for tensor in tensors)
+
+
 def test_invert_mapping(torch_device):
     a_2_b = torch.tensor([5, 4, 7, 1, 2, 0], dtype=torch.int32, device=torch_device)
     b_2_a = invert_mapping(a_2_b, 8)
