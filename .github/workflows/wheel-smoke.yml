@@ -5,10 +5,12 @@ on:
   pull_request:
     branches: [master]
     paths:
+      - CMakeLists.txt
       - .github/workflows/_build_macos_wheel.yml
       - .github/workflows/_build_wheel.yml
       - .github/workflows/publish.yml
       - .github/workflows/wheel-smoke.yml
+      - pyproject.toml
       - scripts/validate_release_manifest.py
       - scripts/set_release_wheel_version.py
       - tmol_build_backend.py
@@ -439,6 +441,26 @@ jobs:
       use-manylinux-build: true
       target-arch: ${{ matrix.arch }}
 
+  # CMake and release-build changes must compile the same CUDA 13 architecture
+  # set used by tagged releases. CPU-only pull-request wheels cannot catch
+  # dropped device images or unsupported nvcc flags.
+  build-linux-cuda:
+    name: "smoke py3.12 CUDA 13 x86_64"
+    if: github.event_name == 'pull_request'
+    uses: ./.github/workflows/_build_wheel.yml
+    with:
+      runs-on: ubuntu-22.04
+      container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+      torch-version: "2.13"
+      torch-package-version: "2.13.0"
+      python-version: "3.12"
+      label: "smoke py3.12 CUDA 13 x86_64"
+      pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
+      enable-cuda: true
+      cuda-archs: all
+      use-manylinux-build: true
+      target-arch: x86_64
+
   test-linux-cpu:
     name: "install cp312 cputorch2.13 ${{ matrix.arch }}"
     needs: build-linux-cpu
@@ -496,6 +518,56 @@ jobs:
           _ensure_loaded()
           print("tmol", tmol.__version__)
           print("torch", torch.__version__)
+          PY
+
+  test-linux-cuda:
+    name: "install cp312 cu130torch2.13 x86_64"
+    needs: build-linux-cuda
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheel-cp312-cu130torch2.13-x86_64
+          path: wheels
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install wheel with its PyTorch ABI
+        run: |
+          set -euo pipefail
+          set -- wheels/*.whl
+          test "$#" -eq 1
+          case "$(basename "$1")" in
+            tmol-*+cu130torch2.13-cp312-cp312-manylinux_2_28_x86_64.whl) ;;
+            *)
+              echo "Unexpected Linux CUDA wheel: $1"
+              exit 1
+              ;;
+          esac
+          python -m pip install --upgrade pip
+          python -m pip install 'torch==2.13.0' \
+            --index-url https://download.pytorch.org/whl/cu130
+          python -m pip install "$1"
+
+      - name: Load native extensions
+        working-directory: /tmp
+        run: |
+          python - <<'PY'
+          from importlib.metadata import version
+
+          import torch
+          import tmol
+          from tmol._cpp_lib import _ensure_loaded
+
+          assert torch.__version__.startswith("2.13.")
+          assert torch.version.cuda.startswith("13.0")
+          assert version("tmol").endswith("+cu130torch2.13")
+          _ensure_loaded()
+          print("tmol", tmol.__version__)
+          print("torch", torch.__version__, "cuda", torch.version.cuda)
           PY
 
   build-macos-cpu:
