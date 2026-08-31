@@ -53,12 +53,25 @@ Ancillary benchmark plots live near the tests as `plot_*.py` scripts.
 
 ## Profiling
 
-`dev/bin/profile_benchmark` wraps the legacy `nvprof` command and the TMol
-pytest CUDA-profile hook:
+`dev/bin/profile_benchmark` runs a short pytest benchmark under Nsight Systems
+by default:
 
 ```bash
-dev/bin/profile_benchmark tmol/tests/score -k cuda-full-lk_ball -- -o profile.nvvp
+dev/bin/profile_benchmark --output profile/ljlk \
+  tmol/tests/score -k cuda-full-ljlk
 ```
 
-Use it only in a CUDA environment that still provides `nvprof`; current NVIDIA
-toolkits may require a separate Nsight-based profiling workflow instead.
+Use Nsight Compute when kernel-level counters are needed; arguments after `--`
+are forwarded to the profiler:
+
+```bash
+dev/bin/profile_benchmark --tool ncu --output profile/ljlk-kernels \
+  tmol/tests/score -k cuda-forward-ljlk-100 -- \
+  --kernel-name regex:ljlk --launch-count 20
+```
+
+The output prefix defaults to `dev/profile/<host>/<UTC timestamp>`. Keep pytest
+selectors narrow: profiling every parametrized benchmark produces a very large
+trace and makes hardware-counter collection unnecessarily slow. If the wrapper
+is not launched from the development environment, pass its interpreter with
+`--python /path/to/venv/bin/python` or set `TMOL_PROFILE_PYTHON`.

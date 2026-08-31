@@ -1,25 +1,100 @@
-#!/bin/sh
-''''exec ipython "$0" -- ${1+"$@"} # '''
-# vi: filetype=python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
+"""Profile a pytest benchmark with Nsight Systems or Nsight Compute.
 
-import tempfile
+Arguments before ``--`` are pytest arguments. Arguments after ``--`` are
+passed directly to the selected profiler.
+"""
+
+from __future__ import annotations
+
+import argparse
+from datetime import datetime, timezone
+import os
+from pathlib import Path
+import shutil
+import socket
 import subprocess
 import sys
-import shlex
-import shutil
-import argparse
 
-parser = argparse.ArgumentParser(prog='profile_benchmark.ipy')
-parser.add_argument('args', nargs=argparse.REMAINDER, metavar="<benchmark args> -- <nvprof_args>")
-options = parser.parse_args()
 
-try:
-    splitargs = options.args.index("--")
-except ValueError:
-    splitargs = len(options.args)
+def parse_args() -> tuple[argparse.Namespace, list[str], list[str]]:
+    argv = sys.argv[1:]
+    try:
+        separator = argv.index("--")
+    except ValueError:
+        separator = len(argv)
 
-benchmark_args = " ".join(map(shlex.quote, options.args[:splitargs]))
-nvprof_args = " ".join(map(shlex.quote, options.args[splitargs + 1:]))
+    parser = argparse.ArgumentParser(
+        description="Profile tmol pytest benchmarks with NVIDIA Nsight."
+    )
+    parser.add_argument(
+        "--tool",
+        choices=("nsys", "ncu"),
+        default=os.environ.get("TMOL_PROFILE_TOOL", "nsys"),
+    )
+    parser.add_argument(
+        "--output",
+        help="output prefix (default: dev/profile/<host>/<UTC timestamp>)",
+    )
+    parser.add_argument(
+        "--python",
+        default=os.environ.get("TMOL_PROFILE_PYTHON", sys.executable),
+        help="Python interpreter containing tmol and pytest (default: current interpreter)",
+    )
+    options, pytest_args = parser.parse_known_args(argv[:separator])
+    return options, pytest_args, argv[separator + 1 :]
 
-!nvprof --profile-from-start off {nvprof_args} -- pytest --benchmark-enable --benchmark-cuda-profile {benchmark_args}
+
+def default_output() -> Path:
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    return Path("dev") / "profile" / socket.gethostname() / stamp
+
+
+def main() -> int:
+    options, pytest_args, profiler_args = parse_args()
+    profiler = shutil.which(options.tool)
+    if profiler is None:
+        raise SystemExit(f"{options.tool} is not on PATH; install NVIDIA Nsight tools")
+
+    output = Path(options.output) if options.output else default_output()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    pytest_command = [
+        options.python,
+        "-m",
+        "pytest",
+        "--benchmark-enable",
+        "--benchmark-only",
+        "--benchmark-min-rounds=1",
+        "--benchmark-max-time=.01",
+        *pytest_args,
+    ]
+    if options.tool == "nsys":
+        command = [
+            profiler,
+            "profile",
+            "--trace=cuda,nvtx,osrt",
+            "--sample=none",
+            "--force-overwrite=true",
+            "--output",
+            str(output),
+            *profiler_args,
+            *pytest_command,
+        ]
+    else:
+        command = [
+            profiler,
+            "--target-processes=all",
+            "--set=full",
+            "--force-overwrite",
+            "--export",
+            str(output),
+            *profiler_args,
+            *pytest_command,
+        ]
+
+    print("Profiling command:", " ".join(command), flush=True)
+    return subprocess.run(command, check=False).returncode
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
