@@ -127,11 +127,11 @@ python -c "import sys, torch; print(f'Python {sys.version_info.major}.{sys.versi
 ## Google Colab
 
 Colab GPU runtimes currently use PyTorch 2.11.0 with CUDA 12.8 and may provide
-Python 3.12 or 3.13. TMol v0.1.52 provides separate Python-ABI wheels compiled
+Python 3.12 or 3.13. TMol v0.1.53 provides separate Python-ABI wheels compiled
 for T4 (`sm_75`), A100 (`sm_80`), and L4 (`sm_89`) GPUs. For Python 3.13:
 
 ```bash
-pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/v0.1.52/tmol-0.1.52+cu128torch2.11-cp313-cp313-manylinux_2_28_x86_64.whl"
+pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/v0.1.53/tmol-0.1.53+cu128torch2.11-cp313-cp313-manylinux_2_28_x86_64.whl"
 ```
 
 The tutorial bootstrap selects the wheel matching the runtime's Python ABI and

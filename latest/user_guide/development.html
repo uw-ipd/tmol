@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../_static/documentation_options.js?v=61349712"></script>
+    <script src="../_static/documentation_options.js?v=c54c130b"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -57,7 +57,7 @@
     <link rel="prev" title="Benchmarking" href="benchmarking.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.52" />
+  <meta name="docsearch:version" content="0.1.53" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -466,7 +466,7 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
 <li><p>Python 3.11 or newer.</p></li>
 <li><p>PyTorch 2.5 or newer.</p></li>
 <li><p>A C++17 compiler.</p></li>
-<li><p>CMake 3.18 or newer.</p></li>
+<li><p>CMake 3.24 or newer.</p></li>
 <li><p>CUDA toolkit with <code class="docutils literal notranslate"><span class="pre">nvcc</span></code> for CUDA builds.</p></li>
 </ul>
 <p>Without CUDA, use a CPU-only build:</p>
@@ -500,8 +500,8 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
 </thead>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CMAKE_CUDA_ARCHITECTURES</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">80;86;89;90</span></code></p></td>
-<td><p>GPU architectures to compile.</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">native</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">native</span></code> compiles only for GPUs visible at configure time. <code class="docutils literal notranslate"><span class="pre">all</span></code>, used for release wheels, emits SASS for every sm_75+ target reported by <code class="docutils literal notranslate"><span class="pre">nvcc</span> <span class="pre">--list-gpu-code</span></code>, plus PTX for the newest target.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TMOL_BUILD_TESTS</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">OFF</span></code></p></td>

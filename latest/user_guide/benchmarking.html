@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../_static/documentation_options.js?v=61349712"></script>
+    <script src="../_static/documentation_options.js?v=c54c130b"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -57,7 +57,7 @@
     <link rel="prev" title="Nucleic acids" href="../workflows/nucleic_acids.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.52" />
+  <meta name="docsearch:version" content="0.1.53" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -488,13 +488,24 @@ pytest arguments first, then revisions after <code class="docutils literal notra
 </section>
 <section id="profiling">
 <h2>Profiling<a class="headerlink" href="#profiling" title="Link to this heading">#</a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">dev/bin/profile_benchmark</span></code> wraps the legacy <code class="docutils literal notranslate"><span class="pre">nvprof</span></code> command and the TMol
-pytest CUDA-profile hook:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>dev/bin/profile_benchmark<span class="w"> </span>tmol/tests/score<span class="w"> </span>-k<span class="w"> </span>cuda-full-lk_ball<span class="w"> </span>--<span class="w"> </span>-o<span class="w"> </span>profile.nvvp
+<p><code class="docutils literal notranslate"><span class="pre">dev/bin/profile_benchmark</span></code> runs a short pytest benchmark under Nsight Systems
+by default:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>dev/bin/profile_benchmark<span class="w"> </span>--output<span class="w"> </span>profile/ljlk<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>tmol/tests/score<span class="w"> </span>-k<span class="w"> </span>cuda-full-ljlk
 </pre></div>
 </div>
-<p>Use it only in a CUDA environment that still provides <code class="docutils literal notranslate"><span class="pre">nvprof</span></code>; current NVIDIA
-toolkits may require a separate Nsight-based profiling workflow instead.</p>
+<p>Use Nsight Compute when kernel-level counters are needed; arguments after <code class="docutils literal notranslate"><span class="pre">--</span></code>
+are forwarded to the profiler:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>dev/bin/profile_benchmark<span class="w"> </span>--tool<span class="w"> </span>ncu<span class="w"> </span>--output<span class="w"> </span>profile/ljlk-kernels<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>tmol/tests/score<span class="w"> </span>-k<span class="w"> </span>cuda-forward-ljlk-100<span class="w"> </span>--<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--kernel-name<span class="w"> </span>regex:ljlk<span class="w"> </span>--launch-count<span class="w"> </span><span class="m">20</span>
+</pre></div>
+</div>
+<p>The output prefix defaults to <code class="docutils literal notranslate"><span class="pre">dev/profile/&lt;host&gt;/&lt;UTC</span> <span class="pre">timestamp&gt;</span></code>. Keep pytest
+selectors narrow: profiling every parametrized benchmark produces a very large
+trace and makes hardware-counter collection unnecessarily slow. If the wrapper
+is not launched from the development environment, pass its interpreter with
+<code class="docutils literal notranslate"><span class="pre">--python</span> <span class="pre">/path/to/venv/bin/python</span></code> or set <code class="docutils literal notranslate"><span class="pre">TMOL_PROFILE_PYTHON</span></code>.</p>
 </section>
 </section>
 
