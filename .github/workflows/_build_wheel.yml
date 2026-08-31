@@ -62,7 +62,8 @@ on:
         description: >
           Override CMAKE_CUDA_ARCHITECTURES (semicolon-separated SM list). When
           empty, this workflow defaults to "75;80;86;89;90" (CUDA<13) or
-          "80;86;89;90;100" (CUDA>=13). Set e.g. "75;80;89" to make the
+          every sm_75+ target reported by nvcc (CUDA>=13). Set e.g.
+          "75;80;89" to make the
           Colab/T4 wheel's supported architectures explicit.
 
 jobs:
@@ -349,8 +350,10 @@ jobs:
 
       - name: Build wheel
         run: |
+          # Balance the two layers of CUDA parallelism for 4-core hosted
+          # runners: two Ninja jobs, each with two nvcc worker threads.
           docker exec \
-            -e MAX_JOBS=1 \
+            -e MAX_JOBS=2 \
             -e CUDA_ARCHS_OVERRIDE="${{ inputs.cuda-archs }}" \
             -e CUDA_HOME="${CUDA_HOME}" \
             -e CUDAToolkit_ROOT="${CUDA_HOME}" \
@@ -380,7 +383,7 @@ jobs:
               if [ -n "${CUDA_ARCHS_OVERRIDE}" ]; then
                 CUDA_ARCHS="${CUDA_ARCHS_OVERRIDE}"
               elif [ "$CUDA_MAJOR" -ge 13 ]; then
-                CUDA_ARCHS="80;86;89;90;100"
+                CUDA_ARCHS="all"
               else
                 CUDA_ARCHS="75;80;86;89;90"
               fi
@@ -392,7 +395,7 @@ jobs:
                 -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}" \
                 "${CUDA_COMPILER_DEFINE[@]}" \
                 -Ccmake.define.pybind11_DIR="${PYBIND11_CMAKE_DIR}" \
-                -Ccmake.define.TMOL_NVCC_THREADS=1
+                -Ccmake.define.TMOL_NVCC_THREADS=2
             else
               '"${TARGET_VENV}"'/bin/pip wheel . --no-build-isolation --no-deps -w dist \
                 -Ccmake.define.TMOL_ENABLE_CUDA=OFF \

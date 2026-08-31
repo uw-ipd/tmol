@@ -39,7 +39,9 @@ retry uv pip install torch --index-url "${TORCH_CUDA_INDEX}"
 assert_torch_cuda
 
 RUN_GPU=$(python -c "import torch; c=torch.cuda.get_device_capability(0); print(f'{c[0]}.{c[1]}')" 2>/dev/null || echo "n/a")
-CUDA_ARCHS="${TMOL_CI_CUDA_ARCHITECTURES:-80;86;89;90;100}"
+# Test jobs only execute on this runner, so compiling every wheel architecture
+# wastes most of the job. Release wheels retain the all-supported-SM default.
+CUDA_ARCHS="${TMOL_CI_CUDA_ARCHITECTURES:-native}"
 NVCC_VER=$(nvcc --version 2>&1 | sed -n 's/.*release \([0-9.]*\).*/\1/p' | head -1)
 if [[ "${CUDA_ARCHS}" == "native" ]]; then
   CUDA_ARCHS="${RUN_GPU/./}"

@@ -71,7 +71,7 @@ def test_colab_release_lanes_match_publish_and_smoke_matrices():
     build_template = _workflow(".github/workflows/_build_wheel.yml")
     cuda_archs = build_template[True]["workflow_call"]["inputs"]["cuda-archs"]
     assert "75;80;86;89;90" in cuda_archs["description"]
-    assert "80;86;89;90;100" in cuda_archs["description"]
+    assert "every sm_75+ target reported by nvcc" in cuda_archs["description"]
 
     publish = _workflow(".github/workflows/publish.yml")
     publish_rows = publish["jobs"]["build_wheels"]["strategy"]["matrix"]["include"]
