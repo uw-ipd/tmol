@@ -34,7 +34,6 @@ from tmol.utility.tensor import (
     exclusive_cumsum2d,
     exclusive_cumsum2d_and_totals,
     stretch,
-    stretch2,
 )
 from tmol.utility._device import resolve_device
 
@@ -268,7 +267,7 @@ class PoseStackBuilder:
             pconn_matrix,
             pconn_offsets,
             block_n_conn,
-            pose_n_pconn,
+            _,
         ) = cls._take_real_conn_conn_intrablock_pairs(pbt, block_type_ind64, real_res)
 
         # 3b
@@ -279,7 +278,7 @@ class PoseStackBuilder:
         # 4
         inter_block_bondsep64 = (
             cls._calculate_interblock_bondsep_from_connectivity_graph(
-                pbt, block_n_conn, pose_n_pconn, pconn_matrix
+                pbt, pconn_offsets, block_n_conn, pconn_matrix
             )
         )
 
@@ -517,49 +516,18 @@ class PoseStackBuilder:
             pbt_conn_at_intrablock_bond_sep, block_types64, real_blocks
         )
 
-        local_ind_for_bconn1 = (
-            torch.arange(pbt_max_n_conn, dtype=torch.int64, device=pbt_device)
-            .repeat(n_poses * max_n_blocks * pbt_max_n_conn)
-            .reshape(n_poses, max_n_blocks, pbt_max_n_conn, pbt_max_n_conn)
-        )
-        local_ind_for_bconn2 = torch.transpose(local_ind_for_bconn1, 2, 3)
-
-        # n_conn_for_bconn:
-        # [n_poses x max_n_blockx x max_n_conn x max_n_conn] tensor stating
-        # for entry [i, j, k, l] the number of connections on pose i
-        # block j; then we can figure out if any individual pair (k,l)
-        # represents a valid intra-block pair or whether k, e.g., exceeds
-        # the number of connections for block j.
-        n_conn_for_bconn = stretch2(
-            n_conn_for_block, pbt_max_n_conn * pbt_max_n_conn
-        ).reshape(n_poses, max_n_blocks, pbt_max_n_conn, pbt_max_n_conn)
-
+        bconn_inds = torch.arange(pbt_max_n_conn, dtype=torch.int64, device=pbt_device)
         valid_local_bconn_pair = torch.logical_and(
-            local_ind_for_bconn1 < n_conn_for_bconn,
-            local_ind_for_bconn2 < n_conn_for_bconn,
+            bconn_inds[None, None, None, :] < n_conn_for_block[:, :, None, None],
+            bconn_inds[None, None, :, None] < n_conn_for_block[:, :, None, None],
         )
 
-        # pose_ind_for_pconn1
-        # [n_poses x max_n_pose_conn x max_n_pose_conn] tensor where
-        # entry [i, j, k] is j;
-        # pose_ind_for_pconn2, on the otherhand, gives [i, j, k] as k
-        # useful to know if both j and k are less than the maximum
-        # number of inter-residue connection points for the pose
-        pose_ind_for_pconn1 = (
+        # Exclude padded pose-connection rows and columns.
+        pconn_real = (
             torch.arange(max_n_pose_conn, dtype=torch.int64, device=pbt_device)
-            .repeat(n_poses * max_n_pose_conn)
-            .reshape(n_poses, max_n_pose_conn, max_n_pose_conn)
+            < n_conn_totals[:, None]
         )
-        pose_ind_for_pconn2 = torch.transpose(pose_ind_for_pconn1, 1, 2)
-
-        n_pose_conn_for_pconn = stretch(
-            n_conn_totals, max_n_pose_conn * max_n_pose_conn
-        ).reshape(n_poses, max_n_pose_conn, max_n_pose_conn)
-
-        valid_pconn_pair = torch.logical_and(
-            pose_ind_for_pconn1 < n_pose_conn_for_pconn,
-            pose_ind_for_pconn2 < n_pose_conn_for_pconn,
-        )
+        valid_pconn_pair = pconn_real[:, :, None] & pconn_real[:, None, :]
 
         real_pconns_from_same_block = torch.logical_and(
             are_pconns_from_same_block, valid_pconn_pair
@@ -1232,86 +1200,93 @@ class PoseStackBuilder:
     @validate_args
     def _calculate_interblock_bondsep_from_connectivity_graph(
         cls,
-        pbt,
+        pbt: PackedBlockTypes,
+        pconn_offsets: Tensor[torch.int64][:, :],
         block_n_conn: Tensor[torch.int32][:, :],
-        pose_n_pconn: Tensor[torch.int32][:],
         pconn_matrix: Tensor[torch.int32][:, :, :],
-    ):
+    ) -> Tensor[torch.int32][:, :, :, :, :]:
         return cls._calculate_interblock_bondsep_from_connectivity_graph_heavy(
-            pbt.max_n_conn, pbt.device, block_n_conn, pose_n_pconn, pconn_matrix
+            pbt.max_n_conn, pconn_offsets, block_n_conn, pconn_matrix
         )
 
     @classmethod
     @validate_args
     def _calculate_interblock_bondsep_from_connectivity_graph_heavy(
         cls,
-        pbt_max_n_conn,
-        pbt_device,
+        pbt_max_n_conn: int,
+        pconn_offsets: Tensor[torch.int64][:, :],
         block_n_conn: Tensor[torch.int32][:, :],
-        pose_n_pconn: Tensor[torch.int32][:],
         pconn_matrix: Tensor[torch.int32][:, :, :],
-    ):
+    ) -> Tensor[torch.int32][:, :, :, :, :]:
+        """Map shortest paths between pose connections onto block pairs.
+
+        Args:
+            pbt_max_n_conn: Maximum connection count for any block type.
+            pconn_offsets: First pose-connection index for each block.
+            block_n_conn: Number of real connections for each block.
+            pconn_matrix: Pose-connection adjacency matrices, updated in place
+                with their all-pairs shortest paths.
+
+        Returns:
+            Connection-to-connection bond separations indexed by pose and
+            block pair.
+        """
         n_poses = block_n_conn.shape[0]
         max_n_blocks = block_n_conn.shape[1]
         max_n_conn = pbt_max_n_conn
         max_n_pconn = pconn_matrix.shape[1]
         assert pconn_matrix.shape[0] == n_poses
         assert pconn_matrix.shape[1] == pconn_matrix.shape[2]
+        assert pconn_offsets.shape == block_n_conn.shape
 
-        # the final destination tensor that we will have to carefully write to
-        # indexed pose-id x r1 x r2 x c1 x c2
-        # but, we will see later, has to be transposed at the r2/c1 dimensions
-        # so we can write to it in the correct order
-        inter_block_bondsep = torch.full(
-            (n_poses, max_n_blocks, max_n_blocks, max_n_conn, max_n_conn),
-            MAX_SIG_BOND_SEPARATION,
-            dtype=torch.int32,
-            device=pbt_device,
+        output_shape = (
+            n_poses,
+            max_n_blocks,
+            max_n_blocks,
+            max_n_conn,
+            max_n_conn,
         )
+        if max_n_pconn == 0:
+            return torch.full(
+                output_shape,
+                MAX_SIG_BOND_SEPARATION,
+                dtype=torch.int32,
+                device=pconn_matrix.device,
+            )
 
-        bconn_inds1 = (
-            torch.arange(max_n_conn, dtype=torch.int64, device=pbt_device)
-            .repeat(n_poses * max_n_blocks * max_n_blocks * max_n_conn)
-            .view(n_poses, max_n_blocks, max_n_blocks, max_n_conn, max_n_conn)
-        )
-        bconn_inds2 = torch.transpose(bconn_inds1, 3, 4)
-        # not all entries in the inter_block_bondsep tensor correspond to
-        # actual connections; this boolean tensor helps us identify the
-        # real entries
-        bconn_pair_real = torch.logical_and(
-            bconn_inds1 < block_n_conn[:, None, :, None, None],
-            bconn_inds2 < block_n_conn[:, :, None, None, None],
-        )
-
-        # in order to assign from a tensor ordered pose_id x pconn1 x pconn2
-        # we have to make these tensors (temporarily) indexed
-        # pose_id x r1 x c1 x r2 x c2
-        # later we will re-transpose these dimensions before returning
-        # the inter_block_bondsep tensor
-        bconn_pair_real = torch.transpose(bconn_pair_real, 2, 3)
-        inter_block_bondsep = torch.transpose(inter_block_bondsep, 2, 3)
-
-        pconn_inds1 = (
-            torch.arange(max_n_pconn, dtype=torch.int64, device=pbt_device)
-            .repeat(n_poses * max_n_pconn)
-            .view(n_poses, max_n_pconn, max_n_pconn)
-        )
-        pconn_inds2 = torch.transpose(pconn_inds1, 1, 2)
-        # same deal as with the bconn_pair_real tensor
-        pconn_pair_real = torch.logical_and(
-            pconn_inds1 < pose_n_pconn[:, None, None],
-            pconn_inds2 < pose_n_pconn[:, None, None],
-        )
-
-        # invoke the all-pairs-shortest-path algorithm on the connectivity
-        # matrices
         cls._shortest_paths_for_connectivity_graph(pconn_matrix)
 
-        # the big assignment!
-        inter_block_bondsep[bconn_pair_real] = pconn_matrix[pconn_pair_real]
+        bconn_ind = torch.arange(
+            max_n_conn, dtype=torch.int64, device=pconn_matrix.device
+        )
+        real_bconn = bconn_ind[None, None, :] < block_n_conn[:, :, None]
+        pconn_for_bconn = torch.where(
+            real_bconn,
+            pconn_offsets[:, :, None] + bconn_ind,
+            0,
+        ).flatten(1)
 
-        # now reorder so it's pose-ind x r1 x r2 x c1 x c2
-        return torch.transpose(inter_block_bondsep, 2, 3)
+        n_padded_bconn = pconn_for_bconn.shape[1]
+        pconn_rows = torch.gather(
+            pconn_matrix,
+            1,
+            pconn_for_bconn[:, :, None].expand(n_poses, n_padded_bconn, max_n_pconn),
+        )
+        inter_block_bondsep = torch.gather(
+            pconn_rows,
+            2,
+            pconn_for_bconn[:, None, :].expand(n_poses, n_padded_bconn, n_padded_bconn),
+        ).reshape(n_poses, max_n_blocks, max_n_conn, max_n_blocks, max_n_conn)
+        inter_block_bondsep = inter_block_bondsep.permute(0, 1, 3, 2, 4)
+
+        # Sentinel padded connections without constructing a dense 5-D mask.
+        inter_block_bondsep.masked_fill_(
+            ~real_bconn[:, :, None, :, None], MAX_SIG_BOND_SEPARATION
+        )
+        inter_block_bondsep.masked_fill_(
+            ~real_bconn[:, None, :, None, :], MAX_SIG_BOND_SEPARATION
+        )
+        return inter_block_bondsep.contiguous()
 
     @classmethod
     @validate_args

@@ -49,11 +49,12 @@ def test_forall_stacks(ext, torch_device):
 
 
 def test_forall_stacks_large(ext, torch_device):
-    # 20 stacks x 200 elements = 4000 total, spanning multiple CTAs.
+    # 128 stacks x 1024 elements exercises CPU stack parallelism and spans
+    # multiple CUDA CTAs.
     # src=ones, so dst[stack][i] = 1 * 2 = 2 everywhere.
-    src = torch.ones(20, 200, dtype=torch.int32, device=torch_device)
+    src = torch.ones(128, 1024, dtype=torch.int32, device=torch_device)
     result = ext.test_forall_stacks(src)
-    expected = torch.full((20, 200), 2, dtype=torch.int32)
+    expected = torch.full((128, 1024), 2, dtype=torch.int32)
     assert torch.equal(result.cpu(), expected)
 
 

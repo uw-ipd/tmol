@@ -22,13 +22,26 @@ struct DeviceOperations<tmol::Device::CPU> {
     }
   }
 
-  template <typename Int, typename Func>
+  template <typename launch_t, typename Int, typename Func>
   static void forall_stacks(ContextManager&, Int Nstacks, Int N, Func f) {
-    for (int stack = 0; stack < Nstacks; ++stack) {
-      for (Int i = 0; i < N; ++i) {
-        f(stack, i);
+    constexpr int64_t min_parallel_work = 32768;
+    int64_t const total_work = int64_t(Nstacks) * int64_t(N);
+    if (Nstacks <= 1 || total_work < min_parallel_work) {
+      for (Int stack = 0; stack < Nstacks; ++stack) {
+        for (Int i = 0; i < N; ++i) {
+          f(stack, i);
+        }
       }
+      return;
     }
+
+    at::parallel_for(0, Nstacks, 1, [=](int64_t begin, int64_t end) {
+      for (int64_t stack = begin; stack < end; ++stack) {
+        for (Int i = 0; i < N; ++i) {
+          f(Int(stack), i);
+        }
+      }
+    });
   }
 
   template <typename Int, typename Func>

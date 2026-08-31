@@ -403,7 +403,11 @@ def test_calculate_interblock_bondsep_from_connectivity_graph_heavy(torch_device
     block_n_conn = torch.tensor(
         [[2, 2, 3, 2, 3], [2, 3, 2, 3, 0]], dtype=torch.int32, device=torch_device
     )
-    pose_n_pconn = torch.tensor([12, 10], dtype=torch.int32, device=torch_device)
+    pconn_offsets = torch.tensor(
+        [[0, 2, 4, 7, 9], [0, 2, 5, 7, 10]],
+        dtype=torch.int64,
+        device=torch_device,
+    )
     pconn_matrix = torch.tensor(
         [
             [
@@ -440,7 +444,7 @@ def test_calculate_interblock_bondsep_from_connectivity_graph_heavy(torch_device
     )
 
     ibb = PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph_heavy(
-        pbt_max_n_conn, torch_device, block_n_conn, pose_n_pconn, pconn_matrix
+        pbt_max_n_conn, pconn_offsets, block_n_conn, pconn_matrix
     )
     inter_block_bondsep = ibb
 
@@ -526,6 +530,22 @@ def test_calculate_interblock_bondsep_from_connectivity_graph_heavy(torch_device
     )
 
     torch.testing.assert_close(inter_block_bondsep, inter_block_bondsep_gold)
+    assert inter_block_bondsep.is_contiguous()
+
+
+def test_calculate_interblock_bondsep_without_connections(torch_device):
+    block_n_conn = torch.zeros((2, 3), dtype=torch.int32, device=torch_device)
+    pconn_offsets = torch.zeros((2, 3), dtype=torch.int64, device=torch_device)
+    pconn_matrix = torch.empty((2, 0, 0), dtype=torch.int32, device=torch_device)
+
+    result = (
+        PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph_heavy(
+            3, pconn_offsets, block_n_conn, pconn_matrix
+        )
+    )
+
+    assert result.shape == (2, 3, 3, 3, 3)
+    assert torch.all(result == MAX_SIG_BOND_SEPARATION)
 
 
 def test_incorporate_extra_connections_into_inter_res_conn_set(torch_device):
