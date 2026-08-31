@@ -40,11 +40,10 @@ struct DeviceOperations<tmol::Device::CUDA> {
     mgpu::transform<launch_t>(f, N, *context);
   }
 
-  template <typename Int, typename Func>
+  template <typename launch_t, typename Int, typename Func>
   static void forall_stacks(ContextManager& mgr, Int Nstacks, Int N, Func f) {
     std::shared_ptr<mgpu::standard_context_t> context = _get_context(mgr);
-    // mgpu::standard_context_t context;
-    mgpu::transform(
+    mgpu::transform<launch_t>(
         [=] MGPU_DEVICE(int index) {
           int stack = index / N;
           int i = index % N;

@@ -16,7 +16,9 @@ struct DeviceOperations {
   template <typename launch_t, typename Func>
   static void forall(ContextManager& mgr, int N, Func f);
 
-  template <typename Int, typename Func>
+  /// Apply independent per-stack work, parallelizing stacks on CPU when the
+  /// workload is large enough to amortize thread-pool dispatch.
+  template <typename launch_t, typename Int, typename Func>
   static void forall_stacks(ContextManager& mgr, Int Nstacks, Int N, Func f);
 
   template <typename Int, typename Func>

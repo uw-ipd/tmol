@@ -298,16 +298,12 @@ struct detect_block_neighbors {
       Real reach) {
     LAUNCH_BOX_32;
 
-    auto detect_neighbors = ([=] TMOL_DEVICE_FUNC(int ind) {
-      int const n_poses = pose_stack_block_type.size(0);
-      int const max_n_blocks = pose_stack_block_type.size(1);
-
-      if (ind >= n_poses * max_n_blocks * max_n_blocks) return;
-
-      int const pose_ind = ind / (max_n_blocks * max_n_blocks);
-      int const block_pair_ind = ind % (max_n_blocks * max_n_blocks);
-      int const block_ind1 = block_pair_ind / max_n_blocks;
-      int const block_ind2 = block_pair_ind % max_n_blocks;
+    int const n_poses = pose_stack_block_type.size(0);
+    int const max_n_blocks = pose_stack_block_type.size(1);
+    int const block_pairs_per_pose = max_n_blocks * max_n_blocks;
+    auto detect_neighbors = ([=] TMOL_DEVICE_FUNC(int pose_ind, int pair) {
+      int const block_ind1 = pair / max_n_blocks;
+      int const block_ind2 = pair % max_n_blocks;
 
       if (block_ind1 > block_ind2) {
         return;
@@ -341,12 +337,8 @@ struct detect_block_neighbors {
         block_neighbors[pose_ind][block_ind1][block_ind2] = 1;
       }
     });
-    int n_block_pairs = pose_stack_block_type.size(0)
-                        * pose_stack_block_type.size(1)
-                        * pose_stack_block_type.size(1);
-
-    DeviceDispatch<D>::template forall<launch_t>(
-        mgr, n_block_pairs, detect_neighbors);
+    DeviceDispatch<D>::template forall_stacks<launch_t, int>(
+        mgr, n_poses, block_pairs_per_pose, detect_neighbors);
   }
 };
 

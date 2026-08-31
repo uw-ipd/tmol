@@ -845,7 +845,7 @@ def apply_fragment_connections(pose_stack, mapping: FragmentedLigandPoseMapping)
         pconn_matrix,
         pconn_offsets,
         block_n_conn,
-        pose_n_pconn,
+        _,
     ) = PoseStackBuilder._take_real_conn_conn_intrablock_pairs(
         pbt, pose_stack.block_type_ind64, real_res
     )
@@ -854,7 +854,7 @@ def apply_fragment_connections(pose_stack, mapping: FragmentedLigandPoseMapping)
     )
     inter_block_bondsep64 = (
         PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph(
-            pbt, block_n_conn, pose_n_pconn, pconn_matrix
+            pbt, pconn_offsets, block_n_conn, pconn_matrix
         )
     )
     result = attr.evolve(
@@ -1237,14 +1237,14 @@ def unsplit_pose_stack(pose_stack):
         device,
     )
 
-    pconn_matrix, pconn_offsets, block_n_conn, pose_n_pconn = (
+    pconn_matrix, pconn_offsets, block_n_conn, _ = (
         PoseStackBuilder._take_real_conn_conn_intrablock_pairs(pbt, new_bt64, real_new)
     )
     PoseStackBuilder._incorporate_inter_residue_connections_into_connectivity_graph(
         new_irc64, pconn_offsets, pconn_matrix
     )
     new_ibs64 = PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph(
-        pbt, block_n_conn, pose_n_pconn, pconn_matrix
+        pbt, pconn_offsets, block_n_conn, pconn_matrix
     )
 
     new_chain_id, new_pdb_info = _unsplit_chain_and_pdb(

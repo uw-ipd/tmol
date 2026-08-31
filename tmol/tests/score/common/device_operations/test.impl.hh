@@ -42,7 +42,7 @@ auto DevOpsTests<D>::test_forall_stacks(TView<int32_t, 2, D> src)
   int n = src.size(1);
   auto dst_t = TPack<int32_t, 2, D>::empty({nstacks, n});
   auto dst = dst_t.view;
-  DO<D>::template forall_stacks<int>(
+  DO<D>::template forall_stacks<launch_t, int>(
       mgr, nstacks, n, [=] EIGEN_DEVICE_FUNC(int stack, int i) {
         dst[stack][i] = src[stack][i] * 2;
       });

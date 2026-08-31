@@ -198,7 +198,7 @@ def assign_block_types(
         pconn_matrix,
         pconn_offsets,
         block_n_conn,
-        pose_n_pconn,
+        _,
     ) = PoseStackBuilder._take_real_conn_conn_intrablock_pairs(
         pbt, block_type_ind64, is_real_res
     )
@@ -212,7 +212,7 @@ def assign_block_types(
     # bad naming because python indentation- and line-wrapping rules are annoying:
     # inter_block_bondsep64 == ibb64
     ibb64 = PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph(
-        pbt, block_n_conn, pose_n_pconn, pconn_matrix
+        pbt, pconn_offsets, block_n_conn, pconn_matrix
     )
 
     return (block_type_ind64, inter_residue_connections64, ibb64)
