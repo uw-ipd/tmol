@@ -250,7 +250,7 @@ class TestLigandAtomArrayToRdkitMol:
 
         return NonStandardResidueInfo(
             res_name="LG1",
-            ccd_type="UNKNOWN",
+            component_type="UNKNOWN",
             atom_names=tuple(str(n) for n in arr.atom_name),
             elements=tuple(str(e) for e in arr.element),
             coords=arr.coord.copy(),

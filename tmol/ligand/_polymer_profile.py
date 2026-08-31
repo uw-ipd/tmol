@@ -7,6 +7,7 @@ which atoms form the backbone, what the caps are, and what the resulting residue
 type must declare.
 """
 
+import logging
 import math
 from collections import Counter, defaultdict, deque
 from typing import Optional, Tuple
@@ -14,8 +15,10 @@ from typing import Optional, Tuple
 import attr
 import numpy
 import biotite.structure as struc
+from rdkit import Chem
+from rdkit.Chem import rdFMCS
 
-from tmol.ligand._detect import ccd_chain_end_atoms
+logger = logging.getLogger(__name__)
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -75,6 +78,16 @@ class PolymerProfile:
     #    peptide bond and name it. No wildcard row names an alpha hydrogen, so
     #    the rest keep whatever the ligand pipeline gave them
     renamed_h_parents: Tuple[str, ...] = ()
+    # a torsion the builder derives from the residue rather than declaring it:
+    #    the glycosidic one runs into the base, so its atoms differ per residue
+    glycosidic_torsion: Optional[str] = None
+    # whose termini patches a generated one is modelled on, where this backbone
+    #    is not one the database describes
+    terminus_template_backbone: str = "alpha_aa"
+    # the mainchain atom the icoor tree is rooted at, where that is not its
+    #    first: a nucleotide roots at its 5' oxygen so that losing the
+    #    phosphate at a 5' terminus does not orphan the rest of the backbone
+    icoor_root: Optional[str] = None
 
     @property
     def cap_names(self):
@@ -110,7 +123,7 @@ def _canonical_alpha_residues(chemdb):
         if r.name == r.base_name
         and r.properties.is_canonical
         and r.properties.polymer.is_polymer
-        and r.properties.polymer.backbone_type == "alpha"
+        and r.properties.polymer.backbone_type == "alpha_aa"
     ]
 
 
@@ -253,9 +266,9 @@ def _build_alpha_profile(chemdb) -> PolymerProfile:  # noqa: C901
             )
 
     return PolymerProfile(
-        name="alpha",
+        name="alpha_aa",
         polymer_type="amino_acid",
-        backbone_type="alpha",
+        backbone_type="alpha_aa",
         reference_restype=residues[0].name,
         mainchain_atoms=tuple(mainchain),
         down=("down", down_atom),
@@ -398,7 +411,7 @@ def cap_polymer_profile(atom_array, connection_atom: str, chemdb) -> PolymerProf
     return PolymerProfile(
         name="cap",
         polymer_type=alpha.polymer_type,
-        backbone_type="nonstandard",
+        backbone_type="nonstandard_aa",
         reference_restype=None,
         # a cap does not continue the chain, so the atom it bonds through is
         #    the whole of its mainchain
@@ -577,12 +590,16 @@ def _chain_end_candidates(atom_array, known: str) -> list:
     adj, double, element = _heavy_adjacency(atom_array)
     hydrogens = _hydrogen_counts(atom_array)
     if element.get(known) == "N":
+        # the acid the chain would continue through. Counting its oxygens would
+        #    find a free sidechain carboxylate ahead of a backbone carbonyl
+        #    whose terminal hydroxyl was never modeled, so what separates them
+        #    is the nitrogen an amide sidechain carbon carries and this does not
         candidates = [
             c
             for c in sorted(adj)
             if element.get(c) == "C"
             and any(element.get(o) == "O" for o in double.get(c, ()))
-            and sum(1 for o in adj[c] if element.get(o) == "O") >= 2
+            and not any(element.get(n) == "N" for n in adj[c])
         ]
     else:
         candidates = [
@@ -609,24 +626,50 @@ def completed_connection_atoms(atom_array, connection_atoms):
     """Both ends of the backbone where the structure only shows one.
 
     A residue seen only at a chain terminus is bonded on one side, and one
-    connection does not say where the backbone stops. The component definition
-    does, having flagged the atoms it gives up on polymerizing; failing that
-    the residue's own chemistry usually does. Returns the input unchanged when
-    neither settles it, leaving the caller to refuse.
+    connection does not say where the backbone stops; its own chemistry does.
+    Where more than one atom could carry the other connection the conventional
+    backbone wins, since a residue deposited under a code that says nothing
+    else is far likelier to be linked conventionally than through a sidechain.
+    Returns the input unchanged when nothing settles it, leaving the caller to
+    refuse.
     """
     if not connection_atoms or len(connection_atoms) != 1:
         return connection_atoms
     known = next(iter(connection_atoms))
-    present = {str(n) for n in atom_array.atom_name}
     res_name = str(atom_array.res_name[0]) if len(atom_array) else ""
-
-    declared = {e for e in ccd_chain_end_atoms(res_name) if e in present}
-    if len(declared) == 2 and known in declared:
-        return frozenset(declared)
 
     far = _far_chain_end(atom_array, known)
     if far is not None:
         return frozenset({known, far})
+
+    # more than one candidate: a residue linked through a sidechain carboxyl
+    #    looks the same at a terminus as one linked through its own. Prefer the
+    #    conventional backbone, which is what a chain of this residue almost
+    #    always uses, and say so
+    candidates = _chain_end_candidates(atom_array, known)
+    conventional = [
+        c
+        for c in candidates
+        if alpha_backbone_atoms(atom_array, frozenset({known, c})) is not None
+    ]
+    if len(conventional) == 1:
+        logger.warning(
+            "%s is seen only at a chain terminus and %s could each carry its "
+            "other connection; it is read as the conventional backbone through "
+            "%s. A copy of the residue in a chain would settle it.",
+            res_name or "this residue",
+            ", ".join(sorted(candidates)),
+            conventional[0],
+        )
+        return frozenset({known, conventional[0]})
+    if len(candidates) > 1:
+        logger.warning(
+            "%s is seen only at a chain terminus and %s could each carry its "
+            "other connection, none of them a conventional backbone; it cannot "
+            "be told apart. A copy of the residue in a chain would settle it.",
+            res_name or "this residue",
+            ", ".join(sorted(candidates)),
+        )
     return connection_atoms
 
 
@@ -691,22 +734,31 @@ def _generic_mainchain_torsions(path):
     return tuple(out)
 
 
-def generic_polymer_profile(path) -> PolymerProfile:
-    """A profile for a backbone tmol has no peptide description of.
+def generic_polymer_profile(path, element=None, chemdb=None) -> PolymerProfile:
+    """A profile for a backbone tmol has no standard description of.
 
-    Everything the alpha profile does to make a residue score as protein is
-    dropped: no atom retyping, no hydrogen renaming, no transplanted backbone
-    geometry. The residue keeps its ligand atom types; its own cartbonded
-    entry covers lengths and angles, and gen_bonded covers torsions, the one
-    across the bond to its neighbour included.
+    Everything the standard profiles do to make a residue score as protein or
+    as a nucleotide is dropped: no atom retyping, no hydrogen renaming, no
+    transplanted backbone geometry. The residue keeps its ligand atom types;
+    its own cartbonded entry covers lengths and angles, and gen_bonded covers
+    torsions, the one across the bond to its neighbour included.
+
+    A backbone running through a phosphorus is capped as a nucleotide's rather
+    than as a peptide's -- an amide stub on a phosphate would be chemistry the
+    residue does not have.
     """
     first, last = path[0], path[-1]
+    if element is not None and any(element.get(a) == "P" for a in path) and chemdb:
+        # a nucleotide chain runs 5' to 3', so the phosphorus end goes first
+        if element.get(last) == "P" and element.get(first) != "P":
+            path = tuple(reversed(path))
+        return _generic_na_profile(path, chemdb)
     return PolymerProfile(
-        name="nonstandard",
+        name="nonstandard_aa",
         polymer_type="amino_acid",
-        # anything but "alpha": the terms that only describe a peptide backbone
+        # anything but "alpha_aa": the terms that only describe a peptide backbone
         #    key on this and skip
-        backbone_type="nonstandard",
+        backbone_type="nonstandard_aa",
         reference_restype=None,
         mainchain_atoms=tuple(path),
         down=("down", first),
@@ -908,19 +960,133 @@ def profile_for_atom_array(
 
         chemdb = ParameterDatabase.get_default().chemical
     if connection_atoms and len(connection_atoms) == 1:
+        # a nucleotide seen only at a 5' terminus has one connection and no
+        #    phosphate, which is a chain member rather than a cap
+        completed = completed_connection_atoms(atom_array, connection_atoms)
+        if na_backbone_kind(atom_array, completed) is not None:
+            return na_profile(chemdb, na_backbone_kind(atom_array, completed))
         known = next(iter(connection_atoms))
-        res_name = str(atom_array.res_name[0]) if len(atom_array) else ""
-        present = {str(n) for n in atom_array.atom_name}
-        declared = {e for e in ccd_chain_end_atoms(res_name) if e in present}
-        # nothing to continue the chain with, and nothing declaring otherwise
-        if len(declared) < 2 and not _chain_end_candidates(atom_array, known):
+        # nothing to continue the chain with: this residue terminates it
+        if not _chain_end_candidates(atom_array, known):
             return cap_polymer_profile(atom_array, known, chemdb)
     connection_atoms = completed_connection_atoms(atom_array, connection_atoms)
     if alpha_backbone_atoms(atom_array, connection_atoms) is not None:
         return alpha_profile(chemdb)
+    kind = na_backbone_kind(atom_array, connection_atoms)
+    if kind is not None:
+        return na_profile(chemdb, kind)
     path = mainchain_path(atom_array, connection_atoms)
     if path is not None and len(path) >= 3:
-        return generic_polymer_profile(path)
+        _adj, _double, element = _heavy_adjacency(atom_array)
+        return generic_polymer_profile(path, element, chemdb)
+    return None
+
+
+def na_sugar_mainchain(adjacency, element):
+    """The nucleotide mainchain, found from the sugar ring alone.
+
+    Returns (path, ring) with the path running 5' to 3' -- P-O5'-C5'-C4'-C3'-O3',
+    or the same without the phosphate, which a residue seen only at a 5'
+    terminus does not have. Derived from the ring rather than from the
+    connections, since a residue at a chain end has only one of those and the
+    missing one is exactly what has to be worked out.
+    """
+    for ring in _five_rings(adjacency, element):
+        hetero = next(a for a in ring if element.get(a) != "C")
+        for c3 in ring:
+            if c3 == hetero:
+                continue
+            exocyclic_o = [
+                n
+                for n in sorted(adjacency[c3])
+                if n not in ring and element.get(n) == "O"
+            ]
+            for c4 in sorted(adjacency[c3] & ring):
+                if c4 == hetero or hetero not in adjacency[c4]:
+                    continue
+                for c5 in sorted(adjacency[c4] - ring):
+                    if element.get(c5) != "C":
+                        continue
+                    for o5 in sorted(adjacency[c5]):
+                        if element.get(o5) != "O" or o5 in ring:
+                            continue
+                        for o3 in exocyclic_o:
+                            path = [o5, c5, c4, c3, o3]
+                            if len(set(path)) != 5:
+                                continue
+                            phosphate = [
+                                n
+                                for n in sorted(adjacency[o5])
+                                if element.get(n) == "P"
+                            ]
+                            return (
+                                tuple(phosphate[:1] + path),
+                                tuple(ring),
+                            )
+    return None, None
+
+
+def _five_rings(adjacency, element):
+    """Five-membered rings carrying exactly one non-carbon, in name order."""
+    rings = []
+    for hetero in sorted(adjacency):
+        if element.get(hetero) in ("C", "H", None):
+            continue
+        neighbours = sorted(n for n in adjacency[hetero] if element.get(n) == "C")
+        if len(neighbours) != 2:
+            continue
+        first, second = neighbours
+        path = _shortest_path(
+            {a: bs - {hetero} for a, bs in adjacency.items()}, first, second
+        )
+        if path is None or len(path) != 4:
+            continue
+        ring = {hetero, *path}
+        if len(ring) == 5 and sum(element.get(a) != "C" for a in ring) == 1:
+            rings.append(ring)
+    return rings
+
+
+def na_backbone_kind(atom_array, connection_atoms) -> Optional[str]:
+    """ "dna" or "rna" if this residue has a standard nucleotide backbone.
+
+    Standard means a five-membered sugar with the phosphate-to-3'-oxygen path
+    closed on it. What hangs off the sugar is not looked at, so a modified base
+    or a substituted 2' position is still standard; RNA is told from DNA by an
+    oxygen on the sugar, which is where a ribose differs from a deoxyribose.
+    """
+    if not connection_atoms:
+        return None
+    adjacency, _double, element = _heavy_adjacency(atom_array)
+    path, ring = na_sugar_mainchain(adjacency, element)
+    if path is None:
+        return None
+    # the connections have to be this backbone's ends, not a sidechain's
+    if not set(connection_atoms) <= {path[0], path[-1]}:
+        return None
+
+    exocyclic_oxygen = any(
+        element.get(other_atom) == "O"
+        for atom in ring
+        if atom not in path
+        for other_atom in adjacency[atom]
+        if other_atom not in ring and other_atom not in path
+    )
+    return "rna" if exocyclic_oxygen else "dna"
+
+
+def _shortest_path(adjacency, start, end):
+    """Shortest bonded path between two atoms, or None."""
+    queue = deque([(start, (start,))])
+    seen = {start}
+    while queue:
+        current, path = queue.popleft()
+        if current == end:
+            return path
+        for neighbour in sorted(adjacency.get(current, ())):
+            if neighbour not in seen:
+                seen.add(neighbour)
+                queue.append((neighbour, path + (neighbour,)))
     return None
 
 
@@ -1004,3 +1170,584 @@ def cap_residue(atom_array, profile: PolymerProfile):
         )
     out.bonds = bonds
     return out, cap_names
+
+
+# --------------------------------------------------------------------------- #
+# nucleic acids
+# --------------------------------------------------------------------------- #
+
+_NA_PROFILE_CACHE: dict = {}
+
+
+def na_profile(chemdb, kind: str) -> Optional[PolymerProfile]:
+    """The DNA or RNA profile, read off the database's own nucleotides.
+
+    Nothing about a nucleotide is written here: the mainchain, the connections,
+    the atom types and the torsions are surveyed from the canonical residues
+    that already carry them. The backbone is the phosphate and the whole sugar
+    -- everything on the near side of the bond from the sugar to the base --
+    so only the base is left to the ligand typer.
+    """
+    key = (id(chemdb), kind)
+    if key not in _NA_PROFILE_CACHE:
+        _NA_PROFILE_CACHE[key] = _build_na_profile(chemdb, kind)
+    return _NA_PROFILE_CACHE[key]
+
+
+def _canonical_na_residues(chemdb, kind):
+    return [
+        r
+        for r in chemdb.residues
+        if r.name == r.base_name
+        and r.properties.polymer.backbone_type == kind
+        and r.properties.polymer.mainchain_atoms
+    ]
+
+
+def sugar_backbone(residue, mainchain, element):
+    """(backbone atom names, sugar ring, glycosidic bond) of one nucleotide.
+
+    The backbone is everything reachable from the mainchain without crossing
+    the bond from the sugar to the base, so what counts as backbone is decided
+    by the topology rather than by a list of names.
+    """
+    adjacency = defaultdict(set)
+    for a, b, *_ in residue.bonds:
+        adjacency[a].add(b)
+        adjacency[b].add(a)
+    types = {a.name: a.atom_type for a in residue.atoms}
+
+    ring = _smallest_ring_through(adjacency, mainchain[-2], mainchain[-3])
+    if ring is None or len(ring) != 5:
+        return None
+    # the base hangs off the ring by a heavy atom outside it -- through carbon
+    #    in a C-glycoside such as pseudouridine, so the element is not fixed
+    substituents = [
+        (atom, other)
+        for atom in ring
+        for other in sorted(adjacency[atom])
+        if other not in ring
+        and other not in mainchain
+        and element.get(types.get(other, "")) not in ("H", None)
+    ]
+    # a sugar carries substituents of its own -- a 2' hydroxyl, or the methyl
+    #    on it -- and they are told from the base by the base being cyclic
+    cyclic = [
+        bond for bond in substituents if _reaches_a_ring(adjacency, bond[1], bond[0])
+    ]
+    if len(cyclic) > 1:
+        return None
+    if not cyclic:
+        # no base at all: an abasic site is all backbone
+        backbone = {name for name in adjacency if name in types}
+        return backbone, ring, None
+
+    anchor, base_atom = cyclic[0]
+    backbone, stack = set(), [mainchain[0]]
+    while stack:
+        name = stack.pop()
+        if name in backbone:
+            continue
+        backbone.add(name)
+        for other in adjacency[name]:
+            if (name, other) == (anchor, base_atom):
+                continue
+            stack.append(other)
+    return backbone, ring, (anchor, base_atom)
+
+
+def _reaches_a_ring(adjacency, start, blocked):
+    """Whether a ring lies on the far side of the ``blocked``-``start`` bond."""
+    seen, stack, order = {blocked}, [start], []
+    while stack:
+        name = stack.pop()
+        if name in seen:
+            continue
+        seen.add(name)
+        order.append(name)
+        stack.extend(sorted(adjacency[name]))
+    edges = (
+        sum(1 for a in order for b in adjacency[a] if b in seen and b != blocked) // 2
+    )
+    return edges >= len(order)
+
+
+def _smallest_ring_through(adjacency, first, second):
+    """The shortest cycle containing the bond ``first``-``second``."""
+    queue = deque([[second, first]])
+    seen = {(second, first)}
+    while queue:
+        path = queue.popleft()
+        for other in sorted(adjacency[path[-1]]):
+            if other == second and len(path) > 2:
+                return path
+            if other in path or (path[-1], other) in seen:
+                continue
+            seen.add((path[-1], other))
+            queue.append([*path, other])
+    return None
+
+
+def _build_na_profile(chemdb, kind: str) -> Optional[PolymerProfile]:
+    residues = _canonical_na_residues(chemdb, kind)
+    if not residues:
+        return None
+    element = {a.name: a.element for a in chemdb.atom_types}
+
+    mainchain = _commonest(
+        Counter(r.properties.polymer.mainchain_atoms for r in residues)
+    )
+    connections = _commonest(
+        Counter(
+            tuple(
+                (c.name, c.atom, c.type) for c in r.connections if c.atom in mainchain
+            )
+            for r in residues
+        )
+    )
+    by_name = {name: (atom, kind_) for name, atom, kind_ in connections}
+    down_atom, bond_type = by_name["down"]
+    up_atom, _ = by_name["up"]
+
+    # the backbone the canonical residues agree on, and the types they give it
+    backbones, rings = [], []
+    anchor_counts = Counter()
+    types = defaultdict(Counter)
+    hydrogen_types = defaultdict(Counter)
+    for residue in residues:
+        found = sugar_backbone(residue, mainchain, element)
+        if found is None:
+            continue
+        backbone, ring, bond = found
+        backbones.append(backbone)
+        if bond is not None:
+            anchor_counts[bond[0]] += 1
+        rings.append(tuple(ring))
+        atom_types = {a.name: a.atom_type for a in residue.atoms}
+        for name in backbone:
+            if element.get(atom_types.get(name, "")) == "H":
+                continue
+            types[name][atom_types[name]] += 1
+        for a, b, *_ in residue.bonds:
+            for atom, other in ((a, b), (b, a)):
+                if atom in backbone and element.get(atom_types.get(other, "")) == "H":
+                    hydrogen_types[atom][atom_types[other]] += 1
+    if not backbones:
+        return None
+    shared = set.intersection(*backbones)
+    ring = _commonest(Counter(rings))
+    anchors = (_commonest(anchor_counts),) if anchor_counts else tuple(sorted(ring))
+
+    torsions = _na_backbone_torsions(residues, shared, mainchain)
+    icoors = {r.name: {i.name: i for i in r.icoors} for r in residues}
+    reference = residues[0]
+    ref_icoors = icoors[reference.name]
+
+    return PolymerProfile(
+        name=kind,
+        polymer_type=reference.properties.polymer.polymer_type,
+        backbone_type=kind,
+        reference_restype=reference.name,
+        mainchain_atoms=tuple(mainchain),
+        down=("down", down_atom),
+        up=("up", up_atom),
+        connection_bond_type=bond_type,
+        caps=_na_caps(ref_icoors, mainchain, down_atom, up_atom),
+        down_partner="OY",
+        up_partner="PY",
+        # the base is the only thing off the backbone, and it hangs off the sugar
+        sidechain_root_atoms=anchors,
+        backbone_types=tuple(
+            (name, _commonest(counter)) for name, counter in sorted(types.items())
+        ),
+        amide_n_types=None,
+        backbone_h_types=tuple(
+            (name, _commonest(counter))
+            for name, counter in sorted(hydrogen_types.items())
+        ),
+        mainchain_torsions=torsions,
+        transplant_icoors=tuple(sorted(shared) + ["down", "up"]),
+        renamed_h_parents=(),
+        glycosidic_torsion="chi1",
+        icoor_root=_reference_icoor_root(reference, mainchain),
+    )
+
+
+def _na_caps(icoors, mainchain, down_atom, up_atom, reference=None):
+    """Stubs standing in for the nucleotides either side, on their own geometry.
+
+    Across the down connection sits the previous residue's O3' and the carbon
+    it hangs off, which makes this residue's phosphate the diester it is in a
+    chain. Across the up connection sits the next residue's phosphate, so the
+    3' oxygen sees an ester rather than a bare hydroxyl.
+    """
+    phosphate, five_prime = mainchain[0], mainchain[1]
+    c5, c4, c3 = mainchain[2], mainchain[3], mainchain[4]
+    # the frame is this residue's atoms; the geometry is the canonical one's,
+    #    looked up by the role each atom plays rather than by what it is called
+    ref_phosphate, ref_up = reference or (phosphate, up_atom)
+    return (
+        _stub_from_icoor(
+            "OY", "O", (c5, five_prime, down_atom), icoors["down"], -64.0, down_atom
+        ),
+        _stub_from_icoor(
+            "CY", "C", (five_prime, phosphate, "OY"), icoors[ref_up], 180.0, "OY"
+        ),
+        _stub_from_icoor("PY", "P", (c4, c3, up_atom), icoors["up"], 180.0, up_atom),
+        _stub_from_icoor(
+            "OY1", "O", (c3, up_atom, "PY"), icoors["OP1"], -130.0, "PY", "DOUBLE"
+        ),
+        _stub_from_icoor("OY2", "O", (c3, up_atom, "PY"), icoors["OP2"], 114.0, "PY"),
+        _stub_from_icoor("OY3", "O", (c3, up_atom, "PY"), icoors[phosphate], 0.0, "PY"),
+    )
+
+
+def _na_backbone_torsions(residues, backbone, mainchain):
+    """The canonical torsions that name only backbone atoms and connections.
+
+    Everything but the glycosidic one: alpha through zeta and the sugar
+    puckers are the same four atoms in every nucleotide, while chi runs into
+    the base and is named per residue.
+    """
+
+    def spec(atom):
+        if atom.atom is not None:
+            return atom.atom
+        return f"{atom.connection}:{atom.bond_sep_from_conn}"
+
+    out, seen = [], set()
+    for residue in residues:
+        for torsion in residue.torsions:
+            atoms = tuple(spec(a) for a in (torsion.a, torsion.b, torsion.c, torsion.d))
+            if torsion.name in seen:
+                continue
+            if not all(a in backbone or ":" in a for a in atoms):
+                continue
+            seen.add(torsion.name)
+            out.append((torsion.name, atoms))
+    return tuple(out)
+
+
+def glycosidic_torsion_atoms(profile, adjacency, element):
+    """The four atoms of a nucleotide's glycosidic torsion, or None.
+
+    Rosetta measures chi from the sugar's ring oxygen through the bond to the
+    base: O4'-C1'-N9-C4 in a purine, O4'-C1'-N1-C2 in a pyrimidine. The tables
+    are calibrated on that, so the atoms cannot be whichever four a rotatable
+    bond search happened to pick.
+
+    The last atom is the base neighbour lying in the most rings, and the lowest
+    name among equals -- which reproduces the convention for purines (the fused
+    carbon), pyrimidines and C-glycosides alike.
+    """
+    mainchain = profile.mainchain_atoms
+    if len(mainchain) < 5:
+        return None
+    ring = _smallest_ring_through(adjacency, mainchain[3], mainchain[4])
+    if ring is None or len(ring) != 5:
+        return None
+    hetero = [a for a in ring if element.get(a) not in ("C", None)]
+    if len(hetero) != 1:
+        return None
+
+    attachment = [
+        (atom, other)
+        for atom in ring
+        for other in sorted(adjacency[atom])
+        if other not in ring
+        and other not in mainchain
+        and element.get(other) not in ("H", None)
+        and _reaches_a_ring(adjacency, other, atom)
+    ]
+    if len(attachment) != 1:
+        return None
+    anchor, base_atom = attachment[0]
+
+    def rings_through(atom):
+        return sum(
+            1
+            for other in adjacency[atom]
+            if other != base_atom and _reaches_a_ring(adjacency, other, atom)
+        )
+
+    outward = [
+        n
+        for n in sorted(adjacency[base_atom])
+        if n != anchor and element.get(n) not in ("H", None)
+    ]
+    if not outward:
+        return None
+    last = max(outward, key=lambda n: (rings_through(n), [-ord(c) for c in n]))
+    return (hetero[0], anchor, base_atom, last)
+
+
+def _generic_na_profile(path, chemdb) -> PolymerProfile:
+    """A nucleotide backbone with no standard description: capped as one.
+
+    Reached by a component the standard profiles cannot map -- a dinucleotide
+    fused into one residue, say -- so nothing is retyped and no nucleic acid
+    torsion is declared. Only the stubs standing in for its neighbours are a
+    nucleotide's, since that is what its two ends actually bond to.
+    """
+    reference = na_profile(chemdb, "dna")
+    icoors = (
+        {}
+        if reference is None
+        else {
+            i.name: i
+            for r in chemdb.residues
+            if r.name == reference.reference_restype
+            for i in r.icoors
+        }
+    )
+    return PolymerProfile(
+        name="nonstandard_na",
+        polymer_type="nucleic_acid",
+        backbone_type="nonstandard_na",
+        reference_restype=None,
+        mainchain_atoms=tuple(path),
+        down=("down", path[0]),
+        up=("up", path[-1]),
+        connection_bond_type="SINGLE",
+        caps=_na_caps(
+            icoors, (path[0], path[1], path[2], path[-3], path[-2]), path[0], path[-1]
+        ),
+        down_partner="OY",
+        up_partner="PY",
+        sidechain_root_atoms=None,
+        backbone_types=(),
+        amide_n_types=None,
+        backbone_h_types=(),
+        mainchain_torsions=_generic_mainchain_torsions(path),
+        transplant_icoors=(),
+        terminus_template_backbone="dna",
+        # the 5' patch takes the phosphate away, so the tree cannot be rooted
+        #    there; the canonical nucleotide roots at the oxygen after it for
+        #    the same reason
+        icoor_root=path[1] if len(path) > 1 else None,
+    )
+
+
+def complete_backbone_from_reference(atom_array, profile, param_db):
+    """Backbone atoms the residue is missing, donated by a canonical one.
+
+    A residue seen only at a chain end lacks whatever that end does not carry:
+    a nucleotide at a 5' terminus has no phosphate at all. The residue type has
+    to describe it in a chain, so the missing atoms come from the canonical
+    residue of its own class, placed by superimposing that residue's backbone
+    on this one's.
+
+    The donor is a canonical residue of the same class, so the graft needs
+    no component definition for this residue and works under a code nothing
+    defines.
+    """
+    if profile.reference_restype is None or not profile.backbone_types:
+        return atom_array
+    present = {str(n) for n in atom_array.atom_name}
+    wanted = {name for name, _t in profile.backbone_types} - present
+    if not wanted:
+        return atom_array
+
+    donor_type = next(
+        (r for r in param_db.chemical.residues if r.name == profile.reference_restype),
+        None,
+    )
+    if donor_type is None:
+        return atom_array
+    coords = _ideal_coords_for(donor_type)
+    shared = sorted(present & set(coords))
+    if len(shared) < 3 or not wanted <= set(coords):
+        return atom_array
+
+    observed = {str(n): c for n, c in zip(atom_array.atom_name, atom_array.coord)}
+    rotation, offset = _superposition(
+        numpy.array([coords[n] for n in shared]),
+        numpy.array([observed[n] for n in shared]),
+    )
+    added = struc.AtomArray(len(wanted))
+    for i, name in enumerate(sorted(wanted)):
+        added.coord[i] = coords[name] @ rotation.T + offset
+        added.atom_name[i] = name
+        added.element[i] = _element_of(donor_type, name)
+    for field in ("res_name", "chain_id", "res_id", "hetero"):
+        if field in atom_array.get_annotation_categories():
+            getattr(added, field)[:] = getattr(atom_array, field)[0]
+
+    combined = atom_array + added
+    index = {str(n): i for i, n in enumerate(combined.atom_name)}
+    bonds = struc.BondList(combined.array_length())
+    if atom_array.bonds is not None:
+        for i, j, order in atom_array.bonds.as_array():
+            bonds.add_bond(int(i), int(j), int(order))
+    for a, b, bond_order, *_ in _localized_bonds(donor_type):
+        if a in index and b in index and (a in wanted or b in wanted):
+            bonds.add_bond(index[a], index[b], bond_order)
+    combined.bonds = bonds
+    return combined
+
+
+def _localized_bonds(residue_type):
+    """The residue's bonds as a structure writes them, not as tmol stores them.
+
+    A delocalized group -- a phosphate's two free oxygens, a carboxylate's --
+    is stored as a pair of equivalent bonds, which is not a bond order a
+    molecule can be built from. One of each such group becomes the double bond
+    and the rest single, which is how a structure file carries it.
+    """
+    delocalized = defaultdict(list)
+    localized = []
+    for a, b, bond_order, *_ in residue_type.bonds:
+        if bond_order == "AROMATIC":
+            delocalized[a].append((a, b))
+            delocalized[b].append((a, b))
+        else:
+            localized.append((a, b, 2 if bond_order == "DOUBLE" else 1))
+
+    doubled = set()
+    for _centre, group in sorted(delocalized.items()):
+        # a ring's bonds are delocalized too and are shared by two atoms each;
+        #    only a group all on one centre is a resonance pair to localize
+        if len(group) < 2 or any(len(delocalized[b]) > 2 for _a, b in group):
+            continue
+        doubled.add(group[0])
+    seen = set()
+    for centre_bonds in delocalized.values():
+        for bond in centre_bonds:
+            if bond in seen:
+                continue
+            seen.add(bond)
+            localized.append((bond[0], bond[1], 2 if bond in doubled else 1))
+    return localized
+
+
+def _ideal_coords_for(residue_type):
+    """A canonical residue's ideal coordinates, by atom name."""
+    import cattr
+
+    from tmol.chemical._restypes import RefinedResidueType
+
+    refined = cattr.structure(cattr.unstructure(residue_type), RefinedResidueType)
+    xyz = refined.compute_ideal_coords()
+    return {ic.name: numpy.asarray(xyz[i]) for i, ic in enumerate(refined.icoors)}
+
+
+def _element_of(residue_type, name):
+    """The element of one of a canonical residue's atoms, from its type."""
+    from tmol.database import ParameterDatabase
+
+    types = {a.name: a.atom_type for a in residue_type.atoms}
+    elements = {
+        a.name: a.element for a in ParameterDatabase.get_default().chemical.atom_types
+    }
+    return elements.get(types.get(name, ""), name[0])
+
+
+def _superposition(source, target):
+    """Rotation and offset carrying ``source`` onto ``target`` (Kabsch)."""
+    source_mean, target_mean = source.mean(0), target.mean(0)
+    u, _s, vt = numpy.linalg.svd((source - source_mean).T @ (target - target_mean))
+    d = numpy.sign(numpy.linalg.det(vt.T @ u.T))
+    rotation = vt.T @ numpy.diag([1.0, 1.0, d]) @ u.T
+    return rotation, target_mean - source_mean @ rotation.T
+
+
+def _reference_icoor_root(residue_type, mainchain):
+    """The mainchain atom the canonical residue roots its icoor tree at.
+
+    An atom tree's root is its own parent. Which atom that is decides what a
+    patch can safely remove: everything is placed against it, directly or not.
+    """
+    for icoor in residue_type.icoors:
+        if icoor.name == icoor.parent and icoor.name in mainchain:
+            return icoor.name
+    return None
+
+
+def _base_skeleton(residue_type, mainchain, element_of):
+    """An element-and-connectivity graph of one nucleotide's base, or None.
+
+    Bond orders are deliberately dropped: an input's orders are not trusted,
+    and the base is identified by its skeleton and heteroatom placement.
+    """
+    parts = sugar_backbone(residue_type, mainchain, element_of)
+    if parts is None:
+        return None
+    backbone, _ring, glycosidic = parts
+    if glycosidic is None:
+        return None
+    types = {a.name: a.atom_type for a in residue_type.atoms}
+    names = sorted(
+        n
+        for n in types
+        if n not in backbone and element_of.get(types[n], "") not in ("H", "")
+    )
+    if not names:
+        return None
+    index = {n: i for i, n in enumerate(names)}
+    mol = Chem.RWMol()
+    for n in names:
+        mol.AddAtom(Chem.Atom(element_of[types[n]]))
+    for a, b, *_ in residue_type.bonds:
+        if a in index and b in index:
+            mol.AddBond(index[a], index[b], Chem.BondType.SINGLE)
+    return mol.GetMol()
+
+
+def _base_similarity(query, reference):
+    """Jaccard overlap of the largest common substructure of two skeletons.
+
+    Runs to completion: the reference is one of the canonical bases, a dozen
+    atoms at most, which bounds the search however large the query is. A
+    timeout would return a partial match that scores like a poor one.
+    """
+    result = rdFMCS.FindMCS(
+        [query, reference],
+        atomCompare=rdFMCS.AtomCompare.CompareElements,
+        bondCompare=rdFMCS.BondCompare.CompareAny,
+        ringMatchesRingOnly=True,
+    )
+    shared = result.numAtoms
+    if not shared:
+        return 0.0
+    return shared / (query.GetNumAtoms() + reference.GetNumAtoms() - shared)
+
+
+def na_base_reference(residue_type, profile, chemdb, minimum=0.5):
+    """The canonical nucleotide whose base tables this one is scored on.
+
+    Chosen by matching the base's skeleton against the canonical bases of the
+    same polymer, so a modification is scored on the base it modifies without
+    anything being declared: 8-oxoguanine keeps guanine's tables because
+    guanine is still the closest of the four. A base too unlike any of them --
+    or none at all, as at an abasic site -- falls back to the polymer's
+    averaged base, so the residue is still scored rather than dropped.
+    """
+    from tmol.score.na_torsion import BASE_FOR_NAME3, UNKNOWN_BASE_REFERENCE
+
+    kind = profile.backbone_type
+    fallback = UNKNOWN_BASE_REFERENCE[kind]
+    element_of = {at.name: at.element for at in chemdb.atom_types}
+    query = _base_skeleton(residue_type, profile.mainchain_atoms, element_of)
+    if query is None:
+        return fallback
+
+    # the table is keyed by PDB code, the database by its own residue name;
+    #    the io equivalence class is what carries one to the other
+    references = sorted(
+        (r.io_equiv_class, r)
+        for r in chemdb.residues
+        if r.name == r.base_name
+        and r.properties.polymer.backbone_type == kind
+        and r.io_equiv_class in BASE_FOR_NAME3
+    )
+    best, score = fallback, minimum
+    for name, reference in references:
+        skeleton = _base_skeleton(
+            reference, reference.properties.polymer.mainchain_atoms, element_of
+        )
+        if skeleton is None:
+            continue
+        similarity = _base_similarity(query, skeleton)
+        if similarity > score:
+            best, score = name, similarity
+    return best

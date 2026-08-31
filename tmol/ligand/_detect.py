@@ -1,20 +1,20 @@
 """Detection of non-standard residues in biotite AtomArrays.
 
 Identifies residues that are not represented in tmol's ChemicalDatabase
-and classifies them using Biotite's built-in Chemical Component Dictionary
-(CCD) as either true ligands (non-polymer) or modified amino acids /
-nucleotides (polymer-linked).
+and classifies them as either true ligands (non-polymer) or modified amino
+acids / nucleotides (polymer-linked). The input file decides: mmCIF gives a
+polymer residue a label_seq_id and a non-polymer one a "."; failing that the
+file's own _chem_comp.type says. Nothing is read from the Chemical Component
+Dictionary, so a residue under a code no dictionary defines is classified the
+same as one under its deposited code.
 """
 
-import functools
 import logging
 from pathlib import Path
 from typing import Optional
 
 import attr
 import biotite.structure as struc
-import biotite.structure.info as info
-import biotite.structure.info.ccd as ccd
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem import RWMol
@@ -37,8 +37,11 @@ class NonStandardResidueInfo:
 
     Attributes:
         res_name: Three-letter residue code (e.g. "ATP", "NAG").
-        ccd_type: CCD chemical component type string, or "UNKNOWN" if the
-            residue is not in the CCD.  Informational only.
+        component_type: Chemical component type the input file declares, or
+            "UNKNOWN" where it declares none.
+        in_polymer_entity: Whether the input file places this residue in a
+            polymer entity (mmCIF label_seq_id). ``None`` where the source
+            cannot say, as a bare SMILES cannot.
         atom_names: Atom names for one representative instance.
         elements: Element symbols for each atom.
         coords: Cartesian coordinates of shape (n_atoms, 3).
@@ -63,7 +66,7 @@ class NonStandardResidueInfo:
     """
 
     res_name: str
-    ccd_type: str
+    component_type: str
     atom_names: tuple[str, ...]
     elements: tuple[str, ...]
     coords: np.ndarray = attr.ib(eq=False, hash=False)
@@ -77,45 +80,34 @@ class NonStandardResidueInfo:
     # atoms bonded to a neighbouring residue; empty when the residue stands
     #    alone, None when the source cannot say (a bare SMILES)
     connection_atom_names: Optional[frozenset[str]] = None
-
-
-@functools.cache
-def _chem_comp_type_dict() -> dict[str, str]:
-    """Build a dict mapping CCD component IDs to their chemical type."""
-    ccd_data = ccd.get_ccd()
-    ids = np.char.upper(ccd_data["chem_comp"]["id"].as_array())
-    types = np.char.upper(ccd_data["chem_comp"]["type"].as_array())
-    return dict(zip(ids, types))
+    # whether the input file places this residue in a polymer entity
+    in_polymer_entity: Optional[bool] = None
 
 
 def get_chem_comp_type(
     res_name: str, chem_comp_types: Optional[dict] = None
 ) -> Optional[str]:
-    """Look up the CCD chemical component type for a residue name.
+    """The chemical component type the input file declares for a residue.
 
     Args:
         res_name: Three-letter residue code.
-        chem_comp_types: Types declared by the input file, consulted only for
-            residues the CCD does not know.
+        chem_comp_types: Types declared by the input file.
 
     Returns:
-        The CCD type string (e.g. "NON-POLYMER", "L-PEPTIDE LINKING"),
-        or None if the code is in neither source.
+        The type string (e.g. "NON-POLYMER", "L-PEPTIDE LINKING"), or None
+        where the file declares none.
     """
-    key = res_name.upper()
-    ccd_type = _chem_comp_type_dict().get(key)
-    if ccd_type is None and chem_comp_types:
-        declared = chem_comp_types.get(key)
-        if declared:
-            return declared.upper()
-    return ccd_type
+    if not chem_comp_types:
+        return None
+    declared = chem_comp_types.get(res_name.upper())
+    return declared.upper() if declared else None
 
 
 def chem_comp_types_from_cif(cif_path) -> dict:
     """Read the _chem_comp.type of every component declared by a CIF file.
 
-    Structures may carry residues the CCD does not know; their declared type is
-    what says whether they are polymer-linking.
+    A file that does not number its residues along a polymer sequence can still
+    declare their types, which is what says whether they are polymer-linking.
     """
     import biotite.structure.io.pdbx as pdbx
 
@@ -166,8 +158,8 @@ _METAL_SYMBOLS = frozenset(
 def _strip_metals(mol: Chem.Mol) -> Chem.Mol:
     """Remove metal atoms from an RDKit Mol.
 
-    OpenBabel downstream cannot parse CCD coordination-bond SMILES, and
-    metals are dropped during ligand preparation anyway.
+    OpenBabel downstream cannot parse coordination-bond SMILES, and metals
+    are dropped during ligand preparation anyway.
     """
     metals = [a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol() in _METAL_SYMBOLS]
     if metals:
@@ -471,7 +463,7 @@ def _nonstandard_residue_info_from_mol2_mol(
 
     return NonStandardResidueInfo(
         res_name=inferred_res_name,
-        ccd_type="UNKNOWN",
+        component_type="UNKNOWN",
         atom_names=tuple(atom_names),
         elements=tuple(elements),
         coords=coords,
@@ -622,8 +614,8 @@ def detect_nonstandard_residues(
         atom_array: Biotite AtomArray from a CIF or PDB file.
         canonical_ordering: The current tmol CanonicalOrdering, which
             defines known residue types.
-        chem_comp_types: ``{comp_id: type}`` declared by the input file, used
-            for residues the CCD does not know.
+        chem_comp_types: ``{comp_id: type}`` declared by the input file,
+            consulted where it does not number residues along a sequence.
 
     Returns:
         A list of NonStandardResidueInfo objects, one per unique unknown
@@ -632,6 +624,7 @@ def detect_nonstandard_residues(
     known_names = set(canonical_ordering.restype_io_equiv_classes)
     seen: set[str] = set()
     results: list[NonStandardResidueInfo] = []
+    polymer_names = polymer_entity_residues(atom_array)
 
     cross_residue_atoms = _cross_residue_bond_atoms(
         atom_array, chem_comp_types=chem_comp_types
@@ -654,19 +647,20 @@ def detect_nonstandard_residues(
             continue
         seen.add(res_name)
 
-        mask = atom_array.res_name == atom_array.res_name[start]
-        if hasattr(atom_array, "res_id"):
-            mask &= atom_array.res_id == atom_array.res_id[start]
-        if hasattr(atom_array, "chain_id"):
-            mask &= atom_array.chain_id == atom_array.chain_id[start]
-
-        sub = atom_array[mask]
-        ccd_type = get_chem_comp_type(res_name, chem_comp_types) or "UNKNOWN"
+        sub = _representative_instance(
+            atom_array,
+            residue_starts,
+            start,
+            connection_atoms_by_name.get(res_name, ()),
+        )
+        component_type = get_chem_comp_type(res_name, chem_comp_types) or "UNKNOWN"
 
         logger.info(
-            "Detected non-standard residue %s (CCD type: %s, %d atoms)",
+            "Detected non-standard residue %s (declared type: %s, polymer "
+            "entity: %s, %d atoms)",
             res_name,
-            ccd_type,
+            component_type,
+            "unstated" if polymer_names is None else res_name in polymer_names,
             len(sub),
         )
 
@@ -677,7 +671,7 @@ def detect_nonstandard_residues(
         results.append(
             NonStandardResidueInfo(
                 res_name=res_name,
-                ccd_type=ccd_type,
+                component_type=component_type,
                 atom_names=tuple(sub.atom_name),
                 elements=tuple(sub.element),
                 coords=sub.coord.copy(),
@@ -686,66 +680,77 @@ def detect_nonstandard_residues(
                 connection_atom_names=frozenset(
                     connection_atoms_by_name.get(res_name, ())
                 ),
+                in_polymer_entity=(
+                    None if polymer_names is None else res_name in polymer_names
+                ),
             )
         )
 
     return results
 
 
-@functools.cache
-def ccd_chain_end_atoms(res_name: str) -> frozenset[str]:
-    """Atoms a component bonds its chain neighbours through, per the CCD.
+def _representative_instance(atom_array, residue_starts, start, connection_atoms=()):
+    """The copy of this residue to describe the type from.
 
-    A component definition flags the atoms it gives up on polymerizing -- the
-    hydroxyl of the acid, a proton of the amine -- so the atoms they hang off
-    are where the chain continues. Read from the definition rather than from
-    the structure, which has already dropped whichever it used.
-
-    Empty when the component is unknown to the CCD or does not flag them; about
-    one peptide-linking component in sixteen does not.
+    The first copy, unless it is missing an atom the connections say the
+    residue has: a nucleotide at a 5' terminus carries no phosphate, while the
+    connections, collected across every copy, name one. Copies also differ
+    where a sidechain is partly unresolved, and that is not a reason to prefer
+    one -- the type should describe the residue, not the best-ordered copy of
+    it.
     """
-    key = res_name.strip().upper()
-    if not key:
-        return frozenset()
-    try:
-        flags = info.get_from_ccd("chem_comp_atom", key, "pdbx_leaving_atom_flag")
-        names = info.get_from_ccd("chem_comp_atom", key, "atom_id")
-        component = info.residue(key)
-    except Exception:
-        return frozenset()
-    if flags is None or names is None or component.bonds is None:
-        return frozenset()
+    wanted = set(connection_atoms)
 
-    leaving = {
-        str(name)
-        for name, flag in zip(names.as_array(str), flags.as_array(str))
-        if flag == "Y"
-    }
-    if not leaving:
-        return frozenset()
+    def instance(other):
+        mask = atom_array.res_name == atom_array.res_name[other]
+        if hasattr(atom_array, "res_id"):
+            mask &= atom_array.res_id == atom_array.res_id[other]
+        if hasattr(atom_array, "chain_id"):
+            mask &= atom_array.chain_id == atom_array.chain_id[other]
+        return atom_array[mask]
 
-    by_index = {i: str(n) for i, n in enumerate(component.atom_name)}
-    element = {str(n): str(e) for n, e in zip(component.atom_name, component.element)}
-    ends: set[str] = set()
-    for i, j, _order in component.bonds.as_array():
-        a, b = by_index[int(i)], by_index[int(j)]
-        for leaf, parent in ((a, b), (b, a)):
-            if leaf in leaving and parent not in leaving and element.get(parent) != "H":
-                ends.add(parent)
-    return frozenset(ends)
+    first = instance(start)
+    if wanted <= {str(n) for n in first.atom_name}:
+        return first
+    for other in residue_starts:
+        if atom_array.res_name[other] != atom_array.res_name[start]:
+            continue
+        candidate = instance(other)
+        if wanted <= {str(n) for n in candidate.atom_name}:
+            return candidate
+    return first
 
 
-def is_polymer_linking_ccd_type(ccd_type: Optional[str]) -> bool:
-    """Whether a CCD chemical-component type denotes a polymer-linking residue.
+def is_polymer_linking_component_type(component_type: Optional[str]) -> bool:
+    """Whether a declared chemical-component type denotes a polymer residue.
 
     Returns True for modified amino acids, nucleotides, and saccharides
     (e.g. "L-PEPTIDE LINKING", "DNA LINKING", "D-SACCHARIDE"), which are
     expected to be covalently attached to a chain. Returns False for
-    "NON-POLYMER" small-molecule ligands and for unknown residues.
+    "NON-POLYMER" small-molecule ligands and where nothing is declared.
     """
-    if not ccd_type:
+    if not component_type:
         return False
-    return "LINKING" in ccd_type or "SACCHARIDE" in ccd_type
+    return "LINKING" in component_type or "SACCHARIDE" in component_type
+
+
+def polymer_entity_residues(atom_array: struc.AtomArray) -> Optional[frozenset[str]]:
+    """Names of the residues the input file places in a polymer entity.
+
+    mmCIF numbers a polymer entity's residues along its sequence and leaves a
+    non-polymer's label_seq_id as ".", which says directly what a component
+    type has to be interpreted to say -- and says it for a terminal cap, which
+    is typed NON-POLYMER despite being part of the chain. Returns None when the
+    structure carries no label_seq_id, leaving the caller its other evidence.
+    """
+    if "label_seq_id" not in atom_array.get_annotation_categories():
+        return None
+    seq = atom_array.get_annotation("label_seq_id").astype(str)
+    names = atom_array.res_name.astype(str)
+    numbered = np.char.strip(seq) != "."
+    if not numbered.any():
+        return None
+    return frozenset(str(n).strip() for n in names[numbered])
 
 
 def _cross_residue_bond_atoms(  # noqa: C901
@@ -769,9 +774,9 @@ def _cross_residue_bond_atoms(  # noqa: C901
     1. Explicit bonds in ``atom_array.bonds`` (if present). Authoritative for
        any residue type.
     2. Heavy-atom spatial proximity within ``spatial_cutoff`` Å. This catches
-       covalent attachments missing from the bond table for *polymer-linking*
-       residues (modified amino acids/nucleotides, glycans) when files lack
-       ``_struct_conn`` records. NON-POLYMER and unknown small-molecule ligands
+       covalent attachments missing from the bond table for residues the input
+       file places in a polymer entity (modified amino acids/nucleotides,
+       glycans) when files lack ``_struct_conn`` records. Non-polymer ligands
        are deliberately *not* flagged by proximity: tight binding-pocket
        contacts, hydrogen bonds, and clashes in unminimized models routinely
        fall below a covalent-bond distance and would otherwise be misread as
@@ -805,6 +810,15 @@ def _cross_residue_bond_atoms(  # noqa: C901
                 _record(a)
                 _record(b)
 
+    polymer_names = polymer_entity_residues(atom_array)
+
+    def _is_polymer(name: str) -> bool:
+        if polymer_names is not None:
+            return name in polymer_names
+        return is_polymer_linking_component_type(
+            get_chem_comp_type(name, chem_comp_types)
+        )
+
     if len(atom_array) > 1:
         heavy_mask = np.char.strip(atom_array.element.astype(str)) != "H"
         if heavy_mask.any():
@@ -818,10 +832,7 @@ def _cross_residue_bond_atoms(  # noqa: C901
                 if not _spans_residues(a, b):
                     continue
                 for idx in (a, b):
-                    name = res_names[idx].strip()
-                    if is_polymer_linking_ccd_type(
-                        get_chem_comp_type(name, chem_comp_types)
-                    ):
+                    if _is_polymer(res_names[idx].strip()):
                         _record(idx)
 
     return {key: frozenset(names) for key, names in linked.items()}

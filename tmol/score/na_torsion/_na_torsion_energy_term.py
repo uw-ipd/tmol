@@ -438,8 +438,11 @@ def _subterm_energies(
     tors = torch.where(tor_ok, tors, torch.zeros_like(tors)) % 360.0
     zero = torch.zeros(tors.shape[:-1], dtype=dtype, device=tors.device)
 
+    # a residue whose sugar ring did not resolve has no pucker: its ring
+    #    coordinates are zeros, and a distribution over them means nothing
+    has_ring = is_na & (ring_xyz.abs().sum((-1, -2)) > 0)
     pucker = pucker_weights(ring_xyz, pucker_temperature).to(dtype)
-    pucker = torch.where(is_na.unsqueeze(-1), pucker, torch.zeros_like(pucker))
+    pucker = torch.where(has_ring.unsqueeze(-1), pucker, torch.zeros_like(pucker))
 
     # --- backbone -----------------------------------------------------------
     means = backbone_means.to(dtype)[poly]
@@ -509,7 +512,7 @@ def _subterm_energies(
 
     # --- wells --------------------------------------------------------------
     # -ln P of each bin assignment
-    e_well = torch.where(is_na, (pucker * well_pucker.to(dtype)[poly]).sum(-1), zero)
+    e_well = torch.where(has_ring, (pucker * well_pucker.to(dtype)[poly]).sum(-1), zero)
 
     w_a, w_g = bin_w[ALPHA], bin_w[GAMMA]
     e_well = e_well + torch.where(

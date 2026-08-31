@@ -1,0 +1,26 @@
+data_glycan_nag_pair
+#
+loop_
+_chem_comp.id
+_chem_comp.type
+NAG 'D-saccharide, beta linking'
+#
+loop_
+_atom_site.group_PDB
+_atom_site.id
+_atom_site.type_symbol
+_atom_site.label_atom_id
+_atom_site.label_comp_id
+_atom_site.label_asym_id
+_atom_site.label_entity_id
+_atom_site.label_seq_id
+_atom_site.pdbx_PDB_ins_code
+_atom_site.Cartn_x
+_atom_site.Cartn_y
+_atom_site.Cartn_z
+_atom_site.auth_seq_id
+_atom_site.auth_asym_id
+_atom_site.pdbx_PDB_model_num
+HETATM 1 C C1 NAG A 2 . ? 0.000 0.000 0.000 1 A 1
+HETATM 2 O O4 NAG A 2 . ? 1.400 0.000 0.000 2 A 1
+#

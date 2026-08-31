@@ -17,6 +17,7 @@ import torch
 from tmol.tests.data import data_path
 from tmol.io import canonical_ordering_for_biotite
 from tmol.ligand import (
+    chem_comp_types_from_cif,
     prepare_ligands,
     _prepare_ligand_via_smiles,
     _residue_names_with_cross_residue_bonds,
@@ -43,11 +44,12 @@ class TestDetectFromCIF:
         assert len(detect_nonstandard_residues(biotite_1ubq, canonical_ordering)) == 0
 
     def test_detects_i4b_in_184l(self, cif_184l_with_i4b, canonical_ordering) -> None:
-        """The I4B ligand in 184L is detected with coords and CCD type."""
+        """The I4B ligand in 184L is detected, and the file calls it a ligand."""
         ligands = detect_nonstandard_residues(cif_184l_with_i4b, canonical_ordering)
         i4b = {lig.res_name: lig for lig in ligands}.get("I4B")
         assert i4b is not None
-        assert "NON-POLYMER" in i4b.ccd_type.upper()
+        # not in a polymer entity: the file leaves its label_seq_id unset
+        assert i4b.in_polymer_entity is False
         assert i4b.coords.shape == (len(i4b.atom_names), 3)
 
     def test_detects_pse_with_partial_occupancy(
@@ -378,21 +380,45 @@ class TestCovalentDetection:
         linked = _residue_names_with_cross_residue_bonds(arr)
         assert "LIG" in linked
 
-    def test_polymer_linking_residue_spatial_fallback_retained(self) -> None:
-        """Glycans (saccharides) are still flagged via the spatial fallback."""
-        atoms = _residue_atoms(
-            1,
-            "NAG",
-            [("C1", "C", (0.0, 0.0, 0.0))],
-        ) + _residue_atoms(
-            2,
-            "NAG",
-            [("O4", "O", (1.4, 0.0, 0.0))],  # glycosidic distance, no explicit bond
-        )
-        arr = struc.array(atoms)
+    _GLYCAN_CIF = data_path("ligand_cif_fixtures") / "glycan_nag_pair.cif"
 
-        linked = _residue_names_with_cross_residue_bonds(arr)
+    def _glycan(self):
+        """The glycan fixture, as its atoms and the types it declares."""
+        import biotite.structure.io.pdbx as pdbx
+
+        atoms = pdbx.get_structure(
+            pdbx.CIFFile.read(str(self._GLYCAN_CIF)),
+            model=1,
+            include_bonds=True,
+            extra_fields=["label_seq_id"],
+        )
+        return atoms, chem_comp_types_from_cif(self._GLYCAN_CIF)
+
+    def test_polymer_linking_residue_spatial_fallback_retained(self) -> None:
+        """Glycans (saccharides) are still flagged via the spatial fallback.
+
+        A glycan is a branched entity rather than a polymer one, so the file
+        does not number it along a sequence; the type it declares is what says
+        it links.
+        """
+        atoms, declared = self._glycan()
+        assert declared == {"NAG": "D-SACCHARIDE, BETA LINKING"}
+
+        linked = _residue_names_with_cross_residue_bonds(
+            atoms, chem_comp_types=declared
+        )
         assert "NAG" in linked
+
+    def test_proximity_alone_flags_nothing(self) -> None:
+        """Nothing is inferred from proximity where the input declares nothing.
+
+        The spatial pass exists for a file whose linkages are not in its bond
+        table, and it is gated because a binding-pocket contact sits at the same
+        distance as a covalent bond. Reading the same atoms without the types
+        the file declares leaves nothing to gate it on, and nothing is claimed.
+        """
+        atoms, _declared = self._glycan()
+        assert _residue_names_with_cross_residue_bonds(atoms) == frozenset()
 
 
 _YANJING_BTN_DIR = Path(

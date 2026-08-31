@@ -43,12 +43,14 @@ def _dropped_atoms(cap_names, adj, hydrogens):
 
 
 def sidechain_roots(profile, adj, kept, hydrogens):
-    """Heavy atoms hanging off the sidechain root that are not on the mainchain.
+    """Heavy atoms hanging off the sidechain root that are not backbone.
 
     Structural, so no sidechain atom name is assumed; an alpha-disubstituted
-    residue has two and glycine has none.
+    residue has two and glycine has none. Backbone is not only the mainchain:
+    a nucleotide's sugar hangs off it and is backbone all the same, so the
+    atoms the profile gives backbone types to are excluded too.
     """
-    mainchain = set(profile.mainchain_atoms)
+    mainchain = set(profile.mainchain_atoms) | {n for n, _t in profile.backbone_types}
     # a backbone with no privileged root may carry a sidechain anywhere along it
     roots = (
         profile.mainchain_atoms
@@ -225,6 +227,82 @@ def _chi_torsions(profile, restype, adj, kept, hydrogens, roots, rename, element
     return torsions, renumbered, proton
 
 
+def _transplantable(profile, ref_icoors, icoor, kept):
+    """Whether the reference residue's own placement of this atom can be used.
+
+    Only where the donor builds the atom against the same three, and in the
+    same order. An icoor is a length, an angle and a dihedral measured in one
+    frame, so taking it into another is not a change of geometry but a
+    different atom position -- and the two trees can be rooted differently, a
+    nucleotide's at its 5' oxygen and this one's at the phosphate before it.
+    """
+    if icoor.name not in profile.transplant_icoors or icoor.name not in ref_icoors:
+        return False
+    donor = ref_icoors[icoor.name]
+    frame = (donor.parent, donor.grand_parent, donor.great_grand_parent)
+    if not all(a in kept for a in frame):
+        return False
+    return frame == (icoor.parent, icoor.grand_parent, icoor.great_grand_parent)
+
+
+def _glycosidic_torsion(profile, adj, elements, kept, chi, renumbered, proton):
+    """The nucleotide's chi, measured the way the torsion tables were built.
+
+    A rotatable-bond search finds the bond to the base but not which four atoms
+    to measure it by, and the tables are calibrated on a particular four. The
+    chi it found is dropped in favour of the derived one, and anything further
+    out renumbered around it.
+    """
+    from tmol.ligand._polymer_profile import glycosidic_torsion_atoms
+
+    name = profile.glycosidic_torsion
+    if name is None:
+        return (), chi, renumbered, proton
+
+    real = {a for a in kept if elements.get(a) != "H"}
+    heavy = {
+        atom: {n for n in neighbours if n in real}
+        for atom, neighbours in adj.items()
+        if atom in real
+    }
+    atoms = glycosidic_torsion_atoms(profile, heavy, elements)
+    if atoms is None or any(a not in kept for a in atoms):
+        return (), chi, renumbered, proton
+
+    bond = {atoms[1], atoms[2]}
+    kept_chi = [t for t in chi if {t.b.atom, t.c.atom} != bond]
+    dropped = {t.name for t in chi} - {t.name for t in kept_chi}
+    # chi1 is the glycosidic torsion, so anything the search found starts at 2
+    renamed = {t.name: f"chi{i}" for i, t in enumerate(kept_chi, start=2)}
+    kept_chi = [
+        Torsion(name=renamed[t.name], a=t.a, b=t.b, c=t.c, d=t.d) for t in kept_chi
+    ]
+    renumbered = {
+        old: renamed[new] for old, new in renumbered.items() if new not in dropped
+    }
+    proton = {renamed[n] for n in proton if n not in dropped}
+    a, b, c, d = (UnresolvedAtom(atom=x) for x in atoms)
+    return (Torsion(name=name, a=a, b=b, c=c, d=d),), kept_chi, renumbered, proton
+
+
+def icoor_mainchain(profile, present):
+    """The mainchain in the order the icoor tree walks it.
+
+    Rooted where the profile says, which is where the canonical residue roots
+    its own. That is not idle: everything is placed against the root, so a
+    patch that removes it orphans the residue. A nucleotide roots at its 5'
+    oxygen rather than at the phosphate before it, which is what lets the 5'
+    terminus patch take the phosphate away.
+    """
+    mainchain = [a for a in profile.mainchain_atoms if a in present]
+    root = profile.icoor_root
+    if root is None or root not in mainchain:
+        return mainchain
+    start = mainchain.index(root)
+    # what preceded the root comes after it, still bonded to what is placed
+    return mainchain[start:] + mainchain[start - 1 :: -1] if start else mainchain
+
+
 def _icoor_order(profile, adj, kept, hydrogens):
     """Traversal order: mainchain, up, O, sidechain, its H, CA-H, down, N-H.
 
@@ -232,21 +310,27 @@ def _icoor_order(profile, adj, kept, hydrogens):
     """
     down_name, down_atom = profile.down if profile.down else (None, None)
     up_name, _up_atom = profile.up if profile.up else (None, None)
-    mainchain = [a for a in profile.mainchain_atoms if a in kept]
+    mainchain = icoor_mainchain(profile, kept)
     roots = sidechain_roots(profile, adj, kept, hydrogens)
 
     placed = list(mainchain)
     order = list(mainchain) + ([up_name] if up_name else [])
-    # the carbonyl oxygen and anything else hanging off the mainchain heavy atoms
-    bb_leaves = []
-    for mc in mainchain:
-        for nbr in sorted(adj.get(mc, ())):
-            if nbr in kept and nbr not in placed and nbr not in hydrogens:
-                if nbr in roots:
-                    continue
-                bb_leaves.append(nbr)
-                placed.append(nbr)
-    order.extend(bb_leaves)
+    # the rest of the backbone: what hangs off the mainchain, and then onward
+    #    through backbone atoms, since a nucleotide's sugar reaches further
+    #    from the mainchain than a carbonyl oxygen does
+    backbone = set(mainchain) | {n for n, _t in profile.backbone_types}
+    queue = deque(mainchain)
+    while queue:
+        current = queue.popleft()
+        for nbr in sorted(adj.get(current, ())):
+            if nbr not in kept or nbr in placed or nbr in hydrogens or nbr in roots:
+                continue
+            if current not in backbone:
+                continue
+            placed.append(nbr)
+            order.append(nbr)
+            if nbr in backbone:
+                queue.append(nbr)
 
     # sidechain heavy atoms, breadth first from each root
     sidechain = []
@@ -287,13 +371,14 @@ def _icoor_order(profile, adj, kept, hydrogens):
 
 def _parents(profile, adj, order):
     """(parent, grand_parent, great_grand_parent) for each entry in order."""
-    mainchain = [a for a in profile.mainchain_atoms if a in set(order)]
+    mainchain = icoor_mainchain(profile, set(order))
     position = {name: i for i, name in enumerate(order)}
 
     # the connection pseudo-atoms hang off the terminal mainchain atoms
     parent = {name: atom for name, atom in profile.connections}
-    for i, name in enumerate(mainchain):
-        parent[name] = mainchain[max(i - 1, 0)]
+    # the tree's root is its own parent; every other atom hangs off the nearest
+    #    already-placed atom it is bonded to, the rest of the mainchain included
+    parent[mainchain[0]] = mainchain[0]
     for name in order:
         if name in parent:
             continue
@@ -373,7 +458,12 @@ def sidechain_chirality(profile, coords, roots):
 
     CIP cannot be used: L-cysteine is (R) where every other L-aa is (S).
     Zero sidechain branches (glycine) or two (alpha-disubstituted) are achiral.
+    Only an amino acid has one: a nucleotide's sidechain hangs off a mainchain
+    that carries no stereocenter, so the volume is a conformer artifact. Every
+    other polymer takes the not-applicable sentinel the canonical ones use.
     """
+    if profile.polymer_type != "amino_acid":
+        return "NA"
     if len(roots) != 1 or len(profile.mainchain_atoms) < 3:
         return "achiral"
     n, ca, c = (coords[a] for a in profile.mainchain_atoms[:3])
@@ -450,18 +540,17 @@ def to_polymer_residue_type(
     #    them from the reference so the backbone sits on database geometry
     ref_icoors = {ic.name: ic for ic in reference.icoors} if reference else {}
     icoors = tuple(
-        (
-            ref_icoors[ic.name]
-            if ic.name in profile.transplant_icoors and ic.name in ref_icoors
-            else ic
-        )
+        (ref_icoors[ic.name] if _transplantable(profile, ref_icoors, ic, kept) else ic)
         for ic in icoors
     )
 
     chi, renumbered, proton = _chi_torsions(
         profile, restype, adj, kept, hydrogens, roots, rename, elements
     )
-    torsions = _mainchain_torsions(profile, kept) + chi
+    glycosidic, chi, renumbered, proton = _glycosidic_torsion(
+        profile, adj, elements, kept, chi, renumbered, proton
+    )
+    torsions = _mainchain_torsions(profile, kept) + list(glycosidic) + chi
     # proton chi keep their samples for optH; heavy chi are packed as rotamers
     chi_samples = [
         type(s)(

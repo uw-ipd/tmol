@@ -98,7 +98,7 @@ class DunbrackEnergyTerm(EnergyTerm):
         if (
             not polymer.is_polymer
             or polymer.polymer_type != "amino_acid"
-            or polymer.backbone_type != "alpha"
+            or polymer.backbone_type != "alpha_aa"
         ):
             setattr(block_type, "dunbrack_attrs", _empty_dunbrack_attrs())
             return

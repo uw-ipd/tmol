@@ -36,7 +36,7 @@ class FixedAAChiSampler(ChiSampler):
             return False
         if rt.properties.polymer.polymer_type != "amino_acid":
             return False
-        if rt.properties.polymer.backbone_type != "alpha":
+        if rt.properties.polymer.backbone_type != "alpha_aa":
             return False
 
         if l_base_name(rt) in ("GLY", "ALA"):

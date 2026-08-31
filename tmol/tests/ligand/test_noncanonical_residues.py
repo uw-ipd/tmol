@@ -25,7 +25,7 @@ from tmol.database import ParameterDatabase
 from tmol.ligand import (
     LigandPreparationError,
     chem_comp_types_from_cif,
-    is_polymer_linking_ccd_type,
+    is_polymer_linking_component_type,
     prepare_ligands,
     prepare_polymer_residue,
 )
@@ -36,7 +36,7 @@ from tmol.tests.data import data_path
 
 FIXTURE_DIR = data_path("ncaa_fixtures")
 
-# A component id the CCD cannot define
+# A component id no dictionary defines
 UNDEFINED_CODE = "X_"
 
 # stem -> (residue code, net formal charge at pH 7.4, expected chi count)
@@ -54,7 +54,9 @@ def _alpha():
 def _load(stem: str) -> struc.AtomArray:
     """Read a fixture with its bond table, as the polymer path requires."""
     cif = pdbx.CIFFile.read(str(FIXTURE_DIR / f"{stem}.cif"))
-    return pdbx.get_structure(cif, model=1, include_bonds=True)
+    return pdbx.get_structure(
+        cif, model=1, include_bonds=True, extra_fields=["label_seq_id"]
+    )
 
 
 def _residue(atom_array: struc.AtomArray, res_name: str) -> struc.AtomArray:
@@ -105,7 +107,7 @@ def _assert_alpha_amino_acid(residue: struc.AtomArray, prep) -> None:
 
     polymer = restype.properties.polymer
     assert polymer.polymer_type == "amino_acid"
-    assert polymer.backbone_type == "alpha"
+    assert polymer.backbone_type == "alpha_aa"
     assert polymer.sidechain_chirality == "l"
     assert tuple(polymer.mainchain_atoms) == _alpha().mainchain_atoms
 
@@ -205,6 +207,44 @@ def test_prepare_ligands_routes_polymer_residues(stem: str) -> None:
     assert res_name in canonical_ordering.restype_io_equiv_classes
 
 
+def test_a_residue_seen_only_at_a_terminus_needs_no_ccd_entry() -> None:
+    """One connection does not say where the backbone stops; chemistry does.
+
+    A residue at the end of a chain bonds on one side only, and its own
+    carbonyl carries a single oxygen because the terminal hydroxyl was never
+    A component definition would name both chain ends, so the same residue
+    under a code nothing defines has to reach the same backbone without one.
+    """
+    param_db = ParameterDatabase.get_default()
+    structure = _load("phosphopeptide_5ema")
+    last = max(int(i) for i in structure.res_id[structure.res_name == "SEP"])
+    structure = structure[structure.res_id <= last]
+    structure.res_name[structure.res_name == "SEP"] = "XEP"
+
+    prepared, _ordering = prepare_ligands(structure, param_db=param_db, seed=1234)
+    restype = next(r for r in prepared.chemical.residues if r.name == "XEP")
+
+    assert restype.properties.polymer.backbone_type == "alpha_aa"
+    assert restype.properties.polymer.mainchain_atoms == ("N", "CA", "C")
+    assert {c.name for c in restype.connections} == {"down", "up"}
+    variants = {r.name for r in prepared.chemical.residues if r.base_name == "XEP"}
+    assert {"XEP:nterm", "XEP:cterm"} <= variants
+
+
+def test_preparation_is_reproducible_under_a_fixed_seed() -> None:
+    """A random conformer makes the residue type differ between runs."""
+    param_db = ParameterDatabase.get_default()
+
+    def icoors(seed):
+        prepared, _ordering = prepare_ligands(
+            _load("phosphopeptide_5ema"), param_db=param_db, seed=seed
+        )
+        restype = next(r for r in prepared.chemical.residues if r.name == "SEP")
+        return {i.name: (i.d, i.theta, i.phi) for i in restype.icoors}
+
+    assert icoors(1234) == icoors(1234)
+
+
 def test_polymer_residue_requires_a_bond_table() -> None:
     """Chemistry is read from bonds, so a bondless residue is refused."""
     param_db = ParameterDatabase.get_default()
@@ -232,7 +272,7 @@ def test_unsupported_backbone_is_refused_not_treated_as_a_ligand() -> None:
 # component-type classification
 # --------------------------------------------------------------------------- #
 @pytest.mark.parametrize(
-    "ccd_type,expected",
+    "component_type,expected",
     [
         ("L-PEPTIDE LINKING", True),
         ("D-PEPTIDE LINKING", True),
@@ -244,12 +284,12 @@ def test_unsupported_backbone_is_refused_not_treated_as_a_ligand() -> None:
         (None, False),
     ],
 )
-def test_is_polymer_linking_ccd_type(ccd_type, expected) -> None:
-    assert is_polymer_linking_ccd_type(ccd_type) is expected
+def test_is_polymer_linking_component_type(component_type, expected) -> None:
+    assert is_polymer_linking_component_type(component_type) is expected
 
 
 def test_chem_comp_types_from_cif(tmp_path) -> None:
-    """A type declared by the input file classifies a residue the CCD lacks."""
+    """A type declared by the input file classifies a residue by itself."""
     cif_path = tmp_path / "declared.cif"
     cif_path.write_text(
         "data_test\n"
@@ -265,15 +305,15 @@ def test_chem_comp_types_from_cif(tmp_path) -> None:
     types = chem_comp_types_from_cif(cif_path)
     assert types[UNDEFINED_CODE] == "L-PEPTIDE LINKING"
     assert types["LIG"] == "NON-POLYMER"
-    assert is_polymer_linking_ccd_type(types[UNDEFINED_CODE])
-    assert not is_polymer_linking_ccd_type(types["LIG"])
+    assert is_polymer_linking_component_type(types[UNDEFINED_CODE])
+    assert not is_polymer_linking_component_type(types["LIG"])
 
 
-def test_declared_type_routes_a_residue_the_ccd_does_not_know() -> None:
+def test_declared_type_routes_an_unrecognized_residue() -> None:
     """An unrecognized residue name declared as polymer-linking is routed."""
     from tmol.ligand import get_chem_comp_type
 
-    # the declared type is consulted only where the CCD has no answer
+    # nothing is declared for it unless the input file says so
     assert get_chem_comp_type(UNDEFINED_CODE) is None
 
     atom_array = _load("phosphopeptide_5ema")
@@ -287,7 +327,7 @@ def test_declared_type_routes_a_residue_the_ccd_does_not_know() -> None:
     )
     restype = next(r for r in param_db.chemical.residues if r.name == UNDEFINED_CODE)
     assert {c.name for c in restype.connections} == {"down", "up"}
-    assert restype.properties.polymer.backbone_type == "alpha"
+    assert restype.properties.polymer.backbone_type == "alpha_aa"
 
 
 def test_smiles_path_is_not_routed_to_the_polymer_path() -> None:
@@ -407,7 +447,7 @@ def test_peptide_cap_charges_balance_across_the_pair() -> None:
 
 
 def test_prepare_ligands_routes_peptide_caps() -> None:
-    """Caps are NON-POLYMER in the CCD, so chemistry has to route them."""
+    """A cap belongs to the chain's entity, which is what routes it."""
     param_db, canonical_ordering = prepare_ligands(
         _load(CAP_FIXTURE), param_db=ParameterDatabase.get_default()
     )
@@ -431,13 +471,19 @@ def test_an_unlinked_cap_is_not_routed_to_the_polymer_path() -> None:
     }
     assert all(_routes_to_polymer_path(lig) for lig in detected.values())
 
-    # the same file without its declared linkages: the caps are free molecules
+    # the same caps with nothing to bond to: neither the declared linkages nor
+    #    a bond length away from the chain, so they are free molecules whatever
+    #    the file's entity says about them
     cif = pdbx.CIFFile.read(str(FIXTURE_DIR / f"{CAP_FIXTURE}.cif"))
     del cif[next(iter(cif.keys()))]["struct_conn"]
-    unlinked = pdbx.get_structure(cif, model=1, include_bonds=True)
+    unlinked = pdbx.get_structure(
+        cif, model=1, include_bonds=True, extra_fields=["label_seq_id"]
+    )
+    adrift = np.isin(unlinked.res_name, sorted(_CAPS))
+    unlinked.coord[adrift] += 50.0
     for lig in detect_nonstandard_residues(unlinked, canonical_ordering):
-        assert not lig.covalently_linked
-        assert not _routes_to_polymer_path(lig)
+        assert not lig.covalently_linked, lig.res_name
+        assert not _routes_to_polymer_path(lig), lig.res_name
 
 
 def test_a_linked_fragment_is_not_mistaken_for_a_cap() -> None:

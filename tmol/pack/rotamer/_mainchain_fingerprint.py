@@ -146,6 +146,10 @@ def create_non_sidechain_fingerprint(  # noqa: C901
     non_sc_atom_fingerprints = []
     at_for_fingerprint = {}
     fp_seen_count = {}
+    # a protein's non-sidechain atoms all lie within one bond of the mainchain,
+    #    so the loop below always sets this. A nucleotide's do not: its sugar is
+    #    backbone and reaches two bonds out, where there is no side to be on
+    chirality = 0
 
     for nsc_at in non_sc_atoms:
         # find the index of the mc atom this branches from using the kinforest

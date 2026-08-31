@@ -41,6 +41,7 @@ def build_context_from_biotite(
     ligand_params_files: list[str] | None = None,
     sample_proton_chi: bool = True,
     chem_comp_types: dict | None = None,
+    ligand_seed: int | None = None,
 ) -> PoseBuildContext:
     """Build the structure-independent construction context.
 
@@ -77,8 +78,12 @@ def build_context_from_biotite(
             used when prepare_ligands=True.
         chem_comp_types: ``{comp_id: type}`` from the input file's
             ``_chem_comp`` table (see
-            ``tmol.ligand.chem_comp_types_from_cif``), consulted for residues
-            the CCD does not know. Only used when prepare_ligands=True.
+            ``tmol.ligand.chem_comp_types_from_cif``), which says whether a
+            residue belongs to a polymer where the file does not number it
+            along a sequence. Only used when prepare_ligands=True.
+        ligand_seed: Fixed RNG seed for the conformer each prepared residue
+            is built from, making preparation reproducible. Only used when
+            prepare_ligands=True.
 
     Returns:
         PoseBuildContext containing canonical ordering, packed block
@@ -101,6 +106,7 @@ def build_context_from_biotite(
             strict_ligands=strict_ligands,
             return_fragment_definitions=True,
             chem_comp_types=chem_comp_types,
+            seed=ligand_seed,
         )
         rts = ResidueTypeSet.from_database(param_db.chemical)
         pbt = PackedBlockTypes.from_restype_list(
@@ -144,6 +150,7 @@ def pose_stack_from_biotite(  # noqa: C901
     ligand_params_files: list[str] | None = None,
     sample_proton_chi: bool = True,
     chem_comp_types: dict | None = None,
+    ligand_seed: int | None = None,
     return_context: bool = False,
     context: PoseBuildContext | None = None,
     **kwargs: object,
@@ -192,8 +199,12 @@ def pose_stack_from_biotite(  # noqa: C901
             (enabled by default; pass False to disable). Only used when
             prepare_ligands=True.
         chem_comp_types: ``{comp_id: type}`` from the input file's
-            ``_chem_comp`` table, consulted for residues the CCD does not know.
-            Only used when prepare_ligands=True.
+            ``_chem_comp`` table, which says whether a residue belongs to a
+            polymer where the file does not number it along a sequence. Only
+            used when prepare_ligands=True.
+        ligand_seed: Fixed RNG seed for the conformer each prepared residue
+            is built from, making preparation reproducible. Only used when
+            prepare_ligands=True.
         return_context: If True, return ``(pose_stack, PoseBuildContext)``.
         **kwargs: Additional arguments passed to pose_stack_from_canonical_form.
 
@@ -242,6 +253,7 @@ def pose_stack_from_biotite(  # noqa: C901
             ligand_params_files=ligand_params_files,
             sample_proton_chi=sample_proton_chi,
             chem_comp_types=chem_comp_types,
+            ligand_seed=ligand_seed,
         )
 
     fragment_mapping = None

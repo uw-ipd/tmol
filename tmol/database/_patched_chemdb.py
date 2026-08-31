@@ -127,6 +127,32 @@ def update_icoor(res, patch, atoms_remove, namemap):
     return icoor
 
 
+def assert_no_orphaned_icoors(icoors, removed, res_name):
+    """Every surviving atom must still be framed on atoms that survive.
+
+    A patch removes atoms without looking at what was placed against them, so
+    one that takes away an atom another is built from leaves a residue that
+    cannot be built at all. Which atom a residue roots its tree at is what
+    makes a patch safe -- a nucleotide roots at its 5' oxygen so that losing
+    the phosphate before it orphans nothing -- and that is a property of the
+    residue and the patch, not something to repair here.
+    """
+    if not removed:
+        return
+    orphaned = sorted(
+        f"{i.name} on {ref}"
+        for i in icoors
+        for ref in (i.parent, i.grand_parent, i.great_grand_parent)
+        if ref in removed
+    )
+    if orphaned:
+        raise ValueError(
+            f"{res_name}: patch leaves atoms framed on ones it removes "
+            f"({', '.join(orphaned[:4])}). The residue's icoor tree is rooted "
+            "where the patch can take the root away."
+        )
+
+
 # get a list of atoms modified by a patch
 def get_modified_atoms(patch):
     added, modded, deleted = [], [], []
@@ -551,6 +577,15 @@ def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
         # 5. update icoors
         newres.icoors = update_icoor(
             newres.icoors, variant.icoors, variant.remove_atoms, namemap
+        )
+        assert_no_orphaned_icoors(
+            newres.icoors,
+            # an atom the patch removes and adds again under the same name --
+            #    a carboxy terminus does that with its carbonyl oxygen -- has
+            #    not gone anywhere
+            {namemap[i] for i in variant.remove_atoms if i in namemap}
+            - {a.name for a in variant.add_atoms},
+            newres.name,
         )
 
         # 5b. add torsions and the chi samples that name them

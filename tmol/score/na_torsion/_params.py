@@ -16,18 +16,24 @@ CHI_TORSION = "chi1"
 TORSION_NAMES = BACKBONE_TORSIONS + ("nu4", "nu0", "nu1", CHI_TORSION)
 TORSION_IND = {name: i for i, name in enumerate(TORSION_NAMES)}
 
-# one index space for both polymers: DNA occupies 0-3 and RNA 4-7, so the
-# polymer of a base is base >> 2 and the tables that vary only by polymer are
-# gathered with that shift.
+# one index space for both polymers: DNA occupies the first block and RNA the
+# second, so the polymer of a base is base // N_BASE_PER_POLYMER and the tables
+# that vary only by polymer are gathered on that.
 POLYMERS = ("dna", "rna")
 POLYMER_IND = {name: i for i, name in enumerate(POLYMERS)}
-BASES = {"dna": ("a", "c", "g", "t"), "rna": ("a", "c", "g", "u")}
-N_BASE_PER_POLYMER = 4
+# "x" is a nucleotide whose base is not one of the four: averaged over them, so
+# a residue with an unrecognized or absent base is still placed on the polymer's
+# distribution rather than left unscored
+UNKNOWN_BASE = "x"
+BASES = {"dna": ("a", "c", "g", "t", "x"), "rna": ("a", "c", "g", "u", "x")}
+N_BASE_PER_POLYMER = 5
 N_BASE = len(POLYMERS) * N_BASE_PER_POLYMER
 BASE_FOR_NAME3 = {
-    "DA": 0, "DC": 1, "DG": 2, "DT": 3,
-    "A": 4, "C": 5, "G": 6, "U": 7,
+    "DA": 0, "DC": 1, "DG": 2, "DT": 3, "DX": 4,
+    "A": 5, "C": 6, "G": 7, "U": 8, "RX": 9,
 }  # fmt: skip
+# the reference a nucleotide falls back to when its base cannot be identified
+UNKNOWN_BASE_REFERENCE = {"dna": "DX", "rna": "RX"}
 N_PUCKER = 10
 
 # pucker states on the C3'-endo side; the rest are south
@@ -41,9 +47,10 @@ SYN_RANGE = (20.0, 100.0)
 N_TORSION = len(TORSION_NAMES)
 DELTA = TORSION_IND["delta"]
 CHI = TORSION_IND[CHI_TORSION]
-# the sugar and glycosidic torsions must all be present for a block to score;
-# the backbone ones may be absent at a terminus and are masked at scoring time
-REQUIRED_TORSIONS = [DELTA, CHI] + [TORSION_IND[n] for n in ("nu0", "nu1", "nu4")]
+# every torsion is optional and masked at scoring time: the backbone ones are
+# absent at a terminus, chi wherever the base is not attached through a torsion
+# we can name, and the sugar ones wherever the ring does not resolve
+REQUIRED_TORSIONS: list = []
 
 
 def sugar_ring_atoms(block_type, element_for_atom_type):
@@ -75,8 +82,9 @@ def sugar_ring_atoms(block_type, element_for_atom_type):
 def block_type_params(block_type, element_for_atom_type):
     """Per-block-type indices this term needs, shared by scoring and packing.
 
-    base is -1 for anything this term does not handle, including a nucleotide
-    whose sugar or glycosidic torsions cannot be resolved.
+    base is -1 for anything this term does not handle. A nucleotide whose sugar
+    ring or glycosidic torsion cannot be resolved still scores: those subterms
+    are masked, and what remains of its backbone is scored as usual.
     """
     # a modified nucleotide may borrow a canonical base table
     base = BASE_FOR_NAME3.get(block_type.na_base_reference or block_type.name3, -1)
@@ -90,10 +98,23 @@ def block_type_params(block_type, element_for_atom_type):
         ring_atoms = sugar_ring_atoms(block_type, element_for_atom_type)
         if ring_atoms is not None:
             ring[:] = ring_atoms
-        if (ring < 0).any() or (uaids[REQUIRED_TORSIONS, :, 0] < 0).any():
+        if (uaids[REQUIRED_TORSIONS, :, 0] < 0).any():
             base = -1
     down = block_type.connection_to_cidx.get("down", -1)
     return dict(base=base, uaids=uaids, ring=ring, down=down)
+
+
+def _circular_mean(degrees):
+    """Mean of angles, over the leading axis, in degrees.
+
+    Averaging angles directly puts the mean of 179 and -179 at zero, which is
+    the opposite side of the circle from either.
+    """
+    radians = degrees * (torch.pi / 180.0)
+    mean = torch.atan2(radians.sin().mean(0), radians.cos().mean(0))
+    # the database writes its means in [0, 360); wrap_degrees does not care,
+    #    but a row in a different range invites a wrong comparison later
+    return (mean * (180.0 / torch.pi)) % 360.0
 
 
 def polymer_index(base):
@@ -169,8 +190,22 @@ class NaTorsionParams(ValidateAttrs):
         chi_syn = zeros(2, N_PUCKER, N_BASE)
         for pi, poly in enumerate(POLYMERS):
             w = database.well_energies[poly]
+            named = [b for b in BASES[poly] if b != UNKNOWN_BASE]
             for b, base in enumerate(BASES[poly]):
                 ind = pi * N_BASE_PER_POLYMER + b
+                if base == UNKNOWN_BASE:
+                    # chi means are angles, so they average on the circle; the
+                    #    well energies are energies and average directly
+                    chi[ind] = _circular_mean(
+                        torch.stack(
+                            [t(database.sugar_means[poly]["chi"][n]) for n in named]
+                        )
+                    )
+                    for si, state in enumerate(("anti", "syn")):
+                        chi_syn[si, :, ind] = torch.stack(
+                            [t(w.chi_syn_given_pucker[state][n]) for n in named]
+                        ).mean(0)
+                    continue
                 chi[ind] = t(database.sugar_means[poly]["chi"][base])
                 for si, state in enumerate(("anti", "syn")):
                     chi_syn[si, :, ind] = t(w.chi_syn_given_pucker[state][base])

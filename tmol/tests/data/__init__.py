@@ -276,7 +276,7 @@ def cif_184l_with_i4b():
     fname = os.path.join(__file__.rpartition("/")[0], "cif", "184l__1__1.A__1.E.cif")
     pdbx_file = biotite.structure.io.pdbx.CIFFile.read(fname)
     return biotite.structure.io.pdbx.get_structure(
-        pdbx_file, model=1, include_bonds=True
+        pdbx_file, model=1, include_bonds=True, extra_fields=["label_seq_id"]
     )
 
 
@@ -288,7 +288,7 @@ def cif_155c_with_hem():
     fname = os.path.join(__file__.rpartition("/")[0], "cif", "155c__1__1.A__1.B.cif")
     pdbx_file = biotite.structure.io.pdbx.CIFFile.read(fname)
     return biotite.structure.io.pdbx.get_structure(
-        pdbx_file, model=1, include_bonds=True
+        pdbx_file, model=1, include_bonds=True, extra_fields=["label_seq_id"]
     )
 
 
@@ -300,7 +300,7 @@ def cif_1a25_with_pse():
     fname = os.path.join(__file__.rpartition("/")[0], "cif", "1a25__1__1.B__1.I.cif")
     pdbx_file = biotite.structure.io.pdbx.CIFFile.read(fname)
     return biotite.structure.io.pdbx.get_structure(
-        pdbx_file, model=1, include_bonds=True
+        pdbx_file, model=1, include_bonds=True, extra_fields=["label_seq_id"]
     )
 
 
@@ -312,7 +312,7 @@ def cif_1a0i_with_atp():
     fname = os.path.join(__file__.rpartition("/")[0], "cif", "1A0I.cif")
     pdbx_file = biotite.structure.io.pdbx.CIFFile.read(fname)
     return biotite.structure.io.pdbx.get_structure(
-        pdbx_file, model=1, include_bonds=True
+        pdbx_file, model=1, include_bonds=True, extra_fields=["label_seq_id"]
     )
 
 

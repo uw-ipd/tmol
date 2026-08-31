@@ -1,10 +1,10 @@
 """Classification of polymer residues whose backbone is not an alpha amino acid.
 
-A residue reaches the polymer path on its CCD type, which says only that it
-links into a chain -- not what its backbone is. These fixtures cover the
-backbone classes that arrive there: the alpha backbone modified at its amide
-nitrogen, backbones a carbon or two longer, and one that is a peptide only by
-courtesy.
+A residue reaches the polymer path because the file places it in a chain,
+which says only that it links into one -- not what its backbone is. These
+fixtures cover the backbone classes that arrive there: the alpha backbone
+modified at its amide nitrogen, backbones a carbon or two longer, and one that
+is a peptide only by courtesy.
 
 Only an unmodified alpha backbone may be typed and scored as protein. Two
 conditions define it, both structural:
@@ -506,11 +506,14 @@ def test_an_injected_residue_gets_charges_for_its_termini() -> None:
 # --------------------------------------------------------------------------- #
 
 # code -> (the atom it is bonded through, the mainchain that should be found)
+# code -> (the connection the structure shows, the mainchain inferred from it).
+# FGA links through CD and ACB through CG, but at a terminus nothing says so:
+# both carry an intact alpha backbone, which is what an unambiguous chemistry
+# test finds and what a residue linked conventionally almost always uses.
 _TERMINAL_CASES = {
-    "B3K": ("C", ("N", "CA", "CB", "C")),
     "SAR": ("C", ("N", "CA", "C")),
-    "FGA": ("N", ("N", "CA", "CB", "CG", "CD")),
-    "ACB": ("N", ("N", "CA", "CB", "CG")),
+    "FGA": ("N", ("N", "CA", "C")),
+    "ACB": ("N", ("N", "CA", "C")),
 }
 
 
@@ -524,12 +527,13 @@ def _residue_bonded_only_at(code: str, connection_atom: str):
 
 @pytest.mark.parametrize("code", sorted(_TERMINAL_CASES))
 def test_a_terminal_residue_finds_its_other_end(code: str) -> None:
-    """One connection does not say where the backbone stops; the CCD does.
+    """One connection does not say where the backbone stops; chemistry does.
 
-    A component definition flags the atoms it gives up on polymerizing, so the
-    atoms those hang off are the chain's ends. Gamma-glutamate and beta-
-    aspartate are why this cannot be left to the atom names: both carry an
-    intact alpha backbone and link through a sidechain carbon instead.
+    A single candidate for the other end settles it. Where more than one
+    qualifies the conventional backbone wins, which is why gamma-glutamate and
+    beta-aspartate resolve to their alpha backbones here: seen only at a
+    terminus, nothing distinguishes the sidechain carbon they really link
+    through. A copy of either in a chain is read correctly, from its bonds.
     """
     connection_atom, expected = _TERMINAL_CASES[code]
     residue = _residue_bonded_only_at(code, connection_atom)
@@ -539,12 +543,31 @@ def test_a_terminal_residue_finds_its_other_end(code: str) -> None:
     assert profile.mainchain_atoms == expected
 
 
-def test_a_terminal_residue_is_completed_by_chemistry_without_the_ccd() -> None:
-    """Where the component flags nothing, the residue's own chemistry answers."""
+@pytest.mark.parametrize("code", ["GLU", "ASP", "ASN", "GLN"])
+def test_a_free_sidechain_acid_does_not_outrank_the_backbone(code: str) -> None:
+    """The chain continues through the backbone, not through a sidechain acid.
+
+    A residue at a C-terminus whose terminal hydroxyl was never modeled carries
+    one oxygen on its backbone carbonyl, where a free sidechain carboxylate
+    carries two -- so counting oxygens picks the sidechain and silently reads
+    the backbone as a gamma or beta one. What separates them is the nitrogen an
+    amide sidechain carbon carries and a backbone carbonyl does not.
+    """
+    residue = info.residue(code)
+    residue.res_name[:] = code
+    residue = residue[~numpy.isin(residue.atom_name, ["OXT", "HXT"])]
+
+    profile = profile_for_atom_array(residue, frozenset({"N"}))
+    assert profile is not None, f"{code} was refused"
+    assert profile.mainchain_atoms == ("N", "CA", "C")
+
+
+def test_a_terminal_residue_is_completed_under_an_unknown_name() -> None:
+    """The other end comes from chemistry, so the residue code cannot matter."""
     from tmol.ligand._polymer_profile import completed_connection_atoms
 
     residue = _residue_bonded_only_at("SAR", "C")
-    # a name the CCD does not define, so nothing is declared about it
+    # a name no dictionary defines, so nothing is declared about it
     residue.res_name[:] = "X_"
     assert completed_connection_atoms(residue, frozenset({"C"})) == frozenset(
         {"N", "C"}
@@ -552,10 +575,10 @@ def test_a_terminal_residue_is_completed_by_chemistry_without_the_ccd() -> None:
 
 
 def test_an_undeterminable_terminal_residue_is_refused() -> None:
-    """Two candidate ends are not resolved by guessing between them."""
+    """Candidate ends with no conventional backbone among them are refused."""
     param_db = ParameterDatabase.get_default()
-    # beta-lysine carries a sidechain amine as well as its backbone one, so
-    #    with no component definition to consult there are two candidates
+    # beta-lysine carries a sidechain amine as well as its backbone one, and
+    #    neither completes an alpha backbone, so nothing breaks the tie
     residue = _residue_bonded_only_at("B3K", "C")
     residue.res_name[:] = "X_"
 
@@ -631,7 +654,9 @@ def _structure(stem: str):
     from tmol.tests.data import data_path
 
     cif = pdbx.CIFFile.read(str(data_path("ncaa_fixtures") / f"{stem}.cif"))
-    return pdbx.get_structure(cif, model=1, include_bonds=True)
+    return pdbx.get_structure(
+        cif, model=1, include_bonds=True, extra_fields=["label_seq_id"]
+    )
 
 
 @pytest.mark.parametrize("stem", sorted(_PIPELINE_FIXTURES))
@@ -716,7 +741,7 @@ def _prepared(stem: str):
 def test_a_nonstandard_backbone_brings_its_own_termini_patches() -> None:
     """It cannot use the database's, so preparation generates a pair."""
     prep = _prepare("MLE")
-    assert prep.residue_type.properties.polymer.backbone_type == "nonstandard"
+    assert prep.residue_type.properties.polymer.backbone_type == "nonstandard_aa"
 
     patches = prep.adds_patches
     assert {p.display_name for p in patches} == {"nterm", "cterm"}
@@ -729,7 +754,7 @@ def test_a_nonstandard_backbone_brings_its_own_termini_patches() -> None:
 def test_an_alpha_backbone_keeps_using_the_database_patches() -> None:
     """An unmodified alpha backbone's terminus is the canonical amide."""
     prep = _prepare("HYP")
-    assert prep.residue_type.properties.polymer.backbone_type == "alpha"
+    assert prep.residue_type.properties.polymer.backbone_type == "alpha_aa"
     assert prep.adds_patches == ()
 
 

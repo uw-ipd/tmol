@@ -99,7 +99,7 @@ def create_pose_stack_from_sequences(
 # ---------------------------------------------------------------------------
 
 EXTENDED_BACKBONE_TORSIONS = {
-    "alpha": {"phi": -135.0, "psi": 135.0, "omega": 180.0},
+    "alpha_aa": {"phi": -135.0, "psi": 135.0, "omega": 180.0},
     "dna": {
         "alpha": -30.0,
         "beta": 136.0,

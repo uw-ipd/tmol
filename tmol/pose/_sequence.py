@@ -19,7 +19,7 @@ _NTERM_VARIANTS = ("nterm", "na5prime")
 _CTERM_VARIANTS = ("cterm", "na3prime")
 
 # Backbone type a one-letter code refers to, by case.
-_UPPER_BACKBONE = "alpha"
+_UPPER_BACKBONE = "alpha_aa"
 _LOWER_BACKBONE = "dna"
 
 

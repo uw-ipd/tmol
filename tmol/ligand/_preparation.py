@@ -23,7 +23,7 @@ from tmol.ligand._detect import (
     NonStandardResidueInfo,
     _METAL_SYMBOLS,
     detect_nonstandard_residues,
-    is_polymer_linking_ccd_type,
+    is_polymer_linking_component_type,
     nonstandard_residue_info_from_smiles_via_mol2,
 )
 from tmol.ligand._registry import (
@@ -290,8 +290,10 @@ def prepare_polymer_residue(
     from tmol.ligand._terminus_patches import patch_charge_entries, terminus_patches
     from tmol.ligand._polymer_profile import (
         canonical_alpha_renames,
+        complete_backbone_from_reference,
         cap_backbone_substitution,
         cap_residue,
+        na_base_reference,
         profile_for_atom_array,
         ring_nitrogen_angle,
         ring_nitrogen_angle_atom,
@@ -319,8 +321,8 @@ def prepare_polymer_residue(
             known = next(iter(connection_atoms))
             raise LigandPreparationError(
                 f"{atom_array.res_name[0]}: bonded to a neighbour only at "
-                f"{known}, and neither its component definition nor its "
-                "chemistry says where the backbone's other end is. Prepare it "
+                f"{known}, and its chemistry does not say where the "
+                "backbone's other end is. Prepare it "
                 "once with prepare_polymer_residue(..., connection_atoms="
                 f'("{known}", <other end>)), save it with write_params_file, '
                 "and pass that file as params_files"
@@ -346,6 +348,10 @@ def prepare_polymer_residue(
             AtomAlias(name=canonical, alt_name=actual)
             for actual, canonical in sorted(backbone_renames_to_canonical.items())
         )
+
+    # a residue seen only at a chain end is missing what that end does not
+    #    carry; put it back before capping, once the names are settled
+    atom_array = complete_backbone_from_reference(atom_array, profile, param_db)
 
     capped, cap_names = cap_residue(atom_array, profile)
     detected = detect_nonstandard_residues(capped, canonical_ordering)
@@ -379,6 +385,14 @@ def prepare_polymer_residue(
     if atom_aliases:
         residue_type = attr.evolve(
             residue_type, atom_aliases=residue_type.atom_aliases + atom_aliases
+        )
+    if profile.backbone_type in ("dna", "rna"):
+        # which canonical base's torsion distributions this one is scored on
+        residue_type = attr.evolve(
+            residue_type,
+            na_base_reference=na_base_reference(
+                residue_type, profile, param_db.chemical
+            ),
         )
 
     kept = {a.name for a in residue_type.atoms}
@@ -451,7 +465,7 @@ def prepare_polymer_residue(
     # the database's termini patches are written for an alpha backbone; any
     #    other one brings its own, named around the atoms it already has
     generated, variant_charges = (), None
-    if profile.backbone_type != "alpha":
+    if profile.backbone_type in ("nonstandard_aa", "nonstandard_na"):
         generated = terminus_patches(
             param_db.chemical, residue_type, profile, atom_array, ph, charges
         )
@@ -627,18 +641,21 @@ def _supported_elements(param_db: ParameterDatabase) -> set[str]:
 def _routes_to_polymer_path(lig: NonStandardResidueInfo, chemdb=None) -> bool:
     """Whether this residue is prepared as a chain member rather than a molecule.
 
-    The CCD type decides it for a linking component. A terminal cap is typed
-    NON-POLYMER there despite being part of the chain, so a covalently linked
-    residue that matches a backbone profile is routed by its chemistry instead;
-    the cap profiles match their whole atom set, so an unrelated linked
-    fragment does not qualify.
+    A chain member is bonded to a neighbour, so nothing unlinked is one however
+    the file describes it. Given that, the file settles what kind of thing it
+    is: a polymer entity's residues are numbered along its sequence, and a
+    declared linking component type says the same. Failing both, the residue is
+    routed by its chemistry; the cap profiles match their whole atom set, so an
+    unrelated linked fragment does not qualify.
     """
     from tmol.ligand._polymer_profile import profile_for_atom_array
 
-    if is_polymer_linking_ccd_type(lig.ccd_type):
-        return True
     if not lig.covalently_linked:
         return False
+    if lig.in_polymer_entity:
+        return True
+    if is_polymer_linking_component_type(lig.component_type):
+        return True
     return (
         profile_for_atom_array(lig.atom_array, lig.connection_atom_names, chemdb)
         is not None
@@ -699,6 +716,7 @@ def prepare_ligands(  # noqa: C901
     strict_ligands: bool = True,
     return_fragment_definitions: bool = False,
     chem_comp_types: dict[str, str] | None = None,
+    seed: int | None = None,
 ) -> tuple:
     """Detect, prepare, and register all non-standard residues.
 
@@ -731,10 +749,14 @@ def prepare_ligands(  # noqa: C901
             as the third return value.
         chem_comp_types: ``{comp_id: type}`` read from the input file's
             ``_chem_comp`` table (see
-            :func:`tmol.ligand.chem_comp_types_from_cif`), consulted for
-            residues the CCD does not know. A polymer-linking type routes the
-            residue to :func:`prepare_polymer_residue` instead of the
-            free-molecule ligand path.
+            :func:`tmol.ligand.chem_comp_types_from_cif`), consulted where the
+            file does not number the residue along a polymer sequence. A
+            polymer-linking type routes the residue to
+            :func:`prepare_polymer_residue` instead of the free-molecule
+            ligand path.
+        seed: Fixed RNG seed for the 3D conformer each residue is built from.
+            ``None`` is random, which makes the prepared residue types differ
+            between runs.
 
     Returns:
         A (ParameterDatabase, CanonicalOrdering) tuple. When
@@ -887,7 +909,9 @@ def prepare_ligands(  # noqa: C901
             _skip_or_raise(strict_ligands, reason)
             continue
 
-        logger.info("Preparing %s (CCD type: %s)", lig.res_name, lig.ccd_type)
+        logger.info(
+            "Preparing %s (declared type: %s)", lig.res_name, lig.component_type
+        )
         try:
             if is_polymer:
                 prep = prepare_polymer_residue(
@@ -897,10 +921,11 @@ def prepare_ligands(  # noqa: C901
                     ph=ph,
                     sample_proton_chi=sample_proton_chi,
                     connection_atoms=lig.connection_atom_names,
+                    seed=seed,
                 )
             else:
                 prep = _prepare_ligand_via_smiles(
-                    lig, ph=ph, sample_proton_chi=sample_proton_chi
+                    lig, ph=ph, sample_proton_chi=sample_proton_chi, seed=seed
                 )
         except LigandPreparationError:
             if not is_polymer:
@@ -1010,7 +1035,7 @@ def _ligand_info_from_cif(
 
     return NonStandardResidueInfo(
         res_name=resolved,
-        ccd_type=get_chem_comp_type(resolved) or "UNKNOWN",
+        component_type=get_chem_comp_type(resolved) or "UNKNOWN",
         atom_names=tuple(atom_names),
         elements=tuple(str(e) for e in arr.element),
         coords=arr.coord.copy(),

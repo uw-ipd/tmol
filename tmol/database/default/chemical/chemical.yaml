@@ -215,7 +215,7 @@ residues:
       polymer:
         is_polymer: true
         polymer_type: amino_acid
-        backbone_type: alpha
+        backbone_type: alpha_aa
         mainchain_atoms:
         - N
         - CA
@@ -353,7 +353,7 @@ residues:
       polymer:
         is_polymer: true
         polymer_type: amino_acid
-        backbone_type: alpha
+        backbone_type: alpha_aa
         mainchain_atoms:
         - N
         - CA
@@ -453,7 +453,7 @@ residues:
       polymer:
         is_polymer: true
         polymer_type: amino_acid
-        backbone_type: alpha
+        backbone_type: alpha_aa
         mainchain_atoms:
         - N
         - CA
@@ -545,7 +545,7 @@ residues:
       polymer:
         is_polymer: true
         polymer_type: amino_acid
-        backbone_type: alpha
+        backbone_type: alpha_aa
         mainchain_atoms:
         - N
         - CA
@@ -634,7 +634,7 @@ residues:
       polymer:
         is_polymer: true
         polymer_type: amino_acid
-        backbone_type: alpha
+        backbone_type: alpha_aa
         mainchain_atoms:
         - N
         - CA
@@ -722,7 +722,7 @@ residues:
       polymer:
         is_polymer: true
         polymer_type: amino_acid
-        backbone_type: alpha
+        backbone_type: alpha_aa
         mainchain_atoms:
         - N
         - CA
@@ -834,7 +834,7 @@ residues:
       polymer:
         is_polymer: true
         polymer_type: amino_acid
-        backbone_type: alpha
+        backbone_type: alpha_aa
         mainchain_atoms:
         - N
         - CA
@@ -938,7 +938,7 @@ residues:
       polymer:
         is_polymer: true
         polymer_type: amino_acid
-        backbone_type: alpha
+        backbone_type: alpha_aa
         mainchain_atoms:
         - N
         - CA
@@ -1012,7 +1012,7 @@ residues:
       polymer:
         is_polymer: true
         polymer_type: amino_acid
-        backbone_type: alpha
+        backbone_type: alpha_aa
         mainchain_atoms:
         - N
         - CA
@@ -1122,7 +1122,7 @@ residues:
       polymer:
         is_polymer: true
         polymer_type: amino_acid
-        backbone_type: alpha
+        backbone_type: alpha_aa
         mainchain_atoms:
         - N
         - CA
@@ -1230,7 +1230,7 @@ residues:
       polymer:
         is_polymer: true
         polymer_type: amino_acid
-        backbone_type: alpha
+        backbone_type: alpha_aa
         mainchain_atoms:
         - N
         - CA
@@ -1340,7 +1340,7 @@ residues:
       polymer:
         is_polymer: true
         polymer_type: amino_acid
-        backbone_type: alpha
+        backbone_type: alpha_aa
         mainchain_atoms:
         - N
         - CA
@@ -1459,7 +1459,7 @@ residues:
       polymer:
         is_polymer: true
         polymer_type: amino_acid
-        backbone_type: alpha
+        backbone_type: alpha_aa
         mainchain_atoms:
         - N
         - CA
@@ -1578,7 +1578,7 @@ residues:
       polymer:
         is_polymer: true
         polymer_type: amino_acid
-        backbone_type: alpha
+        backbone_type: alpha_aa
         mainchain_atoms:
         - N
         - CA
@@ -1711,7 +1711,7 @@ residues:
       polymer:
         is_polymer: true
         polymer_type: amino_acid
-        backbone_type: alpha
+        backbone_type: alpha_aa
         mainchain_atoms:
         - N
         - CA
@@ -1824,7 +1824,7 @@ residues:
       polymer:
         is_polymer: true
         polymer_type: amino_acid
-        backbone_type: alpha
+        backbone_type: alpha_aa
         mainchain_atoms:
         - N
         - CA
@@ -1941,7 +1941,7 @@ residues:
       polymer:
         is_polymer: true
         polymer_type: amino_acid
-        backbone_type: alpha
+        backbone_type: alpha_aa
         mainchain_atoms:
         - N
         - CA
@@ -2045,7 +2045,7 @@ residues:
       polymer:
         is_polymer: true
         polymer_type: amino_acid
-        backbone_type: alpha
+        backbone_type: alpha_aa
         mainchain_atoms:
         - N
         - CA
@@ -2134,7 +2134,7 @@ residues:
       polymer:
         is_polymer: true
         polymer_type: amino_acid
-        backbone_type: alpha
+        backbone_type: alpha_aa
         mainchain_atoms:
         - N
         - CA
@@ -2236,7 +2236,7 @@ residues:
       polymer:
         is_polymer: true
         polymer_type: amino_acid
-        backbone_type: alpha
+        backbone_type: alpha_aa
         mainchain_atoms:
         - N
         - CA
@@ -2369,7 +2369,7 @@ residues:
       polymer:
         is_polymer: true
         polymer_type: amino_acid
-        backbone_type: alpha
+        backbone_type: alpha_aa
         mainchain_atoms:
         - N
         - CA
@@ -2491,7 +2491,7 @@ residues:
       polymer:
         is_polymer: true
         polymer_type: amino_acid
-        backbone_type: alpha
+        backbone_type: alpha_aa
         mainchain_atoms:
         - N
         - CA
@@ -2602,7 +2602,7 @@ residues:
       polymer:
         is_polymer: true
         polymer_type: amino_acid
-        backbone_type: alpha
+        backbone_type: alpha_aa
         mainchain_atoms:
         - N
         - CA
@@ -3937,7 +3937,7 @@ variants:
   - name:  CarboxyTerminus
     display_name: cterm
     pattern: '[*][*]C(=O)[{up}]'
-    applies_to: { backbone_types: [alpha] }
+    applies_to: { backbone_types: [alpha_aa] }
     remove_atoms:
     - <{up}>
     - <O1>
@@ -3957,7 +3957,7 @@ variants:
   - name:  AminoTerminus
     display_name: nterm
     pattern: '[*][*][NH][{down}]'
-    applies_to: { backbone_types: [alpha] }
+    applies_to: { backbone_types: [alpha_aa] }
     remove_atoms:
     - <{down}>
     - <H1>
@@ -3985,7 +3985,7 @@ variants:
   - name:  AminoTerminusPro
     display_name: nterm
     pattern: 'CN(C)[{down}]'
-    applies_to: { backbone_types: [alpha] }
+    applies_to: { backbone_types: [alpha_aa] }
     remove_atoms:
     - <{down}>
     add_atoms:

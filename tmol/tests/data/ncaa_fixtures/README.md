@@ -12,6 +12,11 @@ single chain of model 1 with solvent and non-polymer heteroatoms removed.
 | `nmethyl_peptide_6mvz.cif` | PDB 6MVZ chain A | 4 | `MLE` (N-methylleucine) |
 | `gamma_peptide_1gac.cif` | PDB 1GAC chain A | 5 | `FGA` (gamma-D-glutamate) |
 | `beta_peptide_3c3g.cif` | PDB 3C3G chain A | 31 | eight beta backbones |
+| `na_dna_5mc_1d17.cif` | PDB 1D17 chain A | 6 | `5CM` (5-methylcytosine) |
+| `na_rna_psu_1bzt.cif` | PDB 1BZT chain A | 17 | `PSU` (pseudouridine) |
+| `na_rna_2ome_310d.cif` | PDB 310D chain A | 6 | `OMC`, `OMG` (2'-O-methyl) |
+| `na_dna_8og_183d.cif` | PDB 183D chain A | 10 | `8OG` (8-oxoguanine) |
+| `na_dna_ttd_1ttd.cif` | PDB 1TTD chain A | 11 | `TTD` (thymine dimer) |
 
 `SEP` is an open-chain sidechain carrying a dianionic phosphate; `HYP` closes a
 ring back onto the backbone nitrogen, so the two together cover both sidechain
@@ -59,6 +64,25 @@ psi and omega across a bond that does not exist.
 Trifluoroacetate, methanol, glycerol and acetate were dropped along with the
 solvent: they are unbonded in these entries, so they would arrive as free
 molecules on the ligand path and have nothing to do with the backbone.
+
+## Nucleic acids
+
+Five structures spanning what a modified nucleotide can modify, since the
+backbone decides how it is prepared and the base does not.
+
+`na_dna_5mc_1d17.cif` and `na_dna_8og_183d.cif` modify the base only, a
+pyrimidine and a purine. `na_rna_2ome_310d.cif` modifies the sugar, which
+leaves the ring closed and the mainchain intact, so it is still a standard
+backbone. All three keep the nucleic acid torsion potential.
+
+`na_rna_psu_1bzt.cif` carries pseudouridine, the commonest modified nucleotide
+in the PDB and a C-glycoside: its base hangs off the sugar through carbon
+rather than nitrogen, so a test for a glycosidic nitrogen rejects it.
+
+`na_dna_ttd_1ttd.cif` carries a thymine dimer, which is two whole nucleotides
+fused into one component -- two phosphates, two sugars, two bases. No single
+sugar spans its backbone, so it is prepared as a ligand with generated 5' and
+3' patches instead.
 
 ## Mirror-image pair
 
