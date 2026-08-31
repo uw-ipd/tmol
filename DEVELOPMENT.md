@@ -33,8 +33,11 @@ pip install -e .
 # Build with test extensions
 pip install -e . -Ccmake.define.TMOL_BUILD_TESTS=ON
 
-# Target specific GPU architectures (default: every sm_75+ target supported by nvcc)
+# Target specific GPU architectures (default: "80;86;89;90")
 pip install -e . -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="80;90"
+
+# Build every sm_75+ target supported by nvcc (used for CUDA 13 release wheels)
+pip install -e . -Ccmake.define.CMAKE_CUDA_ARCHITECTURES=all
 
 # Control parallelism
 MAX_JOBS=4 pip install -e . -Ccmake.define.TMOL_NVCC_THREADS=2
@@ -44,7 +47,7 @@ CMake build options:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `CMAKE_CUDA_ARCHITECTURES` | `all` | GPU compute capabilities to compile for. `all` emits SASS for every sm_75+ target reported by `nvcc --list-gpu-code`, plus PTX for the newest target. |
+| `CMAKE_CUDA_ARCHITECTURES` | `80;86;89;90` | GPU compute capabilities to compile for. `all` emits SASS for every sm_75+ target reported by `nvcc --list-gpu-code`, plus PTX for the newest target. |
 | `TMOL_BUILD_TESTS` | `OFF` | Build test-only C++/CUDA extensions |
 | `TMOL_NVCC_THREADS` | `4` | Threads per nvcc invocation |
 | `TMOL_ENABLE_CUDA` | `ON` | Set to `OFF` for CPU-only build (no `nvcc` needed) |

@@ -53,7 +53,7 @@ Important CMake variables:
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `CMAKE_CUDA_ARCHITECTURES` | `all` | GPU architectures to compile. `all` emits SASS for every sm_75+ target reported by `nvcc --list-gpu-code`, plus PTX for the newest target. |
+| `CMAKE_CUDA_ARCHITECTURES` | `80;86;89;90` | GPU architectures to compile. `all` emits SASS for every sm_75+ target reported by `nvcc --list-gpu-code`, plus PTX for the newest target. |
 | `TMOL_BUILD_TESTS` | `OFF` | Build test-only extensions. |
 | `TMOL_NVCC_THREADS` | `4` | Threads per `nvcc` invocation. |
 | `TMOL_ENABLE_CUDA` | `ON` | Turn off for CPU-only builds. |

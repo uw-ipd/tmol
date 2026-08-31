@@ -30,17 +30,17 @@ def test_colab_selects_the_published_wheel_for_each_supported_python():
     source = (ROOT / "docs/tutorial/colab_setup.py").read_text(encoding="utf-8")
 
     assert module.TUTORIAL_REF == "master"
-    assert module.TMOL_RELEASE == "0.1.52"
+    assert module.TMOL_RELEASE == "0.1.53"
     assert module.RELEASE_WHEEL_TORCH_MINOR == "2.11"
     assert module.RELEASE_WHEEL_CUDA == "12.8"
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     assert module.TMOL_RELEASE == project["project"]["version"]
     assert module.RELEASE_WHEEL_PYTHONS == {(3, 12), (3, 13)}
     assert module._wheel_url((3, 12)).endswith(
-        "/v0.1.52/" "tmol-0.1.52+cu128torch2.11-cp312-cp312-manylinux_2_28_x86_64.whl"
+        "/v0.1.53/" "tmol-0.1.53+cu128torch2.11-cp312-cp312-manylinux_2_28_x86_64.whl"
     )
     assert module._wheel_url((3, 13)).endswith(
-        "/v0.1.52/" "tmol-0.1.52+cu128torch2.11-cp313-cp313-manylinux_2_28_x86_64.whl"
+        "/v0.1.53/" "tmol-0.1.53+cu128torch2.11-cp313-cp313-manylinux_2_28_x86_64.whl"
     )
     with pytest.raises(ValueError, match="Unsupported Colab Python version"):
         module._wheel_url((3, 14))

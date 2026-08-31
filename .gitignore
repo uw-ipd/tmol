@@ -1,5 +1,6 @@
 .torch_extensions
 .torch_ext_cpu
+.bench/
 
 # Conda environment
 .conda
