@@ -141,8 +141,8 @@ jobs:
             runs-on: ubuntu-22.04
             label: "py3.12 pt2.10 x86_64 manylinux cu128"
 
-          # ── x86_64 py3.12 Colab wheel (T4/sm_75, torch 2.11 cu128) ──
-          # Matches the current Colab runtime (Python 3.12, torch 2.11, T4);
+          # ── x86_64 Colab wheels (T4/sm_75, torch 2.11 cu128) ──
+          # Colab may update Python independently of its PyTorch/CUDA lane;
           # explicit archs cover T4(75)/A100(80)/L4(89).
           - python-version: "3.12"
             container-image: nvcr.io/nvidia/pytorch:25.02-py3
@@ -152,6 +152,14 @@ jobs:
             cuda-archs: "75;80;89"
             runs-on: ubuntu-22.04
             label: "py3.12 pt2.11 x86_64 Colab cu128"
+          - python-version: "3.13"
+            container-image: nvcr.io/nvidia/pytorch:25.02-py3
+            torch-version: "2.11"
+            torch-package-version: "2.11.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu128"
+            cuda-archs: "75;80;89"
+            runs-on: ubuntu-22.04
+            label: "py3.13 pt2.11 x86_64 Colab cu128"
 
           # ── ARM64 py3.11 ──
           - python-version: "3.11"
@@ -411,7 +419,7 @@ jobs:
       - name: Validate release wheel manifest
         run: |
           python scripts/validate_release_manifest.py wheels \
-            --gpu-count 25 \
+            --gpu-count 26 \
             --cpu-count 12 \
             --platform manylinux_2_28_x86_64 \
             --platform manylinux_2_28_aarch64 \
@@ -419,6 +427,7 @@ jobs:
             --require cu132torch2.12:cp311:x86_64 \
             --require cu129torch2.8:cp312:x86_64 \
             --require cu128torch2.11:cp312:x86_64 \
+            --require cu128torch2.11:cp313:x86_64 \
             --require cu130torch2.9:cp312:x86_64 \
             --require cu130torch2.10:cp312:x86_64 \
             --require cu128torch2.10:cp312:x86_64 \
