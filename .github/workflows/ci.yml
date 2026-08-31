@@ -135,8 +135,8 @@ jobs:
       SLURM_CPUS_PER_TASK: 16
       SLURM_MEM: 128G
       SLURM_TIME: 06:00:00
-      # Exclude the node with a known uncorrectable ECC fault until repaired.
-      SLURM_EXCLUDE: g2548
+      # Exclude nodes with known uncorrectable ECC faults until repaired.
+      SLURM_EXCLUDE: g2547,g2548
       SRUN_GPU_MAX_ATTEMPTS: 5
       SRUN_GPU_RETRY_SLEEP: 10
       # PR tests need only the architecture of the allocated DIGS GPU.
