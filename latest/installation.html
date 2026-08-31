@@ -532,16 +532,17 @@ recent container image.</p>
 </section>
 <section id="google-colab">
 <h2>Google Colab<a class="headerlink" href="#google-colab" title="Link to this heading">#</a></h2>
-<p>The current Colab GPU runtime uses Python 3.12, PyTorch 2.11.0 with CUDA 12.8,
-and commonly a Turing T4 (<code class="docutils literal notranslate"><span class="pre">sm_75</span></code>). TMol v0.1.49 provides a matching wheel
-compiled for T4 (<code class="docutils literal notranslate"><span class="pre">sm_75</span></code>), A100 (<code class="docutils literal notranslate"><span class="pre">sm_80</span></code>), and L4 (<code class="docutils literal notranslate"><span class="pre">sm_89</span></code>) GPUs:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"tmol @ https://github.com/uw-ipd/tmol/releases/download/v0.1.49/tmol-0.1.49+cu128torch2.11-cp312-cp312-manylinux_2_28_x86_64.whl"</span>
+<p>Colab GPU runtimes currently use PyTorch 2.11.0 with CUDA 12.8 and may provide
+Python 3.12 or 3.13. TMol v0.1.52 provides separate Python-ABI wheels compiled
+for T4 (<code class="docutils literal notranslate"><span class="pre">sm_75</span></code>), A100 (<code class="docutils literal notranslate"><span class="pre">sm_80</span></code>), and L4 (<code class="docutils literal notranslate"><span class="pre">sm_89</span></code>) GPUs. For Python 3.13:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"tmol @ https://github.com/uw-ipd/tmol/releases/download/v0.1.52/tmol-0.1.52+cu128torch2.11-cp313-cp313-manylinux_2_28_x86_64.whl"</span>
 </pre></div>
 </div>
-<p>The tutorial bootstrap installs this wheel directly and constrains pip to keep
-Colab’s active PyTorch. It stops with a clear compatibility error instead of
-attempting a long source build when Python, PyTorch, or CUDA do not match.
-Always confirm the active versions before installing an ABI-specific wheel URL.</p>
+<p>The tutorial bootstrap selects the wheel matching the runtime’s Python ABI and
+constrains pip to keep Colab’s active PyTorch. It stops with a clear
+compatibility error instead of attempting a long source build when Python,
+PyTorch, or CUDA do not match. Always confirm the active versions before
+installing an ABI-specific wheel URL.</p>
 </section>
 </section>
 

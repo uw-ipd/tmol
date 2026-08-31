@@ -126,15 +126,16 @@ python -c "import sys, torch; print(f'Python {sys.version_info.major}.{sys.versi
 
 ## Google Colab
 
-The current Colab GPU runtime uses Python 3.12, PyTorch 2.11.0 with CUDA 12.8,
-and commonly a Turing T4 (`sm_75`). TMol v0.1.49 provides a matching wheel
-compiled for T4 (`sm_75`), A100 (`sm_80`), and L4 (`sm_89`) GPUs:
+Colab GPU runtimes currently use PyTorch 2.11.0 with CUDA 12.8 and may provide
+Python 3.12 or 3.13. TMol v0.1.52 provides separate Python-ABI wheels compiled
+for T4 (`sm_75`), A100 (`sm_80`), and L4 (`sm_89`) GPUs. For Python 3.13:
 
 ```bash
-pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/v0.1.49/tmol-0.1.49+cu128torch2.11-cp312-cp312-manylinux_2_28_x86_64.whl"
+pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/v0.1.52/tmol-0.1.52+cu128torch2.11-cp313-cp313-manylinux_2_28_x86_64.whl"
 ```
 
-The tutorial bootstrap installs this wheel directly and constrains pip to keep
-Colab's active PyTorch. It stops with a clear compatibility error instead of
-attempting a long source build when Python, PyTorch, or CUDA do not match.
-Always confirm the active versions before installing an ABI-specific wheel URL.
+The tutorial bootstrap selects the wheel matching the runtime's Python ABI and
+constrains pip to keep Colab's active PyTorch. It stops with a clear
+compatibility error instead of attempting a long source build when Python,
+PyTorch, or CUDA do not match. Always confirm the active versions before
+installing an ABI-specific wheel URL.

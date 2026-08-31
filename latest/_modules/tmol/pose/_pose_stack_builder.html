@@ -436,7 +436,6 @@
     <span class="n">exclusive_cumsum2d</span><span class="p">,</span>
     <span class="n">exclusive_cumsum2d_and_totals</span><span class="p">,</span>
     <span class="n">stretch</span><span class="p">,</span>
-    <span class="n">stretch2</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility._device</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_device</span>
 
@@ -677,7 +676,7 @@
             <span class="n">pconn_matrix</span><span class="p">,</span>
             <span class="n">pconn_offsets</span><span class="p">,</span>
             <span class="n">block_n_conn</span><span class="p">,</span>
-            <span class="n">pose_n_pconn</span><span class="p">,</span>
+            <span class="n">_</span><span class="p">,</span>
         <span class="p">)</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_take_real_conn_conn_intrablock_pairs</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="n">block_type_ind64</span><span class="p">,</span> <span class="n">real_res</span><span class="p">)</span>
 
         <span class="c1"># 3b</span>
@@ -688,7 +687,7 @@
         <span class="c1"># 4</span>
         <span class="n">inter_block_bondsep64</span> <span class="o">=</span> <span class="p">(</span>
             <span class="bp">cls</span><span class="o">.</span><span class="n">_calculate_interblock_bondsep_from_connectivity_graph</span><span class="p">(</span>
-                <span class="n">pbt</span><span class="p">,</span> <span class="n">block_n_conn</span><span class="p">,</span> <span class="n">pose_n_pconn</span><span class="p">,</span> <span class="n">pconn_matrix</span>
+                <span class="n">pbt</span><span class="p">,</span> <span class="n">pconn_offsets</span><span class="p">,</span> <span class="n">block_n_conn</span><span class="p">,</span> <span class="n">pconn_matrix</span>
             <span class="p">)</span>
         <span class="p">)</span>
 
@@ -927,49 +926,18 @@
             <span class="n">pbt_conn_at_intrablock_bond_sep</span><span class="p">,</span> <span class="n">block_types64</span><span class="p">,</span> <span class="n">real_blocks</span>
         <span class="p">)</span>
 
-        <span class="n">local_ind_for_bconn1</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">pbt_max_n_conn</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt_device</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">n_poses</span> <span class="o">*</span> <span class="n">max_n_blocks</span> <span class="o">*</span> <span class="n">pbt_max_n_conn</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">pbt_max_n_conn</span><span class="p">,</span> <span class="n">pbt_max_n_conn</span><span class="p">)</span>
-        <span class="p">)</span>
-        <span class="n">local_ind_for_bconn2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">local_ind_for_bconn1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
-
-        <span class="c1"># n_conn_for_bconn:</span>
-        <span class="c1"># [n_poses x max_n_blockx x max_n_conn x max_n_conn] tensor stating</span>
-        <span class="c1"># for entry [i, j, k, l] the number of connections on pose i</span>
-        <span class="c1"># block j; then we can figure out if any individual pair (k,l)</span>
-        <span class="c1"># represents a valid intra-block pair or whether k, e.g., exceeds</span>
-        <span class="c1"># the number of connections for block j.</span>
-        <span class="n">n_conn_for_bconn</span> <span class="o">=</span> <span class="n">stretch2</span><span class="p">(</span>
-            <span class="n">n_conn_for_block</span><span class="p">,</span> <span class="n">pbt_max_n_conn</span> <span class="o">*</span> <span class="n">pbt_max_n_conn</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">pbt_max_n_conn</span><span class="p">,</span> <span class="n">pbt_max_n_conn</span><span class="p">)</span>
-
+        <span class="n">bconn_inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">pbt_max_n_conn</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt_device</span><span class="p">)</span>
         <span class="n">valid_local_bconn_pair</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
-            <span class="n">local_ind_for_bconn1</span> <span class="o">&lt;</span> <span class="n">n_conn_for_bconn</span><span class="p">,</span>
-            <span class="n">local_ind_for_bconn2</span> <span class="o">&lt;</span> <span class="n">n_conn_for_bconn</span><span class="p">,</span>
+            <span class="n">bconn_inds</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">&lt;</span> <span class="n">n_conn_for_block</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+            <span class="n">bconn_inds</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">n_conn_for_block</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
         <span class="p">)</span>
 
-        <span class="c1"># pose_ind_for_pconn1</span>
-        <span class="c1"># [n_poses x max_n_pose_conn x max_n_pose_conn] tensor where</span>
-        <span class="c1"># entry [i, j, k] is j;</span>
-        <span class="c1"># pose_ind_for_pconn2, on the otherhand, gives [i, j, k] as k</span>
-        <span class="c1"># useful to know if both j and k are less than the maximum</span>
-        <span class="c1"># number of inter-residue connection points for the pose</span>
-        <span class="n">pose_ind_for_pconn1</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="c1"># Exclude padded pose-connection rows and columns.</span>
+        <span class="n">pconn_real</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">max_n_pose_conn</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt_device</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">n_poses</span> <span class="o">*</span> <span class="n">max_n_pose_conn</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_pose_conn</span><span class="p">,</span> <span class="n">max_n_pose_conn</span><span class="p">)</span>
+            <span class="o">&lt;</span> <span class="n">n_conn_totals</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
         <span class="p">)</span>
-        <span class="n">pose_ind_for_pconn2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">pose_ind_for_pconn1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-
-        <span class="n">n_pose_conn_for_pconn</span> <span class="o">=</span> <span class="n">stretch</span><span class="p">(</span>
-            <span class="n">n_conn_totals</span><span class="p">,</span> <span class="n">max_n_pose_conn</span> <span class="o">*</span> <span class="n">max_n_pose_conn</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_pose_conn</span><span class="p">,</span> <span class="n">max_n_pose_conn</span><span class="p">)</span>
-
-        <span class="n">valid_pconn_pair</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
-            <span class="n">pose_ind_for_pconn1</span> <span class="o">&lt;</span> <span class="n">n_pose_conn_for_pconn</span><span class="p">,</span>
-            <span class="n">pose_ind_for_pconn2</span> <span class="o">&lt;</span> <span class="n">n_pose_conn_for_pconn</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="n">valid_pconn_pair</span> <span class="o">=</span> <span class="n">pconn_real</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">&amp;</span> <span class="n">pconn_real</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
 
         <span class="n">real_pconns_from_same_block</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
             <span class="n">are_pconns_from_same_block</span><span class="p">,</span> <span class="n">valid_pconn_pair</span>
@@ -1642,86 +1610,93 @@
     <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_calculate_interblock_bondsep_from_connectivity_graph</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
-        <span class="n">pbt</span><span class="p">,</span>
+        <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span>
+        <span class="n">pconn_offsets</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:],</span>
         <span class="n">block_n_conn</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:],</span>
-        <span class="n">pose_n_pconn</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
         <span class="n">pconn_matrix</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:],</span>
-    <span class="p">):</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]:</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_calculate_interblock_bondsep_from_connectivity_graph_heavy</span><span class="p">(</span>
-            <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_conn</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">block_n_conn</span><span class="p">,</span> <span class="n">pose_n_pconn</span><span class="p">,</span> <span class="n">pconn_matrix</span>
+            <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_conn</span><span class="p">,</span> <span class="n">pconn_offsets</span><span class="p">,</span> <span class="n">block_n_conn</span><span class="p">,</span> <span class="n">pconn_matrix</span>
         <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
     <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_calculate_interblock_bondsep_from_connectivity_graph_heavy</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
-        <span class="n">pbt_max_n_conn</span><span class="p">,</span>
-        <span class="n">pbt_device</span><span class="p">,</span>
+        <span class="n">pbt_max_n_conn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">pconn_offsets</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:],</span>
         <span class="n">block_n_conn</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:],</span>
-        <span class="n">pose_n_pconn</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
         <span class="n">pconn_matrix</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:],</span>
-    <span class="p">):</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]:</span>
+<span class="w">        </span><span class="sd">"""Map shortest paths between pose connections onto block pairs.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            pbt_max_n_conn: Maximum connection count for any block type.</span>
+<span class="sd">            pconn_offsets: First pose-connection index for each block.</span>
+<span class="sd">            block_n_conn: Number of real connections for each block.</span>
+<span class="sd">            pconn_matrix: Pose-connection adjacency matrices, updated in place</span>
+<span class="sd">                with their all-pairs shortest paths.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Connection-to-connection bond separations indexed by pose and</span>
+<span class="sd">            block pair.</span>
+<span class="sd">        """</span>
         <span class="n">n_poses</span> <span class="o">=</span> <span class="n">block_n_conn</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">max_n_blocks</span> <span class="o">=</span> <span class="n">block_n_conn</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">max_n_conn</span> <span class="o">=</span> <span class="n">pbt_max_n_conn</span>
         <span class="n">max_n_pconn</span> <span class="o">=</span> <span class="n">pconn_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
         <span class="k">assert</span> <span class="n">pconn_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">n_poses</span>
         <span class="k">assert</span> <span class="n">pconn_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">pconn_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">pconn_offsets</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">block_n_conn</span><span class="o">.</span><span class="n">shape</span>
 
-        <span class="c1"># the final destination tensor that we will have to carefully write to</span>
-        <span class="c1"># indexed pose-id x r1 x r2 x c1 x c2</span>
-        <span class="c1"># but, we will see later, has to be transposed at the r2/c1 dimensions</span>
-        <span class="c1"># so we can write to it in the correct order</span>
-        <span class="n">inter_block_bondsep</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">max_n_conn</span><span class="p">,</span> <span class="n">max_n_conn</span><span class="p">),</span>
-            <span class="n">MAX_SIG_BOND_SEPARATION</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
-            <span class="n">device</span><span class="o">=</span><span class="n">pbt_device</span><span class="p">,</span>
+        <span class="n">output_shape</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">n_poses</span><span class="p">,</span>
+            <span class="n">max_n_blocks</span><span class="p">,</span>
+            <span class="n">max_n_blocks</span><span class="p">,</span>
+            <span class="n">max_n_conn</span><span class="p">,</span>
+            <span class="n">max_n_conn</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="n">max_n_pconn</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+                <span class="n">output_shape</span><span class="p">,</span>
+                <span class="n">MAX_SIG_BOND_SEPARATION</span><span class="p">,</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">pconn_matrix</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">)</span>
 
-        <span class="n">bconn_inds1</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">max_n_conn</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt_device</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">n_poses</span> <span class="o">*</span> <span class="n">max_n_blocks</span> <span class="o">*</span> <span class="n">max_n_blocks</span> <span class="o">*</span> <span class="n">max_n_conn</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">max_n_conn</span><span class="p">,</span> <span class="n">max_n_conn</span><span class="p">)</span>
-        <span class="p">)</span>
-        <span class="n">bconn_inds2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">bconn_inds1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
-        <span class="c1"># not all entries in the inter_block_bondsep tensor correspond to</span>
-        <span class="c1"># actual connections; this boolean tensor helps us identify the</span>
-        <span class="c1"># real entries</span>
-        <span class="n">bconn_pair_real</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
-            <span class="n">bconn_inds1</span> <span class="o">&lt;</span> <span class="n">block_n_conn</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
-            <span class="n">bconn_inds2</span> <span class="o">&lt;</span> <span class="n">block_n_conn</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
-        <span class="p">)</span>
-
-        <span class="c1"># in order to assign from a tensor ordered pose_id x pconn1 x pconn2</span>
-        <span class="c1"># we have to make these tensors (temporarily) indexed</span>
-        <span class="c1"># pose_id x r1 x c1 x r2 x c2</span>
-        <span class="c1"># later we will re-transpose these dimensions before returning</span>
-        <span class="c1"># the inter_block_bondsep tensor</span>
-        <span class="n">bconn_pair_real</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">bconn_pair_real</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
-        <span class="n">inter_block_bondsep</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">inter_block_bondsep</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
-
-        <span class="n">pconn_inds1</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">max_n_pconn</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt_device</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">n_poses</span> <span class="o">*</span> <span class="n">max_n_pconn</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_pconn</span><span class="p">,</span> <span class="n">max_n_pconn</span><span class="p">)</span>
-        <span class="p">)</span>
-        <span class="n">pconn_inds2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">pconn_inds1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="c1"># same deal as with the bconn_pair_real tensor</span>
-        <span class="n">pconn_pair_real</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
-            <span class="n">pconn_inds1</span> <span class="o">&lt;</span> <span class="n">pose_n_pconn</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
-            <span class="n">pconn_inds2</span> <span class="o">&lt;</span> <span class="n">pose_n_pconn</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
-        <span class="p">)</span>
-
-        <span class="c1"># invoke the all-pairs-shortest-path algorithm on the connectivity</span>
-        <span class="c1"># matrices</span>
         <span class="bp">cls</span><span class="o">.</span><span class="n">_shortest_paths_for_connectivity_graph</span><span class="p">(</span><span class="n">pconn_matrix</span><span class="p">)</span>
 
-        <span class="c1"># the big assignment!</span>
-        <span class="n">inter_block_bondsep</span><span class="p">[</span><span class="n">bconn_pair_real</span><span class="p">]</span> <span class="o">=</span> <span class="n">pconn_matrix</span><span class="p">[</span><span class="n">pconn_pair_real</span><span class="p">]</span>
+        <span class="n">bconn_ind</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+            <span class="n">max_n_conn</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pconn_matrix</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="n">real_bconn</span> <span class="o">=</span> <span class="n">bconn_ind</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">&lt;</span> <span class="n">block_n_conn</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="n">pconn_for_bconn</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="n">real_bconn</span><span class="p">,</span>
+            <span class="n">pconn_offsets</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">bconn_ind</span><span class="p">,</span>
+            <span class="mi">0</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
-        <span class="c1"># now reorder so it's pose-ind x r1 x r2 x c1 x c2</span>
-        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">inter_block_bondsep</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="n">n_padded_bconn</span> <span class="o">=</span> <span class="n">pconn_for_bconn</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">pconn_rows</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span>
+            <span class="n">pconn_matrix</span><span class="p">,</span>
+            <span class="mi">1</span><span class="p">,</span>
+            <span class="n">pconn_for_bconn</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">n_padded_bconn</span><span class="p">,</span> <span class="n">max_n_pconn</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">inter_block_bondsep</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span>
+            <span class="n">pconn_rows</span><span class="p">,</span>
+            <span class="mi">2</span><span class="p">,</span>
+            <span class="n">pconn_for_bconn</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">n_padded_bconn</span><span class="p">,</span> <span class="n">n_padded_bconn</span><span class="p">),</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">max_n_conn</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">max_n_conn</span><span class="p">)</span>
+        <span class="n">inter_block_bondsep</span> <span class="o">=</span> <span class="n">inter_block_bondsep</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+
+        <span class="c1"># Sentinel padded connections without constructing a dense 5-D mask.</span>
+        <span class="n">inter_block_bondsep</span><span class="o">.</span><span class="n">masked_fill_</span><span class="p">(</span>
+            <span class="o">~</span><span class="n">real_bconn</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">MAX_SIG_BOND_SEPARATION</span>
+        <span class="p">)</span>
+        <span class="n">inter_block_bondsep</span><span class="o">.</span><span class="n">masked_fill_</span><span class="p">(</span>
+            <span class="o">~</span><span class="n">real_bconn</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="n">MAX_SIG_BOND_SEPARATION</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">inter_block_bondsep</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
 
     <span class="nd">@classmethod</span>
     <span class="nd">@validate_args</span>

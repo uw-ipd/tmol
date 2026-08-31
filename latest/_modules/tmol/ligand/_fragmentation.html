@@ -1264,7 +1264,7 @@
         <span class="n">pconn_matrix</span><span class="p">,</span>
         <span class="n">pconn_offsets</span><span class="p">,</span>
         <span class="n">block_n_conn</span><span class="p">,</span>
-        <span class="n">pose_n_pconn</span><span class="p">,</span>
+        <span class="n">_</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">=</span> <span class="n">PoseStackBuilder</span><span class="o">.</span><span class="n">_take_real_conn_conn_intrablock_pairs</span><span class="p">(</span>
         <span class="n">pbt</span><span class="p">,</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">,</span> <span class="n">real_res</span>
     <span class="p">)</span>
@@ -1273,7 +1273,7 @@
     <span class="p">)</span>
     <span class="n">inter_block_bondsep64</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">PoseStackBuilder</span><span class="o">.</span><span class="n">_calculate_interblock_bondsep_from_connectivity_graph</span><span class="p">(</span>
-            <span class="n">pbt</span><span class="p">,</span> <span class="n">block_n_conn</span><span class="p">,</span> <span class="n">pose_n_pconn</span><span class="p">,</span> <span class="n">pconn_matrix</span>
+            <span class="n">pbt</span><span class="p">,</span> <span class="n">pconn_offsets</span><span class="p">,</span> <span class="n">block_n_conn</span><span class="p">,</span> <span class="n">pconn_matrix</span>
         <span class="p">)</span>
     <span class="p">)</span>
     <span class="n">result</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
@@ -1662,14 +1662,14 @@
         <span class="n">device</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="n">pconn_matrix</span><span class="p">,</span> <span class="n">pconn_offsets</span><span class="p">,</span> <span class="n">block_n_conn</span><span class="p">,</span> <span class="n">pose_n_pconn</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">pconn_matrix</span><span class="p">,</span> <span class="n">pconn_offsets</span><span class="p">,</span> <span class="n">block_n_conn</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">PoseStackBuilder</span><span class="o">.</span><span class="n">_take_real_conn_conn_intrablock_pairs</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="n">new_bt64</span><span class="p">,</span> <span class="n">real_new</span><span class="p">)</span>
     <span class="p">)</span>
     <span class="n">PoseStackBuilder</span><span class="o">.</span><span class="n">_incorporate_inter_residue_connections_into_connectivity_graph</span><span class="p">(</span>
         <span class="n">new_irc64</span><span class="p">,</span> <span class="n">pconn_offsets</span><span class="p">,</span> <span class="n">pconn_matrix</span>
     <span class="p">)</span>
     <span class="n">new_ibs64</span> <span class="o">=</span> <span class="n">PoseStackBuilder</span><span class="o">.</span><span class="n">_calculate_interblock_bondsep_from_connectivity_graph</span><span class="p">(</span>
-        <span class="n">pbt</span><span class="p">,</span> <span class="n">block_n_conn</span><span class="p">,</span> <span class="n">pose_n_pconn</span><span class="p">,</span> <span class="n">pconn_matrix</span>
+        <span class="n">pbt</span><span class="p">,</span> <span class="n">pconn_offsets</span><span class="p">,</span> <span class="n">block_n_conn</span><span class="p">,</span> <span class="n">pconn_matrix</span>
     <span class="p">)</span>
 
     <span class="n">new_chain_id</span><span class="p">,</span> <span class="n">new_pdb_info</span> <span class="o">=</span> <span class="n">_unsplit_chain_and_pdb</span><span class="p">(</span>
