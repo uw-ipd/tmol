@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18...3.31)
+cmake_minimum_required(VERSION 3.24...3.31)
 
 option(TMOL_ENABLE_CUDA "Build CUDA extensions (disable for CPU-only)" ON)
 
@@ -56,30 +56,21 @@ if(CMAKE_CUDA_COMPILER AND TMOL_ENABLE_CUDA)
       "tmol: nvcc --list-gpu-code did not report any supported sm_75+ targets "
       "(exit ${_TMOL_NVCC_GPU_CODE_RESULT}): ${_TMOL_NVCC_GPU_CODE_ERROR}")
   endif()
-  # Ship native SASS for every target and a single forward-compatible PTX
+  # Ship SASS for every release target and a single forward-compatible PTX
   # image at the newest target. Unsuffixed numeric CMake architectures would
   # otherwise embed redundant PTX for every generation.
-  set(_TMOL_NVCC_DEFAULT_ARCHS "")
+  set(_TMOL_NVCC_RELEASE_ARCHS "")
   list(LENGTH _TMOL_NVCC_SUPPORTED_ARCHS _TMOL_NVCC_ARCH_COUNT)
   math(EXPR _TMOL_NVCC_LAST_ARCH_INDEX "${_TMOL_NVCC_ARCH_COUNT} - 1")
   foreach(_ARCH_INDEX RANGE ${_TMOL_NVCC_LAST_ARCH_INDEX})
     list(GET _TMOL_NVCC_SUPPORTED_ARCHS ${_ARCH_INDEX} _SM_ARCH)
     if(_ARCH_INDEX EQUAL _TMOL_NVCC_LAST_ARCH_INDEX)
-      list(APPEND _TMOL_NVCC_DEFAULT_ARCHS "${_SM_ARCH}")
+      list(APPEND _TMOL_NVCC_RELEASE_ARCHS "${_SM_ARCH}")
     else()
-      list(APPEND _TMOL_NVCC_DEFAULT_ARCHS "${_SM_ARCH}-real")
+      list(APPEND _TMOL_NVCC_RELEASE_ARCHS "${_SM_ARCH}-real")
     endif()
   endforeach()
 
-  if(DEFINED CMAKE_CUDA_ARCHITECTURES AND
-      (CMAKE_CUDA_ARCHITECTURES STREQUAL "native" OR
-       CMAKE_CUDA_ARCHITECTURES STREQUAL "all-major" OR
-       CMAKE_CUDA_ARCHITECTURES STREQUAL "all"))
-    # Resolve symbolic values ourselves. This works with the project's CMake
-    # 3.18 floor and prevents CMake from guessing a target newer than its nvcc.
-    unset(CMAKE_CUDA_ARCHITECTURES)
-    unset(CMAKE_CUDA_ARCHITECTURES CACHE)
-  endif()
   if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
     if(DEFINED ENV{CMAKE_CUDA_ARCHITECTURES})
       set(CMAKE_CUDA_ARCHITECTURES "$ENV{CMAKE_CUDA_ARCHITECTURES}" CACHE STRING "CUDA architectures")
@@ -99,45 +90,51 @@ if(CMAKE_CUDA_COMPILER AND TMOL_ENABLE_CUDA)
       endforeach()
       set(CMAKE_CUDA_ARCHITECTURES ${_CLEAN_ARCHS} CACHE STRING "CUDA architectures")
     else()
-      set(CMAKE_CUDA_ARCHITECTURES "${_TMOL_NVCC_DEFAULT_ARCHS}" CACHE STRING "CUDA architectures")
+      set(CMAKE_CUDA_ARCHITECTURES "native" CACHE STRING "CUDA architectures")
     endif()
   endif()
-  if(CMAKE_CUDA_ARCHITECTURES STREQUAL "native" OR
-      CMAKE_CUDA_ARCHITECTURES STREQUAL "all-major" OR
+  if(CMAKE_CUDA_ARCHITECTURES STREQUAL "all-major" OR
       CMAKE_CUDA_ARCHITECTURES STREQUAL "all")
-    # An environment override may have reintroduced a symbolic value after the
-    # cache entry above was cleared.
-    set(CMAKE_CUDA_ARCHITECTURES "${_TMOL_NVCC_DEFAULT_ARCHS}" CACHE STRING "CUDA architectures" FORCE)
+    # CMake's symbolic all values are compiler-policy dependent. Resolve them
+    # to nvcc's exact sm_75+ list so release wheels cannot silently omit an
+    # architecture discovered above.
+    set(CMAKE_CUDA_ARCHITECTURES "${_TMOL_NVCC_RELEASE_ARCHS}" CACHE STRING "CUDA architectures" FORCE)
   endif()
 
-  # Filter requested arches by exact compiler support. Architectures are not a
-  # simple compatibility interval, so a maximum-value clamp is incorrect.
-  set(_TMOL_FILTERED_ARCHS "")
-  set(_TMOL_REJECTED_ARCHS "")
-  foreach(_A ${CMAKE_CUDA_ARCHITECTURES})
-    string(REPLACE "-real" "" _A_NUM "${_A}")
-    string(REPLACE "-virtual" "" _A_NUM "${_A_NUM}")
-    if(_A_NUM IN_LIST _TMOL_NVCC_SUPPORTED_ARCHS)
-      list(APPEND _TMOL_FILTERED_ARCHS "${_A}")
-    else()
-      list(APPEND _TMOL_REJECTED_ARCHS "${_A}")
+  if(CMAKE_CUDA_ARCHITECTURES STREQUAL "native")
+    # CMake 3.24+ queries the GPU(s) visible at configure time and emits only
+    # their native device code. This is the fast default for local builds.
+    set(_TMOL_CUDA_ARCHITECTURES "native")
+  else()
+    # Filter requested numeric arches by exact compiler support. Architectures
+    # are not a simple compatibility interval, so a maximum clamp is wrong.
+    set(_TMOL_FILTERED_ARCHS "")
+    set(_TMOL_REJECTED_ARCHS "")
+    foreach(_A ${CMAKE_CUDA_ARCHITECTURES})
+      string(REPLACE "-real" "" _A_NUM "${_A}")
+      string(REPLACE "-virtual" "" _A_NUM "${_A_NUM}")
+      if(_A_NUM IN_LIST _TMOL_NVCC_SUPPORTED_ARCHS)
+        list(APPEND _TMOL_FILTERED_ARCHS "${_A}")
+      else()
+        list(APPEND _TMOL_REJECTED_ARCHS "${_A}")
+      endif()
+    endforeach()
+    if(NOT _TMOL_FILTERED_ARCHS)
+      message(FATAL_ERROR
+        "tmol: none of the requested CUDA architectures "
+        "(${CMAKE_CUDA_ARCHITECTURES}) are supported by ${CMAKE_CUDA_COMPILER}; "
+        "supported sm_75+ targets: ${_TMOL_NVCC_SUPPORTED_ARCHS}")
     endif()
-  endforeach()
-  if(NOT _TMOL_FILTERED_ARCHS)
-    message(FATAL_ERROR
-      "tmol: none of the requested CUDA architectures "
-      "(${CMAKE_CUDA_ARCHITECTURES}) are supported by ${CMAKE_CUDA_COMPILER}; "
-      "supported sm_75+ targets: ${_TMOL_NVCC_SUPPORTED_ARCHS}")
+    if(_TMOL_REJECTED_ARCHS)
+      message(WARNING
+        "tmol: ignoring CUDA architectures not supported by this nvcc: "
+        "${_TMOL_REJECTED_ARCHS}")
+    endif()
+    set(_TMOL_CUDA_ARCHITECTURES "${_TMOL_FILTERED_ARCHS}")
   endif()
-  if(_TMOL_REJECTED_ARCHS)
-    message(WARNING
-      "tmol: ignoring CUDA architectures not supported by this nvcc: "
-      "${_TMOL_REJECTED_ARCHS}")
-  endif()
-  # Preserve the resolved list independently: project() may normalize the
-  # special value that originally arrived through the cache and overwrite
-  # CMAKE_CUDA_ARCHITECTURES while enabling CUDA.
-  set(_TMOL_CUDA_ARCHITECTURES "${_TMOL_FILTERED_ARCHS}")
+  # Preserve the selected value independently: project() may overwrite the
+  # cache while enabling CUDA. `all` is numeric here; `native` intentionally
+  # remains symbolic so nvcc resolves the GPU visible at compile time.
   set(CMAKE_CUDA_ARCHITECTURES "${_TMOL_CUDA_ARCHITECTURES}" CACHE STRING "CUDA architectures" FORCE)
   set(CMAKE_CUDA_ARCHITECTURES "${_TMOL_CUDA_ARCHITECTURES}")
   message(STATUS "tmol: nvcc supports sm_75+ targets ${_TMOL_NVCC_SUPPORTED_ARCHS}")

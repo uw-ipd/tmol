@@ -44,16 +44,19 @@ RUN_GPU=$(python -c "import torch; c=torch.cuda.get_device_capability(0); print(
 CUDA_ARCHS="${TMOL_CI_CUDA_ARCHITECTURES:-native}"
 NVCC_VER=$(nvcc --version 2>&1 | sed -n 's/.*release \([0-9.]*\).*/\1/p' | head -1)
 if [[ "${CUDA_ARCHS}" == "native" ]]; then
-  CUDA_ARCHS="${RUN_GPU/./}"
+  # Exercise CMake's native path in CI. JIT extensions still need PyTorch's
+  # numeric spelling for the same runner GPU.
+  TORCH_CUDA_ARCHS="${RUN_GPU/./}"
 else
   case "${NVCC_VER}" in
     11.*|12.*) CUDA_ARCHS="80;86;89;90" ;;
   esac
+  TORCH_CUDA_ARCHS="${CUDA_ARCHS}"
 fi
 unset CMAKE_CUDA_ARCHITECTURES
 export CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}"
 TORCH_ARCH_LIST=""
-IFS=';' read -ra _CUDA_ARCH_ARR <<< "${CUDA_ARCHS}"
+IFS=';' read -ra _CUDA_ARCH_ARR <<< "${TORCH_CUDA_ARCHS}"
 for _A in "${_CUDA_ARCH_ARR[@]}"; do
   if [ "${#_A}" -eq 3 ]; then
     TORCH_ARCH_LIST+=" ${_A:0:2}.${_A:2:1}"

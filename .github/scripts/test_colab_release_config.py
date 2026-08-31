@@ -35,6 +35,12 @@ def test_colab_selects_the_published_wheel_for_each_supported_python():
     assert module.RELEASE_WHEEL_CUDA == "12.8"
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     assert module.TMOL_RELEASE == project["project"]["version"]
+    assert (
+        project["tool"]["scikit-build"]["cmake"]["define"]["CMAKE_CUDA_ARCHITECTURES"][
+            "default"
+        ]
+        == "native"
+    )
     assert module.RELEASE_WHEEL_PYTHONS == {(3, 12), (3, 13)}
     assert module._wheel_url((3, 12)).endswith(
         "/v0.1.53/" "tmol-0.1.53+cu128torch2.11-cp312-cp312-manylinux_2_28_x86_64.whl"
