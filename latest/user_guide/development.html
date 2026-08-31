@@ -595,7 +595,9 @@ publish previews under the Pages site.</p>
 </section>
 <section id="releasing">
 <h2>Releasing<a class="headerlink" href="#releasing" title="Link to this heading">#</a></h2>
-<p>Versioned wheel and sdist publication happens from <code class="docutils literal notranslate"><span class="pre">v*</span></code> tags. The tag version
+<p>Versioned wheel and sdist publication happens from <code class="docutils literal notranslate"><span class="pre">v*</span></code> tags. Linux x86-64,
+Linux aarch64, and Apple Silicon CPU wheels are built for each supported
+CPython version and qualified by their PyTorch minor. The tag version
 must match <code class="docutils literal notranslate"><span class="pre">[project].version</span></code> in <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code>.</p>
 <p>Before using a versioned wheel URL, check the GitHub Releases page. The version
 in a checkout is not proof that a release has been published.</p>
