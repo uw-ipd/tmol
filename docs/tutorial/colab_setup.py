@@ -10,13 +10,24 @@ from urllib.request import urlretrieve
 
 TUTORIAL_REF = "master"
 RAW_BASE = f"https://raw.githubusercontent.com/uw-ipd/tmol/{TUTORIAL_REF}"
+TMOL_RELEASE = "0.1.52"
 RELEASE_WHEEL_TORCH_MINOR = "2.11"
 RELEASE_WHEEL_CUDA = "12.8"
-RELEASE_WHEEL_PYTHON = (3, 12)
-TMOL_WHEEL = (
-    "https://github.com/uw-ipd/tmol/releases/download/v0.1.49/"
-    "tmol-0.1.49+cu128torch2.11-cp312-cp312-manylinux_2_28_x86_64.whl"
-)
+RELEASE_WHEEL_PYTHONS = frozenset({(3, 12), (3, 13)})
+
+
+def _wheel_url(python_version: tuple[int, int]) -> str:
+    """Return the released Colab wheel URL for a supported Python runtime."""
+    if python_version not in RELEASE_WHEEL_PYTHONS:
+        raise ValueError(f"Unsupported Colab Python version: {python_version}")
+    python_tag = "cp" + "".join(map(str, python_version))
+    cuda_tag = RELEASE_WHEEL_CUDA.replace(".", "")
+    build_tag = f"cu{cuda_tag}torch{RELEASE_WHEEL_TORCH_MINOR}"
+    wheel = (
+        f"tmol-{TMOL_RELEASE}+{build_tag}-{python_tag}-{python_tag}-"
+        "manylinux_2_28_x86_64.whl"
+    )
+    return f"https://github.com/uw-ipd/tmol/releases/download/v{TMOL_RELEASE}/{wheel}"
 
 
 def _pip_install(requirements: list[str], torch_version: str) -> None:
@@ -60,19 +71,23 @@ def setup_colab(fixtures: list[str]) -> None:
             "Reconnect to the GPU runtime and rerun the setup cell."
         )
     torch_version = torch.__version__
-    if not (
-        torch_version.startswith(f"{RELEASE_WHEEL_TORCH_MINOR}.")
-        and torch.version.cuda == RELEASE_WHEEL_CUDA
-        and sys.version_info[:2] == RELEASE_WHEEL_PYTHON
+    python_version = sys.version_info[:2]
+    if (
+        not torch_version.startswith(f"{RELEASE_WHEEL_TORCH_MINOR}.")
+        or torch.version.cuda != RELEASE_WHEEL_CUDA
+        or python_version not in RELEASE_WHEEL_PYTHONS
     ):
+        supported_pythons = ", ".join(
+            ".".join(map(str, version)) for version in sorted(RELEASE_WHEEL_PYTHONS)
+        )
         raise RuntimeError(
-            "The TMol v0.1.49 Colab wheel requires Python "
-            f"{'.'.join(map(str, RELEASE_WHEEL_PYTHON))}, PyTorch "
+            f"The TMol v{TMOL_RELEASE} Colab wheels support Python "
+            f"{supported_pythons}, PyTorch "
             f"{RELEASE_WHEEL_TORCH_MINOR}.x, and CUDA {RELEASE_WHEEL_CUDA}; "
             f"this runtime provides Python "
             f"{sys.version_info.major}.{sys.version_info.minor}, PyTorch "
-            f"{torch_version}, and CUDA {torch.version.cuda}. Start a fresh "
-            "Colab T4 GPU runtime so the wheel ABI matches."
+            f"{torch_version}, and CUDA {torch.version.cuda}. Choose a supported "
+            "Colab GPU runtime or build TMol from source."
         )
 
     runtime_packages = [
@@ -80,7 +95,7 @@ def setup_colab(fixtures: list[str]) -> None:
         "openbabel-wheel==3.1.1.22",
         "py3Dmol>=2.4,<3",
     ]
-    _pip_install([TMOL_WHEEL, *runtime_packages], torch_version)
+    _pip_install([_wheel_url(python_version), *runtime_packages], torch_version)
 
     for relative_path in fixtures:
         destination = Path(relative_path)
