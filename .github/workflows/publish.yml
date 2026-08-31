@@ -361,7 +361,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install "cmake>=3.18,<4" "scikit-build-core>=0.10" ninja "packaging>=24.2" "pybind11>=2.12" build
+          pip install "cmake>=3.24,<4" "scikit-build-core>=0.10" ninja "packaging>=24.2" "pybind11>=2.12" build
           pip install torch --index-url https://download.pytorch.org/whl/cpu
 
       - name: Build sdist

@@ -22,7 +22,7 @@ Requirements:
 - Python 3.11 or newer.
 - PyTorch 2.5 or newer.
 - A C++17 compiler.
-- CMake 3.18 or newer.
+- CMake 3.24 or newer.
 - CUDA toolkit with `nvcc` for CUDA builds.
 
 Without CUDA, use a CPU-only build:
@@ -53,7 +53,7 @@ Important CMake variables:
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `CMAKE_CUDA_ARCHITECTURES` | `80;86;89;90` | GPU architectures to compile. |
+| `CMAKE_CUDA_ARCHITECTURES` | `native` | `native` compiles only for GPUs visible at configure time. `all`, used for release wheels, emits SASS for every sm_75+ target reported by `nvcc --list-gpu-code`, plus PTX for the newest target. |
 | `TMOL_BUILD_TESTS` | `OFF` | Build test-only extensions. |
 | `TMOL_NVCC_THREADS` | `4` | Threads per `nvcc` invocation. |
 | `TMOL_ENABLE_CUDA` | `ON` | Turn off for CPU-only builds. |

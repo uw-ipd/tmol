@@ -30,17 +30,23 @@ def test_colab_selects_the_published_wheel_for_each_supported_python():
     source = (ROOT / "docs/tutorial/colab_setup.py").read_text(encoding="utf-8")
 
     assert module.TUTORIAL_REF == "master"
-    assert module.TMOL_RELEASE == "0.1.52"
+    assert module.TMOL_RELEASE == "0.1.53"
     assert module.RELEASE_WHEEL_TORCH_MINOR == "2.11"
     assert module.RELEASE_WHEEL_CUDA == "12.8"
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     assert module.TMOL_RELEASE == project["project"]["version"]
+    assert (
+        project["tool"]["scikit-build"]["cmake"]["define"]["CMAKE_CUDA_ARCHITECTURES"][
+            "default"
+        ]
+        == "native"
+    )
     assert module.RELEASE_WHEEL_PYTHONS == {(3, 12), (3, 13)}
     assert module._wheel_url((3, 12)).endswith(
-        "/v0.1.52/" "tmol-0.1.52+cu128torch2.11-cp312-cp312-manylinux_2_28_x86_64.whl"
+        "/v0.1.53/" "tmol-0.1.53+cu128torch2.11-cp312-cp312-manylinux_2_28_x86_64.whl"
     )
     assert module._wheel_url((3, 13)).endswith(
-        "/v0.1.52/" "tmol-0.1.52+cu128torch2.11-cp313-cp313-manylinux_2_28_x86_64.whl"
+        "/v0.1.53/" "tmol-0.1.53+cu128torch2.11-cp313-cp313-manylinux_2_28_x86_64.whl"
     )
     with pytest.raises(ValueError, match="Unsupported Colab Python version"):
         module._wheel_url((3, 14))
@@ -71,7 +77,7 @@ def test_colab_release_lanes_match_publish_and_smoke_matrices():
     build_template = _workflow(".github/workflows/_build_wheel.yml")
     cuda_archs = build_template[True]["workflow_call"]["inputs"]["cuda-archs"]
     assert "75;80;86;89;90" in cuda_archs["description"]
-    assert "80;86;89;90;100" in cuda_archs["description"]
+    assert "every sm_75+ target reported by nvcc" in cuda_archs["description"]
 
     publish = _workflow(".github/workflows/publish.yml")
     publish_rows = publish["jobs"]["build_wheels"]["strategy"]["matrix"]["include"]

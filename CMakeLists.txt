@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18...3.31)
+cmake_minimum_required(VERSION 3.24...3.31)
 
 option(TMOL_ENABLE_CUDA "Build CUDA extensions (disable for CPU-only)" ON)
 
@@ -7,26 +7,70 @@ option(TMOL_ENABLE_CUDA "Build CUDA extensions (disable for CPU-only)" ON)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 include(CheckLanguage)
+if(TMOL_ENABLE_CUDA AND NOT CMAKE_CUDA_COMPILER)
+  # check_language() does not reliably discover toolkit installs under
+  # /usr/local/cuda when CMake is launched outside an activated CUDA env.
+  find_program(
+    _TMOL_NVCC_EXECUTABLE
+    NAMES nvcc
+    HINTS "$ENV{CUDA_HOME}" "$ENV{CUDA_PATH}" /usr/local/cuda
+    PATH_SUFFIXES bin
+  )
+  if(_TMOL_NVCC_EXECUTABLE)
+    set(CMAKE_CUDA_COMPILER "${_TMOL_NVCC_EXECUTABLE}" CACHE FILEPATH "CUDA compiler")
+  endif()
+endif()
 check_language(CUDA)
 
 if(CMAKE_CUDA_COMPILER AND TMOL_ENABLE_CUDA)
   # ── CUDA architecture selection — MUST be set before project() so that
   # enable_language(CUDA) uses our architectures, not the nvcc defaults.
   # CMAKE_CUDA_ARCHITECTURES can be set via:
-  #   -DCMAKE_CUDA_ARCHITECTURES="80;86;89;90"  (from scikit-build-core -C flags)
+  #   -DCMAKE_CUDA_ARCHITECTURES="80;90;103"  (from scikit-build-core -C flags)
   #   TORCH_CUDA_ARCH_LIST env var (PyTorch format: "7.0 8.0 9.0+PTX")
   #   or falls back to a sensible default.
   #
-  # CMake 4.x may leave CMAKE_CUDA_ARCHITECTURES at "native" (build-node GPU).
-  # On Blackwell that becomes sm_120 while Apptainer nvcc is often CUDA 12.x
-  # and fails with "Unsupported gpu architecture 'compute_120'".
-  if(DEFINED CMAKE_CUDA_ARCHITECTURES)
-    if(CMAKE_CUDA_ARCHITECTURES STREQUAL "native"
-        OR CMAKE_CUDA_ARCHITECTURES STREQUAL "all-major"
-        OR CMAKE_CUDA_ARCHITECTURES STREQUAL "all")
-      unset(CMAKE_CUDA_ARCHITECTURES CACHE)
+  # Ask nvcc instead of maintaining a version-to-architecture table. CUDA 13.1,
+  # for example, can emit sm_103 and sm_121 even though a numeric "max arch"
+  # test would neither validate the former nor discover the latter. Keep the
+  # project floor at Turing (sm_75), matching tmol's supported Colab wheels.
+  execute_process(
+    COMMAND ${CMAKE_CUDA_COMPILER} --list-gpu-code
+    OUTPUT_VARIABLE _TMOL_NVCC_GPU_CODE
+    ERROR_VARIABLE _TMOL_NVCC_GPU_CODE_ERROR
+    RESULT_VARIABLE _TMOL_NVCC_GPU_CODE_RESULT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+  string(REGEX MATCHALL "sm_[0-9]+" _TMOL_NVCC_SM_NAMES "${_TMOL_NVCC_GPU_CODE}")
+  set(_TMOL_NVCC_SUPPORTED_ARCHS "")
+  foreach(_SM_NAME ${_TMOL_NVCC_SM_NAMES})
+    string(REPLACE "sm_" "" _SM_ARCH "${_SM_NAME}")
+    if(_SM_ARCH GREATER_EQUAL 75)
+      list(APPEND _TMOL_NVCC_SUPPORTED_ARCHS "${_SM_ARCH}")
     endif()
+  endforeach()
+  list(REMOVE_DUPLICATES _TMOL_NVCC_SUPPORTED_ARCHS)
+  list(SORT _TMOL_NVCC_SUPPORTED_ARCHS COMPARE NATURAL ORDER ASCENDING)
+  if(NOT _TMOL_NVCC_SUPPORTED_ARCHS)
+    message(FATAL_ERROR
+      "tmol: nvcc --list-gpu-code did not report any supported sm_75+ targets "
+      "(exit ${_TMOL_NVCC_GPU_CODE_RESULT}): ${_TMOL_NVCC_GPU_CODE_ERROR}")
   endif()
+  # Ship SASS for every release target and a single forward-compatible PTX
+  # image at the newest target. Unsuffixed numeric CMake architectures would
+  # otherwise embed redundant PTX for every generation.
+  set(_TMOL_NVCC_RELEASE_ARCHS "")
+  list(LENGTH _TMOL_NVCC_SUPPORTED_ARCHS _TMOL_NVCC_ARCH_COUNT)
+  math(EXPR _TMOL_NVCC_LAST_ARCH_INDEX "${_TMOL_NVCC_ARCH_COUNT} - 1")
+  foreach(_ARCH_INDEX RANGE ${_TMOL_NVCC_LAST_ARCH_INDEX})
+    list(GET _TMOL_NVCC_SUPPORTED_ARCHS ${_ARCH_INDEX} _SM_ARCH)
+    if(_ARCH_INDEX EQUAL _TMOL_NVCC_LAST_ARCH_INDEX)
+      list(APPEND _TMOL_NVCC_RELEASE_ARCHS "${_SM_ARCH}")
+    else()
+      list(APPEND _TMOL_NVCC_RELEASE_ARCHS "${_SM_ARCH}-real")
+    endif()
+  endforeach()
+
   if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
     if(DEFINED ENV{CMAKE_CUDA_ARCHITECTURES})
       set(CMAKE_CUDA_ARCHITECTURES "$ENV{CMAKE_CUDA_ARCHITECTURES}" CACHE STRING "CUDA architectures")
@@ -46,41 +90,59 @@ if(CMAKE_CUDA_COMPILER AND TMOL_ENABLE_CUDA)
       endforeach()
       set(CMAKE_CUDA_ARCHITECTURES ${_CLEAN_ARCHS} CACHE STRING "CUDA architectures")
     else()
-      set(CMAKE_CUDA_ARCHITECTURES "80;86;89;90" CACHE STRING "CUDA architectures")
+      set(CMAKE_CUDA_ARCHITECTURES "native" CACHE STRING "CUDA architectures")
     endif()
+  endif()
+  if(CMAKE_CUDA_ARCHITECTURES STREQUAL "all-major" OR
+      CMAKE_CUDA_ARCHITECTURES STREQUAL "all")
+    # CMake's symbolic all values are compiler-policy dependent. Resolve them
+    # to nvcc's exact sm_75+ list so release wheels cannot silently omit an
+    # architecture discovered above.
+    set(CMAKE_CUDA_ARCHITECTURES "${_TMOL_NVCC_RELEASE_ARCHS}" CACHE STRING "CUDA architectures" FORCE)
   endif()
 
-  # Clamp requested arches to what this nvcc can actually compile.
-  execute_process(
-    COMMAND ${CMAKE_CUDA_COMPILER} --version
-    OUTPUT_VARIABLE _TMOL_NVCC_VERSION_OUTPUT
-    ERROR_VARIABLE _TMOL_NVCC_VERSION_OUTPUT
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-  )
-  set(_TMOL_NVCC_MAX_ARCH 90)
-  if(_TMOL_NVCC_VERSION_OUTPUT MATCHES "release ([0-9]+)\\.([0-9]+)")
-    set(_TMOL_NVCC_MAJOR "${CMAKE_MATCH_1}")
-    set(_TMOL_NVCC_MINOR "${CMAKE_MATCH_2}")
-    if(_TMOL_NVCC_MAJOR GREATER_EQUAL 13)
-      set(_TMOL_NVCC_MAX_ARCH 120)
-    elseif(_TMOL_NVCC_MAJOR EQUAL 12 AND _TMOL_NVCC_MINOR GREATER_EQUAL 8)
-      set(_TMOL_NVCC_MAX_ARCH 100)
+  if(CMAKE_CUDA_ARCHITECTURES STREQUAL "native")
+    # CMake 3.24+ queries the GPU(s) visible at configure time and emits only
+    # their native device code. This is the fast default for local builds.
+    set(_TMOL_CUDA_ARCHITECTURES "native")
+  else()
+    # Filter requested numeric arches by exact compiler support. Architectures
+    # are not a simple compatibility interval, so a maximum clamp is wrong.
+    set(_TMOL_FILTERED_ARCHS "")
+    set(_TMOL_REJECTED_ARCHS "")
+    foreach(_A ${CMAKE_CUDA_ARCHITECTURES})
+      string(REPLACE "-real" "" _A_NUM "${_A}")
+      string(REPLACE "-virtual" "" _A_NUM "${_A_NUM}")
+      if(_A_NUM IN_LIST _TMOL_NVCC_SUPPORTED_ARCHS)
+        list(APPEND _TMOL_FILTERED_ARCHS "${_A}")
+      else()
+        list(APPEND _TMOL_REJECTED_ARCHS "${_A}")
+      endif()
+    endforeach()
+    if(NOT _TMOL_FILTERED_ARCHS)
+      message(FATAL_ERROR
+        "tmol: none of the requested CUDA architectures "
+        "(${CMAKE_CUDA_ARCHITECTURES}) are supported by ${CMAKE_CUDA_COMPILER}; "
+        "supported sm_75+ targets: ${_TMOL_NVCC_SUPPORTED_ARCHS}")
     endif()
-  endif()
-  set(_TMOL_FILTERED_ARCHS "")
-  foreach(_A ${CMAKE_CUDA_ARCHITECTURES})
-    string(REPLACE "-real" "" _A_NUM "${_A}")
-    if(_A_NUM MATCHES "^[0-9]+$" AND _A_NUM LESS_EQUAL _TMOL_NVCC_MAX_ARCH)
-      list(APPEND _TMOL_FILTERED_ARCHS "${_A}")
+    if(_TMOL_REJECTED_ARCHS)
+      message(WARNING
+        "tmol: ignoring CUDA architectures not supported by this nvcc: "
+        "${_TMOL_REJECTED_ARCHS}")
     endif()
-  endforeach()
-  if(NOT _TMOL_FILTERED_ARCHS)
-    set(_TMOL_FILTERED_ARCHS "80;86;89;90")
+    set(_TMOL_CUDA_ARCHITECTURES "${_TMOL_FILTERED_ARCHS}")
   endif()
-  set(CMAKE_CUDA_ARCHITECTURES "${_TMOL_FILTERED_ARCHS}" CACHE STRING "CUDA architectures" FORCE)
-  message(STATUS "tmol: nvcc max arch ${_TMOL_NVCC_MAX_ARCH}, using CMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}")
+  # Preserve the selected value independently: project() may overwrite the
+  # cache while enabling CUDA. `all` is numeric here; `native` intentionally
+  # remains symbolic so nvcc resolves the GPU visible at compile time.
+  set(CMAKE_CUDA_ARCHITECTURES "${_TMOL_CUDA_ARCHITECTURES}" CACHE STRING "CUDA architectures" FORCE)
+  set(CMAKE_CUDA_ARCHITECTURES "${_TMOL_CUDA_ARCHITECTURES}")
+  message(STATUS "tmol: nvcc supports sm_75+ targets ${_TMOL_NVCC_SUPPORTED_ARCHS}")
+  message(STATUS "tmol: using CMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}")
 
   project(tmol LANGUAGES CXX CUDA)
+  set(CMAKE_CUDA_ARCHITECTURES "${_TMOL_CUDA_ARCHITECTURES}" CACHE STRING "CUDA architectures" FORCE)
+  set(CMAKE_CUDA_ARCHITECTURES "${_TMOL_CUDA_ARCHITECTURES}")
   set(TMOL_HAS_CUDA TRUE)
   message(STATUS "tmol: CUDA enabled, CMAKE_CUDA_ARCHITECTURES = ${CMAKE_CUDA_ARCHITECTURES}")
 else()
@@ -132,10 +194,6 @@ endif()
 message(STATUS "tmol: PyTorch ${TORCH_VERSION_MAJOR}.${TORCH_VERSION_MINOR}, using C++${_TMOL_CXX_STANDARD}")
 
 if(TMOL_HAS_CUDA)
-  # Save CMAKE_CUDA_ARCHITECTURES before find_package(Torch) — Caffe2 sets it to OFF.
-  get_property(_TMOL_CUDA_ARCHITECTURES CACHE CMAKE_CUDA_ARCHITECTURES PROPERTY VALUE)
-  message(STATUS "tmol: _TMOL_CUDA_ARCHITECTURES (from cache) = ${_TMOL_CUDA_ARCHITECTURES}")
-
   # Set TORCH_CUDA_ARCH_LIST env var BEFORE find_package(Torch) so that
   # Caffe2's cuda.cmake uses our architectures instead of defaulting to
   # all archs nvcc supports (which includes sm_52 that lacks double atomicAdd).
@@ -171,6 +229,7 @@ if(TMOL_HAS_CUDA)
   # Caffe2's TorchConfig.cmake can set CMAKE_CUDA_ARCHITECTURES=OFF or inherit
   # PyTorch's full -gencode list (including arches this nvcc cannot compile).
   set(CMAKE_CUDA_ARCHITECTURES "${_TMOL_CUDA_ARCHITECTURES}" CACHE STRING "CUDA architectures" FORCE)
+  set(CMAKE_CUDA_ARCHITECTURES "${_TMOL_CUDA_ARCHITECTURES}")
   message(STATUS "tmol: Restored CMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}")
 
   # Caffe2's TorchConfig.cmake unconditionally appends the -gencode flags that
@@ -180,18 +239,9 @@ if(TMOL_HAS_CUDA)
   string(REGEX REPLACE " +" " " CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}")
   string(STRIP "${CMAKE_CUDA_FLAGS}" CMAKE_CUDA_FLAGS)
 
-  set(_TMOL_GENCODE_FLAGS "")
-  foreach(_A ${_TMOL_CUDA_ARCHITECTURES})
-    string(REPLACE "-real" "" _A_CLEAN "${_A}")
-    if("${_A}" STREQUAL "${_A_CLEAN}")
-      set(_TMOL_GENCODE_FLAGS "${_TMOL_GENCODE_FLAGS} -gencode arch=compute_${_A_CLEAN},code=sm_${_A_CLEAN} -gencode arch=compute_${_A_CLEAN},code=compute_${_A_CLEAN}")
-    else()
-      set(_TMOL_GENCODE_FLAGS "${_TMOL_GENCODE_FLAGS} -gencode arch=compute_${_A_CLEAN},code=sm_${_A_CLEAN}")
-    endif()
-  endforeach()
-  string(STRIP "${_TMOL_GENCODE_FLAGS}" _TMOL_GENCODE_FLAGS)
-  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${_TMOL_GENCODE_FLAGS}")
-  message(STATUS "tmol: CMAKE_CUDA_FLAGS after fixing gencode = ${CMAKE_CUDA_FLAGS}")
+  # CMake emits the requested architecture flags for each CUDA target. Do not
+  # append another copy here: doing so compiles every device image twice.
+  message(STATUS "tmol: CMAKE_CUDA_FLAGS after removing Torch gencode = ${CMAKE_CUDA_FLAGS}")
 endif()
 
 # ═══════════════════════════════════════════════════════════════════════════════

@@ -62,7 +62,8 @@ on:
         description: >
           Override CMAKE_CUDA_ARCHITECTURES (semicolon-separated SM list). When
           empty, this workflow defaults to "75;80;86;89;90" (CUDA<13) or
-          "80;86;89;90;100" (CUDA>=13). Set e.g. "75;80;89" to make the
+          every sm_75+ target reported by nvcc (CUDA>=13). Set e.g.
+          "75;80;89" to make the
           Colab/T4 wheel's supported architectures explicit.
 
 jobs:
@@ -338,7 +339,7 @@ jobs:
             unset PYTHONPATH
             export PYTHONNOUSERSITE=1
             ${TARGET_VENV}/bin/pip install \
-              'cmake>=3.18,<4' 'scikit-build-core>=0.10' ninja 'packaging>=24.2' 'pybind11>=2.12' auditwheel
+              'cmake>=3.24,<4' 'scikit-build-core>=0.10' ninja 'packaging>=24.2' 'pybind11>=2.12' auditwheel
           "
 
       - name: Set ABI-qualified wheel version
@@ -349,8 +350,10 @@ jobs:
 
       - name: Build wheel
         run: |
+          # Two independent nvcc jobs use the 4-core hosted runners efficiently
+          # without the memory spike from nesting nvcc worker parallelism.
           docker exec \
-            -e MAX_JOBS=1 \
+            -e MAX_JOBS=2 \
             -e CUDA_ARCHS_OVERRIDE="${{ inputs.cuda-archs }}" \
             -e CUDA_HOME="${CUDA_HOME}" \
             -e CUDAToolkit_ROOT="${CUDA_HOME}" \
@@ -380,7 +383,7 @@ jobs:
               if [ -n "${CUDA_ARCHS_OVERRIDE}" ]; then
                 CUDA_ARCHS="${CUDA_ARCHS_OVERRIDE}"
               elif [ "$CUDA_MAJOR" -ge 13 ]; then
-                CUDA_ARCHS="80;86;89;90;100"
+                CUDA_ARCHS="all"
               else
                 CUDA_ARCHS="75;80;86;89;90"
               fi
@@ -397,6 +400,61 @@ jobs:
               '"${TARGET_VENV}"'/bin/pip wheel . --no-build-isolation --no-deps -w dist \
                 -Ccmake.define.TMOL_ENABLE_CUDA=OFF \
                 -Ccmake.define.pybind11_DIR="${PYBIND11_CMAKE_DIR}"
+            fi
+          '
+
+      - name: Validate CUDA architecture contract
+        if: inputs.enable-cuda
+        run: |
+          docker exec \
+            -e CUDA_ARCHS_OVERRIDE="${{ inputs.cuda-archs }}" \
+            -e CUDA_HOME="${CUDA_HOME}" \
+            "$BUILDER" bash -euo pipefail -c '
+            cache=$(find build -name CMakeCache.txt -print -quit)
+            test -n "${cache}"
+            actual=$(sed -n "s/^CMAKE_CUDA_ARCHITECTURES:STRING=//p" "${cache}")
+            test -n "${actual}"
+            echo "Built CMAKE_CUDA_ARCHITECTURES=${actual}"
+
+            cuda_major=$("${CUDA_HOME}/bin/nvcc" --version \
+              | sed -n "s/.*release \([0-9][0-9]*\)\..*/\1/p" \
+              | head -1)
+            validate_all=false
+            if [ "${CUDA_ARCHS_OVERRIDE}" = all ] || {
+              [ -z "${CUDA_ARCHS_OVERRIDE}" ] && [ "${cuda_major}" -ge 13 ]
+            }; then
+              validate_all=true
+            fi
+            if [ "${validate_all}" = true ]; then
+              mapfile -t supported < <(
+                "${CUDA_HOME}/bin/nvcc" --list-gpu-code \
+                  | sed -n "s/^sm_\([0-9][0-9]*\)$/\1/p" \
+                  | awk "\$1 >= 75" \
+                  | sort -nu
+              )
+              test "${#supported[@]}" -gt 0
+              expected=""
+              last=$((${#supported[@]} - 1))
+              for index in "${!supported[@]}"; do
+                arch=${supported[$index]}
+                if [ "${index}" -lt "${last}" ]; then
+                  arch="${arch}-real"
+                fi
+                expected="${expected:+${expected};}${arch}"
+              done
+              test "${actual}" = "${expected}" || {
+                echo "Expected CUDA architectures ${expected}, got ${actual}" >&2
+                exit 1
+              }
+
+              ninja_file=$(dirname "${cache}")/build.ninja
+              test -f "${ninja_file}"
+              for arch in "${supported[@]}"; do
+                grep -Fq "arch=compute_${arch}" "${ninja_file}" || {
+                  echo "Generated build omits compute_${arch}" >&2
+                  exit 1
+                }
+              done
             fi
           '
 
