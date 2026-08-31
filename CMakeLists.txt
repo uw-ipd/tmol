@@ -77,6 +77,7 @@ if(CMAKE_CUDA_COMPILER AND TMOL_ENABLE_CUDA)
        CMAKE_CUDA_ARCHITECTURES STREQUAL "all"))
     # Resolve symbolic values ourselves. This works with the project's CMake
     # 3.18 floor and prevents CMake from guessing a target newer than its nvcc.
+    unset(CMAKE_CUDA_ARCHITECTURES)
     unset(CMAKE_CUDA_ARCHITECTURES CACHE)
   endif()
   if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
@@ -133,11 +134,18 @@ if(CMAKE_CUDA_COMPILER AND TMOL_ENABLE_CUDA)
       "tmol: ignoring CUDA architectures not supported by this nvcc: "
       "${_TMOL_REJECTED_ARCHS}")
   endif()
-  set(CMAKE_CUDA_ARCHITECTURES "${_TMOL_FILTERED_ARCHS}" CACHE STRING "CUDA architectures" FORCE)
+  # Preserve the resolved list independently: project() may normalize the
+  # special value that originally arrived through the cache and overwrite
+  # CMAKE_CUDA_ARCHITECTURES while enabling CUDA.
+  set(_TMOL_CUDA_ARCHITECTURES "${_TMOL_FILTERED_ARCHS}")
+  set(CMAKE_CUDA_ARCHITECTURES "${_TMOL_CUDA_ARCHITECTURES}" CACHE STRING "CUDA architectures" FORCE)
+  set(CMAKE_CUDA_ARCHITECTURES "${_TMOL_CUDA_ARCHITECTURES}")
   message(STATUS "tmol: nvcc supports sm_75+ targets ${_TMOL_NVCC_SUPPORTED_ARCHS}")
   message(STATUS "tmol: using CMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}")
 
   project(tmol LANGUAGES CXX CUDA)
+  set(CMAKE_CUDA_ARCHITECTURES "${_TMOL_CUDA_ARCHITECTURES}" CACHE STRING "CUDA architectures" FORCE)
+  set(CMAKE_CUDA_ARCHITECTURES "${_TMOL_CUDA_ARCHITECTURES}")
   set(TMOL_HAS_CUDA TRUE)
   message(STATUS "tmol: CUDA enabled, CMAKE_CUDA_ARCHITECTURES = ${CMAKE_CUDA_ARCHITECTURES}")
 else()
@@ -189,10 +197,6 @@ endif()
 message(STATUS "tmol: PyTorch ${TORCH_VERSION_MAJOR}.${TORCH_VERSION_MINOR}, using C++${_TMOL_CXX_STANDARD}")
 
 if(TMOL_HAS_CUDA)
-  # Save CMAKE_CUDA_ARCHITECTURES before find_package(Torch) — Caffe2 sets it to OFF.
-  get_property(_TMOL_CUDA_ARCHITECTURES CACHE CMAKE_CUDA_ARCHITECTURES PROPERTY VALUE)
-  message(STATUS "tmol: _TMOL_CUDA_ARCHITECTURES (from cache) = ${_TMOL_CUDA_ARCHITECTURES}")
-
   # Set TORCH_CUDA_ARCH_LIST env var BEFORE find_package(Torch) so that
   # Caffe2's cuda.cmake uses our architectures instead of defaulting to
   # all archs nvcc supports (which includes sm_52 that lacks double atomicAdd).
@@ -228,6 +232,7 @@ if(TMOL_HAS_CUDA)
   # Caffe2's TorchConfig.cmake can set CMAKE_CUDA_ARCHITECTURES=OFF or inherit
   # PyTorch's full -gencode list (including arches this nvcc cannot compile).
   set(CMAKE_CUDA_ARCHITECTURES "${_TMOL_CUDA_ARCHITECTURES}" CACHE STRING "CUDA architectures" FORCE)
+  set(CMAKE_CUDA_ARCHITECTURES "${_TMOL_CUDA_ARCHITECTURES}")
   message(STATUS "tmol: Restored CMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}")
 
   # Caffe2's TorchConfig.cmake unconditionally appends the -gencode flags that
@@ -237,18 +242,9 @@ if(TMOL_HAS_CUDA)
   string(REGEX REPLACE " +" " " CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}")
   string(STRIP "${CMAKE_CUDA_FLAGS}" CMAKE_CUDA_FLAGS)
 
-  set(_TMOL_GENCODE_FLAGS "")
-  foreach(_A ${_TMOL_CUDA_ARCHITECTURES})
-    string(REPLACE "-real" "" _A_CLEAN "${_A}")
-    if("${_A}" STREQUAL "${_A_CLEAN}")
-      set(_TMOL_GENCODE_FLAGS "${_TMOL_GENCODE_FLAGS} -gencode arch=compute_${_A_CLEAN},code=sm_${_A_CLEAN} -gencode arch=compute_${_A_CLEAN},code=compute_${_A_CLEAN}")
-    else()
-      set(_TMOL_GENCODE_FLAGS "${_TMOL_GENCODE_FLAGS} -gencode arch=compute_${_A_CLEAN},code=sm_${_A_CLEAN}")
-    endif()
-  endforeach()
-  string(STRIP "${_TMOL_GENCODE_FLAGS}" _TMOL_GENCODE_FLAGS)
-  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${_TMOL_GENCODE_FLAGS}")
-  message(STATUS "tmol: CMAKE_CUDA_FLAGS after fixing gencode = ${CMAKE_CUDA_FLAGS}")
+  # CMake emits the requested architecture flags for each CUDA target. Do not
+  # append another copy here: doing so compiles every device image twice.
+  message(STATUS "tmol: CMAKE_CUDA_FLAGS after removing Torch gencode = ${CMAKE_CUDA_FLAGS}")
 endif()
 
 # ═══════════════════════════════════════════════════════════════════════════════
