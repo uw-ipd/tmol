@@ -286,6 +286,8 @@ def prepare_polymer_residue(
         backbone_renames,
         to_polymer_residue_type,
     )
+    from tmol.ligand._registry import collect_new_atom_types
+    from tmol.ligand._terminus_patches import patch_charge_entries, terminus_patches
     from tmol.ligand._polymer_profile import (
         canonical_alpha_renames,
         cap_backbone_substitution,
@@ -299,8 +301,11 @@ def prepare_polymer_residue(
     if param_db is None:
         param_db = ParameterDatabase.get_default()
     # the backbone is read from the bonds, so say so before classifying: with
-    #    no bond table every residue looks like a backbone we do not support
-    if atom_array.bonds is None or atom_array.bonds.get_bond_count() == 0:
+    #    no bond table every residue looks like a backbone we do not support.
+    #    A one-atom residue has no bonds to read and is not the same thing.
+    if atom_array.bonds is None or (
+        atom_array.array_length() > 1 and atom_array.bonds.get_bond_count() == 0
+    ):
         raise ValueError(
             "residue carries no bond table; read the structure with "
             "include_bonds=True so its chemistry can be derived"
@@ -443,12 +448,75 @@ def prepare_polymer_residue(
                 ),
             )
 
+    # the database's termini patches are written for an alpha backbone; any
+    #    other one brings its own, named around the atoms it already has
+    generated, variant_charges = (), None
+    if profile.backbone_type != "alpha":
+        generated = terminus_patches(
+            param_db.chemical, residue_type, profile, atom_array, ph, charges
+        )
+        if generated:
+            patched = param_db.chemical.with_added_residues(
+                [residue_type],
+                atom_types=(
+                    *param_db.chemical.atom_types,
+                    *collect_new_atom_types(
+                        param_db.chemical,
+                        residue_type,
+                        atom_type_elements=prep.atom_type_elements,
+                    ),
+                ),
+                variants=[patch for patch, _t, _c in generated],
+            )
+            variant_charges = patch_charge_entries(
+                param_db, patched, residue_type, generated
+            )
+            # a patch whose terminal charges could not be measured would leave
+            #    the residue unscoreable wherever it applied, so it does not ship
+            generated = _patches_with_charges(
+                residue_type, generated, variant_charges, patched
+            )
+
     return LigandPreparation(
         residue_type=residue_type,
         partial_charges=charges,
         cartbonded_params=cartbonded_params,
         atom_type_elements=prep.atom_type_elements,
+        adds_patches=tuple(patch for patch, _t, _c in generated),
+        variant_partial_charges=variant_charges or None,
     )
+
+
+def _patches_with_charges(residue_type, generated, variant_charges, patched):
+    """The generated patches that have charges to go with them.
+
+    A patch without them would leave the residue unscoreable wherever it
+    applied, so it does not ship; which of the two ways it failed is worth
+    saying, since one means the generated pattern is wrong.
+    """
+    built = {r.name for r in patched.residues}
+    kept = []
+    for entry in generated:
+        variant = f"{residue_type.name}:{entry[0].display_name}"
+        if variant in variant_charges:
+            kept.append(entry)
+        elif variant not in built:
+            logger.warning(
+                "%s %s patch: applying it produced no variant. Its pattern did "
+                "not match the residue it was generated for, so the residue "
+                "cannot sit at that end.",
+                residue_type.name,
+                entry[0].display_name,
+            )
+        else:
+            logger.warning(
+                "%s %s patch: charges could not be mapped onto it. The terminal "
+                "molecule did not match the patched residue atom for atom, so "
+                "the residue cannot sit at that end.",
+                residue_type.name,
+                entry[0].display_name,
+            )
+    return kept
 
 
 def _ideal_coords_by_name(residue_type) -> dict:

@@ -160,6 +160,7 @@ def inject_residue_params(
     atom_types: Optional[list[AtomType]] = None,
     partial_charges: Optional[Mapping[str, dict[str, float]]] = None,
     cartbonded_params: Optional[Mapping[str, CartRes]] = None,
+    variants: Optional[list] = None,
 ) -> ParameterDatabase:
     """Return a new ParameterDatabase with additional residue type data.
 
@@ -172,6 +173,8 @@ def inject_residue_params(
         atom_types: Optional new AtomType entries (deduplicated by name).
         partial_charges: Per-residue charge dicts ``{res_name: {atom: charge}}``.
         cartbonded_params: Per-residue CartRes ``{res_name: CartRes}``.
+        variants: Optional patches the new residues bring with them, applied
+            alongside the database's own.
 
     Returns:
         A new frozen ParameterDatabase with the additional data.
@@ -186,7 +189,7 @@ def inject_residue_params(
     # patching runs at db load
     # injected residues get all db variants applied here
     new_patched = param_db.chemical.with_added_residues(
-        residue_types, atom_types=new_atom_types
+        residue_types, atom_types=new_atom_types, variants=variants
     )
 
     new_elec = param_db.scoring.elec

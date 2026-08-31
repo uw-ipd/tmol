@@ -8,6 +8,10 @@ single chain of model 1 with solvent and non-polymer heteroatoms removed.
 | `phosphopeptide_5ema.cif` | PDB 5EMA chain B | 7 | `SEP` (phosphoserine) |
 | `collagen_hyp_1bkv.cif` | PDB 1BKV chain A | 29 | `HYP` (4-hydroxyproline) |
 | `capped_peptide_ace_nme.cif` | built | 3 | `ACE`, `NME` (terminal caps) |
+| `capped_peptide_ace_nh2.cif` | built | 3 | `ACE`, `NH2` (terminal caps) |
+| `nmethyl_peptide_6mvz.cif` | PDB 6MVZ chain A | 4 | `MLE` (N-methylleucine) |
+| `gamma_peptide_1gac.cif` | PDB 1GAC chain A | 5 | `FGA` (gamma-D-glutamate) |
+| `beta_peptide_3c3g.cif` | PDB 3C3G chain A | 31 | eight beta backbones |
 
 `SEP` is an open-chain sidechain carrying a dianionic phosphate; `HYP` closes a
 ring back onto the backbone nitrogen, so the two together cover both sidechain
@@ -27,6 +31,34 @@ type says they belong to the chain. The peptide bonds joining them to the
 alanine exist only because the file declares them in `struct_conn`, the way a
 deposited entry does; without that block biotite leaves them unbonded and they
 are free molecules rather than caps.
+
+`capped_peptide_ace_nh2.cif` is the same peptide with the methylamide
+replaced by a bare amide. `NH2` is a single heavy atom, too few to supply a
+reference frame, so the stubs completing it have to be placed against
+invented points.
+
+## Nonstandard backbones
+
+These three are whole structures rather than single residues, so the pipeline
+has to find the connections itself instead of being handed them.
+
+`nmethyl_peptide_6mvz.cif` carries N-methylleucine at two positions. A
+substituent on the amide nitrogen that closes no ring back onto the mainchain
+is what separates it from proline, so it is prepared as a ligand.
+
+`gamma_peptide_1gac.cif` is a peptidoglycan stem peptide, `ALA-FGA-LYS-DAL-DAL`.
+The chain leaves gamma-glutamate through `CD`, four bonds along the sidechain
+from the alpha carbon, while its alpha fragment stays intact -- so neither the
+conventional names nor the shortest path between connections finds the backbone.
+
+`beta_peptide_3c3g.cif` is a beta-peptide foldamer with eight distinct beta
+backbones interleaved with canonical residues. Each mainchain runs through four
+atoms rather than three; declaring the alpha `N-CA-C` instead would measure phi,
+psi and omega across a bond that does not exist.
+
+Trifluoroacetate, methanol, glycerol and acetate were dropped along with the
+solvent: they are unbonded in these entries, so they would arrive as free
+molecules on the ligand path and have nothing to do with the backbone.
 
 ## Mirror-image pair
 

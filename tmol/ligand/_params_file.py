@@ -14,6 +14,14 @@ charges in a single file.  The top-level shape mirrors ``ParameterDatabase``:
           icoors: [...]
           properties: {...}
           # atom_aliases / chi_samples / default_jump_connection_atom optional
+      # patches the residue brings with it, scoped to its own base type; a
+      # backbone the database's termini patches were not written for needs
+      # its own or it cannot sit at a chain end
+      adds_patches:
+        - name: LIG_CarboxyTerminus
+          display_name: cterm
+          applies_to: { base_names: [LIG] }
+          ...
     elec:
       atom_charge_parameters:
         - {res: LIG, atom: C1, charge: 0.123}
@@ -39,7 +47,11 @@ import cattr
 
 from tmol.database import ParameterDatabase
 from tmol.database._yaml import safe_load
-from tmol.database.chemical import RawResidueType, normalize_bond_tuples
+from tmol.database.chemical import (
+    RawResidueType,
+    VariantType,
+    normalize_bond_tuples,
+)
 from tmol.database.scoring import (
     CartRes,
     PartialCharges,
@@ -187,6 +199,12 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
     normalize_bond_tuples({"residues": res_list})
     residues = [_structure_residue(item) for item in res_list]
 
+    patches_by_res: dict[str, list] = {}
+    for item in chem.get("adds_patches") or []:
+        patch = cattr.structure(_fill_patch_defaults(item), VariantType)
+        for base_name in patch.applies_to.base_names or ():
+            patches_by_res.setdefault(base_name, []).append(patch)
+
     cb_raw = cart.get("residue_params") or {}
     cart_by_res = {
         str(name): cattr.structure(payload, CartRes) for name, payload in cb_raw.items()
@@ -196,6 +214,12 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
     for item in elec.get("atom_charge_parameters") or []:
         pc = cattr.structure(item, PartialCharges)
         charges_by_res.setdefault(pc.res, {})[pc.atom] = pc.charge
+
+    variant_charges_by_res: dict[str, dict[str, dict[str, float]]] = {}
+    for name, atom_charges in charges_by_res.items():
+        base_name, _, suffix = name.partition(":")
+        if suffix:
+            variant_charges_by_res.setdefault(base_name, {})[name] = atom_charges
 
     preps = []
     for rt in residues:
@@ -212,9 +236,32 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
                 partial_charges=charges,
                 cartbonded_params=cart_by_res.get(rt.name, _empty_cartres()),
                 atom_type_elements=None,
+                adds_patches=tuple(patches_by_res.get(rt.name, ())),
+                variant_partial_charges=variant_charges_by_res.get(rt.name) or None,
             )
         )
     return preps
+
+
+_VARIANT_DEFAULTS: dict[str, Any] = {
+    "remove_atoms": [],
+    "add_atoms": [],
+    "add_atom_aliases": [],
+    "modify_atoms": [],
+    "add_connections": [],
+    "add_bonds": [],
+    "icoors": [],
+    "add_torsions": [],
+    "add_chi_samples": [],
+    "applies_to": {},
+}
+
+
+def _fill_patch_defaults(item: dict[str, Any]) -> dict[str, Any]:
+    """Fill a patch record's optional collections so a terse file still loads."""
+    filled = {**_VARIANT_DEFAULTS, **item}
+    filled["add_bonds"] = [list(b) for b in filled["add_bonds"]]
+    return filled
 
 
 def _empty_cartres() -> CartRes:

@@ -32,6 +32,7 @@ import biotite.structure.info as info
 from tmol.database import ParameterDatabase
 from tmol.ligand import LigandPreparationError, prepare_polymer_residue
 from tmol.ligand._polymer_profile import alpha_profile, profile_for_atom_array
+from tmol.ligand._preparation import _ideal_coords_by_name
 from tmol.ligand._registry import rebuild_canonical_ordering
 
 # code -> (what the backbone is, whether it is an unmodified alpha backbone,
@@ -590,3 +591,344 @@ def test_declaring_both_ends_prepares_what_could_not_be_inferred() -> None:
         "CB",
         "C",
     )
+
+
+# --------------------------------------------------------------------------- #
+# whole structures, through the whole pipeline
+# --------------------------------------------------------------------------- #
+
+# The tests above hand preparation the connection atoms, so they say what a
+# residue becomes given the right answer. These start from a deposited entry
+# and say nothing: detection reads the connections off the bonds, routing sends
+# the residue down the polymer path, and the result has to reach a score.
+#
+# stem -> the nonstandard codes it carries, and how many atoms of each residue
+#         its backbone runs through
+_PIPELINE_FIXTURES: dict[str, dict[str, int]] = {
+    # cyclic-peptide analogue, N-methylleucine at two positions
+    "nmethyl_peptide_6mvz": {"MLE": 3},
+    # peptidoglycan stem peptide; the chain leaves gamma-glutamate through CD,
+    #    four bonds from the alpha carbon it would leave from as an alpha residue
+    "gamma_peptide_1gac": {"FGA": 5},
+    # a beta-peptide foldamer: eight distinct beta backbones in one chain
+    "beta_peptide_3c3g": {
+        "B3D": 4,
+        "B3E": 4,
+        "B3K": 4,
+        "B3L": 4,
+        "B3Q": 4,
+        "BAL": 4,
+        "BIL": 4,
+        "HMR": 4,
+    },
+}
+
+
+def _structure(stem: str):
+    """A fixture with its bond table, which the polymer path reads chemistry from."""
+    import biotite.structure.io.pdbx as pdbx
+
+    from tmol.tests.data import data_path
+
+    cif = pdbx.CIFFile.read(str(data_path("ncaa_fixtures") / f"{stem}.cif"))
+    return pdbx.get_structure(cif, model=1, include_bonds=True)
+
+
+@pytest.mark.parametrize("stem", sorted(_PIPELINE_FIXTURES))
+def test_a_nonstandard_backbone_is_found_and_prepared_from_a_structure(
+    stem: str,
+) -> None:
+    """Nothing tells the pipeline where the chain runs; it works it out."""
+    from tmol.ligand import prepare_ligands
+
+    param_db = ParameterDatabase.get_default()
+    known = {r.name for r in param_db.chemical.residues}
+    prepared, canonical_ordering = prepare_ligands(_structure(stem), param_db=param_db)
+
+    expected = _PIPELINE_FIXTURES[stem]
+    added = {
+        r.name: r
+        for r in prepared.chemical.residues
+        if r.name not in known and ":" not in r.name
+    }
+    assert set(added) == set(expected), stem
+
+    for code, mainchain_length in expected.items():
+        restype = added[code]
+        assert code in canonical_ordering.restype_io_equiv_classes
+
+        # a chain runs through it, so it has both connections
+        connections = {c.name: c.atom for c in restype.connections}
+        assert set(connections) == {"down", "up"}, code
+
+        # none of these is an unmodified alpha backbone, so none is typed as one
+        peptide_typed = {
+            a.name for a in restype.atoms if a.atom_type in _PEPTIDE_BACKBONE_TYPES
+        }
+        assert peptide_typed == set(), f"{code} typed as protein backbone"
+
+        # the backbone found is the one the connections are on, and it is bonded
+        mainchain = restype.properties.polymer.mainchain_atoms
+        assert len(mainchain) == mainchain_length, f"{code}: {mainchain}"
+        assert (mainchain[0], mainchain[-1]) == (connections["down"], connections["up"])
+        bonded = {frozenset((b[0], b[1])) for b in restype.bonds}
+        for first, second in zip(mainchain, mainchain[1:]):
+            assert frozenset((first, second)) in bonded, f"{code}: {first}-{second}"
+
+
+@pytest.mark.parametrize("stem", sorted(_PIPELINE_FIXTURES))
+def test_a_nonstandard_backbone_scores(stem: str, torch_device) -> None:
+    """Smoke test: preparation has to survive into a pose and a number."""
+    from tmol.io import pose_stack_from_biotite
+    from tmol.ligand import prepare_ligands
+    from tmol.score import beta2016_score_function
+
+    structure = _structure(stem)
+    prepared, _canonical_ordering = prepare_ligands(
+        structure, param_db=ParameterDatabase.get_default()
+    )
+    pose_stack = pose_stack_from_biotite(structure, torch_device, param_db=prepared)
+    sfxn = beta2016_score_function(torch_device, param_db=prepared)
+    module = sfxn.render_whole_pose_scoring_module(pose_stack)
+    total = float(module(pose_stack.coords).sum())
+
+    assert numpy.isfinite(total), stem
+    assert total != 0.0, stem
+
+
+# --------------------------------------------------------------------------- #
+# termini patches a residue brings with it
+# --------------------------------------------------------------------------- #
+
+# The database's termini patches are written for an alpha backbone and are
+# scoped to one, so a residue whose backbone is not alpha generates its own.
+
+
+def _prepared(stem: str):
+    from tmol.ligand import prepare_ligands
+
+    param_db = ParameterDatabase.get_default()
+    known = {r.name for r in param_db.chemical.residues}
+    prepared, _co = prepare_ligands(_structure(stem), param_db=param_db)
+    return prepared, known
+
+
+def test_a_nonstandard_backbone_brings_its_own_termini_patches() -> None:
+    """It cannot use the database's, so preparation generates a pair."""
+    prep = _prepare("MLE")
+    assert prep.residue_type.properties.polymer.backbone_type == "nonstandard"
+
+    patches = prep.adds_patches
+    assert {p.display_name for p in patches} == {"nterm", "cterm"}
+    # scoped to this residue alone, so they can never reach another
+    for patch in patches:
+        assert patch.applies_to.base_names == ("MLE",)
+        assert patch.applies_to.backbone_types is None
+
+
+def test_an_alpha_backbone_keeps_using_the_database_patches() -> None:
+    """An unmodified alpha backbone's terminus is the canonical amide."""
+    prep = _prepare("HYP")
+    assert prep.residue_type.properties.polymer.backbone_type == "alpha"
+    assert prep.adds_patches == ()
+
+
+def test_a_generated_patch_avoids_names_the_residue_already_uses() -> None:
+    """Gamma-glutamate keeps an alpha carbonyl O the patch would collide with.
+
+    The database's C-terminus patch adds atoms called O and OXT. FGA links
+    through CD, so the O it would replace is on the sidechain and the alpha
+    backbone's own O survives -- two atoms of one name, which no residue type
+    can hold.
+    """
+    prepared, known = _prepared("gamma_peptide_1gac")
+    cterm = next(r for r in prepared.chemical.residues if r.name == "FGA:cterm")
+    names = [a.name for a in cterm.atoms]
+    assert len(names) == len(set(names)), "duplicate atom name"
+    assert "O" in names
+
+
+def test_a_cap_has_no_termini_variants() -> None:
+    """A cap's one connection is the chain's, so it has no other end.
+
+    Patching it would make the cap a free molecule, which is the ligand path's
+    business rather than a variant of this residue.
+    """
+    prepared, known = _prepared("capped_peptide_ace_nme")
+    added = {r.name for r in prepared.chemical.residues if r.name not in known}
+    assert added == {"ACE", "NME"}
+
+
+@pytest.mark.parametrize(
+    "stem", ["nmethyl_peptide_6mvz", "gamma_peptide_1gac", "collagen_hyp_1bkv"]
+)
+def test_every_variant_carries_charges_for_all_of_its_atoms(stem: str) -> None:
+    """A missing charge fails the whole structure, used variant or not.
+
+    PackedBlockTypes packs every variant of every residue it is given, so a
+    terminal form nothing sits in still has to resolve.
+    """
+    prepared, known = _prepared(stem)
+    charges: dict = {}
+    for entry in prepared.scoring.elec.atom_charge_parameters:
+        res, _, variant = str(entry.res).partition(":")
+        charges.setdefault(res, {}).setdefault(str(entry.atom), {})[
+            variant
+        ] = entry.charge
+
+    missing, nets = [], {}
+    for restype in prepared.chemical.residues:
+        if restype.name in known:
+            continue
+        base_name, *variants = restype.name.split(":")
+        variants.append("")  # unpatched last, as the elec resolver does
+        total = 0.0
+        for atom in restype.atoms:
+            by_variant = charges.get(base_name, {}).get(atom.name)
+            hit = next((v for v in variants if by_variant and v in by_variant), None)
+            if hit is None:
+                missing.append(f"{restype.name}/{atom.name}")
+            else:
+                total += by_variant[hit]
+        nets[restype.name] = total
+
+    assert missing == []
+    # charges are not renormalized: a terminal form is charged as the molecule
+    #    it is, and what its stub carries is not the residue's to redistribute
+    assert nets
+
+
+def test_a_params_file_carries_the_patches_it_needs(tmp_path) -> None:
+    """A saved residue that loses its patches cannot sit at a chain end."""
+    from tmol.ligand import load_params_file, write_params_file
+    from tmol.ligand._registry import inject_ligand_preparations
+
+    prep = _prepare("MLE")
+    path = tmp_path / "mle.tmol"
+    write_params_file([prep], str(path), format="tmol")
+    assert "adds_patches" in path.read_text()
+
+    loaded = load_params_file(path)
+    assert len(loaded) == 1
+    assert {p.display_name for p in loaded[0].adds_patches} == {"nterm", "cterm"}
+    assert all(p.applies_to.base_names == ("MLE",) for p in loaded[0].adds_patches)
+
+    # and the round-tripped residue still takes both termini
+    injected = inject_ligand_preparations(ParameterDatabase.get_default(), loaded)
+    names = {r.name for r in injected.chemical.residues}
+    assert {"MLE", "MLE:nterm", "MLE:cterm"} <= names
+
+
+# atom types that describe a peptide backbone or its termini; a residue
+# prepared as a ligand carries ligand types throughout, its chain ends included
+_PEPTIDE_TERMINUS_TYPES = _PEPTIDE_BACKBONE_TYPES | {"OOC", "Hpol", "Nlys"}
+
+
+@pytest.mark.parametrize("code", ["MLE", "B3K", "HAO"])
+def test_a_generated_patch_types_its_atoms_as_a_ligand(code: str) -> None:
+    """A terminus typed as a peptide's is a different type system from the rest.
+
+    The residue's own atoms come from the ligand typer, so its chain ends have
+    to as well -- an OOC oxygen and a ligand carboxylate oxygen are different
+    hbond acceptors.
+    """
+    prep = _prepare(code)
+    assert prep.adds_patches
+    for patch in prep.adds_patches:
+        typed = [a.atom_type for a in (*patch.add_atoms, *patch.modify_atoms)]
+        assert typed
+        assert not set(typed) & _PEPTIDE_TERMINUS_TYPES, (code, patch.name, typed)
+
+
+def _nterm_patch(code: str):
+    return next(p for p in _prepare(code).adds_patches if p.display_name == "nterm")
+
+
+def test_a_terminus_is_protonated_by_its_own_chemistry() -> None:
+    """The protonation state comes from Dimorphite, per residue.
+
+    The database's patch adds as many protons as an alpha backbone's amide
+    nitrogen takes once charged, which is the only state it can express. A
+    chain end that is not an amine of that kind takes a different one, and
+    what it takes is Dimorphite's call rather than this pipeline's.
+    """
+    aliphatic = _nterm_patch("B3K")
+    aromatic = _nterm_patch("HAO")
+
+    assert len(aliphatic.add_atoms) == 3
+    assert len(aromatic.add_atoms) < len(aliphatic.add_atoms)
+
+    # and the nitrogen itself is typed differently for it
+    def site_type(patch):
+        return next(a.atom_type for a in patch.modify_atoms)
+
+    assert site_type(aromatic) != site_type(aliphatic)
+
+
+def test_a_terminal_group_is_built_at_the_angle_its_geometry_calls_for() -> None:
+    """What the icoors produce, rather than what they say.
+
+    A carboxylate carbon is trigonal, so its two oxygens sit 120 degrees apart.
+    An icoor stores the supplement of the angle it builds, so a value carried
+    over from a tetrahedral site would show up here as roughly 109.
+    """
+    prepared, _known = _prepared("nmethyl_peptide_6mvz")
+    restype = next(r for r in prepared.chemical.residues if r.name == "MLE:cterm")
+    coords = _ideal_coords_by_name(restype)
+
+    connection = next(c.atom for c in restype.connections if c.name == "down")
+    assert connection  # the acid end is patched, so the amine end remains
+
+    oxygens = sorted(
+        a.name
+        for a in restype.atoms
+        if a.name not in {x.name for x in _prepare("MLE").residue_type.atoms}
+    )
+    assert len(oxygens) == 2, oxygens
+    carbon = next(
+        b[1] if b[0] == oxygens[0] else b[0]
+        for b in restype.bonds
+        if oxygens[0] in b[:2] and not b[0].startswith("H") and not b[1].startswith("H")
+    )
+    first, second = (coords[o] - coords[carbon] for o in oxygens)
+    cosine = numpy.dot(first, second) / (
+        numpy.linalg.norm(first) * numpy.linalg.norm(second)
+    )
+    angle = numpy.degrees(numpy.arccos(numpy.clip(cosine, -1.0, 1.0)))
+    assert angle == pytest.approx(120.0, abs=8.0), angle
+
+
+def test_a_terminus_that_cannot_be_built_falls_back_to_the_residue() -> None:
+    """Best effort rather than refusal, and never in another type system.
+
+    Where the terminal form cannot be built, its atoms are typed and charged
+    like the residue's own atoms of the same kind. Only the proton count is
+    the database patch's, since nothing else can supply it. Asking for patches
+    without a structure to build the terminal form from takes the same path.
+    """
+    from tmol.ligand._terminus_patches import terminus_patches
+
+    param_db = ParameterDatabase.get_default()
+    prep = _prepare("MLE")
+    residue = _residue("MLE")
+    profile = profile_for_atom_array(residue, _connection_atoms("MLE"))
+
+    generated = terminus_patches(
+        param_db.chemical,
+        prep.residue_type,
+        profile,
+        base_charges=prep.partial_charges,
+    )
+    patches = {patch.display_name: patch for patch, _t, _c in generated}
+    assert set(patches) == {"nterm", "cterm"}
+
+    own = {a.atom_type for a in prep.residue_type.atoms}
+    for patch in patches.values():
+        typed = {a.atom_type for a in (*patch.add_atoms, *patch.modify_atoms)}
+        assert typed
+        # the residue's own types, never the database patch's peptide ones
+        assert not typed & _PEPTIDE_TERMINUS_TYPES, (patch.name, typed)
+        assert typed <= own, (patch.name, typed - own)
+
+    # and it says so, rather than quietly standing in for a measured one
+    assert all(chemistry["measured"] is False for _p, _t, chemistry in generated)

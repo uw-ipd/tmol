@@ -361,6 +361,34 @@ def test_prepare_peptide_cap(res_name: str) -> None:
     assert all(np.all(np.isfinite(xyz)) for xyz in coords.values())
 
 
+NH2_FIXTURE = "capped_peptide_ace_nh2"
+
+
+def test_prepare_single_atom_cap() -> None:
+    """A cap with one heavy atom has no frame of its own to build on.
+
+    NH2 is a bare amide nitrogen, so the stubs that complete it are placed
+    against invented reference points rather than against its neighbours.
+    """
+    _residue_arr, prep = _prepare(NH2_FIXTURE, "NH2", frozenset({"N"}))
+    restype = prep.residue_type
+
+    assert {c.name: c.atom for c in restype.connections} == {"down": "N"}
+    assert [a.name for a in restype.atoms if not a.name.startswith("H")] == ["N"]
+    assert restype.properties.polymer.is_polymer
+
+    # the peptide bond it makes is real, so its nitrogen is typed as backbone
+    n_type = next(a.atom_type for a in restype.atoms if a.name == "N")
+    assert n_type in _alpha().amide_n_types
+
+    # and it is protonated back to a full amide
+    assert sum(1 for b in restype.bonds if any(x.startswith("H") for x in b[:2])) == 2
+
+    coords = _ideal_coords_by_name(restype)
+    assert set(coords) == {a.name for a in restype.atoms} | {"down"}
+    assert all(np.all(np.isfinite(xyz)) for xyz in coords.values())
+
+
 def test_peptide_cap_charges_balance_across_the_pair() -> None:
     """Each cap keeps its share of the amide bond it was cut from.
 

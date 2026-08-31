@@ -662,15 +662,26 @@ class PatchedChemicalDatabase:
             variants=chemdb.variants,
         )
 
-    def with_added_residues(self, residues, atom_types=None):
-        """Return a copy with residues patched and appended."""
+    def with_added_residues(self, residues, atom_types=None, variants=None):
+        """Return a copy with residues patched and appended.
+
+        ``variants`` are extra patches the residues bring with them, scoped to
+        their own base types; they are kept on the database so a later addition
+        is patched against the same set.
+        """
         # injection happens after from_chem_db, so patch here or the new
         #    residues arrive with no termini forms
         atom_types = self.atom_types if atom_types is None else tuple(atom_types)
+        known = {v.name for v in self.variants}
+        extra = tuple(v for v in (variants or ()) if v.name not in known)
+        all_variants = (*self.variants, *extra)
         G = RestypeGraphBuilder({x.name: x.element for x in atom_types})
         added = []
         for res in residues:
-            added.extend(patch_residue(res, self.variants, G))
+            added.extend(patch_residue(res, all_variants, G))
         return attr.evolve(
-            self, atom_types=atom_types, residues=(*self.residues, *added)
+            self,
+            atom_types=atom_types,
+            residues=(*self.residues, *added),
+            variants=all_variants,
         )

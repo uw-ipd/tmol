@@ -398,7 +398,7 @@ def cap_polymer_profile(atom_array, connection_atom: str, chemdb) -> PolymerProf
     return PolymerProfile(
         name="cap",
         polymer_type=alpha.polymer_type,
-        backbone_type=alpha.backbone_type,
+        backbone_type="nonstandard",
         reference_restype=None,
         # a cap does not continue the chain, so the atom it bonds through is
         #    the whole of its mainchain
@@ -953,7 +953,9 @@ def cap_residue(atom_array, profile: PolymerProfile):
     missing = sorted(profile.required_atoms() - names)
     if missing:
         raise ValueError(f"residue is missing backbone atom(s) {missing}")
-    if atom_array.bonds is None or atom_array.bonds.get_bond_count() == 0:
+    if atom_array.bonds is None or (
+        atom_array.array_length() > 1 and atom_array.bonds.get_bond_count() == 0
+    ):
         raise ValueError(
             "residue carries no bond table; read the structure with "
             "include_bonds=True so its chemistry can be derived"

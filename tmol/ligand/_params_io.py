@@ -369,6 +369,24 @@ def _flow_atom(d: dict[str, Any]) -> dict[str, Any]:
     return _FlowDict(out)
 
 
+def _compactify_patch(d: dict[str, Any]) -> dict[str, Any]:
+    """A patch record with its per-atom entries one to a line."""
+    out = dict(d)
+    for key in ("add_atoms", "add_atom_aliases", "modify_atoms", "icoors"):
+        if out.get(key):
+            out[key] = _FlowList(_flow_atom(entry) for entry in out[key])
+        else:
+            out.pop(key, None)
+    if out.get("add_bonds"):
+        out["add_bonds"] = _FlowList(_FlowList(b) for b in out["add_bonds"])
+    for key in ("remove_atoms", "add_connections", "add_torsions", "add_chi_samples"):
+        if not out.get(key):
+            out.pop(key, None)
+        elif key == "remove_atoms":
+            out[key] = _FlowList(out[key])
+    return out
+
+
 def _compactify_residue(d: dict[str, Any]) -> dict[str, Any]:
     """Block-style outer list with flow-style entries (matches Frank's tmol).
 
@@ -395,6 +413,7 @@ def _write_tmol_params_file(
     residue_types: list[RawResidueType],
     charges: Mapping[str, dict[str, float]],
     cartbonded: Mapping[str, CartRes],
+    patches: "list | None" = None,
 ) -> None:
     """Write prepared ligand data to a tmol params YAML (``.tmol``) file.
 
@@ -422,13 +441,19 @@ def _write_tmol_params_file(
                 cb[group_key] = _FlowList(_flow_atom(g) for g in cb[group_key])
         cartbonded_payload[k] = cb
 
+    chemical: dict[str, Any] = {
+        "residues": [
+            _compactify_residue(_unstructure_residue(r)) for r in residue_types
+        ],
+    }
+    if patches:
+        chemical["adds_patches"] = [
+            _compactify_patch(cattr.unstructure(patch)) for patch in patches
+        ]
+
     payload: dict[str, Any] = {
         "version": TMOL_FORMAT_VERSION,
-        "chemical": {
-            "residues": [
-                _compactify_residue(_unstructure_residue(r)) for r in residue_types
-            ],
-        },
+        "chemical": chemical,
         "elec": {
             "atom_charge_parameters": _FlowList(charge_list),
         },
@@ -482,11 +507,15 @@ def write_params_file(
             prep = preps[0]
             _write_rosetta_params_file(prep.residue_type, path, prep.partial_charges)
     elif fmt == "tmol":
+        charges = {p.residue_type.name: p.partial_charges for p in preps}
+        for prep in preps:
+            charges.update(prep.variant_partial_charges or {})
         _write_tmol_params_file(
             path,
             [p.residue_type for p in preps],
-            {p.residue_type.name: p.partial_charges for p in preps},
+            charges,
             {p.residue_type.name: p.cartbonded_params for p in preps},
+            patches=[v for p in preps for v in p.adds_patches],
         )
     else:
         raise ValueError(f"unknown params format {format!r} (use 'rosetta' or 'tmol')")

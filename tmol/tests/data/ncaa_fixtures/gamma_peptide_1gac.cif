@@ -1,0 +1,135 @@
+data_1GAC_A
+#
+loop_
+_atom_site.group_PDB 
+_atom_site.id 
+_atom_site.type_symbol 
+_atom_site.label_atom_id 
+_atom_site.label_alt_id 
+_atom_site.label_comp_id 
+_atom_site.label_asym_id 
+_atom_site.label_entity_id 
+_atom_site.label_seq_id 
+_atom_site.pdbx_PDB_ins_code 
+_atom_site.Cartn_x 
+_atom_site.Cartn_y 
+_atom_site.Cartn_z 
+_atom_site.occupancy 
+_atom_site.B_iso_or_equiv 
+_atom_site.pdbx_formal_charge 
+_atom_site.auth_seq_id 
+_atom_site.auth_comp_id 
+_atom_site.auth_asym_id 
+_atom_site.auth_atom_id 
+_atom_site.pdbx_PDB_model_num 
+ATOM   1  N N   . ALA A 1 1 ? -10.201 6.990  2.775  1.00 0.00 ? 1 ALA A N   1
+ATOM   2  C CA  . ALA A 1 1 ? -9.796  6.185  1.628  1.00 0.00 ? 1 ALA A CA  1
+ATOM   3  C C   . ALA A 1 1 ? -8.410  5.583  1.842  1.00 0.00 ? 1 ALA A C   1
+ATOM   4  O O   . ALA A 1 1 ? -7.391  6.237  1.656  1.00 0.00 ? 1 ALA A O   1
+ATOM   5  C CB  . ALA A 1 1 ? -9.765  6.997  0.334  1.00 0.00 ? 1 ALA A CB  1
+ATOM   6  H H1  . ALA A 1 1 ? -9.527  7.771  2.905  1.00 0.00 ? 1 ALA A H1  1
+ATOM   7  H H2  . ALA A 1 1 ? -11.152 7.376  2.609  1.00 0.00 ? 1 ALA A H2  1
+ATOM   8  H H3  . ALA A 1 1 ? -10.213 6.395  3.628  1.00 0.00 ? 1 ALA A H3  1
+ATOM   9  H HA  . ALA A 1 1 ? -10.517 5.374  1.526  1.00 0.00 ? 1 ALA A HA  1
+ATOM   10 H HB1 . ALA A 1 1 ? -9.045  7.813  0.405  1.00 0.00 ? 1 ALA A HB1 1
+ATOM   11 H HB2 . ALA A 1 1 ? -9.483  6.373  -0.513 1.00 0.00 ? 1 ALA A HB2 1
+ATOM   12 H HB3 . ALA A 1 1 ? -10.743 7.429  0.123  1.00 0.00 ? 1 ALA A HB3 1
+HETATM 13 N N   . FGA A 1 2 ? -8.435  4.299  2.238  1.00 0.00 ? 2 FGA A N   1
+HETATM 14 C CA  . FGA A 1 2 ? -7.150  3.671  2.446  1.00 0.00 ? 2 FGA A CA  1
+HETATM 15 C C   . FGA A 1 2 ? -6.670  3.933  3.876  1.00 0.00 ? 2 FGA A C   1
+HETATM 16 O O   . FGA A 1 2 ? -6.951  3.113  4.749  1.00 0.00 ? 2 FGA A O   1
+HETATM 17 C CB  . FGA A 1 2 ? -7.255  2.175  2.169  1.00 0.00 ? 2 FGA A CB  1
+HETATM 18 C CG  . FGA A 1 2 ? -7.858  1.892  0.792  1.00 0.00 ? 2 FGA A CG  1
+HETATM 19 C CD  . FGA A 1 2 ? -7.744  0.406  0.451  1.00 0.00 ? 2 FGA A CD  1
+HETATM 20 O OE1 . FGA A 1 2 ? -7.171  -0.390 1.186  1.00 0.00 ? 2 FGA A OE1 1
+HETATM 21 H H   . FGA A 1 2 ? -9.278  3.782  2.386  1.00 0.00 ? 2 FGA A H   1
+HETATM 22 H HA  . FGA A 1 2 ? -6.474  4.140  1.734  1.00 0.00 ? 2 FGA A HA  1
+HETATM 23 H HB2 . FGA A 1 2 ? -6.265  1.725  2.238  1.00 0.00 ? 2 FGA A HB2 1
+HETATM 24 H HB3 . FGA A 1 2 ? -7.881  1.717  2.934  1.00 0.00 ? 2 FGA A HB3 1
+HETATM 25 H HG2 . FGA A 1 2 ? -8.909  2.183  0.770  1.00 0.00 ? 2 FGA A HG2 1
+HETATM 26 H HG3 . FGA A 1 2 ? -7.350  2.465  0.022  1.00 0.00 ? 2 FGA A HG3 1
+ATOM   27 N N   . LYS A 1 3 ? -8.355  0.095  -0.706 1.00 0.00 ? 3 LYS A N   1
+ATOM   28 C CA  . LYS A 1 3 ? -8.382  -1.275 -1.171 1.00 0.00 ? 3 LYS A CA  1
+ATOM   29 C C   . LYS A 1 3 ? -6.963  -1.815 -1.409 1.00 0.00 ? 3 LYS A C   1
+ATOM   30 O O   . LYS A 1 3 ? -6.091  -1.113 -1.898 1.00 0.00 ? 3 LYS A O   1
+ATOM   31 C CB  . LYS A 1 3 ? -9.225  -1.338 -2.432 1.00 0.00 ? 3 LYS A CB  1
+ATOM   32 C CG  . LYS A 1 3 ? -10.695 -1.020 -2.157 1.00 0.00 ? 3 LYS A CG  1
+ATOM   33 C CD  . LYS A 1 3 ? -11.536 -1.063 -3.433 1.00 0.00 ? 3 LYS A CD  1
+ATOM   34 C CE  . LYS A 1 3 ? -13.006 -0.747 -3.157 1.00 0.00 ? 3 LYS A CE  1
+ATOM   35 N NZ  . LYS A 1 3 ? -13.816 -0.792 -4.370 1.00 0.00 ? 3 LYS A NZ  1
+ATOM   36 H H   . LYS A 1 3 ? -8.701  0.805  -1.317 1.00 0.00 ? 3 LYS A H   1
+ATOM   37 H HA  . LYS A 1 3 ? -8.873  -1.846 -0.395 1.00 0.00 ? 3 LYS A HA  1
+ATOM   38 H HB2 . LYS A 1 3 ? -8.824  -0.615 -3.135 1.00 0.00 ? 3 LYS A HB2 1
+ATOM   39 H HB3 . LYS A 1 3 ? -9.138  -2.328 -2.874 1.00 0.00 ? 3 LYS A HB3 1
+ATOM   40 H HG2 . LYS A 1 3 ? -11.091 -1.732 -1.433 1.00 0.00 ? 3 LYS A HG2 1
+ATOM   41 H HG3 . LYS A 1 3 ? -10.776 -0.032 -1.704 1.00 0.00 ? 3 LYS A HG3 1
+ATOM   42 H HD2 . LYS A 1 3 ? -11.138 -0.351 -4.156 1.00 0.00 ? 3 LYS A HD2 1
+ATOM   43 H HD3 . LYS A 1 3 ? -11.459 -2.050 -3.888 1.00 0.00 ? 3 LYS A HD3 1
+ATOM   44 H HE2 . LYS A 1 3 ? -13.430 -1.462 -2.453 1.00 0.00 ? 3 LYS A HE2 1
+ATOM   45 H HE3 . LYS A 1 3 ? -13.106 0.246  -2.718 1.00 0.00 ? 3 LYS A HE3 1
+ATOM   46 H HZ1 . LYS A 1 3 ? -13.762 -1.744 -4.787 1.00 0.00 ? 3 LYS A HZ1 1
+ATOM   47 H HZ2 . LYS A 1 3 ? -14.804 -0.572 -4.135 1.00 0.00 ? 3 LYS A HZ2 1
+ATOM   48 H HZ3 . LYS A 1 3 ? -13.457 -0.094 -5.052 1.00 0.00 ? 3 LYS A HZ3 1
+HETATM 49 N N   . DAL A 1 4 ? -6.767  -3.093 -1.043 1.00 0.00 ? 4 DAL A N   1
+HETATM 50 C CA  . DAL A 1 4 ? -5.436  -3.634 -1.287 1.00 0.00 ? 4 DAL A CA  1
+HETATM 51 C CB  . DAL A 1 4 ? -5.349  -4.104 -2.745 1.00 0.00 ? 4 DAL A CB  1
+HETATM 52 C C   . DAL A 1 4 ? -5.161  -4.802 -0.339 1.00 0.00 ? 4 DAL A C   1
+HETATM 53 O O   . DAL A 1 4 ? -5.967  -5.167 0.508  1.00 0.00 ? 4 DAL A O   1
+HETATM 54 H H   . DAL A 1 4 ? -7.497  -3.646 -0.641 1.00 0.00 ? 4 DAL A H   1
+HETATM 55 H HA  . DAL A 1 4 ? -4.698  -2.847 -1.099 1.00 0.00 ? 4 DAL A HA  1
+HETATM 56 H HB1 . DAL A 1 4 ? -5.560  -3.286 -3.432 1.00 0.00 ? 4 DAL A HB1 1
+HETATM 57 H HB2 . DAL A 1 4 ? -4.354  -4.488 -2.972 1.00 0.00 ? 4 DAL A HB2 1
+HETATM 58 H HB3 . DAL A 1 4 ? -6.068  -4.900 -2.940 1.00 0.00 ? 4 DAL A HB3 1
+HETATM 59 N N   . DAL A 1 5 ? -3.952  -5.348 -0.557 1.00 0.00 ? 5 DAL A N   1
+HETATM 60 C CA  . DAL A 1 5 ? -3.519  -6.469 0.249  1.00 0.00 ? 5 DAL A CA  1
+HETATM 61 C CB  . DAL A 1 5 ? -3.549  -6.102 1.732  1.00 0.00 ? 5 DAL A CB  1
+HETATM 62 C C   . DAL A 1 5 ? -2.112  -6.889 -0.184 1.00 0.00 ? 5 DAL A C   1
+HETATM 63 O O   . DAL A 1 5 ? -1.919  -7.159 -1.369 1.00 0.00 ? 5 DAL A O   1
+HETATM 64 O OXT . DAL A 1 5 ? -1.227  -6.941 0.667  1.00 0.00 ? 5 DAL A OXT 1
+HETATM 65 H H   . DAL A 1 5 ? -3.366  -4.994 -1.282 1.00 0.00 ? 5 DAL A H   1
+HETATM 66 H HA  . DAL A 1 5 ? -4.215  -7.275 0.040  1.00 0.00 ? 5 DAL A HA  1
+HETATM 67 H HB1 . DAL A 1 5 ? -4.551  -5.802 2.038  1.00 0.00 ? 5 DAL A HB1 1
+HETATM 68 H HB2 . DAL A 1 5 ? -3.248  -6.949 2.348  1.00 0.00 ? 5 DAL A HB2 1
+HETATM 69 H HB3 . DAL A 1 5 ? -2.870  -5.275 1.941  1.00 0.00 ? 5 DAL A HB3 1
+#
+loop_
+_struct_conn.id 
+_struct_conn.conn_type_id 
+_struct_conn.pdbx_leaving_atom_flag 
+_struct_conn.pdbx_PDB_id 
+_struct_conn.ptnr1_label_asym_id 
+_struct_conn.ptnr1_label_comp_id 
+_struct_conn.ptnr1_label_seq_id 
+_struct_conn.ptnr1_label_atom_id 
+_struct_conn.pdbx_ptnr1_label_alt_id 
+_struct_conn.pdbx_ptnr1_PDB_ins_code 
+_struct_conn.pdbx_ptnr1_standard_comp_id 
+_struct_conn.ptnr1_symmetry 
+_struct_conn.ptnr2_label_asym_id 
+_struct_conn.ptnr2_label_comp_id 
+_struct_conn.ptnr2_label_seq_id 
+_struct_conn.ptnr2_label_atom_id 
+_struct_conn.pdbx_ptnr2_label_alt_id 
+_struct_conn.pdbx_ptnr2_PDB_ins_code 
+_struct_conn.ptnr1_auth_asym_id 
+_struct_conn.ptnr1_auth_comp_id 
+_struct_conn.ptnr1_auth_seq_id 
+_struct_conn.ptnr2_auth_asym_id 
+_struct_conn.ptnr2_auth_comp_id 
+_struct_conn.ptnr2_auth_seq_id 
+_struct_conn.ptnr2_symmetry 
+_struct_conn.pdbx_ptnr3_label_atom_id 
+_struct_conn.pdbx_ptnr3_label_seq_id 
+_struct_conn.pdbx_ptnr3_label_comp_id 
+_struct_conn.pdbx_ptnr3_label_asym_id 
+_struct_conn.pdbx_ptnr3_label_alt_id 
+_struct_conn.pdbx_ptnr3_PDB_ins_code 
+_struct_conn.details 
+_struct_conn.pdbx_dist_value 
+_struct_conn.pdbx_value_order 
+_struct_conn.pdbx_role 
+covale1 covale both ? A ALA 1 C  ? ? ? 1_555 A FGA 2 N ? ? A ALA 1 A FGA 2 1_555 ? ? ? ? ? ? ? 1.344 ? ?
+covale2 covale both ? A FGA 2 CD ? ? ? 1_555 A LYS 3 N ? ? A FGA 2 A LYS 3 1_555 ? ? ? ? ? ? ? 1.345 ? ?
+covale3 covale both ? A LYS 3 C  ? ? ? 1_555 A DAL 4 N ? ? A LYS 3 A DAL 4 1_555 ? ? ? ? ? ? ? 1.344 ? ?
+covale4 covale both ? A DAL 4 C  ? ? ? 1_555 A DAL 5 N ? ? A DAL 4 A DAL 5 1_555 ? ? ? ? ? ? ? 1.344 ? ?
+#

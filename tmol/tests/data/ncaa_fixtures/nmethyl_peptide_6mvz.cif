@@ -1,0 +1,106 @@
+data_6MVZ_A
+#
+loop_
+_atom_site.group_PDB 
+_atom_site.id 
+_atom_site.type_symbol 
+_atom_site.label_atom_id 
+_atom_site.label_alt_id 
+_atom_site.label_comp_id 
+_atom_site.label_asym_id 
+_atom_site.label_entity_id 
+_atom_site.label_seq_id 
+_atom_site.pdbx_PDB_ins_code 
+_atom_site.Cartn_x 
+_atom_site.Cartn_y 
+_atom_site.Cartn_z 
+_atom_site.occupancy 
+_atom_site.B_iso_or_equiv 
+_atom_site.pdbx_formal_charge 
+_atom_site.auth_seq_id 
+_atom_site.auth_comp_id 
+_atom_site.auth_asym_id 
+_atom_site.auth_atom_id 
+_atom_site.pdbx_PDB_model_num 
+HETATM 1  N N   . MLE A 1 1 ? -1.988 15.766 19.167 1.000 3.46 ? 1001 MLE A N   1
+HETATM 2  C CN  . MLE A 1 1 ? -1.911 16.924 18.234 1.000 4.02 ? 1001 MLE A CN  1
+HETATM 3  C CA  . MLE A 1 1 ? -0.663 15.233 19.589 1.000 3.44 ? 1001 MLE A CA  1
+HETATM 4  C CB  . MLE A 1 1 ? -0.898 14.158 20.669 1.000 3.83 ? 1001 MLE A CB  1
+HETATM 5  C CG  . MLE A 1 1 ? 0.374  13.573 21.288 1.000 4.10 ? 1001 MLE A CG  1
+HETATM 6  C CD1 . MLE A 1 1 ? 1.110  14.593 22.142 1.000 5.16 ? 1001 MLE A CD1 1
+HETATM 7  C CD2 . MLE A 1 1 ? 0.024  12.344 22.146 1.000 5.28 ? 1001 MLE A CD2 1
+HETATM 8  C C   . MLE A 1 1 ? 0.027  14.627 18.372 1.000 3.27 ? 1001 MLE A C   1
+HETATM 9  O O   . MLE A 1 1 ? -0.618 13.872 17.611 1.000 3.80 ? 1001 MLE A O   1
+ATOM   10 N N   . PHE A 1 2 ? 1.313  14.938 18.221 1.000 3.16 ? 1002 PHE A N   1
+ATOM   11 C CA  . PHE A 1 2 ? 2.117  14.450 17.105 1.000 3.40 ? 1002 PHE A CA  1
+ATOM   12 C C   . PHE A 1 2 ? 3.285  13.617 17.674 1.000 3.38 ? 1002 PHE A C   1
+ATOM   13 O O   . PHE A 1 2 ? 4.253  14.238 18.149 1.000 4.85 ? 1002 PHE A O   1
+ATOM   14 C CB  . PHE A 1 2 ? 2.706  15.619 16.292 1.000 4.09 ? 1002 PHE A CB  1
+ATOM   15 C CG  . PHE A 1 2 ? 1.665  16.560 15.713 1.000 3.75 ? 1002 PHE A CG  1
+ATOM   16 C CD1 . PHE A 1 2 ? 1.127  16.338 14.447 1.000 4.01 ? 1002 PHE A CD1 1
+ATOM   17 C CD2 . PHE A 1 2 ? 1.263  17.689 16.421 1.000 4.04 ? 1002 PHE A CD2 1
+ATOM   18 C CE1 . PHE A 1 2 ? 0.208  17.235 13.901 1.000 4.10 ? 1002 PHE A CE1 1
+ATOM   19 C CE2 . PHE A 1 2 ? 0.345  18.582 15.881 1.000 4.22 ? 1002 PHE A CE2 1
+ATOM   20 C CZ  . PHE A 1 2 ? -0.184 18.354 14.613 1.000 4.28 ? 1002 PHE A CZ  1
+HETATM 21 N N   . MLE A 1 3 ? 3.221  12.283 17.686 1.000 3.47 ? 1003 MLE A N   1
+HETATM 22 C CN  . MLE A 1 3 ? 2.107  11.519 17.092 1.000 4.27 ? 1003 MLE A CN  1
+HETATM 23 C CA  . MLE A 1 3 ? 4.402  11.518 18.168 1.000 3.56 ? 1003 MLE A CA  1
+HETATM 24 C CB  . MLE A 1 3 ? 4.091  10.495 19.268 1.000 4.09 ? 1003 MLE A CB  1
+HETATM 25 C CG  . MLE A 1 3 ? 4.714  10.855 20.618 1.000 4.27 ? 1003 MLE A CG  1
+HETATM 26 C CD1 . MLE A 1 3 ? 4.659  9.698  21.604 1.000 4.99 ? 1003 MLE A CD1 1
+HETATM 27 C CD2 . MLE A 1 3 ? 4.101  12.108 21.215 1.000 5.82 ? 1003 MLE A CD2 1
+HETATM 28 C C   . MLE A 1 3 ? 5.033  10.893 16.918 1.000 3.49 ? 1003 MLE A C   1
+HETATM 29 O O   . MLE A 1 3 ? 4.705  9.782  16.486 1.000 4.05 ? 1003 MLE A O   1
+ATOM   30 N N   . PHE A 1 4 ? 5.932  11.681 16.278 1.000 3.60 ? 1004 PHE A N   1
+ATOM   31 C CA  . PHE A 1 4 ? 6.466  11.344 14.967 1.000 3.73 ? 1004 PHE A CA  1
+ATOM   32 C C   . PHE A 1 4 ? 7.501  10.238 15.005 1.000 3.79 ? 1004 PHE A C   1
+ATOM   33 O O   . PHE A 1 4 ? 8.030  9.823  16.014 1.000 4.24 ? 1004 PHE A O   1
+ATOM   34 C CB  . PHE A 1 4 ? 7.087  12.596 14.319 1.000 4.08 ? 1004 PHE A CB  1
+ATOM   35 C CG  . PHE A 1 4 ? 6.070  13.618 13.854 1.000 3.84 ? 1004 PHE A CG  1
+ATOM   36 C CD1 . PHE A 1 4 ? 5.165  13.316 12.849 1.000 4.80 ? 1004 PHE A CD1 1
+ATOM   37 C CD2 . PHE A 1 4 ? 6.083  14.915 14.357 1.000 4.12 ? 1004 PHE A CD2 1
+ATOM   38 C CE1 . PHE A 1 4 ? 4.280  14.266 12.363 1.000 5.01 ? 1004 PHE A CE1 1
+ATOM   39 C CE2 . PHE A 1 4 ? 5.227  15.884 13.848 1.000 4.58 ? 1004 PHE A CE2 1
+ATOM   40 C CZ  . PHE A 1 4 ? 4.332  15.565 12.837 1.000 4.78 ? 1004 PHE A CZ  1
+ATOM   41 O OXT . PHE A 1 4 ? 7.761  9.819  13.767 1.000 4.72 ? 1004 PHE A OXT 1
+#
+loop_
+_struct_conn.id 
+_struct_conn.conn_type_id 
+_struct_conn.pdbx_leaving_atom_flag 
+_struct_conn.pdbx_PDB_id 
+_struct_conn.ptnr1_label_asym_id 
+_struct_conn.ptnr1_label_comp_id 
+_struct_conn.ptnr1_label_seq_id 
+_struct_conn.ptnr1_label_atom_id 
+_struct_conn.pdbx_ptnr1_label_alt_id 
+_struct_conn.pdbx_ptnr1_PDB_ins_code 
+_struct_conn.pdbx_ptnr1_standard_comp_id 
+_struct_conn.ptnr1_symmetry 
+_struct_conn.ptnr2_label_asym_id 
+_struct_conn.ptnr2_label_comp_id 
+_struct_conn.ptnr2_label_seq_id 
+_struct_conn.ptnr2_label_atom_id 
+_struct_conn.pdbx_ptnr2_label_alt_id 
+_struct_conn.pdbx_ptnr2_PDB_ins_code 
+_struct_conn.ptnr1_auth_asym_id 
+_struct_conn.ptnr1_auth_comp_id 
+_struct_conn.ptnr1_auth_seq_id 
+_struct_conn.ptnr2_auth_asym_id 
+_struct_conn.ptnr2_auth_comp_id 
+_struct_conn.ptnr2_auth_seq_id 
+_struct_conn.ptnr2_symmetry 
+_struct_conn.pdbx_ptnr3_label_atom_id 
+_struct_conn.pdbx_ptnr3_label_seq_id 
+_struct_conn.pdbx_ptnr3_label_comp_id 
+_struct_conn.pdbx_ptnr3_label_asym_id 
+_struct_conn.pdbx_ptnr3_label_alt_id 
+_struct_conn.pdbx_ptnr3_PDB_ins_code 
+_struct_conn.details 
+_struct_conn.pdbx_dist_value 
+_struct_conn.pdbx_value_order 
+_struct_conn.pdbx_role 
+covale1 covale both ? A MLE 1 C ? ? ? 1_555 A PHE 2 N ? ? A MLE 1001 A PHE 1002 1_555 ? ? ? ? ? ? ? 1.332 ? ?
+covale2 covale both ? A PHE 2 C ? ? ? 1_555 A MLE 3 N ? ? A PHE 1002 A MLE 1003 1_555 ? ? ? ? ? ? ? 1.336 ? ?
+covale3 covale both ? A MLE 3 C ? ? ? 1_555 A PHE 4 N ? ? A MLE 1003 A PHE 1004 1_555 ? ? ? ? ? ? ? 1.356 ? ?
+#

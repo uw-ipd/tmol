@@ -257,17 +257,49 @@ class LigandPreparation:
     # from the RDKit Mol). The params-file path leaves it None and the
     # injector falls back to an element heuristic.
     atom_type_elements: Optional[dict[str, str]] = None
+    # Patches for this residue's chain ends, scoped to it alone. A backbone the
+    # database's own termini patches were not written for carries its own.
+    adds_patches: tuple = ()
+    # {variant residue name: {atom: charge}} for those patches
+    variant_partial_charges: Optional[dict[str, dict[str, float]]] = None
 
 
-def _variant_signature(base, variant):
-    """What a patch did to a residue: atoms added, removed, and retyped."""
-    before = {a.name: a.atom_type for a in base.atoms}
-    after = {a.name: a.atom_type for a in variant.atoms}
-    return (
-        frozenset(after) - frozenset(before),
-        frozenset(before) - frozenset(after),
-        frozenset(n for n in set(before) & set(after) if before[n] != after[n]),
-    )
+def _applied_patch(chemdb, base, variant):
+    """The variant type that produced ``variant`` from ``base``.
+
+    Several patches can share a display name -- an amine's and a substituted
+    amine's -- so the suffix does not say which one ran. Each is identified by
+    the atoms it declares, and the one that ran is the most specific whose
+    atoms are all present.
+    """
+    present = {a.name for a in variant.atoms}
+    absent = {a.name for a in base.atoms} - present
+    best = None
+    for patch in chemdb.variants:
+        names = {a.name for a in patch.add_atoms}
+        if not names <= present:
+            continue
+        if any(a.name in present for a in patch.modify_atoms if a.name in absent):
+            continue
+        if best is None or len(names) > len({a.name for a in best.add_atoms}):
+            best = patch
+    return best
+
+
+def _patched_connection(base, variant, patch):
+    """The connection the patch acts on, as (base atom, variant atom).
+
+    A terminus patch replaces one polymer connection with the atoms that cap
+    it, so the connection it removed is the one the base has and the variant
+    does not. Its atom is where the charge redistribution is centred, and it
+    is named by the residue rather than by the patch, so a reference's has to
+    be found the same way rather than assumed to share the name.
+    """
+    kept = {c.name for c in variant.connections}
+    for connection in base.connections:
+        if connection.name not in kept:
+            return connection.name, connection.atom
+    return None, None
 
 
 def terminus_charge_entries(param_db, patched_chemdb, residue_type) -> dict:
@@ -275,47 +307,54 @@ def terminus_charge_entries(param_db, patched_chemdb, residue_type) -> dict:
 
     A patch introduces atoms the base residue has no charge for -- the acid's
     OXT, the ammonium's protons -- so a residue injected without them cannot be
-    scored in any terminal position. The values are backbone chemistry, so they
-    come from whichever residue already in the database its patch did the same
-    thing to: matching on what the patch changed picks a residue whose nitrogen
-    is substituted the same way, with no reference named here.
+    scored in any terminal position. Terminal charges are backbone chemistry
+    rather than this residue's, so they are taken from a residue already in the
+    database that the same patch was applied to: the substituted-amine patch
+    finds a proline, the plain one an alanine, with no residue named here.
 
-    Copied for the atoms the patch touched and their immediate neighbours: an
-    acid's carbon changes with the OXT hung off it though the patch leaves the
-    carbon itself alone. Further out, a reference's entry is its own charge
-    redistribution and belongs to it.
+    The patch's own atoms carry the same names everywhere, since the patch
+    gives them. The connection atom is the exception -- it is the residue's,
+    and a gamma-linked acid calls it CD where an alpha one calls it C -- so it
+    is matched to the reference's by the connection it belongs to.
     """
     by_name = {r.name: r for r in patched_chemdb.residues}
     charges: dict = {}
     for entry in param_db.scoring.elec.atom_charge_parameters:
         charges.setdefault(str(entry.res), {})[str(entry.atom)] = entry.charge
 
-    signatures: dict = {}
+    references: dict = {}
     for name, restype in by_name.items():
         base_name, _, suffix = name.partition(":")
         if not suffix or base_name not in by_name or name not in charges:
             continue
-        signatures.setdefault(
-            (suffix, _variant_signature(by_name[base_name], restype)), name
-        )
+        patch = _applied_patch(patched_chemdb, by_name[base_name], restype)
+        if patch is not None:
+            references.setdefault((suffix, patch.name), name)
 
     entries: dict = {}
     for name, restype in by_name.items():
         base_name, _, suffix = name.partition(":")
         if base_name != residue_type.name or not suffix:
             continue
-        added, removed, retyped = _variant_signature(residue_type, restype)
-        reference = signatures.get((suffix, (added, removed, retyped)))
+        patch = _applied_patch(patched_chemdb, residue_type, restype)
+        if patch is None:
+            continue
+        reference = references.get((suffix, patch.name))
         if reference is None:
             continue
-        neighbours = {
-            other
-            for bond in restype.bonds
-            for atom, other in (bond[:2], bond[1::-1])
-            if atom in added
+        reference_charges = charges[reference]
+
+        delta = {
+            atom.name: reference_charges[atom.name]
+            for atom in (*patch.add_atoms, *patch.modify_atoms)
+            if atom.name in reference_charges
         }
-        touched = (added | retyped | neighbours) & set(charges[reference])
-        delta = {atom: charges[reference][atom] for atom in sorted(touched)}
+        _connection, atom_name = _patched_connection(residue_type, restype, patch)
+        _, reference_atom = _patched_connection(
+            by_name[reference.partition(":")[0]], by_name[reference], patch
+        )
+        if atom_name is not None and reference_atom in reference_charges:
+            delta[atom_name] = reference_charges[reference_atom]
         if delta:
             entries[name] = delta
     return entries
@@ -387,6 +426,7 @@ def inject_ligand_preparations(
         param_db,
         residue_types=[p.residue_type for p in new_preps],
         atom_types=new_atom_types or None,
+        variants=[v for p in new_preps for v in p.adds_patches] or None,
         partial_charges=_charges_with_termini(
             param_db, new_preps, (*param_db.chemical.atom_types, *new_atom_types)
         ),
@@ -401,12 +441,15 @@ def _charges_with_termini(param_db, preps, atom_types) -> dict:
     added to the database is covered without a change here.
     """
     patched = param_db.chemical.with_added_residues(
-        [p.residue_type for p in preps], atom_types=atom_types
+        [p.residue_type for p in preps],
+        atom_types=atom_types,
+        variants=[v for p in preps for v in p.adds_patches] or None,
     )
     charges = {}
     for prep in preps:
         charges[prep.residue_type.name] = prep.partial_charges
         charges.update(terminus_charge_entries(param_db, patched, prep.residue_type))
+        charges.update(prep.variant_partial_charges or {})
     return charges
 
 
