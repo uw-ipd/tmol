@@ -125,7 +125,9 @@ publish previews under the Pages site.
 
 ## Releasing
 
-Versioned wheel and sdist publication happens from `v*` tags. The tag version
+Versioned wheel and sdist publication happens from `v*` tags. Linux x86-64,
+Linux aarch64, and Apple Silicon CPU wheels are built for each supported
+CPython version and qualified by their PyTorch minor. The tag version
 must match `[project].version` in `pyproject.toml`.
 
 Before using a versioned wheel URL, check the GitHub Releases page. The version

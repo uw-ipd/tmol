@@ -36,7 +36,15 @@ pip install "torch==2.12.*" --index-url https://download.pytorch.org/whl/cu132
 
 Wheel tags select Python, PyTorch, and CUDA compatibility. For example,
 `cp313` selects Python 3.13 and `+cu130torch2.13` selects the CUDA/PyTorch lane.
-They do not replace the host C++ runtime.
+CPU wheels are also PyTorch-minor-specific: `+cputorch2.13` selects the CPU
+extension built against PyTorch 2.13. They do not replace the host C++ runtime.
+
+Release builds provide CPU wheels for Linux x86-64, Linux aarch64, and Apple
+Silicon. For example, after installing PyTorch 2.13, an Apple Silicon wheel is:
+
+```bash
+pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cputorch2.13-cp313-cp313-macosx_14_0_arm64.whl"
+```
 
 ## PyPI Source Distribution
 
@@ -83,15 +91,17 @@ The same CPU-only path is the normal macOS source install:
 pip install -e . -Ccmake.define.TMOL_ENABLE_CUDA=OFF
 ```
 
-CPU source builds are tested on Linux x86-64, Linux aarch64, and Apple
-Silicon. Native Windows is not currently supported; use a Linux environment
-such as WSL2.
+CPU source builds and release wheels are tested on Linux x86-64, Linux
+aarch64, and Apple Silicon. Native Windows is not currently supported; use a
+Linux environment such as WSL2.
 
 ## Linux Runtime Notes
 
-Release wheels use `manylinux_2_28` platform tags on `x86_64` and `aarch64`.
-They require glibc 2.28 or newer. PyTorch supplies the matching CUDA shared
-libraries; TMol wheels do not bundle the PyTorch or NVIDIA runtime libraries.
+Linux release wheels use `manylinux_2_28` platform tags on `x86_64` and
+`aarch64`. They require glibc 2.28 or newer. Apple Silicon wheels use
+`macosx_14_0_arm64`, matching the PyTorch 2.13 deployment target. PyTorch
+supplies the matching shared libraries; TMol wheels do not bundle the PyTorch
+or NVIDIA runtime libraries.
 
 If `import tmol` fails with a `GLIBCXX_* not found` error, the host
 `libstdc++` is too old for the wheel. Use one of these paths:

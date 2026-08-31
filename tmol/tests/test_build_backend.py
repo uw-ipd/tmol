@@ -51,6 +51,33 @@ def test_candidate_wheels_include_stable_torch_210_variants(monkeypatch):
     assert any("+cu128torch2.10-" in filename for filename in filenames)
 
 
+def test_candidate_wheels_include_torch_qualified_linux_cpu(monkeypatch):
+    monkeypatch.setattr(backend.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(backend, "_linux_arch_tag", lambda: "x86_64")
+    monkeypatch.setattr(backend, "_read_project_version", lambda: "0.1.42")
+    monkeypatch.setattr(backend, "_python_tag", lambda: "cp312")
+    monkeypatch.setattr(backend, "_torch_major_minor", lambda: "2.13")
+    monkeypatch.setattr(backend, "_torch_cuda_tag", lambda: None)
+
+    assert backend._candidate_wheel_filenames() == [
+        "tmol-0.1.42+cputorch2.13-cp312-cp312-manylinux_2_28_x86_64.whl",
+        "tmol-0.1.42+cputorch2.13-cp312-cp312-linux_x86_64.whl",
+    ]
+
+
+def test_candidate_wheels_include_apple_silicon_cpu(monkeypatch):
+    monkeypatch.setattr(backend.platform, "system", lambda: "Darwin")
+    monkeypatch.setattr(backend.platform, "machine", lambda: "arm64")
+    monkeypatch.setattr(backend, "_read_project_version", lambda: "0.1.42")
+    monkeypatch.setattr(backend, "_python_tag", lambda: "cp314")
+    monkeypatch.setattr(backend, "_torch_major_minor", lambda: "2.13")
+    monkeypatch.setattr(backend, "_torch_cuda_tag", lambda: None)
+
+    assert backend._candidate_wheel_filenames() == [
+        "tmol-0.1.42+cputorch2.13-cp314-cp314-macosx_14_0_arm64.whl"
+    ]
+
+
 def test_build_wheel_uses_downloaded_wheel_when_available(monkeypatch, tmp_path):
     monkeypatch.setattr(backend, "_is_repo_checkout", lambda: False)
     monkeypatch.setattr(backend, "_is_isolated_build_environment", lambda: False)
