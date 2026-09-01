@@ -302,7 +302,10 @@ jobs:
         run: |
           if [ "${{ inputs.runs-on }}" = "self-hosted" ]; then
             $CONTAINER_EXEC "$CONTAINER_TARGET" bash -x -e -o pipefail -c "
-              ${TARGET_VENV}/bin/pip install 'nvidia-cuda-nvcc==13.2.86'
+              ${TARGET_VENV}/bin/pip install \
+                'nvidia-cuda-nvcc==13.2.86' \
+                'nvidia-nvvm==13.2.86' \
+                'nvidia-cuda-crt==13.2.86'
               CUDA_HOME=\$(${TARGET_VENV}/bin/python -c 'from pathlib import Path; import site; print(Path(site.getsitepackages()[0]) / \"nvidia/cu13\")')
               test -x \"\${CUDA_HOME}/bin/nvcc\"
               test -f \"\${CUDA_HOME}/include/cublas_v2.h\"
