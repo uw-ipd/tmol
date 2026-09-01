@@ -564,7 +564,6 @@ class LBFGS_Armijo(Optimizer):
             # cached across steps
             t=state.get("t"),
             prev_flat_grad=state.get("prev_flat_grad"),
-            prev_loss=state.get("prev_loss"),
             prev_loss_vec=state.get("prev_loss_vec"),
             # history
             old_dirs_mat=state["old_dirs_mat"],
@@ -805,7 +804,7 @@ class LBFGS_Armijo(Optimizer):
             func (callable): a function that evaluates energy
 
         Returns:
-            orig_loss: the energy (loss) following optimization
+            The initial loss, matching the ``Optimizer.step`` convention.
         """
         closure = self._wrap_closure(closure)
         self._closure_fn = closure
@@ -835,7 +834,6 @@ class LBFGS_Armijo(Optimizer):
                 ctx.prev_flat_grad = ctx.flat_grad.clone()
             else:
                 ctx.prev_flat_grad.copy_(ctx.flat_grad)
-            ctx.prev_loss = ctx.loss
             ctx.prev_loss_vec = ctx.loss_vec
 
             # Armijo updates will track step length during optimization
@@ -883,7 +881,6 @@ class LBFGS_Armijo(Optimizer):
         ctx.state["history_start"] = ctx.history_start
         ctx.state["history_count"] = ctx.history_count
         ctx.state["prev_flat_grad"] = ctx.prev_flat_grad
-        ctx.state["prev_loss"] = ctx.prev_loss
         ctx.state["prev_loss_vec"] = ctx.prev_loss_vec
         ctx.state["x_ref"] = ctx.x_ref
         ctx.state["needs_reset"] = ctx.needs_reset
