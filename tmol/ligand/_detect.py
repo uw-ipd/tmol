@@ -15,6 +15,7 @@ from typing import Optional
 
 import attr
 import biotite.structure as struc
+import biotite.structure.info as info
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem import RWMol
@@ -42,6 +43,9 @@ class NonStandardResidueInfo:
         in_polymer_entity: Whether the input file places this residue in a
             polymer entity (mmCIF label_seq_id). ``None`` where the source
             cannot say, as a bare SMILES cannot.
+        chemistry_problem: Why this residue's chemistry cannot be established,
+            or None. A residue carrying one is refused rather than prepared
+            from atoms that may not be the whole molecule.
         atom_names: Atom names for one representative instance.
         elements: Element symbols for each atom.
         coords: Cartesian coordinates of shape (n_atoms, 3).
@@ -82,6 +86,8 @@ class NonStandardResidueInfo:
     connection_atom_names: Optional[frozenset[str]] = None
     # whether the input file places this residue in a polymer entity
     in_polymer_entity: Optional[bool] = None
+    # why this residue's chemistry cannot be trusted, or None
+    chemistry_problem: Optional[str] = None
 
 
 def get_chem_comp_type(
@@ -127,6 +133,14 @@ def chem_comp_types_from_cif(cif_path) -> dict:
             if comp_id and comp_type and comp_type != "?":
                 types[comp_id] = comp_type
     return types
+
+
+_BOND_ORDERS = {
+    "SING": struc.BondType.SINGLE,
+    "DOUB": struc.BondType.DOUBLE,
+    "TRIP": struc.BondType.TRIPLE,
+    "QUAD": struc.BondType.QUADRUPLE,
+}
 
 
 _METAL_SYMBOLS = frozenset(
@@ -423,7 +437,7 @@ def _nonstandard_residue_info_from_mol2_mol(
     atom_array.atom_name = np.array(atom_names, dtype="U16")
     atom_array.element = np.array(elements, dtype="U4")
     inferred_res_name = _infer_res_name_from_mol2(
-        mol, fallback="LG1" if res_name is None else res_name
+        mol, fallback="L_1" if res_name is None else res_name
     )
     atom_array.res_name = np.array([inferred_res_name] * n_atoms, dtype="U8")
     atom_array.chain_id = np.array(["A"] * n_atoms, dtype="U4")
@@ -575,7 +589,7 @@ def nonstandard_residue_info_from_smiles_via_mol2(
 
     Args:
         smiles: Ligand SMILES string.
-        res_name: Three-letter residue name (default inferred / ``"LG1"``).
+        res_name: Residue name (default inferred / ``"L_1"``).
         ph: Target pH for the Dimorphite protonation step.
         protonate: When ``True`` (default) run Dimorphite on ``smiles`` first;
             set ``False`` to pin an already-protonated SMILES verbatim.
@@ -647,12 +661,8 @@ def detect_nonstandard_residues(
             continue
         seen.add(res_name)
 
-        sub = _representative_instance(
-            atom_array,
-            residue_starts,
-            start,
-            connection_atoms_by_name.get(res_name, ()),
-        )
+        connections = connection_atoms_by_name.get(res_name, ())
+        sub = _representative_instance(atom_array, residue_starts, start, connections)
         component_type = get_chem_comp_type(res_name, chem_comp_types) or "UNKNOWN"
 
         logger.info(
@@ -692,12 +702,11 @@ def detect_nonstandard_residues(
 def _representative_instance(atom_array, residue_starts, start, connection_atoms=()):
     """The copy of this residue to describe the type from.
 
-    The first copy, unless it is missing an atom the connections say the
-    residue has: a nucleotide at a 5' terminus carries no phosphate, while the
-    connections, collected across every copy, name one. Copies also differ
-    where a sidechain is partly unresolved, and that is not a reason to prefer
-    one -- the type should describe the residue, not the best-ordered copy of
-    it.
+    A residue type describes the molecule, so the copy to read it from is one
+    whose atoms are all resolved, and failing that one carrying the atoms the
+    connections say the residue has -- a nucleotide at a 5' terminus has no
+    phosphate, while the connections, collected across every copy, name one.
+    Where no copy qualifies the first stands and the caller completes it.
     """
     wanted = set(connection_atoms)
 
@@ -709,16 +718,83 @@ def _representative_instance(atom_array, residue_starts, start, connection_atoms
             mask &= atom_array.chain_id == atom_array.chain_id[other]
         return atom_array[mask]
 
+    def suitable(candidate):
+        if not wanted <= {str(n) for n in candidate.atom_name}:
+            return False
+        return not np.isnan(candidate.coord).any()
+
+    copies = [
+        instance(other)
+        for other in residue_starts
+        if atom_array.res_name[other] == atom_array.res_name[start]
+    ]
     first = instance(start)
-    if wanted <= {str(n) for n in first.atom_name}:
-        return first
-    for other in residue_starts:
-        if atom_array.res_name[other] != atom_array.res_name[start]:
-            continue
-        candidate = instance(other)
+    for candidate in [first, *copies]:
+        if suitable(candidate):
+            return candidate
+    # nothing is fully resolved; take one that at least shows the connections
+    for candidate in [first, *copies]:
         if wanted <= {str(n) for n in candidate.atom_name}:
             return candidate
     return first
+
+
+def with_resolved_coordinates(atom_array, res_name: str, use_ccd: bool):
+    """``atom_array`` with a coordinate for every atom, or None.
+
+    An atom the structure did not resolve arrives at NaN, which is what tells
+    pose construction to rebuild it. Residue-type generation cannot work with
+    that: it reads the molecule through RDKit, which perceives stereochemistry
+    from coordinates. The component dictionary is where the missing geometry
+    comes from -- and it is the authority on it, since the residue's own
+    definition fixes the configuration its density never showed. Returns None
+    where the dictionary must not be consulted or does not describe this
+    residue, leaving the caller to refuse rather than invent a configuration.
+
+    The filled coordinates are scratch: the pipeline regenerates a conformer
+    from the molecule it reads, and only the stereochemistry survives.
+    """
+    unresolved = np.isnan(atom_array.coord).any(axis=-1)
+    if not unresolved.any():
+        return atom_array
+    if not use_ccd:
+        return None
+    try:
+        component = info.residue(res_name)
+    except Exception:
+        return None
+
+    defined = {str(n) for n in component.atom_name}
+    present = {str(n) for n in atom_array.atom_name}
+    if not present <= defined:
+        return None
+    shared = [
+        n
+        for n, missing in zip(atom_array.atom_name, unresolved)
+        if not missing and str(n) in defined
+    ]
+    if len(shared) < 3:
+        return None
+    donor = component[np.isin(component.atom_name, shared)]
+    target = atom_array[np.isin(atom_array.atom_name, shared) & ~unresolved]
+    order = {str(n): i for i, n in enumerate(target.atom_name)}
+    donor = donor[np.argsort([order[str(n)] for n in donor.atom_name])]
+    try:
+        _fitted, transform = struc.superimpose(target, donor)
+    except Exception:
+        return None
+
+    placed = transform.apply(component)
+    ideal = {str(n): xyz for n, xyz in zip(placed.atom_name, placed.coord)}
+    filled = atom_array.copy()
+    for i, missing in enumerate(unresolved):
+        if not missing:
+            continue
+        xyz = ideal.get(str(filled.atom_name[i]))
+        if xyz is None:
+            return None
+        filled.coord[i] = xyz
+    return filled
 
 
 def is_polymer_linking_component_type(component_type: Optional[str]) -> bool:
@@ -737,16 +813,24 @@ def is_polymer_linking_component_type(component_type: Optional[str]) -> bool:
 def polymer_entity_residues(atom_array: struc.AtomArray) -> Optional[frozenset[str]]:
     """Names of the residues the input file places in a polymer entity.
 
-    mmCIF numbers a polymer entity's residues along its sequence and leaves a
-    non-polymer's label_seq_id as ".", which says directly what a component
-    type has to be interpreted to say -- and says it for a terminal cap, which
-    is typed NON-POLYMER despite being part of the chain. Returns None when the
-    structure carries no label_seq_id, leaving the caller its other evidence.
+    An mmCIF says which of its entities are polymers, and that is what
+    separates a chain from a ligand, a glycan or solvent -- including for a
+    terminal cap, which is typed NON-POLYMER despite being part of the chain.
+    :func:`tmol.io.atom_array_from_cif` records it per atom.
+
+    Failing that, ``label_seq_id`` is read as a proxy: a polymer entity numbers
+    its residues along its sequence. It is only a proxy -- a generated file may
+    number a ligand that belongs to no sequence -- so it is used only where the
+    entities themselves are not recorded. Returns None when neither is.
     """
-    if "label_seq_id" not in atom_array.get_annotation_categories():
+    categories = atom_array.get_annotation_categories()
+    names = atom_array.res_name.astype(str)
+    if "tmol_polymer_entity" in categories:
+        flag = atom_array.get_annotation("tmol_polymer_entity").astype(bool)
+        return frozenset(str(n).strip() for n in names[flag])
+    if "label_seq_id" not in categories:
         return None
     seq = atom_array.get_annotation("label_seq_id").astype(str)
-    names = atom_array.res_name.astype(str)
     numbered = np.char.strip(seq) != "."
     if not numbered.any():
         return None
@@ -820,7 +904,10 @@ def _cross_residue_bond_atoms(  # noqa: C901
         )
 
     if len(atom_array) > 1:
-        heavy_mask = np.char.strip(atom_array.element.astype(str)) != "H"
+        # an atom the structure did not resolve has no position to be near
+        heavy_mask = (np.char.strip(atom_array.element.astype(str)) != "H") & ~np.isnan(
+            atom_array.coord
+        ).any(axis=-1)
         if heavy_mask.any():
             from scipy.spatial import cKDTree
 

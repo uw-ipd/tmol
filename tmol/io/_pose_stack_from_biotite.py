@@ -41,6 +41,7 @@ def build_context_from_biotite(
     ligand_params_files: list[str] | None = None,
     sample_proton_chi: bool = True,
     chem_comp_types: dict | None = None,
+    use_ccd: bool = True,
     ligand_seed: int | None = None,
 ) -> PoseBuildContext:
     """Build the structure-independent construction context.
@@ -81,6 +82,10 @@ def build_context_from_biotite(
             ``tmol.ligand.chem_comp_types_from_cif``), which says whether a
             residue belongs to a polymer where the file does not number it
             along a sequence. Only used when prepare_ligands=True.
+        use_ccd: Whether a residue the input declares no chemistry for may be
+            completed from the component dictionary by its code. Pass False for
+            a source that supplies whole molecules under codes of its own, such
+            as a mol2. Only used when prepare_ligands=True.
         ligand_seed: Fixed RNG seed for the conformer each prepared residue
             is built from, making preparation reproducible. Only used when
             prepare_ligands=True.
@@ -106,6 +111,7 @@ def build_context_from_biotite(
             strict_ligands=strict_ligands,
             return_fragment_definitions=True,
             chem_comp_types=chem_comp_types,
+            use_ccd=use_ccd,
             seed=ligand_seed,
         )
         rts = ResidueTypeSet.from_database(param_db.chemical)
@@ -150,6 +156,7 @@ def pose_stack_from_biotite(  # noqa: C901
     ligand_params_files: list[str] | None = None,
     sample_proton_chi: bool = True,
     chem_comp_types: dict | None = None,
+    use_ccd: bool = True,
     ligand_seed: int | None = None,
     return_context: bool = False,
     context: PoseBuildContext | None = None,
@@ -202,6 +209,10 @@ def pose_stack_from_biotite(  # noqa: C901
             ``_chem_comp`` table, which says whether a residue belongs to a
             polymer where the file does not number it along a sequence. Only
             used when prepare_ligands=True.
+        use_ccd: Whether a residue the input declares no chemistry for may be
+            completed from the component dictionary by its code. Pass False for
+            a source that supplies whole molecules under codes of its own, such
+            as a mol2. Only used when prepare_ligands=True.
         ligand_seed: Fixed RNG seed for the conformer each prepared residue
             is built from, making preparation reproducible. Only used when
             prepare_ligands=True.
@@ -253,6 +264,7 @@ def pose_stack_from_biotite(  # noqa: C901
             ligand_params_files=ligand_params_files,
             sample_proton_chi=sample_proton_chi,
             chem_comp_types=chem_comp_types,
+            use_ccd=use_ccd,
             ligand_seed=ligand_seed,
         )
 

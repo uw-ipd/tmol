@@ -441,16 +441,14 @@ def test_btn_close_contact_ligand_not_dropped_as_covalent(filename) -> None:
     (clashes in unminimized generated models). They used to be discarded as
     covalently linked, leaving the ligand out of the pose and ddG meaningless.
     """
-    import biotite.structure.io.pdbx as pdbx
 
     cif_path = _YANJING_BTN_DIR / filename
     if not cif_path.exists():
         pytest.skip(f"Yanjing dataset not available: {cif_path}")
 
-    cif = pdbx.CIFFile.read(str(cif_path))
-    arr = pdbx.get_structure(cif, model=1, include_bonds=True)
-    if isinstance(arr, struc.AtomArrayStack):
-        arr = arr[0]
+    from tmol.io import atom_array_from_cif
+
+    arr = atom_array_from_cif(cif_path)
 
     ligands = detect_nonstandard_residues(arr, canonical_ordering_for_biotite())
     btn = next((lig for lig in ligands if lig.res_name == "B;N"), None)

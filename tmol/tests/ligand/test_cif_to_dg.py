@@ -109,16 +109,16 @@ _PREPARABLE = ("vww", "sah")
 
 def _load_ligand_array(stem: str, variant: str, *, include_bonds: bool = True):
     """Load a fixture ligand CIF into a single biotite ``AtomArray``."""
-    import biotite.structure as struc
-    import biotite.structure.io.pdbx as pdbx
+    from tmol.io import atom_array_from_cif
 
-    cif = pdbx.CIFFile.read(str(FIXTURE_DIR / f"{stem}.{variant}.cif"))
-    arr = pdbx.get_structure(
-        cif, model=1, include_bonds=include_bonds, extra_fields=["charge"]
+    # a single-ligand file supplying a whole molecule under a code of its own,
+    #    which the component dictionary would answer for with an unrelated one
+    return atom_array_from_cif(
+        FIXTURE_DIR / f"{stem}.{variant}.cif",
+        use_ccd=False,
+        include_bonds=include_bonds,
+        extra_fields=["charge"],
     )
-    if isinstance(arr, struc.AtomArrayStack):
-        arr = arr[0]
-    return arr
 
 
 def _canonical(smiles: str) -> str | None:

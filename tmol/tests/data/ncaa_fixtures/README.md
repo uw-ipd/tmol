@@ -11,7 +11,7 @@ single chain of model 1 with solvent and non-polymer heteroatoms removed.
 | `capped_peptide_ace_nh2.cif` | built | 3 | `ACE`, `NH2` (terminal caps) |
 | `nmethyl_peptide_6mvz.cif` | PDB 6MVZ chain A | 4 | `MLE` (N-methylleucine) |
 | `gamma_peptide_1gac.cif` | PDB 1GAC chain A | 5 | `FGA` (gamma-D-glutamate) |
-| `beta_peptide_3c3g.cif` | PDB 3C3G chain A | 31 | eight beta backbones |
+| `beta_peptide_3c3g.cif` | PDB 3C3G chain A | 31 | eight beta backbones (+ declared chemistry) |
 | `na_dna_5mc_1d17.cif` | PDB 1D17 chain A | 6 | `5CM` (5-methylcytosine) |
 | `na_rna_psu_1bzt.cif` | PDB 1BZT chain A | 17 | `PSU` (pseudouridine) |
 | `na_rna_2ome_310d.cif` | PDB 310D chain A | 6 | `OMC`, `OMG` (2'-O-methyl) |
@@ -23,7 +23,11 @@ ring back onto the backbone nitrogen, so the two together cover both sidechain
 topologies the alpha-amino-acid profile has to handle.
 
 Read these with `include_bonds=True`: the polymer path derives its chemistry
-from the bond table, not from geometry perception.
+from the bond table, not from geometry perception. Read them with
+`extra_fields=["label_seq_id"]` too, which is what says whether a residue
+belongs to a polymer entity; the trimming dropped the `_chem_comp` block from
+every file but `beta_peptide_3c3g.cif`, so that is the only one whose declared
+component types and chemistry survive.
 
 ## Capped peptide
 
@@ -64,6 +68,23 @@ psi and omega across a bond that does not exist.
 Trifluoroacetate, methanol, glycerol and acetate were dropped along with the
 solvent: they are unbonded in these entries, so they would arrive as free
 molecules on the ligand path and have nothing to do with the backbone.
+
+Alone among these files it keeps the `chem_comp`, `chem_comp_atom` and
+`chem_comp_bond` categories of the deposited entry, restricted to the 18
+components the trimmed chain contains. They were added back after the trimming;
+the atom records are the deposited ones, unchanged.
+
+They are there because three of its residues are resolved short, in the two
+ways that happen. `B3K` and `B3Q` have one copy each and it stops at `CG`,
+so the whole structure never shows `CD` onward. `HMR` has two copies, and the
+first stops before `CZ` while the second is complete.
+
+A residue type built from resolved atoms alone would be a different, shorter
+molecule: the pipeline protonates a truncation rather than leaving it open, so
+beta-lysine would come out ending in a methyl. `chem_comp_atom` declares the
+whole component whatever the density showed, which settles both cases -- it
+says which copy of `HMR` is the complete one, and it is the only account of
+what `B3K` and `B3Q` are, since no copy of either shows it.
 
 ## Nucleic acids
 

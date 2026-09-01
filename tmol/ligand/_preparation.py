@@ -24,6 +24,7 @@ from tmol.ligand._detect import (
     _METAL_SYMBOLS,
     detect_nonstandard_residues,
     is_polymer_linking_component_type,
+    with_resolved_coordinates,
     nonstandard_residue_info_from_smiles_via_mol2,
 )
 from tmol.ligand._registry import (
@@ -271,6 +272,7 @@ def prepare_polymer_residue(
     profile=None,
     sample_proton_chi: bool = True,
     connection_atoms=None,
+    use_ccd: bool = True,
     seed: int | None = None,
 ) -> LigandPreparation:
     """Prepare one polymer residue: cap it, run the ligand pipeline, restore the
@@ -353,7 +355,31 @@ def prepare_polymer_residue(
     #    carry; put it back before capping, once the names are settled
     atom_array = complete_backbone_from_reference(atom_array, profile, param_db)
 
+    # an atom the structure did not resolve arrives at NaN; the molecule has to
+    #    be readable before it can be typed
+    resolved = with_resolved_coordinates(
+        atom_array, str(atom_array.res_name[0]), use_ccd
+    )
+    if resolved is None:
+        unresolved = sorted(
+            str(n)
+            for n, missing in zip(
+                atom_array.atom_name, np.isnan(atom_array.coord).any(axis=-1)
+            )
+            if missing
+        )
+        raise LigandPreparationError(
+            f"{atom_array.res_name[0]}: {', '.join(unresolved)} are declared "
+            "but unresolved, and no component definition can place them. "
+            "Preparing the residue without them would define a different "
+            "molecule, and placing them arbitrarily would assert a "
+            "stereochemistry nothing observed. Supply a structure that "
+            "resolves them, or prebuilt params via params_files"
+        )
+    atom_array = resolved
+
     capped, cap_names = cap_residue(atom_array, profile)
+    # the capped molecule is built here, so its completeness is not in doubt
     detected = detect_nonstandard_residues(capped, canonical_ordering)
     if not detected:
         raise LigandPreparationError(
@@ -668,6 +694,9 @@ def _ligand_unsupported_reason(
     is_polymer: bool = False,
 ) -> str | None:
     """Why this residue cannot be prepared, or None if it can."""
+    if lig.chemistry_problem:
+        return lig.chemistry_problem
+
     metals_present = sorted(
         {
             e.strip().capitalize()
@@ -716,6 +745,7 @@ def prepare_ligands(  # noqa: C901
     strict_ligands: bool = True,
     return_fragment_definitions: bool = False,
     chem_comp_types: dict[str, str] | None = None,
+    use_ccd: bool = True,
     seed: int | None = None,
 ) -> tuple:
     """Detect, prepare, and register all non-standard residues.
@@ -754,6 +784,11 @@ def prepare_ligands(  # noqa: C901
             polymer-linking type routes the residue to
             :func:`prepare_polymer_residue` instead of the free-molecule
             ligand path.
+        use_ccd: Whether a residue the input declares no chemistry for may be
+            completed from the component dictionary by its code. Pass False for
+            a source that supplies whole molecules under codes of its own, such
+            as a mol2 or a ligand file naming its residue LG1; the dictionary
+            defines those codes as unrelated molecules.
         seed: Fixed RNG seed for the 3D conformer each residue is built from.
             ``None`` is random, which makes the prepared residue types differ
             between runs.
@@ -882,7 +917,9 @@ def prepare_ligands(  # noqa: C901
             canonical_ordering = rebuild_canonical_ordering(param_db)
 
     ligands = detect_nonstandard_residues(
-        atom_array, canonical_ordering, chem_comp_types=chem_comp_types
+        atom_array,
+        canonical_ordering,
+        chem_comp_types=chem_comp_types,
     )
 
     if not ligands:
@@ -921,6 +958,7 @@ def prepare_ligands(  # noqa: C901
                     ph=ph,
                     sample_proton_chi=sample_proton_chi,
                     connection_atoms=lig.connection_atom_names,
+                    use_ccd=use_ccd,
                     seed=seed,
                 )
             else:
@@ -1133,9 +1171,14 @@ def prepare_ligand_from_smiles(
 
 
 def unused_ligand_name(taken) -> str:
-    """First "LGn" name not already present in ``taken``."""
+    """First "L_n" name not already present in ``taken``.
+
+    The underscore keeps the name out of the component dictionary, which uses
+    only letters and digits: a generated code that collided with a real entry
+    would invite completing the molecule from an unrelated one.
+    """
     for i in itertools.count(1):
-        name = f"LG{i}"
+        name = f"L_{i}"
         if name not in taken:
             return name
 
@@ -1150,7 +1193,7 @@ def prepare_ligands_from_smiles(
     sample_proton_chi: bool = True,
     seed: int | None = None,
 ) -> tuple[ParameterDatabase, dict]:
-    """Prepare one residue type per SMILES, naming them LG1, LG2, ...
+    """Prepare one residue type per SMILES, naming them L_1, L_2, ...
 
     Returns the extended database and a {smiles: residue name} mapping.
     """

@@ -17,10 +17,9 @@ that selects the symmetrized glycine tables.
 import numpy
 import pytest
 
-import biotite.structure.io.pdbx as pdbx
 
 from tmol.database import ParameterDatabase
-from tmol.io import pose_stack_from_biotite
+from tmol.io import atom_array_from_cif, pose_stack_from_cif
 from tmol.score import beta2016_score_function
 from tmol.tests.data import data_path
 
@@ -29,12 +28,10 @@ MIRROR_PAIR = "6dmz_mod"
 
 
 def _pose(stem, param_db, torch_device):
-    cif = pdbx.CIFFile.read(str(FIXTURE_DIR / f"{stem}.cif"))
-    atom_array = pdbx.get_structure(cif, model=1, include_bonds=True)
     # hydrogen placement must not be optimized: optH would break the mirror
     # symmetry it is being used to measure
-    return pose_stack_from_biotite(
-        atom_array, torch_device, param_db=param_db, no_optH=True
+    return pose_stack_from_cif(
+        FIXTURE_DIR / f"{stem}.cif", torch_device, param_db=param_db, no_optH=True
     )
 
 
@@ -54,12 +51,8 @@ def _scores_by_term(pose_stack, sfxn):
 
 def test_mirror_image_coordinates_are_exact_negations() -> None:
     """The fixtures are a mirror pair, so the comparison means what it says."""
-    left = pdbx.get_structure(
-        pdbx.CIFFile.read(str(FIXTURE_DIR / f"{MIRROR_PAIR}_l.cif")), model=1
-    )
-    right = pdbx.get_structure(
-        pdbx.CIFFile.read(str(FIXTURE_DIR / f"{MIRROR_PAIR}_d.cif")), model=1
-    )
+    left = atom_array_from_cif(FIXTURE_DIR / f"{MIRROR_PAIR}_l.cif")
+    right = atom_array_from_cif(FIXTURE_DIR / f"{MIRROR_PAIR}_d.cif")
     assert left.array_length() == right.array_length()
     numpy.testing.assert_allclose(left.coord, -right.coord, atol=1e-4)
     assert list(left.atom_name) == list(right.atom_name)

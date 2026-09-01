@@ -64,6 +64,11 @@ from ._pose_stack_from_atomworks import (  # noqa: F401
     _paramdb_for_atomworks,
 )
 from tmol.chemical import get_element_from_atom_name  # noqa: F401
+from tmol.io._cif import (  # noqa: F401
+    atom_array_from_cif,
+    component_chemistry_from_cif,
+    pose_stack_from_cif,
+)
 from ._pose_stack_from_biotite import (  # noqa: F401
     build_context_from_biotite,
     pose_stack_from_biotite,
@@ -122,6 +127,9 @@ __all__ = [
     "packed_block_types_for_rosettafold2",
     "pose_stack_from_atomworks",
     "pose_stack_from_biotite",
+    "pose_stack_from_cif",
+    "atom_array_from_cif",
+    "component_chemistry_from_cif",
     "pose_stack_from_openfold",
     "pose_stack_from_pdb",
     "pose_stack_from_rosettafold2",

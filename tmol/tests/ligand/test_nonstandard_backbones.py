@@ -24,6 +24,8 @@ class a residue lands in, and that the class decides the typing.
 
 from __future__ import annotations
 
+import logging
+
 import numpy
 import pytest
 
@@ -379,12 +381,14 @@ def test_a_reserved_name_used_for_another_atom_is_refused() -> None:
 
 def _hyp_structure(renames: dict):
     """The collagen fixture, with hydroxyproline's atoms optionally renamed."""
-    import biotite.structure.io.pdbx as pdbx
 
     from tmol.tests.data import data_path
 
-    cif = pdbx.CIFFile.read(str(data_path("ncaa_fixtures") / "collagen_hyp_1bkv.cif"))
-    atom_array = pdbx.get_structure(cif, model=1, include_bonds=True)
+    from tmol.io import atom_array_from_cif
+
+    atom_array = atom_array_from_cif(
+        data_path("ncaa_fixtures") / "collagen_hyp_1bkv.cif"
+    )
     for i, name in enumerate(atom_array.atom_name):
         if str(atom_array.res_name[i]) == "HYP" and str(name) in renames:
             atom_array.atom_name[i] = renames[str(name)]
@@ -648,15 +652,125 @@ _PIPELINE_FIXTURES: dict[str, dict[str, int]] = {
 
 
 def _structure(stem: str):
-    """A fixture with its bond table, which the polymer path reads chemistry from."""
-    import biotite.structure.io.pdbx as pdbx
-
+    """A fixture as tmol reads it: bonded, and complete where the density was not."""
+    from tmol.io import atom_array_from_cif
     from tmol.tests.data import data_path
 
-    cif = pdbx.CIFFile.read(str(data_path("ncaa_fixtures") / f"{stem}.cif"))
-    return pdbx.get_structure(
-        cif, model=1, include_bonds=True, extra_fields=["label_seq_id"]
+    return atom_array_from_cif(data_path("ncaa_fixtures") / f"{stem}.cif")
+
+
+# --------------------------------------------------------------------------- #
+# where a residue's complete chemistry comes from
+# --------------------------------------------------------------------------- #
+# 3C3G resolves no sidechain for B3K, so a residue type built from its atoms
+# alone would be a different, shorter molecule -- the pipeline protonates the
+# truncation rather than leaving it open. What the residue actually is has to
+# come from somewhere else, and there are three sources in decreasing
+# authority: the file's own chem_comp_atom/chem_comp_bond, the component
+# dictionary, and nothing at all.
+_TRUNCATED = ("B3K", 25, 4)
+
+
+def _prepared_beta_peptide(structure):
+    """``{name: (n_atoms, n_chi)}`` for the residue types 3C3G adds."""
+    from tmol.ligand import prepare_ligands
+    from tmol.chemical import ResidueTypeSet
+
+    param_db = ParameterDatabase.get_default()
+    known = {r.name for r in param_db.chemical.residues}
+    prepared, _ordering = prepare_ligands(structure, param_db=param_db, seed=1234)
+    restypes = ResidueTypeSet.from_database(prepared.chemical)
+    return {
+        rt.name: (
+            len(rt.atoms),
+            len([t for t in rt.torsion_to_uaids if t.startswith("chi")]),
+        )
+        for rt in restypes.residue_types
+        if rt.name not in known and ":" not in rt.name
+    }
+
+
+def test_declared_chemistry_completes_an_unresolved_sidechain() -> None:
+    """The file declares the whole component, whatever the density resolved."""
+    from tmol.io import component_chemistry_from_cif
+    from tmol.tests.data import data_path
+
+    code, n_atoms, n_chi = _TRUNCATED
+    path = data_path("ncaa_fixtures") / "beta_peptide_3c3g.cif"
+    declared = component_chemistry_from_cif(path)
+    assert code in declared, "the fixture must carry its chem_comp_atom block"
+
+    assert _prepared_beta_peptide(_structure("beta_peptide_3c3g"))[code] == (
+        n_atoms,
+        n_chi,
     )
+
+
+def test_the_component_dictionary_completes_what_the_file_does_not_declare(
+    tmp_path,
+) -> None:
+    """A file with no chem_comp_atom reaches the same residue via the dictionary."""
+    import biotite.structure.io.pdbx as pdbx
+
+    from tmol.io import atom_array_from_cif
+    from tmol.tests.data import data_path
+
+    code, n_atoms, n_chi = _TRUNCATED
+    cif = pdbx.CIFFile.read(str(data_path("ncaa_fixtures") / "beta_peptide_3c3g.cif"))
+    block = cif[next(iter(cif.keys()))]
+    for category in ("chem_comp", "chem_comp_atom", "chem_comp_bond"):
+        del block[category]
+    stripped = tmp_path / "undeclared.cif"
+    cif.write(str(stripped))
+
+    assert _prepared_beta_peptide(atom_array_from_cif(stripped))[code] == (
+        n_atoms,
+        n_chi,
+    )
+
+
+def test_a_dictionary_entry_for_a_different_molecule_is_not_used(caplog) -> None:
+    """A code invented for a residue usually names something else entirely.
+
+    The dictionary defines tens of thousands of components, so completing by
+    code alone would take atoms from an unrelated molecule -- X3K is a real
+    entry, and not this residue. Refusing it as a description leaves nothing to
+    say whether what was resolved is the whole residue, so the residue is taken
+    as it stands and the doubt is reported.
+    """
+    from tmol.io._cif import with_unresolved_atoms
+
+    structure = _structure("beta_peptide_3c3g")
+    structure.res_name[structure.res_name == _TRUNCATED[0]] = "X3K"
+
+    with caplog.at_level(logging.WARNING, logger="tmol.io._cif"):
+        taken_as_is = with_unresolved_atoms(structure, {}, use_ccd=True)
+
+    assert taken_as_is.array_length() == structure.array_length()
+    assert any("does not account for" in r.message for r in caplog.records)
+
+
+def test_a_residue_nothing_describes_is_assumed_complete(caplog) -> None:
+    """With no declaration and no dictionary entry, there is nothing to check.
+
+    The residue is taken as it was resolved, which is right whenever it is
+    complete and wrong silently otherwise, so it says so.
+    """
+    from tmol.io._cif import with_unresolved_atoms
+    from tmol.ligand import prepare_ligands
+
+    structure = _structure("nmethyl_peptide_6mvz")
+    # a code the component dictionary does not define
+    structure.res_name[structure.res_name == "MLE"] = "QXJ"
+
+    with caplog.at_level(logging.WARNING, logger="tmol.io._cif"):
+        structure = with_unresolved_atoms(structure, {}, use_ccd=True)
+    assert any("taken to be complete as resolved" in r.message for r in caplog.records)
+
+    param_db = ParameterDatabase.get_default()
+    known = {r.name for r in param_db.chemical.residues}
+    prepared, _ordering = prepare_ligands(structure, param_db=param_db, seed=1234)
+    assert "QXJ" in {r.name for r in prepared.chemical.residues} - known
 
 
 @pytest.mark.parametrize("stem", sorted(_PIPELINE_FIXTURES))
@@ -701,7 +815,37 @@ def test_a_nonstandard_backbone_is_found_and_prepared_from_a_structure(
             assert frozenset((first, second)) in bonded, f"{code}: {first}-{second}"
 
 
-@pytest.mark.parametrize("stem", sorted(_PIPELINE_FIXTURES))
+# 3C3G leaves B3K, B3Q and HMR with unresolved sidechains, and their residue
+# types are completed against the chemistry the file declares. Pose
+# construction rebuilds a missing sidechain with DunbrackChiSampler, which
+# defines no rotamers for these: their sidechains are lysine's, glutamine's and
+# arginine's, but hang off a beta backbone, so what a canonical calls chi1 is a
+# backbone torsion here and no canonical library's chi line up. The sampler
+# produces nothing and the atoms stay NaN. Lifting this needs a rotamer
+# reference for a nonstandard backbone.
+_NO_ROTAMERS_FOR_A_BETA_SIDECHAIN = "beta_peptide_3c3g"
+
+
+@pytest.mark.parametrize(
+    "stem",
+    [
+        pytest.param(
+            stem,
+            marks=(
+                [
+                    pytest.mark.xfail(
+                        strict=True,
+                        reason="no rotamer library reaches a beta backbone's "
+                        "sidechain, so unresolved atoms stay NaN",
+                    )
+                ]
+                if stem == _NO_ROTAMERS_FOR_A_BETA_SIDECHAIN
+                else []
+            ),
+        )
+        for stem in sorted(_PIPELINE_FIXTURES)
+    ],
+)
 def test_a_nonstandard_backbone_scores(stem: str, torch_device) -> None:
     """Smoke test: preparation has to survive into a pose and a number."""
     from tmol.io import pose_stack_from_biotite

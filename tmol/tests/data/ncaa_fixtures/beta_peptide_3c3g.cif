@@ -616,3 +616,791 @@ covale18 covale both ? A LYS 27 C ? ? ? 1_555 A B3K 28 N ? ? A LYS 27 A B3K 28 1
 covale19 covale both ? A B3K 28 C ? ? ? 1_555 A LEU 29 N ? ? A B3K 28 A LEU 29 1_555 ? ? ? ? ? ? ? 1.333 ? ?
 covale20 covale both ? A LEU 30 C ? ? ? 1_555 A BAL 31 N ? ? A LEU 30 A BAL 31 1_555 ? ? ? ? ? ? ? 1.345 ? ?
 #
+loop_
+_chem_comp.id 
+_chem_comp.type 
+_chem_comp.mon_nstd_flag 
+_chem_comp.name 
+_chem_comp.pdbx_synonyms 
+_chem_comp.formula 
+_chem_comp.formula_weight 
+ALA 'L-peptide linking' y ALANINE                                 ?                           'C3 H7 N O2'     89.093
+ASN 'L-peptide linking' y ASPARAGINE                              ?                           'C4 H8 N2 O3'    132.118
+B3D 'L-peptide linking' n '3-AMINOPENTANEDIOIC ACID'              BETA-HOMOASPARTATE          'C5 H9 N O4'     147.129
+B3E 'L-peptide linking' n '(3S)-3-AMINOHEXANEDIOIC ACID'          ?                           'C6 H11 N O4'    161.156
+B3K 'L-peptide linking' n '(3S)-3,7-DIAMINOHEPTANOIC ACID'        ?                           'C7 H16 N2 O2'   160.214
+B3L 'L-peptide linking' . '(3S)-3-amino-5-methylhexanoic acid'    (S)-beta-3-homoleucine      'C7 H15 N O2'    145.200
+B3Q 'L-peptide linking' . '(3S)-3,6-diamino-6-oxohexanoic acid'   (S)-beta-3-homoglutamine    'C6 H12 N2 O3'   160.171
+BAL peptide-like        . BETA-ALANINE                            ?                           'C3 H7 N O2'     89.093
+BIL 'L-peptide linking' . '(3R,4S)-3-amino-4-methylhexanoic acid' (R,S)-beta-3-homoisoleucine 'C7 H15 N O2'    145.200
+GLU 'L-peptide linking' y 'GLUTAMIC ACID'                         ?                           'C5 H9 N O4'     147.129
+HIS 'L-peptide linking' y HISTIDINE                               ?                           'C6 H10 N3 O2 1' 156.162
+HMR 'L-peptide linking' n BETA-HOMOARGININE                       ?                           'C7 H16 N4 O2'   188.228
+ILE 'L-peptide linking' y ISOLEUCINE                              ?                           'C6 H13 N O2'    131.173
+LEU 'L-peptide linking' y LEUCINE                                 ?                           'C6 H13 N O2'    131.173
+LYS 'L-peptide linking' y LYSINE                                  ?                           'C6 H15 N2 O2 1' 147.195
+MET 'L-peptide linking' y METHIONINE                              ?                           'C5 H11 N O2 S'  149.211
+SER 'L-peptide linking' y SERINE                                  ?                           'C3 H7 N O3'     105.093
+TYR 'L-peptide linking' y TYROSINE                                ?                           'C9 H11 N O3'    181.189
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_ordinal 
+ALA N    N N N 1
+ALA CA   C N S 2
+ALA C    C N N 3
+ALA O    O N N 4
+ALA CB   C N N 5
+ALA OXT  O N N 6
+ALA H    H N N 7
+ALA H2   H N N 8
+ALA HA   H N N 9
+ALA HB1  H N N 10
+ALA HB2  H N N 11
+ALA HB3  H N N 12
+ALA HXT  H N N 13
+ASN N    N N N 41
+ASN CA   C N S 42
+ASN C    C N N 43
+ASN O    O N N 44
+ASN CB   C N N 45
+ASN CG   C N N 46
+ASN OD1  O N N 47
+ASN ND2  N N N 48
+ASN OXT  O N N 49
+ASN H    H N N 50
+ASN H2   H N N 51
+ASN HA   H N N 52
+ASN HB2  H N N 53
+ASN HB3  H N N 54
+ASN HD21 H N N 55
+ASN HD22 H N N 56
+ASN HXT  H N N 57
+B3D OE1  O N N 58
+B3D CD   C N N 59
+B3D OE2  O N N 60
+B3D CG   C N N 61
+B3D CA   C N N 62
+B3D N    N N N 63
+B3D CB   C N N 64
+B3D C    C N N 65
+B3D O    O N N 66
+B3D OXT  O N N 67
+B3D HE1  H N N 68
+B3D HG3  H N N 69
+B3D HG2  H N N 70
+B3D HA   H N N 71
+B3D H    H N N 72
+B3D H2   H N N 73
+B3D HB1  H N N 74
+B3D HB2  H N N 75
+B3D HXT  H N N 76
+B3E N    N N N 77
+B3E CA   C N S 78
+B3E CG   C N N 79
+B3E CD   C N N 80
+B3E CE   C N N 81
+B3E OF2  O N N 82
+B3E OF1  O N N 83
+B3E CB   C N N 84
+B3E C    C N N 85
+B3E O    O N N 86
+B3E OXT  O N N 87
+B3E H    H N N 88
+B3E H2   H N N 89
+B3E HA   H N N 90
+B3E HG2  H N N 91
+B3E HG3  H N N 92
+B3E HD2  H N N 93
+B3E HD3  H N N 94
+B3E HOF1 H N N 95
+B3E HB1  H N N 96
+B3E HB2  H N N 97
+B3E HXT  H N N 98
+B3K N    N N N 99
+B3K CA   C N S 100
+B3K CG   C N N 101
+B3K CD   C N N 102
+B3K CE   C N N 103
+B3K CF   C N N 104
+B3K NZ   N N N 105
+B3K CB   C N N 106
+B3K C    C N N 107
+B3K O    O N N 108
+B3K OXT  O N N 109
+B3K H    H N N 110
+B3K H2   H N N 111
+B3K HA   H N N 112
+B3K HG2  H N N 113
+B3K HG3  H N N 114
+B3K HD2  H N N 115
+B3K HD3  H N N 116
+B3K HE2  H N N 117
+B3K HE3  H N N 118
+B3K HF1  H N N 119
+B3K HF2  H N N 120
+B3K HNZ1 H N N 121
+B3K HNZ2 H N N 122
+B3K HB1  H N N 123
+B3K HB2  H N N 124
+B3K HXT  H N N 125
+B3L O    O N N 126
+B3L C    C N N 127
+B3L CB   C N N 128
+B3L CA   C N S 129
+B3L N    N N N 130
+B3L CG   C N N 131
+B3L CD   C N N 132
+B3L CE2  C N N 133
+B3L CE1  C N N 134
+B3L HB1  H N N 135
+B3L HB2  H N N 136
+B3L HA   H N N 137
+B3L H    H N N 138
+B3L HG   H N N 139
+B3L HGA  H N N 140
+B3L HD   H N N 141
+B3L H3E2 H N N 142
+B3L H2E2 H N N 143
+B3L H1E2 H N N 144
+B3L H3E1 H N N 145
+B3L H2E1 H N N 146
+B3L H1E1 H N N 147
+B3L OXT  O N N 148
+B3L H2   H N N 149
+B3L HXT  H N N 150
+B3Q N    N N N 151
+B3Q CA   C N S 152
+B3Q CG   C N N 153
+B3Q CB   C N N 154
+B3Q C    C N N 155
+B3Q O    O N N 156
+B3Q H    H N N 157
+B3Q HA   H N N 158
+B3Q HG   H N N 159
+B3Q HGA  H N N 160
+B3Q HB1  H N N 161
+B3Q HB2  H N N 162
+B3Q H2   H N N 163
+B3Q CD   C N N 164
+B3Q OXT  O N N 165
+B3Q CE   C N N 166
+B3Q H8   H N N 167
+B3Q H9   H N N 168
+B3Q HXT  H N N 169
+B3Q NF2  N N N 170
+B3Q OF1  O N N 171
+B3Q H11  H N N 172
+B3Q H12  H N N 173
+BAL N    N N N 174
+BAL CB   C N N 175
+BAL CA   C N N 176
+BAL C    C N N 177
+BAL O    O N N 178
+BAL OXT  O N N 179
+BAL H    H N N 180
+BAL H2   H N N 181
+BAL HB3  H N N 182
+BAL HB2  H N N 183
+BAL HA1  H N N 184
+BAL HA2  H N N 185
+BAL HXT  H N N 186
+BIL C    C N N 187
+BIL O    O N N 188
+BIL CA   C N N 189
+BIL CB   C N R 190
+BIL N    N N N 191
+BIL CG   C N S 192
+BIL CD2  C N N 193
+BIL CD1  C N N 194
+BIL CE1  C N N 195
+BIL HA   H N N 196
+BIL HAA  H N N 197
+BIL HB   H N N 198
+BIL H    H N N 199
+BIL HG   H N N 200
+BIL H3D2 H N N 201
+BIL H2D2 H N N 202
+BIL H1D2 H N N 203
+BIL H1D1 H N N 204
+BIL H2D1 H N N 205
+BIL H3E1 H N N 206
+BIL H2E1 H N N 207
+BIL H1E1 H N N 208
+BIL OXT  O N N 209
+BIL H2   H N N 210
+BIL HXT  H N N 211
+GLU N    N N N 212
+GLU CA   C N S 213
+GLU C    C N N 214
+GLU O    O N N 215
+GLU CB   C N N 216
+GLU CG   C N N 217
+GLU CD   C N N 218
+GLU OE1  O N N 219
+GLU OE2  O N N 220
+GLU OXT  O N N 221
+GLU H    H N N 222
+GLU H2   H N N 223
+GLU HA   H N N 224
+GLU HB2  H N N 225
+GLU HB3  H N N 226
+GLU HG2  H N N 227
+GLU HG3  H N N 228
+GLU HE2  H N N 229
+GLU HXT  H N N 230
+HIS N    N N N 245
+HIS CA   C N S 246
+HIS C    C N N 247
+HIS O    O N N 248
+HIS CB   C N N 249
+HIS CG   C Y N 250
+HIS ND1  N Y N 251
+HIS CD2  C Y N 252
+HIS CE1  C Y N 253
+HIS NE2  N Y N 254
+HIS OXT  O N N 255
+HIS H    H N N 256
+HIS H2   H N N 257
+HIS HA   H N N 258
+HIS HB2  H N N 259
+HIS HB3  H N N 260
+HIS HD1  H N N 261
+HIS HD2  H N N 262
+HIS HE1  H N N 263
+HIS HE2  H N N 264
+HIS HXT  H N N 265
+HMR N    N N N 266
+HMR CB   C N S 267
+HMR CC   C N N 268
+HMR CG   C N N 269
+HMR CD   C N N 270
+HMR NE   N N N 271
+HMR CZ   C N N 272
+HMR NH1  N N N 273
+HMR NH2  N N N 274
+HMR C    C N N 275
+HMR O    O N N 276
+HMR CA   C N N 277
+HMR OXT  O N N 278
+HMR H    H N N 279
+HMR H2   H N N 280
+HMR HB   H N N 281
+HMR HB2  H N N 282
+HMR HB3  H N N 283
+HMR HG2  H N N 284
+HMR HG3  H N N 285
+HMR HD2  H N N 286
+HMR HD3  H N N 287
+HMR HE   H N N 288
+HMR HH1  H N N 289
+HMR HH21 H N N 290
+HMR HH22 H N N 291
+HMR HC1  H N N 292
+HMR HC2  H N N 293
+HMR HXT  H N N 294
+ILE N    N N N 298
+ILE CA   C N S 299
+ILE C    C N N 300
+ILE O    O N N 301
+ILE CB   C N S 302
+ILE CG1  C N N 303
+ILE CG2  C N N 304
+ILE CD1  C N N 305
+ILE OXT  O N N 306
+ILE H    H N N 307
+ILE H2   H N N 308
+ILE HA   H N N 309
+ILE HB   H N N 310
+ILE HG12 H N N 311
+ILE HG13 H N N 312
+ILE HG21 H N N 313
+ILE HG22 H N N 314
+ILE HG23 H N N 315
+ILE HD11 H N N 316
+ILE HD12 H N N 317
+ILE HD13 H N N 318
+ILE HXT  H N N 319
+LEU N    N N N 320
+LEU CA   C N S 321
+LEU C    C N N 322
+LEU O    O N N 323
+LEU CB   C N N 324
+LEU CG   C N N 325
+LEU CD1  C N N 326
+LEU CD2  C N N 327
+LEU OXT  O N N 328
+LEU H    H N N 329
+LEU H2   H N N 330
+LEU HA   H N N 331
+LEU HB2  H N N 332
+LEU HB3  H N N 333
+LEU HG   H N N 334
+LEU HD11 H N N 335
+LEU HD12 H N N 336
+LEU HD13 H N N 337
+LEU HD21 H N N 338
+LEU HD22 H N N 339
+LEU HD23 H N N 340
+LEU HXT  H N N 341
+LYS N    N N N 342
+LYS CA   C N S 343
+LYS C    C N N 344
+LYS O    O N N 345
+LYS CB   C N N 346
+LYS CG   C N N 347
+LYS CD   C N N 348
+LYS CE   C N N 349
+LYS NZ   N N N 350
+LYS OXT  O N N 351
+LYS H    H N N 352
+LYS H2   H N N 353
+LYS HA   H N N 354
+LYS HB2  H N N 355
+LYS HB3  H N N 356
+LYS HG2  H N N 357
+LYS HG3  H N N 358
+LYS HD2  H N N 359
+LYS HD3  H N N 360
+LYS HE2  H N N 361
+LYS HE3  H N N 362
+LYS HZ1  H N N 363
+LYS HZ2  H N N 364
+LYS HZ3  H N N 365
+LYS HXT  H N N 366
+MET N    N N N 367
+MET CA   C N S 368
+MET C    C N N 369
+MET O    O N N 370
+MET CB   C N N 371
+MET CG   C N N 372
+MET SD   S N N 373
+MET CE   C N N 374
+MET OXT  O N N 375
+MET H    H N N 376
+MET H2   H N N 377
+MET HA   H N N 378
+MET HB2  H N N 379
+MET HB3  H N N 380
+MET HG2  H N N 381
+MET HG3  H N N 382
+MET HE1  H N N 383
+MET HE2  H N N 384
+MET HE3  H N N 385
+MET HXT  H N N 386
+SER N    N N N 387
+SER CA   C N S 388
+SER C    C N N 389
+SER O    O N N 390
+SER CB   C N N 391
+SER OG   O N N 392
+SER OXT  O N N 393
+SER H    H N N 394
+SER H2   H N N 395
+SER HA   H N N 396
+SER HB2  H N N 397
+SER HB3  H N N 398
+SER HG   H N N 399
+SER HXT  H N N 400
+TYR N    N N N 401
+TYR CA   C N S 402
+TYR C    C N N 403
+TYR O    O N N 404
+TYR CB   C N N 405
+TYR CG   C Y N 406
+TYR CD1  C Y N 407
+TYR CD2  C Y N 408
+TYR CE1  C Y N 409
+TYR CE2  C Y N 410
+TYR CZ   C Y N 411
+TYR OH   O N N 412
+TYR OXT  O N N 413
+TYR H    H N N 414
+TYR H2   H N N 415
+TYR HA   H N N 416
+TYR HB2  H N N 417
+TYR HB3  H N N 418
+TYR HD1  H N N 419
+TYR HD2  H N N 420
+TYR HE1  H N N 421
+TYR HE2  H N N 422
+TYR HH   H N N 423
+TYR HXT  H N N 424
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal 
+ALA N    CA   sing N N 1
+ALA N    H    sing N N 2
+ALA N    H2   sing N N 3
+ALA CA   C    sing N N 4
+ALA CA   CB   sing N N 5
+ALA CA   HA   sing N N 6
+ALA C    O    doub N N 7
+ALA C    OXT  sing N N 8
+ALA CB   HB1  sing N N 9
+ALA CB   HB2  sing N N 10
+ALA CB   HB3  sing N N 11
+ALA OXT  HXT  sing N N 12
+ASN N    CA   sing N N 39
+ASN N    H    sing N N 40
+ASN N    H2   sing N N 41
+ASN CA   C    sing N N 42
+ASN CA   CB   sing N N 43
+ASN CA   HA   sing N N 44
+ASN C    O    doub N N 45
+ASN C    OXT  sing N N 46
+ASN CB   CG   sing N N 47
+ASN CB   HB2  sing N N 48
+ASN CB   HB3  sing N N 49
+ASN CG   OD1  doub N N 50
+ASN CG   ND2  sing N N 51
+ASN ND2  HD21 sing N N 52
+ASN ND2  HD22 sing N N 53
+ASN OXT  HXT  sing N N 54
+B3D OE1  CD   sing N N 55
+B3D OE1  HE1  sing N N 56
+B3D CD   OE2  doub N N 57
+B3D CD   CG   sing N N 58
+B3D CG   CA   sing N N 59
+B3D CG   HG3  sing N N 60
+B3D CG   HG2  sing N N 61
+B3D CA   N    sing N N 62
+B3D CA   CB   sing N N 63
+B3D CA   HA   sing N N 64
+B3D N    H    sing N N 65
+B3D N    H2   sing N N 66
+B3D CB   C    sing N N 67
+B3D CB   HB1  sing N N 68
+B3D CB   HB2  sing N N 69
+B3D C    OXT  sing N N 70
+B3D C    O    doub N N 71
+B3D OXT  HXT  sing N N 72
+B3E N    CA   sing N N 73
+B3E N    H    sing N N 74
+B3E N    H2   sing N N 75
+B3E CA   CG   sing N N 76
+B3E CA   CB   sing N N 77
+B3E CA   HA   sing N N 78
+B3E CG   CD   sing N N 79
+B3E CG   HG2  sing N N 80
+B3E CG   HG3  sing N N 81
+B3E CD   CE   sing N N 82
+B3E CD   HD2  sing N N 83
+B3E CD   HD3  sing N N 84
+B3E CE   OF2  doub N N 85
+B3E CE   OF1  sing N N 86
+B3E OF1  HOF1 sing N N 87
+B3E CB   C    sing N N 88
+B3E CB   HB1  sing N N 89
+B3E CB   HB2  sing N N 90
+B3E C    OXT  sing N N 91
+B3E C    O    doub N N 92
+B3E OXT  HXT  sing N N 93
+B3K N    CA   sing N N 94
+B3K N    H    sing N N 95
+B3K N    H2   sing N N 96
+B3K CA   CG   sing N N 97
+B3K CA   CB   sing N N 98
+B3K CA   HA   sing N N 99
+B3K CG   CD   sing N N 100
+B3K CG   HG2  sing N N 101
+B3K CG   HG3  sing N N 102
+B3K CD   CE   sing N N 103
+B3K CD   HD2  sing N N 104
+B3K CD   HD3  sing N N 105
+B3K CE   CF   sing N N 106
+B3K CE   HE2  sing N N 107
+B3K CE   HE3  sing N N 108
+B3K CF   NZ   sing N N 109
+B3K CF   HF1  sing N N 110
+B3K CF   HF2  sing N N 111
+B3K NZ   HNZ1 sing N N 112
+B3K NZ   HNZ2 sing N N 113
+B3K CB   C    sing N N 114
+B3K CB   HB1  sing N N 115
+B3K CB   HB2  sing N N 116
+B3K C    OXT  sing N N 117
+B3K C    O    doub N N 118
+B3K OXT  HXT  sing N N 119
+B3L C    O    doub N N 120
+B3L C    OXT  sing N N 121
+B3L CB   C    sing N N 122
+B3L CA   CB   sing N N 123
+B3L CA   HA   sing N N 124
+B3L N    CA   sing N N 125
+B3L N    H2   sing N N 126
+B3L CG   CA   sing N N 127
+B3L CG   HG   sing N N 128
+B3L CD   CG   sing N N 129
+B3L CD   CE1  sing N N 130
+B3L CE2  CD   sing N N 131
+B3L CE2  H1E2 sing N N 132
+B3L CE1  H1E1 sing N N 133
+B3L CE1  H3E1 sing N N 134
+B3L HB1  CB   sing N N 135
+B3L HB2  CB   sing N N 136
+B3L H    N    sing N N 137
+B3L HGA  CG   sing N N 138
+B3L HD   CD   sing N N 139
+B3L H3E2 CE2  sing N N 140
+B3L H2E2 CE2  sing N N 141
+B3L H2E1 CE1  sing N N 142
+B3L OXT  HXT  sing N N 143
+B3Q N    H    sing N N 144
+B3Q N    H2   sing N N 145
+B3Q CA   N    sing N N 146
+B3Q CA   CG   sing N N 147
+B3Q CG   HG   sing N N 148
+B3Q CG   HGA  sing N N 149
+B3Q CG   CD   sing N N 150
+B3Q CB   CA   sing N N 151
+B3Q CB   HB1  sing N N 152
+B3Q C    CB   sing N N 153
+B3Q C    OXT  sing N N 154
+B3Q O    C    doub N N 155
+B3Q HA   CA   sing N N 156
+B3Q HB2  CB   sing N N 157
+B3Q CD   CE   sing N N 158
+B3Q CD   H8   sing N N 159
+B3Q CD   H9   sing N N 160
+B3Q OXT  HXT  sing N N 161
+B3Q CE   NF2  sing N N 162
+B3Q CE   OF1  doub N N 163
+B3Q NF2  H11  sing N N 164
+B3Q NF2  H12  sing N N 165
+BAL N    CB   sing N N 166
+BAL N    H    sing N N 167
+BAL N    H2   sing N N 168
+BAL CB   CA   sing N N 169
+BAL CB   HB3  sing N N 170
+BAL CB   HB2  sing N N 171
+BAL CA   C    sing N N 172
+BAL CA   HA1  sing N N 173
+BAL CA   HA2  sing N N 174
+BAL C    O    doub N N 175
+BAL C    OXT  sing N N 176
+BAL OXT  HXT  sing N N 177
+BIL C    O    doub N N 178
+BIL C    OXT  sing N N 179
+BIL CA   C    sing N N 180
+BIL CA   CB   sing N N 181
+BIL CA   HA   sing N N 182
+BIL CB   HB   sing N N 183
+BIL N    CB   sing N N 184
+BIL N    H2   sing N N 185
+BIL CG   CB   sing N N 186
+BIL CG   CD1  sing N N 187
+BIL CG   CD2  sing N N 188
+BIL CD2  H1D2 sing N N 189
+BIL CD2  H3D2 sing N N 190
+BIL CD1  CE1  sing N N 191
+BIL CE1  H2E1 sing N N 192
+BIL CE1  H3E1 sing N N 193
+BIL HAA  CA   sing N N 194
+BIL H    N    sing N N 195
+BIL HG   CG   sing N N 196
+BIL H2D2 CD2  sing N N 197
+BIL H1D1 CD1  sing N N 198
+BIL H2D1 CD1  sing N N 199
+BIL H1E1 CE1  sing N N 200
+BIL OXT  HXT  sing N N 201
+GLU N    CA   sing N N 202
+GLU N    H    sing N N 203
+GLU N    H2   sing N N 204
+GLU CA   C    sing N N 205
+GLU CA   CB   sing N N 206
+GLU CA   HA   sing N N 207
+GLU C    O    doub N N 208
+GLU C    OXT  sing N N 209
+GLU CB   CG   sing N N 210
+GLU CB   HB2  sing N N 211
+GLU CB   HB3  sing N N 212
+GLU CG   CD   sing N N 213
+GLU CG   HG2  sing N N 214
+GLU CG   HG3  sing N N 215
+GLU CD   OE1  doub N N 216
+GLU CD   OE2  sing N N 217
+GLU OE2  HE2  sing N N 218
+GLU OXT  HXT  sing N N 219
+HIS N    CA   sing N N 233
+HIS N    H    sing N N 234
+HIS N    H2   sing N N 235
+HIS CA   C    sing N N 236
+HIS CA   CB   sing N N 237
+HIS CA   HA   sing N N 238
+HIS C    O    doub N N 239
+HIS C    OXT  sing N N 240
+HIS CB   CG   sing N N 241
+HIS CB   HB2  sing N N 242
+HIS CB   HB3  sing N N 243
+HIS CG   ND1  sing Y N 244
+HIS CG   CD2  doub Y N 245
+HIS ND1  CE1  doub Y N 246
+HIS ND1  HD1  sing N N 247
+HIS CD2  NE2  sing Y N 248
+HIS CD2  HD2  sing N N 249
+HIS CE1  NE2  sing Y N 250
+HIS CE1  HE1  sing N N 251
+HIS NE2  HE2  sing N N 252
+HIS OXT  HXT  sing N N 253
+HMR N    CB   sing N N 254
+HMR N    H    sing N N 255
+HMR N    H2   sing N N 256
+HMR CB   CC   sing N N 257
+HMR CB   CA   sing N N 258
+HMR CB   HB   sing N N 259
+HMR CC   CG   sing N N 260
+HMR CC   HB2  sing N N 261
+HMR CC   HB3  sing N N 262
+HMR CG   CD   sing N N 263
+HMR CG   HG2  sing N N 264
+HMR CG   HG3  sing N N 265
+HMR CD   NE   sing N N 266
+HMR CD   HD2  sing N N 267
+HMR CD   HD3  sing N N 268
+HMR NE   CZ   sing N N 269
+HMR NE   HE   sing N N 270
+HMR CZ   NH1  doub N N 271
+HMR CZ   NH2  sing N N 272
+HMR NH1  HH1  sing N N 273
+HMR NH2  HH21 sing N N 274
+HMR NH2  HH22 sing N N 275
+HMR C    O    doub N N 276
+HMR C    CA   sing N N 277
+HMR C    OXT  sing N N 278
+HMR CA   HC1  sing N N 279
+HMR CA   HC2  sing N N 280
+HMR OXT  HXT  sing N N 281
+ILE N    CA   sing N N 284
+ILE N    H    sing N N 285
+ILE N    H2   sing N N 286
+ILE CA   C    sing N N 287
+ILE CA   CB   sing N N 288
+ILE CA   HA   sing N N 289
+ILE C    O    doub N N 290
+ILE C    OXT  sing N N 291
+ILE CB   CG1  sing N N 292
+ILE CB   CG2  sing N N 293
+ILE CB   HB   sing N N 294
+ILE CG1  CD1  sing N N 295
+ILE CG1  HG12 sing N N 296
+ILE CG1  HG13 sing N N 297
+ILE CG2  HG21 sing N N 298
+ILE CG2  HG22 sing N N 299
+ILE CG2  HG23 sing N N 300
+ILE CD1  HD11 sing N N 301
+ILE CD1  HD12 sing N N 302
+ILE CD1  HD13 sing N N 303
+ILE OXT  HXT  sing N N 304
+LEU N    CA   sing N N 305
+LEU N    H    sing N N 306
+LEU N    H2   sing N N 307
+LEU CA   C    sing N N 308
+LEU CA   CB   sing N N 309
+LEU CA   HA   sing N N 310
+LEU C    O    doub N N 311
+LEU C    OXT  sing N N 312
+LEU CB   CG   sing N N 313
+LEU CB   HB2  sing N N 314
+LEU CB   HB3  sing N N 315
+LEU CG   CD1  sing N N 316
+LEU CG   CD2  sing N N 317
+LEU CG   HG   sing N N 318
+LEU CD1  HD11 sing N N 319
+LEU CD1  HD12 sing N N 320
+LEU CD1  HD13 sing N N 321
+LEU CD2  HD21 sing N N 322
+LEU CD2  HD22 sing N N 323
+LEU CD2  HD23 sing N N 324
+LEU OXT  HXT  sing N N 325
+LYS N    CA   sing N N 326
+LYS N    H    sing N N 327
+LYS N    H2   sing N N 328
+LYS CA   C    sing N N 329
+LYS CA   CB   sing N N 330
+LYS CA   HA   sing N N 331
+LYS C    O    doub N N 332
+LYS C    OXT  sing N N 333
+LYS CB   CG   sing N N 334
+LYS CB   HB2  sing N N 335
+LYS CB   HB3  sing N N 336
+LYS CG   CD   sing N N 337
+LYS CG   HG2  sing N N 338
+LYS CG   HG3  sing N N 339
+LYS CD   CE   sing N N 340
+LYS CD   HD2  sing N N 341
+LYS CD   HD3  sing N N 342
+LYS CE   NZ   sing N N 343
+LYS CE   HE2  sing N N 344
+LYS CE   HE3  sing N N 345
+LYS NZ   HZ1  sing N N 346
+LYS NZ   HZ2  sing N N 347
+LYS NZ   HZ3  sing N N 348
+LYS OXT  HXT  sing N N 349
+MET N    CA   sing N N 350
+MET N    H    sing N N 351
+MET N    H2   sing N N 352
+MET CA   C    sing N N 353
+MET CA   CB   sing N N 354
+MET CA   HA   sing N N 355
+MET C    O    doub N N 356
+MET C    OXT  sing N N 357
+MET CB   CG   sing N N 358
+MET CB   HB2  sing N N 359
+MET CB   HB3  sing N N 360
+MET CG   SD   sing N N 361
+MET CG   HG2  sing N N 362
+MET CG   HG3  sing N N 363
+MET SD   CE   sing N N 364
+MET CE   HE1  sing N N 365
+MET CE   HE2  sing N N 366
+MET CE   HE3  sing N N 367
+MET OXT  HXT  sing N N 368
+SER N    CA   sing N N 369
+SER N    H    sing N N 370
+SER N    H2   sing N N 371
+SER CA   C    sing N N 372
+SER CA   CB   sing N N 373
+SER CA   HA   sing N N 374
+SER C    O    doub N N 375
+SER C    OXT  sing N N 376
+SER CB   OG   sing N N 377
+SER CB   HB2  sing N N 378
+SER CB   HB3  sing N N 379
+SER OG   HG   sing N N 380
+SER OXT  HXT  sing N N 381
+TYR N    CA   sing N N 382
+TYR N    H    sing N N 383
+TYR N    H2   sing N N 384
+TYR CA   C    sing N N 385
+TYR CA   CB   sing N N 386
+TYR CA   HA   sing N N 387
+TYR C    O    doub N N 388
+TYR C    OXT  sing N N 389
+TYR CB   CG   sing N N 390
+TYR CB   HB2  sing N N 391
+TYR CB   HB3  sing N N 392
+TYR CG   CD1  doub Y N 393
+TYR CG   CD2  sing Y N 394
+TYR CD1  CE1  sing Y N 395
+TYR CD1  HD1  sing N N 396
+TYR CD2  CE2  doub Y N 397
+TYR CD2  HD2  sing N N 398
+TYR CE1  CZ   doub Y N 399
+TYR CE1  HE1  sing N N 400
+TYR CE2  CZ   sing Y N 401
+TYR CE2  HE2  sing N N 402
+TYR CZ   OH   sing N N 403
+TYR OH   HH   sing N N 404
+TYR OXT  HXT  sing N N 405
+#

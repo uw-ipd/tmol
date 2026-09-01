@@ -447,7 +447,7 @@ def build_residue_type(  # noqa: C901
 
     Args:
         mol: An RDKit Mol with 3D coordinates and bonds.
-        res_name: Three-letter residue name (e.g. "LG1", "ATP").
+        res_name: Residue name (e.g. "L_1", "ATP").
         atom_types: Atom type assignments from assign_tmol_atom_types().
         atom_aliases: Optional tuple of AtomAlias for CIF name mapping.
 

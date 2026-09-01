@@ -235,14 +235,10 @@ _CIF_LIGANDS = ["ada", "cdk2", "cox2", "hivrt", "src", "egfr"]
 
 
 def _load_full_array(cif_path: Path):
-    import biotite.structure as struc
-    import biotite.structure.io.pdbx as pdbx
+    from tmol.io import atom_array_from_cif
 
-    cif = pdbx.CIFFile.read(str(cif_path))
-    arr = pdbx.get_structure(cif, model=1, include_bonds=True, extra_fields=["charge"])
-    if isinstance(arr, struc.AtomArrayStack):
-        arr = arr[0]
-    return arr
+    # a single-ligand file supplying a whole molecule under a code of its own
+    return atom_array_from_cif(cif_path, use_ccd=False, extra_fields=["charge"])
 
 
 @pytest.mark.parametrize("name", _CIF_LIGANDS)
@@ -269,7 +265,11 @@ def test_prepare_ligands_writes_params_output(tmp_path) -> None:
     arr = _load_full_array(CIF_INPUTS / "ada.ligand.cif")
     out = tmp_path / "out.tmol"
     param_db, ordering = prepare_ligands(
-        arr, param_db=ParameterDatabase.get_default(), params_output=str(out)
+        arr,
+        param_db=ParameterDatabase.get_default(),
+        params_output=str(out),
+        # a ligand file supplying a whole molecule under a code of its own
+        use_ccd=False,
     )
     assert out.exists() and out.stat().st_size > 0
     assert ordering is not None
@@ -288,7 +288,8 @@ def test_prepare_ligands_accepts_single_model_stack() -> None:
         stack = struc.stack([stack])
     assert len(stack) == 1
     # No param_db passed -> default resolved internally.
-    param_db, _ = prepare_ligands(stack)
+    # a ligand file supplying a whole molecule under a code of its own
+    param_db, _ = prepare_ligands(stack, use_ccd=False)
     assert param_db is not None
 
 

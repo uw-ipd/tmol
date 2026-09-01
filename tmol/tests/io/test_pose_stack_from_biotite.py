@@ -240,6 +240,9 @@ def test_sample_proton_chi_integrated_pose_build_behavior(torch_device):
             if rt.name == "LG1"
         )
 
+    # This file supplies the whole molecule under a code of its own, which the
+    # component dictionary defines as an unrelated one, so it is taken as given.
+    #
     # Explicit opt-out: a full pose builds NaN-free; LG1 has torsions, no
     # chi_samples.
     pose_stack, context = pose_stack_from_biotite(
@@ -249,6 +252,7 @@ def test_sample_proton_chi_integrated_pose_build_behavior(torch_device):
         sample_proton_chi=False,
         param_db=ParameterDatabase.get_default(),
         return_context=True,
+        use_ccd=False,
     )
     assert torch.isfinite(pose_stack.coords[pose_stack.real_atoms]).all()
     lg1_default = _lg1(context)
@@ -263,6 +267,7 @@ def test_sample_proton_chi_integrated_pose_build_behavior(torch_device):
         prepare_ligands=True,
         param_db=ParameterDatabase.get_default(),
         return_context=True,
+        use_ccd=False,
     )
     assert torch.isfinite(pose_on.coords[pose_on.real_atoms]).all()
     lg1_on = _lg1(context_on)
@@ -300,6 +305,9 @@ def test_sample_proton_chi_ligand_build_from_mol2(torch_device):
         prepare_ligands=True,
         param_db=ParameterDatabase.get_default(),
         return_context=True,
+        # a mol2 supplies the whole molecule; its residue code means nothing
+        # outside the file, so the component dictionary must not be consulted
+        use_ccd=False,
     )
     assert torch.isfinite(pose_on.coords[pose_on.real_atoms]).all()
 

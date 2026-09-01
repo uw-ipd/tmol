@@ -21,7 +21,6 @@ from __future__ import annotations
 from collections import defaultdict
 
 import biotite.structure.info as info
-import biotite.structure.io.pdbx as pdbx
 import numpy as np
 import pytest
 
@@ -36,6 +35,10 @@ from tmol.tests.data import data_path
 
 FIXTURE_DIR = data_path("ncaa_fixtures")
 
+# a residue code no component dictionary defines; most invented three-letter
+# codes collide with a real one
+_UNDEFINED_CODE = "X_"
+
 # stem -> {residue code: (backbone class, the base its tables come from)}
 _FIXTURES: dict[str, dict[str, tuple[str, str | None]]] = {
     "na_dna_5mc_1d17": {"5CM": ("dna", "DC")},
@@ -47,10 +50,9 @@ _FIXTURES: dict[str, dict[str, tuple[str, str | None]]] = {
 
 
 def _structure(stem: str):
-    cif = pdbx.CIFFile.read(str(FIXTURE_DIR / f"{stem}.cif"))
-    return pdbx.get_structure(
-        cif, model=1, include_bonds=True, extra_fields=["label_seq_id"]
-    )
+    from tmol.io import atom_array_from_cif
+
+    return atom_array_from_cif(FIXTURE_DIR / f"{stem}.cif")
 
 
 def _prepared(structure):
@@ -285,12 +287,12 @@ def test_a_nucleotide_seen_only_at_a_terminus_gets_its_phosphate_back() -> None:
     off the sugar and the base off its own skeleton.
     """
     structure = _structure("na_dna_8og_183d")
-    structure.res_name[structure.res_name == "8OG"] = "X8G"
+    structure.res_name[structure.res_name == "8OG"] = _UNDEFINED_CODE
     stripped = np.isin(structure.atom_name, ["P", "OP1", "OP2"])
-    structure = structure[~((structure.res_name == "X8G") & stripped)]
+    structure = structure[~((structure.res_name == _UNDEFINED_CODE) & stripped)]
 
     prepared, _known, _co = _prepared(structure)
-    restype = next(r for r in prepared.chemical.residues if r.name == "X8G")
+    restype = next(r for r in prepared.chemical.residues if r.name == _UNDEFINED_CODE)
 
     assert restype.properties.polymer.backbone_type == "dna"
     assert {"P", "OP1", "OP2"} <= {a.name for a in restype.atoms}
@@ -302,7 +304,7 @@ def test_a_nucleotide_seen_only_at_a_terminus_gets_its_phosphate_back() -> None:
     variants = {
         r.name.partition(":")[2]
         for r in prepared.chemical.residues
-        if r.name.startswith("X8G:")
+        if r.name.startswith(f"{_UNDEFINED_CODE}:")
     }
     assert "na5prime" in variants
 

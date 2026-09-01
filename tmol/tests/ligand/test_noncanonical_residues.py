@@ -52,11 +52,10 @@ def _alpha():
 
 
 def _load(stem: str) -> struc.AtomArray:
-    """Read a fixture with its bond table, as the polymer path requires."""
-    cif = pdbx.CIFFile.read(str(FIXTURE_DIR / f"{stem}.cif"))
-    return pdbx.get_structure(
-        cif, model=1, include_bonds=True, extra_fields=["label_seq_id"]
-    )
+    """A fixture as tmol reads it: bonded, and complete where the density was not."""
+    from tmol.io import atom_array_from_cif
+
+    return atom_array_from_cif(FIXTURE_DIR / f"{stem}.cif")
 
 
 def _residue(atom_array: struc.AtomArray, res_name: str) -> struc.AtomArray:
@@ -219,16 +218,18 @@ def test_a_residue_seen_only_at_a_terminus_needs_no_ccd_entry() -> None:
     structure = _load("phosphopeptide_5ema")
     last = max(int(i) for i in structure.res_id[structure.res_name == "SEP"])
     structure = structure[structure.res_id <= last]
-    structure.res_name[structure.res_name == "SEP"] = "XEP"
+    structure.res_name[structure.res_name == "SEP"] = UNDEFINED_CODE
 
     prepared, _ordering = prepare_ligands(structure, param_db=param_db, seed=1234)
-    restype = next(r for r in prepared.chemical.residues if r.name == "XEP")
+    restype = next(r for r in prepared.chemical.residues if r.name == UNDEFINED_CODE)
 
     assert restype.properties.polymer.backbone_type == "alpha_aa"
     assert restype.properties.polymer.mainchain_atoms == ("N", "CA", "C")
     assert {c.name for c in restype.connections} == {"down", "up"}
-    variants = {r.name for r in prepared.chemical.residues if r.base_name == "XEP"}
-    assert {"XEP:nterm", "XEP:cterm"} <= variants
+    variants = {
+        r.name for r in prepared.chemical.residues if r.base_name == UNDEFINED_CODE
+    }
+    assert {f"{UNDEFINED_CODE}:nterm", f"{UNDEFINED_CODE}:cterm"} <= variants
 
 
 def test_preparation_is_reproducible_under_a_fixed_seed() -> None:

@@ -162,14 +162,11 @@ class TestDetectHelpers:
 # --------------------------------------------------------------------------- #
 class TestStructureToSmiles:
     def _array(self):
-        import biotite.structure.io.pdbx as pdbx
+        from tmol.io import atom_array_from_cif
 
         fixture = DATA / "ligand_cif_fixtures" / "vww.bonds_present.cif"
-        cif = pdbx.CIFFile.read(str(fixture))
-        arr = pdbx.get_structure(cif, model=1, include_bonds=True)
-        if isinstance(arr, struc.AtomArrayStack):
-            arr = arr[0]
-        return arr
+        # a single-ligand file supplying a whole molecule under a code of its own
+        return atom_array_from_cif(fixture, use_ccd=False)
 
     def test_mol_to_smiles_returns_none_on_failure(self, monkeypatch) -> None:
         import tmol.ligand._structure_to_smiles as mod

@@ -6,7 +6,7 @@ SMILES -> params pipeline (:func:`nonstandard_residue_info_from_smiles_via_mol2`
 
 The SMILES always reflects the *input atoms as given* -- there is no residue-code
 / CCD-template lookup (that risks substituting an unrelated molecule when a CIF
-uses a generic residue code such as ``LG1``).
+uses a generic residue code such as ``L_1``).
 
 Bond orders must come from the input: the ``AtomArray`` is required to carry a
 bond table (e.g. a CIF with a ``_chem_comp_bond`` block, or a mol2 BOND
