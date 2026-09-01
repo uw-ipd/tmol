@@ -93,6 +93,8 @@ def _score_grad_in_thread(
     create_graph: bool,
 ) -> torch.Tensor | None:
     """Differentiate one independent CPU score-term graph."""
+    if not scores.requires_grad:
+        return None
     with torch.set_grad_enabled(create_graph):
         (term_grad,) = torch.autograd.grad(
             scores,

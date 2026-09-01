@@ -212,15 +212,28 @@ def test_cpu_whole_pose_terms_run_concurrently_and_preserve_modes(monkeypatch):
             )
             return (self.scale * coords.square().sum()).reshape(1, 1)
 
+    class ConstantTerm(RecordingTerm):
+        def forward(self, coords):
+            self.calls.append(
+                (
+                    threading.get_ident(),
+                    torch.is_grad_enabled(),
+                    torch.is_inference_mode_enabled(),
+                )
+            )
+            return torch.ones((1, 1), dtype=coords.dtype, device=coords.device)
+
     monkeypatch.setattr(torch, "get_num_threads", lambda: 4)
-    terms = [RecordingTerm(scale) for scale in (1.0, 2.0, 3.0, 4.0)]
-    scorer = WholePoseScoringModule(torch.ones(4), terms)
+    terms = [RecordingTerm(scale) for scale in (1.0, 2.0, 3.0, 4.0)] + [
+        ConstantTerm(0.0)
+    ]
+    scorer = WholePoseScoringModule(torch.ones(5), terms)
     coords = torch.arange(3.0, requires_grad=True)
 
     score = scorer(coords)
     score.backward(retain_graph=True)
 
-    torch.testing.assert_close(score, torch.tensor([50.0]))
+    torch.testing.assert_close(score, torch.tensor([51.0]))
     torch.testing.assert_close(coords.grad, 20 * coords.detach())
     coords.grad = None
     score.backward()
