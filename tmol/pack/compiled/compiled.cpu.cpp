@@ -89,8 +89,10 @@ auto AnnealerDispatch<D>::forward(
     std::vector<std::vector<Neighbor>> neighbors(n_res);
     for (int b = 0; b < n_res; ++b) {
       for (int b2 = 0; b2 < n_res; ++b2) {
-        if (b2 != b && chunk_offset_offsets[pose][b][b2] != -1) {
-          neighbors[b].push_back({b2, chunk_offset_offsets[pose][b2][b]});
+        if (b2 == b || chunk_offset_offsets[pose][b][b2] == -1) continue;
+        int64_t const reverse_offset = chunk_offset_offsets[pose][b2][b];
+        if (reverse_offset != -1) {
+          neighbors[b].push_back({b2, reverse_offset});
         }
       }
     }
@@ -194,7 +196,6 @@ auto AnnealerDispatch<D>::forward(
             // outer/row dimension.
             int64_t const k_ran_chunk_offset_offset =
                 neighbor.chunk_offset_offset;
-            if (k_ran_chunk_offset_offset == -1) continue;
             int64_t const krot_ranrot_chunk_offset = chunk_offsets
                 [k_ran_chunk_offset_offset + krot_chunk * ran_res_n_chunks
                  + ran_rot_chunk];
