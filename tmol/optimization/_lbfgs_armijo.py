@@ -32,10 +32,21 @@ def lbfgs_two_loop(grad, dirs, stps):
     S = stps.double()
     Y = dirs.double()
     g = -grad.double()
-    a = torch.einsum("ipk,pk->pi", S, g)  # a_i = s_i . g
-    b = torch.einsum("ipk,pk->pi", Y, g)  # b_i = y_i . g
-    SY = torch.einsum("ipk,jpk->pij", S, Y)  # SY_ij = s_i . y_j
-    YY = torch.einsum("ipk,jpk->pij", Y, Y)  # YY_ij = y_i . y_j
+    # FastRelax supplies float32 coordinates. Preserve the common einsum path
+    # for float64, where callers may compare independently minimized segments
+    # with a batched minimization at tight double-precision tolerances.
+    single_segment = grad.shape[0] == 1 and out_dtype == torch.float32
+    if single_segment:
+        S_one, Y_one, g_one = S[:, 0], Y[:, 0], g[0]
+        a = torch.mv(S_one, g_one).unsqueeze(0)  # a_i = s_i . g
+        b = torch.mv(Y_one, g_one).unsqueeze(0)  # b_i = y_i . g
+        SY = torch.mm(S_one, Y_one.T).unsqueeze(0)  # SY_ij = s_i . y_j
+        YY = torch.mm(Y_one, Y_one.T).unsqueeze(0)  # YY_ij = y_i . y_j
+    else:
+        a = torch.einsum("ipk,pk->pi", S, g)
+        b = torch.einsum("ipk,pk->pi", Y, g)
+        SY = torch.einsum("ipk,jpk->pij", S, Y)
+        YY = torch.einsum("ipk,jpk->pij", Y, Y)
     R = torch.triu(SY)  # upper-triangular incl. diagonal
     D = SY.diagonal(dim1=-2, dim2=-1)  # D_i = s_i . y_i
 
@@ -46,7 +57,10 @@ def lbfgs_two_loop(grad, dirs, stps):
     # u = R^-1 a
     u = torch.linalg.solve_triangular(R, a.unsqueeze(-1), upper=True).squeeze(-1)
     # v = (D + Y^T Y) u - b
-    v = torch.einsum("pij,pj->pi", YY, u) + D * u - b
+    if single_segment:
+        v = (torch.mv(YY[0], u[0]) + D[0] * u[0] - b[0]).unsqueeze(0)
+    else:
+        v = torch.einsum("pij,pj->pi", YY, u) + D * u - b
     # p1 = R^-T v
     p1 = torch.linalg.solve_triangular(
         R.transpose(-2, -1), v.unsqueeze(-1), upper=False
@@ -54,7 +68,13 @@ def lbfgs_two_loop(grad, dirs, stps):
     p2 = -u
 
     # result = g + S p1 + Y p2
-    result = g + torch.einsum("pi,ipk->pk", p1, S) + torch.einsum("pi,ipk->pk", p2, Y)
+    if single_segment:
+        result = (
+            g[0] + torch.mv(S[:, 0].T, p1[0]) + torch.mv(Y[:, 0].T, p2[0])
+        ).unsqueeze(0)
+    else:
+        result = g + torch.einsum("pi,ipk->pk", p1, S)
+        result += torch.einsum("pi,ipk->pk", p2, Y)
     result = result.to(out_dtype)
     return result.squeeze(0) if unbatched else result
 
