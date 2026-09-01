@@ -139,10 +139,11 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
             index,
             pose);
       } else {
-        respair_is_adjacent[pose][block1][block2] = 1;
+        DeviceDispatch<D>::store_idempotent(
+            respair_is_adjacent[pose][block1][block2], int32_t(1));
       }
     });
-    DeviceDispatch<D>::template forall<launch_t>(
+    DeviceDispatch<D>::template forall_independent<launch_t>(
         mgr, n_sparse_entries, note_adjacent_respairs);
 
     auto n_chunks_for_block_pair_tp =
@@ -221,14 +222,17 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
 
       // multiple threads will write exactly these values to these entries in
       // the chunk_pair_adjacency table
-      chunk_pair_adjacency
-          [block_pair_chunk_offset_ij + chunk1 * n_chunks2 + chunk2] =
-              chunk1_size * chunk2_size;
-      chunk_pair_adjacency
-          [block_pair_chunk_offset_ji + chunk2 * n_chunks1 + chunk1] =
-              chunk1_size * chunk2_size;
+      int64_t const n_pairs = chunk1_size * chunk2_size;
+      DeviceDispatch<D>::store_idempotent(
+          chunk_pair_adjacency
+              [block_pair_chunk_offset_ij + chunk1 * n_chunks2 + chunk2],
+          n_pairs);
+      DeviceDispatch<D>::store_idempotent(
+          chunk_pair_adjacency
+              [block_pair_chunk_offset_ji + chunk2 * n_chunks1 + chunk1],
+          n_pairs);
     });
-    DeviceDispatch<D>::template forall<launch_t>(
+    DeviceDispatch<D>::template forall_independent<launch_t>(
         mgr, n_sparse_entries, note_adjacent_chunk_pairs);
 
     auto chunk_pair_offsets_tp =
@@ -296,7 +300,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
                  + rot_ind_wi_chunk1] = energy;
           }
         });
-    DeviceDispatch<D>::template forall<launch_t>(
+    DeviceDispatch<D>::template forall_independent<launch_t>(
         mgr, n_sparse_entries, record_energies_in_energy1b_and_energy2b);
 
     // Mark the chunk_pair_offset_for_block_pair that are not adjacent w/ -1s
@@ -424,8 +428,8 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
           find_min_energy_for_rotamer_and_block2);
     });
-    DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-        mgr, n_rotamers * max_n_blocks, compute_best_energy_for_rotamers);
+    DeviceDispatch<D>::template foreach_grouped_workgroup<launch_t>(
+        mgr, n_rotamers, max_n_blocks, compute_best_energy_for_rotamers);
 
     if (bump_check) {
       // Now let's figure out the best energy for each block type
@@ -790,9 +794,10 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       return;
     }
     // Assert: molten_block1 < molten_block2
-    respair_is_adjacent[pose][molten_block1][molten_block2] = 1;
+    DeviceDispatch<D>::store_idempotent(
+        respair_is_adjacent[pose][molten_block1][molten_block2], int32_t(1));
   });
-  DeviceDispatch<D>::template forall<launch_t>(
+  DeviceDispatch<D>::template forall_independent<launch_t>(
       mgr, n_sparse_entries, note_adjacent_respairs);
 
   auto n_chunks_for_block_pair_tp = TPack<int64_t, 3, D>::zeros(
@@ -884,15 +889,17 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     // multiple threads will write exactly these values to these entries in the
     // chunk_pair_adjacency table
 
-    chunk_pair_adjacency
-        [block_pair_chunk_offset_ij + chunk1 * n_chunks2 + chunk2] =
-            chunk1_size * chunk2_size;
-
-    chunk_pair_adjacency
-        [block_pair_chunk_offset_ji + chunk2 * n_chunks1 + chunk1] =
-            chunk1_size * chunk2_size;
+    int64_t const n_pairs = chunk1_size * chunk2_size;
+    DeviceDispatch<D>::store_idempotent(
+        chunk_pair_adjacency
+            [block_pair_chunk_offset_ij + chunk1 * n_chunks2 + chunk2],
+        n_pairs);
+    DeviceDispatch<D>::store_idempotent(
+        chunk_pair_adjacency
+            [block_pair_chunk_offset_ji + chunk2 * n_chunks1 + chunk1],
+        n_pairs);
   });
-  DeviceDispatch<D>::template forall<launch_t>(
+  DeviceDispatch<D>::template forall_independent<launch_t>(
       mgr, n_sparse_entries, note_adjacent_chunk_pairs);
 
   auto chunk_pair_offsets_tp =

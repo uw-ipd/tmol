@@ -217,8 +217,8 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     }
   });
 
-  DeviceDispatch<D>::template forall<launch_t>(
-      mgr, n_poses * max_n_blocks, eval_energies);
+  DeviceDispatch<D>::template forall_grouped<launch_t>(
+      mgr, n_poses, max_n_blocks, eval_energies);
 
   return {V_t, dV_dx_t};
 }
@@ -374,8 +374,8 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     }
   });
 
-  DeviceDispatch<D>::template forall<launch_t>(
-      mgr, n_poses * max_n_blocks, eval_derivs);
+  DeviceDispatch<D>::template forall_grouped<launch_t>(
+      mgr, n_poses, max_n_blocks, eval_derivs);
 
   return dV_dcoords_t;
 }

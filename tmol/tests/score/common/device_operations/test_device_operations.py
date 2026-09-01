@@ -36,25 +36,22 @@ def test_forall_large(ext, torch_device):
     assert torch.equal(result.cpu(), expected)
 
 
-# ---------------------------------------------------------------------------
-# forall_stacks: dst[stack][i] = src[stack][i] * 2
-# ---------------------------------------------------------------------------
+def test_forall_independent(ext, torch_device):
+    src = torch.zeros(1000, dtype=torch.int32, device=torch_device)
+    result = ext.test_forall_independent(src)
+    assert torch.equal(result.cpu(), torch.arange(1000, dtype=torch.int32))
 
 
-def test_forall_stacks(ext, torch_device):
-    src = torch.arange(12, dtype=torch.int32, device=torch_device).reshape(3, 4)
-    result = ext.test_forall_stacks(src)
-    expected = torch.arange(12, dtype=torch.int32).reshape(3, 4) * 2
-    assert torch.equal(result.cpu(), expected)
+def test_forall_independent_large(ext, torch_device):
+    src = torch.zeros(100_000, dtype=torch.int32, device=torch_device)
+    result = ext.test_forall_independent(src)
+    assert torch.equal(result.cpu(), torch.arange(100_000, dtype=torch.int32))
 
 
-def test_forall_stacks_large(ext, torch_device):
-    # 128 stacks x 1024 elements exercises CPU stack parallelism and spans
-    # multiple CUDA CTAs.
-    # src=ones, so dst[stack][i] = 1 * 2 = 2 everywhere.
-    src = torch.ones(128, 1024, dtype=torch.int32, device=torch_device)
-    result = ext.test_forall_stacks(src)
-    expected = torch.full((128, 1024), 2, dtype=torch.int32)
+def test_forall_grouped(ext, torch_device):
+    src = torch.zeros((8, 17), dtype=torch.int32, device=torch_device)
+    result = ext.test_forall_grouped(src)
+    expected = torch.arange(src.numel(), dtype=torch.int32).reshape_as(src.cpu())
     assert torch.equal(result.cpu(), expected)
 
 
@@ -99,6 +96,12 @@ def test_foreach_workgroup_large(ext, torch_device):
     result = ext.test_foreach_workgroup(src)
     expected = torch.arange(N, dtype=torch.int32)
     assert torch.equal(result.cpu(), expected)
+
+
+def test_foreach_independent_workgroup(ext, torch_device):
+    src = torch.zeros(1000, dtype=torch.int32, device=torch_device)
+    result = ext.test_foreach_independent_workgroup(src)
+    assert torch.equal(result.cpu(), torch.arange(1000, dtype=torch.int32))
 
 
 def test_foreach_pose_workgroup(ext, torch_device):

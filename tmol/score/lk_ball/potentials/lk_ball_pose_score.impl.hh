@@ -1358,7 +1358,7 @@ class LKBallRotamerScoreDispatch {
     // context(wrapped_stream.stream());
 
     // 3 Only the forward pass in this calculation
-    DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
+    DeviceDispatch<Dev>::template foreach_independent_workgroup<launch_t>(
         mgr, dispatch_indices.size(1), eval_energies_by_block);
 
     return {output_t, dispatch_indices_t};

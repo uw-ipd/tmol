@@ -440,8 +440,8 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     }
   });
 
-  DeviceDispatch<D>::template forall<launch_t>(
-      mgr, n_poses * max_n_blocks, func);
+  DeviceDispatch<D>::template forall_grouped<launch_t>(
+      mgr, n_poses, max_n_blocks, func);
 
   return {V_t, dV_dx_t};
 }
@@ -799,8 +799,8 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     }
   });
 
-  DeviceDispatch<D>::template forall<launch_t>(
-      mgr, n_poses * max_n_blocks, func);
+  DeviceDispatch<D>::template forall_grouped<launch_t>(
+      mgr, n_poses, max_n_blocks, func);
 
   return dV_dx_t;
 }  // namespace potentials

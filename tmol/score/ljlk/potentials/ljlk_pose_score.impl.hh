@@ -1812,8 +1812,13 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
   // within striking distance
 
   assert(output_block_pair_energies);
-  DeviceOperations<D>::template foreach_workgroup<launch_t>(
-      mgr, dispatch_indices.size(1), eval_energies_by_block);
+  if (require_gradient) {
+    DeviceOperations<D>::template foreach_workgroup<launch_t>(
+        mgr, dispatch_indices.size(1), eval_energies_by_block);
+  } else {
+    DeviceOperations<D>::template foreach_independent_workgroup<launch_t>(
+        mgr, dispatch_indices.size(1), eval_energies_by_block);
+  }
 
   return {output_t, dV_dcoords_t, dispatch_indices_t};
 }  // LJLKRotamerScoreDispatch::forward
