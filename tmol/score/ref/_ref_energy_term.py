@@ -3,6 +3,7 @@ import torch
 from .._energy_term import EnergyTerm
 
 from tmol.database import ParameterDatabase
+from tmol.score.common._scoring_module import _coordinate_independent_score
 
 from tmol.chemical import RefinedResidueType
 from tmol.pose import (
@@ -137,9 +138,7 @@ def eval_ref_energy_for_pose(
         # computed once while rendering the scoring module, not on every call.
         score = pose_ref.view_as(pose_ref)
 
-    score.requires_grad = True  # a bit of a hack to make the benchmark test not error out because there are no grads
-
-    return score, None
+    return _coordinate_independent_score(_rot_coords, score), None
 
 
 def eval_ref_energy_for_rotamers(
@@ -187,5 +186,4 @@ def eval_ref_energy_for_rotamers(
         output_scores.index_add_(0, pose_ind_for_rot64, rotamer_scores)
         indices = torch.zeros((0,), dtype=torch.int32, device=device)
     output_scores = output_scores.unsqueeze(0)
-    output_scores.requires_grad = True  # a bit of a hack to make the benchmark test not error out because there are no grads
-    return output_scores, indices
+    return _coordinate_independent_score(rot_coords, output_scores), indices

@@ -538,6 +538,7 @@ def test_block_pair_scoring_matches_whole_pose(ubq_pdb, default_database, torch_
     # check individual terms
     full_score = full_scorer(pose_stack.coords, sum_terms=False)
     block_score = block_scorer(pose_stack.coords, sum_terms=False)
+    assert not block_score.requires_grad
     torch.testing.assert_close(
         full_score, torch.sum(block_score, dim=(2, 3)), atol=1e-3, rtol=1e-3
     )
@@ -549,10 +550,14 @@ def test_block_pair_scoring_matches_whole_pose(ubq_pdb, default_database, torch_
         full_score, torch.sum(block_score, dim=(1, 2)), atol=1e-3, rtol=1e-3
     )
     if torch_device.type == "cpu":
-        parallel_score = block_scorer(pose_stack.coords)
+        with torch.no_grad():
+            parallel_score = block_scorer(pose_stack.coords)
+
         block_scorer._cpu_term_workers = 0
         block_scorer._cpu_forward_workers = 0
-        serial_score = block_scorer(pose_stack.coords)
+        with torch.no_grad():
+            serial_score = block_scorer(pose_stack.coords)
+
         assert torch.equal(parallel_score, serial_score)
 
 
@@ -631,6 +636,14 @@ def test_cpu_block_pair_terms_parallelize_only_forward(monkeypatch):
         scores = scorer(torch.ones((1, 1, 3)))
 
     torch.testing.assert_close(scores, torch.full((1, 2, 2), 9.0))
+    assert all(term.thread_ids[0] != threading.get_ident() for term in terms)
+
+    for term in terms:
+        term.thread_ids.clear()
+    with torch.no_grad():
+        unweighted = scorer(torch.ones((1, 1, 3)), sum_terms=False, apply_weights=False)
+
+    torch.testing.assert_close(unweighted[:, 0, 0, 0], torch.tensor([3.0, 0.0, 6.0]))
     assert all(term.thread_ids[0] != threading.get_ident() for term in terms)
 
     coords = torch.ones((1, 1, 3), requires_grad=True)

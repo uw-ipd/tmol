@@ -856,35 +856,45 @@ class BlockPairScoringModule:
             _cpu_score_term_worker_counts(len(self.term_modules), weights.device)
         )
 
+    def _cpu_workers_for_coords(self, coords: torch.Tensor) -> int:
+        """Return the worker count selected for this pose batch."""
+        if coords.shape[0] >= _CPU_WIDE_FORWARD_SCORE_MIN_POSES:
+            return self._cpu_forward_workers
+        return self._cpu_term_workers
+
+    def _parallel_forward_scores(
+        self, coords: torch.Tensor
+    ) -> tuple[torch.Tensor, ...] | None:
+        """Evaluate active CPU terms concurrently for a forward-only call."""
+        cpu_workers = self._cpu_workers_for_coords(coords)
+        differentiable = torch.is_grad_enabled() and (
+            coords.requires_grad or self._has_trainable_term_parameters
+        )
+        if cpu_workers < 2 or differentiable or len(self._active_term_modules) < 2:
+            return None
+
+        executor = _cpu_score_term_executor(cpu_workers)
+        context = (
+            torch.is_grad_enabled(),
+            torch.is_inference_mode_enabled(),
+            torch.is_autocast_enabled("cpu"),
+            torch.get_autocast_dtype("cpu"),
+            torch.is_autocast_cache_enabled(),
+        )
+        futures = [
+            executor.submit(_score_call_in_thread, term, coords, *context)
+            for term in self._active_term_modules
+        ]
+        return tuple(future.result() for future in futures)
+
     def __call__(self, coords, sum_terms=True, apply_weights=True):
         if not torch.is_grad_enabled() and coords.requires_grad:
             coords = coords.detach()
         if sum_terms and apply_weights:
-            cpu_workers = self._cpu_term_workers
-            if coords.shape[0] >= _CPU_WIDE_FORWARD_SCORE_MIN_POSES:
-                cpu_workers = self._cpu_forward_workers
-            differentiable = torch.is_grad_enabled() and (
-                coords.requires_grad or self._has_trainable_term_parameters
+            parallel_scores = self._parallel_forward_scores(coords)
+            active_results = (
+                iter(parallel_scores) if parallel_scores is not None else None
             )
-            active_results = None
-            if (
-                cpu_workers >= 2
-                and not differentiable
-                and len(self._active_term_modules) >= 2
-            ):
-                executor = _cpu_score_term_executor(cpu_workers)
-                context = (
-                    torch.is_grad_enabled(),
-                    torch.is_inference_mode_enabled(),
-                    torch.is_autocast_enabled("cpu"),
-                    torch.get_autocast_dtype("cpu"),
-                    torch.is_autocast_cache_enabled(),
-                )
-                futures = [
-                    executor.submit(_score_call_in_thread, term, coords, *context)
-                    for term in self._active_term_modules
-                ]
-                active_results = iter(future.result() for future in futures)
 
             active_scores = []
             active_weights = []
@@ -910,8 +920,23 @@ class BlockPairScoringModule:
 
         return summed
 
-    def unweighted_scores(self, coords):
-        return torch.cat([term(coords) for term in self.term_modules], dim=0)
+    def unweighted_scores(self, coords: torch.Tensor) -> torch.Tensor:
+        parallel_scores = self._parallel_forward_scores(coords)
+        if parallel_scores is None:
+            return torch.cat([term(coords) for term in self.term_modules], dim=0)
+
+        active_results = iter(parallel_scores)
+        return torch.cat(
+            [
+                (
+                    term(coords)
+                    if isinstance(term, ZeroTermPoseScoringModule)
+                    else next(active_results)
+                )
+                for term in self.term_modules
+            ],
+            dim=0,
+        )
 
 
 class RotamerScoringModule:
