@@ -34,6 +34,12 @@ SFXN_FORMAT_VERSION: str = "1.0"
 _CUDA_ROTAMER_LAYOUT_DEDUP_MIN_BYTES = 16 * 1024 * 1024
 _CPU_ROTAMER_SORTED_LAYOUT_MIN_NNZ = 4096
 _MAX_CPU_SCORE_TERM_WORKERS = 4
+# Large multi-pose, forward-only scoring benefits from exposing more
+# independent terms. Differentiable scoring stays at four workers because its
+# concurrent backward graphs otherwise compete for the same intra-op threads.
+_MAX_CPU_FORWARD_SCORE_TERM_WORKERS = 8
+_CPU_WIDE_FORWARD_SCORE_MIN_POSES = 20
+_CPU_WIDE_FORWARD_SCORE_MIN_THREADS = 32
 _CPU_PARALLEL_SCORE_BACKWARD_MIN_COORD_ELEMENTS = 8192
 _CPU_SCORE_TERM_EXECUTORS: dict[int, ThreadPoolExecutor] = {}
 _CPU_SCORE_TERM_EXECUTOR_LOCK = threading.Lock()
@@ -662,6 +668,16 @@ class WholePoseScoringModule:
             len(self.term_modules),
         )
         self._cpu_term_workers = cpu_workers if weights.device.type == "cpu" else 0
+        cpu_forward_workers = cpu_workers
+        if torch.get_num_threads() >= _CPU_WIDE_FORWARD_SCORE_MIN_THREADS:
+            cpu_forward_workers = min(
+                _MAX_CPU_FORWARD_SCORE_TERM_WORKERS,
+                torch.get_num_threads(),
+                len(self.term_modules),
+            )
+        self._cpu_forward_workers = (
+            cpu_forward_workers if weights.device.type == "cpu" else 0
+        )
 
     def __call__(self, coords, sum_terms=True, apply_weights=True):
         if sum_terms and apply_weights:
@@ -683,16 +699,24 @@ class WholePoseScoringModule:
         return summed
 
     def unweighted_scores(self, coords):
-        if self._cpu_term_workers < 2:
+        needs_grad = torch.is_grad_enabled() and coords.requires_grad
+        cpu_workers = self._cpu_term_workers
+        if (
+            cpu_workers >= 2
+            and not needs_grad
+            and coords.shape[0] >= _CPU_WIDE_FORWARD_SCORE_MIN_POSES
+        ):
+            cpu_workers = self._cpu_forward_workers
+        if cpu_workers < 2:
             return torch.cat([term(coords) for term in self.term_modules], dim=0)
 
-        executor = _cpu_score_term_executor(self._cpu_term_workers)
+        executor = _cpu_score_term_executor(cpu_workers)
         autocast_context = (
             torch.is_autocast_enabled("cpu"),
             torch.get_autocast_dtype("cpu"),
             torch.is_autocast_cache_enabled(),
         )
-        if torch.is_grad_enabled() and coords.requires_grad:
+        if needs_grad:
             return _ParallelScoreTerms.apply(
                 coords,
                 executor,

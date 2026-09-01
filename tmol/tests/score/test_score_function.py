@@ -258,6 +258,31 @@ def test_cpu_whole_pose_terms_run_concurrently_and_preserve_modes(monkeypatch):
     )
 
 
+def test_large_cpu_forward_uses_wider_term_pool(monkeypatch):
+    class SumTerm(torch.nn.Module):
+        def forward(self, coords):
+            return coords.sum().reshape(1, 1)
+
+    worker_counts = []
+    executor_for_workers = score_function_module._cpu_score_term_executor
+
+    def recording_executor(n_workers):
+        worker_counts.append(n_workers)
+        return executor_for_workers(n_workers)
+
+    monkeypatch.setattr(torch, "get_num_threads", lambda: 32)
+    monkeypatch.setattr(
+        score_function_module, "_cpu_score_term_executor", recording_executor
+    )
+    scorer = WholePoseScoringModule(torch.ones(8), [SumTerm() for _ in range(8)])
+    coords = torch.ones((20, 1, 3))
+
+    scorer(coords)
+    scorer(coords.requires_grad_()).sum().backward()
+
+    assert worker_counts == [8, 4]
+
+
 def test_cpu_parallel_whole_pose_gradient_matches_serial_order(
     ubq_pdb, default_database, torch_device, monkeypatch
 ):
