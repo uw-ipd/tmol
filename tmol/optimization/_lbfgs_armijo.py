@@ -1,5 +1,7 @@
-import torch
 from types import SimpleNamespace
+from typing import Any
+
+import torch
 from torch.optim import Optimizer
 
 
@@ -211,6 +213,50 @@ class LBFGS_Armijo(Optimizer):
 
     supports_segments = True
 
+    def add_param_group(self, param_group: dict[str, Any]) -> None:
+        """Add the optimizer's sole parameter group without compiler imports.
+
+        PyTorch's generic implementation is Dynamo-disabled and initializes
+        Dynamo, DTensor, and distributed operator registries on first use.
+        This optimizer supports exactly one group and one tensor, so that
+        general machinery adds substantial cold-start latency without adding
+        functionality.
+        """
+        if self.param_groups:
+            raise ValueError("LBFGS doesn't support per-parameter options")
+        if not isinstance(param_group, dict):
+            raise TypeError(f"param_group must be a dict, got {type(param_group)}")
+
+        params = param_group["params"]
+        params = [params] if isinstance(params, torch.Tensor) else list(params)
+        if len(params) != 1:
+            raise ValueError("LBFGS requires exactly one parameter tensor")
+        param = params[0]
+        if not isinstance(param, torch.Tensor):
+            raise TypeError(f"optimizer parameter must be a Tensor, got {type(param)}")
+        if not param.is_leaf and not param.retains_grad:
+            raise ValueError("can't optimize a non-leaf Tensor")
+
+        param_group = dict(param_group)
+        param_group["params"] = params
+        for name, default in self.defaults.items():
+            param_group.setdefault(name, default)
+        self.param_groups.append(param_group)
+
+    def zero_grad(self, set_to_none: bool = True) -> None:
+        """Reset the single optimized tensor's gradient."""
+        for param in self._params:
+            if param.grad is None:
+                continue
+            if set_to_none:
+                param.grad = None
+            else:
+                if param.grad.grad_fn is not None:
+                    param.grad.detach_()
+                else:
+                    param.grad.requires_grad_(False)
+                param.grad.zero_()
+
     def __init__(
         self,
         params,
@@ -270,9 +316,34 @@ class LBFGS_Armijo(Optimizer):
         assert bool((segment_ids >= 0).all()), "segment_ids must be non-negative"
 
         n_segments = int(segment_ids.max().item()) + 1
+        if n_segments == 1:
+            self._segment_ids = segment_ids
+            self._n_segments = 1
+            self._segment_size = segment_ids.numel()
+            self._segments_are_dense = True
+            self._pad_index = None
+            return
+
         counts = torch.bincount(segment_ids, minlength=n_segments)
         assert bool((counts > 0).all()), "segment_ids must not skip a segment"
         segment_size = int(counts.max().item())
+
+        # Avoid sorting the overwhelmingly common dense layout: one pose, or
+        # equal-sized poses stored contiguously. Dense reductions only reshape
+        # the parameter vector and never consult ``_pad_index``.
+        segments_are_dense = False
+        if bool((counts == segment_size).all()):
+            expected = torch.arange(n_segments, device=segment_ids.device)
+            expected = expected.repeat_interleave(segment_size)
+            segments_are_dense = torch.equal(segment_ids, expected)
+
+        self._segment_ids = segment_ids
+        self._n_segments = n_segments
+        self._segment_size = segment_size
+        self._segments_are_dense = segments_are_dense
+        if segments_are_dense:
+            self._pad_index = None
+            return
 
         # rank of each element within its own segment
         order = torch.argsort(segment_ids, stable=True)
@@ -281,16 +352,7 @@ class LBFGS_Armijo(Optimizer):
         arange = torch.arange(segment_ids.numel(), device=order.device)
         rank[order] = arange - offsets[segment_ids[order]]
 
-        self._segment_ids = segment_ids
-        self._n_segments = n_segments
-        self._segment_size = segment_size
         self._pad_index = segment_ids * segment_size + rank
-        # The common Cartesian-minimization layout has equally sized segments
-        # stored consecutively. In that case padding is just a view/copy; keep
-        # the indexed path for heterogeneous or interleaved segment layouts.
-        self._segments_are_dense = bool(
-            (counts == segment_size).all() and torch.equal(self._pad_index, arange)
-        )
 
     def _seg_sum(self, values):
         """Sum a parameter-shaped vector within each segment."""
@@ -404,7 +466,7 @@ class LBFGS_Armijo(Optimizer):
         # The optimizer uses the per-segment tensor below for all line-search
         # and convergence decisions. Materializing a Python scalar here forces
         # a device synchronization and is only useful for verbose reporting.
-        loss = float(orig_loss) if self.verbose else None
+        loss = float(orig_loss.detach()) if self.verbose else None
         loss_vec = self._last_loss_vec
         state["func_evals"] += 1
 

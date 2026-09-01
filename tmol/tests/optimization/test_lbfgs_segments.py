@@ -48,6 +48,18 @@ def test_contiguous_unequal_segments_use_padding(torch_device):
     )
 
 
+def test_equal_interleaved_segments_use_indexed_padding(torch_device):
+    x = torch.nn.Parameter(torch.zeros(6, device=torch_device))
+    segment_ids = torch.tensor([0, 1, 0, 1, 0, 1], device=torch_device)
+    optimizer = LBFGS_Armijo([x], segment_ids=segment_ids)
+    values = torch.arange(6, dtype=x.dtype, device=torch_device)
+
+    assert not optimizer._segments_are_dense
+    torch.testing.assert_close(
+        optimizer._seg_sum(values), torch.tensor([6.0, 9.0], device=torch_device)
+    )
+
+
 def test_batched_two_loop_matches_one_problem_at_a_time(torch_device):
     grad, dirs, stps = _history(7, 4, 13, torch.float64, torch_device)
     batched = lbfgs_two_loop(grad, dirs, stps)
