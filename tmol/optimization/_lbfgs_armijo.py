@@ -41,7 +41,7 @@ def lbfgs_two_loop(grad, dirs, stps):
 
     # An absent slot has an all-zero row and column; a unit diagonal there keeps
     # R invertible and leaves the search direction unchanged.
-    R = R + torch.diag_embed((D == 0).to(R.dtype))
+    R.diagonal(dim1=-2, dim2=-1).masked_fill_(D == 0, 1)
 
     # u = R^-1 a
     u = torch.linalg.solve_triangular(R, a.unsqueeze(-1), upper=True).squeeze(-1)
@@ -245,17 +245,17 @@ class LBFGS_Armijo(Optimizer):
 
     def zero_grad(self, set_to_none: bool = True) -> None:
         """Reset the single optimized tensor's gradient."""
-        for param in self._params:
-            if param.grad is None:
-                continue
-            if set_to_none:
-                param.grad = None
+        param = self._params[0]
+        if param.grad is None:
+            return
+        if set_to_none:
+            param.grad = None
+        else:
+            if param.grad.grad_fn is not None:
+                param.grad.detach_()
             else:
-                if param.grad.grad_fn is not None:
-                    param.grad.detach_()
-                else:
-                    param.grad.requires_grad_(False)
-                param.grad.zero_()
+                param.grad.requires_grad_(False)
+            param.grad.zero_()
 
     def __init__(
         self,
@@ -400,6 +400,12 @@ class LBFGS_Armijo(Optimizer):
         if self._segments_are_dense:
             return padded.reshape(-1)
         return padded.reshape(-1)[self._pad_index]
+
+    def _per_element(self, segment_values: torch.Tensor) -> torch.Tensor:
+        """Broadcast per-segment values to parameters without indexing one segment."""
+        if self._n_segments == 1:
+            return segment_values[0]
+        return segment_values[self._segment_ids]
 
     def _wrap_closure(self, closure):
         """Reduce a per-segment closure to a scalar, keeping the vector around.
@@ -578,12 +584,21 @@ class LBFGS_Armijo(Optimizer):
                     idx = ctx.history_start
                     ctx.history_start = (ctx.history_start + 1) % ctx.history_size
 
-                # advance the reference only for segments that took a good step
-                keep_elem = keep[self._segment_ids]
-                zero = torch.zeros((), dtype=y.dtype, device=y.device)
-                self._pad(torch.where(keep_elem, y, zero), out=ctx.old_dirs_mat[idx])
-                self._pad(torch.where(keep_elem, s, zero), out=ctx.old_stps_mat[idx])
-                ctx.x_ref = torch.where(keep_elem, x, ctx.x_ref)
+                # Advance the reference only for segments that took a good step.
+                if self._n_segments == 1:
+                    ctx.old_dirs_mat[idx, 0].copy_(y)
+                    ctx.old_stps_mat[idx, 0].copy_(s)
+                    ctx.x_ref.copy_(x)
+                else:
+                    keep_elem = self._per_element(keep)
+                    zero = torch.zeros((), dtype=y.dtype, device=y.device)
+                    self._pad(
+                        torch.where(keep_elem, y, zero), out=ctx.old_dirs_mat[idx]
+                    )
+                    self._pad(
+                        torch.where(keep_elem, s, zero), out=ctx.old_stps_mat[idx]
+                    )
+                    ctx.x_ref = torch.where(keep_elem, x, ctx.x_ref)
 
             # compute the approximate (L-BFGS) inverse Hessian
             if ctx.history_count == 0:
@@ -628,7 +643,7 @@ class LBFGS_Armijo(Optimizer):
         reset = ctx.needs_reset.nonzero(as_tuple=False).squeeze(-1)
         ctx.old_dirs_mat[:, reset, :] = 0.0
         ctx.old_stps_mat[:, reset, :] = 0.0
-        reset_elem = ctx.needs_reset[self._segment_ids]
+        reset_elem = self._per_element(ctx.needs_reset)
         ctx.d.copy_(torch.where(reset_elem, -ctx.flat_grad, ctx.d))
         ctx.x_ref = torch.where(reset_elem, ctx.x, ctx.x_ref)
         ctx.needs_reset = torch.zeros_like(ctx.needs_reset)
@@ -643,7 +658,7 @@ class LBFGS_Armijo(Optimizer):
         inactive = self._inactive(ctx)
         if not ctx.any_inactive:
             return
-        ctx.d.mul_((~inactive).to(ctx.d.dtype)[self._segment_ids])
+        ctx.d.mul_(self._per_element((~inactive).to(ctx.d.dtype)))
 
     def _directional_derivative(self, ctx, correct=True):
         """Compute and cache the directional derivative g . d per segment."""
@@ -654,7 +669,7 @@ class LBFGS_Armijo(Optimizer):
                 bad = (gtd_seg > -1e-5) & ~self._inactive(ctx)
                 if not bool(bad.any()):
                     break
-                bad_elem = bad[self._segment_ids]
+                bad_elem = self._per_element(bad)
                 if check == 1:
                     repaired = d * -torch.sign(flat_grad * d)
                 else:
@@ -685,7 +700,7 @@ class LBFGS_Armijo(Optimizer):
         )
         ctx.ls_evals = ls_evals
 
-        ctx.x.copy_(ctx.x_backup).add_(ctx.d * accepted[self._segment_ids])
+        ctx.x.copy_(ctx.x_backup).add_(ctx.d * self._per_element(accepted))
         if not trial_is_accepted:
             self._closure_fn()
         ctx.loss_vec = self._last_loss_vec
@@ -770,7 +785,7 @@ class LBFGS_Armijo(Optimizer):
             """Evaluate every segment at its own step size."""
             self.ls_func_evals += 1
             # Direct parameter update - eliminates _set_x_from_flat overhead
-            x.copy_(x_backup).add_(d * alpha_vec[self._segment_ids])
+            x.copy_(x_backup).add_(d * self._per_element(alpha_vec))
             closure()
             return self._last_loss_vec
 

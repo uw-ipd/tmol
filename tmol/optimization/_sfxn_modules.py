@@ -47,6 +47,8 @@ class CartesianSfxnNetwork(torch.nn.Module):
         self.masked_coords = torch.nn.Parameter(
             self.full_coords.view(-1, self.full_coords.shape[-1])[self._coord_flat_idx]
         )
+        if self._all_coords_movable:
+            self.full_coords = self.masked_coords.view_as(self.full_coords)
 
         # pose each element of masked_coords belongs to, for per-pose minimization
         pose_for_atom = torch.div(
@@ -56,20 +58,15 @@ class CartesianSfxnNetwork(torch.nn.Module):
         )
         self.segment_ids = pose_for_atom.repeat_interleave(self.full_coords.shape[-1])
 
-        self.count = 0
-
-    def forward(self):
-        self.count += 1
-        if self._all_coords_movable:
-            self.full_coords = self.masked_coords.view_as(self.full_coords)
-        else:
+    def forward(self) -> torch.Tensor:
+        if not self._all_coords_movable:
             self.full_coords = self.full_coords.detach()
             self.full_coords.view(-1, self.full_coords.shape[-1])[
                 self._coord_flat_idx
             ] = self.masked_coords
         return self.whole_pose_scoring_module(self.full_coords)
 
-    def pose_stack_from_dofs(self):
+    def pose_stack_from_dofs(self) -> PoseStack:
         if self._all_coords_movable:
             full_coords = self.masked_coords.detach().view_as(self.full_coords).clone()
             return attrs.evolve(self.pose_stack, coords=full_coords)
@@ -154,11 +151,7 @@ class KinForestSfxnNetwork(torch.nn.Module):
         self.segment_ids = pose_for_dof[self._dof_flat_idx].to(torch.int64)
         assert bool((self.segment_ids >= 0).all()), "root node dofs cannot be minimized"
 
-        self.count = 0
-
-    def forward(self):
-        self.count += 1
-
+    def forward(self) -> torch.Tensor:
         # get rid of any gradients from the previous iteration
         self.full_dofs = self.full_dofs.detach()
         self.full_coords = self.full_coords.detach()
@@ -174,7 +167,7 @@ class KinForestSfxnNetwork(torch.nn.Module):
         # now evaluate the score
         return self.whole_pose_scoring_module(self.full_coords)
 
-    def pose_stack_from_dofs(self):
+    def pose_stack_from_dofs(self) -> PoseStack:
 
         full_dofs = self.full_dofs.clone()
         flat_coords = self.flat_coords.detach()

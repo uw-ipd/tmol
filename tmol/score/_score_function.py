@@ -120,7 +120,7 @@ class _ParallelScoreTerms(torch.autograd.Function):
         autocast_dtype: torch.dtype,
         autocast_cache_enabled: bool,
     ) -> torch.Tensor:
-        term_coords = coords.detach().requires_grad_(True)
+        term_coords = coords
         futures = [
             executor.submit(
                 _score_call_in_thread,

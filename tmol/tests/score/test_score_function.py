@@ -289,6 +289,39 @@ def test_cpu_parallel_whole_pose_gradient_matches_serial_order(
     assert torch.equal(parallel_gradient, serial_gradient)
 
 
+@pytest.mark.parametrize(
+    "backward_threshold", [0, 10_000], ids=["parallel", "single-call"]
+)
+def test_cpu_parallel_whole_pose_supports_second_coordinate_derivatives(
+    monkeypatch: pytest.MonkeyPatch, backward_threshold: int
+) -> None:
+    class QuadraticTerm(torch.nn.Module):
+        def __init__(self, scale: float) -> None:
+            super().__init__()
+            self.scale = scale
+
+        def forward(self, coords: torch.Tensor) -> torch.Tensor:
+            return (self.scale * coords.square().sum()).reshape(1, 1)
+
+    monkeypatch.setattr(torch, "get_num_threads", lambda: 4)
+    monkeypatch.setattr(
+        score_function_module,
+        "_CPU_PARALLEL_SCORE_BACKWARD_MIN_COORD_ELEMENTS",
+        backward_threshold,
+    )
+    scorer = WholePoseScoringModule(
+        torch.ones(4), [QuadraticTerm(scale) for scale in (1.0, 2.0, 3.0, 4.0)]
+    )
+    coords = torch.arange(3.0, requires_grad=True)
+
+    score = scorer(coords).sum()
+    (gradient,) = torch.autograd.grad(score, coords, create_graph=True)
+    (second_derivative,) = torch.autograd.grad(gradient.sum(), coords)
+
+    torch.testing.assert_close(gradient, 20 * coords.detach())
+    torch.testing.assert_close(second_derivative, torch.full_like(coords, 20))
+
+
 def test_rotamer_scorer_combines_identical_sparse_layouts(
     torch_device: torch.device,
     monkeypatch: pytest.MonkeyPatch,
