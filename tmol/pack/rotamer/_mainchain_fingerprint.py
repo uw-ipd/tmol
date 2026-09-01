@@ -9,7 +9,7 @@ from tmol.types import (
     Tensor,
     validate_args,
 )
-from tmol.numeric import coord_dihedrals
+from tmol.numeric._dihedrals import _numpy_coord_dihedrals
 from tmol.database import PatchedChemicalDatabase
 from tmol.chemical import RefinedResidueType
 from tmol.pose import PackedBlockTypes
@@ -224,19 +224,14 @@ def create_non_sidechain_fingerprint(  # noqa: C901
 
                 mc_anc_icoor_ind = rt.at_to_icoor_ind[mc_anc]
 
-                def t64(coord):
-                    return torch.tensor(coord, dtype=torch.float64).unsqueeze(0)
-
-                at1_coord = t64(rt.ideal_coords[mc1_icoor_ind])
-                at2_coord = t64(rt.ideal_coords[mc_anc_icoor_ind])
-                at3_coord = t64(rt.ideal_coords[mc2_icoor_ind])
-                at4_coord = t64(rt.ideal_coords[rt.at_to_icoor_ind[nsc_at]])
-
-                # now we have four coordinates, measure the dihedral
+                # Measure the improper dihedral around the main-chain atom.
                 dihe = numpy.degrees(
-                    coord_dihedrals(at4_coord, at2_coord, at1_coord, at3_coord).numpy()[
-                        0
-                    ]
+                    _numpy_coord_dihedrals(
+                        rt.ideal_coords[rt.at_to_icoor_ind[nsc_at]],
+                        rt.ideal_coords[mc_anc_icoor_ind],
+                        rt.ideal_coords[mc1_icoor_ind],
+                        rt.ideal_coords[mc2_icoor_ind],
+                    )
                 )
                 # some atoms are going to be placed in the plane
                 # defined by the three "main chain" atoms. If the

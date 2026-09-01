@@ -1,6 +1,7 @@
 import torch
 import numpy
 import os
+import threading
 import pytest
 
 from tmol.score import _score_function as score_function_module
@@ -188,11 +189,100 @@ def test_no_grad_scoring_detaches_coordinates():
     assert not term.input_requires_grad
 
 
+def test_cpu_whole_pose_terms_run_concurrently_and_preserve_modes(monkeypatch):
+    monkeypatch.setattr(
+        score_function_module,
+        "_CPU_PARALLEL_SCORE_BACKWARD_MIN_COORD_ELEMENTS",
+        0,
+    )
+
+    class RecordingTerm(torch.nn.Module):
+        def __init__(self, scale):
+            super().__init__()
+            self.scale = scale
+            self.calls = []
+
+        def forward(self, coords):
+            self.calls.append(
+                (
+                    threading.get_ident(),
+                    torch.is_grad_enabled(),
+                    torch.is_inference_mode_enabled(),
+                )
+            )
+            return (self.scale * coords.square().sum()).reshape(1, 1)
+
+    monkeypatch.setattr(torch, "get_num_threads", lambda: 4)
+    terms = [RecordingTerm(scale) for scale in (1.0, 2.0, 3.0, 4.0)]
+    scorer = WholePoseScoringModule(torch.ones(4), terms)
+    coords = torch.arange(3.0, requires_grad=True)
+
+    score = scorer(coords)
+    score.backward(retain_graph=True)
+
+    torch.testing.assert_close(score, torch.tensor([50.0]))
+    torch.testing.assert_close(coords.grad, 20 * coords.detach())
+    coords.grad = None
+    score.backward()
+    torch.testing.assert_close(coords.grad, 20 * coords.detach())
+    assert all(
+        call[0] != threading.get_ident() for term in terms for call in term.calls
+    )
+    assert all(call[1:] == (True, False) for term in terms for call in term.calls)
+
+    for term in terms:
+        term.calls.clear()
+    with torch.inference_mode():
+        scorer(coords)
+    assert all(call[1:] == (False, True) for term in terms for call in term.calls)
+
+    for term in terms:
+        term.calls.clear()
+    scorer._cpu_term_workers = 0
+    scorer(coords)
+    assert all(
+        call[0] == threading.get_ident() for term in terms for call in term.calls
+    )
+
+
+def test_cpu_parallel_whole_pose_gradient_matches_serial_order(
+    ubq_pdb, default_database, torch_device, monkeypatch
+):
+    if torch_device.type != "cpu":
+        pytest.skip("CPU term-parallel scoring test")
+
+    monkeypatch.setattr(
+        score_function_module,
+        "_CPU_PARALLEL_SCORE_BACKWARD_MIN_COORD_ELEMENTS",
+        0,
+    )
+
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
+    scorer = beta2016_score_function(
+        torch_device, default_database
+    ).render_whole_pose_scoring_module(pose)
+
+    def score_and_gradient():
+        coords = pose.coords.detach().clone().requires_grad_(True)
+        score = scorer(coords)
+        (gradient,) = torch.autograd.grad(score.sum(), coords)
+        return score, gradient
+
+    parallel_score, parallel_gradient = score_and_gradient()
+    scorer._cpu_term_workers = 0
+    serial_score, serial_gradient = score_and_gradient()
+
+    assert torch.equal(parallel_score, serial_score)
+    assert torch.equal(parallel_gradient, serial_gradient)
+
+
 def test_rotamer_scorer_combines_identical_sparse_layouts(
     torch_device: torch.device,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(score_function_module, "_ROTAMER_LAYOUT_DEDUP_MIN_BYTES", 0)
+    monkeypatch.setattr(
+        score_function_module, "_CUDA_ROTAMER_LAYOUT_DEDUP_MIN_BYTES", 0
+    )
 
     class SparseTerm(torch.nn.Module):
         def __init__(self, scores: torch.Tensor, indices: torch.Tensor) -> None:
@@ -234,6 +324,65 @@ def test_rotamer_scorer_combines_identical_sparse_layouts(
     )
     dense_scores.sum().backward()
     torch.testing.assert_close(coords.grad, torch.tensor(61.0, device=torch_device))
+
+
+def test_cpu_rotamer_scorer_coalesces_subset_layouts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(score_function_module, "_CPU_ROTAMER_SORTED_LAYOUT_MIN_NNZ", 0)
+
+    class SparseTerm(torch.nn.Module):
+        def __init__(self, scores: torch.Tensor, indices: torch.Tensor) -> None:
+            super().__init__()
+            self.scores = scores
+            self.indices = indices
+            self.n_poses = 1
+            self.n_rots = 3
+
+        def forward(self, coords: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+            return self.scores * coords, self.indices
+
+    complete = torch.tensor([[0, 0, 0], [2, 0, 1], [2, 0, 1]], dtype=torch.int32)
+    subset = complete[:, [0, 2]]
+    scorer = RotamerScoringModule(
+        torch.tensor([1.0, 2.0]),
+        [
+            SparseTerm(torch.tensor([[1.0, 2.0, 3.0]]), complete),
+            SparseTerm(torch.tensor([[4.0, 5.0]]), subset),
+        ],
+    )
+    coords = torch.ones((), requires_grad=True)
+
+    scores = scorer(coords)
+
+    assert scores.is_coalesced()
+    torch.testing.assert_close(
+        scores.to_dense(),
+        torch.tensor([[[2.0, 0.0, 0.0], [0.0, 13.0, 0.0], [0.0, 0.0, 9.0]]]),
+    )
+    scores.values().sum().backward()
+    torch.testing.assert_close(coords.grad, torch.tensor(24.0))
+
+
+def test_cpu_rotamer_terms_run_concurrently(monkeypatch: pytest.MonkeyPatch) -> None:
+    barrier = threading.Barrier(2, timeout=2)
+
+    class SparseTerm(torch.nn.Module):
+        n_poses = 1
+        n_rots = 1
+
+        def forward(self, coords: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+            barrier.wait()
+            scores = coords.reshape(1, 1)
+            indices = torch.zeros((3, 1), dtype=torch.int32)
+            return scores, indices
+
+    monkeypatch.setattr(torch, "get_num_threads", lambda: 2)
+    scorer = RotamerScoringModule(torch.ones(2), [SparseTerm(), SparseTerm()])
+
+    scores = scorer(torch.ones(()))
+
+    torch.testing.assert_close(scores.to_dense(), torch.tensor([[[2.0]]]))
 
 
 def test_cuda_graphed_protein_score_matches_eager(ubq_pdb, torch_device):

@@ -1,5 +1,4 @@
 import numpy
-import numba
 import toolz
 import torch
 
@@ -28,6 +27,7 @@ from tmol.pack.rotamer import (
 )
 from tmol.pack import SetPackerTask
 from tmol.numeric import coord_dihedrals
+from tmol.numeric._dihedrals import _numpy_coord_dihedrals
 
 ConformerSample = tuple[
     Tensor[torch.int32][:],
@@ -102,12 +102,13 @@ def _build_chi_phi_c_corrections(
 
     n_types, max_n_chi = chi4_table.shape[:2]
     corrections = numpy.zeros((n_types, max_n_chi), dtype=numpy.float32)
+    correction_indices = []
+    ideal_chi_coords = []
+    ideal_phi_c = []
 
     for ti, rt in enumerate(pbt.active_block_types):
-        # ideal coords in restype atom order
-        ideal_coords = torch.tensor(
-            rt.ideal_coords[rt.at_to_icoor_ind], dtype=torch.float64
-        )
+        # Ideal coordinates in residue-type atom order.
+        ideal_coords = rt.ideal_coords[rt.at_to_icoor_ind]
         chi_names = sorted(k for k in rt.torsion_to_uaids if k.startswith("chi"))
         for ci in range(len(chi_names)):
             four_rto = chi4_table[ti, ci]
@@ -120,12 +121,17 @@ def _build_chi_phi_c_corrections(
             parent_kfo = int(parent_arr[ti, cda_kfo])
             if doftype_arr[ti, parent_kfo] == NodeType.jump:
                 continue
-            xyzs = ideal_coords[four_rto]
-            chi_ideal = float(
-                coord_dihedrals(xyzs[0:1], xyzs[1:2], xyzs[2:3], xyzs[3:4])[0]
-            )
-            phi_c_ideal = float(dofs_ideal[ti, cda_kfo, 3])
-            corrections[ti, ci] = chi_ideal - phi_c_ideal
+            correction_indices.append((ti, ci))
+            ideal_chi_coords.append(ideal_coords[four_rto])
+            ideal_phi_c.append(dofs_ideal[ti, cda_kfo, 3])
+
+    if correction_indices:
+        xyzs = numpy.stack(ideal_chi_coords)
+        chi_ideal = _numpy_coord_dihedrals(
+            xyzs[:, 0], xyzs[:, 1], xyzs[:, 2], xyzs[:, 3]
+        )
+        correction_indices = numpy.asarray(correction_indices).T
+        corrections[tuple(correction_indices)] = chi_ideal - numpy.asarray(ideal_phi_c)
 
     object.__setattr__(pbt, "_chi_phi_c_corrections", corrections)
     return corrections
@@ -333,47 +339,76 @@ def annotate_everything(
     object.__setattr__(pbt, cache_name, previously_annotated | sampler_names)
 
 
-@numba.jit(nopython=True)
 def update_nodes(
-    nodes_orig, genStartsStack, n_nodes_offset_for_rot, n_atoms_offset_for_rot
-):
-    """Merge the 1-residue-kinforest nodes data so that all the rotamers can be
-    built in a single generational-segmented-scan call. This has the structure
-    of load-balanced search operation.
+    nodes_orig: NDArray[numpy.int32][:],
+    genStartsStack: NDArray[numpy.int32][:, :, 2],
+    n_nodes_offset_for_rot: NDArray[numpy.int64][:],
+    n_atoms_offset_for_rot: NDArray[numpy.int64][:],
+) -> NDArray[numpy.int32][:]:
+    """Merge residue-local nodes into one generational scan layout.
+
+    Args:
+        nodes_orig: Concatenated residue-local node indices.
+        genStartsStack: Per-conformer generation and scan boundaries.
+        n_nodes_offset_for_rot: Start of each conformer's local node array.
+        n_atoms_offset_for_rot: Start of each conformer in the merged forest.
+
+    Returns:
+        Merged node indices ordered by generation, then conformer.
     """
 
-    n_gens = genStartsStack.shape[1]
-    n_nodes = nodes_orig.shape[0]
-    n_rotamers = n_atoms_offset_for_rot.shape[0]
-    nodes = numpy.zeros(n_nodes, dtype=numpy.int32)
-    count = 0
-    for i in range(n_gens - 1):
-        for j in range(n_rotamers):
-            for k in range(genStartsStack[j, i, 0], genStartsStack[j, i + 1, 0]):
-                nodes[count] = nodes_orig[n_nodes_offset_for_rot[j] + k]
-                if nodes[count] != 0:
-                    nodes[count] += n_atoms_offset_for_rot[j]
-                count += 1
+    n_rotamers = genStartsStack.shape[0]
+    rotamer_indices = numpy.arange(n_rotamers)
+    nodes = numpy.empty(nodes_orig.shape[0], dtype=numpy.int32)
+    output_offset = 0
+    for generation in range(genStartsStack.shape[1] - 1):
+        starts = genStartsStack[:, generation, 0]
+        lengths = numpy.maximum(genStartsStack[:, generation + 1, 0] - starts, 0)
+        count = int(lengths.sum())
+        if count == 0:
+            continue
+        rotamer = numpy.repeat(rotamer_indices, lengths)
+        within_rotamer = numpy.arange(count) - numpy.repeat(
+            numpy.cumsum(lengths) - lengths, lengths
+        )
+        source = n_nodes_offset_for_rot[rotamer] + starts[rotamer] + within_rotamer
+        values = nodes_orig[source].copy()
+        non_root = values != 0
+        values[non_root] += n_atoms_offset_for_rot[rotamer[non_root]]
+        nodes[output_offset : output_offset + count] = values
+        output_offset += count
+    assert output_offset == nodes.shape[0]
     return nodes
 
 
-@numba.jit(nopython=True)
 def update_scan_starts(
-    n_scans, atomStartsOffsets, scanStartsStack, genStartsStack, ngenStack
-):
-    n_gens = genStartsStack.shape[1]
+    n_scans: int,
+    atomStartsOffsets: NDArray[numpy.int64][:, :],
+    scanStartsStack: NDArray[numpy.int32][:, :],
+    genStartsStack: NDArray[numpy.int32][:, :, 2],
+    ngenStack: NDArray[numpy.int32][:, :],
+) -> NDArray[numpy.int32][:]:
+    """Merge residue-local scan starts into generation-major order."""
     n_rotamers = genStartsStack.shape[0]
-    scanStarts = numpy.zeros((n_scans,), dtype=numpy.int32)
-    count = 0
-    for i in range(n_gens - 1):
-        for j in range(n_rotamers):
-            for k in range(ngenStack[i, j]):
-                scanStarts[count] = (
-                    atomStartsOffsets[i, j]
-                    + scanStartsStack[j, genStartsStack[j, i, 1] + k]
-                )
-                count += 1
-    return scanStarts
+    rotamer_indices = numpy.arange(n_rotamers)
+    scan_starts = numpy.empty(n_scans, dtype=numpy.int32)
+    output_offset = 0
+    for generation in range(genStartsStack.shape[1] - 1):
+        lengths = ngenStack[generation]
+        count = int(lengths.sum())
+        if count == 0:
+            continue
+        rotamer = numpy.repeat(rotamer_indices, lengths)
+        within_rotamer = numpy.arange(count) - numpy.repeat(
+            numpy.cumsum(lengths) - lengths, lengths
+        )
+        source = genStartsStack[rotamer, generation, 1] + within_rotamer
+        scan_starts[output_offset : output_offset + count] = (
+            atomStartsOffsets[generation, rotamer] + scanStartsStack[rotamer, source]
+        )
+        output_offset += count
+    assert output_offset == n_scans
+    return scan_starts
 
 
 @validate_args
@@ -405,8 +440,6 @@ def construct_scans_for_conformers(
     ngenStack[ngenStack < 0] = 0
     ngenStackCumsum = numpy.cumsum(ngenStack.reshape(-1), axis=0)
 
-    # jitted function that operates on the CPU; need to figure
-    # out how to replace this with a GPU-compatible version
     scanStarts = update_scan_starts(
         ngenStackCumsum[-1],
         atomStartsOffsets,
@@ -431,55 +464,50 @@ def construct_scans_for_conformers(
     return nodes, scanStarts, gen_starts
 
 
-@numba.jit(nopython=True)
 def load_from_rotamers(
     arr: NDArray[numpy.int32][:, :],
     n_atoms_total: int,
     n_atoms_for_rot: NDArray[numpy.int32][:],
-):
+) -> NDArray[numpy.int32][:]:
+    """Compact real per-conformer entries behind one virtual root."""
     compact_arr = numpy.zeros((n_atoms_total + 1,), dtype=numpy.int32)
-    count = 1
-    for i in range(n_atoms_for_rot.shape[0]):
-        for j in range(n_atoms_for_rot[i]):
-            compact_arr[count] = arr[i][j]
-            count += 1
+    atom_is_real = numpy.arange(arr.shape[1]) < n_atoms_for_rot[:, None]
+    compact_arr[1:] = arr[atom_is_real]
     return compact_arr
 
 
-@numba.jit(nopython=True)
 def load_from_rotamers_w_offsets(
     arr: NDArray[numpy.int32][:, :],
     n_atoms_total: int,
     n_atoms_for_rot: NDArray[numpy.int32][:],
-    n_atoms_offset_for_rot: NDArray[numpy.int32][:],
-):
+    n_atoms_offset_for_rot: NDArray[numpy.int64][:],
+) -> NDArray[numpy.int32][:]:
+    """Compact real entries and translate their conformer-local indices."""
     compact_arr = numpy.zeros((n_atoms_total + 1,), dtype=numpy.int32)
-    count = 1
-    for i in range(n_atoms_for_rot.shape[0]):
-        for j in range(n_atoms_for_rot[i]):
-            compact_arr[count] = arr[i][j] + n_atoms_offset_for_rot[i]
-            count += 1
+    atom_is_real = numpy.arange(arr.shape[1]) < n_atoms_for_rot[:, None]
+    offsets = numpy.repeat(
+        n_atoms_offset_for_rot[: n_atoms_for_rot.shape[0]], n_atoms_for_rot
+    )
+    compact_arr[1:] = arr[atom_is_real] + offsets
     return compact_arr
 
 
-@numba.jit(nopython=True)
 def load_rotamer_parents(
     parents: NDArray[numpy.int32][:, :],
     n_atoms_total: int,
     n_atoms_for_rot: NDArray[numpy.int32][:],
-    n_atoms_offset_for_rot: NDArray[numpy.int32][:],
-):
+    n_atoms_offset_for_rot: NDArray[numpy.int64][:],
+) -> NDArray[numpy.int32][:]:
+    """Compact parent indices while joining conformers at a virtual root."""
     compact_arr = numpy.zeros((n_atoms_total + 1,), dtype=numpy.int32)
-    count = 1
-    for i in range(n_atoms_for_rot.shape[0]):
-        for j in range(n_atoms_for_rot[i]):
-            # offset by 1 for the root node of each rotamer
-            # because the parent array has -1 for root nodes'
-            # parents and we want to make it 0
-            compact_arr[count] = parents[i][j] + (
-                n_atoms_offset_for_rot[i] if j != 0 else 1
-            )
-            count += 1
+    atom_is_real = numpy.arange(parents.shape[1]) < n_atoms_for_rot[:, None]
+    offsets = numpy.repeat(
+        n_atoms_offset_for_rot[: n_atoms_for_rot.shape[0]], n_atoms_for_rot
+    )
+    # Root parents are -1 and should map to the shared root at index zero.
+    rotamer_starts = numpy.cumsum(n_atoms_for_rot) - n_atoms_for_rot
+    offsets[rotamer_starts] = 1
+    compact_arr[1:] = parents[atom_is_real] + offsets
     return compact_arr
 
 

@@ -1,5 +1,8 @@
+from concurrent.futures import ThreadPoolExecutor
 import logging
-from typing import Dict, Sequence
+import os
+import threading
+from typing import Callable, Dict, Sequence, TypeVar
 import warnings
 
 import torch
@@ -26,8 +29,211 @@ logger = logging.getLogger(__name__)
 SFXN_FORMAT_VERSION: str = "1.0"
 
 # Exact CUDA tensor equality synchronizes with the host. Only pay that cost
-# when one duplicate sparse index layout would retain at least 16 MiB.
-_ROTAMER_LAYOUT_DEDUP_MIN_BYTES = 16 * 1024 * 1024
+# when one duplicate sparse index layout would retain at least 16 MiB. CPU
+# equality has no synchronization penalty, so all matching layouts are tested.
+_CUDA_ROTAMER_LAYOUT_DEDUP_MIN_BYTES = 16 * 1024 * 1024
+_CPU_ROTAMER_SORTED_LAYOUT_MIN_NNZ = 4096
+_MAX_CPU_SCORE_TERM_WORKERS = 4
+_CPU_PARALLEL_SCORE_BACKWARD_MIN_COORD_ELEMENTS = 8192
+_CPU_SCORE_TERM_EXECUTORS: dict[int, ThreadPoolExecutor] = {}
+_CPU_SCORE_TERM_EXECUTOR_LOCK = threading.Lock()
+_ScoreCallResult = TypeVar("_ScoreCallResult")
+
+
+def _cpu_score_term_executor(n_workers: int) -> ThreadPoolExecutor:
+    """Return a process-local executor shared by rendered CPU scorers."""
+    with _CPU_SCORE_TERM_EXECUTOR_LOCK:
+        executor = _CPU_SCORE_TERM_EXECUTORS.get(n_workers)
+        if executor is None:
+            executor = ThreadPoolExecutor(
+                max_workers=n_workers, thread_name_prefix="tmol-score"
+            )
+            _CPU_SCORE_TERM_EXECUTORS[n_workers] = executor
+        return executor
+
+
+def _reset_cpu_score_term_executors_after_fork() -> None:
+    """Discard parent-process thread pools in a forked child."""
+    global _CPU_SCORE_TERM_EXECUTORS, _CPU_SCORE_TERM_EXECUTOR_LOCK
+    _CPU_SCORE_TERM_EXECUTORS = {}
+    _CPU_SCORE_TERM_EXECUTOR_LOCK = threading.Lock()
+
+
+if hasattr(os, "register_at_fork"):
+    os.register_at_fork(after_in_child=_reset_cpu_score_term_executors_after_fork)
+
+
+def _score_call_in_thread(
+    score_call: Callable[[torch.Tensor], _ScoreCallResult],
+    coords: torch.Tensor,
+    grad_enabled: bool,
+    inference_mode_enabled: bool,
+    autocast_enabled: bool,
+    autocast_dtype: torch.dtype,
+    autocast_cache_enabled: bool,
+) -> _ScoreCallResult:
+    """Evaluate one CPU score term with the caller's thread-local modes."""
+    with (
+        torch.inference_mode(inference_mode_enabled),
+        torch.set_grad_enabled(grad_enabled),
+        torch.autocast(
+            "cpu",
+            enabled=autocast_enabled,
+            dtype=autocast_dtype,
+            cache_enabled=autocast_cache_enabled,
+        ),
+    ):
+        return score_call(coords)
+
+
+def _score_grad_in_thread(
+    scores: torch.Tensor,
+    coords: torch.Tensor,
+    grad_scores: torch.Tensor,
+    create_graph: bool,
+) -> torch.Tensor | None:
+    """Differentiate one independent CPU score-term graph."""
+    with torch.set_grad_enabled(create_graph):
+        (term_grad,) = torch.autograd.grad(
+            scores,
+            coords,
+            grad_scores,
+            retain_graph=True,
+            create_graph=create_graph,
+            allow_unused=True,
+        )
+    return term_grad
+
+
+class _ParallelScoreTerms(torch.autograd.Function):
+    """Run CPU term forwards concurrently with deterministic accumulation."""
+
+    @staticmethod
+    def forward(
+        ctx,
+        coords: torch.Tensor,
+        executor: ThreadPoolExecutor,
+        term_modules: Sequence[torch.nn.Module],
+        autocast_enabled: bool,
+        autocast_dtype: torch.dtype,
+        autocast_cache_enabled: bool,
+    ) -> torch.Tensor:
+        term_coords = coords.detach().requires_grad_(True)
+        futures = [
+            executor.submit(
+                _score_call_in_thread,
+                term,
+                term_coords,
+                True,
+                False,
+                autocast_enabled,
+                autocast_dtype,
+                autocast_cache_enabled,
+            )
+            for term in term_modules
+        ]
+        term_scores = tuple(future.result() for future in futures)
+        ctx.term_coords = term_coords
+        ctx.term_scores = term_scores
+        ctx.term_sizes = tuple(scores.shape[0] for scores in term_scores)
+        ctx.executor = executor
+        ctx.parallel_backward = (
+            coords.numel() >= _CPU_PARALLEL_SCORE_BACKWARD_MIN_COORD_ELEMENTS
+        )
+        return torch.cat(term_scores, dim=0).detach()
+
+    @staticmethod
+    def backward(ctx, grad_scores: torch.Tensor):
+        # Serial scoring creates the term autograd nodes in score-type order;
+        # PyTorch visits those nodes in reverse order. Preserve that reduction
+        # order so concurrent forward scheduling cannot perturb minimization.
+        create_graph = torch.is_grad_enabled()
+        term_grad_inputs = []
+        offset = sum(ctx.term_sizes)
+        for term_scores, term_size in zip(
+            reversed(ctx.term_scores), reversed(ctx.term_sizes)
+        ):
+            offset -= term_size
+            term_grad_inputs.append(
+                (
+                    term_scores,
+                    ctx.term_coords,
+                    grad_scores[offset : offset + term_size],
+                    create_graph,
+                )
+            )
+
+        if ctx.parallel_backward:
+            term_grad_futures = [
+                ctx.executor.submit(
+                    _score_grad_in_thread,
+                    *grad_input,
+                )
+                for grad_input in term_grad_inputs
+            ]
+            term_grads = [future.result() for future in term_grad_futures]
+        else:
+            term_grads = [
+                _score_grad_in_thread(*grad_input) for grad_input in term_grad_inputs
+            ]
+
+        grad_coords = None
+        for term_grad in term_grads:
+            if term_grad is not None:
+                grad_coords = (
+                    term_grad if grad_coords is None else grad_coords + term_grad
+                )
+        return grad_coords, None, None, None, None, None
+
+
+def _linearize_rotamer_indices(indices: torch.Tensor, n_rots: int) -> torch.Tensor:
+    """Encode ``[pose, rotamer_i, rotamer_j]`` indices as sortable integers."""
+    indices_64 = indices.to(torch.int64)
+    return (indices_64[0] * n_rots + indices_64[1]) * n_rots + indices_64[2]
+
+
+def _try_coalesce_cpu_rotamer_layouts(
+    indices: Sequence[torch.Tensor],
+    values: Sequence[torch.Tensor],
+    n_poses: int,
+    n_rots: int,
+) -> torch.Tensor | None:
+    """Merge sparse CPU layouts when the largest layout contains their union.
+
+    Sorting one complete layout and mapping the smaller layouts into it avoids
+    concatenating and sorting every repeated index. ``None`` requests the
+    general sparse-coalesce path when that containment invariant does not hold.
+    """
+    if len(indices) < 2:
+        return None
+
+    largest = max(range(len(indices)), key=lambda i: indices[i].shape[1])
+    if indices[largest].shape[1] < _CPU_ROTAMER_SORTED_LAYOUT_MIN_NNZ:
+        return None
+
+    keys = [_linearize_rotamer_indices(layout, n_rots) for layout in indices]
+    sorted_keys, order = torch.sort(keys[largest])
+    if sorted_keys.numel() > 1 and bool(torch.any(sorted_keys[1:] == sorted_keys[:-1])):
+        return None
+
+    combined_values = values[largest][order].clone()
+    for layout_index, layout_keys in enumerate(keys):
+        if layout_index == largest or layout_keys.numel() == 0:
+            continue
+        positions = torch.searchsorted(sorted_keys, layout_keys)
+        if bool(torch.any(positions == sorted_keys.numel())) or not torch.equal(
+            sorted_keys[positions], layout_keys
+        ):
+            return None
+        combined_values.index_add_(0, positions, values[layout_index])
+
+    return torch.sparse_coo_tensor(
+        indices[largest][:, order],
+        combined_values,
+        size=(n_poses, n_rots, n_rots),
+        is_coalesced=True,
+        check_invariants=False,
+    )
 
 
 class ScoreFunction:
@@ -447,7 +653,13 @@ class WholePoseScoringModule:
         term_modules: Sequence[torch.nn.Module],
     ):
         self.weights = torch.nn.Parameter(weights.unsqueeze(1), requires_grad=False)
-        self.term_modules = term_modules
+        self.term_modules = tuple(term_modules)
+        cpu_workers = min(
+            _MAX_CPU_SCORE_TERM_WORKERS,
+            torch.get_num_threads(),
+            len(self.term_modules),
+        )
+        self._cpu_term_workers = cpu_workers if weights.device.type == "cpu" else 0
 
     def __call__(self, coords, sum_terms=True, apply_weights=True):
         if sum_terms and apply_weights:
@@ -469,7 +681,33 @@ class WholePoseScoringModule:
         return summed
 
     def unweighted_scores(self, coords):
-        return torch.cat([term(coords) for term in self.term_modules], dim=0)
+        if self._cpu_term_workers < 2:
+            return torch.cat([term(coords) for term in self.term_modules], dim=0)
+
+        executor = _cpu_score_term_executor(self._cpu_term_workers)
+        autocast_context = (
+            torch.is_autocast_enabled("cpu"),
+            torch.get_autocast_dtype("cpu"),
+            torch.is_autocast_cache_enabled(),
+        )
+        if torch.is_grad_enabled() and coords.requires_grad:
+            return _ParallelScoreTerms.apply(
+                coords,
+                executor,
+                self.term_modules,
+                *autocast_context,
+            )
+
+        context = (
+            torch.is_grad_enabled(),
+            torch.is_inference_mode_enabled(),
+            *autocast_context,
+        )
+        futures = [
+            executor.submit(_score_call_in_thread, term, coords, *context)
+            for term in self.term_modules
+        ]
+        return torch.cat([future.result() for future in futures], dim=0)
 
     def enable_cuda_graphs(self, example_coords, mode="both"):
         """Capture the default weighted score for a fixed coordinate shape.
@@ -616,7 +854,13 @@ class RotamerScoringModule:
         self.weights = torch.nn.Parameter(
             weights.view(-1, 1, 1, 1), requires_grad=False
         )
-        self.term_modules = term_modules
+        self.term_modules = tuple(term_modules)
+        cpu_workers = min(
+            _MAX_CPU_SCORE_TERM_WORKERS,
+            torch.get_num_threads(),
+            len(self.term_modules),
+        )
+        self._cpu_term_workers = cpu_workers if weights.device.type == "cpu" else 0
 
     def __call__(self, coords: torch.Tensor) -> torch.Tensor:
         if not torch.is_grad_enabled() and coords.requires_grad:
@@ -632,8 +876,33 @@ class RotamerScoringModule:
         n_rots: int | None = None
         weights_offset = 0
 
-        for term in self.term_modules:
-            scores, indices = term.forward(coords)  # [n_subterms, nnz], [3, nnz]
+        parallel = self._cpu_term_workers >= 2 and not (
+            torch.is_grad_enabled() and coords.requires_grad
+        )
+        if parallel:
+            executor = _cpu_score_term_executor(self._cpu_term_workers)
+            context = (
+                torch.is_grad_enabled(),
+                torch.is_inference_mode_enabled(),
+                torch.is_autocast_enabled("cpu"),
+                torch.get_autocast_dtype("cpu"),
+                torch.is_autocast_cache_enabled(),
+            )
+            futures = [
+                executor.submit(
+                    _score_call_in_thread,
+                    term.forward,
+                    coords,
+                    *context,
+                )
+                for term in self.term_modules
+            ]
+            term_results = [future.result() for future in futures]
+        else:
+            term_results = [term.forward(coords) for term in self.term_modules]
+
+        for term, (scores, indices) in zip(self.term_modules, term_results):
+            # [n_subterms, nnz], [3, nnz]
             n_subterms = scores.shape[0]
 
             # Apply per-subterm weights and sum to [nnz] — no sparse tensor yet.
@@ -644,8 +913,9 @@ class RotamerScoringModule:
             # values now so the sparse coalesce does not sort another copy of
             # the same, potentially multi-gigabyte, index layout.
             deduplicate_layout = (
-                indices.numel() * indices.element_size()
-                >= _ROTAMER_LAYOUT_DEDUP_MIN_BYTES
+                indices.device.type == "cpu"
+                or indices.numel() * indices.element_size()
+                >= _CUDA_ROTAMER_LAYOUT_DEDUP_MIN_BYTES
             )
             candidate_layouts = (
                 layouts_by_nnz.get(indices.shape[1], ()) if deduplicate_layout else ()
@@ -674,7 +944,17 @@ class RotamerScoringModule:
                 torch.zeros((3, 0), dtype=torch.int32, device=coords.device),
                 torch.zeros(0, dtype=torch.float32, device=coords.device),
                 size=(0, 0, 0),
+                is_coalesced=True,
+                check_invariants=False,
             )
+        assert n_rots is not None
+
+        if coords.device.type == "cpu":
+            coalesced = _try_coalesce_cpu_rotamer_layouts(
+                all_indices, all_values, n_poses, n_rots
+            )
+            if coalesced is not None:
+                return coalesced
 
         combined_values = torch.cat(all_values)
         combined_indices = torch.cat(all_indices, dim=1)
@@ -682,4 +962,6 @@ class RotamerScoringModule:
             combined_indices,
             combined_values,
             size=(n_poses, n_rots, n_rots),
+            is_coalesced=False,
+            check_invariants=False,
         )
