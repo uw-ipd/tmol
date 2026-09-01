@@ -548,6 +548,12 @@ def test_block_pair_scoring_matches_whole_pose(ubq_pdb, default_database, torch_
     torch.testing.assert_close(
         full_score, torch.sum(block_score, dim=(1, 2)), atol=1e-3, rtol=1e-3
     )
+    if torch_device.type == "cpu":
+        parallel_score = block_scorer(pose_stack.coords)
+        block_scorer._cpu_term_workers = 0
+        block_scorer._cpu_forward_workers = 0
+        serial_score = block_scorer(pose_stack.coords)
+        assert torch.equal(parallel_score, serial_score)
 
 
 def test_block_pair_gradients_respect_sparse_upstream_weights(
@@ -592,6 +598,49 @@ def test_block_pair_scoring_supports_only_invariant_zero_terms(torch_device):
     assert scores.shape == (3, 4, 4)
     assert torch.count_nonzero(scores) == 0
     scores.sum().backward()
+
+
+def test_cpu_block_pair_terms_parallelize_only_forward(monkeypatch):
+    barrier = threading.Barrier(2, timeout=2)
+
+    class RecordingTerm(torch.nn.Module):
+        def __init__(self, scale):
+            super().__init__()
+            self.scale = scale
+            self.parallel = True
+            self.thread_ids = []
+
+        def forward(self, coords):
+            self.thread_ids.append(threading.get_ident())
+            if self.parallel:
+                barrier.wait()
+            return (self.scale * coords.sum()).expand(1, 1, 2, 2)
+
+    monkeypatch.setattr(torch, "get_num_threads", lambda: 2)
+    terms = [RecordingTerm(1.0), RecordingTerm(2.0)]
+    scorer = BlockPairScoringModule(
+        torch.tensor([1.0, 7.0, 1.0]),
+        [
+            terms[0],
+            ZeroTermPoseScoringModule("zero", 1, 1, torch.device("cpu"), 2),
+            terms[1],
+        ],
+    )
+
+    with torch.no_grad():
+        scores = scorer(torch.ones((1, 1, 3)))
+
+    torch.testing.assert_close(scores, torch.full((1, 2, 2), 9.0))
+    assert all(term.thread_ids[0] != threading.get_ident() for term in terms)
+
+    coords = torch.ones((1, 1, 3), requires_grad=True)
+    for term in terms:
+        term.parallel = False
+        term.thread_ids.clear()
+    scorer(coords).sum().backward()
+
+    torch.testing.assert_close(coords.grad, torch.full_like(coords, 12.0))
+    assert all(term.thread_ids == [threading.get_ident()] for term in terms)
 
 
 def test_virtual_residue_scoring(ubq_pdb, torch_device):

@@ -58,6 +58,20 @@ def _cpu_score_term_executor(n_workers: int) -> ThreadPoolExecutor:
         return executor
 
 
+def _cpu_score_term_worker_counts(
+    n_terms: int, device: torch.device
+) -> tuple[int, int]:
+    """Return conservative default and large-forward CPU worker counts."""
+    if device.type != "cpu":
+        return 0, 0
+    n_threads = torch.get_num_threads()
+    workers = min(_MAX_CPU_SCORE_TERM_WORKERS, n_threads, n_terms)
+    forward_workers = workers
+    if n_threads >= _CPU_WIDE_FORWARD_SCORE_MIN_THREADS:
+        forward_workers = min(_MAX_CPU_FORWARD_SCORE_TERM_WORKERS, n_threads, n_terms)
+    return workers, forward_workers
+
+
 def _reset_cpu_score_term_executors_after_fork() -> None:
     """Discard parent-process thread pools in a forked child."""
     global _CPU_SCORE_TERM_EXECUTORS, _CPU_SCORE_TERM_EXECUTOR_LOCK
@@ -667,21 +681,8 @@ class WholePoseScoringModule:
             for term in self.term_modules
             for parameter in term.parameters()
         )
-        cpu_workers = min(
-            _MAX_CPU_SCORE_TERM_WORKERS,
-            torch.get_num_threads(),
-            len(self.term_modules),
-        )
-        self._cpu_term_workers = cpu_workers if weights.device.type == "cpu" else 0
-        cpu_forward_workers = cpu_workers
-        if torch.get_num_threads() >= _CPU_WIDE_FORWARD_SCORE_MIN_THREADS:
-            cpu_forward_workers = min(
-                _MAX_CPU_FORWARD_SCORE_TERM_WORKERS,
-                torch.get_num_threads(),
-                len(self.term_modules),
-            )
-        self._cpu_forward_workers = (
-            cpu_forward_workers if weights.device.type == "cpu" else 0
+        self._cpu_term_workers, self._cpu_forward_workers = (
+            _cpu_score_term_worker_counts(len(self.term_modules), weights.device)
         )
 
     def __call__(self, coords, sum_terms=True, apply_weights=True):
@@ -840,12 +841,51 @@ class BlockPairScoringModule:
         self.weights = torch.nn.Parameter(
             weights.unsqueeze(1).unsqueeze(1).unsqueeze(1), requires_grad=False
         )
-        self.term_modules = term_modules
+        self.term_modules = tuple(term_modules)
+        self._active_term_modules = tuple(
+            term
+            for term in self.term_modules
+            if not isinstance(term, ZeroTermPoseScoringModule)
+        )
+        self._has_trainable_term_parameters = any(
+            parameter.requires_grad
+            for term in self.term_modules
+            for parameter in term.parameters()
+        )
+        self._cpu_term_workers, self._cpu_forward_workers = (
+            _cpu_score_term_worker_counts(len(self.term_modules), weights.device)
+        )
 
     def __call__(self, coords, sum_terms=True, apply_weights=True):
         if not torch.is_grad_enabled() and coords.requires_grad:
             coords = coords.detach()
         if sum_terms and apply_weights:
+            cpu_workers = self._cpu_term_workers
+            if coords.shape[0] >= _CPU_WIDE_FORWARD_SCORE_MIN_POSES:
+                cpu_workers = self._cpu_forward_workers
+            differentiable = torch.is_grad_enabled() and (
+                coords.requires_grad or self._has_trainable_term_parameters
+            )
+            active_results = None
+            if (
+                cpu_workers >= 2
+                and not differentiable
+                and len(self._active_term_modules) >= 2
+            ):
+                executor = _cpu_score_term_executor(cpu_workers)
+                context = (
+                    torch.is_grad_enabled(),
+                    torch.is_inference_mode_enabled(),
+                    torch.is_autocast_enabled("cpu"),
+                    torch.get_autocast_dtype("cpu"),
+                    torch.is_autocast_cache_enabled(),
+                )
+                futures = [
+                    executor.submit(_score_call_in_thread, term, coords, *context)
+                    for term in self._active_term_modules
+                ]
+                active_results = iter(future.result() for future in futures)
+
             active_scores = []
             active_weights = []
             weight_offset = 0
@@ -853,7 +893,9 @@ class BlockPairScoringModule:
                 if isinstance(term, ZeroTermPoseScoringModule):
                     weight_offset += term.shape[0]
                     continue
-                scores = term(coords)
+                scores = (
+                    term(coords) if active_results is None else next(active_results)
+                )
                 next_offset = weight_offset + scores.shape[0]
                 active_scores.append(scores)
                 active_weights.append(self.weights[weight_offset:next_offset])
@@ -888,12 +930,9 @@ class RotamerScoringModule:
             weights.view(-1, 1, 1, 1), requires_grad=False
         )
         self.term_modules = tuple(term_modules)
-        cpu_workers = min(
-            _MAX_CPU_SCORE_TERM_WORKERS,
-            torch.get_num_threads(),
-            len(self.term_modules),
+        self._cpu_term_workers, _ = _cpu_score_term_worker_counts(
+            len(self.term_modules), weights.device
         )
-        self._cpu_term_workers = cpu_workers if weights.device.type == "cpu" else 0
 
     def __call__(self, coords: torch.Tensor) -> torch.Tensor:
         if not torch.is_grad_enabled() and coords.requires_grad:
