@@ -310,6 +310,11 @@ jobs:
               test -x \"\${CUDA_HOME}/bin/nvcc\"
               test -f \"\${CUDA_HOME}/include/cublas_v2.h\"
               test -f \"\${CUDA_HOME}/include/nvtx3/nvToolsExt.h\"
+              CUDART_LIBRARY=\$(find \"\${CUDA_HOME}/lib\" -maxdepth 1 -name 'libcudart.so.*' -print -quit)
+              test -n \"\${CUDART_LIBRARY}\"
+              test -e \"\${CUDA_HOME}/lib/libcudart.so\" || \
+                ln -s \"\$(basename \"\${CUDART_LIBRARY}\")\" \"\${CUDA_HOME}/lib/libcudart.so\"
+              test -e \"\${CUDA_HOME}/lib64\" || ln -s lib \"\${CUDA_HOME}/lib64\"
               find \"\${CUDA_HOME}\" -name 'libnvrtc.so*' -print -quit > /tmp/tmol_nvrtc_path
               test -s /tmp/tmol_nvrtc_path
               \"\${CUDA_HOME}/bin/nvcc\" --version
