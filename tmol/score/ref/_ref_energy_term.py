@@ -136,7 +136,7 @@ def eval_ref_energy_for_pose(
     else:
         # Reference energies are coordinate-independent. Their per-pose sum is
         # computed once while rendering the scoring module, not on every call.
-        score = pose_ref.view_as(pose_ref)
+        score = pose_ref
 
     return _coordinate_independent_score(_rot_coords, score), None
 
