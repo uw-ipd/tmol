@@ -124,7 +124,7 @@ jobs:
             apptainer instance start --fakeroot --writable-tmpfs \
               --bind "$GITHUB_WORKSPACE:/workspace" \
               "$BUILDER_IMAGE" "$BUILDER"
-            echo "CONTAINER_EXEC=apptainer exec --fakeroot --pwd /workspace" >> "$GITHUB_ENV"
+            echo "CONTAINER_EXEC=apptainer exec --pwd /workspace" >> "$GITHUB_ENV"
             echo "CONTAINER_TARGET=instance://${BUILDER}" >> "$GITHUB_ENV"
             echo "CONTAINER_ENV_FLAG=--env" >> "$GITHUB_ENV"
             echo "BUILDER_IMAGE=${BUILDER_IMAGE}" >> "$GITHUB_ENV"
