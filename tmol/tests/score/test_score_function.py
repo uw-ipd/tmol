@@ -283,6 +283,27 @@ def test_large_cpu_forward_uses_wider_term_pool(monkeypatch):
     assert worker_counts == [8, 4]
 
 
+def test_cpu_whole_pose_preserves_trainable_term_gradients(monkeypatch):
+    class TrainableTerm(torch.nn.Module):
+        def __init__(self, scale):
+            super().__init__()
+            self.scale = torch.nn.Parameter(torch.tensor(scale))
+
+        def forward(self, coords):
+            return (self.scale * coords.square().sum()).reshape(1, 1)
+
+    monkeypatch.setattr(torch, "get_num_threads", lambda: 2)
+    terms = [TrainableTerm(2.0), TrainableTerm(3.0)]
+    scorer = WholePoseScoringModule(torch.ones(2), terms)
+    coords = torch.arange(3.0, requires_grad=True)
+
+    scorer(coords).backward()
+
+    torch.testing.assert_close(coords.grad, 10 * coords.detach())
+    for term in terms:
+        torch.testing.assert_close(term.scale.grad, coords.detach().square().sum())
+
+
 def test_cpu_parallel_whole_pose_gradient_matches_serial_order(
     ubq_pdb, default_database, torch_device, monkeypatch
 ):

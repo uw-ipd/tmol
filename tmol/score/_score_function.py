@@ -662,6 +662,11 @@ class WholePoseScoringModule:
     ):
         self.weights = torch.nn.Parameter(weights.unsqueeze(1), requires_grad=False)
         self.term_modules = tuple(term_modules)
+        self._has_trainable_term_parameters = any(
+            parameter.requires_grad
+            for term in self.term_modules
+            for parameter in term.parameters()
+        )
         cpu_workers = min(
             _MAX_CPU_SCORE_TERM_WORKERS,
             torch.get_num_threads(),
@@ -701,6 +706,8 @@ class WholePoseScoringModule:
     def unweighted_scores(self, coords):
         needs_grad = torch.is_grad_enabled() and coords.requires_grad
         cpu_workers = self._cpu_term_workers
+        if torch.is_grad_enabled() and self._has_trainable_term_parameters:
+            cpu_workers = 0
         if (
             cpu_workers >= 2
             and not needs_grad
