@@ -74,6 +74,7 @@ jobs:
       BUILDER: builder-${{ github.run_id }}-${{ strategy.job-index }}
     steps:
       - name: Free disk space
+        if: inputs.runs-on != 'self-hosted'
         run: |
           echo "=== Before cleanup ==="
           df -h /
