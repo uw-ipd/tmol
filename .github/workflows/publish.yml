@@ -69,6 +69,9 @@ jobs:
     needs: verify_release_version
     strategy:
       fail-fast: false
+      # Large bursts of full-architecture CUDA builds repeatedly lost hosted
+      # runners. Seven-way fan-out completed the same hosted lanes reliably.
+      max-parallel: 7
       matrix:
         include:
           # ── x86_64 py3.11 ──
