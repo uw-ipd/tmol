@@ -86,7 +86,7 @@ auto AnnealerDispatch<D>::forward(
     int const pose_rotamer_offset = rotamer_offset_for_pose[pose];
 
     // Build per-residue neighbor list for this pose
-    std::vector<std::vector<Neighbor>> neighbors(max_n_res);
+    std::vector<std::vector<Neighbor>> neighbors(n_res);
     for (int b = 0; b < n_res; ++b) {
       for (int b2 = 0; b2 < n_res; ++b2) {
         if (b2 != b && chunk_offset_offsets[pose][b][b2] != -1) {
