@@ -13,7 +13,7 @@ class _CoordinateIndependentScore(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, grad_output):
-        return None, None
+        return None, grad_output
 
 
 def _coordinate_independent_score(

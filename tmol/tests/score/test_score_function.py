@@ -16,6 +16,7 @@ from tmol.score._score_function import (
     WholePoseScoringModule,
 )
 from tmol.score.common import ZeroTermPoseScoringModule
+from tmol.score.common._scoring_module import _coordinate_independent_score
 from tmol.pose import (
     DEFAULT_ATOM_B_FACTOR,
     DEFAULT_ATOM_OCCUPANCY,
@@ -187,6 +188,20 @@ def test_no_grad_scoring_detaches_coordinates():
     with torch.no_grad():
         scorer(coords)
     assert not term.input_requires_grad
+
+
+def test_coordinate_independent_score_preserves_its_own_gradient():
+    coords = torch.ones(3, requires_grad=True)
+    score = torch.ones(2, requires_grad=True)
+
+    coords_grad, score_grad = torch.autograd.grad(
+        _coordinate_independent_score(coords, score).sum(),
+        (coords, score),
+        allow_unused=True,
+    )
+
+    assert coords_grad is None
+    torch.testing.assert_close(score_grad, torch.ones_like(score))
 
 
 def test_cpu_whole_pose_terms_run_concurrently_and_preserve_modes(monkeypatch):
