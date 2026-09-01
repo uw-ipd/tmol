@@ -16,6 +16,7 @@ from tmol.pack.rotamer import (
     merge_conformer_samples,
     calculate_rotamer_coords,
     get_rotamer_origin_data,
+    load_rotamer_parents,
     create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler,
     FixedAAChiSampler,
 )
@@ -62,6 +63,16 @@ def test_chi_atom_table_orders_double_digit_chis_numerically():
             dtype=numpy.int32,
         ),
     )
+
+
+def test_load_rotamer_parents_accepts_empty_conformer():
+    parents = numpy.zeros((1, 1), dtype=numpy.int32)
+    n_atoms = numpy.zeros(1, dtype=numpy.int32)
+    offsets = numpy.zeros(1, dtype=numpy.int64)
+
+    compact = load_rotamer_parents(parents, 0, n_atoms, offsets)
+
+    numpy.testing.assert_array_equal(compact, numpy.zeros(1, dtype=numpy.int32))
 
 
 def test_annotate_restypes(

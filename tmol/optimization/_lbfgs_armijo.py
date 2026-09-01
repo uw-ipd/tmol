@@ -248,17 +248,31 @@ class LBFGS_Armijo(Optimizer):
             raise TypeError(f"param_group must be a dict, got {type(param_group)}")
 
         params = param_group["params"]
-        params = [params] if isinstance(params, torch.Tensor) else list(params)
+        if isinstance(params, torch.Tensor):
+            params = [params]
+        elif isinstance(params, set):
+            raise TypeError("optimizer parameters must use an ordered collection")
+        else:
+            params = list(params)
         if len(params) != 1:
             raise ValueError("LBFGS requires exactly one parameter tensor")
         param = params[0]
+        param_name = None
+        if isinstance(param, tuple):
+            if len(param) != 2 or not isinstance(param[0], str):
+                raise TypeError(
+                    "named optimizer parameters must be (name, Tensor) pairs"
+                )
+            param_name, param = param
         if not isinstance(param, torch.Tensor):
             raise TypeError(f"optimizer parameter must be a Tensor, got {type(param)}")
         if not param.is_leaf and not param.retains_grad:
             raise ValueError("can't optimize a non-leaf Tensor")
 
         param_group = dict(param_group)
-        param_group["params"] = params
+        param_group["params"] = [param]
+        if param_name is not None:
+            param_group["param_names"] = [param_name]
         for name, default in self.defaults.items():
             param_group.setdefault(name, default)
         self.param_groups.append(param_group)

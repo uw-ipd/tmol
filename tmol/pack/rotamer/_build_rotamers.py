@@ -506,6 +506,7 @@ def load_rotamer_parents(
     )
     # Root parents are -1 and should map to the shared root at index zero.
     rotamer_starts = numpy.cumsum(n_atoms_for_rot) - n_atoms_for_rot
+    rotamer_starts = rotamer_starts[n_atoms_for_rot > 0]
     offsets[rotamer_starts] = 1
     compact_arr[1:] = parents[atom_is_real] + offsets
     return compact_arr
