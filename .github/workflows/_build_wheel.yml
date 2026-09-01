@@ -118,15 +118,30 @@ jobs:
 
       - name: Pull container and start builder
         run: |
-          docker pull "$CONTAINER_IMAGE"
-          docker create --name "$BUILDER" \
-            -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
-            "$CONTAINER_IMAGE" sleep infinity
-          docker start "$BUILDER"
+          if [ "${{ inputs.runs-on }}" = "self-hosted" ]; then
+            BUILDER_IMAGE="$RUNNER_TEMP/${BUILDER}.sif"
+            apptainer pull --force "$BUILDER_IMAGE" "docker://${CONTAINER_IMAGE}"
+            apptainer instance start --fakeroot --writable-tmpfs \
+              --bind "$GITHUB_WORKSPACE:/workspace" \
+              "$BUILDER_IMAGE" "$BUILDER"
+            echo "CONTAINER_EXEC=apptainer exec --fakeroot --pwd /workspace" >> "$GITHUB_ENV"
+            echo "CONTAINER_TARGET=instance://${BUILDER}" >> "$GITHUB_ENV"
+            echo "CONTAINER_ENV_FLAG=--env" >> "$GITHUB_ENV"
+            echo "BUILDER_IMAGE=${BUILDER_IMAGE}" >> "$GITHUB_ENV"
+          else
+            docker pull "$CONTAINER_IMAGE"
+            docker create --name "$BUILDER" \
+              -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
+              "$CONTAINER_IMAGE" sleep infinity
+            docker start "$BUILDER"
+            echo "CONTAINER_EXEC=docker exec" >> "$GITHUB_ENV"
+            echo "CONTAINER_TARGET=${BUILDER}" >> "$GITHUB_ENV"
+            echo "CONTAINER_ENV_FLAG=-e" >> "$GITHUB_ENV"
+          fi
 
       - name: Prepare target Python runtime
         run: |
-          docker exec "$BUILDER" bash -x -e -o pipefail -c '
+          $CONTAINER_EXEC "$CONTAINER_TARGET" bash -x -e -o pipefail -c '
             PYVER="${{ inputs.python-version }}"
             USE_MANYLINUX="${{ inputs.use-manylinux-build }}"
             if [ "$USE_MANYLINUX" = "true" ]; then
@@ -183,7 +198,7 @@ jobs:
             echo "${VENV}" > /tmp/tmol_target_venv
           '
 
-          TARGET_VENV=$(docker exec "$BUILDER" cat /tmp/tmol_target_venv)
+          TARGET_VENV=$($CONTAINER_EXEC "$CONTAINER_TARGET" cat /tmp/tmol_target_venv)
           echo "TARGET_VENV=${TARGET_VENV}" >> "$GITHUB_ENV"
 
       - name: Install PyTorch for target runtime
@@ -213,7 +228,7 @@ jobs:
             fi
             NEED_INSTALL=1
           else
-            DEFAULT_CUDA_TAG=$(docker exec "$BUILDER" python3 -c "import torch; print(torch.version.cuda.replace('.','')[:3])" 2>/dev/null || echo "")
+            DEFAULT_CUDA_TAG=$($CONTAINER_EXEC "$CONTAINER_TARGET" python3 -c "import torch; print(torch.version.cuda.replace('.','')[:3])" 2>/dev/null || echo "")
             if [ -n "$DEFAULT_CUDA_TAG" ]; then
               TORCH_INDEX_URL="https://download.pytorch.org/whl/cu${DEFAULT_CUDA_TAG}"
             else
@@ -225,7 +240,7 @@ jobs:
             NEED_INSTALL=1
           fi
 
-          docker exec "$BUILDER" bash -x -e -o pipefail -c "
+          $CONTAINER_EXEC "$CONTAINER_TARGET" bash -x -e -o pipefail -c "
             unset PYTHONPATH
             export PYTHONNOUSERSITE=1
             NEED_INSTALL=${NEED_INSTALL}
@@ -261,14 +276,14 @@ jobs:
 
       - name: Set version variables
         run: |
-          PYTHON_VERSION=$(docker exec "$BUILDER" bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')\"")
-          TORCH_VERSION=$(docker exec "$BUILDER" bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import torch; v=torch.__version__.split('.')[:2]; print(f'{v[0]}.{v[1]}')\"")
+          PYTHON_VERSION=$($CONTAINER_EXEC "$CONTAINER_TARGET" bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')\"")
+          TORCH_VERSION=$($CONTAINER_EXEC "$CONTAINER_TARGET" bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import torch; v=torch.__version__.split('.')[:2]; print(f'{v[0]}.{v[1]}')\"")
 
           echo "MATRIX_PYTHON_VERSION=${PYTHON_VERSION}" >> "$GITHUB_ENV"
           echo "MATRIX_TORCH_VERSION=${TORCH_VERSION}" >> "$GITHUB_ENV"
 
           if [ "${{ inputs.enable-cuda }}" = "true" ]; then
-            CUDA_VERSION=$(docker exec "$BUILDER" bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import torch; print(torch.version.cuda.replace('.','')[:3])\"")
+            CUDA_VERSION=$($CONTAINER_EXEC "$CONTAINER_TARGET" bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import torch; print(torch.version.cuda.replace('.','')[:3])\"")
             echo "WHEEL_CUDA_VERSION=${CUDA_VERSION}" >> "$GITHUB_ENV"
             echo "WHEEL_LOCAL_TAG=cu${CUDA_VERSION}torch${TORCH_VERSION}" >> "$GITHUB_ENV"
           else
@@ -279,16 +294,16 @@ jobs:
           if [ "${{ inputs.enable-cuda }}" != "true" ]; then
             echo "CPU-only wheel build; nvcc is not required."
           elif [ "${{ inputs.use-manylinux-build }}" != "true" ]; then
-            docker exec "$BUILDER" nvcc --version
+            $CONTAINER_EXEC "$CONTAINER_TARGET" nvcc --version
           else
-            docker exec "$BUILDER" bash -e -o pipefail -c "${TARGET_VENV}/bin/python -c \"import shutil; print(shutil.which('nvcc') or 'nvcc from pip package')\""
+            $CONTAINER_EXEC "$CONTAINER_TARGET" bash -e -o pipefail -c "${TARGET_VENV}/bin/python -c \"import shutil; print(shutil.which('nvcc') or 'nvcc from pip package')\""
           fi
-          docker exec "$BUILDER" bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}')\""
+          $CONTAINER_EXEC "$CONTAINER_TARGET" bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}')\""
 
       - name: Install manylinux CUDA build toolchain
         if: inputs.use-manylinux-build && inputs.enable-cuda
         run: |
-          docker exec "$BUILDER" bash -x -e -o pipefail -c "
+          $CONTAINER_EXEC "$CONTAINER_TARGET" bash -x -e -o pipefail -c "
             unset PYTHONPATH
             export PYTHONNOUSERSITE=1
             CUDA_VERSION=\$(${TARGET_VENV}/bin/python -c 'import torch; print(torch.version.cuda)')
@@ -331,12 +346,12 @@ jobs:
             \"\${CUDA_HOME}/bin/nvcc\" --version
             echo \"\${CUDA_HOME}\" > /tmp/tmol_cuda_home
           "
-          CUDA_HOME=$(docker exec "$BUILDER" cat /tmp/tmol_cuda_home)
+          CUDA_HOME=$($CONTAINER_EXEC "$CONTAINER_TARGET" cat /tmp/tmol_cuda_home)
           echo "CUDA_HOME=${CUDA_HOME}" >> "$GITHUB_ENV"
 
       - name: Install build dependencies
         run: |
-          docker exec "$BUILDER" bash -x -e -o pipefail -c "
+          $CONTAINER_EXEC "$CONTAINER_TARGET" bash -x -e -o pipefail -c "
             unset PYTHONPATH
             export PYTHONNOUSERSITE=1
             ${TARGET_VENV}/bin/pip install \
@@ -345,20 +360,20 @@ jobs:
 
       - name: Set ABI-qualified wheel version
         run: |
-          docker exec "$BUILDER" \
+          $CONTAINER_EXEC "$CONTAINER_TARGET" \
             "${TARGET_VENV}/bin/python" \
             scripts/set_release_wheel_version.py "$WHEEL_LOCAL_TAG"
 
       - name: Build wheel
         run: |
-          # Two independent nvcc jobs use the 4-core hosted runners efficiently
-          # without the memory spike from nesting nvcc worker parallelism.
-          docker exec \
-            -e MAX_JOBS=2 \
-            -e CUDA_ARCHS_OVERRIDE="${{ inputs.cuda-archs }}" \
-            -e CUDA_HOME="${CUDA_HOME}" \
-            -e CUDAToolkit_ROOT="${CUDA_HOME}" \
-            "$BUILDER" bash -x -e -o pipefail -c '
+          # Two independent nvcc jobs avoid the memory spike from nesting nvcc
+          # worker parallelism and are a stable baseline on both runtimes.
+          $CONTAINER_EXEC \
+            "$CONTAINER_ENV_FLAG" MAX_JOBS=2 \
+            "$CONTAINER_ENV_FLAG" CUDA_ARCHS_OVERRIDE="${{ inputs.cuda-archs }}" \
+            "$CONTAINER_ENV_FLAG" CUDA_HOME="${CUDA_HOME}" \
+            "$CONTAINER_ENV_FLAG" CUDAToolkit_ROOT="${CUDA_HOME}" \
+            "$CONTAINER_TARGET" bash -x -e -o pipefail -c '
             source /etc/bash.bashrc 2>/dev/null || true
             if [ -f /opt/rh/devtoolset-10/enable ]; then
               source /opt/rh/devtoolset-10/enable
@@ -407,10 +422,10 @@ jobs:
       - name: Validate CUDA architecture contract
         if: inputs.enable-cuda
         run: |
-          docker exec \
-            -e CUDA_ARCHS_OVERRIDE="${{ inputs.cuda-archs }}" \
-            -e CUDA_HOME="${CUDA_HOME}" \
-            "$BUILDER" bash -euo pipefail -c '
+          $CONTAINER_EXEC \
+            "$CONTAINER_ENV_FLAG" CUDA_ARCHS_OVERRIDE="${{ inputs.cuda-archs }}" \
+            "$CONTAINER_ENV_FLAG" CUDA_HOME="${CUDA_HOME}" \
+            "$CONTAINER_TARGET" bash -euo pipefail -c '
             cache=$(find build -name CMakeCache.txt -print -quit)
             test -n "${cache}"
             actual=$(sed -n "s/^CMAKE_CUDA_ARCHITECTURES:STRING=//p" "${cache}")
@@ -462,17 +477,17 @@ jobs:
       - name: Repair wheel (auditwheel / manylinux)
         if: inputs.use-manylinux-build
         run: |
-          docker exec \
-            -e PYTHON="${TARGET_VENV}/bin/python" \
-            -e TMOL_AUDITWHEEL_PLAT="${MANYLINUX_PLATFORM}" \
-            "$BUILDER" bash -x -e -o pipefail -c '
+          $CONTAINER_EXEC \
+            "$CONTAINER_ENV_FLAG" PYTHON="${TARGET_VENV}/bin/python" \
+            "$CONTAINER_ENV_FLAG" TMOL_AUDITWHEEL_PLAT="${MANYLINUX_PLATFORM}" \
+            "$CONTAINER_TARGET" bash -x -e -o pipefail -c '
             chmod +x scripts/repair_linux_wheel.sh
             scripts/repair_linux_wheel.sh dist
           '
 
       - name: Record wheel name
         run: |
-          docker exec "$BUILDER" bash -c "
+          $CONTAINER_EXEC "$CONTAINER_TARGET" bash -c "
             cd /workspace
             set -- dist/*.whl
             test \"\$#\" -eq 1
@@ -495,7 +510,7 @@ jobs:
           if [ -n "${TARGET_ARCH}" ]; then
             echo "arch=${TARGET_ARCH}" >> "$GITHUB_OUTPUT"
           else
-            echo "arch=$(docker exec "$BUILDER" uname -m)" >> "$GITHUB_OUTPUT"
+            echo "arch=$($CONTAINER_EXEC "$CONTAINER_TARGET" uname -m)" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Upload wheel artifact
@@ -506,4 +521,10 @@ jobs:
 
       - name: Cleanup container
         if: always()
-        run: docker rm -f "$BUILDER" 2>/dev/null || true
+        run: |
+          if [ "${{ inputs.runs-on }}" = "self-hosted" ]; then
+            apptainer instance stop "$BUILDER" 2>/dev/null || true
+            [ -z "${BUILDER_IMAGE:-}" ] || rm -f "$BUILDER_IMAGE"
+          else
+            docker rm -f "$BUILDER" 2>/dev/null || true
+          fi
