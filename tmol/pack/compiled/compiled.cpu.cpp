@@ -75,17 +75,22 @@ auto AnnealerDispatch<D>::forward(
   float const high_temp = 100;
   float const low_temp = 0.3;  // matches Rosetta SimAnnealerBase::lowtemp
 
+  struct Neighbor {
+    int residue;
+    int64_t chunk_offset_offset;
+  };
+
   for (int pose = 0; pose < n_poses; ++pose) {
     int const n_res = pose_n_res[pose];
     int const pose_n_rotamers = n_rotamers_for_pose[pose];
     int const pose_rotamer_offset = rotamer_offset_for_pose[pose];
 
     // Build per-residue neighbor list for this pose
-    std::vector<std::vector<int>> neighbors(max_n_res);
+    std::vector<std::vector<Neighbor>> neighbors(max_n_res);
     for (int b = 0; b < n_res; ++b) {
       for (int b2 = 0; b2 < n_res; ++b2) {
         if (b2 != b && chunk_offset_offsets[pose][b][b2] != -1) {
-          neighbors[b].push_back(b2);
+          neighbors[b].push_back({b2, chunk_offset_offsets[pose][b2][b]});
         }
       }
     }
@@ -172,17 +177,14 @@ auto AnnealerDispatch<D>::forward(
               chunk_size, ran_res_n_rots - chunk_size * prev_rot_chunk);
           int const global_prev_rot = local_prev_rot + ran_res_offset;
 
-          double new_e = energy1b[global_ran_rot];
           double prev_e = energy1b[global_prev_rot];
-          double deltaE = new_e - prev_e;
+          double deltaE = energy1b[global_ran_rot] - prev_e;
 
-          for (int k : neighbors[ran_res]) {
+          for (Neighbor const& neighbor : neighbors[ran_res]) {
+            int const k = neighbor.residue;
             int const local_k_rot = current_rotamer_assignments[pose][traj][k];
-            int const k_n_rots = n_rotamers_for_res[pose][k];
             int const krot_chunk = local_k_rot / chunk_size;
             int const krot_in_chunk = local_k_rot - krot_chunk * chunk_size;
-            int const krot_chunk_size =
-                std::min(chunk_size, k_n_rots - chunk_size * krot_chunk);
 
             double k_new_e = 0;
             double k_prev_e = 0;
@@ -191,7 +193,7 @@ auto AnnealerDispatch<D>::forward(
             // (ran_res,k), so always index as [k][ran_res] with k as the
             // outer/row dimension.
             int64_t const k_ran_chunk_offset_offset =
-                chunk_offset_offsets[pose][k][ran_res];
+                neighbor.chunk_offset_offset;
             if (k_ran_chunk_offset_offset == -1) continue;
             int64_t const krot_ranrot_chunk_offset = chunk_offsets
                 [k_ran_chunk_offset_offset + krot_chunk * ran_res_n_chunks
@@ -211,7 +213,6 @@ auto AnnealerDispatch<D>::forward(
             }
 
             deltaE += k_new_e - k_prev_e;
-            new_e += k_new_e;
             prev_e += k_prev_e;
           }
 

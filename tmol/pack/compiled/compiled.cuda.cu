@@ -308,10 +308,10 @@ MGPU_DEVICE float warp_wide_sim_annealing(
         }
       }
 
+      // Only the residue and local rotamer are consumed by the whole tile;
+      // global_new_rot and accept_rand remain lane-0-only below.
       ran_res = g.shfl(ran_res, 0);
       local_new_rot = g.shfl(local_new_rot, 0);
-      global_new_rot = g.shfl(global_new_rot, 0);
-      accept_rand = g.shfl(accept_rand, 0);
 
       int const local_prev_rot = current_rotamer_assignment[ran_res];
       int const global_prev_rot =
