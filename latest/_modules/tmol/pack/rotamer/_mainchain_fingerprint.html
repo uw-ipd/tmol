@@ -411,7 +411,7 @@
     <span class="n">Tensor</span><span class="p">,</span>
     <span class="n">validate_args</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.numeric</span><span class="w"> </span><span class="kn">import</span> <span class="n">coord_dihedrals</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.numeric._dihedrals</span><span class="w"> </span><span class="kn">import</span> <span class="n">_numpy_coord_dihedrals</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">PatchedChemicalDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackedBlockTypes</span>
@@ -635,19 +635,14 @@
 
                 <span class="n">mc_anc_icoor_ind</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">[</span><span class="n">mc_anc</span><span class="p">]</span>
 
-                <span class="k">def</span><span class="w"> </span><span class="nf">t64</span><span class="p">(</span><span class="n">coord</span><span class="p">):</span>
-                    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">coord</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-
-                <span class="n">at1_coord</span> <span class="o">=</span> <span class="n">t64</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">ideal_coords</span><span class="p">[</span><span class="n">mc1_icoor_ind</span><span class="p">])</span>
-                <span class="n">at2_coord</span> <span class="o">=</span> <span class="n">t64</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">ideal_coords</span><span class="p">[</span><span class="n">mc_anc_icoor_ind</span><span class="p">])</span>
-                <span class="n">at3_coord</span> <span class="o">=</span> <span class="n">t64</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">ideal_coords</span><span class="p">[</span><span class="n">mc2_icoor_ind</span><span class="p">])</span>
-                <span class="n">at4_coord</span> <span class="o">=</span> <span class="n">t64</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">ideal_coords</span><span class="p">[</span><span class="n">rt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">[</span><span class="n">nsc_at</span><span class="p">]])</span>
-
-                <span class="c1"># now we have four coordinates, measure the dihedral</span>
+                <span class="c1"># Measure the improper dihedral around the main-chain atom.</span>
                 <span class="n">dihe</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span>
-                    <span class="n">coord_dihedrals</span><span class="p">(</span><span class="n">at4_coord</span><span class="p">,</span> <span class="n">at2_coord</span><span class="p">,</span> <span class="n">at1_coord</span><span class="p">,</span> <span class="n">at3_coord</span><span class="p">)</span><span class="o">.</span><span class="n">numpy</span><span class="p">()[</span>
-                        <span class="mi">0</span>
-                    <span class="p">]</span>
+                    <span class="n">_numpy_coord_dihedrals</span><span class="p">(</span>
+                        <span class="n">rt</span><span class="o">.</span><span class="n">ideal_coords</span><span class="p">[</span><span class="n">rt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">[</span><span class="n">nsc_at</span><span class="p">]],</span>
+                        <span class="n">rt</span><span class="o">.</span><span class="n">ideal_coords</span><span class="p">[</span><span class="n">mc_anc_icoor_ind</span><span class="p">],</span>
+                        <span class="n">rt</span><span class="o">.</span><span class="n">ideal_coords</span><span class="p">[</span><span class="n">mc1_icoor_ind</span><span class="p">],</span>
+                        <span class="n">rt</span><span class="o">.</span><span class="n">ideal_coords</span><span class="p">[</span><span class="n">mc2_icoor_ind</span><span class="p">],</span>
+                    <span class="p">)</span>
                 <span class="p">)</span>
                 <span class="c1"># some atoms are going to be placed in the plane</span>
                 <span class="c1"># defined by the three "main chain" atoms. If the</span>

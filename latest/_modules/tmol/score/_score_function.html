@@ -403,8 +403,11 @@
                 <article class="bd-article">
                   
   <h1>Source code for tmol.score._score_function</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Sequence</span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadPoolExecutor</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">TypeVar</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
@@ -431,8 +434,233 @@
 <span class="n">SFXN_FORMAT_VERSION</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"1.0"</span>
 
 <span class="c1"># Exact CUDA tensor equality synchronizes with the host. Only pay that cost</span>
-<span class="c1"># when one duplicate sparse index layout would retain at least 16 MiB.</span>
-<span class="n">_ROTAMER_LAYOUT_DEDUP_MIN_BYTES</span> <span class="o">=</span> <span class="mi">16</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span>
+<span class="c1"># when one duplicate sparse index layout would retain at least 16 MiB. CPU</span>
+<span class="c1"># equality has no synchronization penalty, so all matching layouts are tested.</span>
+<span class="n">_CUDA_ROTAMER_LAYOUT_DEDUP_MIN_BYTES</span> <span class="o">=</span> <span class="mi">16</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span>
+<span class="n">_CPU_ROTAMER_SORTED_LAYOUT_MIN_NNZ</span> <span class="o">=</span> <span class="mi">4096</span>
+<span class="n">_MAX_CPU_SCORE_TERM_WORKERS</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="c1"># Large multi-pose, forward-only scoring benefits from exposing more</span>
+<span class="c1"># independent terms. Differentiable scoring stays at four workers because its</span>
+<span class="c1"># concurrent backward graphs otherwise compete for the same intra-op threads.</span>
+<span class="n">_MAX_CPU_FORWARD_SCORE_TERM_WORKERS</span> <span class="o">=</span> <span class="mi">8</span>
+<span class="n">_CPU_WIDE_FORWARD_SCORE_MIN_POSES</span> <span class="o">=</span> <span class="mi">20</span>
+<span class="n">_CPU_WIDE_FORWARD_SCORE_MIN_THREADS</span> <span class="o">=</span> <span class="mi">32</span>
+<span class="n">_CPU_PARALLEL_SCORE_BACKWARD_MIN_COORD_ELEMENTS</span> <span class="o">=</span> <span class="mi">8192</span>
+<span class="n">_CPU_SCORE_TERM_EXECUTORS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">ThreadPoolExecutor</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">_CPU_SCORE_TERM_EXECUTOR_LOCK</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+<span class="n">_ScoreCallResult</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">"_ScoreCallResult"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_cpu_score_term_executor</span><span class="p">(</span><span class="n">n_workers</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ThreadPoolExecutor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return a process-local executor shared by rendered CPU scorers."""</span>
+    <span class="k">with</span> <span class="n">_CPU_SCORE_TERM_EXECUTOR_LOCK</span><span class="p">:</span>
+        <span class="n">executor</span> <span class="o">=</span> <span class="n">_CPU_SCORE_TERM_EXECUTORS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">n_workers</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">executor</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">executor</span> <span class="o">=</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span>
+                <span class="n">max_workers</span><span class="o">=</span><span class="n">n_workers</span><span class="p">,</span> <span class="n">thread_name_prefix</span><span class="o">=</span><span class="s2">"tmol-score"</span>
+            <span class="p">)</span>
+            <span class="n">_CPU_SCORE_TERM_EXECUTORS</span><span class="p">[</span><span class="n">n_workers</span><span class="p">]</span> <span class="o">=</span> <span class="n">executor</span>
+        <span class="k">return</span> <span class="n">executor</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_cpu_score_term_worker_counts</span><span class="p">(</span>
+    <span class="n">n_terms</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Return conservative default and large-forward CPU worker counts."""</span>
+    <span class="k">if</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="s2">"cpu"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+    <span class="n">n_threads</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">get_num_threads</span><span class="p">()</span>
+    <span class="n">workers</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">_MAX_CPU_SCORE_TERM_WORKERS</span><span class="p">,</span> <span class="n">n_threads</span><span class="p">,</span> <span class="n">n_terms</span><span class="p">)</span>
+    <span class="n">forward_workers</span> <span class="o">=</span> <span class="n">workers</span>
+    <span class="k">if</span> <span class="n">n_threads</span> <span class="o">&gt;=</span> <span class="n">_CPU_WIDE_FORWARD_SCORE_MIN_THREADS</span><span class="p">:</span>
+        <span class="n">forward_workers</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">_MAX_CPU_FORWARD_SCORE_TERM_WORKERS</span><span class="p">,</span> <span class="n">n_threads</span><span class="p">,</span> <span class="n">n_terms</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">workers</span><span class="p">,</span> <span class="n">forward_workers</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_reset_cpu_score_term_executors_after_fork</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Discard parent-process thread pools in a forked child."""</span>
+    <span class="k">global</span> <span class="n">_CPU_SCORE_TERM_EXECUTORS</span><span class="p">,</span> <span class="n">_CPU_SCORE_TERM_EXECUTOR_LOCK</span>
+    <span class="n">_CPU_SCORE_TERM_EXECUTORS</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">_CPU_SCORE_TERM_EXECUTOR_LOCK</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+
+
+<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">os</span><span class="p">,</span> <span class="s2">"register_at_fork"</span><span class="p">):</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">register_at_fork</span><span class="p">(</span><span class="n">after_in_child</span><span class="o">=</span><span class="n">_reset_cpu_score_term_executors_after_fork</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_score_call_in_thread</span><span class="p">(</span>
+    <span class="n">score_call</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">_ScoreCallResult</span><span class="p">],</span>
+    <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">grad_enabled</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">inference_mode_enabled</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">autocast_enabled</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">autocast_dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+    <span class="n">autocast_cache_enabled</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_ScoreCallResult</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Evaluate one CPU score term with the caller's thread-local modes."""</span>
+    <span class="k">with</span> <span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">inference_mode</span><span class="p">(</span><span class="n">inference_mode_enabled</span><span class="p">),</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">set_grad_enabled</span><span class="p">(</span><span class="n">grad_enabled</span><span class="p">),</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">autocast</span><span class="p">(</span>
+            <span class="s2">"cpu"</span><span class="p">,</span>
+            <span class="n">enabled</span><span class="o">=</span><span class="n">autocast_enabled</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">autocast_dtype</span><span class="p">,</span>
+            <span class="n">cache_enabled</span><span class="o">=</span><span class="n">autocast_cache_enabled</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">):</span>
+        <span class="k">return</span> <span class="n">score_call</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_score_grad_in_thread</span><span class="p">(</span>
+    <span class="n">scores</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">grad_scores</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">create_graph</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Differentiate one independent CPU score-term graph."""</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">scores</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">set_grad_enabled</span><span class="p">(</span><span class="n">create_graph</span><span class="p">):</span>
+        <span class="p">(</span><span class="n">term_grad</span><span class="p">,)</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span>
+            <span class="n">scores</span><span class="p">,</span>
+            <span class="n">coords</span><span class="p">,</span>
+            <span class="n">grad_scores</span><span class="p">,</span>
+            <span class="n">retain_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">create_graph</span><span class="o">=</span><span class="n">create_graph</span><span class="p">,</span>
+            <span class="n">allow_unused</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">term_grad</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_ParallelScoreTerms</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">Function</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Run CPU term forwards concurrently with deterministic accumulation."""</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
+        <span class="n">ctx</span><span class="p">,</span>
+        <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">executor</span><span class="p">:</span> <span class="n">ThreadPoolExecutor</span><span class="p">,</span>
+        <span class="n">term_modules</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">],</span>
+        <span class="n">autocast_enabled</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+        <span class="n">autocast_dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">autocast_cache_enabled</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="n">term_coords</span> <span class="o">=</span> <span class="n">coords</span>
+        <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
+                <span class="n">_score_call_in_thread</span><span class="p">,</span>
+                <span class="n">term</span><span class="p">,</span>
+                <span class="n">term_coords</span><span class="p">,</span>
+                <span class="kc">True</span><span class="p">,</span>
+                <span class="kc">False</span><span class="p">,</span>
+                <span class="n">autocast_enabled</span><span class="p">,</span>
+                <span class="n">autocast_dtype</span><span class="p">,</span>
+                <span class="n">autocast_cache_enabled</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">term_modules</span>
+        <span class="p">]</span>
+        <span class="n">term_scores</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span> <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">futures</span><span class="p">)</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">term_coords</span> <span class="o">=</span> <span class="n">term_coords</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">term_scores</span> <span class="o">=</span> <span class="n">term_scores</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">term_sizes</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">scores</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">scores</span> <span class="ow">in</span> <span class="n">term_scores</span><span class="p">)</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">executor</span> <span class="o">=</span> <span class="n">executor</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">parallel_backward</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">coords</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="n">_CPU_PARALLEL_SCORE_BACKWARD_MIN_COORD_ELEMENTS</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">term_scores</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">grad_scores</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+        <span class="c1"># Serial scoring creates the term autograd nodes in score-type order;</span>
+        <span class="c1"># PyTorch visits those nodes in reverse order. Preserve that reduction</span>
+        <span class="c1"># order so concurrent forward scheduling cannot perturb minimization.</span>
+        <span class="n">create_graph</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_grad_enabled</span><span class="p">()</span>
+        <span class="n">term_grad_inputs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">term_sizes</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">term_scores</span><span class="p">,</span> <span class="n">term_size</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="nb">reversed</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">term_scores</span><span class="p">),</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">term_sizes</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="n">offset</span> <span class="o">-=</span> <span class="n">term_size</span>
+            <span class="n">term_grad_inputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="n">term_scores</span><span class="p">,</span>
+                    <span class="n">ctx</span><span class="o">.</span><span class="n">term_coords</span><span class="p">,</span>
+                    <span class="n">grad_scores</span><span class="p">[</span><span class="n">offset</span> <span class="p">:</span> <span class="n">offset</span> <span class="o">+</span> <span class="n">term_size</span><span class="p">],</span>
+                    <span class="n">create_graph</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">parallel_backward</span><span class="p">:</span>
+            <span class="n">term_grad_futures</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">ctx</span><span class="o">.</span><span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
+                    <span class="n">_score_grad_in_thread</span><span class="p">,</span>
+                    <span class="o">*</span><span class="n">grad_input</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">grad_input</span> <span class="ow">in</span> <span class="n">term_grad_inputs</span>
+            <span class="p">]</span>
+            <span class="n">term_grads</span> <span class="o">=</span> <span class="p">[</span><span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span> <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">term_grad_futures</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">term_grads</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">_score_grad_in_thread</span><span class="p">(</span><span class="o">*</span><span class="n">grad_input</span><span class="p">)</span> <span class="k">for</span> <span class="n">grad_input</span> <span class="ow">in</span> <span class="n">term_grad_inputs</span>
+            <span class="p">]</span>
+
+        <span class="n">grad_coords</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">term_grad</span> <span class="ow">in</span> <span class="n">term_grads</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">term_grad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">grad_coords</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">term_grad</span> <span class="k">if</span> <span class="n">grad_coords</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">grad_coords</span> <span class="o">+</span> <span class="n">term_grad</span>
+                <span class="p">)</span>
+        <span class="k">return</span> <span class="n">grad_coords</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_linearize_rotamer_indices</span><span class="p">(</span><span class="n">indices</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">n_rots</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Encode ``[pose, rotamer_i, rotamer_j]`` indices as sortable integers."""</span>
+    <span class="n">indices_64</span> <span class="o">=</span> <span class="n">indices</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">indices_64</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_rots</span> <span class="o">+</span> <span class="n">indices_64</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="n">n_rots</span> <span class="o">+</span> <span class="n">indices_64</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_try_coalesce_cpu_rotamer_layouts</span><span class="p">(</span>
+    <span class="n">indices</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+    <span class="n">values</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+    <span class="n">n_poses</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">n_rots</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Merge sparse CPU layouts when the largest layout contains their union.</span>
+
+<span class="sd">    Sorting one complete layout and mapping the smaller layouts into it avoids</span>
+<span class="sd">    concatenating and sorting every repeated index. ``None`` requests the</span>
+<span class="sd">    general sparse-coalesce path when that containment invariant does not hold.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">largest</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="n">indices</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">indices</span><span class="p">[</span><span class="n">largest</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">_CPU_ROTAMER_SORTED_LAYOUT_MIN_NNZ</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">_linearize_rotamer_indices</span><span class="p">(</span><span class="n">layout</span><span class="p">,</span> <span class="n">n_rots</span><span class="p">)</span> <span class="k">for</span> <span class="n">layout</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">]</span>
+    <span class="n">sorted_keys</span><span class="p">,</span> <span class="n">order</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">keys</span><span class="p">[</span><span class="n">largest</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">sorted_keys</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">bool</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">sorted_keys</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">==</span> <span class="n">sorted_keys</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])):</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">combined_values</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="n">largest</span><span class="p">][</span><span class="n">order</span><span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">layout_index</span><span class="p">,</span> <span class="n">layout_keys</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">keys</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">layout_index</span> <span class="o">==</span> <span class="n">largest</span> <span class="ow">or</span> <span class="n">layout_keys</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">positions</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">sorted_keys</span><span class="p">,</span> <span class="n">layout_keys</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">positions</span> <span class="o">==</span> <span class="n">sorted_keys</span><span class="o">.</span><span class="n">numel</span><span class="p">()))</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span>
+            <span class="n">sorted_keys</span><span class="p">[</span><span class="n">positions</span><span class="p">],</span> <span class="n">layout_keys</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">combined_values</span><span class="o">.</span><span class="n">index_add_</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">positions</span><span class="p">,</span> <span class="n">values</span><span class="p">[</span><span class="n">layout_index</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sparse_coo_tensor</span><span class="p">(</span>
+        <span class="n">indices</span><span class="p">[</span><span class="n">largest</span><span class="p">][:,</span> <span class="n">order</span><span class="p">],</span>
+        <span class="n">combined_values</span><span class="p">,</span>
+        <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">n_rots</span><span class="p">,</span> <span class="n">n_rots</span><span class="p">),</span>
+        <span class="n">is_coalesced</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">check_invariants</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
 
 
 <div class="viewcode-block" id="ScoreFunction">
@@ -908,7 +1136,15 @@
         <span class="n">term_modules</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">],</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">weights</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span> <span class="o">=</span> <span class="n">term_modules</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">term_modules</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_has_trainable_term_parameters</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span>
+            <span class="n">parameter</span><span class="o">.</span><span class="n">requires_grad</span>
+            <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span>
+            <span class="k">for</span> <span class="n">parameter</span> <span class="ow">in</span> <span class="n">term</span><span class="o">.</span><span class="n">parameters</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_term_workers</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_forward_workers</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">_cpu_score_term_worker_counts</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span><span class="p">),</span> <span class="n">weights</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">sum_terms</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">apply_weights</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">sum_terms</span> <span class="ow">and</span> <span class="n">apply_weights</span><span class="p">:</span>
@@ -930,7 +1166,43 @@
         <span class="k">return</span> <span class="n">summed</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">unweighted_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">term</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span> <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">needs_grad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_grad_enabled</span><span class="p">()</span> <span class="ow">and</span> <span class="n">coords</span><span class="o">.</span><span class="n">requires_grad</span>
+        <span class="n">cpu_workers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_term_workers</span>
+        <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_grad_enabled</span><span class="p">()</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_has_trainable_term_parameters</span><span class="p">:</span>
+            <span class="n">cpu_workers</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">cpu_workers</span> <span class="o">&gt;=</span> <span class="mi">2</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="n">needs_grad</span>
+            <span class="ow">and</span> <span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">_CPU_WIDE_FORWARD_SCORE_MIN_POSES</span>
+        <span class="p">):</span>
+            <span class="n">cpu_workers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_forward_workers</span>
+        <span class="k">if</span> <span class="n">cpu_workers</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">term</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span> <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">executor</span> <span class="o">=</span> <span class="n">_cpu_score_term_executor</span><span class="p">(</span><span class="n">cpu_workers</span><span class="p">)</span>
+        <span class="n">autocast_context</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">is_autocast_enabled</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">get_autocast_dtype</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">is_autocast_cache_enabled</span><span class="p">(),</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">needs_grad</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">_ParallelScoreTerms</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+                <span class="n">coords</span><span class="p">,</span>
+                <span class="n">executor</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span><span class="p">,</span>
+                <span class="o">*</span><span class="n">autocast_context</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="n">context</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">is_grad_enabled</span><span class="p">(),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">is_inference_mode_enabled</span><span class="p">(),</span>
+            <span class="o">*</span><span class="n">autocast_context</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">_score_call_in_thread</span><span class="p">,</span> <span class="n">term</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="o">*</span><span class="n">context</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span> <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">futures</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
 <div class="viewcode-block" id="WholePoseScoringModule.enable_cuda_graphs">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.WholePoseScoringModule.enable_cuda_graphs">[docs]</a>
@@ -1036,12 +1308,61 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span>
             <span class="n">weights</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span> <span class="o">=</span> <span class="n">term_modules</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">term_modules</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_active_term_modules</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+            <span class="n">term</span>
+            <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">ZeroTermPoseScoringModule</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_has_trainable_term_parameters</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span>
+            <span class="n">parameter</span><span class="o">.</span><span class="n">requires_grad</span>
+            <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span>
+            <span class="k">for</span> <span class="n">parameter</span> <span class="ow">in</span> <span class="n">term</span><span class="o">.</span><span class="n">parameters</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_term_workers</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_forward_workers</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">_cpu_score_term_worker_counts</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span><span class="p">),</span> <span class="n">weights</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_cpu_workers_for_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return the worker count selected for this pose batch."""</span>
+        <span class="k">if</span> <span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">_CPU_WIDE_FORWARD_SCORE_MIN_POSES</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_forward_workers</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_term_workers</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parallel_forward_scores</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Evaluate active CPU terms concurrently for a forward-only call."""</span>
+        <span class="n">cpu_workers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_workers_for_coords</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+        <span class="n">differentiable</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_grad_enabled</span><span class="p">()</span> <span class="ow">and</span> <span class="p">(</span>
+            <span class="n">coords</span><span class="o">.</span><span class="n">requires_grad</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_has_trainable_term_parameters</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">cpu_workers</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">differentiable</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_active_term_modules</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">executor</span> <span class="o">=</span> <span class="n">_cpu_score_term_executor</span><span class="p">(</span><span class="n">cpu_workers</span><span class="p">)</span>
+        <span class="n">context</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">is_grad_enabled</span><span class="p">(),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">is_inference_mode_enabled</span><span class="p">(),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">is_autocast_enabled</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">get_autocast_dtype</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">is_autocast_cache_enabled</span><span class="p">(),</span>
+        <span class="p">)</span>
+        <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">_score_call_in_thread</span><span class="p">,</span> <span class="n">term</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="o">*</span><span class="n">context</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_active_term_modules</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span> <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">futures</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">sum_terms</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">apply_weights</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_grad_enabled</span><span class="p">()</span> <span class="ow">and</span> <span class="n">coords</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">:</span>
             <span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">sum_terms</span> <span class="ow">and</span> <span class="n">apply_weights</span><span class="p">:</span>
+            <span class="n">parallel_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parallel_forward_scores</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+            <span class="n">active_results</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">iter</span><span class="p">(</span><span class="n">parallel_scores</span><span class="p">)</span> <span class="k">if</span> <span class="n">parallel_scores</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="p">)</span>
+
             <span class="n">active_scores</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="n">active_weights</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="n">weight_offset</span> <span class="o">=</span> <span class="mi">0</span>
@@ -1049,7 +1370,9 @@
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">ZeroTermPoseScoringModule</span><span class="p">):</span>
                     <span class="n">weight_offset</span> <span class="o">+=</span> <span class="n">term</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
                     <span class="k">continue</span>
-                <span class="n">scores</span> <span class="o">=</span> <span class="n">term</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+                <span class="n">scores</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">term</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span> <span class="k">if</span> <span class="n">active_results</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">next</span><span class="p">(</span><span class="n">active_results</span><span class="p">)</span>
+                <span class="p">)</span>
                 <span class="n">next_offset</span> <span class="o">=</span> <span class="n">weight_offset</span> <span class="o">+</span> <span class="n">scores</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
                 <span class="n">active_scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">scores</span><span class="p">)</span>
                 <span class="n">active_weights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">weight_offset</span><span class="p">:</span><span class="n">next_offset</span><span class="p">])</span>
@@ -1064,8 +1387,23 @@
 
         <span class="k">return</span> <span class="n">summed</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">unweighted_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">term</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span> <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
+    <span class="k">def</span><span class="w"> </span><span class="nf">unweighted_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="n">parallel_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parallel_forward_scores</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">parallel_scores</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">term</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span> <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">active_results</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">parallel_scores</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="p">(</span>
+                    <span class="n">term</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">ZeroTermPoseScoringModule</span><span class="p">)</span>
+                    <span class="k">else</span> <span class="nb">next</span><span class="p">(</span><span class="n">active_results</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span>
+            <span class="p">],</span>
+            <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="p">)</span></div>
 
 
 
@@ -1086,7 +1424,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span>
             <span class="n">weights</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span> <span class="o">=</span> <span class="n">term_modules</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">term_modules</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_term_workers</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_cpu_score_term_worker_counts</span><span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span><span class="p">),</span> <span class="n">weights</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_grad_enabled</span><span class="p">()</span> <span class="ow">and</span> <span class="n">coords</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">:</span>
@@ -1102,8 +1443,33 @@
         <span class="n">n_rots</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">weights_offset</span> <span class="o">=</span> <span class="mi">0</span>
 
-        <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span><span class="p">:</span>
-            <span class="n">scores</span><span class="p">,</span> <span class="n">indices</span> <span class="o">=</span> <span class="n">term</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>  <span class="c1"># [n_subterms, nnz], [3, nnz]</span>
+        <span class="n">parallel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_term_workers</span> <span class="o">&gt;=</span> <span class="mi">2</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">is_grad_enabled</span><span class="p">()</span> <span class="ow">and</span> <span class="n">coords</span><span class="o">.</span><span class="n">requires_grad</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">parallel</span><span class="p">:</span>
+            <span class="n">executor</span> <span class="o">=</span> <span class="n">_cpu_score_term_executor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cpu_term_workers</span><span class="p">)</span>
+            <span class="n">context</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">is_grad_enabled</span><span class="p">(),</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">is_inference_mode_enabled</span><span class="p">(),</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">is_autocast_enabled</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">),</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">get_autocast_dtype</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">),</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">is_autocast_cache_enabled</span><span class="p">(),</span>
+            <span class="p">)</span>
+            <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
+                    <span class="n">_score_call_in_thread</span><span class="p">,</span>
+                    <span class="n">term</span><span class="o">.</span><span class="n">forward</span><span class="p">,</span>
+                    <span class="n">coords</span><span class="p">,</span>
+                    <span class="o">*</span><span class="n">context</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span>
+            <span class="p">]</span>
+            <span class="n">term_results</span> <span class="o">=</span> <span class="p">[</span><span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span> <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">futures</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">term_results</span> <span class="o">=</span> <span class="p">[</span><span class="n">term</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span> <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">term</span><span class="p">,</span> <span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">indices</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span><span class="p">,</span> <span class="n">term_results</span><span class="p">):</span>
+            <span class="c1"># [n_subterms, nnz], [3, nnz]</span>
             <span class="n">n_subterms</span> <span class="o">=</span> <span class="n">scores</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
             <span class="c1"># Apply per-subterm weights and sum to [nnz] — no sparse tensor yet.</span>
@@ -1114,8 +1480,9 @@
             <span class="c1"># values now so the sparse coalesce does not sort another copy of</span>
             <span class="c1"># the same, potentially multi-gigabyte, index layout.</span>
             <span class="n">deduplicate_layout</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">indices</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">*</span> <span class="n">indices</span><span class="o">.</span><span class="n">element_size</span><span class="p">()</span>
-                <span class="o">&gt;=</span> <span class="n">_ROTAMER_LAYOUT_DEDUP_MIN_BYTES</span>
+                <span class="n">indices</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"cpu"</span>
+                <span class="ow">or</span> <span class="n">indices</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">*</span> <span class="n">indices</span><span class="o">.</span><span class="n">element_size</span><span class="p">()</span>
+                <span class="o">&gt;=</span> <span class="n">_CUDA_ROTAMER_LAYOUT_DEDUP_MIN_BYTES</span>
             <span class="p">)</span>
             <span class="n">candidate_layouts</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="n">layouts_by_nnz</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">indices</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">())</span> <span class="k">if</span> <span class="n">deduplicate_layout</span> <span class="k">else</span> <span class="p">()</span>
@@ -1144,7 +1511,17 @@
                 <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
                 <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
                 <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="n">is_coalesced</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">check_invariants</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
             <span class="p">)</span>
+        <span class="k">assert</span> <span class="n">n_rots</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"cpu"</span><span class="p">:</span>
+            <span class="n">coalesced</span> <span class="o">=</span> <span class="n">_try_coalesce_cpu_rotamer_layouts</span><span class="p">(</span>
+                <span class="n">all_indices</span><span class="p">,</span> <span class="n">all_values</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">,</span> <span class="n">n_rots</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">coalesced</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">coalesced</span>
 
         <span class="n">combined_values</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">all_values</span><span class="p">)</span>
         <span class="n">combined_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">all_indices</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
@@ -1152,6 +1529,8 @@
             <span class="n">combined_indices</span><span class="p">,</span>
             <span class="n">combined_values</span><span class="p">,</span>
             <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">n_rots</span><span class="p">,</span> <span class="n">n_rots</span><span class="p">),</span>
+            <span class="n">is_coalesced</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">check_invariants</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="p">)</span></div>
 
 </pre></div>

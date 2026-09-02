@@ -451,6 +451,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">masked_coords</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])[</span><span class="bp">self</span><span class="o">.</span><span class="n">_coord_flat_idx</span><span class="p">]</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_coords_movable</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">masked_coords</span><span class="o">.</span><span class="n">view_as</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span><span class="p">)</span>
 
         <span class="c1"># pose each element of masked_coords belongs to, for per-pose minimization</span>
         <span class="n">pose_for_atom</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">div</span><span class="p">(</span>
@@ -460,15 +462,10 @@
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">segment_ids</span> <span class="o">=</span> <span class="n">pose_for_atom</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
-
 <div class="viewcode-block" id="CartesianSfxnNetwork.forward">
 <a class="viewcode-back" href="../../../api/optimization.html#tmol.optimization.CartesianSfxnNetwork.forward">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_coords_movable</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">masked_coords</span><span class="o">.</span><span class="n">view_as</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_coords_movable</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])[</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_coord_flat_idx</span>
@@ -476,7 +473,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">whole_pose_scoring_module</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span><span class="p">)</span></div>
 
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">pose_stack_from_dofs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pose_stack_from_dofs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_coords_movable</span><span class="p">:</span>
             <span class="n">full_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">masked_coords</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">view_as</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span><span class="p">)</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
             <span class="k">return</span> <span class="n">attrs</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">full_coords</span><span class="p">)</span>
@@ -564,13 +561,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">segment_ids</span> <span class="o">=</span> <span class="n">pose_for_dof</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_dof_flat_idx</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
         <span class="k">assert</span> <span class="nb">bool</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">segment_ids</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()),</span> <span class="s2">"root node dofs cannot be minimized"</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
-
 <div class="viewcode-block" id="KinForestSfxnNetwork.forward">
 <a class="viewcode-back" href="../../../api/optimization.html#tmol.optimization.KinForestSfxnNetwork.forward">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
-
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="c1"># get rid of any gradients from the previous iteration</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">full_dofs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_dofs</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
@@ -587,7 +580,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">whole_pose_scoring_module</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span><span class="p">)</span></div>
 
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">pose_stack_from_dofs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pose_stack_from_dofs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
 
         <span class="n">full_dofs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_dofs</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
         <span class="n">flat_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flat_coords</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
