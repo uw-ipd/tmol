@@ -1432,8 +1432,13 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // mgpu::standard_context_t context(wrapped_stream.stream());
 
   // 2
-  DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-      mgr, dispatch_indices.size(1), eval_energies_by_block);
+  if (compute_derivs) {
+    DeviceDispatch<D>::template foreach_workgroup<launch_t>(
+        mgr, dispatch_indices.size(1), eval_energies_by_block);
+  } else {
+    DeviceDispatch<D>::template foreach_independent_workgroup<launch_t>(
+        mgr, dispatch_indices.size(1), eval_energies_by_block);
+  }
 
   return {output_t, dV_dcoords_t, dispatch_indices_t};
 }  // namespace potentials

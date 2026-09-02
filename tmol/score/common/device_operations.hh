@@ -16,10 +16,22 @@ struct DeviceOperations {
   template <typename launch_t, typename Func>
   static void forall(ContextManager& mgr, int N, Func f);
 
-  /// Apply independent per-stack work, parallelizing stacks on CPU when the
-  /// workload is large enough to amortize thread-pool dispatch.
-  template <typename launch_t, typename Int, typename Func>
-  static void forall_stacks(ContextManager& mgr, Int Nstacks, Int N, Func f);
+  /// Apply independent element work, parallelizing elements on CPU.
+  /// Callbacks may execute concurrently and must write to disjoint outputs.
+  template <typename launch_t, typename Func>
+  static void forall_independent(ContextManager& mgr, int N, Func f);
+
+  /// Apply flattened element work, keeping each CPU group's elements serial.
+  /// Groups must write to disjoint outputs. CUDA retains one thread per item.
+  template <typename launch_t, typename Func>
+  static void forall_grouped(
+      ContextManager& mgr, int n_groups, int items_per_group, Func f);
+
+  /// Store a value that concurrent callbacks may write identically.
+  static EIGEN_DEVICE_FUNC void store_idempotent(
+      int32_t& target, int32_t value);
+  static EIGEN_DEVICE_FUNC void store_idempotent(
+      int64_t& target, int64_t value);
 
   template <typename Int, typename Func>
   static void foreach_combination_triple(
@@ -27,6 +39,17 @@ struct DeviceOperations {
 
   template <typename launch_t, typename Func>
   static void foreach_workgroup(ContextManager& mgr, int n_workgroups, Func f);
+
+  /// Run workgroups concurrently on CPU when their outputs are disjoint.
+  template <typename launch_t, typename Func>
+  static void foreach_independent_workgroup(
+      ContextManager& mgr, int n_workgroups, Func f);
+
+  /// Run workgroup callbacks in independent groups. CPU groups run in
+  /// parallel while workgroups within a group retain their serial order.
+  template <typename launch_t, typename Func>
+  static void foreach_grouped_workgroup(
+      ContextManager& mgr, int n_groups, int workgroups_per_group, Func f);
 
   /// Run pose-grouped workgroups, parallelizing independent poses on CPU.
   /// The callback receives a flattened pose-major workgroup index; workgroups

@@ -366,8 +366,8 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     }
   });
 
-  DeviceDispatch<Dev>::template forall<launch_t>(
-      mgr, n_poses * max_n_blocks, rama_omega_func);
+  DeviceDispatch<Dev>::template forall_grouped<launch_t>(
+      mgr, n_poses, max_n_blocks, rama_omega_func);
 
   return {V_t, dV_dxyz_t};
 };
@@ -653,8 +653,8 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
     }
   });
 
-  DeviceDispatch<Dev>::template forall<launch_t>(
-      mgr, n_poses * max_n_blocks, rama_omega_func);
+  DeviceDispatch<Dev>::template forall_grouped<launch_t>(
+      mgr, n_poses, max_n_blocks, rama_omega_func);
 
   return dV_dxyz_t;
 };

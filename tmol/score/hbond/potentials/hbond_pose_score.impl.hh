@@ -1405,8 +1405,13 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   // at::cuda::getDefaultCUDAStream(); mgpu::standard_context_t
   // context(wrapped_stream.stream());
 
-  DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
-      mgr, dispatch_indices.size(1), eval_energies);
+  if (compute_derivs) {
+    DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
+        mgr, dispatch_indices.size(1), eval_energies);
+  } else {
+    DeviceDispatch<Dev>::template foreach_independent_workgroup<launch_t>(
+        mgr, dispatch_indices.size(1), eval_energies);
+  }
 
   // DeviceDispatch<Dev>::synchronize_device();
   return {output_t, dV_dcoords_t, dispatch_indices_t};

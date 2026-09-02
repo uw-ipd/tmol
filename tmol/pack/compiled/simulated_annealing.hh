@@ -67,12 +67,8 @@ inline
       continue;
     }
     int const irot_global = irot_local + oneb_offsets[i];
-    int const ires_n_rots = n_rotamers_for_res[i];
-    int const ires_n_chunks = (ires_n_rots - 1) / chunk_size + 1;
     int const irot_chunk = irot_local / chunk_size;
     int const irot_in_chunk = irot_local - chunk_size * irot_chunk;
-    int const irot_chunk_size =
-        min(chunk_size, ires_n_rots - chunk_size * irot_chunk);
 
     totalE += energy1b[irot_global];
     for (int j = i + 1; j < n_res; ++j) {
@@ -144,7 +140,6 @@ inline
 #endif
   int const n_res = n_rotamers_for_res.size(0);
 
-  int count_out = 0;
   float totalE = 0;
   for (int i = 0; i < n_res; ++i) {
     int const irot_local = rotamer_assignment[i];
@@ -154,12 +149,8 @@ inline
       continue;
     }
     int const irot_global = irot_local + oneb_offsets[i];
-    int const ires_n_rots = n_rotamers_for_res[i];
-    int const ires_n_chunks = (ires_n_rots - 1) / chunk_size + 1;
     int const irot_chunk = irot_local / chunk_size;
     int const irot_in_chunk = irot_local - chunk_size * irot_chunk;
-    int const irot_chunk_size =
-        min(chunk_size, ires_n_rots - chunk_size * irot_chunk);
 
     totalE += energy1b[irot_global];
     for (int j = i + 1; j < n_res; ++j) {

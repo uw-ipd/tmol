@@ -128,8 +128,9 @@ def run_min(
     def closure() -> torch.Tensor:
         optimizer.zero_grad()
         E = sfxn_module()
-        E.sum().backward()
-        return E if segmented else E.sum()
+        total = E.sum()
+        total.backward()
+        return E if segmented else total
 
     if timing_device is not None:
         synchronize_device(timing_device)

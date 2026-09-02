@@ -1,5 +1,7 @@
-import torch
 from types import SimpleNamespace
+from typing import Any
+
+import torch
 from torch.optim import Optimizer
 
 
@@ -30,21 +32,35 @@ def lbfgs_two_loop(grad, dirs, stps):
     S = stps.double()
     Y = dirs.double()
     g = -grad.double()
-    a = torch.einsum("ipk,pk->pi", S, g)  # a_i = s_i . g
-    b = torch.einsum("ipk,pk->pi", Y, g)  # b_i = y_i . g
-    SY = torch.einsum("ipk,jpk->pij", S, Y)  # SY_ij = s_i . y_j
-    YY = torch.einsum("ipk,jpk->pij", Y, Y)  # YY_ij = y_i . y_j
+    # FastRelax supplies float32 coordinates. Preserve the common einsum path
+    # for float64, where callers may compare independently minimized segments
+    # with a batched minimization at tight double-precision tolerances.
+    single_segment = grad.shape[0] == 1 and out_dtype == torch.float32
+    if single_segment:
+        S_one, Y_one, g_one = S[:, 0], Y[:, 0], g[0]
+        a = torch.mv(S_one, g_one).unsqueeze(0)  # a_i = s_i . g
+        b = torch.mv(Y_one, g_one).unsqueeze(0)  # b_i = y_i . g
+        SY = torch.mm(S_one, Y_one.T).unsqueeze(0)  # SY_ij = s_i . y_j
+        YY = torch.mm(Y_one, Y_one.T).unsqueeze(0)  # YY_ij = y_i . y_j
+    else:
+        a = torch.einsum("ipk,pk->pi", S, g)
+        b = torch.einsum("ipk,pk->pi", Y, g)
+        SY = torch.einsum("ipk,jpk->pij", S, Y)
+        YY = torch.einsum("ipk,jpk->pij", Y, Y)
     R = torch.triu(SY)  # upper-triangular incl. diagonal
     D = SY.diagonal(dim1=-2, dim2=-1)  # D_i = s_i . y_i
 
     # An absent slot has an all-zero row and column; a unit diagonal there keeps
     # R invertible and leaves the search direction unchanged.
-    R = R + torch.diag_embed((D == 0).to(R.dtype))
+    R.diagonal(dim1=-2, dim2=-1).masked_fill_(D == 0, 1)
 
     # u = R^-1 a
     u = torch.linalg.solve_triangular(R, a.unsqueeze(-1), upper=True).squeeze(-1)
     # v = (D + Y^T Y) u - b
-    v = torch.einsum("pij,pj->pi", YY, u) + D * u - b
+    if single_segment:
+        v = (torch.mv(YY[0], u[0]) + D[0] * u[0] - b[0]).unsqueeze(0)
+    else:
+        v = torch.einsum("pij,pj->pi", YY, u) + D * u - b
     # p1 = R^-T v
     p1 = torch.linalg.solve_triangular(
         R.transpose(-2, -1), v.unsqueeze(-1), upper=False
@@ -52,7 +68,13 @@ def lbfgs_two_loop(grad, dirs, stps):
     p2 = -u
 
     # result = g + S p1 + Y p2
-    result = g + torch.einsum("pi,ipk->pk", p1, S) + torch.einsum("pi,ipk->pk", p2, Y)
+    if single_segment:
+        result = (
+            g[0] + torch.mv(S[:, 0].T, p1[0]) + torch.mv(Y[:, 0].T, p2[0])
+        ).unsqueeze(0)
+    else:
+        result = g + torch.einsum("pi,ipk->pk", p1, S)
+        result += torch.einsum("pi,ipk->pk", p2, Y)
     result = result.to(out_dtype)
     return result.squeeze(0) if unbatched else result
 
@@ -211,6 +233,64 @@ class LBFGS_Armijo(Optimizer):
 
     supports_segments = True
 
+    def add_param_group(self, param_group: dict[str, Any]) -> None:
+        """Add the optimizer's sole parameter group without compiler imports.
+
+        PyTorch's generic implementation is Dynamo-disabled and initializes
+        Dynamo, DTensor, and distributed operator registries on first use.
+        This optimizer supports exactly one group and one tensor, so that
+        general machinery adds substantial cold-start latency without adding
+        functionality.
+        """
+        if self.param_groups:
+            raise ValueError("LBFGS doesn't support per-parameter options")
+        if not isinstance(param_group, dict):
+            raise TypeError(f"param_group must be a dict, got {type(param_group)}")
+
+        params = param_group["params"]
+        if isinstance(params, torch.Tensor):
+            params = [params]
+        elif isinstance(params, set):
+            raise TypeError("optimizer parameters must use an ordered collection")
+        else:
+            params = list(params)
+        if len(params) != 1:
+            raise ValueError("LBFGS requires exactly one parameter tensor")
+        param = params[0]
+        param_name = None
+        if isinstance(param, tuple):
+            if len(param) != 2 or not isinstance(param[0], str):
+                raise TypeError(
+                    "named optimizer parameters must be (name, Tensor) pairs"
+                )
+            param_name, param = param
+        if not isinstance(param, torch.Tensor):
+            raise TypeError(f"optimizer parameter must be a Tensor, got {type(param)}")
+        if not param.is_leaf and not param.retains_grad:
+            raise ValueError("can't optimize a non-leaf Tensor")
+
+        param_group = dict(param_group)
+        param_group["params"] = [param]
+        if param_name is not None:
+            param_group["param_names"] = [param_name]
+        for name, default in self.defaults.items():
+            param_group.setdefault(name, default)
+        self.param_groups.append(param_group)
+
+    def zero_grad(self, set_to_none: bool = True) -> None:
+        """Reset the single optimized tensor's gradient."""
+        param = self._params[0]
+        if param.grad is None:
+            return
+        if set_to_none:
+            param.grad = None
+        else:
+            if param.grad.grad_fn is not None:
+                param.grad.detach_()
+            else:
+                param.grad.requires_grad_(False)
+            param.grad.zero_()
+
     def __init__(
         self,
         params,
@@ -270,9 +350,34 @@ class LBFGS_Armijo(Optimizer):
         assert bool((segment_ids >= 0).all()), "segment_ids must be non-negative"
 
         n_segments = int(segment_ids.max().item()) + 1
+        if n_segments == 1:
+            self._segment_ids = segment_ids
+            self._n_segments = 1
+            self._segment_size = segment_ids.numel()
+            self._segments_are_dense = True
+            self._pad_index = None
+            return
+
         counts = torch.bincount(segment_ids, minlength=n_segments)
         assert bool((counts > 0).all()), "segment_ids must not skip a segment"
         segment_size = int(counts.max().item())
+
+        # Avoid sorting the overwhelmingly common dense layout: one pose, or
+        # equal-sized poses stored contiguously. Dense reductions only reshape
+        # the parameter vector and never consult ``_pad_index``.
+        segments_are_dense = False
+        if bool((counts == segment_size).all()):
+            expected = torch.arange(n_segments, device=segment_ids.device)
+            expected = expected.repeat_interleave(segment_size)
+            segments_are_dense = torch.equal(segment_ids, expected)
+
+        self._segment_ids = segment_ids
+        self._n_segments = n_segments
+        self._segment_size = segment_size
+        self._segments_are_dense = segments_are_dense
+        if segments_are_dense:
+            self._pad_index = None
+            return
 
         # rank of each element within its own segment
         order = torch.argsort(segment_ids, stable=True)
@@ -281,16 +386,7 @@ class LBFGS_Armijo(Optimizer):
         arange = torch.arange(segment_ids.numel(), device=order.device)
         rank[order] = arange - offsets[segment_ids[order]]
 
-        self._segment_ids = segment_ids
-        self._n_segments = n_segments
-        self._segment_size = segment_size
         self._pad_index = segment_ids * segment_size + rank
-        # The common Cartesian-minimization layout has equally sized segments
-        # stored consecutively. In that case padding is just a view/copy; keep
-        # the indexed path for heterogeneous or interleaved segment layouts.
-        self._segments_are_dense = bool(
-            (counts == segment_size).all() and torch.equal(self._pad_index, arange)
-        )
 
     def _seg_sum(self, values):
         """Sum a parameter-shaped vector within each segment."""
@@ -338,6 +434,12 @@ class LBFGS_Armijo(Optimizer):
         if self._segments_are_dense:
             return padded.reshape(-1)
         return padded.reshape(-1)[self._pad_index]
+
+    def _per_element(self, segment_values: torch.Tensor) -> torch.Tensor:
+        """Broadcast per-segment values to parameters without indexing one segment."""
+        if self._n_segments == 1:
+            return segment_values[0]
+        return segment_values[self._segment_ids]
 
     def _wrap_closure(self, closure):
         """Reduce a per-segment closure to a scalar, keeping the vector around.
@@ -404,7 +506,7 @@ class LBFGS_Armijo(Optimizer):
         # The optimizer uses the per-segment tensor below for all line-search
         # and convergence decisions. Materializing a Python scalar here forces
         # a device synchronization and is only useful for verbose reporting.
-        loss = float(orig_loss) if self.verbose else None
+        loss = float(orig_loss.detach()) if self.verbose else None
         loss_vec = self._last_loss_vec
         state["func_evals"] += 1
 
@@ -462,7 +564,6 @@ class LBFGS_Armijo(Optimizer):
             # cached across steps
             t=state.get("t"),
             prev_flat_grad=state.get("prev_flat_grad"),
-            prev_loss=state.get("prev_loss"),
             prev_loss_vec=state.get("prev_loss_vec"),
             # history
             old_dirs_mat=state["old_dirs_mat"],
@@ -516,12 +617,21 @@ class LBFGS_Armijo(Optimizer):
                     idx = ctx.history_start
                     ctx.history_start = (ctx.history_start + 1) % ctx.history_size
 
-                # advance the reference only for segments that took a good step
-                keep_elem = keep[self._segment_ids]
-                zero = torch.zeros((), dtype=y.dtype, device=y.device)
-                self._pad(torch.where(keep_elem, y, zero), out=ctx.old_dirs_mat[idx])
-                self._pad(torch.where(keep_elem, s, zero), out=ctx.old_stps_mat[idx])
-                ctx.x_ref = torch.where(keep_elem, x, ctx.x_ref)
+                # Advance the reference only for segments that took a good step.
+                if self._n_segments == 1:
+                    ctx.old_dirs_mat[idx, 0].copy_(y)
+                    ctx.old_stps_mat[idx, 0].copy_(s)
+                    ctx.x_ref.copy_(x)
+                else:
+                    keep_elem = self._per_element(keep)
+                    zero = torch.zeros((), dtype=y.dtype, device=y.device)
+                    self._pad(
+                        torch.where(keep_elem, y, zero), out=ctx.old_dirs_mat[idx]
+                    )
+                    self._pad(
+                        torch.where(keep_elem, s, zero), out=ctx.old_stps_mat[idx]
+                    )
+                    ctx.x_ref = torch.where(keep_elem, x, ctx.x_ref)
 
             # compute the approximate (L-BFGS) inverse Hessian
             if ctx.history_count == 0:
@@ -566,7 +676,7 @@ class LBFGS_Armijo(Optimizer):
         reset = ctx.needs_reset.nonzero(as_tuple=False).squeeze(-1)
         ctx.old_dirs_mat[:, reset, :] = 0.0
         ctx.old_stps_mat[:, reset, :] = 0.0
-        reset_elem = ctx.needs_reset[self._segment_ids]
+        reset_elem = self._per_element(ctx.needs_reset)
         ctx.d.copy_(torch.where(reset_elem, -ctx.flat_grad, ctx.d))
         ctx.x_ref = torch.where(reset_elem, ctx.x, ctx.x_ref)
         ctx.needs_reset = torch.zeros_like(ctx.needs_reset)
@@ -581,7 +691,7 @@ class LBFGS_Armijo(Optimizer):
         inactive = self._inactive(ctx)
         if not ctx.any_inactive:
             return
-        ctx.d.mul_((~inactive).to(ctx.d.dtype)[self._segment_ids])
+        ctx.d.mul_(self._per_element((~inactive).to(ctx.d.dtype)))
 
     def _directional_derivative(self, ctx, correct=True):
         """Compute and cache the directional derivative g . d per segment."""
@@ -592,7 +702,7 @@ class LBFGS_Armijo(Optimizer):
                 bad = (gtd_seg > -1e-5) & ~self._inactive(ctx)
                 if not bool(bad.any()):
                     break
-                bad_elem = bad[self._segment_ids]
+                bad_elem = self._per_element(bad)
                 if check == 1:
                     repaired = d * -torch.sign(flat_grad * d)
                 else:
@@ -623,7 +733,7 @@ class LBFGS_Armijo(Optimizer):
         )
         ctx.ls_evals = ls_evals
 
-        ctx.x.copy_(ctx.x_backup).add_(ctx.d * accepted[self._segment_ids])
+        ctx.x.copy_(ctx.x_backup).add_(ctx.d * self._per_element(accepted))
         if not trial_is_accepted:
             self._closure_fn()
         ctx.loss_vec = self._last_loss_vec
@@ -694,7 +804,7 @@ class LBFGS_Armijo(Optimizer):
             func (callable): a function that evaluates energy
 
         Returns:
-            orig_loss: the energy (loss) following optimization
+            The initial loss, matching the ``Optimizer.step`` convention.
         """
         closure = self._wrap_closure(closure)
         self._closure_fn = closure
@@ -708,7 +818,7 @@ class LBFGS_Armijo(Optimizer):
             """Evaluate every segment at its own step size."""
             self.ls_func_evals += 1
             # Direct parameter update - eliminates _set_x_from_flat overhead
-            x.copy_(x_backup).add_(d * alpha_vec[self._segment_ids])
+            x.copy_(x_backup).add_(d * self._per_element(alpha_vec))
             closure()
             return self._last_loss_vec
 
@@ -724,7 +834,6 @@ class LBFGS_Armijo(Optimizer):
                 ctx.prev_flat_grad = ctx.flat_grad.clone()
             else:
                 ctx.prev_flat_grad.copy_(ctx.flat_grad)
-            ctx.prev_loss = ctx.loss
             ctx.prev_loss_vec = ctx.loss_vec
 
             # Armijo updates will track step length during optimization
@@ -772,7 +881,6 @@ class LBFGS_Armijo(Optimizer):
         ctx.state["history_start"] = ctx.history_start
         ctx.state["history_count"] = ctx.history_count
         ctx.state["prev_flat_grad"] = ctx.prev_flat_grad
-        ctx.state["prev_loss"] = ctx.prev_loss
         ctx.state["prev_loss_vec"] = ctx.prev_loss_vec
         ctx.state["x_ref"] = ctx.x_ref
         ctx.state["needs_reset"] = ctx.needs_reset

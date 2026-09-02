@@ -237,10 +237,13 @@ MGPU_DEVICE float warp_wide_sim_annealing(
   int const pose_rotamer_offset = ig.pose_rotamer_offset_[pose];
 
   float temperature = hi_temp;
-  float best_energy =
-      ig.template total_energy_for_assignment_parallel<ChunkSize>(
-          pose, g, current_rotamer_assignment);
-  float current_total_energy = best_energy;
+  float best_energy = 0.0f;
+  float current_total_energy = 0.0f;
+  if constexpr (TrackBestAssignment) {
+    best_energy = ig.template total_energy_for_assignment_parallel<ChunkSize>(
+        pose, g, current_rotamer_assignment);
+    current_total_energy = best_energy;
+  }
   int n_steps = 0;
 
   for (int i = 0; i < n_outer_iterations; ++i) {
@@ -308,10 +311,10 @@ MGPU_DEVICE float warp_wide_sim_annealing(
         }
       }
 
+      // Only the residue and local rotamer are consumed by the whole tile;
+      // global_new_rot and accept_rand remain lane-0-only below.
       ran_res = g.shfl(ran_res, 0);
       local_new_rot = g.shfl(local_new_rot, 0);
-      global_new_rot = g.shfl(global_new_rot, 0);
-      accept_rand = g.shfl(accept_rand, 0);
 
       int const local_prev_rot = current_rotamer_assignment[ran_res];
       int const global_prev_rot =
@@ -395,12 +398,12 @@ MGPU_DEVICE float warp_wide_sim_annealing(
       if (accept) {
         if (g.thread_rank() == 0) {
           current_rotamer_assignment[ran_res] = local_new_rot;
-          current_total_energy += total_delta_e;
         }
-        current_total_energy = g.shfl(current_total_energy, 0);
-        // Pure quench phases are monotonic and consume current directly, so
-        // they do not need an O(n_res) assignment copy after every acceptance.
         if constexpr (TrackBestAssignment) {
+          if (g.thread_rank() == 0) {
+            current_total_energy += total_delta_e;
+          }
+          current_total_energy = g.shfl(current_total_energy, 0);
           if (current_total_energy < best_energy) {
             best_energy = current_total_energy;
             for (int k = g.thread_rank(); k < n_res; k += 32) {
@@ -411,11 +414,13 @@ MGPU_DEVICE float warp_wide_sim_annealing(
       }
 
       // Periodically recompute total energy to correct floating-point drift
-      if (++n_steps > 10000) {
-        n_steps = 0;
-        current_total_energy =
-            ig.template total_energy_for_assignment_parallel<ChunkSize>(
-                pose, g, current_rotamer_assignment);
+      if constexpr (TrackBestAssignment) {
+        if (++n_steps > 10000) {
+          n_steps = 0;
+          current_total_energy =
+              ig.template total_energy_for_assignment_parallel<ChunkSize>(
+                  pose, g, current_rotamer_assignment);
+        }
       }
 
     }  // end inner loop

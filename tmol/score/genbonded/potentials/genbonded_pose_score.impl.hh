@@ -1263,8 +1263,13 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
     });
     DeviceOps<D>::template for_each_in_workgroup<nt>(reduce_and_write);
   });
-  DeviceOps<D>::template foreach_workgroup<launch_t>(
-      mgr, n_output_intxns_total, eval_torsions_for_interaction);
+  if (compute_derivs) {
+    DeviceOps<D>::template foreach_workgroup<launch_t>(
+        mgr, n_output_intxns_total, eval_torsions_for_interaction);
+  } else {
+    DeviceOps<D>::template foreach_independent_workgroup<launch_t>(
+        mgr, n_output_intxns_total, eval_torsions_for_interaction);
+  }
 
   return {
       V_t,

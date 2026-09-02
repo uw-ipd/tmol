@@ -3,6 +3,7 @@ import numpy
 import torch
 
 from tmol.numeric import coord_dihedrals
+from tmol.numeric._dihedrals import _numpy_coord_dihedrals
 from tmol.utility import parse_angle
 
 
@@ -38,3 +39,14 @@ def test_coord_dihedrals():
     )
 
     numpy.testing.assert_allclose(calc_dihedrals.numpy(), dihedrals, atol=1e-5)
+
+
+def test_numpy_coord_dihedrals_matches_torch():
+    generator = numpy.random.default_rng(7)
+    coords = generator.normal(size=(1000, 4, 3))
+    tensor_coords = torch.as_tensor(coords, dtype=torch.float64)
+
+    expected = coord_dihedrals(*(tensor_coords[:, i] for i in range(4))).numpy()
+    actual = _numpy_coord_dihedrals(*(coords[:, i] for i in range(4)))
+
+    numpy.testing.assert_array_equal(actual, expected)

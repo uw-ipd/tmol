@@ -4,16 +4,33 @@ import torch
 from tmol.score.common import convert_float64
 
 
-class _ZeroCoordinates(torch.autograd.Function):
-    """Attach a no-op coordinate gradient without launching a device kernel."""
+class _CoordinateIndependentScore(torch.autograd.Function):
+    """Attach a no-op coordinate edge without launching a device kernel."""
 
     @staticmethod
-    def forward(ctx, coords, zero, shape):
-        return zero.expand(shape)
+    def forward(ctx, coords, score):
+        return score
 
     @staticmethod
     def backward(ctx, grad_output):
-        return None, None, None
+        return None, grad_output
+
+
+def _coordinate_independent_score(
+    coords: torch.Tensor, score: torch.Tensor
+) -> torch.Tensor:
+    """Preserve backward compatibility for a coordinate-independent score.
+
+    Args:
+        coords: Coordinates accepted by the score term.
+        score: A score with no mathematical dependence on ``coords``.
+
+    Returns:
+        ``score`` with a no-op autograd edge only when ``coords`` requires one.
+    """
+    if torch.is_grad_enabled() and coords.requires_grad:
+        return _CoordinateIndependentScore.apply(coords, score)
+    return score
 
 
 class ZeroTermPoseScoringModule(torch.nn.Module):
@@ -45,9 +62,7 @@ class ZeroTermPoseScoringModule(torch.nn.Module):
         # backward() even when that term has no coordinate dependence. Attach
         # a custom no-op edge so that convention remains valid without a
         # reduction kernel or a persistent leaf gradient.
-        if torch.is_grad_enabled() and coords.requires_grad:
-            return _ZeroCoordinates.apply(coords, zero, self.shape)
-        return zero.expand(self.shape)
+        return _coordinate_independent_score(coords, zero.expand(self.shape))
 
 
 class TermScoringModule(torch.nn.Module):

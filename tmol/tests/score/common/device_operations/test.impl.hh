@@ -35,16 +35,30 @@ auto DevOpsTests<D>::test_forall(TView<int32_t, 1, D> src)
 }
 
 template <tmol::Device D>
-auto DevOpsTests<D>::test_forall_stacks(TView<int32_t, 2, D> src)
+auto DevOpsTests<D>::test_forall_independent(TView<int32_t, 1, D> src)
+    -> TPack<int32_t, 1, D> {
+  ContextManager mgr;
+  int n = src.size(0);
+  auto dst_t = TPack<int32_t, 1, D>::empty({n});
+  auto dst = dst_t.view;
+  DO<D>::template forall_independent<launch_t>(
+      mgr, n, [=] EIGEN_DEVICE_FUNC(int i) { dst[i] = src[i] + i; });
+  return dst_t;
+}
+
+template <tmol::Device D>
+auto DevOpsTests<D>::test_forall_grouped(TView<int32_t, 2, D> src)
     -> TPack<int32_t, 2, D> {
   ContextManager mgr;
-  int nstacks = src.size(0);
-  int n = src.size(1);
-  auto dst_t = TPack<int32_t, 2, D>::empty({nstacks, n});
+  int const n_groups = src.size(0);
+  int const items_per_group = src.size(1);
+  auto dst_t = TPack<int32_t, 2, D>::empty({n_groups, items_per_group});
   auto dst = dst_t.view;
-  DO<D>::template forall_stacks<launch_t, int>(
-      mgr, nstacks, n, [=] EIGEN_DEVICE_FUNC(int stack, int i) {
-        dst[stack][i] = src[stack][i] * 2;
+  DO<D>::template forall_grouped<launch_t>(
+      mgr, n_groups, items_per_group, [=] EIGEN_DEVICE_FUNC(int index) {
+        int const group = index / items_per_group;
+        int const item = index % items_per_group;
+        dst[group][item] = src[group][item] + index;
       });
   return dst_t;
 }
@@ -73,6 +87,18 @@ auto DevOpsTests<D>::test_foreach_workgroup(TView<int32_t, 1, D> src)
   auto dst_t = TPack<int32_t, 1, D>::empty({n});
   auto dst = dst_t.view;
   DO<D>::template foreach_workgroup<launch_t>(
+      mgr, n, [=] EIGEN_DEVICE_FUNC(int wg) { dst[wg] = src[wg] + wg; });
+  return dst_t;
+}
+
+template <tmol::Device D>
+auto DevOpsTests<D>::test_foreach_independent_workgroup(
+    TView<int32_t, 1, D> src) -> TPack<int32_t, 1, D> {
+  ContextManager mgr;
+  int n = src.size(0);
+  auto dst_t = TPack<int32_t, 1, D>::empty({n});
+  auto dst = dst_t.view;
+  DO<D>::template foreach_independent_workgroup<launch_t>(
       mgr, n, [=] EIGEN_DEVICE_FUNC(int wg) { dst[wg] = src[wg] + wg; });
   return dst_t;
 }

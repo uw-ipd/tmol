@@ -26,6 +26,36 @@ class SimpleLJScore:
         return self
 
 
+def test_lbfgs_requires_one_parameter_tensor():
+    x = torch.nn.Parameter(torch.zeros(1))
+    y = torch.nn.Parameter(torch.zeros(1))
+
+    with pytest.raises(ValueError, match="exactly one parameter tensor"):
+        LBFGS_Armijo([x, y])
+
+
+def test_lbfgs_accepts_one_named_parameter():
+    x = torch.nn.Parameter(torch.zeros(1))
+
+    optimizer = LBFGS_Armijo([("x", x)])
+
+    assert optimizer.param_groups[0]["params"][0] is x
+    assert optimizer.param_groups[0]["param_names"] == ["x"]
+
+
+def test_lbfgs_zero_grad_supports_both_reset_modes():
+    x = torch.nn.Parameter(torch.ones(2))
+    optimizer = LBFGS_Armijo([x])
+
+    x.sum().backward()
+    optimizer.zero_grad(set_to_none=False)
+    torch.testing.assert_close(x.grad, torch.zeros_like(x))
+
+    x.sum().backward()
+    optimizer.zero_grad()
+    assert x.grad is None
+
+
 def test_lbfgs_armijo():
     dtype = torch.float
     device = torch.device("cpu")

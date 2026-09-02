@@ -101,7 +101,7 @@ struct compute_rot_spheres {
           thread0_write_out_result);
     });
 
-    DeviceDispatch<D>::template foreach_workgroup<launch_t>(
+    DeviceDispatch<D>::template foreach_independent_workgroup<launch_t>(
         mgr, rot_coord_offset.size(0), compute_spheres);
   }
 };
@@ -279,7 +279,7 @@ struct detect_rot_neighbors {
     std::uint64_t n_rot_pairs = std::uint64_t(n_rots_for_block.size(0))
                                 * max_n_rots_per_pose * max_n_rots_per_pose;
 
-    DeviceDispatch<D>::template forall<launch_t>(
+    DeviceDispatch<D>::template forall_independent<launch_t>(
         mgr, n_rot_pairs, detect_neighbors);
   }
 };
@@ -301,7 +301,9 @@ struct detect_block_neighbors {
     int const n_poses = pose_stack_block_type.size(0);
     int const max_n_blocks = pose_stack_block_type.size(1);
     int const block_pairs_per_pose = max_n_blocks * max_n_blocks;
-    auto detect_neighbors = ([=] TMOL_DEVICE_FUNC(int pose_ind, int pair) {
+    auto detect_neighbors = ([=] TMOL_DEVICE_FUNC(int index) {
+      int const pose_ind = index / block_pairs_per_pose;
+      int const pair = index % block_pairs_per_pose;
       int const block_ind1 = pair / max_n_blocks;
       int const block_ind2 = pair % max_n_blocks;
 
@@ -337,8 +339,8 @@ struct detect_block_neighbors {
         block_neighbors[pose_ind][block_ind1][block_ind2] = 1;
       }
     });
-    DeviceDispatch<D>::template forall_stacks<launch_t, int>(
-        mgr, n_poses, block_pairs_per_pose, detect_neighbors);
+    DeviceDispatch<D>::template forall_independent<launch_t>(
+        mgr, n_poses * block_pairs_per_pose, detect_neighbors);
   }
 };
 
@@ -386,7 +388,8 @@ struct rot_neighbor_indices {
       }
     });
 
-    DeviceDispatch<D>::template forall<launch_t>(mgr, n_cells, fill_indices);
+    DeviceDispatch<D>::template forall_independent<launch_t>(
+        mgr, n_cells, fill_indices);
 
     return rot_neighbor_indices;
   }
@@ -434,7 +437,8 @@ struct block_neighbor_indices {
       }
     });
 
-    DeviceDispatch<D>::template forall<launch_t>(mgr, n_cells, fill_indices);
+    DeviceDispatch<D>::template forall_independent<launch_t>(
+        mgr, n_cells, fill_indices);
 
     return block_neighbor_indices;
   }
@@ -496,7 +500,7 @@ struct compute_block_spheres_from_rot_spheres {
       block_spheres[pose][block][3] = rmax;
     });
 
-    DeviceDispatch<D>::template forall<launch_t>(
+    DeviceDispatch<D>::template forall_independent<launch_t>(
         mgr, n_poses * max_n_blocks, compute);
   }
 };
@@ -542,7 +546,8 @@ struct rot_neighbor_indices_from_block_neighbors {
         }
       }
     });
-    DeviceDispatch<D>::template forall<launch_t>(mgr, n_cells, compute_counts);
+    DeviceDispatch<D>::template forall_independent<launch_t>(
+        mgr, n_cells, compute_counts);
 
     // Step 2: prefix scan → per-block-pair offsets and total
     auto pair_offsets_t = TPack<Int, 3, D>::zeros_like(block_neighbors);
@@ -595,7 +600,8 @@ struct rot_neighbor_indices_from_block_neighbors {
         }
       }
     });
-    DeviceDispatch<D>::template forall<launch_t>(mgr, n_cells, fill);
+    DeviceDispatch<D>::template forall_independent<launch_t>(
+        mgr, n_cells, fill);
 
     return indices_t;
   }
