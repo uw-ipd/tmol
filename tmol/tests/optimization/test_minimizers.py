@@ -58,7 +58,11 @@ def test_run_cart_min_smoke(
     wpsm = sfxn.render_whole_pose_scoring_module(pose_stack)
 
     start_score = wpsm(pose_stack.coords)
-    minimized_pose_stack = run_cart_min(pose_stack, sfxn)
+    minimized_pose_stack = run_cart_min(
+        pose_stack,
+        sfxn,
+        cuda_graph=torch_device.type == "cuda",
+    )
     end_score = wpsm(minimized_pose_stack.coords)
 
     assert torch.all(end_score < start_score)

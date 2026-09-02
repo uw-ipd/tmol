@@ -16,11 +16,17 @@ class CartesianSfxnNetwork(torch.nn.Module):
     """Differentiable score network over selected Cartesian coordinates."""
 
     def __init__(
-        self, score_function: ScoreFunction, pose_stack: PoseStack, coord_mask=None
+        self,
+        score_function: ScoreFunction,
+        pose_stack: PoseStack,
+        coord_mask=None,
+        cuda_graph: bool | str = False,
     ):
         super(CartesianSfxnNetwork, self).__init__()
 
-        wpsm = score_function.render_whole_pose_scoring_module(pose_stack)
+        wpsm = score_function.render_whole_pose_scoring_module(
+            pose_stack, cuda_graph=cuda_graph
+        )
         self.whole_pose_scoring_module = wpsm
 
         self.pose_stack = pose_stack

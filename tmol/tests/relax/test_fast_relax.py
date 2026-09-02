@@ -2,7 +2,7 @@ import torch
 import numpy
 import pytest
 
-from tmol.relax import _default_cart_min_fn, fast_relax
+from tmol.relax import fast_relax
 import time
 
 from tmol.pose import (
@@ -111,8 +111,7 @@ def test_fast_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
 def test_cart_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_poses):
     """Cartesian fast-relax on ubiquitin using CartesianSfxnNetwork.
 
-    Mirrors test_fast_relax_ubq but swaps the kinematic min_fn for the
-    Cartesian one via _default_cart_min_fn + CartesianMoveMap.
+    Exercise the default Cartesian minimizer with CUDA graph capture.
     """
     if torch_device == torch.device("cpu"):
         pytest.skip("CUDA only test")
@@ -146,7 +145,7 @@ def test_cart_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
         cart_mm,
         fold_forest,
         task_operations=[task_op],
-        min_fn=_default_cart_min_fn,
+        cuda_graph=True,
         num_repeats=1,
         verbose=verbose,
     )

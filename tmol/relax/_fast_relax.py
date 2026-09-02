@@ -1,6 +1,7 @@
 import time
 import warnings
 from collections.abc import Callable, Sequence
+from functools import partial
 from typing import Protocol
 
 import attr
@@ -142,6 +143,7 @@ def _default_cart_min_fn(
     fold_forest: FoldForest,
     move_map: MoveMap | CartesianMoveMap,
     verbose: bool,
+    cuda_graph: bool = False,
 ) -> PoseStack:
     """Run Cartesian LBFGS using a Cartesian move map's coordinate mask."""
     coord_mask = move_map.coord_mask if isinstance(move_map, CartesianMoveMap) else None
@@ -150,6 +152,7 @@ def _default_cart_min_fn(
         sfxn,
         coord_mask=coord_mask,
         verbose=verbose,
+        cuda_graph=cuda_graph,
         optimizer_kwargs={"verbose": verbose},
     )
 
@@ -166,6 +169,7 @@ def fast_relax(  # noqa: C901
     ramp_constraints: bool | None = None,  # default True
     schedule: Sequence[RelaxScheduleEntry] | None = None,
     min_fn: RelaxMinimizer | None = None,
+    cuda_graph: bool = False,
     verbose: bool = False,
 ) -> PoseStack:
     """Relax poses through repeated side-chain packing and minimization.
@@ -190,13 +194,16 @@ def fast_relax(  # noqa: C901
             ``DEFAULT_RELAX_SCHEDULE``.
         min_fn: Minimizer called with the pose, score function, fold forest,
             move map, and verbosity. Defaults to Cartesian minimization.
+        cuda_graph: Capture the default Cartesian minimizer's repeated CUDA
+            scoring path. This can substantially reduce launch overhead for
+            nucleic-acid systems. It cannot be combined with a custom ``min_fn``.
         verbose: Print timing information for each step.
 
     Returns:
         Best-scoring relaxed poses across all repeats.
     """
-    if min_fn is None:
-        min_fn = _default_cart_min_fn
+    if min_fn is not None and cuda_graph:
+        raise ValueError("cuda_graph cannot be combined with a custom min_fn")
     if schedule is None:
         schedule = DEFAULT_RELAX_SCHEDULE
 
@@ -249,6 +256,9 @@ def fast_relax(  # noqa: C901
     wpsm = sfxn.render_whole_pose_scoring_module(pose_stack)
     best_score = wpsm(pose_stack.coords)
     best_ps = pose_stack.clone()
+
+    if min_fn is None:
+        min_fn = partial(_default_cart_min_fn, cuda_graph=cuda_graph)
 
     ps = pose_stack
     for _ in range(num_repeats):
