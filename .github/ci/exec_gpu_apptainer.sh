@@ -37,6 +37,12 @@ fi
 if [[ -n "${TMOL_DOCS_BASE_URL:-}" ]]; then
   env_args+=(--env "TMOL_DOCS_BASE_URL=${TMOL_DOCS_BASE_URL}")
 fi
+if [[ -n "${TMOL_CI_CUDA_ARCHITECTURES:-}" ]]; then
+  env_args+=(--env "TMOL_CI_CUDA_ARCHITECTURES=${TMOL_CI_CUDA_ARCHITECTURES}")
+fi
+if [[ -n "${TMOL_CI_TORCH_CUDA_INDEX:-}" ]]; then
+  env_args+=(--env "TMOL_CI_TORCH_CUDA_INDEX=${TMOL_CI_TORCH_CUDA_INDEX}")
+fi
 
 apptainer exec --nv --fakeroot --containall \
   --bind "${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE}" \
