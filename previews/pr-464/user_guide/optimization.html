@@ -569,6 +569,13 @@ score-function weights:</p>
 protocol but is not used by that minimizer. To minimize kinematic degrees of
 freedom, pass a configured <code class="docutils literal notranslate"><span class="pre">MoveMap</span></code>, a <code class="docutils literal notranslate"><span class="pre">FoldForest</span></code>, and a compatible
 kinematic <code class="docutils literal notranslate"><span class="pre">min_fn</span></code>.</p>
+<p>On CUDA, <code class="docutils literal notranslate"><span class="pre">fast_relax()</span></code> automatically uses graph replay for poses containing
+DNA or RNA, where repeated kernel-launch overhead is significant. Protein-only
+and protein–ligand poses remain eager. Pass <code class="docutils literal notranslate"><span class="pre">cuda_graph=True</span></code> or
+<code class="docutils literal notranslate"><span class="pre">cuda_graph=False</span></code> to override that choice; custom minimizers manage their own
+execution mode and cannot be combined with <code class="docutils literal notranslate"><span class="pre">cuda_graph=True</span></code>. Graph capture has
+a one-time startup cost, so explicitly disable it for a single latency-sensitive
+nucleic-acid relaxation that will not be repeated in the same process.</p>
 </section>
 </section>
 

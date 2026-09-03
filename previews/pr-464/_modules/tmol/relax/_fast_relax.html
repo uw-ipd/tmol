@@ -403,7 +403,6 @@
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Sequence</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Protocol</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
@@ -428,7 +427,12 @@
     <span class="n">FixedAAChiSampler</span><span class="p">,</span>
     <span class="n">IncludeCurrentSampler</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_cart_min</span><span class="p">,</span> <span class="n">run_kin_min</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CartesianSfxnNetwork</span><span class="p">,</span>
+    <span class="n">run_cart_min</span><span class="p">,</span>
+    <span class="n">run_kin_min</span><span class="p">,</span>
+    <span class="n">run_min</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility._device</span><span class="w"> </span><span class="kn">import</span> <span class="n">synchronize_device</span>
 
@@ -559,6 +563,59 @@
     <span class="p">)</span>
 
 
+<span class="k">class</span><span class="w"> </span><span class="nc">_DefaultCartesianMinimizer</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Cartesian minimizer that reuses rendering for unchanged pose topology."""</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cuda_graph</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cuda_graph</span> <span class="o">=</span> <span class="n">cuda_graph</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">:</span> <span class="n">CartesianSfxnNetwork</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
+        <span class="n">sfxn</span><span class="p">:</span> <span class="n">ScoreFunction</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">fold_forest</span><span class="p">:</span> <span class="n">FoldForest</span><span class="p">,</span>
+        <span class="n">move_map</span><span class="p">:</span> <span class="n">MoveMap</span> <span class="o">|</span> <span class="n">CartesianMoveMap</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
+        <span class="k">del</span> <span class="n">fold_forest</span>
+        <span class="n">coord_mask</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">move_map</span><span class="o">.</span><span class="n">coord_mask</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">move_map</span><span class="p">,</span> <span class="n">CartesianMoveMap</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">_reset</span><span class="p">(</span>
+            <span class="n">sfxn</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">,</span> <span class="n">coord_mask</span>
+        <span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="o">=</span> <span class="n">CartesianSfxnNetwork</span><span class="p">(</span>
+                <span class="n">sfxn</span><span class="p">,</span>
+                <span class="n">pose_stack</span><span class="p">,</span>
+                <span class="n">coord_mask</span><span class="p">,</span>
+                <span class="n">cuda_graph</span><span class="o">=</span><span class="s2">"forward_backward"</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cuda_graph</span> <span class="k">else</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">run_min</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+            <span class="n">optimizer_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">"verbose"</span><span class="p">:</span> <span class="n">verbose</span><span class="p">},</span>
+        <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_resolve_cuda_graph_mode</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">cuda_graph</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Choose graph replay automatically where launch overhead dominates."""</span>
+    <span class="k">if</span> <span class="n">cuda_graph</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">cuda_graph</span>
+    <span class="k">if</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="s2">"cuda"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="n">used_block_types</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="n">active_block_types</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+    <span class="k">return</span> <span class="nb">any</span><span class="p">(</span>
+        <span class="n">block_type_ind</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+        <span class="ow">and</span> <span class="n">active_block_types</span><span class="p">[</span><span class="n">block_type_ind</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">backbone_type</span>
+        <span class="ow">in</span> <span class="p">(</span><span class="s2">"dna"</span><span class="p">,</span> <span class="s2">"rna"</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">block_type_ind</span> <span class="ow">in</span> <span class="n">used_block_types</span>
+    <span class="p">)</span>
+
+
 <div class="viewcode-block" id="fast_relax">
 <a class="viewcode-back" href="../../../api/relax.html#tmol.relax.fast_relax">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">fast_relax</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
@@ -573,7 +630,7 @@
     <span class="n">ramp_constraints</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># default True</span>
     <span class="n">schedule</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">RelaxScheduleEntry</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">min_fn</span><span class="p">:</span> <span class="n">RelaxMinimizer</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">cuda_graph</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">cuda_graph</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Relax poses through repeated side-chain packing and minimization.</span>
@@ -599,14 +656,15 @@
 <span class="sd">        min_fn: Minimizer called with the pose, score function, fold forest,</span>
 <span class="sd">            move map, and verbosity. Defaults to Cartesian minimization.</span>
 <span class="sd">        cuda_graph: Capture the default Cartesian minimizer's repeated CUDA</span>
-<span class="sd">            scoring path. This can substantially reduce launch overhead for</span>
-<span class="sd">            nucleic-acid systems. It cannot be combined with a custom ``min_fn``.</span>
+<span class="sd">            scoring path. By default, enable it automatically for CUDA poses</span>
+<span class="sd">            containing DNA or RNA, where launch overhead dominates. Pass ``False``</span>
+<span class="sd">            to disable it. It cannot be combined with a custom ``min_fn``.</span>
 <span class="sd">        verbose: Print timing information for each step.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Best-scoring relaxed poses across all repeats.</span>
 <span class="sd">    """</span>
-    <span class="k">if</span> <span class="n">min_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">cuda_graph</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">min_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">cuda_graph</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"cuda_graph cannot be combined with a custom min_fn"</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">schedule</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">schedule</span> <span class="o">=</span> <span class="n">DEFAULT_RELAX_SCHEDULE</span>
@@ -662,7 +720,9 @@
     <span class="n">best_ps</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">min_fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">min_fn</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">_default_cart_min_fn</span><span class="p">,</span> <span class="n">cuda_graph</span><span class="o">=</span><span class="n">cuda_graph</span><span class="p">)</span>
+        <span class="n">min_fn</span> <span class="o">=</span> <span class="n">_DefaultCartesianMinimizer</span><span class="p">(</span>
+            <span class="n">_resolve_cuda_graph_mode</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">cuda_graph</span><span class="p">)</span>
+        <span class="p">)</span>
 
     <span class="n">ps</span> <span class="o">=</span> <span class="n">pose_stack</span>
     <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_repeats</span><span class="p">):</span>
