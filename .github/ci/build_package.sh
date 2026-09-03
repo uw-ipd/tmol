@@ -89,9 +89,11 @@ for _A in "${_CUDA_ARCH_ARR[@]}"; do
   fi
 done
 export TORCH_CUDA_ARCH_LIST="${TORCH_ARCH_LIST# }"
+TORCH_CMAKE_DIR=$(python -c "from pathlib import Path; import torch; print(Path(torch.__file__).parent / 'share/cmake/Torch')")
 echo "=== Runner GPU sm_${RUN_GPU} | nvcc ${NVCC_VER} | CMAKE_CUDA_ARCHITECTURES=${CUDA_ARCHS} ==="
 MAX_JOBS=12 pip install -v --no-deps --no-build-isolation \
   -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}" \
+  -Ccmake.define.Torch_DIR="${TORCH_CMAKE_DIR}" \
   -Ccmake.define.TMOL_BUILD_TESTS=ON \
   -Ccmake.define.TMOL_NVCC_THREADS=2 \
   -e .
