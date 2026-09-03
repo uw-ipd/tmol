@@ -98,8 +98,15 @@ def test_context_opth_score_function_omits_invariant_terms(biotite_1ubq, torch_d
     """The lighter OptH scorer preserves its rotamer assignment exactly."""
     context = build_context_from_biotite(biotite_1ubq, torch_device)
     score_function = context._opth_score_function
-    assert score_function.get_weight(ScoreType.rama) == 0
-    assert score_function.get_weight(ScoreType.omega) == 0
+    for score_type in (
+        ScoreType.disulfide,
+        ScoreType.omega,
+        ScoreType.rama,
+        ScoreType.ref,
+        ScoreType.na_torsion,
+        ScoreType.na_torsion_well,
+    ):
+        assert score_function.get_weight(score_type) == 0
     assert score_function.get_weight(ScoreType.hbond) != 0
 
     pose = pose_stack_from_biotite(
