@@ -36,6 +36,8 @@ grep -vE "^(torch(|vision|audio)|numpy|nvidia-.*|triton|tensorrt|pynvml|pandas|s
 retry uv pip install -r to_install.txt
 TORCH_CUDA_INDEX="${TMOL_CI_TORCH_CUDA_INDEX:-https://download.pytorch.org/whl/cu128}"
 retry uv pip install torch --index-url "${TORCH_CUDA_INDEX}"
+retry uv pip install 'cmake>=3.24,<4' 'scikit-build-core>=0.10' ninja \
+  'packaging>=24.2' 'pybind11>=2.12'
 assert_torch_cuda
 
 RUN_GPU=$(python -c "import torch; c=torch.cuda.get_device_capability(0); print(f'{c[0]}.{c[1]}')" 2>/dev/null || echo "n/a")
@@ -66,7 +68,9 @@ for _A in "${_CUDA_ARCH_ARR[@]}"; do
 done
 export TORCH_CUDA_ARCH_LIST="${TORCH_ARCH_LIST# }"
 echo "=== Runner GPU sm_${RUN_GPU} | nvcc ${NVCC_VER} | CMAKE_CUDA_ARCHITECTURES=${CUDA_ARCHS} ==="
-MAX_JOBS=12 pip install -v --no-deps \
+# Compile against the same PyTorch installation used by the test process.
+# Build isolation may resolve a newer PyTorch with an incompatible C++ ABI.
+MAX_JOBS=12 pip install -v --no-build-isolation --no-deps \
   -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}" \
   -Ccmake.define.TMOL_BUILD_TESTS=ON \
   -Ccmake.define.TMOL_NVCC_THREADS=2 \
