@@ -1,9 +1,11 @@
-import torch
+import time
+
 import numpy
 import pytest
+import torch
 
 from tmol.relax import fast_relax
-import time
+from tmol.relax._fast_relax import _resolve_cuda_graph_mode
 
 from tmol.pose import (
     PoseStack,
@@ -53,6 +55,25 @@ def get_relax_sfxn(default_database, torch_device):
     sfxn.set_weight(ScoreType.disulfide, 1.0)
 
     return sfxn
+
+
+@pytest.mark.parametrize(
+    "pdb_fixture, expected",
+    [
+        ("ubq_pdb", False),
+        ("dna_pdb", True),
+        ("rna_pdb", True),
+        ("protein_dna_pdb", True),
+    ],
+)
+def test_fast_relax_automatic_graph_mode(request, pdb_fixture, expected, torch_device):
+    pose_stack = pose_stack_from_pdb(request.getfixturevalue(pdb_fixture), torch_device)
+
+    assert _resolve_cuda_graph_mode(pose_stack, None) == (
+        expected and torch_device.type == "cuda"
+    )
+    assert _resolve_cuda_graph_mode(pose_stack, True)
+    assert not _resolve_cuda_graph_mode(pose_stack, False)
 
 
 @pytest.mark.parametrize("n_poses", [1])

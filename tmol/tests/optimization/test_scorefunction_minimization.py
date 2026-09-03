@@ -1,5 +1,6 @@
-import torch
+import attr
 import pytest
+import torch
 
 from tmol.io import pose_stack_from_pdb
 from tmol.pose import PoseStackBuilder
@@ -47,6 +48,43 @@ def test_cart_minimize_w_pose_and_sfxn_smoke(ubq_pdb, default_database, torch_de
         cart_sfxn_network.full_coords
     ).sum()
     assert E1 < E0
+
+
+def test_cart_network_reset_reuses_topology_and_updates_weights(
+    ubq_pdb, default_database, torch_device
+):
+    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    sfxn = ScoreFunction(default_database, torch_device)
+    sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
+    network = CartesianSfxnNetwork(
+        sfxn,
+        pose_stack,
+        cuda_graph=("forward_backward" if torch_device.type == "cuda" else False),
+    )
+
+    # A cloned pose has independent connectivity storage; FastRelax packing
+    # preserves these tensors within a ramp, so only that case is reusable.
+    assert not network._reusable_for(sfxn, pose_stack.clone())
+
+    updated_pose = attr.evolve(pose_stack, coords=pose_stack.coords + 0.01)
+    assert network._reusable_for(sfxn, updated_pose)
+
+    sfxn.set_weight(ScoreType.fa_ljatr, 0.5)
+    assert network._reset(sfxn, updated_pose)
+    actual = network()
+    expected_network = CartesianSfxnNetwork(sfxn, updated_pose)
+    expected = expected_network()
+
+    torch.testing.assert_close(network.full_coords, updated_pose.coords)
+    torch.testing.assert_close(
+        network.whole_pose_scoring_module.weights[:, 0], sfxn.weights_tensor()
+    )
+    torch.testing.assert_close(actual, expected)
+
+    # Adding or removing a term changes the rendered module layout and must
+    # force the caller to build a fresh network.
+    sfxn.set_weight(ScoreType.fa_ljatr, 0.0)
+    assert not network._reset(sfxn, updated_pose)
 
 
 def test_kin_minimize_w_pose_and_sfxn_smoke(ubq_pdb, default_database, torch_device):

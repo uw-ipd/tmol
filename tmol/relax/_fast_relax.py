@@ -1,7 +1,6 @@
 import time
 import warnings
 from collections.abc import Callable, Sequence
-from functools import partial
 from typing import Protocol
 
 import attr
@@ -26,7 +25,12 @@ from tmol.pack.rotamer import (
     FixedAAChiSampler,
     IncludeCurrentSampler,
 )
-from tmol.optimization import run_cart_min, run_kin_min
+from tmol.optimization import (
+    CartesianSfxnNetwork,
+    run_cart_min,
+    run_kin_min,
+    run_min,
+)
 from tmol.types import Tensor
 from tmol.utility._device import synchronize_device
 
@@ -157,6 +161,59 @@ def _default_cart_min_fn(
     )
 
 
+class _DefaultCartesianMinimizer:
+    """Cartesian minimizer that reuses rendering for unchanged pose topology."""
+
+    def __init__(self, cuda_graph: bool):
+        self.cuda_graph = cuda_graph
+        self.network: CartesianSfxnNetwork | None = None
+
+    def __call__(
+        self,
+        pose_stack: PoseStack,
+        sfxn: ScoreFunction,
+        *,
+        fold_forest: FoldForest,
+        move_map: MoveMap | CartesianMoveMap,
+        verbose: bool,
+    ) -> PoseStack:
+        del fold_forest
+        coord_mask = (
+            move_map.coord_mask if isinstance(move_map, CartesianMoveMap) else None
+        )
+        if self.network is None or not self.network._reset(
+            sfxn, pose_stack, coord_mask
+        ):
+            self.network = CartesianSfxnNetwork(
+                sfxn,
+                pose_stack,
+                coord_mask,
+                cuda_graph="forward_backward" if self.cuda_graph else False,
+            )
+        return run_min(
+            self.network,
+            verbose=verbose,
+            optimizer_kwargs={"verbose": verbose},
+        )
+
+
+def _resolve_cuda_graph_mode(pose_stack: PoseStack, cuda_graph: bool | None) -> bool:
+    """Choose graph replay automatically where launch overhead dominates."""
+    if cuda_graph is not None:
+        return cuda_graph
+    if pose_stack.device.type != "cuda":
+        return False
+
+    used_block_types = torch.unique(pose_stack.block_type_ind).tolist()
+    active_block_types = pose_stack.packed_block_types.active_block_types
+    return any(
+        block_type_ind >= 0
+        and active_block_types[block_type_ind].properties.polymer.backbone_type
+        in ("dna", "rna")
+        for block_type_ind in used_block_types
+    )
+
+
 def fast_relax(  # noqa: C901
     pose_stack: PoseStack,
     sfxn: ScoreFunction,
@@ -169,7 +226,7 @@ def fast_relax(  # noqa: C901
     ramp_constraints: bool | None = None,  # default True
     schedule: Sequence[RelaxScheduleEntry] | None = None,
     min_fn: RelaxMinimizer | None = None,
-    cuda_graph: bool = False,
+    cuda_graph: bool | None = None,
     verbose: bool = False,
 ) -> PoseStack:
     """Relax poses through repeated side-chain packing and minimization.
@@ -195,14 +252,15 @@ def fast_relax(  # noqa: C901
         min_fn: Minimizer called with the pose, score function, fold forest,
             move map, and verbosity. Defaults to Cartesian minimization.
         cuda_graph: Capture the default Cartesian minimizer's repeated CUDA
-            scoring path. This can substantially reduce launch overhead for
-            nucleic-acid systems. It cannot be combined with a custom ``min_fn``.
+            scoring path. By default, enable it automatically for CUDA poses
+            containing DNA or RNA, where launch overhead dominates. Pass ``False``
+            to disable it. It cannot be combined with a custom ``min_fn``.
         verbose: Print timing information for each step.
 
     Returns:
         Best-scoring relaxed poses across all repeats.
     """
-    if min_fn is not None and cuda_graph:
+    if min_fn is not None and cuda_graph is True:
         raise ValueError("cuda_graph cannot be combined with a custom min_fn")
     if schedule is None:
         schedule = DEFAULT_RELAX_SCHEDULE
@@ -258,7 +316,9 @@ def fast_relax(  # noqa: C901
     best_ps = pose_stack.clone()
 
     if min_fn is None:
-        min_fn = partial(_default_cart_min_fn, cuda_graph=cuda_graph)
+        min_fn = _DefaultCartesianMinimizer(
+            _resolve_cuda_graph_mode(pose_stack, cuda_graph)
+        )
 
     ps = pose_stack
     for _ in range(num_repeats):

@@ -24,8 +24,22 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch", type=int, default=1)
     parser.add_argument("--trials", type=int, default=3)
     parser.add_argument("--repeats", type=int, default=1)
+    parser.add_argument("--cpu-threads", type=int, default=1)
     parser.add_argument("--seed", type=int, default=20260902)
-    parser.add_argument("--cuda-graph", action="store_true")
+    graph_group = parser.add_mutually_exclusive_group()
+    graph_group.add_argument(
+        "--cuda-graph",
+        dest="cuda_graph",
+        action="store_true",
+        default=None,
+        help="force CUDA graph replay (default: automatic by chemistry)",
+    )
+    graph_group.add_argument(
+        "--no-cuda-graph",
+        dest="cuda_graph",
+        action="store_false",
+        help="force eager scoring",
+    )
     parser.add_argument("--no-opt-h", action="store_true")
     parser.add_argument("--verbose", action="store_true")
     return parser.parse_args()
@@ -33,8 +47,9 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    if min(args.batch, args.trials, args.repeats) < 1:
-        raise SystemExit("batch, trials, and repeats must be positive")
+    if min(args.batch, args.trials, args.repeats, args.cpu_threads) < 1:
+        raise SystemExit("batch, trials, repeats, and cpu-threads must be positive")
+    torch.set_num_threads(args.cpu_threads)
     device = torch.device(args.device)
     if device.type == "cuda" and not torch.cuda.is_available():
         raise SystemExit("CUDA requested but torch.cuda.is_available() is false")
@@ -47,7 +62,7 @@ def main() -> None:
     initial_scorer = sfxn.render_whole_pose_scoring_module(initial)
     initial_score = initial_scorer(initial.coords).detach()
 
-    if args.cuda_graph and device.type != "cuda":
+    if args.cuda_graph is True and device.type != "cuda":
         raise SystemExit("--cuda-graph requires --device cuda")
 
     for trial in range(args.trials):

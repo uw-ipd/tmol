@@ -28,6 +28,11 @@ class CartesianSfxnNetwork(torch.nn.Module):
             pose_stack, cuda_graph=cuda_graph
         )
         self.whole_pose_scoring_module = wpsm
+        self._score_function = score_function
+        self._score_function_versions = (
+            score_function._terms_version,
+            score_function._options_version,
+        )
 
         self.pose_stack = pose_stack
         # clone: forward() writes into full_coords in place, which would
@@ -63,6 +68,57 @@ class CartesianSfxnNetwork(torch.nn.Module):
             rounding_mode="floor",
         )
         self.segment_ids = pose_for_atom.repeat_interleave(self.full_coords.shape[-1])
+
+    def _reusable_for(
+        self,
+        score_function: ScoreFunction,
+        pose_stack: PoseStack,
+        coord_mask=None,
+    ) -> bool:
+        """Return whether this network can score another pose without rendering."""
+        if coord_mask is None:
+            coord_mask = pose_stack.real_atoms
+        return (
+            score_function is self._score_function
+            and self._score_function_versions
+            == (
+                self._score_function._terms_version,
+                self._score_function._options_version,
+            )
+            and pose_stack.packed_block_types is self.pose_stack.packed_block_types
+            and pose_stack.constraint_set is self.pose_stack.constraint_set
+            and pose_stack.coords.shape == self.pose_stack.coords.shape
+            and torch.equal(coord_mask, self.coord_mask)
+            and torch.equal(pose_stack.block_type_ind, self.pose_stack.block_type_ind)
+            and torch.equal(
+                pose_stack.block_coord_offset, self.pose_stack.block_coord_offset
+            )
+            and pose_stack.inter_residue_connections
+            is self.pose_stack.inter_residue_connections
+            and pose_stack.inter_block_bondsep is self.pose_stack.inter_block_bondsep
+        )
+
+    def _reset(
+        self, score_function: ScoreFunction, pose_stack: PoseStack, coord_mask=None
+    ) -> bool:
+        """Reset for a compatible pose topology; report whether it was reused."""
+        if not self._reusable_for(score_function, pose_stack, coord_mask):
+            return False
+
+        self.pose_stack = pose_stack
+        with torch.no_grad():
+            self.whole_pose_scoring_module.weights.copy_(
+                score_function.weights_tensor().unsqueeze(1)
+            )
+            if self._all_coords_movable:
+                self.masked_coords.copy_(pose_stack.coords.reshape(-1, 3))
+            else:
+                self.full_coords.copy_(pose_stack.coords)
+                self.masked_coords.copy_(
+                    pose_stack.coords.reshape(-1, 3)[self._coord_flat_idx]
+                )
+        self.masked_coords.grad = None
+        return True
 
     def forward(self) -> torch.Tensor:
         if not self._all_coords_movable:
