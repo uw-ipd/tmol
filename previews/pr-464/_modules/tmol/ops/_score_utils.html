@@ -591,13 +591,16 @@
         <span class="p">)</span>
         <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">run_cart_min</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="n">coord_mask</span><span class="p">)</span>
 
-    <span class="n">scorer</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_block_pair_scoring_module</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
+    <span class="n">other_mask</span> <span class="o">=</span> <span class="n">mask2</span> <span class="k">if</span> <span class="n">mask2</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="o">~</span><span class="n">mask</span>
+    <span class="n">sets_are_disjoint</span> <span class="o">=</span> <span class="n">mask2</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">bool</span><span class="p">((</span><span class="n">mask</span> <span class="o">&amp;</span> <span class="n">other_mask</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">())</span>
+    <span class="n">scorer</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_block_pair_scoring_module</span><span class="p">(</span>
+        <span class="n">pose_stack</span><span class="p">,</span> <span class="n">interaction_only</span><span class="o">=</span><span class="n">sets_are_disjoint</span>
+    <span class="p">)</span>
     <span class="n">defer_weights</span> <span class="o">=</span> <span class="n">single_block_indices</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
     <span class="n">block_pair_scores</span> <span class="o">=</span> <span class="n">scorer</span><span class="p">(</span>
         <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span> <span class="n">sum_terms</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">apply_weights</span><span class="o">=</span><span class="ow">not</span> <span class="n">defer_weights</span>
     <span class="p">)</span>
 
-    <span class="n">other_mask</span> <span class="o">=</span> <span class="n">mask2</span> <span class="k">if</span> <span class="n">mask2</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="o">~</span><span class="n">mask</span>
     <span class="k">if</span> <span class="n">single_block_indices</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">ddg_scores</span> <span class="o">=</span> <span class="n">_sum_cross_block_scores</span><span class="p">(</span>
             <span class="n">block_pair_scores</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">other_mask</span><span class="p">,</span> <span class="n">memory_efficient</span><span class="o">=</span><span class="n">memory_efficient</span>
@@ -607,7 +610,7 @@
             <span class="n">block_pair_scores</span><span class="p">,</span>
             <span class="n">single_block_indices</span><span class="p">,</span>
             <span class="n">other_mask</span><span class="p">,</span>
-            <span class="n">sets_are_disjoint</span><span class="o">=</span><span class="n">mask2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sets_are_disjoint</span><span class="o">=</span><span class="n">sets_are_disjoint</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">term_weights</span> <span class="o">=</span> <span class="n">scorer</span><span class="o">.</span><span class="n">weights</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">ddg_scores</span> <span class="o">=</span> <span class="n">ddg_scores</span> <span class="o">*</span> <span class="n">term_weights</span>

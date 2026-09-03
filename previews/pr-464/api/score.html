@@ -495,6 +495,28 @@ lower-dimensional views to resolver parameter indices.</p>
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.</span></span><span class="sig-name descname"><span class="pre">BlockPairScoringModule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_modules</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Sequence" title="(in Python v3.14)"><span class="pre">Sequence</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.pytorch.org/docs/2.13/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.13)"><span class="pre">Module</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#BlockPairScoringModule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.BlockPairScoringModule" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Rendered energy modules that retain per-block-pair scores.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.BlockPairScoringModule.score_interactions">
+<span class="sig-name descname"><span class="pre">score_interactions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coords</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">block_pair_indices</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">sum_terms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">apply_weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><span class="pre">Tensor</span></a></span></span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#BlockPairScoringModule.score_interactions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.BlockPairScoringModule.score_interactions" title="Link to this definition">#</a></dt>
+<dd><p>Sum selected block-pair entries with one indexed reduction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>coords</strong> – Pose coordinates accepted by this rendered scorer.</p></li>
+<li><p><strong>block_pair_indices</strong> – Shared block pairs shaped <code class="docutils literal notranslate"><span class="pre">[n_pairs,</span> <span class="pre">2]</span></code>.
+Each row contains <code class="docutils literal notranslate"><span class="pre">(block_i,</span> <span class="pre">block_j)</span></code> and is applied to
+every pose in the coordinate batch.</p></li>
+<li><p><strong>sum_terms</strong> – Sum the score-type dimension when true.</p></li>
+<li><p><strong>apply_weights</strong> – Apply the score function’s weights when true.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Scores shaped <code class="docutils literal notranslate"><span class="pre">[n_poses]</span></code> when <code class="docutils literal notranslate"><span class="pre">sum_terms</span></code> is true, otherwise
+<code class="docutils literal notranslate"><span class="pre">[n_score_types,</span> <span class="pre">n_poses]</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -618,7 +640,7 @@ their options, nor the packed block types have changed.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="tmol.score.ScoreFunction.render_block_pair_scoring_module">
-<span class="sig-name descname"><span class="pre">render_block_pair_scoring_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose._pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#ScoreFunction.render_block_pair_scoring_module"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ScoreFunction.render_block_pair_scoring_module" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">render_block_pair_scoring_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose._pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">interaction_only</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#ScoreFunction.render_block_pair_scoring_module"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ScoreFunction.render_block_pair_scoring_module" title="Link to this definition">#</a></dt>
 <dd><p>Create an object designed to evaluate the score of a set of Poses
 repeatedly as the Poses change their conformation, e.g., as in
 minimization. This object will derive from torch.nn.Module and
@@ -626,6 +648,10 @@ it will contain a set of objects rendered by the ScoreFunction’s
 terms that themselves are derived from torch.nn.Module. This
 object’s __call__ will return a tensor of weighted energies of
 shape (n_poses, max_n_blocks, max_n_blocks).</p>
+<p>Set <code class="docutils literal notranslate"><span class="pre">interaction_only=True</span></code> when only strictly off-diagonal block
+pairs will be consumed. Terms whose block-pair scores are known to be
+diagonal-only are then omitted. Diagonal entries in the returned
+matrix are incomplete in this mode.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -874,7 +900,10 @@ mapping records that define the fragment columns.</p>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.AtomTypeParams"><code class="docutils literal notranslate"><span class="pre">AtomTypeParams</span></code></a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.BlockPairScoringModule"><code class="docutils literal notranslate"><span class="pre">BlockPairScoringModule</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.BlockPairScoringModule"><code class="docutils literal notranslate"><span class="pre">BlockPairScoringModule</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.BlockPairScoringModule.score_interactions"><code class="docutils literal notranslate"><span class="pre">BlockPairScoringModule.score_interactions()</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.FragmentInteractionScores"><code class="docutils literal notranslate"><span class="pre">FragmentInteractionScores</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.IndexedBonds"><code class="docutils literal notranslate"><span class="pre">IndexedBonds</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.IndexedBonds.to_directed"><code class="docutils literal notranslate"><span class="pre">IndexedBonds.to_directed()</span></code></a></li>

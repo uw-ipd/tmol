@@ -663,7 +663,7 @@
     <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">partner_mask</span><span class="o">.</span><span class="n">flatten</span><span class="p">()[</span><span class="n">mapping_data</span><span class="o">.</span><span class="n">record_linear_indices</span><span class="p">]</span><span class="o">.</span><span class="n">any</span><span class="p">()):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"partner_mask must not include ligand fragment blocks"</span><span class="p">)</span>
 
-    <span class="n">scorer</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_block_pair_scoring_module</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
+    <span class="n">scorer</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_block_pair_scoring_module</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">interaction_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">block_pair_scores</span> <span class="o">=</span> <span class="n">scorer</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span> <span class="n">sum_terms</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">result</span> <span class="o">=</span> <span class="n">_sum_fragment_partner_scores</span><span class="p">(</span>
         <span class="n">block_pair_scores</span><span class="p">,</span>
