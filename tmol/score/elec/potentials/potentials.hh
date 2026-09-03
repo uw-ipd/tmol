@@ -33,24 +33,25 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 def connectivity_weight(Real bonded_path_length) -> Real {
   if (bonded_path_length > 4) {
-    return 1.0;
+    return Real(1);
   } else if (bonded_path_length == 4) {
-    return 0.2;
+    return Real(0.2);
   } else {
-    return 0.0;
+    return Real(0);
   }
 }
 
 // sigmoidal distance-dependant dielectric
-def eps(Real dist, float D, float D0, float S) -> Real {
+def eps(Real dist, Real D, Real D0, Real S) -> Real {
   return (
       D
-      - 0.5 * (D - D0) * (2 + 2 * dist * S + dist * dist * S * S)
+      - Real(0.5) * (D - D0)
+            * (Real(2) + Real(2) * dist * S + dist * dist * S * S)
             * std::exp(-dist * S));
 }
 
-def deps_ddist(Real dist, float D, float D0, float S) -> Real {
-  return (0.5 * (D - D0) * dist * dist * S * S * S * std::exp(-dist * S));
+def deps_ddist(Real dist, Real D, Real D0, Real S) -> Real {
+  return Real(0.5) * (D - D0) * dist * dist * S * S * S * std::exp(-dist * S);
 }
 
 def elec_delec_ddist(
@@ -59,9 +60,9 @@ def elec_delec_ddist(
     Real e_j,
     Real bonded_path_length,
     ElecGlobalParams<Real> const& params) -> tuple<Real, Real> {
-  Real low_poly_start = params.min_dis - 0.25;
-  Real low_poly_end = params.min_dis + 0.25;
-  Real hi_poly_start = params.max_dis - 1.0;
+  Real low_poly_start = params.min_dis - Real(0.25);
+  Real low_poly_end = params.min_dis + Real(0.25);
+  Real hi_poly_start = params.max_dis - Real(1);
   Real hi_poly_end = params.max_dis;
 
   Real weight = connectivity_weight<Real>(bonded_path_length);
@@ -120,9 +121,9 @@ def elec(
     Real e_j,
     Real bonded_path_length,
     ElecGlobalParams<Real> const& params) -> Real {
-  Real low_poly_start = params.min_dis - 0.25;
-  Real low_poly_end = params.min_dis + 0.25;
-  Real hi_poly_start = params.max_dis - 1.0;
+  Real low_poly_start = params.min_dis - Real(0.25);
+  Real low_poly_end = params.min_dis + Real(0.25);
+  Real hi_poly_start = params.max_dis - Real(1);
   Real hi_poly_end = params.max_dis;
 
   Real weight = connectivity_weight<Real>(bonded_path_length);
