@@ -391,7 +391,7 @@ void launch_lk_ball_pose_pair_workgroups(
 #ifdef __NVCC__
   // The specialized kernels remove the cold intra/inter instruction path.
   // Use them only once their throughput gain exceeds the extra launch cost.
-  constexpr int min_split_workgroups = 1 << 14;
+  constexpr int min_split_workgroups = 1 << 15;
   if (max_n_blocks > 1 && n_poses * n_pairs >= min_split_workgroups) {
     auto eval_interres = ([=] TMOL_DEVICE_FUNC(int cta) {
       eval(cta, TilePairModeTag<common::TilePairMode::Inter>{});
