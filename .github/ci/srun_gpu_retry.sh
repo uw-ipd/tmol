@@ -43,6 +43,7 @@ exclude="${SLURM_EXCLUDE:-}"
 attempt=1
 
 _gpu_retry_pattern='TaskProlog failed|Failed to get device handle|Unable to determine the device handle|GPU problem:|nvidia-smi failed'
+_node_failure_pattern='Node failure on|DUE TO NODE FAILURE'
 
 while (( attempt <= MAX_ATTEMPTS )); do
   echo "=== srun GPU attempt ${attempt}/${MAX_ATTEMPTS} (exclude: ${exclude:-none}) ==="
@@ -79,15 +80,26 @@ GPUCHECK
     exit 0
   fi
 
-  # If the inner job created the allocation sentinel, tests started — do not
-  # retry (real test failure, not a dirty GPU / TaskProlog rejection).
-  if [[ -n "${GPU_ALLOC_SENTINEL:-}" && -f "${GPU_ALLOC_SENTINEL}" ]]; then
+  # A Slurm node failure is unambiguously infrastructure-related and remains
+  # safe to retry after tests start. Other failures after the sentinel are
+  # treated as real build/test failures.
+  node_failed=0
+  if grep -qE "$_node_failure_pattern" "$log"; then
+    node_failed=1
+  fi
+  if (( ! node_failed )) \
+    && [[ -n "${GPU_ALLOC_SENTINEL:-}" && -f "${GPU_ALLOC_SENTINEL}" ]]; then
     echo "GPU_ALLOC_SENTINEL present — tests started; not retrying (rc=${rc})."
     exit "$rc"
   fi
 
-  if [[ "$rc" -eq 42 ]] || grep -qE "$_gpu_retry_pattern" "$log"; then
-    bad_node=$(grep -oE 'srun: error: [a-zA-Z0-9][a-zA-Z0-9_-]*' "$log" | head -1 | awk '{print $3}')
+  if (( node_failed )) \
+    || [[ "$rc" -eq 42 ]] \
+    || grep -qE "$_gpu_retry_pattern" "$log"; then
+    bad_node=$(sed -nE \
+      -e 's/.*Node failure on ([a-zA-Z0-9][a-zA-Z0-9_-]*).*/\1/p' \
+      -e 's/.*srun: error: ([a-zA-Z0-9][a-zA-Z0-9_-]*):.*/\1/p' \
+      "$log" | head -1)
     if [[ -n "$bad_node" ]]; then
       if [[ -n "$exclude" ]]; then
         exclude="${exclude},${bad_node}"

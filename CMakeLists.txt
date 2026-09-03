@@ -197,9 +197,17 @@ if(TMOL_HAS_CUDA)
   # Set TORCH_CUDA_ARCH_LIST env var BEFORE find_package(Torch) so that
   # Caffe2's cuda.cmake uses our architectures instead of defaulting to
   # all archs nvcc supports (which includes sm_52 that lacks double atomicAdd).
+  # CMake resolves the symbolic `native` value while enabling CUDA; use that
+  # numeric result rather than passing an empty architecture list to Torch.
+  if(CMAKE_CUDA_ARCHITECTURES STREQUAL "native")
+    set(_TMOL_TORCH_CUDA_ARCHITECTURES ${CMAKE_CUDA_ARCHITECTURES_NATIVE})
+  else()
+    set(_TMOL_TORCH_CUDA_ARCHITECTURES ${CMAKE_CUDA_ARCHITECTURES})
+  endif()
   set(_TORCH_ARCH_STR "")
-  foreach(_A ${CMAKE_CUDA_ARCHITECTURES})
+  foreach(_A ${_TMOL_TORCH_CUDA_ARCHITECTURES})
     string(REPLACE "-real" "" _A "${_A}")
+    string(REPLACE "-virtual" "" _A "${_A}")
     string(LENGTH "${_A}" _ALEN)
     if(_ALEN EQUAL 3)
       string(SUBSTRING "${_A}" 0 2 _MAJOR)
@@ -215,6 +223,37 @@ if(TMOL_HAS_CUDA)
   set(ENV{TORCH_CUDA_ARCH_LIST} "${_TORCH_ARCH_STR}")
   message(STATUS "tmol: Setting TORCH_CUDA_ARCH_LIST=${_TORCH_ARCH_STR} for find_package(Torch)")
 endif()
+
+# A Python wheel installs TorchConfig.cmake below the torch package rather than
+# a system CMake prefix. Discover it from the interpreter selected above so a
+# normal source build does not require a hand-written CMAKE_PREFIX_PATH.
+execute_process(
+  COMMAND ${Python_EXECUTABLE} -c "import torch; print(torch.utils.cmake_prefix_path)"
+  OUTPUT_VARIABLE _TMOL_TORCH_CMAKE_PREFIX_PATH
+  RESULT_VARIABLE _TMOL_TORCH_PREFIX_RESULT
+  ERROR_VARIABLE _TMOL_TORCH_PREFIX_ERROR
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+if(NOT _TMOL_TORCH_PREFIX_RESULT EQUAL 0 OR NOT _TMOL_TORCH_CMAKE_PREFIX_PATH)
+  message(FATAL_ERROR
+    "tmol: could not locate Torch's CMake package with ${Python_EXECUTABLE}: "
+    "${_TMOL_TORCH_PREFIX_ERROR}")
+endif()
+list(PREPEND CMAKE_PREFIX_PATH "${_TMOL_TORCH_CMAKE_PREFIX_PATH}")
+
+execute_process(
+  COMMAND ${Python_EXECUTABLE} -m pybind11 --cmakedir
+  OUTPUT_VARIABLE _TMOL_PYBIND11_CMAKE_PREFIX_PATH
+  RESULT_VARIABLE _TMOL_PYBIND11_PREFIX_RESULT
+  ERROR_VARIABLE _TMOL_PYBIND11_PREFIX_ERROR
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+if(NOT _TMOL_PYBIND11_PREFIX_RESULT EQUAL 0 OR NOT _TMOL_PYBIND11_CMAKE_PREFIX_PATH)
+  message(FATAL_ERROR
+    "tmol: could not locate pybind11's CMake package with ${Python_EXECUTABLE}: "
+    "${_TMOL_PYBIND11_PREFIX_ERROR}")
+endif()
+list(PREPEND CMAKE_PREFIX_PATH "${_TMOL_PYBIND11_CMAKE_PREFIX_PATH}")
 
 find_package(Torch REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)

@@ -62,7 +62,8 @@ dev/bin/profile_benchmark --output profile/ljlk \
 ```
 
 Use Nsight Compute when kernel-level counters are needed; arguments after `--`
-are forwarded to the profiler:
+are forwarded to the profiler. The wrapper uses Nsight Compute's lightweight
+`basic` metric set by default:
 
 ```bash
 dev/bin/profile_benchmark --tool ncu --output profile/ljlk-kernels \
@@ -70,8 +71,28 @@ dev/bin/profile_benchmark --tool ncu --output profile/ljlk-kernels \
   --kernel-name regex:ljlk --launch-count 20
 ```
 
+Request the much slower full replay set explicitly with `-- --set=full ...`
+when the basic occupancy and throughput counters are insufficient.
+
 The output prefix defaults to `dev/profile/<host>/<UTC timestamp>`. Keep pytest
 selectors narrow: profiling every parametrized benchmark produces a very large
 trace and makes hardware-counter collection unnecessarily slow. If the wrapper
 is not launched from the development environment, pass its interpreter with
 `--python /path/to/venv/bin/python` or set `TMOL_PROFILE_PYTHON`.
+
+The output prefix's parent directory must be writable inside the active
+container. A path in the checkout or a writable bind mount is usually the most
+portable choice. The wrapper disables CPU sampling and context-switch tracing;
+its report is therefore usable on restricted compute nodes without profiling
+privileges.
+
+For Nsight Compute, the wrapper also keeps the active virtual environment out
+of Nsight's own helper-process `PATH`. The benchmark itself still runs with the
+selected `--python` interpreter. This prevents Nsight's embedded tooling from
+loading incompatible editable-install `.pth` files.
+
+The report includes Python startup, pytest collection, fixture construction,
+and benchmark calibration as well as the measured calls. Use the NVTX ranges
+and CUDA kernel names to identify steady-state scoring work, and compare timing
+with the synchronized pytest-benchmark result rather than the whole process
+duration.

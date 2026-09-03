@@ -74,6 +74,7 @@ def main() -> int:
             "profile",
             "--trace=cuda,nvtx,osrt",
             "--sample=none",
+            "--cpuctxsw=none",
             "--force-overwrite=true",
             "--output",
             str(output),
@@ -81,10 +82,16 @@ def main() -> int:
             *pytest_command,
         ]
     else:
+        metric_set = (
+            []
+            if any(arg == "--set" or arg.startswith("--set=") for arg in profiler_args)
+            else ["--set=basic"]
+        )
         command = [
             profiler,
             "--target-processes=all",
-            "--set=full",
+            "--kernel-name-base=demangled",
+            *metric_set,
             "--force-overwrite",
             "--export",
             str(output),
@@ -93,7 +100,20 @@ def main() -> int:
         ]
 
     print("Profiling command:", " ".join(command), flush=True)
-    return subprocess.run(command, check=False).returncode
+    profiler_env = None
+    if options.tool == "ncu":
+        # Nsight Compute invokes helper Python processes. Do not let an
+        # activated venv's `python` shadow Nsight's compatible interpreter;
+        # the profiled pytest command still uses the absolute path above.
+        profiler_env = os.environ.copy()
+        python_bin = Path(options.python).absolute().parent
+        profiler_env["PATH"] = os.pathsep.join(
+            entry
+            for entry in profiler_env.get("PATH", "").split(os.pathsep)
+            if Path(entry or ".").absolute() != python_bin
+        )
+        profiler_env.pop("VIRTUAL_ENV", None)
+    return subprocess.run(command, check=False, env=profiler_env).returncode
 
 
 if __name__ == "__main__":
