@@ -31,6 +31,8 @@ YAML so entries can be copy-pasted between params files and
 ``chemical.yaml`` / ``cartbonded.yaml`` / ``elec.yaml``.
 """
 
+import copy
+import functools
 import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -55,6 +57,12 @@ if TYPE_CHECKING:
 # schema changes; bump the minor version on backward-compatible additions.
 # The version string is written into every .tmol file and checked on load.
 TMOL_FORMAT_VERSION: str = "1.0"
+
+
+@functools.lru_cache(maxsize=32)
+def _parse_params_document(contents: str) -> Any:
+    return safe_load(contents)
+
 
 _RAW_RESIDUE_DEFAULTS: dict[str, Any] = {
     "atom_aliases": [],
@@ -129,8 +137,7 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
     from tmol.ligand._registry import LigandPreparation
 
     path = Path(path)
-    with path.open() as f:
-        raw = safe_load(f)
+    raw = copy.deepcopy(_parse_params_document(path.read_text()))
 
     if not isinstance(raw, dict):
         raise ValueError(f"Expected mapping at YAML root, got {type(raw).__name__}")
