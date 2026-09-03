@@ -128,7 +128,7 @@ def pose_stack_from_atom37_and_biotite(
     context: PoseBuildContext,
     no_optH: bool = False,
     **kwargs,
-) -> PoseStack:
+) -> PoseStack | tuple[PoseStack, dict] | tuple[PoseStack, PoseBuildContext]:
     """Build a differentiable PoseStack from atom37 coordinates and a topology.
 
     Unlike :func:`pose_stack_from_atomworks`, this supports any chemistry shared

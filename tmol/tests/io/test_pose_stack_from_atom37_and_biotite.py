@@ -160,6 +160,23 @@ def test_pose_stack_from_biotite_accepts_atom37_directly(biotite_1ubq, torch_dev
     assert torch.isfinite(pose.coords[pose.real_atoms]).all()
 
 
+def test_atom37_pose_can_return_atom_mapping(biotite_1ubq, torch_device):
+    structure, atom37 = _atomized_atom37(_first_residues(biotite_1ubq, 1), torch_device)
+    context = build_context_from_biotite(structure, torch_device)
+
+    pose, details = pose_stack_from_atom37_and_biotite(
+        atom37,
+        structure,
+        context,
+        no_optH=True,
+        return_atom_mapping=True,
+    )
+
+    n_real_atoms = int(pose.real_atoms.sum())
+    assert details["can_atom_mapping"].shape[0] == n_real_atoms
+    assert details["ps_atom_mapping"].shape[0] == n_real_atoms
+
+
 def test_atom37_gradients_survive_hydrogen_optimization(biotite_1ubq, torch_device):
     structure, atom37 = _atomized_atom37(_first_residues(biotite_1ubq, 1), torch_device)
     atom37.requires_grad_(True)
