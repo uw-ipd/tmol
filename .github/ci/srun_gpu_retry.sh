@@ -110,6 +110,9 @@ GPUCHECK
     else
       echo "GPU allocation failure (node unknown); retrying in ${RETRY_SLEEP}s"
     fi
+    if (( node_failed )) && [[ -n "${GPU_ALLOC_SENTINEL:-}" ]]; then
+      rm -f "$GPU_ALLOC_SENTINEL"
+    fi
     sleep "$RETRY_SLEEP"
     ((attempt++))
     continue
