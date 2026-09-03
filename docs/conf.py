@@ -138,7 +138,7 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable", None),
     # Pin the inventory to the current supported release. The ``stable`` URL
     # serves redirect stubs whose anchors cannot be validated by linkcheck.
-    "torch": ("https://docs.pytorch.org/docs/2.13", None),
+    "torch": ("https://docs.pytorch.org/docs/2.14", None),
 }
 # Documentation builds must not consume an entire GPU allocation when an
 # external inventory host is slow or unavailable.
