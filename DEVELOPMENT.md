@@ -20,7 +20,7 @@ git clone https://github.com/uw-ipd/tmol.git && cd tmol
 pip install -e ".[dev]"   # builds C++/CUDA extensions via CMake
 ```
 
-Requirements: Python 3.11+, PyTorch 2.8+, a C++17-capable compiler (PyTorch 2.13+ builds tmol as C++20), and CMake 3.24+. CUDA toolkit (`nvcc`) is optional — without it, only CPU extensions are built. Pre-built wheels are published for Python `cp311`-`cp314`.
+Requirements: Python 3.11+, PyTorch 2.8+, a C++20-capable compiler (tmol uses C++17 with PyTorch 2.8–2.12 and C++20 with PyTorch 2.13+), and CMake 3.24+. CUDA toolkit (`nvcc`) is optional — without it, only CPU extensions are built. Pre-built wheels are published for Python `cp311`-`cp314`.
 
 ## Building Extensions
 
@@ -96,7 +96,7 @@ flowchart TD
 | End user                      | `pip install tmol` (sdist) | None   | AOT (compiled at install time) |
 | Kernel developer              | `pip install -e .` | `TMOL_USE_JIT=1` | JIT |
 | CI without GPU                | Pre-built wheel    | None            | AOT  |
-| macOS / CPU-only from source  | `pip install -e . -Ccmake.define.TMOL_ENABLE_CUDA=OFF` | None (or `TMOL_USE_JIT=1`) | AOT (or JIT) |
+| macOS / CPU-only from source  | `pip install -e .` (optionally force `TMOL_ENABLE_CUDA=OFF`) | None (or `TMOL_USE_JIT=1`) | AOT (or JIT) |
 
 ### CUDA toolkit for JIT mode
 
@@ -188,7 +188,7 @@ tmol uses GitHub Actions for all CI:
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
 | `ci.yml` | Push to `master`/`kdidi/**`, PRs | Lint, test (CPU + CUDA), benchmark. Runs on a **self-hosted GPU runner** (fela) inside an Apptainer NGC container. |
-| `wheel-smoke.yml` | Push to wheel feature branches, manual | Builds and installs the complete 32-wheel manylinux matrix, checks auditwheel metadata and glibc-2.28 portability, and loads a representative wheel on the self-hosted GPU runner. |
+| `wheel-smoke.yml` | Push to wheel feature branches, manual | Builds and installs the complete supported wheel matrix, checks auditwheel metadata and glibc-2.28 portability, and loads a representative wheel on the self-hosted GPU runner. |
 | `publish.yml` | Push `v*` tag, manual | Builds manylinux wheels (GPU + CPU) + sdist, uploads sdist to PyPI, uploads wheels to a GitHub Release. |
 
 ### CI architecture

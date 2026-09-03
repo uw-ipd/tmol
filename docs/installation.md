@@ -93,9 +93,10 @@ The same CPU-only path is the normal macOS (Apple Silicon) source install:
 pip install -e . -Ccmake.define.TMOL_ENABLE_CUDA=OFF
 ```
 
-The explicit `TMOL_ENABLE_CUDA=OFF` define is required on a machine without a
-CUDA toolkit. This path needs CMake, a compatible C++ compiler, and no `nvcc`.
-Alternatively, CPU kernels can be compiled on first use:
+Use `TMOL_ENABLE_CUDA=OFF` to explicitly request a CPU-only build; otherwise
+CMake also falls back to CPU-only when it cannot find a CUDA compiler. This
+path needs CMake and a compatible C++ compiler, but no `nvcc`. Alternatively,
+CPU kernels can be compiled on first use:
 
 ```bash
 TMOL_USE_JIT=1 python -c "import tmol; print(tmol.__version__)"
