@@ -20,6 +20,7 @@ on:
       - fix/torch-2.13-wheels
       - fix/manylinux-wheels
       - fix/cpu-release-matrix
+      - kdidi/open-pr-cuda-pytorch214-audit
 
 concurrency:
   group: wheel-smoke-${{ github.ref }}
