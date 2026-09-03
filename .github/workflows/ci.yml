@@ -91,6 +91,19 @@ jobs:
           MAX_JOBS: ${{ matrix.build_workers }}
         run: .github/ci/build_cpu_package.sh
 
+      - name: compile representative CPU JIT extension
+        env:
+          MAX_JOBS: ${{ matrix.build_workers }}
+          TMOL_USE_JIT: "1"
+        run: |
+          python - <<'PY'
+          import torch
+          from tmol.kinematics.compiled import forward_kin_op
+
+          assert torch.version.cuda is None
+          print("loaded", forward_kin_op, "with torch", torch.__version__)
+          PY
+
       - name: report compiler cache
         if: always()
         run: ccache --show-stats

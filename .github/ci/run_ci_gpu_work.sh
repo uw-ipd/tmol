@@ -18,6 +18,15 @@ source .venv/bin/activate
 echo "=== build ==="
 .github/ci/build_package.sh
 
+echo "=== representative CUDA JIT compile ==="
+TMOL_USE_JIT=1 python - <<'PY'
+import torch
+from tmol.kinematics.compiled import forward_kin_op
+
+assert torch.cuda.is_available()
+print("loaded", forward_kin_op, "with torch", torch.__version__)
+PY
+
 echo "=== tests (CUDA) ==="
 .github/ci/run_gpu_tests.sh
 

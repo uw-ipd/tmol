@@ -45,7 +45,15 @@ _cccl_include = _get_cccl_include()
 if _cccl_include:
     _default_include_paths.append(_cccl_include)
 
-_required_flags = ["--std=c++17", "-DWITH_NVTX", "-w"]
+
+def get_torch_version():
+    return torch.__version__.split(".")[0:2]
+
+
+torch_major, torch_minor = get_torch_version()
+_cxx_standard = "c++20" if (int(torch_major), int(torch_minor)) >= (2, 13) else "c++17"
+
+_required_flags = [f"--std={_cxx_standard}", "-DWITH_NVTX", "-w"]
 
 if os.environ.get("DEBUG"):
     _default_flags = ["-O3", "-DDEBUG"]
@@ -58,15 +66,8 @@ else:
 # only add the -ccbin gcc-8 flag if we're on ubuntu 20.04 or higher
 #
 #
-# which version of torch are we compiling against?
-def get_torch_version():
-    return torch.__version__.split(".")[0:2]
-
-
-torch_major, torch_minor = get_torch_version()
-
 _required_cuda_flags = [
-    "-std=c++17",
+    f"-std={_cxx_standard}",
     "--expt-extended-lambda",
     "-DWITH_NVTX",
     "-w",
