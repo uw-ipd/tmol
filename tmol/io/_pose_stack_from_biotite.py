@@ -33,6 +33,145 @@ class Atom37MappingError(ValueError):
     """An AtomArray cannot be routed unambiguously into an Atom37 tensor."""
 
 
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class PreparedAtom37PoseBuilder:
+    """Bind immutable Biotite topology for repeated Atom37 pose construction."""
+
+    context: PoseBuildContext
+    canonical_template: CanonicalForm
+    mapped_token_id: torch.Tensor
+    mapped_slot: torch.Tensor
+    mapped_residue: torch.Tensor
+    mapped_atom: torch.Tensor
+    max_token_id: int
+    fragment_mapping: object | None = None
+
+    def __call__(
+        self,
+        atom37_coords: torch.Tensor,
+        *,
+        opt_h: bool = True,
+        **kwargs: object,
+    ) -> PoseStack | tuple[PoseStack, dict]:
+        """Build a differentiable pose batch; optimize hydrogens by default."""
+        cf = self._canonical_form(atom37_coords)
+        return _pose_stack_from_canonical_and_context(
+            cf,
+            self.context,
+            no_optH=not opt_h,
+            atom37_coords=atom37_coords,
+            fragment_mapping=self.fragment_mapping,
+            **kwargs,
+        )
+
+    def _canonical_form(self, atom37_coords: torch.Tensor) -> CanonicalForm:
+        device = self.context.packed_block_types.device
+        _validate_atom37_coords(atom37_coords, device)
+        if self.max_token_id >= atom37_coords.shape[1]:
+            raise Atom37MappingError(
+                f"token_id {self.max_token_id} exceeds atom37_coords token count "
+                f"{atom37_coords.shape[1]}"
+            )
+
+        template = self.canonical_template
+        n_poses = atom37_coords.shape[0]
+        template_n_poses = template.coords.shape[0]
+        if template_n_poses not in (1, n_poses):
+            raise ValueError(
+                f"Biotite structure has {template_n_poses} poses but "
+                f"atom37_coords has {n_poses}"
+            )
+
+        def tensor_for_poses(value):
+            if value is None or value.shape[0] == n_poses:
+                return value
+            return value.expand(n_poses, *value.shape[1:]).clone()
+
+        def array_for_poses(value):
+            if value is None or value.shape[0] == n_poses:
+                return value
+            return numpy.repeat(value, n_poses, axis=0)
+
+        coords = template.coords
+        if template_n_poses == n_poses:
+            coords = coords.clone()
+        else:
+            coords = coords.expand(n_poses, *coords.shape[1:]).clone()
+        source_coords = atom37_coords[:, self.mapped_token_id, self.mapped_slot]
+        finite = torch.isfinite(source_coords).all(dim=-1)
+        coords[:, self.mapped_residue, self.mapped_atom] = torch.where(
+            finite.unsqueeze(-1),
+            source_coords,
+            coords[:, self.mapped_residue, self.mapped_atom],
+        )
+        return CanonicalForm(
+            chain_id=tensor_for_poses(template.chain_id),
+            res_types=tensor_for_poses(template.res_types),
+            coords=coords,
+            res_labels=array_for_poses(template.res_labels),
+            residue_insertion_codes=array_for_poses(template.residue_insertion_codes),
+            chain_labels=array_for_poses(template.chain_labels),
+            atom_occupancy=array_for_poses(template.atom_occupancy),
+            atom_b_factor=array_for_poses(template.atom_b_factor),
+            disulfides=template.disulfides,
+            res_not_connected=tensor_for_poses(template.res_not_connected),
+        )
+
+
+@validate_args
+def prepare_pose_stack_from_atom37(
+    biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
+    context: PoseBuildContext,
+) -> PreparedAtom37PoseBuilder:
+    """Prepare a callable for repeatedly binding Atom37 coordinates to topology.
+
+    This is the campaign-oriented counterpart to
+    :func:`pose_stack_from_atom37_and_biotite`: immutable residue identity,
+    connectivity, fragmentation, and Atom37 routing are resolved once. Calling
+    the returned builder with a coordinate tensor constructs a differentiable
+    pose while retaining TMol's usual missing-atom behavior. The returned
+    builder optimizes hydrogens by default; pass ``opt_h=False`` to disable it.
+    """
+    device = context.packed_block_types.device
+    fragment_mapping = None
+    if context.fragment_definitions:
+        from tmol.ligand import expand_fragmented_ligands
+
+        biotite_structure, fragment_mapping = expand_fragmented_ligands(
+            biotite_structure, context.fragment_definitions
+        )
+
+    canonical_template = canonical_form_from_biotite(
+        biotite_structure,
+        device,
+        co=context.canonical_ordering,
+        missing_density_distance_threshold=0.0,
+    )
+    filtered, _ = _filter_supported_atoms_and_connectivity(
+        biotite_structure, context.canonical_ordering
+    )
+    atom_residue = get_all_residue_positions(filtered)
+    valid_mask, valid_atom, valid_residue = _map_atoms_to_canonical(
+        context.canonical_ordering,
+        atom_residue,
+        filtered.res_name,
+        filtered.atom_name,
+    )
+    token_id, slot, mapped_residue, mapped_atom = _atom37_mapping(
+        filtered, valid_mask, valid_residue, valid_atom
+    )
+    return PreparedAtom37PoseBuilder(
+        context=context,
+        canonical_template=canonical_template,
+        mapped_token_id=torch.as_tensor(token_id, device=device),
+        mapped_slot=torch.as_tensor(slot, device=device),
+        mapped_residue=torch.as_tensor(mapped_residue, device=device),
+        mapped_atom=torch.as_tensor(mapped_atom, device=device),
+        max_token_id=int(token_id.max()),
+        fragment_mapping=fragment_mapping,
+    )
+
+
 @validate_args
 def build_context_from_biotite(
     biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
@@ -217,9 +356,6 @@ def pose_stack_from_biotite(  # noqa: C901
     """
     torch_device = resolve_device(torch_device)
 
-    from tmol.io import pose_stack_from_canonical_form
-    from tmol.pack import build_missing_sidechains
-
     if context is not None:
         if param_db is not None:
             raise ValueError(
@@ -270,6 +406,31 @@ def pose_stack_from_biotite(  # noqa: C901
         missing_density_distance_threshold=missing_density_distance_threshold,
         atom37_coords=atom37_coords,
     )
+
+    return _pose_stack_from_canonical_and_context(
+        cf,
+        context,
+        no_optH=no_optH,
+        atom37_coords=atom37_coords,
+        fragment_mapping=fragment_mapping,
+        return_context=return_context,
+        **kwargs,
+    )
+
+
+def _pose_stack_from_canonical_and_context(
+    cf: CanonicalForm,
+    context: PoseBuildContext,
+    *,
+    no_optH: bool,
+    atom37_coords: torch.Tensor | None,
+    fragment_mapping=None,
+    return_context: bool = False,
+    **kwargs: object,
+) -> PoseStack | tuple[PoseStack, dict] | tuple[PoseStack, PoseBuildContext]:
+    """Finish pose construction from a canonical form and reusable context."""
+    from tmol.io import pose_stack_from_canonical_form
+    from tmol.pack import build_missing_sidechains
 
     if atom37_coords is not None:
         kwargs.setdefault("find_additional_disulfides", False)
@@ -828,26 +989,10 @@ def _populate_optional_atom_metadata(
     return biotite_b_factors, biotite_occupancy
 
 
-def _populate_canonical_coords_from_atom37(
-    atom37_coords: torch.Tensor,
-    biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
-    torch_device: torch.device,
-    co: CanonicalOrdering,
-    biotite_residues,
-    valid_atom_mask: numpy.ndarray,
-    valid_res_inds: numpy.ndarray,
-    valid_atom_inds: numpy.ndarray,
-) -> tuple[torch.Tensor, int]:
-    """Overlay mapped atom37 coordinates on the Biotite canonical coordinates.
-
-    Finite tensor values replace their matching Biotite atoms through one
-    differentiable indexed assignment. Unmapped and non-finite tensor entries
-    retain the reference coordinates, which is important for hydrogens and for
-    atoms that TMol may need to rebuild.
-
-    Returns:
-        The canonical coordinate tensor and its pose count.
-    """
+def _validate_atom37_coords(
+    atom37_coords: torch.Tensor, torch_device: torch.device
+) -> None:
+    """Validate the tensor contract shared by direct and prepared adapters."""
     if atom37_coords.ndim != 4 or atom37_coords.shape[-2:] != (37, 3):
         raise ValueError(
             "atom37_coords must have shape [n_poses, n_tokens, 37, 3]; "
@@ -863,6 +1008,15 @@ def _populate_canonical_coords_from_atom37(
             f"'{torch_device}'; they must match"
         )
 
+
+def _atom37_mapping(
+    biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
+    valid_atom_mask: numpy.ndarray,
+    valid_res_inds: numpy.ndarray,
+    valid_atom_inds: numpy.ndarray,
+    max_n_tokens: int | None = None,
+) -> tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]:
+    """Validate and return source/target indices for Atom37 routing."""
     categories = set(biotite_structure.get_annotation_categories())
     missing = {"token_id", "atom37_slot"} - categories
     if missing:
@@ -890,20 +1044,55 @@ def _populate_canonical_coords_from_atom37(
         raise Atom37MappingError(
             f"atom37_slot values must be less than 37; got {maximum}"
         )
-    if numpy.any(token_id[mapped] >= atom37_coords.shape[1]):
-        maximum = int(token_id[mapped].max())
-        raise Atom37MappingError(
-            f"token_id {maximum} exceeds atom37_coords token count "
-            f"{atom37_coords.shape[1]}"
-        )
     if not numpy.any(mapped):
         raise Atom37MappingError("No supported Biotite atoms map to atom37_coords")
+    if max_n_tokens is not None and numpy.any(token_id[mapped] >= max_n_tokens):
+        maximum = int(token_id[mapped].max())
+        raise Atom37MappingError(
+            f"token_id {maximum} exceeds atom37_coords token count {max_n_tokens}"
+        )
 
     source_pairs = numpy.column_stack((token_id[mapped], slot[mapped]))
     if numpy.unique(source_pairs, axis=0).shape[0] != source_pairs.shape[0]:
         raise Atom37MappingError(
             "Each mapped Biotite atom must use a unique (token_id, atom37_slot) pair"
         )
+    return (
+        token_id[mapped],
+        slot[mapped],
+        numpy.asarray(valid_res_inds)[mapped],
+        numpy.asarray(valid_atom_inds)[mapped],
+    )
+
+
+def _populate_canonical_coords_from_atom37(
+    atom37_coords: torch.Tensor,
+    biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
+    torch_device: torch.device,
+    co: CanonicalOrdering,
+    biotite_residues,
+    valid_atom_mask: numpy.ndarray,
+    valid_res_inds: numpy.ndarray,
+    valid_atom_inds: numpy.ndarray,
+) -> tuple[torch.Tensor, int]:
+    """Overlay mapped atom37 coordinates on the Biotite canonical coordinates.
+
+    Finite tensor values replace their matching Biotite atoms through one
+    differentiable indexed assignment. Unmapped and non-finite tensor entries
+    retain the reference coordinates, which is important for hydrogens and for
+    atoms that TMol may need to rebuild.
+
+    Returns:
+        The canonical coordinate tensor and its pose count.
+    """
+    _validate_atom37_coords(atom37_coords, torch_device)
+    token_id, slot, mapped_res_inds, mapped_atom_inds = _atom37_mapping(
+        biotite_structure,
+        valid_atom_mask,
+        valid_res_inds,
+        valid_atom_inds,
+        atom37_coords.shape[1],
+    )
 
     reference_coords, reference_n_poses = _populate_canonical_coords(
         biotite_structure,
@@ -923,16 +1112,12 @@ def _populate_canonical_coords_from_atom37(
     if reference_n_poses == 1 and n_poses != 1:
         reference_coords = reference_coords.expand(n_poses, -1, -1, -1).clone()
 
-    mapped_token_id = torch.as_tensor(token_id[mapped], device=torch_device)
-    mapped_slot = torch.as_tensor(slot[mapped], device=torch_device)
+    mapped_token_id = torch.as_tensor(token_id, device=torch_device)
+    mapped_slot = torch.as_tensor(slot, device=torch_device)
     source_coords = atom37_coords[:, mapped_token_id, mapped_slot]
     finite = torch.isfinite(source_coords).all(dim=-1)
-    mapped_res_inds = torch.as_tensor(
-        numpy.asarray(valid_res_inds)[mapped], device=torch_device
-    )
-    mapped_atom_inds = torch.as_tensor(
-        numpy.asarray(valid_atom_inds)[mapped], device=torch_device
-    )
+    mapped_res_inds = torch.as_tensor(mapped_res_inds, device=torch_device)
+    mapped_atom_inds = torch.as_tensor(mapped_atom_inds, device=torch_device)
     reference_coords[:, mapped_res_inds, mapped_atom_inds] = torch.where(
         finite.unsqueeze(-1),
         source_coords,

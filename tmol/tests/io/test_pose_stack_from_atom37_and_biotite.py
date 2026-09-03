@@ -13,6 +13,7 @@ from tmol.io import (
     canonical_ordering_for_biotite,
     pose_stack_from_atom37_and_biotite,
     pose_stack_from_biotite,
+    prepare_pose_stack_from_atom37,
 )
 from tmol.tests.data import data_path
 
@@ -118,6 +119,57 @@ def test_atom37_pose_supports_protein_dna_and_rna(filename, torch_device):
     pose.coords[pose.real_atoms].sum().backward()
     assert atom37.grad is not None
     assert torch.count_nonzero(atom37.grad) > 0
+
+
+@pytest.mark.parametrize("filename", ["1ubq.pdb", "1bna.pdb", "3zp8.pdb"])
+def test_prepared_atom37_builder_matches_direct_pose(filename, torch_device):
+    structure = _first_residues(_load_structure(data_path("pdb", filename)), 2)
+    structure, atom37 = _atomized_atom37(structure, torch_device, n_poses=2)
+    context = build_context_from_biotite(structure, torch_device)
+
+    expected = pose_stack_from_atom37_and_biotite(
+        atom37, structure, context, no_optH=True
+    )
+    builder = prepare_pose_stack_from_atom37(structure, context)
+    actual = builder(atom37, opt_h=False)
+
+    torch.testing.assert_close(actual.coords, expected.coords)
+    torch.testing.assert_close(actual.block_type_ind, expected.block_type_ind)
+    torch.testing.assert_close(
+        actual.inter_residue_connections, expected.inter_residue_connections
+    )
+
+
+def test_prepared_atom37_builder_is_reusable_and_differentiable(
+    biotite_1ubq, torch_device
+):
+    structure, atom37 = _atomized_atom37(_first_residues(biotite_1ubq, 2), torch_device)
+    context = build_context_from_biotite(structure, torch_device)
+    builder = prepare_pose_stack_from_atom37(structure, context)
+
+    first_coords = atom37.detach().clone().requires_grad_(True)
+    first_pose = builder(first_coords, opt_h=False)
+    first_snapshot = first_pose.coords.detach().clone()
+    first_pose.coords[first_pose.real_atoms].sum().backward()
+    assert torch.count_nonzero(first_coords.grad) > 0
+
+    second_coords = atom37.detach().clone()
+    second_coords[:, :, 1] += 1
+    second_pose = builder(second_coords, opt_h=False)
+    torch.testing.assert_close(first_pose.coords, first_snapshot)
+    assert not torch.equal(first_pose.coords, second_pose.coords)
+
+
+def test_prepared_atom37_builder_preserves_default_opth(biotite_1ubq, torch_device):
+    structure, atom37 = _atomized_atom37(_first_residues(biotite_1ubq, 2), torch_device)
+    context = build_context_from_biotite(structure, torch_device)
+
+    torch.manual_seed(0)
+    expected = pose_stack_from_atom37_and_biotite(atom37, structure, context)
+    torch.manual_seed(0)
+    actual = prepare_pose_stack_from_atom37(structure, context)(atom37)
+
+    torch.testing.assert_close(actual.coords, expected.coords)
 
 
 def test_atom37_pose_uses_ligand_context(torch_device):

@@ -140,11 +140,14 @@ def pose_stack_from_atom37_and_biotite(
     topology is scored repeatedly as coordinates move.
 
     Build ``context`` once with :func:`build_context_from_biotite` (with
-    ``prepare_ligands=True`` when ligands are present) and reuse it every step.
-    ``biotite_structure`` is used only for its chemical identity, so a single
-    reference structure can be reused across steps regardless of its coordinates.
-    It must carry two integer annotations that map each atom into the atom37
-    tensor: ``token_id`` (the token axis) and ``atom37_slot`` (the 0..36 slot).
+    ``prepare_ligands=True`` when ligands are present). For repeated diffusion
+    or search steps, bind the topology once with
+    :func:`prepare_pose_stack_from_atom37` and call the returned builder with
+    each coordinate batch. ``biotite_structure`` is used only for its chemical
+    identity, so a single reference structure can be reused regardless of its
+    coordinates. It must carry two integer annotations that map each atom into
+    the atom37 tensor: ``token_id`` (the token axis) and ``atom37_slot`` (the
+    0..36 slot).
 
     Topology is derived from chemical identity alone -- ``missing_density`` breaks
     and automatic disulfide detection (both coordinate-dependent) are disabled --

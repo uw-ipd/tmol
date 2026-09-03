@@ -69,12 +69,14 @@ from ._pose_stack_from_atomworks import (  # noqa: F401
 from tmol.chemical import get_element_from_atom_name  # noqa: F401
 from ._pose_stack_from_biotite import (  # noqa: F401
     Atom37MappingError,
+    PreparedAtom37PoseBuilder,
     build_context_from_biotite,
     pose_stack_from_biotite,
     biotite_from_pose_stack,
     canonical_form_from_biotite,
     canonical_ordering_for_biotite,
     packed_block_types_for_biotite,
+    prepare_pose_stack_from_atom37,
     biotite_from_canonical_form,
 )
 from ._pose_stack_from_openfold import (  # noqa: F401
@@ -102,6 +104,7 @@ __all__ = [
     "CanonicalForm",
     "CanonicalOrdering",
     "PoseBuildContext",
+    "PreparedAtom37PoseBuilder",
     "atom_records_from_coords",
     "atom_records_from_pose_stack",
     "atomworks_from_pose_stack",
@@ -126,6 +129,7 @@ __all__ = [
     "packed_block_types_for_openfold",
     "packed_block_types_for_rosettafold2",
     "pose_stack_from_atomworks",
+    "prepare_pose_stack_from_atom37",
     "pose_stack_from_atom37_and_biotite",
     "pose_stack_from_biotite",
     "pose_stack_from_openfold",
