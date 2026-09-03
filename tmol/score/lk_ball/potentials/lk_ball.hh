@@ -63,7 +63,7 @@ struct lk_fraction {
   static def square(Real v) -> Real { return v * v; }
 
   static def V(WatersMat WI, Real3 J, Real lj_radius_j) -> Real {
-    Real d2_low = square(1.4 + lj_radius_j) - ramp_width_A2;
+    Real d2_low = square(Real(1.4) + lj_radius_j) - ramp_width_A2;
     if (d2_low < 0.0) d2_low = 0.0;
 
     Real wted_d2_delta = 0;
@@ -91,7 +91,7 @@ struct lk_fraction {
   }
 
   static def V_dV(WatersMat WI, Real3 J, Real lj_radius_j) -> V_dV_t {
-    Real d2_low = square(1.4 + lj_radius_j) - ramp_width_A2;
+    Real d2_low = square(Real(1.4) + lj_radius_j) - ramp_width_A2;
     if (d2_low < 0.0) d2_low = 0.0;
 
     Real wted_d2_delta = 0.0;
@@ -125,7 +125,7 @@ struct lk_fraction {
     } else if (wted_d2_delta < ramp_width_A2) {
       frac = square(1 - square(wted_d2_delta / ramp_width_A2));
       if (wted_d2_delta > 0) {
-        dfrac_dwted_d2 = -4.0 * wted_d2_delta
+        dfrac_dwted_d2 = Real(-4) * wted_d2_delta
                          * (square(ramp_width_A2) - square(wted_d2_delta))
                          / square(square(ramp_width_A2));
       }
@@ -183,7 +183,7 @@ struct lk_bridge_fraction {
       -> Real {
     // The bridge score has compact support in the base-atom separation. Test
     // that inexpensive condition before evaluating any water-pair exponentials.
-    Real overlap_target_len2 = 8.0 / 3.0 * square(lkb_water_dist);
+    Real overlap_target_len2 = Real(8) / Real(3) * square(lkb_water_dist);
     Real overlap_len2 = (I - J).squaredNorm();
     Real base_delta = fabs(overlap_len2 - overlap_target_len2);
     if (base_delta > angle_overlap_A2) return Real(0);
@@ -217,19 +217,19 @@ struct lk_bridge_fraction {
       Real3 I, Real3 J, WatersMat WI, WatersMat WJ, Real lkb_water_dist)
       -> V_dV_t {
     // Reject geometrically impossible bridges before the water-overlap loop.
-    Real overlap_target_len2 = 8.0 / 3.0 * square(lkb_water_dist);
+    Real overlap_target_len2 = Real(8) / Real(3) * square(lkb_water_dist);
     Real3 delta_ij = I - J;
     Real overlap_len2 = delta_ij.squaredNorm();
     Real base_delta = overlap_len2 - overlap_target_len2;
     if (std::abs(base_delta) > angle_overlap_A2) {
       return V_dV_t{Real(0), dV_t::Zero()};
     }
-    Real3 d_wted_d2_delta_d_I = 2.0 * delta_ij;
-    Real3 d_wted_d2_delta_d_J = -2.0 * delta_ij;
+    Real3 d_wted_d2_delta_d_I = Real(2) * delta_ij;
+    Real3 d_wted_d2_delta_d_J = Real(-2) * delta_ij;
     Real anglefrac = square(1 - square(base_delta / angle_overlap_A2));
     Real d_anglefrac_d_base_delta =
         std::abs(base_delta) > 0.0
-            ? -4.0 * base_delta
+            ? Real(-4) * base_delta
                   * (square(angle_overlap_A2) - square(base_delta))
                   / square(square(angle_overlap_A2))
             : Real(0);
@@ -268,7 +268,7 @@ struct lk_bridge_fraction {
       wted_d2_delta = -std::log(wted_d2_delta);
       overlapfrac = square(1 - square(wted_d2_delta / overlap_width_A2));
       d_overlapfrac_d_wted_d2 =
-          -4.0 * wted_d2_delta
+          Real(-4) * wted_d2_delta
           * (square(overlap_width_A2) - square(wted_d2_delta))
           / square(square(overlap_width_A2));
     }
@@ -578,8 +578,8 @@ struct lk_ball_score {
     Real const iso_scale = weights[w_lk_ball_iso]
                            + weights[w_lk_ball] * frac_desolv.V
                            + weights[w_lk_bridge] * frac_bridge.V;
-    Real const bridge_scale =
-        weights[w_lk_bridge] * lk_iso.V + weights[w_lk_bridge_uncpl] * 0.5;
+    Real const bridge_scale = weights[w_lk_bridge] * lk_iso.V
+                              + weights[w_lk_bridge_uncpl] * Real(0.5);
     Real3 const d_iso_dI = lk_iso.dV_ddist * dist.dV_dA;
 
     return lk_ball_weighted_dVt<Real, MAX_WATER>{
