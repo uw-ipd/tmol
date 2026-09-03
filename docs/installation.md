@@ -87,11 +87,22 @@ TMol can build CPU-only extensions:
 pip install -e . -Ccmake.define.TMOL_ENABLE_CUDA=OFF
 ```
 
-The same CPU-only path is the normal macOS source install:
+The same CPU-only path is the normal macOS (Apple Silicon) source install:
 
 ```bash
 pip install -e . -Ccmake.define.TMOL_ENABLE_CUDA=OFF
 ```
+
+The explicit `TMOL_ENABLE_CUDA=OFF` define is required on a machine without a
+CUDA toolkit. This path needs CMake, a compatible C++ compiler, and no `nvcc`.
+Alternatively, CPU kernels can be compiled on first use:
+
+```bash
+TMOL_USE_JIT=1 python -c "import tmol; print(tmol.__version__)"
+```
+
+CPU-only JIT needs a C++ compiler and `ninja`; `nvcc` is required only for
+CUDA kernels.
 
 CPU source builds and release wheels are tested on Linux x86-64, Linux
 aarch64, and Apple Silicon. Native Windows is not currently supported; use a
@@ -112,7 +123,7 @@ If `import tmol` fails with a `GLIBCXX_* not found` error, the host
 # Build against system libraries
 TMOL_DISABLE_WHEEL_FETCH=1 pip install -e .
 
-# Or allow just-in-time extension compilation if nvcc is available
+# Or allow just-in-time extension compilation (CPU-only needs no nvcc)
 export TMOL_JIT_FALLBACK=1
 ```
 
