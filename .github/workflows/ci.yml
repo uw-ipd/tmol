@@ -96,7 +96,7 @@ jobs:
           MAX_JOBS: ${{ matrix.build_workers }}
           TMOL_USE_JIT: "1"
         run: |
-          python - <<'PY'
+          .venv/bin/python - <<'PY'
           import torch
           from tmol.kinematics.compiled import forward_kin_op
 
@@ -128,7 +128,7 @@ jobs:
           paths: testing.cpu.junit.xml
 
       - uses: codecov/codecov-action@v5
-        if: always() && matrix.platform == 'linux-x86_64'
+        if: always() && matrix.platform == 'linux-x86_64' && hashFiles('coverage.cpu.xml') != ''
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ github.workspace }}/coverage.cpu.xml
@@ -193,7 +193,7 @@ jobs:
           paths: testing.cuda.junit.xml
 
       - uses: codecov/codecov-action@v5
-        if: always()
+        if: always() && hashFiles('coverage.cuda.xml') != ''
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ github.workspace }}/coverage.cuda.xml
