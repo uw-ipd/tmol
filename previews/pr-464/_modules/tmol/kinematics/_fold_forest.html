@@ -1,0 +1,735 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tmol.kinematics._fold_forest &#8212; TMol</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=0a30a683" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=cb8930eaaf36d9849b67"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
+
+    <script src="../../../_static/documentation_options.js?v=c54c130b"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script>let toggleHintShow = 'show code';</script>
+    <script>let toggleHintHide = 'hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../../../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/kinematics/_fold_forest';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/kinematics/_fold_forest.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.53" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TMol</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.kinematics._fold_forest</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for tmol.kinematics._fold_forest</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">enum</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">NDArray</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+
+
+<div class="viewcode-block" id="EdgeType">
+<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.EdgeType">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">EdgeType</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">IntEnum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Kinds of directed connections represented in a fold forest."""</span>
+
+    <span class="n">polymer</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">jump</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
+    <span class="n">root_jump</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_pose_fold_forest</span><span class="p">(</span><span class="n">bti_p</span><span class="p">,</span> <span class="n">irc_p</span><span class="p">,</span> <span class="n">up_c</span><span class="p">,</span> <span class="n">down_c</span><span class="p">,</span> <span class="n">chain_id_p</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Build fold forest edges for a single pose from polymer connectivity only.</span>
+
+<span class="sd">    Only backbone (up/down) connections are considered.  The resulting graph is</span>
+<span class="sd">    a disjoint union of simple paths (linear chains) and simple cycles (C→N</span>
+<span class="sd">    cyclisation).  Non-polymer connections (disulfides, etc.) are ignored.</span>
+
+<span class="sd">    poly_succ / poly_pred are built with a vectorised numpy gather:</span>
+<span class="sd">    for each residue r, r's *up*-conn slot points to the C-terminal neighbour s,</span>
+<span class="sd">    and s's *down*-conn slot points back to r.  (In tmol nomenclature "up" is</span>
+<span class="sd">    the C-terminal / higher-index direction, mirroring Rosetta's upper_connect.)</span>
+
+<span class="sd">    Chain walking is still a Python loop but is O(n_real) total iterations</span>
+<span class="sd">    across all chains (each residue is visited exactly once).</span>
+
+<span class="sd">    Cyclic polymers (C→N cyclisation) are broken at the bond entering the</span>
+<span class="sd">    lowest-index residue; that bond is simply dropped from the fold forest</span>
+<span class="sd">    (not emitted as a jump) so the result remains a valid tree.</span>
+
+<span class="sd">    Returns a list of [type, start, end, jump_idx] integer lists.</span>
+<span class="sd">    """</span>
+    <span class="n">n_res</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">bti_p</span><span class="p">)</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_res</span><span class="p">)</span>
+
+    <span class="n">real_mask</span> <span class="o">=</span> <span class="n">bti_p</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+    <span class="n">real_res</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">real_mask</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">real_res</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># Vectorised poly_succ / poly_pred construction.</span>
+    <span class="c1">#</span>
+    <span class="c1"># For each residue r:</span>
+    <span class="c1">#   1. Look up r's up-conn slot (points toward C-terminal neighbour).</span>
+    <span class="c1">#   2. Fetch the target residue s and its connection slot cs via irc_p.</span>
+    <span class="c1">#   3. Accept the bond only if cs == down-conn slot of s (the N-terminal</span>
+    <span class="c1">#      side of s), confirming a proper polymer bond in the right direction.</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="n">bt_safe</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">real_mask</span><span class="p">,</span> <span class="n">bti_p</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># safe block-type indices</span>
+
+    <span class="n">uc_r</span> <span class="o">=</span> <span class="n">up_c</span><span class="p">[</span><span class="n">bt_safe</span><span class="p">]</span>  <span class="c1"># up-conn slot per residue</span>
+    <span class="n">uc_safe</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">uc_r</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">succ_raw</span> <span class="o">=</span> <span class="n">irc_p</span><span class="p">[</span><span class="n">rows</span><span class="p">,</span> <span class="n">uc_safe</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>  <span class="c1"># candidate C-terminal neighbour</span>
+    <span class="n">succ_cs</span> <span class="o">=</span> <span class="n">irc_p</span><span class="p">[</span><span class="n">rows</span><span class="p">,</span> <span class="n">uc_safe</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>  <span class="c1"># connection slot on that neighbour</span>
+
+    <span class="n">s_safe</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">succ_raw</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">dc_s</span> <span class="o">=</span> <span class="n">down_c</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">bti_p</span><span class="p">[</span><span class="n">s_safe</span><span class="p">],</span> <span class="mi">0</span><span class="p">)]</span>  <span class="c1"># down-conn slot on s</span>
+
+    <span class="n">valid</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">real_mask</span>
+        <span class="o">&amp;</span> <span class="p">(</span><span class="n">uc_r</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="o">&amp;</span> <span class="p">(</span><span class="n">succ_raw</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="o">&amp;</span> <span class="n">real_mask</span><span class="p">[</span><span class="n">s_safe</span><span class="p">]</span>
+        <span class="o">&amp;</span> <span class="p">(</span><span class="n">succ_cs</span> <span class="o">==</span> <span class="n">dc_s</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="n">poly_succ_arr</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_res</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">poly_pred_arr</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_res</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+
+    <span class="n">valid_r</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">valid</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">valid_s</span> <span class="o">=</span> <span class="n">succ_raw</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span>
+    <span class="n">poly_succ_arr</span><span class="p">[</span><span class="n">valid_r</span><span class="p">]</span> <span class="o">=</span> <span class="n">valid_s</span>
+    <span class="n">poly_pred_arr</span><span class="p">[</span><span class="n">valid_s</span><span class="p">]</span> <span class="o">=</span> <span class="n">valid_r</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># Walk linear chains from each N-terminus (real residue, no predecessor).</span>
+    <span class="c1"># O(n_real) total Python iterations across all chains.</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="n">chains</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># (start, end)</span>
+    <span class="n">visited</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_res</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">numpy</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">real_mask</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">poly_pred_arr</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">))[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">r</span>
+        <span class="k">while</span> <span class="n">poly_succ_arr</span><span class="p">[</span><span class="n">cur</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">visited</span><span class="p">[</span><span class="n">cur</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">cur</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">poly_succ_arr</span><span class="p">[</span><span class="n">cur</span><span class="p">])</span>
+        <span class="n">visited</span><span class="p">[</span><span class="n">cur</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">chains</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">r</span><span class="p">,</span> <span class="n">cur</span><span class="p">))</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># Handle cyclic polymers (C→N cyclisation).</span>
+    <span class="c1"># Every unvisited real residue belongs to a simple cycle.</span>
+    <span class="c1"># Break each cycle at the bond entering its lowest-index residue;</span>
+    <span class="c1"># that bond is dropped (not emitted as a jump) to keep the tree acyclic.</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="n">cyclized_res</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">real_mask</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">visited</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">cyclized_res</span><span class="p">:</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">visited</span><span class="p">[</span><span class="n">r</span><span class="p">]:</span>
+            <span class="k">continue</span>
+        <span class="n">cycle</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">r</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">visited</span><span class="p">[</span><span class="n">cur</span><span class="p">]:</span>
+            <span class="n">visited</span><span class="p">[</span><span class="n">cur</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">cycle</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cur</span><span class="p">)</span>
+            <span class="n">cur</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">poly_succ_arr</span><span class="p">[</span><span class="n">cur</span><span class="p">])</span>
+        <span class="n">n_term</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">cycle</span><span class="p">)</span>
+        <span class="n">c_term</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">poly_pred_arr</span><span class="p">[</span><span class="n">n_term</span><span class="p">])</span>
+        <span class="n">chains</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">n_term</span><span class="p">,</span> <span class="n">c_term</span><span class="p">))</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># Emit edges: one root-jump (or intra-chain jump) per chain,</span>
+    <span class="c1"># one polymer edge if len &gt; 1.</span>
+    <span class="c1">#</span>
+    <span class="c1"># If the residue immediately before this chain's N-terminus belongs to</span>
+    <span class="c1"># the same biological chain (same chain_id), the break is a chain gap</span>
+    <span class="c1"># within one chain and is represented as a jump from that predecessor.</span>
+    <span class="c1"># Otherwise the chain is rooted at the virtual root.</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">jump_idx</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">chains</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="n">prev</span> <span class="o">=</span> <span class="n">start</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">prev</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">bti_p</span><span class="p">[</span><span class="n">prev</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">chain_id_p</span><span class="p">[</span><span class="n">prev</span><span class="p">]</span> <span class="o">==</span> <span class="n">chain_id_p</span><span class="p">[</span><span class="n">start</span><span class="p">]:</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">EdgeType</span><span class="o">.</span><span class="n">jump</span><span class="p">),</span> <span class="n">prev</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">jump_idx</span><span class="p">])</span>
+            <span class="c1"># only true jumps are numbered; a root jump is identified by its</span>
+            <span class="c1"># downstream block, and numbering it would leave a gap in the</span>
+            <span class="c1"># jump indices, which must run contiguously from 0</span>
+            <span class="n">jump_idx</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">EdgeType</span><span class="o">.</span><span class="n">root_jump</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">start</span> <span class="o">!=</span> <span class="n">end</span><span class="p">:</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">EdgeType</span><span class="o">.</span><span class="n">polymer</span><span class="p">),</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">result</span>
+
+
+<div class="viewcode-block" id="FoldForest">
+<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.FoldForest">[docs]</a>
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">FoldForest</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The fold forest will define the fold trees for the poses in a PoseStack.</span>
+<span class="sd">    Each tensor in the class has its first dimension over the number of poses.</span>
+
+<span class="sd">    The primary definition of a FoldTree is the Edge. The Edge defines a connection</span>
+<span class="sd">    between two parts of a Pose. The three types of edges are 1. polymer edges</span>
+<span class="sd">    (analgous to the previously named "peptide edges" from Rosetta++ and Rosetta3), 2.</span>
+<span class="sd">    jump edges which connect any pair of residues in the Pose, and 3. root-jump</span>
+<span class="sd">    edges, which originate at the explicit virtual root and connect to a particular</span>
+<span class="sd">    residue. A polymer edge spans a contiguous range of polymeric block types where</span>
+<span class="sd">    the "up" connection of residue i is connected to the "down" connection of residue</span>
+<span class="sd">    i+1 for all i in the range between the "start" and "end" blocks.</span>
+
+<span class="sd">    Each edge is described by a 4-tuple of integers (type, start, end, jump-index);</span>
+<span class="sd">    where type is one of the EdgeType enum values, start is the index of the upstream</span>
+<span class="sd">    residue of the edge, end is the index of the downstream residue of the edge, and</span>
+<span class="sd">    jump-index is used to assign an id to any particular jump edge; jump-edge indices</span>
+<span class="sd">    must be unique and ascending from 0 to n_jumps-1. "Root jump" edges take their</span>
+<span class="sd">    "identity" from the downstream residue of the edge, so they do not need an index.</span>
+
+<span class="sd">    The FoldForest in tmol differs from the FoldTree in Rosetta3 in that there</span>
+<span class="sd">    is always a virtual root at the origin and any residue (block) may be</span>
+<span class="sd">    connected to this root by a "root jump". Such root-jump residues are defined</span>
+<span class="sd">    by listing the residue that the root is connected to as the "end" residue;</span>
+<span class="sd">    the "start" residue field should be left as -1. An example FoldForest for a</span>
+<span class="sd">    ten-residue protein might be::</span>
+
+<span class="sd">      (polymer, 0, 4)</span>
+<span class="sd">      (jump   , 0, 7)</span>
+<span class="sd">      (polymer, 7, 9)</span>
+<span class="sd">      (polymer, 7, 6)</span>
+<span class="sd">      (root-jump, -1, 0)</span>
+<span class="sd">      (root-jump, -1, 5)</span>
+
+<span class="sd">    where both residues are 0 and 5 are connected to the root.</span>
+
+<span class="sd">    Note that in the MoveMap, the root-jumps are distinct from the non-root-jumps.</span>
+<span class="sd">    """</span>
+
+    <span class="n">max_n_edges</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">n_edges</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="nb">int</span><span class="p">][:]</span>
+    <span class="n">edges</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="nb">int</span><span class="p">][:,</span> <span class="p">:,</span> <span class="mi">4</span><span class="p">]</span>
+
+<div class="viewcode-block" id="FoldForest.reasonable_fold_forest">
+<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.FoldForest.reasonable_fold_forest">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reasonable_fold_forest</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Create a fold forest for each pose using only backbone (up/down)</span>
+<span class="sd">        polymer connectivity.</span>
+
+<span class="sd">        Each biological chain (same chain_id) is rooted with a single</span>
+<span class="sd">        root-jump to its first residue.  Polymer gaps within that chain</span>
+<span class="sd">        (chain breaks) become ordinary jump edges connecting the last</span>
+<span class="sd">        residue before the gap to the first residue after it.  Gaps</span>
+<span class="sd">        between different biological chains produce separate root-jumps.</span>
+<span class="sd">        Cyclic polymers (C→N cyclisation) are broken at the bond entering</span>
+<span class="sd">        the lowest-index residue; that bond is dropped to keep the forest</span>
+<span class="sd">        a valid tree.  Non-polymer connections (disulfides, etc.) are ignored.</span>
+<span class="sd">        """</span>
+        <span class="n">irc</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="n">bti</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="n">chain_id</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">chain_id</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
+        <span class="n">up_c</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">up_conn_inds</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="n">down_c</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">down_conn_inds</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+        <span class="n">all_pose_edges</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">_build_pose_fold_forest</span><span class="p">(</span><span class="n">bti</span><span class="p">[</span><span class="n">p</span><span class="p">],</span> <span class="n">irc</span><span class="p">[</span><span class="n">p</span><span class="p">],</span> <span class="n">up_c</span><span class="p">,</span> <span class="n">down_c</span><span class="p">,</span> <span class="n">chain_id</span><span class="p">[</span><span class="n">p</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="n">max_n_edges</span> <span class="o">=</span> <span class="nb">max</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">all_pose_edges</span><span class="p">),</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">n_poses</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span>
+
+        <span class="n">edges</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_edges</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="n">n_edges</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">edges_p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">all_pose_edges</span><span class="p">):</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">edges_p</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">edges</span><span class="p">[</span><span class="n">p</span><span class="p">,</span> <span class="p">:</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">edges_p</span>
+            <span class="n">n_edges</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">n</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">max_n_edges</span><span class="o">=</span><span class="n">max_n_edges</span><span class="p">,</span> <span class="n">n_edges</span><span class="o">=</span><span class="n">n_edges</span><span class="p">,</span> <span class="n">edges</span><span class="o">=</span><span class="n">edges</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FoldForest.from_edges">
+<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.FoldForest.from_edges">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_edges</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">edges</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="nb">int</span><span class="p">][:,</span> <span class="p">:,</span> <span class="mi">4</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">"FoldForest"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Construct a fold forest from a padded edge array.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            edges: Edge records shaped ``[pose, edge, 4]``. Unused entries</span>
+<span class="sd">                have ``-1`` in their edge-type column.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A fold forest with per-pose edge counts inferred from ``edges``.</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">max_n_edges</span><span class="o">=</span><span class="n">edges</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">n_edges</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">edges</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+            <span class="n">edges</span><span class="o">=</span><span class="n">edges</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.21.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

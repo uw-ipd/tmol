@@ -1,0 +1,966 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tmol.pack.rotamer._mainchain_fingerprint &#8212; TMol</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=0a30a683" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../../_static/scripts/fontawesome.js?digest=cb8930eaaf36d9849b67"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
+
+    <script src="../../../../_static/documentation_options.js?v=c54c130b"></script>
+    <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script>let toggleHintShow = 'show code';</script>
+    <script>let toggleHintHide = 'hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../../../../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/pack/rotamer/_mainchain_fingerprint';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/pack/rotamer/_mainchain_fingerprint.html" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.53" />
+  
+    
+    <script src="../../../../_static/searchtools.js"></script>
+    <script src="../../../../_static/language_data.js"></script>
+    <script src="../../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TMol</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../api_reference.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../api_reference.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../../tmol.html" class="nav-link">tmol</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.pack.rotamer._mainchain_fingerprint</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for tmol.pack.rotamer._mainchain_fingerprint</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Mapping</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">NDArray</span><span class="p">,</span>
+    <span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">validate_args</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.numeric._dihedrals</span><span class="w"> </span><span class="kn">import</span> <span class="n">_numpy_coord_dihedrals</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">PatchedChemicalDatabase</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackedBlockTypes</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ChiSampler</span><span class="p">,</span>
+    <span class="n">bfs_sidechain_atoms_jit</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># what atoms should we copy over?</span>
+<span class="c1"># everything north of "first sidechain atom"?</span>
+<span class="c1"># let's have a map from rt x bb-type --&gt; atom-indices on that rt for those bb</span>
+<span class="c1"># and then when we want to map between two rts, we ask "what is their rt compatibility"?</span>
+<span class="c1"># and then use that mapping</span>
+
+<span class="c1"># so</span>
+<span class="c1"># all canonical aas except proline are class 1</span>
+<span class="c1"># pro is class 2</span>
+<span class="c1"># gly is class 3</span>
+<span class="c1">#</span>
+<span class="c1"># class 1 has n, ca, c, o, h, and ha</span>
+<span class="c1"># class 2 has n, ca, c, o, and ha</span>
+<span class="c1"># class 3 has n, ca, c, o, and the "left" ha</span>
+
+<span class="c1"># how do we tell what classes of backbones there are?</span>
+<span class="c1"># we ask:</span>
+<span class="c1"># what atoms are upstream of the first sidechain atom</span>
+<span class="c1"># for each atom that's upstream of the first sidechain atom</span>
+<span class="c1"># who is chemically bound to it, what is the chirality</span>
+<span class="c1"># of that connection, and what is the element type of that</span>
+<span class="c1"># connection</span>
+
+<span class="c1"># then we need to hash that</span>
+<span class="c1"># (how???)</span>
+<span class="c1"># atoms then should be sorted along mainchain?? and then</span>
+<span class="c1"># with chirality</span>
+
+<span class="c1"># n -- &gt; (0, 0, 0, 7)</span>
+<span class="c1"># h -- &gt; (0, 1, 0, 1)</span>
+<span class="c1"># ca --&gt; (1, 0, 0, 6)</span>
+<span class="c1"># ha --&gt; (1, 1, 1, 1)</span>
+<span class="c1"># c  --&gt; (2, 0, 0, 6)</span>
+<span class="c1"># o  --&gt; (2, 1, 0, 8)</span>
+
+<span class="c1"># position 0: position along the backbone or backbone you're bonded to</span>
+<span class="c1"># position 1: number of bonds from the backbone</span>
+<span class="c1"># position 2: chirality: 0 - achiral, 1 - left, 2 - right</span>
+<span class="c1"># position 3: element</span>
+
+<span class="c1"># how do I determine chirality?</span>
+<span class="c1">#</span>
+<span class="c1"># if bb atom has three chemical bonds, then</span>
+<span class="c1"># treat it as achiral.</span>
+<span class="c1"># if it has four chemical bonds, then</span>
+<span class="c1"># measure chirality of 4th bond by taking</span>
+<span class="c1"># the dot product of sc-i and the cross</span>
+<span class="c1"># product of (p_i - p_{i-1}) and (p_{i+1}, p_i)</span>
+<span class="c1"># if it's positive, then chirality value of 1</span>
+<span class="c1"># if it's negative, then chirality value of 2</span>
+
+<span class="c1"># and then the 4th column is the element, so, that needs to be encoded somehow...</span>
+
+<span class="c1"># how do we sort atoms further from the backbone?</span>
+<span class="c1"># what about when something like: put into the chirality position</span>
+<span class="c1"># a counter so that things further from the backbone get noted</span>
+<span class="c1"># with a higher count; how can you guarantee uniqueness, though??</span>
+<span class="c1"># maybe it should be like an array with an offset based on the chirality</span>
+<span class="c1"># of its ancestors back to the backbone where you put</span>
+
+
+<div class="viewcode-block" id="AtomFingerprint">
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.AtomFingerprint">[docs]</a>
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AtomFingerprint</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Topology signature locating an atom relative to the main chain."""</span>
+
+    <span class="n">mc_ind</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">mc_bond_dist</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">chirality</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">element</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">duplicate_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span></div>
+
+
+
+<div class="viewcode-block" id="MCFingerprint">
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.MCFingerprint">[docs]</a>
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MCFingerprint</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Main-chain atom fingerprint and its residue-local atom mapping."""</span>
+
+    <span class="n">mc_ats</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>
+    <span class="n">mc_at_fingerprints</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">AtomFingerprint</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">fingerprint</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">AtomFingerprint</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">at_for_fingerprint</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">AtomFingerprint</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="MCFingerprints">
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.MCFingerprints">[docs]</a>
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MCFingerprints</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Packed main-chain fingerprint mappings indexed by conformer sampler."""</span>
+
+    <span class="n">atom_mapping</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span>  <span class="c1"># make int64</span>
+    <span class="n">sampler_mapping</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>
+    <span class="n">max_sampler</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>
+    <span class="n">max_fingerprint</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span></div>
+
+
+
+<span class="nd">@validate_args</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_non_sidechain_fingerprint</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
+    <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">,</span>
+    <span class="n">parents</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
+    <span class="n">sc_atoms</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
+    <span class="n">chem_db</span><span class="p">:</span> <span class="n">PatchedChemicalDatabase</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">non_sc_atoms</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">sc_atoms</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="c1"># TO DO: mainchain_atoms determined programatically from</span>
+    <span class="c1"># shortest path between up- and down-connection atoms</span>
+    <span class="n">mc_at_names</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">mainchain_atoms</span>
+    <span class="n">mc_atoms</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">rt</span><span class="o">.</span><span class="n">atom_to_idx</span><span class="p">[</span><span class="n">at</span><span class="p">]</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">mc_at_names</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span>
+    <span class="p">)</span>
+    <span class="c1"># mc_ind: which mainchain atom [0..n_mc_atoms) is a particular</span>
+    <span class="c1"># atom by atom index</span>
+    <span class="n">mc_ind</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">mc_ind</span><span class="p">[</span><span class="n">mc_atoms</span><span class="p">]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">mc_atoms</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="c1"># A kinematic parent tree has to cut cycles. For polymer rings branching</span>
+    <span class="c1"># from the mainchain (notably the nucleotide sugar), following parents can</span>
+    <span class="c1"># therefore reach the tree root without ever visiting a declared mainchain</span>
+    <span class="c1"># atom. Keep the parent-tree path as the normal definition, but fall back to</span>
+    <span class="c1"># the shortest chemical-bond path for those atoms.</span>
+    <span class="n">bonded_neighbors</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">)]</span>
+    <span class="k">for</span> <span class="n">atom1</span><span class="p">,</span> <span class="n">atom2</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">bond_indices</span><span class="p">:</span>
+        <span class="n">bonded_neighbors</span><span class="p">[</span><span class="n">atom1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">atom2</span><span class="p">)</span>
+        <span class="n">bonded_neighbors</span><span class="p">[</span><span class="n">atom2</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">atom1</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">closest_mainchain_atom</span><span class="p">(</span><span class="n">atom</span><span class="p">):</span>
+        <span class="n">visited</span> <span class="o">=</span> <span class="p">{</span><span class="n">atom</span><span class="p">}</span>
+        <span class="n">frontier</span> <span class="o">=</span> <span class="p">[</span><span class="n">atom</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">bond_distance</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">):</span>
+            <span class="n">mainchain</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">frontier</span> <span class="k">if</span> <span class="n">mc_ind</span><span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">mainchain</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">mc_ind</span><span class="p">[</span><span class="n">mainchain</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">bond_distance</span>
+            <span class="n">frontier</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="n">neighbor</span>
+                    <span class="k">for</span> <span class="n">current</span> <span class="ow">in</span> <span class="n">frontier</span>
+                    <span class="k">for</span> <span class="n">neighbor</span> <span class="ow">in</span> <span class="n">bonded_neighbors</span><span class="p">[</span><span class="n">current</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">neighbor</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">visited</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+            <span class="n">visited</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">frontier</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Atom </span><span class="si">{</span><span class="n">atom</span><span class="si">}</span><span class="s2"> in </span><span class="si">{</span><span class="n">rt</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> is disconnected from its mainchain"</span><span class="p">)</span>
+
+    <span class="c1"># fd temporary fix for terminal variants</span>
+    <span class="c1"># count the number of bonds to non-H for each atom</span>
+    <span class="c1"># apl maybe undoing this change</span>
+    <span class="n">n_bonds</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">n_nonh_bonds</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">bond_indices</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="n">bonded_atom_type</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="n">rt</span><span class="o">.</span><span class="n">bond_indices</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="n">atom_type</span>
+        <span class="n">bonded_elem_name</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+            <span class="n">at</span><span class="o">.</span><span class="n">element</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">chem_db</span><span class="o">.</span><span class="n">atom_types</span> <span class="k">if</span> <span class="n">at</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">bonded_atom_type</span>
+        <span class="p">)</span>
+        <span class="n">n_bonds</span><span class="p">[</span><span class="n">rt</span><span class="o">.</span><span class="n">bond_indices</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">bonded_elem_name</span> <span class="o">!=</span> <span class="s2">"H"</span><span class="p">:</span>
+            <span class="n">n_nonh_bonds</span><span class="p">[</span><span class="n">rt</span><span class="o">.</span><span class="n">bond_indices</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">for</span> <span class="n">conn</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">connection_to_idx</span><span class="p">:</span>
+        <span class="n">n_bonds</span><span class="p">[</span><span class="n">rt</span><span class="o">.</span><span class="n">bond_indices</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">n_nonh_bonds</span><span class="p">[</span><span class="n">rt</span><span class="o">.</span><span class="n">connection_to_idx</span><span class="p">[</span><span class="n">conn</span><span class="p">]]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="n">non_sc_atom_fingerprints</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">at_for_fingerprint</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">fp_seen_count</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">for</span> <span class="n">nsc_at</span> <span class="ow">in</span> <span class="n">non_sc_atoms</span><span class="p">:</span>
+        <span class="c1"># find the index of the mc atom this branches from using the kinforest</span>
+        <span class="n">mc_anc</span> <span class="o">=</span> <span class="n">mc_ind</span><span class="p">[</span><span class="n">nsc_at</span><span class="p">]</span>
+        <span class="n">bonds_from_mc</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">atom</span> <span class="o">=</span> <span class="n">nsc_at</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">mc_anc</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="n">par</span> <span class="o">=</span> <span class="n">parents</span><span class="p">[</span><span class="n">atom</span><span class="p">]</span>
+            <span class="n">mc_anc</span> <span class="o">=</span> <span class="n">mc_ind</span><span class="p">[</span><span class="n">par</span><span class="p">]</span>
+            <span class="n">atom</span> <span class="o">=</span> <span class="n">par</span>
+            <span class="n">bonds_from_mc</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="n">mc_anc</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">mc_anc</span><span class="p">,</span> <span class="n">bonds_from_mc</span> <span class="o">=</span> <span class="n">closest_mainchain_atom</span><span class="p">(</span><span class="n">nsc_at</span><span class="p">)</span>
+
+        <span class="c1"># now lets figure out the chirality of this atom</span>
+        <span class="c1"># "chirality" here is interpretted in the most liberal of ways</span>
+        <span class="c1"># where it can refer to L or D for H-alpha (connected to CA), or</span>
+        <span class="c1"># achiral for the H or O atoms bound to the planar N and C atoms,</span>
+        <span class="c1"># but it will also interpret something as "chiral" if its MC atom</span>
+        <span class="c1"># has four substituents even when two of those substituents are</span>
+        <span class="c1"># chemically identical; i.e. as long as the atoms for thse</span>
+        <span class="c1"># substituents have different names they are different, thus the</span>
+        <span class="c1"># atom that binds them is chiral. So, unintuitively, glycine's CA</span>
+        <span class="c1"># will be declared as chiral and we will calculate the chirality</span>
+        <span class="c1"># of its substituents</span>
+
+        <span class="k">if</span> <span class="n">bonds_from_mc</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">chirality</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">elif</span> <span class="n">bonds_from_mc</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">n_bonds</span><span class="p">[</span><span class="n">mc_anc</span><span class="p">]</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="c1"># now we need to measure the chirality of the atom</span>
+                <span class="c1"># or, rather, whether this atom is on the "left"</span>
+                <span class="c1"># or "right" of the chiral backbone atom.</span>
+                <span class="c1"># Measure the improper dihedral given by the</span>
+                <span class="c1"># mc atom and two other mc atoms</span>
+
+                <span class="n">mc_ind_for_mc_anc</span> <span class="o">=</span> <span class="n">mc_ind</span><span class="p">[</span><span class="n">mc_anc</span><span class="p">]</span>
+                <span class="n">mc1_icoor_ind</span><span class="p">,</span> <span class="n">mc2_icoor_ind</span> <span class="o">=</span> <span class="n">_mc_inds_for_chiral_mc_atom</span><span class="p">(</span>
+                    <span class="n">rt</span><span class="p">,</span> <span class="n">mc_atoms</span><span class="p">,</span> <span class="n">mc_ind_for_mc_anc</span>
+                <span class="p">)</span>
+
+                <span class="n">mc_anc_icoor_ind</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">[</span><span class="n">mc_anc</span><span class="p">]</span>
+
+                <span class="c1"># Measure the improper dihedral around the main-chain atom.</span>
+                <span class="n">dihe</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span>
+                    <span class="n">_numpy_coord_dihedrals</span><span class="p">(</span>
+                        <span class="n">rt</span><span class="o">.</span><span class="n">ideal_coords</span><span class="p">[</span><span class="n">rt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">[</span><span class="n">nsc_at</span><span class="p">]],</span>
+                        <span class="n">rt</span><span class="o">.</span><span class="n">ideal_coords</span><span class="p">[</span><span class="n">mc_anc_icoor_ind</span><span class="p">],</span>
+                        <span class="n">rt</span><span class="o">.</span><span class="n">ideal_coords</span><span class="p">[</span><span class="n">mc1_icoor_ind</span><span class="p">],</span>
+                        <span class="n">rt</span><span class="o">.</span><span class="n">ideal_coords</span><span class="p">[</span><span class="n">mc2_icoor_ind</span><span class="p">],</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                <span class="c1"># some atoms are going to be placed in the plane</span>
+                <span class="c1"># defined by the three "main chain" atoms. If the</span>
+                <span class="c1"># atoms are within an epsilon of a dihedral angle of 0 or 180</span>
+                <span class="c1"># then we will label their "chirality" as 3</span>
+                <span class="n">epsilon</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># 1 degree of fudge for planarity</span>
+                <span class="n">abs_dihe</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">absolute</span><span class="p">(</span><span class="n">dihe</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">abs_dihe</span> <span class="o">&lt;</span> <span class="n">epsilon</span> <span class="ow">or</span> <span class="n">numpy</span><span class="o">.</span><span class="n">absolute</span><span class="p">(</span><span class="mi">180</span> <span class="o">-</span> <span class="n">abs_dihe</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">epsilon</span><span class="p">:</span>
+                    <span class="n">chirality</span> <span class="o">=</span> <span class="mi">3</span>
+                <span class="k">elif</span> <span class="n">dihe</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">chirality</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">chirality</span> <span class="o">=</span> <span class="mi">2</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">chirality</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">atom_type_name</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="n">nsc_at</span><span class="p">]</span><span class="o">.</span><span class="n">atom_type</span>
+        <span class="n">elem_name</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+            <span class="n">at</span><span class="o">.</span><span class="n">element</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">chem_db</span><span class="o">.</span><span class="n">atom_types</span> <span class="k">if</span> <span class="n">at</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">atom_type_name</span>
+        <span class="p">)</span>
+        <span class="n">atomic_number</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+            <span class="n">el</span><span class="o">.</span><span class="n">atomic_number</span> <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">chem_db</span><span class="o">.</span><span class="n">element_types</span> <span class="k">if</span> <span class="n">el</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">elem_name</span>
+        <span class="p">)</span>
+        <span class="n">base_fp</span> <span class="o">=</span> <span class="n">AtomFingerprint</span><span class="p">(</span>
+            <span class="n">mc_ind</span><span class="o">=</span><span class="n">mc_anc</span><span class="p">,</span>
+            <span class="n">mc_bond_dist</span><span class="o">=</span><span class="n">bonds_from_mc</span><span class="p">,</span>
+            <span class="n">chirality</span><span class="o">=</span><span class="n">chirality</span><span class="p">,</span>
+            <span class="n">element</span><span class="o">=</span><span class="n">atomic_number</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">dup_idx</span> <span class="o">=</span> <span class="n">fp_seen_count</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">base_fp</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">fp_seen_count</span><span class="p">[</span><span class="n">base_fp</span><span class="p">]</span> <span class="o">=</span> <span class="n">dup_idx</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">at_fingerprint</span> <span class="o">=</span> <span class="n">AtomFingerprint</span><span class="p">(</span>
+            <span class="n">mc_ind</span><span class="o">=</span><span class="n">mc_anc</span><span class="p">,</span>
+            <span class="n">mc_bond_dist</span><span class="o">=</span><span class="n">bonds_from_mc</span><span class="p">,</span>
+            <span class="n">chirality</span><span class="o">=</span><span class="n">chirality</span><span class="p">,</span>
+            <span class="n">element</span><span class="o">=</span><span class="n">atomic_number</span><span class="p">,</span>
+            <span class="n">duplicate_index</span><span class="o">=</span><span class="n">dup_idx</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">non_sc_atom_fingerprints</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">at_fingerprint</span><span class="p">)</span>
+        <span class="n">at_for_fingerprint</span><span class="p">[</span><span class="n">at_fingerprint</span><span class="p">]</span> <span class="o">=</span> <span class="n">nsc_at</span>
+    <span class="k">return</span> <span class="n">non_sc_atoms</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">non_sc_atom_fingerprints</span><span class="p">),</span> <span class="n">at_for_fingerprint</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_mc_inds_for_chiral_mc_atom</span><span class="p">(</span>
+    <span class="n">rt</span><span class="p">,</span>
+    <span class="n">mc_atoms</span><span class="p">,</span>
+    <span class="n">mc_ind_for_mc_anc</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="k">if</span> <span class="n">mc_ind_for_mc_anc</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">"down"</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">icoors</span><span class="p">:</span>
+            <span class="n">mc1_icoor_ind</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">icoors_index</span><span class="p">[</span><span class="s2">"down"</span><span class="p">]</span>
+            <span class="n">mc2_icoor_ind</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">[</span><span class="n">mc_atoms</span><span class="p">[</span><span class="n">mc_ind_for_mc_anc</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># ok, so, this gets a little complicated if</span>
+            <span class="c1"># there are fewer than 3 mainchain atoms</span>
+            <span class="c1"># so let's handle those cases later</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mc_atoms</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">mc1_icoor_ind</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">[</span><span class="n">mc_atoms</span><span class="p">[</span><span class="n">mc_ind_for_mc_anc</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]]</span>
+                <span class="n">mc2_icoor_ind</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">[</span><span class="n">mc_atoms</span><span class="p">[</span><span class="n">mc_ind_for_mc_anc</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]]</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">mc_atoms</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="c1"># TO DO</span>
+                <span class="c1"># ?? I don't know</span>
+                <span class="c1"># I am having trouble envisioning this "main chain"</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                    <span class="s2">"No logic yet to handle packing a two-atom main chain"</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># TO DO</span>
+                <span class="c1"># ie. elif len(mc_atoms) == 1:</span>
+                <span class="c1"># ?? Perhaps this might come up if the</span>
+                <span class="c1"># block type is just a single hydroxyl that's been</span>
+                <span class="c1"># sheared off a sugar residue to be packed</span>
+                <span class="c1"># independently and the "sidechain" is the hydroxyl H</span>
+                <span class="c1"># and the "mainchain" is the hydroxyl O.</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                    <span class="s2">"No logic yet to handle packing a one-atom main chain"</span>
+                <span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">mc_ind_for_mc_anc</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">mc_atoms</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">"up"</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">icoors</span><span class="p">:</span>
+            <span class="n">mc1_icoor_ind</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">[</span><span class="n">mc_atoms</span><span class="p">[</span><span class="n">mc_ind_for_mc_anc</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]]</span>
+            <span class="n">mc2_icoor_ind</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">icoors_index</span><span class="p">[</span><span class="s2">"up"</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># ok, so this gets a little complicated if there are</span>
+            <span class="c1"># fewer than 3 mainchain atoms</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mc_atoms</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">mc1_icoor_ind</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">[</span><span class="n">mc_atoms</span><span class="p">[</span><span class="n">mc_ind_for_mc_anc</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]]</span>
+                <span class="n">mc2_icoor_ind</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">[</span><span class="n">mc_atoms</span><span class="p">[</span><span class="n">mc_ind_for_mc_anc</span> <span class="o">-</span> <span class="mi">2</span><span class="p">]]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># TO DO</span>
+                <span class="c1"># i.e. len(mc_atoms) == 2; if there is only one MC atom, then</span>
+                <span class="c1"># it will be the first MC atom, and then we will not reach</span>
+                <span class="c1"># the "elif mc_ind_for_mc_anc == len(mc_atoms) - 1"</span>
+                <span class="c1"># I don't know what this mainchain looks like</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                    <span class="s2">"No logic yet to handle packing a two-atom main chain"</span>
+                <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># somewhere in the middle of the main chain (e.g. CA)</span>
+        <span class="n">mc1_icoor_ind</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">[</span><span class="n">mc_atoms</span><span class="p">[</span><span class="n">mc_ind_for_mc_anc</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]]</span>
+        <span class="n">mc2_icoor_ind</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">[</span><span class="n">mc_atoms</span><span class="p">[</span><span class="n">mc_ind_for_mc_anc</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]]</span>
+
+    <span class="k">return</span> <span class="n">mc1_icoor_ind</span><span class="p">,</span> <span class="n">mc2_icoor_ind</span>
+
+
+<span class="nd">@validate_args</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_mainchain_fingerprint</span><span class="p">(</span>
+    <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">,</span> <span class="n">sc_roots</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">chem_db</span><span class="p">:</span> <span class="n">PatchedChemicalDatabase</span>
+<span class="p">):</span>
+    <span class="nb">id</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">id</span>
+    <span class="n">parents</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">parents</span><span class="p">[</span><span class="n">parents</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">parents</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span> <span class="o">=</span> <span class="nb">id</span><span class="p">[</span><span class="n">parents</span><span class="p">]</span>
+
+    <span class="n">sc_roots</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">atom_to_idx</span><span class="p">[</span><span class="n">at</span><span class="p">]</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">sc_roots</span><span class="p">)</span>
+
+    <span class="n">sidechain_atoms</span> <span class="o">=</span> <span class="n">bfs_sidechain_atoms_jit</span><span class="p">(</span>
+        <span class="n">parents</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sc_roots</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">create_non_sidechain_fingerprint</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="n">parents</span><span class="p">,</span> <span class="n">sidechain_atoms</span><span class="p">,</span> <span class="n">chem_db</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">annotate_residue_type_with_sampler_fingerprints</span><span class="p">(</span>
+    <span class="n">restype</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">,</span>
+    <span class="n">samplers</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">ChiSampler</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+    <span class="n">chem_db</span><span class="p">:</span> <span class="n">PatchedChemicalDatabase</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="c1"># Mainchain fingerprints describe how to transfer sidechain DOFs across</span>
+    <span class="c1"># mainchains; they require polymer.mainchain_atoms and are meaningless for</span>
+    <span class="c1"># non-polymer residues (e.g. ligands).</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">restype</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">is_polymer</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="k">for</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="n">samplers</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">sampler</span><span class="o">.</span><span class="n">defines_rotamers_for_rt</span><span class="p">(</span><span class="n">restype</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">restype</span><span class="p">,</span> <span class="s2">"mc_fingerprints"</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">sampler</span><span class="o">.</span><span class="n">sampler_name</span><span class="p">()</span> <span class="ow">in</span> <span class="n">restype</span><span class="o">.</span><span class="n">mc_fingerprints</span><span class="p">:</span>
+                    <span class="k">continue</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="n">restype</span><span class="p">,</span> <span class="s2">"mc_fingerprints"</span><span class="p">,</span> <span class="p">{})</span>
+
+            <span class="n">sc_roots</span> <span class="o">=</span> <span class="n">sampler</span><span class="o">.</span><span class="n">first_sc_atoms_for_rt</span><span class="p">(</span><span class="n">restype</span><span class="p">)</span>
+            <span class="n">mc_ats</span><span class="p">,</span> <span class="n">mc_at_fps</span><span class="p">,</span> <span class="n">at_for_fp</span> <span class="o">=</span> <span class="n">create_mainchain_fingerprint</span><span class="p">(</span>
+                <span class="n">restype</span><span class="p">,</span> <span class="n">sc_roots</span><span class="p">,</span> <span class="n">chem_db</span>
+            <span class="p">)</span>
+            <span class="n">fingerprint</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">mc_at_fps</span><span class="p">))</span>
+            <span class="n">restype</span><span class="o">.</span><span class="n">mc_fingerprints</span><span class="p">[</span><span class="n">sampler</span><span class="o">.</span><span class="n">sampler_name</span><span class="p">()]</span> <span class="o">=</span> <span class="n">MCFingerprint</span><span class="p">(</span>
+                <span class="n">mc_ats</span><span class="o">=</span><span class="n">mc_ats</span><span class="p">,</span>
+                <span class="n">mc_at_fingerprints</span><span class="o">=</span><span class="n">mc_at_fps</span><span class="p">,</span>
+                <span class="n">fingerprint</span><span class="o">=</span><span class="n">fingerprint</span><span class="p">,</span>
+                <span class="n">at_for_fingerprint</span><span class="o">=</span><span class="n">at_for_fp</span><span class="p">,</span>
+            <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">find_max_length_fp_among_res_samplers</span><span class="p">(</span>
+    <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span> <span class="n">sampler_types</span><span class="p">,</span> <span class="n">fp_sets</span>
+<span class="p">):</span>
+    <span class="n">fp_to_ind</span> <span class="o">=</span> <span class="p">{</span><span class="n">fp</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">fp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fp_sets</span><span class="p">)}</span>
+    <span class="n">n_fps_for_rt</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">max_sampler_for_rt</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">max_fp_for_rt</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">rt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="s2">"mc_fingerprints"</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sampler_types</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">mc_fingerprints</span><span class="p">:</span>
+                    <span class="n">j_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">mc_fingerprints</span><span class="p">[</span><span class="n">sampler</span><span class="p">]</span><span class="o">.</span><span class="n">mc_ats</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">j_len</span> <span class="o">&gt;</span> <span class="n">n_fps_for_rt</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+                        <span class="n">n_fps_for_rt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">j_len</span>
+                        <span class="n">max_sampler_for_rt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">j</span>
+                        <span class="n">max_fp_for_rt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">fp_to_ind</span><span class="p">[</span>
+                            <span class="n">rt</span><span class="o">.</span><span class="n">mc_fingerprints</span><span class="p">[</span><span class="n">sampler</span><span class="p">]</span><span class="o">.</span><span class="n">fingerprint</span>
+                        <span class="p">]</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">n_fps_for_rt</span><span class="p">,</span> <span class="n">max_sampler_for_rt</span><span class="p">,</span> <span class="n">max_fp_for_rt</span><span class="p">,</span> <span class="n">fp_to_ind</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">find_unique_fingerprints</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
+    <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">sampler_types</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">rt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="s2">"mc_fingerprints"</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">mc_fingerprints</span><span class="p">:</span>
+                <span class="n">sampler_types</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">sampler</span><span class="p">)</span>
+
+    <span class="c1"># we do not need to re-annotate this PackedBlockTypes object if there</span>
+    <span class="c1"># are no sidechain samplers that it has not encountered before</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"mc_fingerprints"</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">sampler_types</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">mc_fingerprints</span><span class="o">.</span><span class="n">sampler_mapping</span><span class="p">):</span>
+            <span class="k">return</span>
+    <span class="n">sampler_types</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">sampler_types</span><span class="p">))</span>
+    <span class="n">n_samplers</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sampler_types</span><span class="p">)</span>
+    <span class="n">sampler_inds</span> <span class="o">=</span> <span class="p">{</span><span class="n">sampler</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sampler_types</span><span class="p">)}</span>
+
+    <span class="n">fp_sets</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">rt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="s2">"mc_fingerprints"</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">mcfps</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">mc_fingerprints</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">fp_sets</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">mcfps</span><span class="o">.</span><span class="n">fingerprint</span><span class="p">)</span>
+    <span class="n">fp_sets</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">fp_sets</span><span class="p">)</span>
+
+    <span class="n">n_mcs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">fp_sets</span><span class="p">)</span>
+    <span class="n">max_n_mc_atoms</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fp</span><span class="p">)</span> <span class="k">for</span> <span class="n">fp</span> <span class="ow">in</span> <span class="n">fp_sets</span><span class="p">)</span>
+
+    <span class="p">(</span>
+        <span class="n">n_fps_for_rt</span><span class="p">,</span>
+        <span class="n">max_sampler_for_rt</span><span class="p">,</span>
+        <span class="n">max_fp_for_rt</span><span class="p">,</span>
+        <span class="n">fp_to_ind</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">=</span> <span class="n">find_max_length_fp_among_res_samplers</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="n">sampler_types</span><span class="p">,</span> <span class="n">fp_sets</span><span class="p">)</span>
+
+    <span class="c1"># ok, we need have n mainchain types</span>
+    <span class="c1"># and we have m residue types</span>
+    <span class="c1"># we have n x n different ways to map atoms from one mainchain</span>
+    <span class="c1"># type onto another mainchain type</span>
+
+    <span class="c1"># we will create an b x n x m x n-ats array that says which atom l</span>
+    <span class="c1"># on mc-type j maps to which atom on residue type k as defined by</span>
+    <span class="c1"># sampler i</span>
+
+    <span class="n">mc_atom_inds_for_rt_for_sampler</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">n_samplers</span><span class="p">,</span> <span class="n">n_mcs</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="n">max_n_mc_atoms</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">ii</span><span class="p">,</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sampler_types</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">jj</span><span class="p">,</span> <span class="n">fp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fp_sets</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">kk</span><span class="p">,</span> <span class="n">rt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">):</span>
+                <span class="c1"># now we'er going to find the index of the mainchain atom</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="s2">"mc_fingerprints"</span><span class="p">):</span>
+                    <span class="k">continue</span>
+                <span class="k">if</span> <span class="n">sampler</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">mc_fingerprints</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">rt_fingerprint</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">mc_fingerprints</span><span class="p">[</span><span class="n">sampler</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">ll</span><span class="p">,</span> <span class="n">at_fp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fp</span><span class="p">):</span>
+                    <span class="n">mc_atom_inds_for_rt_for_sampler</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">jj</span><span class="p">,</span> <span class="n">kk</span><span class="p">,</span> <span class="n">ll</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">rt_fingerprint</span><span class="o">.</span><span class="n">at_for_fingerprint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">at_fp</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_t</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="n">fingerprints</span> <span class="o">=</span> <span class="n">MCFingerprints</span><span class="p">(</span>
+        <span class="n">atom_mapping</span><span class="o">=</span><span class="n">_t</span><span class="p">(</span><span class="n">mc_atom_inds_for_rt_for_sampler</span><span class="p">),</span>
+        <span class="n">sampler_mapping</span><span class="o">=</span><span class="n">sampler_inds</span><span class="p">,</span>
+        <span class="n">max_sampler</span><span class="o">=</span><span class="n">_t</span><span class="p">(</span><span class="n">max_sampler_for_rt</span><span class="p">),</span>
+        <span class="n">max_fingerprint</span><span class="o">=</span><span class="n">_t</span><span class="p">(</span><span class="n">max_fp_for_rt</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"mc_fingerprints"</span><span class="p">,</span> <span class="n">fingerprints</span><span class="p">)</span>
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67"></script>
+<script defer src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.21.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

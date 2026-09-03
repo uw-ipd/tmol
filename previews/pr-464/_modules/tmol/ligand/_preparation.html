@@ -1,0 +1,1354 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tmol.ligand._preparation &#8212; TMol</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=0a30a683" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=cb8930eaaf36d9849b67"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
+
+    <script src="../../../_static/documentation_options.js?v=c54c130b"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script>let toggleHintShow = 'show code';</script>
+    <script>let toggleHintHide = 'hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../../../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/ligand/_preparation';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/ligand/_preparation.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.53" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TMol</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.ligand._preparation</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for tmol.ligand._preparation</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""Ligand preparation implementation for tmol.</span>
+
+<span class="sd">This module contains the concrete preparation pipeline implementation.</span>
+<span class="sd">`tmol.ligand.__init__` re-exports the public API from here.</span>
+<span class="sd">"""</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">itertools</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">struc</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rdkit</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chem</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">CanonicalOrdering</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._atom_typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">AtomTypeAssignment</span><span class="p">,</span> <span class="n">assign_tmol_atom_types</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._detect</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">NonStandardResidueInfo</span><span class="p">,</span>
+    <span class="n">_METAL_SYMBOLS</span><span class="p">,</span>
+    <span class="n">detect_nonstandard_residues</span><span class="p">,</span>
+    <span class="n">nonstandard_residue_info_from_smiles_via_mol2</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._registry</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">LigandPreparation</span><span class="p">,</span>
+    <span class="n">_build_cartbonded_params</span><span class="p">,</span>
+    <span class="n">inject_ligand_preparations</span><span class="p">,</span>
+    <span class="n">rebuild_canonical_ordering</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._mol3d</span><span class="w"> </span><span class="kn">import</span> <span class="n">authoritative_charges_by_index</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._residue_builder</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_residue_type</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._structure_to_smiles</span><span class="w"> </span><span class="kn">import</span> <span class="n">ligand_smiles_from_atom_array</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._rdkit_mol</span><span class="w"> </span><span class="kn">import</span> <span class="n">ligand_atom_array_to_rdkit_mol</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="LigandPreparationError">
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.LigandPreparationError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LigandPreparationError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""A detected ligand could not be prepared, registered, or retained.</span>
+
+<span class="sd">    Raised by :func:`prepare_ligands` (and the ``prepare_ligands=True`` IO</span>
+<span class="sd">    paths) when ``strict_ligands=True`` and a non-standard residue is skipped</span>
+<span class="sd">    or fails preparation, instead of silently dropping it. Pass</span>
+<span class="sd">    ``strict_ligands=False`` to downgrade these failures to warnings.</span>
+<span class="sd">    """</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_skip_or_raise</span><span class="p">(</span><span class="n">strict_ligands</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Raise :class:`LigandPreparationError` if strict, else log a warning.</span>
+
+<span class="sd">    Centralizes the strict-versus-lenient handling for ligands that</span>
+<span class="sd">    :func:`prepare_ligands` cannot register. The lenient branch appends a hint</span>
+<span class="sd">    so the warning matches the strict error's guidance.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">strict_ligands</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">LigandPreparationError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">. Pass strict_ligands=False to skip it with a warning, "</span>
+            <span class="s2">"or supply prebuilt params via ligand_params_files."</span>
+        <span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"Skipping </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">message</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_partial_charges_for_residue</span><span class="p">(</span><span class="n">param_db</span><span class="p">,</span> <span class="n">residue_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="n">parameter</span><span class="o">.</span><span class="n">atom</span><span class="p">:</span> <span class="n">parameter</span><span class="o">.</span><span class="n">charge</span>
+        <span class="k">for</span> <span class="n">parameter</span> <span class="ow">in</span> <span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">elec</span><span class="o">.</span><span class="n">atom_charge_parameters</span>
+        <span class="k">if</span> <span class="n">parameter</span><span class="o">.</span><span class="n">res</span> <span class="o">==</span> <span class="n">residue_name</span>
+    <span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_assert_fragment_names_available</span><span class="p">(</span><span class="n">param_db</span><span class="p">,</span> <span class="n">fragment_preparations</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">existing</span> <span class="o">=</span> <span class="p">{</span><span class="n">residue</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">residue</span> <span class="k">for</span> <span class="n">residue</span> <span class="ow">in</span> <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="o">.</span><span class="n">residues</span><span class="p">}</span>
+    <span class="k">for</span> <span class="n">prep</span> <span class="ow">in</span> <span class="n">fragment_preparations</span><span class="p">:</span>
+        <span class="n">previous</span> <span class="o">=</span> <span class="n">existing</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">prep</span><span class="o">.</span><span class="n">residue_type</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">previous</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">previous_charges</span> <span class="o">=</span> <span class="n">_partial_charges_for_residue</span><span class="p">(</span>
+            <span class="n">param_db</span><span class="p">,</span> <span class="n">prep</span><span class="o">.</span><span class="n">residue_type</span><span class="o">.</span><span class="n">name</span>
+        <span class="p">)</span>
+        <span class="n">previous_cartbonded</span> <span class="o">=</span> <span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">cartbonded</span><span class="o">.</span><span class="n">residue_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="n">prep</span><span class="o">.</span><span class="n">residue_type</span><span class="o">.</span><span class="n">name</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">previous</span> <span class="o">!=</span> <span class="n">prep</span><span class="o">.</span><span class="n">residue_type</span>
+            <span class="ow">or</span> <span class="n">previous_charges</span> <span class="o">!=</span> <span class="n">prep</span><span class="o">.</span><span class="n">partial_charges</span>
+            <span class="ow">or</span> <span class="n">previous_cartbonded</span> <span class="o">!=</span> <span class="n">prep</span><span class="o">.</span><span class="n">cartbonded_params</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="n">LigandPreparationError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prep</span><span class="o">.</span><span class="n">residue_type</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: generated fragment name already "</span>
+                <span class="s2">"exists with different chemistry"</span>
+            <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_rename_atoms_to_cif</span><span class="p">(</span>
+    <span class="n">pipeline_mol</span><span class="p">:</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">,</span>
+    <span class="n">atom_types</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">AtomTypeAssignment</span><span class="p">],</span>
+    <span class="n">ligand_info</span><span class="p">:</span> <span class="n">NonStandardResidueInfo</span><span class="p">,</span>
+    <span class="n">source_atom_order</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">AtomTypeAssignment</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Rename pipeline heavy atoms to CIF names via the source-atom-order map.</span>
+
+<span class="sd">    source_atom_order[k] is the CIF atom-array index of the k-th heavy atom in</span>
+<span class="sd">    pipeline (mol2) order, carried through the SMILES-&gt;mol2 round trip by atom-map</span>
+<span class="sd">    numbers. Hydrogens keep pipeline names. Unchanged if the map is absent or its</span>
+<span class="sd">    size disagrees with the pipeline heavy-atom count.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">source_atom_order</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">atom_types</span>
+    <span class="n">heavy_pipeline_idx</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">a</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">pipeline_mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()</span> <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">1</span>
+    <span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">heavy_pipeline_idx</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">source_atom_order</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s2">"Atom-order map size </span><span class="si">%d</span><span class="s2"> != pipeline heavy count </span><span class="si">%d</span><span class="s2"> for </span><span class="si">%s</span><span class="s2">; "</span>
+            <span class="s2">"keeping pipeline names"</span><span class="p">,</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">source_atom_order</span><span class="p">),</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">heavy_pipeline_idx</span><span class="p">),</span>
+            <span class="n">ligand_info</span><span class="o">.</span><span class="n">res_name</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">atom_types</span>
+
+    <span class="n">names</span> <span class="o">=</span> <span class="n">ligand_info</span><span class="o">.</span><span class="n">atom_names</span>
+    <span class="n">pipeline_to_cif</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">pos</span><span class="p">,</span> <span class="n">pipeline_idx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">heavy_pipeline_idx</span><span class="p">):</span>
+        <span class="n">cif_idx</span> <span class="o">=</span> <span class="n">source_atom_order</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span>
+        <span class="k">if</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">cif_idx</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">):</span>
+            <span class="n">pipeline_to_cif</span><span class="p">[</span><span class="n">pipeline_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">names</span><span class="p">[</span><span class="n">cif_idx</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="n">at</span><span class="o">.</span><span class="n">_replace</span><span class="p">(</span><span class="n">atom_name</span><span class="o">=</span><span class="n">pipeline_to_cif</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">at</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">at</span><span class="o">.</span><span class="n">atom_name</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">atom_types</span>
+    <span class="p">]</span>
+
+
+<div class="viewcode-block" id="prepare_single_ligand">
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.prepare_single_ligand">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">prepare_single_ligand</span><span class="p">(</span>
+    <span class="n">ligand_info</span><span class="p">:</span> <span class="n">NonStandardResidueInfo</span><span class="p">,</span>
+    <span class="n">sample_proton_chi</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">name_source</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NonStandardResidueInfo</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LigandPreparation</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Build a :class:`LigandPreparation` from a SMILES-derived ligand.</span>
+
+<span class="sd">    This is the final, naming-and-typing step of the unified pipeline. Its input</span>
+<span class="sd">    must already be fully resolved chemistry: explicit hydrogens at the desired</span>
+<span class="sd">    protonation state and authoritative per-atom partial charges (the OpenBabel</span>
+<span class="sd">    MMFF94 charges produced by the SMILES -&gt; mol2 step). Protonation and charge</span>
+<span class="sd">    generation are *not* done here -- they happen upstream in</span>
+<span class="sd">    :func:`tmol.ligand._detect.nonstandard_residue_info_from_smiles_via_mol2`.</span>
+
+<span class="sd">    Charges are mapped onto atoms by stable RDKit index (source atom order),</span>
+<span class="sd">    so they are independent of the atom renaming below and never recomputed.</span>
+
+<span class="sd">    Returns a :class:`LigandPreparation` -- the same struct</span>
+<span class="sd">    :func:`tmol.ligand._params_file.load_params_file` produces for each residue</span>
+<span class="sd">    defined in a ``.tmol`` file, so the AtomArray-driven path and the params-file</span>
+<span class="sd">    path converge on a single abstraction that</span>
+<span class="sd">    :func:`inject_ligand_preparations` consumes.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        ligand_info: A SMILES-derived ligand (``skip_protonation=True`` with</span>
+<span class="sd">            authoritative ``partial_charges``). Raw CIF/atom-array ligands must</span>
+<span class="sd">            be routed through :func:`prepare_ligands` / :func:`prepare_ligand_from_cif`.</span>
+<span class="sd">        sample_proton_chi: Whether to emit proton-chi samples.</span>
+<span class="sd">        name_source: Optional ligand whose atom names the prepared residue should</span>
+<span class="sd">            adopt (mapped to the prepared heavy atoms via the atom-order map). On</span>
+<span class="sd">            the unified CIF path this is the original CIF ligand. Defaults to</span>
+<span class="sd">            ``ligand_info``.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If ``ligand_info`` lacks explicit hydrogens / authoritative</span>
+<span class="sd">            charges (there is no charge-generation fallback).</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">ligand_info</span><span class="o">.</span><span class="n">skip_protonation</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">ligand_info</span><span class="o">.</span><span class="n">partial_charges</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">ligand_info</span><span class="o">.</span><span class="n">res_name</span><span class="si">}</span><span class="s2">: prepare_single_ligand requires a ligand that "</span>
+            <span class="s2">"already carries explicit hydrogens and authoritative partial charges "</span>
+            <span class="s2">"(skip_protonation=True). Route raw CIF/atom-array ligands through the "</span>
+            <span class="s2">"unified SMILES path (prepare_ligands / prepare_ligand_from_cif), which "</span>
+            <span class="s2">"derives a SMILES and generates OpenBabel MMFF94 charges. No RDKit/"</span>
+            <span class="s2">"Gasteiger charge fallback is used."</span>
+        <span class="p">)</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._atom_typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">sanitize_tolerant</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._generated_geometry</span><span class="w"> </span><span class="kn">import</span> <span class="n">correct_generated_geometry</span>
+
+    <span class="n">protonated</span> <span class="o">=</span> <span class="n">ligand_atom_array_to_rdkit_mol</span><span class="p">(</span><span class="n">ligand_info</span><span class="p">,</span> <span class="n">keep_hydrogens</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">sanitize_tolerant</span><span class="p">(</span><span class="n">protonated</span><span class="p">)</span>
+
+    <span class="c1"># The generated conformer has correct chemistry but wrong local geometry.</span>
+    <span class="c1"># Repair it before computing icoors</span>
+    <span class="k">for</span> <span class="n">applied</span> <span class="ow">in</span> <span class="n">correct_generated_geometry</span><span class="p">(</span><span class="n">protonated</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">ligand_info</span><span class="o">.</span><span class="n">res_name</span><span class="p">,</span> <span class="n">applied</span><span class="p">)</span>
+
+    <span class="n">atom_types</span><span class="p">,</span> <span class="n">typing_state</span> <span class="o">=</span> <span class="n">assign_tmol_atom_types</span><span class="p">(</span><span class="n">protonated</span><span class="p">,</span> <span class="n">return_state</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Charges come straight from the SMILES -&gt; OpenBabel MMFF94 step, carried on</span>
+    <span class="c1"># ``ligand_info`` in source-atom order. Map them onto atoms by stable RDKit</span>
+    <span class="c1"># index *before* renaming so they are wholly independent of atom naming --</span>
+    <span class="c1"># no name-based bridging and no force-field recomputation.</span>
+    <span class="n">charge_by_index</span> <span class="o">=</span> <span class="n">authoritative_charges_by_index</span><span class="p">(</span>
+        <span class="n">ligand_info</span><span class="o">.</span><span class="n">atom_names</span><span class="p">,</span>
+        <span class="n">ligand_info</span><span class="o">.</span><span class="n">partial_charges</span><span class="p">,</span>
+        <span class="n">protonated</span><span class="p">,</span>
+        <span class="n">ligand_name</span><span class="o">=</span><span class="n">ligand_info</span><span class="o">.</span><span class="n">res_name</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">atom_types</span> <span class="o">=</span> <span class="n">_rename_atoms_to_cif</span><span class="p">(</span>
+        <span class="n">protonated</span><span class="p">,</span>
+        <span class="n">atom_types</span><span class="p">,</span>
+        <span class="n">name_source</span> <span class="k">if</span> <span class="n">name_source</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ligand_info</span><span class="p">,</span>
+        <span class="n">ligand_info</span><span class="o">.</span><span class="n">source_atom_order</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">restype</span> <span class="o">=</span> <span class="n">build_residue_type</span><span class="p">(</span>
+        <span class="n">protonated</span><span class="p">,</span>
+        <span class="n">ligand_info</span><span class="o">.</span><span class="n">res_name</span><span class="p">,</span>
+        <span class="n">atom_types</span><span class="p">,</span>
+        <span class="n">typing_state</span><span class="o">=</span><span class="n">typing_state</span><span class="p">,</span>
+        <span class="n">sample_proton_chi</span><span class="o">=</span><span class="n">sample_proton_chi</span><span class="p">,</span>
+        <span class="n">original_single_bonds</span><span class="o">=</span><span class="n">ligand_info</span><span class="o">.</span><span class="n">original_single_bonds</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">atom_type_elements</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">atom_types</span><span class="p">:</span>
+        <span class="n">prev</span> <span class="o">=</span> <span class="n">atom_type_elements</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">at</span><span class="o">.</span><span class="n">atom_type</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">prev</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">prev</span> <span class="o">!=</span> <span class="n">at</span><span class="o">.</span><span class="n">element</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">ligand_info</span><span class="o">.</span><span class="n">res_name</span><span class="si">}</span><span class="s2">: inconsistent element assignment for atom type "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">at</span><span class="o">.</span><span class="n">atom_type</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">prev</span><span class="si">}</span><span class="s2"> vs </span><span class="si">{</span><span class="n">at</span><span class="o">.</span><span class="n">element</span><span class="si">}</span><span class="s2">)"</span>
+            <span class="p">)</span>
+        <span class="n">atom_type_elements</span><span class="p">[</span><span class="n">at</span><span class="o">.</span><span class="n">atom_type</span><span class="p">]</span> <span class="o">=</span> <span class="n">at</span><span class="o">.</span><span class="n">element</span>
+
+    <span class="n">restype_atom_names</span> <span class="o">=</span> <span class="p">{</span><span class="n">a</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">restype</span><span class="o">.</span><span class="n">atoms</span><span class="p">}</span>
+    <span class="n">charges</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">at</span><span class="o">.</span><span class="n">atom_name</span><span class="p">:</span> <span class="n">charge_by_index</span><span class="p">[</span><span class="n">at</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">atom_types</span>
+        <span class="k">if</span> <span class="n">at</span><span class="o">.</span><span class="n">atom_name</span> <span class="ow">in</span> <span class="n">restype_atom_names</span>
+    <span class="p">}</span>
+    <span class="n">missing_names</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">restype_atom_names</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">charges</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">missing_names</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">ligand_info</span><span class="o">.</span><span class="n">res_name</span><span class="si">}</span><span class="s2">: missing partial charges for atoms: </span><span class="si">{</span><span class="n">missing_names</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+
+    <span class="n">coords</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">protonated</span><span class="o">.</span><span class="n">GetNumConformers</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">conf</span> <span class="o">=</span> <span class="n">protonated</span><span class="o">.</span><span class="n">GetConformer</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">atom_types</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">at</span><span class="o">.</span><span class="n">atom_name</span> <span class="ow">in</span> <span class="n">restype_atom_names</span><span class="p">:</span>
+                <span class="n">p</span> <span class="o">=</span> <span class="n">conf</span><span class="o">.</span><span class="n">GetAtomPosition</span><span class="p">(</span><span class="n">at</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+                <span class="n">coords</span><span class="p">[</span><span class="n">at</span><span class="o">.</span><span class="n">atom_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">x</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">y</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">z</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">LigandPreparation</span><span class="p">(</span>
+        <span class="n">residue_type</span><span class="o">=</span><span class="n">restype</span><span class="p">,</span>
+        <span class="n">partial_charges</span><span class="o">=</span><span class="n">charges</span><span class="p">,</span>
+        <span class="n">cartbonded_params</span><span class="o">=</span><span class="n">_build_cartbonded_params</span><span class="p">(</span><span class="n">restype</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">),</span>
+        <span class="n">atom_type_elements</span><span class="o">=</span><span class="n">atom_type_elements</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_cif_heavy_atom_names</span><span class="p">(</span><span class="n">ligand_info</span><span class="p">:</span> <span class="n">NonStandardResidueInfo</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Heavy-atom names of the (CIF) ligand, used to verify name matching."""</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="n">name</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">element</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">ligand_info</span><span class="o">.</span><span class="n">atom_names</span><span class="p">,</span> <span class="n">ligand_info</span><span class="o">.</span><span class="n">elements</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">element</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">!=</span> <span class="s2">"H"</span>
+    <span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_residue_covers_cif_heavy_atoms</span><span class="p">(</span>
+    <span class="n">prep</span><span class="p">:</span> <span class="n">LigandPreparation</span><span class="p">,</span> <span class="n">cif_heavy_names</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return True if the prepared residue carries every CIF heavy-atom name.</span>
+
+<span class="sd">    When the SMILES-derived residue's heavy-atom names are a superset of the</span>
+<span class="sd">    CIF ligand's heavy-atom names, pose-build can place every CIF heavy-atom</span>
+<span class="sd">    coordinate by ``(res_name, atom_name)`` match.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">cif_heavy_names</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="n">elements</span> <span class="o">=</span> <span class="n">prep</span><span class="o">.</span><span class="n">atom_type_elements</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="n">restype_heavy</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">prep</span><span class="o">.</span><span class="n">residue_type</span><span class="o">.</span><span class="n">atoms</span><span class="p">:</span>
+        <span class="n">element</span> <span class="o">=</span> <span class="n">elements</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">atom_type</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">element</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">element</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"H"</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">restype_heavy</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">cif_heavy_names</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">restype_heavy</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_prepare_ligand_via_smiles</span><span class="p">(</span>
+    <span class="n">ligand_info</span><span class="p">:</span> <span class="n">NonStandardResidueInfo</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">ph</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">sample_proton_chi</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LigandPreparation</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Prepare one ligand through the unified CIF -&gt; SMILES -&gt; params path.</span>
+
+<span class="sd">    Derives a SMILES from the ligand's atom array (from its explicit bond table;</span>
+<span class="sd">    never geometry perception, never a CCD lookup) and runs it through the</span>
+<span class="sd">    SMILES -&gt; mol2 -&gt; params pipeline. The prepared residue's heavy-atom names</span>
+<span class="sd">    should cover the original ligand's heavy atoms; if they don't, the</span>
+<span class="sd">    preparation is still returned best-effort.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        ligand_info: The detected (CIF/atom-array) ligand.</span>
+<span class="sd">        ph: Target pH for protonation (applied in the SMILES -&gt; mol2 step).</span>
+<span class="sd">        sample_proton_chi: Whether to emit proton-chi samples.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The :class:`LigandPreparation`.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If a SMILES could not be derived or prepared.</span>
+<span class="sd">    """</span>
+    <span class="n">smiles</span> <span class="o">=</span> <span class="n">ligand_smiles_from_atom_array</span><span class="p">(</span>
+        <span class="n">ligand_info</span><span class="o">.</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="n">ligand_info</span><span class="o">.</span><span class="n">res_name</span><span class="p">,</span> <span class="n">with_atom_map</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">smiles_info</span> <span class="o">=</span> <span class="n">nonstandard_residue_info_from_smiles_via_mol2</span><span class="p">(</span>
+            <span class="n">smiles</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="n">ligand_info</span><span class="o">.</span><span class="n">res_name</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="n">ph</span>
+        <span class="p">)</span>
+        <span class="n">prep</span> <span class="o">=</span> <span class="n">prepare_single_ligand</span><span class="p">(</span>
+            <span class="n">smiles_info</span><span class="p">,</span>
+            <span class="n">sample_proton_chi</span><span class="o">=</span><span class="n">sample_proton_chi</span><span class="p">,</span>
+            <span class="n">name_source</span><span class="o">=</span><span class="n">ligand_info</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">ligand_info</span><span class="o">.</span><span class="n">res_name</span><span class="si">}</span><span class="s2">: failed to prepare ligand via SMILES </span><span class="si">{</span><span class="n">smiles</span><span class="si">!r}</span><span class="s2">"</span>
+        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">err</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_residue_covers_cif_heavy_atoms</span><span class="p">(</span><span class="n">prep</span><span class="p">,</span> <span class="n">_cif_heavy_atom_names</span><span class="p">(</span><span class="n">ligand_info</span><span class="p">)):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s2">"Prepared SMILES for </span><span class="si">%s</span><span class="s2"> did not cover all CIF heavy-atom names; "</span>
+            <span class="s2">"using best-effort preparation"</span><span class="p">,</span>
+            <span class="n">ligand_info</span><span class="o">.</span><span class="n">res_name</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">prep</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_supported_elements</span><span class="p">(</span><span class="n">param_db</span><span class="p">:</span> <span class="n">ParameterDatabase</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Element symbols tmol has atom types for."""</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="n">at</span><span class="o">.</span><span class="n">element</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="o">.</span><span class="n">atom_types</span>
+        <span class="k">if</span> <span class="n">at</span><span class="o">.</span><span class="n">element</span> <span class="ow">and</span> <span class="n">at</span><span class="o">.</span><span class="n">element</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_ligand_unsupported_reason</span><span class="p">(</span>
+    <span class="n">lig</span><span class="p">:</span> <span class="n">NonStandardResidueInfo</span><span class="p">,</span> <span class="n">supported_elements</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Why this ligand cannot be prepared, or None if it can."""</span>
+    <span class="n">metals_present</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="n">e</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">lig</span><span class="o">.</span><span class="n">elements</span>
+            <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_METAL_SYMBOLS</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">metals_present</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">lig</span><span class="o">.</span><span class="n">res_name</span><span class="si">}</span><span class="s2">: ligands containing metal atoms "</span>
+            <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="n">metals_present</span><span class="si">}</span><span class="s2">) are not supported"</span>
+        <span class="p">)</span>
+
+    <span class="n">unsupported</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="n">e</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">lig</span><span class="o">.</span><span class="n">elements</span>
+            <span class="k">if</span> <span class="n">e</span> <span class="ow">and</span> <span class="n">e</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="ow">and</span> <span class="n">e</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">supported_elements</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">unsupported</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">lig</span><span class="o">.</span><span class="n">res_name</span><span class="si">}</span><span class="s2">: ligands containing unsupported element(s) "</span>
+            <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">unsupported</span><span class="p">)</span><span class="si">}</span><span class="s2">) are not supported; tmol has no atom "</span>
+            <span class="s2">"types for them"</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">lig</span><span class="o">.</span><span class="n">covalently_linked</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">lig</span><span class="o">.</span><span class="n">res_name</span><span class="si">}</span><span class="s2">: ligand is covalently linked to another residue "</span>
+            <span class="s2">"(e.g. glycan attached to protein) — not supported"</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="prepare_ligands">
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.prepare_ligands">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">prepare_ligands</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
+    <span class="n">atom_array</span><span class="p">:</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">,</span>
+    <span class="n">param_db</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ParameterDatabase</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">ph</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">7.4</span><span class="p">,</span>
+    <span class="n">strict_atom_types</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">params_files</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">params_output</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">sample_proton_chi</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">strict_ligands</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">return_fragment_definitions</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Detect, prepare, and register all non-standard residues.</span>
+
+<span class="sd">    Scans the input AtomArray for residues not in the ParameterDatabase,</span>
+<span class="sd">    runs each through the unified SMILES→OpenBabel mol2→typing→residue-build</span>
+<span class="sd">    pipeline, and returns a **new** ParameterDatabase with the ligand data</span>
+<span class="sd">    injected.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        atom_array: A biotite AtomArray from a CIF or PDB file.</span>
+<span class="sd">        param_db: The base ParameterDatabase (not modified). If None, the</span>
+<span class="sd">            default database is used.</span>
+<span class="sd">        ph: Target pH for ligand protonation (Dimorphite-DL on derived SMILES).</span>
+<span class="sd">        strict_atom_types: If True, fail when unknown atom-type element</span>
+<span class="sd">            mappings are encountered during registration.</span>
+<span class="sd">        params_files: Optional list of tmol YAML params file paths to</span>
+<span class="sd">            inject before detection. Residues defined in these files</span>
+<span class="sd">            skip the RDKit/OB preparation pipeline.</span>
+<span class="sd">        params_output: Optional path to write all prepared ligand data</span>
+<span class="sd">            to a tmol YAML params file for later reuse.</span>
+<span class="sd">        sample_proton_chi: Whether to emit PROTON_CHI samples in the</span>
+<span class="sd">            built residue type.</span>
+<span class="sd">        strict_ligands: If True (default), raise :class:`LigandPreparationError`</span>
+<span class="sd">            when a detected non-standard residue is skipped (metal-containing or</span>
+<span class="sd">            covalently linked) or fails preparation, instead of silently</span>
+<span class="sd">            dropping it. If False, such residues are logged as warnings and</span>
+<span class="sd">            skipped, leaving them to be filtered out during pose construction.</span>
+<span class="sd">        return_fragment_definitions: Internal/context-building option. If True,</span>
+<span class="sd">            include definitions derived from ``tmol_fragment_id`` annotations</span>
+<span class="sd">            as the third return value.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A (ParameterDatabase, CanonicalOrdering) tuple. When</span>
+<span class="sd">        ``return_fragment_definitions`` is true, a third element containing</span>
+<span class="sd">        the structure-independent ligand fragment definitions is returned. The returned</span>
+<span class="sd">        ParameterDatabase is a new instance with all detected ligands</span>
+<span class="sd">        injected; the input ``param_db`` is not modified.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        LigandPreparationError: If ``strict_ligands`` and any detected ligand</span>
+<span class="sd">            cannot be prepared and registered.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">atom_array</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">atom_array</span> <span class="o">=</span> <span class="n">atom_array</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">"prepare_ligands expects a single AtomArray, not an "</span>
+                <span class="sa">f</span><span class="s2">"AtomArrayStack with </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">atom_array</span><span class="p">)</span><span class="si">}</span><span class="s2"> models. "</span>
+                <span class="s2">"Select a single model first (e.g. stack[0])."</span>
+            <span class="p">)</span>
+    <span class="k">if</span> <span class="n">param_db</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">param_db</span> <span class="o">=</span> <span class="n">ParameterDatabase</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._fragmentation</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">FRAGMENT_ID_ANNOTATION</span><span class="p">,</span>
+        <span class="n">build_ligand_fragment_definition</span><span class="p">,</span>
+        <span class="n">fragment_ids_from_atom_array</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">fragment_layouts_by_name</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">first_residue_by_name</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">starts</span> <span class="o">=</span> <span class="n">struc</span><span class="o">.</span><span class="n">get_residue_starts</span><span class="p">(</span><span class="n">atom_array</span><span class="p">)</span>
+    <span class="n">ends</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">starts</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">array_length</span><span class="p">())</span>
+    <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">starts</span><span class="p">,</span> <span class="n">ends</span><span class="p">):</span>
+        <span class="n">residue</span> <span class="o">=</span> <span class="n">atom_array</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span>
+        <span class="n">fragment_ids</span> <span class="o">=</span> <span class="n">fragment_ids_from_atom_array</span><span class="p">(</span><span class="n">residue</span><span class="p">)</span>
+        <span class="n">layout</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">fragment_ids</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">residue</span><span class="o">.</span><span class="n">atom_name</span><span class="p">),</span> <span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">fragment_ids</span><span class="p">))))</span>
+        <span class="p">)</span>
+        <span class="n">ligand_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">residue</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">ligand_name</span> <span class="ow">in</span> <span class="n">fragment_layouts_by_name</span>
+            <span class="ow">and</span> <span class="n">fragment_layouts_by_name</span><span class="p">[</span><span class="n">ligand_name</span><span class="p">]</span> <span class="o">!=</span> <span class="n">layout</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="n">LigandPreparationError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">ligand_name</span><span class="si">}</span><span class="s2">: all residues with the same name must use the "</span>
+                <span class="sa">f</span><span class="s2">"same </span><span class="si">{</span><span class="n">FRAGMENT_ID_ANNOTATION</span><span class="si">}</span><span class="s2"> annotation"</span>
+            <span class="p">)</span>
+        <span class="n">fragment_layouts_by_name</span><span class="p">[</span><span class="n">ligand_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">layout</span>
+        <span class="n">first_residue_by_name</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">ligand_name</span><span class="p">,</span> <span class="n">residue</span><span class="p">)</span>
+
+    <span class="n">params_preparations</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">LigandPreparation</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">params_files</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._params_file</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_params_file</span>
+
+        <span class="k">for</span> <span class="n">params_file</span> <span class="ow">in</span> <span class="n">params_files</span><span class="p">:</span>
+            <span class="n">params_preparations</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">load_params_file</span><span class="p">(</span><span class="n">params_file</span><span class="p">))</span>
+        <span class="n">param_db</span> <span class="o">=</span> <span class="n">inject_ligand_preparations</span><span class="p">(</span>
+            <span class="n">param_db</span><span class="p">,</span>
+            <span class="n">params_preparations</span><span class="p">,</span>
+            <span class="n">strict_atom_types</span><span class="o">=</span><span class="n">strict_atom_types</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="n">fragment_source_preparations</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">prep</span><span class="o">.</span><span class="n">residue_type</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">prep</span> <span class="k">for</span> <span class="n">prep</span> <span class="ow">in</span> <span class="n">params_preparations</span>
+    <span class="p">}</span>
+    <span class="n">existing_residues</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">residue</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">residue</span> <span class="k">for</span> <span class="n">residue</span> <span class="ow">in</span> <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="o">.</span><span class="n">residues</span>
+    <span class="p">}</span>
+    <span class="k">for</span> <span class="n">ligand_name</span><span class="p">,</span> <span class="n">layout</span> <span class="ow">in</span> <span class="n">fragment_layouts_by_name</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">layout</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">ligand_name</span> <span class="ow">in</span> <span class="n">fragment_source_preparations</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">restype</span> <span class="o">=</span> <span class="n">existing_residues</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ligand_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">restype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">cartbonded_params</span> <span class="o">=</span> <span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">cartbonded</span><span class="o">.</span><span class="n">residue_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ligand_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cartbonded_params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cartbonded_params</span> <span class="o">=</span> <span class="n">_build_cartbonded_params</span><span class="p">(</span><span class="n">restype</span><span class="p">)</span>
+        <span class="n">fragment_source_preparations</span><span class="p">[</span><span class="n">ligand_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">LigandPreparation</span><span class="p">(</span>
+            <span class="n">residue_type</span><span class="o">=</span><span class="n">restype</span><span class="p">,</span>
+            <span class="n">partial_charges</span><span class="o">=</span><span class="n">_partial_charges_for_residue</span><span class="p">(</span><span class="n">param_db</span><span class="p">,</span> <span class="n">ligand_name</span><span class="p">),</span>
+            <span class="n">cartbonded_params</span><span class="o">=</span><span class="n">cartbonded_params</span><span class="p">,</span>
+            <span class="n">atom_type_elements</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="n">canonical_ordering</span> <span class="o">=</span> <span class="n">rebuild_canonical_ordering</span><span class="p">(</span><span class="n">param_db</span><span class="p">)</span>
+    <span class="n">fragment_definitions_by_name</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_fragment_definition</span><span class="p">(</span><span class="n">ligand_name</span><span class="p">,</span> <span class="n">definition</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">ligand_name</span> <span class="ow">in</span> <span class="n">fragment_definitions_by_name</span> <span class="ow">or</span> <span class="n">definition</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="n">fragment_definitions_by_name</span><span class="p">[</span><span class="n">ligand_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">definition</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">if</span> <span class="n">fragment_source_preparations</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">prep</span> <span class="ow">in</span> <span class="n">fragment_source_preparations</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">source</span> <span class="o">=</span> <span class="n">first_residue_by_name</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">prep</span><span class="o">.</span><span class="n">residue_type</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">source</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">definition</span> <span class="o">=</span> <span class="n">build_ligand_fragment_definition</span><span class="p">(</span><span class="n">prep</span><span class="p">,</span> <span class="n">source</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">LigandPreparationError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prep</span><span class="o">.</span><span class="n">residue_type</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: invalid "</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">FRAGMENT_ID_ANNOTATION</span><span class="si">}</span><span class="s2"> annotation (</span><span class="si">{</span><span class="n">err</span><span class="si">}</span><span class="s2">)"</span>
+                <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">err</span>
+            <span class="n">add_fragment_definition</span><span class="p">(</span><span class="n">prep</span><span class="o">.</span><span class="n">residue_type</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">definition</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">fragment_definitions_by_name</span><span class="p">:</span>
+            <span class="n">fragment_preparations</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">fragment_prep</span>
+                <span class="k">for</span> <span class="n">definition</span> <span class="ow">in</span> <span class="n">fragment_definitions_by_name</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">fragment_prep</span> <span class="ow">in</span> <span class="n">definition</span><span class="o">.</span><span class="n">fragment_preparations</span>
+            <span class="p">]</span>
+            <span class="n">_assert_fragment_names_available</span><span class="p">(</span><span class="n">param_db</span><span class="p">,</span> <span class="n">fragment_preparations</span><span class="p">)</span>
+            <span class="n">param_db</span> <span class="o">=</span> <span class="n">inject_ligand_preparations</span><span class="p">(</span>
+                <span class="n">param_db</span><span class="p">,</span>
+                <span class="n">fragment_preparations</span><span class="p">,</span>
+                <span class="n">strict_atom_types</span><span class="o">=</span><span class="n">strict_atom_types</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">canonical_ordering</span> <span class="o">=</span> <span class="n">rebuild_canonical_ordering</span><span class="p">(</span><span class="n">param_db</span><span class="p">)</span>
+
+    <span class="n">ligands</span> <span class="o">=</span> <span class="n">detect_nonstandard_residues</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">canonical_ordering</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">ligands</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"No non-standard residues detected"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">return_fragment_definitions</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="n">param_db</span><span class="p">,</span>
+                <span class="n">canonical_ordering</span><span class="p">,</span>
+                <span class="nb">tuple</span><span class="p">(</span><span class="n">fragment_definitions_by_name</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">param_db</span><span class="p">,</span> <span class="n">canonical_ordering</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Found </span><span class="si">%d</span><span class="s2"> non-standard residue type(s) to prepare"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ligands</span><span class="p">))</span>
+
+    <span class="n">supported_elements</span> <span class="o">=</span> <span class="n">_supported_elements</span><span class="p">(</span><span class="n">param_db</span><span class="p">)</span>
+
+    <span class="n">preparations</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">LigandPreparation</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">prepared_ligands</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">NonStandardResidueInfo</span><span class="p">,</span> <span class="n">LigandPreparation</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">lig</span> <span class="ow">in</span> <span class="n">ligands</span><span class="p">:</span>
+        <span class="n">reason</span> <span class="o">=</span> <span class="n">_ligand_unsupported_reason</span><span class="p">(</span><span class="n">lig</span><span class="p">,</span> <span class="n">supported_elements</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">reason</span><span class="p">:</span>
+            <span class="n">_skip_or_raise</span><span class="p">(</span><span class="n">strict_ligands</span><span class="p">,</span> <span class="n">reason</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Preparing </span><span class="si">%s</span><span class="s2"> (CCD type: </span><span class="si">%s</span><span class="s2">)"</span><span class="p">,</span> <span class="n">lig</span><span class="o">.</span><span class="n">res_name</span><span class="p">,</span> <span class="n">lig</span><span class="o">.</span><span class="n">ccd_type</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">prep</span> <span class="o">=</span> <span class="n">_prepare_ligand_via_smiles</span><span class="p">(</span>
+                <span class="n">lig</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span> <span class="n">sample_proton_chi</span><span class="o">=</span><span class="n">sample_proton_chi</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="n">LigandPreparationError</span><span class="p">:</span>
+            <span class="k">raise</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>  <span class="c1"># noqa: BLE001  SMILES/typing/build failure</span>
+            <span class="k">if</span> <span class="n">strict_ligands</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">LigandPreparationError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">lig</span><span class="o">.</span><span class="n">res_name</span><span class="si">}</span><span class="s2">: failed to prepare ligand (</span><span class="si">{</span><span class="n">err</span><span class="si">}</span><span class="s2">). Pass "</span>
+                    <span class="s2">"strict_ligands=False to skip it with a warning, or supply "</span>
+                    <span class="s2">"prebuilt params via ligand_params_files."</span>
+                <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">err</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">"Skipping </span><span class="si">%s</span><span class="s2">: ligand preparation failed (</span><span class="si">%s</span><span class="s2">)"</span><span class="p">,</span> <span class="n">lig</span><span class="o">.</span><span class="n">res_name</span><span class="p">,</span> <span class="n">err</span>
+            <span class="p">)</span>
+            <span class="k">continue</span>
+        <span class="n">preparations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">prep</span><span class="p">)</span>
+        <span class="n">prepared_ligands</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">lig</span><span class="p">,</span> <span class="n">prep</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">prepared_ligands</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">lig</span><span class="p">,</span> <span class="n">prep</span> <span class="ow">in</span> <span class="n">prepared_ligands</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">definition</span> <span class="o">=</span> <span class="n">build_ligand_fragment_definition</span><span class="p">(</span><span class="n">prep</span><span class="p">,</span> <span class="n">lig</span><span class="o">.</span><span class="n">atom_array</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">LigandPreparationError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">lig</span><span class="o">.</span><span class="n">res_name</span><span class="si">}</span><span class="s2">: invalid </span><span class="si">{</span><span class="n">FRAGMENT_ID_ANNOTATION</span><span class="si">}</span><span class="s2"> annotation "</span>
+                    <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="n">err</span><span class="si">}</span><span class="s2">)"</span>
+                <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">err</span>
+            <span class="k">if</span> <span class="n">add_fragment_definition</span><span class="p">(</span><span class="n">lig</span><span class="o">.</span><span class="n">res_name</span><span class="p">,</span> <span class="n">definition</span><span class="p">):</span>
+                <span class="n">preparations</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">definition</span><span class="o">.</span><span class="n">fragment_preparations</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">strict_ligands</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">preparations</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">LigandPreparationError</span><span class="p">(</span>
+            <span class="s2">"All "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">ligands</span><span class="p">)</span><span class="si">}</span><span class="s2"> detected non-standard residue(s) "</span>
+            <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">({</span><span class="n">lig</span><span class="o">.</span><span class="n">res_name</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">lig</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">ligands</span><span class="p">}))</span><span class="si">}</span><span class="s2">) were "</span>
+            <span class="s2">"skipped; none could be prepared. Pass strict_ligands=False to "</span>
+            <span class="s2">"continue with these residues dropped."</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">preparations</span><span class="p">:</span>
+        <span class="n">fragment_preparations</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">fragment_prep</span>
+            <span class="k">for</span> <span class="n">definition</span> <span class="ow">in</span> <span class="n">fragment_definitions_by_name</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">fragment_prep</span> <span class="ow">in</span> <span class="n">definition</span><span class="o">.</span><span class="n">fragment_preparations</span>
+        <span class="p">]</span>
+        <span class="n">_assert_fragment_names_available</span><span class="p">(</span><span class="n">param_db</span><span class="p">,</span> <span class="n">fragment_preparations</span><span class="p">)</span>
+        <span class="n">param_db</span> <span class="o">=</span> <span class="n">inject_ligand_preparations</span><span class="p">(</span>
+            <span class="n">param_db</span><span class="p">,</span> <span class="n">preparations</span><span class="p">,</span> <span class="n">strict_atom_types</span><span class="o">=</span><span class="n">strict_atom_types</span>
+        <span class="p">)</span>
+        <span class="n">canonical_ordering</span> <span class="o">=</span> <span class="n">rebuild_canonical_ordering</span><span class="p">(</span><span class="n">param_db</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">params_output</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._params_io</span><span class="w"> </span><span class="kn">import</span> <span class="n">write_params_file</span>
+
+            <span class="c1"># Fragment residue types are an in-memory representation in this</span>
+            <span class="c1"># first API version. Persist only the fully prepared source ligand.</span>
+            <span class="n">write_params_file</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">prep</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">prep</span> <span class="ow">in</span> <span class="n">prepared_ligands</span><span class="p">],</span>
+                <span class="n">params_output</span><span class="p">,</span>
+                <span class="nb">format</span><span class="o">=</span><span class="s2">"tmol"</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Wrote params to </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">params_output</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">return_fragment_definitions</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">param_db</span><span class="p">,</span>
+            <span class="n">canonical_ordering</span><span class="p">,</span>
+            <span class="nb">tuple</span><span class="p">(</span><span class="n">fragment_definitions_by_name</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">param_db</span><span class="p">,</span> <span class="n">canonical_ordering</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_ligand_info_from_cif</span><span class="p">(</span>
+    <span class="n">cif_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NonStandardResidueInfo</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Read a ligand CIF file into a :class:`NonStandardResidueInfo`.</span>
+
+<span class="sd">    Loads the atom array (with the ``_chem_comp_bond`` table when present),</span>
+<span class="sd">    atom names, and elements. Bond orders/chemistry are intentionally *not*</span>
+<span class="sd">    trusted here — they are re-derived as a SMILES by the unified path; this</span>
+<span class="sd">    only needs connectivity (for graph matching) and CIF atom names/coords.</span>
+<span class="sd">    """</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure.io.pdbx</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pdbx</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._detect</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_chem_comp_type</span>
+
+    <span class="n">cif</span> <span class="o">=</span> <span class="n">pdbx</span><span class="o">.</span><span class="n">CIFFile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">cif_path</span><span class="p">))</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">pdbx</span><span class="o">.</span><span class="n">get_structure</span><span class="p">(</span><span class="n">cif</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">include_bonds</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">extra_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">"charge"</span><span class="p">])</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">):</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">atom_site</span> <span class="o">=</span> <span class="n">cif</span><span class="o">.</span><span class="n">block</span><span class="p">[</span><span class="s2">"atom_site"</span><span class="p">]</span>
+    <span class="n">atom_names</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">atom_site</span><span class="p">[</span><span class="s2">"label_atom_id"</span><span class="p">]</span><span class="o">.</span><span class="n">as_array</span><span class="p">()]</span>
+    <span class="n">resolved</span> <span class="o">=</span> <span class="p">(</span><span class="n">res_name</span> <span class="ow">or</span> <span class="nb">str</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">arr</span><span class="o">.</span><span class="n">res_name</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">resolved</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">arr</span><span class="o">.</span><span class="n">res_name</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">NonStandardResidueInfo</span><span class="p">(</span>
+        <span class="n">res_name</span><span class="o">=</span><span class="n">resolved</span><span class="p">,</span>
+        <span class="n">ccd_type</span><span class="o">=</span><span class="n">get_chem_comp_type</span><span class="p">(</span><span class="n">resolved</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"UNKNOWN"</span><span class="p">,</span>
+        <span class="n">atom_names</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">atom_names</span><span class="p">),</span>
+        <span class="n">elements</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">arr</span><span class="o">.</span><span class="n">element</span><span class="p">),</span>
+        <span class="n">coords</span><span class="o">=</span><span class="n">arr</span><span class="o">.</span><span class="n">coord</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+        <span class="n">atom_array</span><span class="o">=</span><span class="n">arr</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_inject_single</span><span class="p">(</span>
+    <span class="n">prep</span><span class="p">:</span> <span class="n">LigandPreparation</span><span class="p">,</span>
+    <span class="n">param_db</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ParameterDatabase</span><span class="p">],</span>
+    <span class="n">strict_atom_types</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">ParameterDatabase</span><span class="p">,</span> <span class="n">CanonicalOrdering</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Inject one prepared ligand and return the new ``(db, canonical_ordering)``.</span>
+
+<span class="sd">    Shared tail of the single-ligand ``prepare_ligand_from_*`` entry points:</span>
+<span class="sd">    resolve the default database, inject the preparation, and rebuild the</span>
+<span class="sd">    canonical ordering for the extended database.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">param_db</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">param_db</span> <span class="o">=</span> <span class="n">ParameterDatabase</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
+    <span class="n">param_db</span> <span class="o">=</span> <span class="n">inject_ligand_preparations</span><span class="p">(</span>
+        <span class="n">param_db</span><span class="p">,</span> <span class="p">[</span><span class="n">prep</span><span class="p">],</span> <span class="n">strict_atom_types</span><span class="o">=</span><span class="n">strict_atom_types</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">param_db</span><span class="p">,</span> <span class="n">rebuild_canonical_ordering</span><span class="p">(</span><span class="n">param_db</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="prepare_ligand_from_cif">
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.prepare_ligand_from_cif">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">prepare_ligand_from_cif</span><span class="p">(</span>
+    <span class="n">cif_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">param_db</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ParameterDatabase</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">ph</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">7.4</span><span class="p">,</span>
+    <span class="n">strict_atom_types</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">sample_proton_chi</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">ParameterDatabase</span><span class="p">,</span> <span class="n">CanonicalOrdering</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Prepare a single ligand from a CIF file and inject it into a database.</span>
+
+<span class="sd">    Runs the same full pipeline as :func:`prepare_ligand_from_smiles`; the only</span>
+<span class="sd">    CIF-specific step is the front end. A SMILES is derived from the CIF ligand's</span>
+<span class="sd">    explicit bond table (never geometry perception, never a CCD lookup) and run</span>
+<span class="sd">    through the SMILES -&gt; mol2 -&gt; params path (protonation, 3D conformer, MMFF94</span>
+<span class="sd">    charges). The prepared residue's heavy-atom names are then mapped back to the</span>
+<span class="sd">    CIF atom names via the atom-order map carried through the round-trip.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        cif_path: Path to the ligand CIF file.</span>
+<span class="sd">        param_db: Base database (not modified); defaults to the tmol default.</span>
+<span class="sd">        ph: Target pH for protonation.</span>
+<span class="sd">        strict_atom_types: Fail on unknown atom-type element mappings.</span>
+<span class="sd">        res_name: Optional residue name override.</span>
+<span class="sd">        sample_proton_chi: Whether to emit proton-chi samples.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A ``(ParameterDatabase, CanonicalOrdering)`` with the ligand injected.</span>
+<span class="sd">    """</span>
+    <span class="n">lig</span> <span class="o">=</span> <span class="n">_ligand_info_from_cif</span><span class="p">(</span><span class="n">cif_path</span><span class="p">,</span> <span class="n">res_name</span><span class="p">)</span>
+    <span class="n">prep</span> <span class="o">=</span> <span class="n">_prepare_ligand_via_smiles</span><span class="p">(</span><span class="n">lig</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span> <span class="n">sample_proton_chi</span><span class="o">=</span><span class="n">sample_proton_chi</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_inject_single</span><span class="p">(</span><span class="n">prep</span><span class="p">,</span> <span class="n">param_db</span><span class="p">,</span> <span class="n">strict_atom_types</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="prepare_ligand_from_smiles">
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.prepare_ligand_from_smiles">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">prepare_ligand_from_smiles</span><span class="p">(</span>
+    <span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">param_db</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ParameterDatabase</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">ph</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">7.4</span><span class="p">,</span>
+    <span class="n">strict_atom_types</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">protonate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">sample_proton_chi</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">ParameterDatabase</span><span class="p">,</span> <span class="n">CanonicalOrdering</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Prepare a single ligand from a SMILES string and inject it into a database.</span>
+
+<span class="sd">    Follows the canonical ligand-prep protocol: Dimorphite-DL pKa-protonates</span>
+<span class="sd">    the SMILES at ``ph``, OpenBabel generates a 3D mol2 with MMFF94 partial</span>
+<span class="sd">    charges, and that mol2 is read verbatim (atom names, coordinates, charges,</span>
+<span class="sd">    and bond orders preserved). The MMFF94 charges flow through untouched —</span>
+<span class="sd">    there is no biotite atom-array round-trip or MMFF recompute. This path</span>
+<span class="sd">    requires the optional ``openbabel`` package.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        smiles: Ligand SMILES to protonate and prepare.</span>
+<span class="sd">        param_db: Base parameter database; defaults to the TMol database.</span>
+<span class="sd">        ph: Target pH used when ``protonate`` is true.</span>
+<span class="sd">        strict_atom_types: Fail instead of falling back for unknown atom types.</span>
+<span class="sd">        res_name: Optional residue-name override.</span>
+<span class="sd">        protonate: When ``True`` (default) Dimorphite protonates ``smiles``</span>
+<span class="sd">            first; set ``False`` to pin an already-protonated SMILES verbatim.</span>
+<span class="sd">        sample_proton_chi: Emit chi samples for rotatable polar hydrogens.</span>
+<span class="sd">        seed: Fixed RNG seed for reproducible 3D coordinates; ``None`` is random.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A ``(ParameterDatabase, CanonicalOrdering)`` with the ligand injected.</span>
+<span class="sd">    """</span>
+    <span class="n">lig</span> <span class="o">=</span> <span class="n">nonstandard_residue_info_from_smiles_via_mol2</span><span class="p">(</span>
+        <span class="n">smiles</span><span class="p">,</span>
+        <span class="n">res_name</span><span class="o">=</span><span class="n">res_name</span><span class="p">,</span>
+        <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span>
+        <span class="n">protonate</span><span class="o">=</span><span class="n">protonate</span><span class="p">,</span>
+        <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">prep</span> <span class="o">=</span> <span class="n">prepare_single_ligand</span><span class="p">(</span><span class="n">lig</span><span class="p">,</span> <span class="n">sample_proton_chi</span><span class="o">=</span><span class="n">sample_proton_chi</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_inject_single</span><span class="p">(</span><span class="n">prep</span><span class="p">,</span> <span class="n">param_db</span><span class="p">,</span> <span class="n">strict_atom_types</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">unused_ligand_name</span><span class="p">(</span><span class="n">taken</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""First "LGn" name not already present in ``taken``."""</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"LG</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">"</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">taken</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">name</span>
+
+
+<div class="viewcode-block" id="prepare_ligands_from_smiles">
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.prepare_ligands_from_smiles">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">prepare_ligands_from_smiles</span><span class="p">(</span>
+    <span class="n">smiles</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">param_db</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ParameterDatabase</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">ph</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">7.4</span><span class="p">,</span>
+    <span class="n">strict_atom_types</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">protonate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">sample_proton_chi</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">ParameterDatabase</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Prepare one residue type per SMILES, naming them LG1, LG2, ...</span>
+
+<span class="sd">    Returns the extended database and a {smiles: residue name} mapping.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">param_db</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">param_db</span> <span class="o">=</span> <span class="n">ParameterDatabase</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
+    <span class="n">taken</span> <span class="o">=</span> <span class="p">{</span><span class="n">residue</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">residue</span> <span class="ow">in</span> <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="o">.</span><span class="n">residues</span><span class="p">}</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">smi</span> <span class="ow">in</span> <span class="n">smiles</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">smi</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">unused_ligand_name</span><span class="p">(</span><span class="n">taken</span><span class="p">)</span>
+        <span class="n">taken</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">param_db</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">prepare_ligand_from_smiles</span><span class="p">(</span>
+            <span class="n">smi</span><span class="p">,</span>
+            <span class="n">param_db</span><span class="o">=</span><span class="n">param_db</span><span class="p">,</span>
+            <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span>
+            <span class="n">strict_atom_types</span><span class="o">=</span><span class="n">strict_atom_types</span><span class="p">,</span>
+            <span class="n">res_name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">protonate</span><span class="o">=</span><span class="n">protonate</span><span class="p">,</span>
+            <span class="n">sample_proton_chi</span><span class="o">=</span><span class="n">sample_proton_chi</span><span class="p">,</span>
+            <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">names</span><span class="p">[</span><span class="n">smi</span><span class="p">]</span> <span class="o">=</span> <span class="n">name</span>
+    <span class="k">return</span> <span class="n">param_db</span><span class="p">,</span> <span class="n">names</span></div>
+
+
+
+<div class="viewcode-block" id="prepare_ligand_from_mol2">
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.prepare_ligand_from_mol2">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">prepare_ligand_from_mol2</span><span class="p">(</span>
+    <span class="n">mol2_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">param_db</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ParameterDatabase</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">strict_atom_types</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">sample_proton_chi</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">ParameterDatabase</span><span class="p">,</span> <span class="n">CanonicalOrdering</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Prepare a single ligand from a Tripos mol2 file and inject it.</span>
+
+<span class="sd">    Reads atom names, coordinates, bond orders, and MMFF94 partial charges</span>
+<span class="sd">    verbatim from the mol2 (no SMILES or OpenBabel 3D generation step).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        mol2_path: Path to the ligand mol2 file.</span>
+<span class="sd">        param_db: Base database (not modified); defaults to the tmol default.</span>
+<span class="sd">        strict_atom_types: Fail on unknown atom-type element mappings.</span>
+<span class="sd">        res_name: Optional residue name override.</span>
+<span class="sd">        sample_proton_chi: Whether to emit proton-chi samples.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A ``(ParameterDatabase, CanonicalOrdering)`` with the ligand injected.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._detect</span><span class="w"> </span><span class="kn">import</span> <span class="n">nonstandard_residue_info_from_mol2</span>
+
+    <span class="n">lig</span> <span class="o">=</span> <span class="n">nonstandard_residue_info_from_mol2</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="n">res_name</span><span class="p">)</span>
+    <span class="n">prep</span> <span class="o">=</span> <span class="n">prepare_single_ligand</span><span class="p">(</span><span class="n">lig</span><span class="p">,</span> <span class="n">sample_proton_chi</span><span class="o">=</span><span class="n">sample_proton_chi</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_inject_single</span><span class="p">(</span><span class="n">prep</span><span class="p">,</span> <span class="n">param_db</span><span class="p">,</span> <span class="n">strict_atom_types</span><span class="p">)</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.21.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
