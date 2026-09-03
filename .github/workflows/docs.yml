@@ -5,7 +5,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, closed]
   push:
-    branches: [master]
+    branches: [master, kdidi/open-pr-cuda-pytorch214-audit]
   workflow_dispatch:
 
 concurrency:
