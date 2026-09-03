@@ -979,10 +979,31 @@ class LKBallPoseScoreDispatch {
           store_calculated_energies);
     });
 
-    // Since we have the sphere overlap results from the forward pass,
-    // there's only a single kernel launch here
+    // Large, spatially sparse pose stacks can contain far more candidate
+    // block pairs than neighboring pairs.  A CTA for every candidate then
+    // spends most of the launch scheduling budget only checking a zero in the
+    // neighbor matrix.  Keep a sufficiently large resident grid and let each
+    // warp stride over candidates instead.  Unlike compacting the matrix with
+    // a prefix scan, this has no device-to-host synchronization and is safe to
+    // capture in a CUDA graph.
+#ifdef __NVCC__
+    int const n_candidate_pairs = n_poses * max_n_upper_triangle_inds;
+    constexpr int max_persistent_workgroups = 1 << 14;
+    int const n_workgroups = n_candidate_pairs < max_persistent_workgroups
+                                 ? n_candidate_pairs
+                                 : max_persistent_workgroups;
+    auto eval_derivs_strided = ([=] TMOL_DEVICE_FUNC(int cta) {
+      for (int workgroup = cta; workgroup < n_candidate_pairs;
+           workgroup += n_workgroups) {
+        eval_derivs(workgroup);
+      }
+    });
+    DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
+        mgr, n_workgroups, eval_derivs_strided);
+#else
     DeviceDispatch<Dev>::template foreach_pose_workgroup<launch_t>(
         mgr, n_poses, max_n_upper_triangle_inds, eval_derivs);
+#endif
 
     return {dV_d_pose_coords_t, dV_d_water_coords_t};
   }
