@@ -45,16 +45,6 @@ _cccl_include = _get_cccl_include()
 if _cccl_include:
     _default_include_paths.append(_cccl_include)
 
-
-def get_torch_version():
-    return torch.__version__.split(".")[0:2]
-
-
-torch_major, torch_minor = get_torch_version()
-_cxx_standard = "c++20" if (int(torch_major), int(torch_minor)) >= (2, 13) else "c++17"
-
-_required_flags = [f"--std={_cxx_standard}", "-DWITH_NVTX", "-w"]
-
 if os.environ.get("DEBUG"):
     _default_flags = ["-O3", "-DDEBUG"]
     # _default_flags = ["-g", "-Og", "-DDEBUG"]
@@ -66,8 +56,25 @@ else:
 # only add the -ccbin gcc-8 flag if we're on ubuntu 20.04 or higher
 #
 #
+# which version of torch are we compiling against?
+def get_torch_version():
+    return torch.__version__.split(".")[0:2]
+
+
+torch_major, torch_minor = get_torch_version()
+
+
+def _required_cxx_standard(torch_major, torch_minor):
+    """Return the language standard required by this PyTorch release."""
+    version = int(torch_major), int(torch_minor)
+    return 20 if version >= (2, 13) else 17
+
+
+_cxx_standard = _required_cxx_standard(torch_major, torch_minor)
+_required_flags = [f"--std=c++{_cxx_standard}", "-DWITH_NVTX", "-w"]
+
 _required_cuda_flags = [
-    f"-std={_cxx_standard}",
+    f"-std=c++{_cxx_standard}",
     "--expt-extended-lambda",
     "-DWITH_NVTX",
     "-w",
@@ -75,6 +82,23 @@ _required_cuda_flags = [
     f"-DTORCH_VERSION_MAJOR={torch_major}",
     f"-DTORCH_VERSION_MINOR={torch_minor}",
 ]
+
+
+def _select_cuda_architecture(arch_list, device_capability):
+    """Choose the active device from a possibly multi-architecture setting."""
+    current = ".".join(str(part) for part in device_capability)
+    if not arch_list:
+        return current
+    requested = arch_list.replace(" ", ";").split(";")
+    requested = [arch.removesuffix("+PTX") for arch in requested if arch]
+    if not requested:
+        return current
+    # A multi-architecture value commonly comes from a wheel/container build
+    # environment and can lag newly installed hardware. A local JIT build is
+    # for the active device, so do not silently compile its first (often
+    # oldest) entry when the device is absent. Preserve a single explicit
+    # architecture as the user's deliberate cross-compilation request.
+    return current if len(requested) > 1 else requested[0]
 
 
 # Add an additional --gpu-architecture flag to the nvcc command:
@@ -87,12 +111,9 @@ if torch.cuda.is_available():
 
     arch_list = os.environ.get("TORCH_CUDA_ARCH_LIST", None)
     # If not given, determine what's needed for the GPU that can be found
-    if not arch_list:
-        _major, _minor = torch.cuda.get_device_capability(0)
-    else:
-        # Take the first architecture listed.
-        # Deal with lists that are ' ' or ';' separated
-        _major, _minor = arch_list.replace(" ", ";").split(";")[0].split(".")
+    _major, _minor = _select_cuda_architecture(
+        arch_list, torch.cuda.get_device_capability()
+    ).split(".")
     _required_cuda_flags.append(f"--gpu-architecture=sm_{_major}{_minor}")
 
     # we need to add the search path for nvtx3
@@ -129,10 +150,11 @@ _default_cuda_flags = ["-O3"]
 # commands to the terminal
 def _augment_kwargs(name, sources, **kwargs):
     kwargs["extra_cflags"] = (
-        list(kwargs.get("extra_cflags", _default_flags)) + _required_flags
+        _default_flags + list(kwargs.get("extra_cflags", [])) + _required_flags
     )
     kwargs["extra_cuda_cflags"] = (
-        list(kwargs.get("extra_cuda_cflags", _default_cuda_flags))
+        _default_cuda_flags
+        + list(kwargs.get("extra_cuda_cflags", []))
         + _required_cuda_flags
     )
     kwargs["extra_include_paths"] = (

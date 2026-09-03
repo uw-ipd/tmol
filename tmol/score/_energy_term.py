@@ -112,9 +112,31 @@ class EnergyTerm:
     def get_rotamer_score_term_function(self):
         raise NotImplementedError()
 
+    def get_rotamer_score_term_attributes(
+        self, pose_stack: PoseStack, rotamer_set: RotamerSet
+    ):
+        """Return immutable parameters for a rendered rotamer scorer.
+
+        Most terms use the same topology data for pose and rotamer scoring.
+        Terms whose candidate topology can be resolved once at render time may
+        override this hook instead of repeating that work on every score call.
+        """
+        return self.get_score_term_attributes(pose_stack)
+
     def pose_score_term_is_invariant_zero(self, pose_stack: PoseStack):
         """Whether this term is identically zero for this fixed pose topology."""
         return False
+
+    def block_pair_score_term_is_invariant_zero_off_diagonal(
+        self, pose_stack: PoseStack
+    ):
+        """Whether this term contributes only to self-block matrix entries.
+
+        One-body terms are diagonal by definition. Terms with a higher body
+        count may override this when their block-pair attribution is still
+        strictly diagonal.
+        """
+        return self.n_bodies() == 1
 
     def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
         if self.pose_score_term_is_invariant_zero(pose_stack):
@@ -133,8 +155,13 @@ class EnergyTerm:
             f,
         )
 
-    def render_block_pair_scoring_module(self, pose_stack: PoseStack):
-        if self.pose_score_term_is_invariant_zero(pose_stack):
+    def render_block_pair_scoring_module(
+        self, pose_stack: PoseStack, *, interaction_only: bool = False
+    ):
+        if self.pose_score_term_is_invariant_zero(pose_stack) or (
+            interaction_only
+            and self.block_pair_score_term_is_invariant_zero_off_diagonal(pose_stack)
+        ):
             return ZeroTermPoseScoringModule(
                 self.class_name(),
                 len(self.score_types()),
@@ -161,6 +188,6 @@ class EnergyTerm:
         return TermRotamerScoringModule(
             self.class_name(),
             rotamer_set,
-            self.get_score_term_attributes(pose_stack),
+            self.get_rotamer_score_term_attributes(pose_stack, rotamer_set),
             f,
         )

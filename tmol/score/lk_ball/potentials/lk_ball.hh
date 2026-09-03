@@ -1285,7 +1285,7 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
         MAX_N_WATER * occluder_atom_tile_ind + wi);
   }
 
-  auto dV = lk_ball_score<Real, 4>::weighted_dV(
+  auto dV = lk_ball_score<Real, MAX_N_WATER>::weighted_dV(
       polar_xyz,
       occluder_xyz,
       wmat_polar,

@@ -127,7 +127,9 @@ def test_calculate_ddg_accepts_single_block_indices(torch_device):
 
     class ScoreFunction:
         @staticmethod
-        def render_block_pair_scoring_module(_pose):
+        def render_block_pair_scoring_module(_pose, *, interaction_only=False):
+            assert interaction_only
+
             class Scorer:
                 def __init__(self):
                     self.weights = weights
@@ -153,6 +155,32 @@ def test_calculate_ddg_accepts_single_block_indices(torch_device):
         score_utils.calculate_block_pair_ddg(
             Pose(), block_indices.float(), sfxn=ScoreFunction(), minimize=False
         )
+
+
+def test_calculate_ddg_retains_diagonal_terms_for_overlapping_masks(torch_device):
+    class Pose:
+        device = torch_device
+        n_poses = 1
+        block_type_ind = torch.zeros(1, 2, dtype=torch.int32, device=torch_device)
+        coords = torch.empty(1, 0, 3, device=torch_device)
+
+    scores = torch.zeros((1, 1, 2, 2), device=torch_device)
+    scores[0, 0, 0, 0] = 3
+    rendered_modes = []
+
+    class ScoreFunction:
+        @staticmethod
+        def render_block_pair_scoring_module(_pose, *, interaction_only=False):
+            rendered_modes.append(interaction_only)
+            return lambda _coords, sum_terms, apply_weights=True: scores
+
+    mask = torch.tensor([[True, False]], device=torch_device)
+    result = score_utils.calculate_block_pair_ddg(
+        Pose(), mask, mask, sfxn=ScoreFunction(), minimize=False
+    )
+
+    torch.testing.assert_close(result, torch.tensor([3.0], device=torch_device))
+    assert rendered_modes == [False]
 
 
 def test_interacting_coord_mask_matches_per_pose_reference(

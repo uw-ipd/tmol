@@ -472,7 +472,9 @@ class ScoreFunction:
             scoring_module.enable_cuda_graphs(pose_stack.coords, mode=mode)
         return scoring_module
 
-    def render_block_pair_scoring_module(self, pose_stack: PoseStack):
+    def render_block_pair_scoring_module(
+        self, pose_stack: PoseStack, *, interaction_only: bool = False
+    ):
         """Create an object designed to evaluate the score of a set of Poses
         repeatedly as the Poses change their conformation, e.g., as in
         minimization. This object will derive from torch.nn.Module and
@@ -480,10 +482,18 @@ class ScoreFunction:
         terms that themselves are derived from torch.nn.Module. This
         object's __call__ will return a tensor of weighted energies of
         shape (n_poses, max_n_blocks, max_n_blocks).
+
+        Set ``interaction_only=True`` when only strictly off-diagonal block
+        pairs will be consumed. Terms whose block-pair scores are known to be
+        diagonal-only are then omitted. Diagonal entries in the returned
+        matrix are incomplete in this mode.
         """
         self.pre_work_initialization(pose_stack)
         term_modules = [
-            t.render_block_pair_scoring_module(pose_stack) for t in self.all_terms()
+            t.render_block_pair_scoring_module(
+                pose_stack, interaction_only=interaction_only
+            )
+            for t in self.all_terms()
         ]
         return BlockPairScoringModule(self.weights_tensor(), term_modules)
 
@@ -919,6 +929,41 @@ class BlockPairScoringModule:
         summed = torch.sum(weighted, dim=0) if sum_terms else weighted
 
         return summed
+
+    def score_interactions(
+        self,
+        coords: torch.Tensor,
+        block_pair_indices: torch.Tensor,
+        *,
+        sum_terms: bool = True,
+        apply_weights: bool = True,
+    ) -> torch.Tensor:
+        """Sum selected block-pair entries with one indexed reduction.
+
+        Args:
+            coords: Pose coordinates accepted by this rendered scorer.
+            block_pair_indices: Shared block pairs shaped ``[n_pairs, 2]``.
+                Each row contains ``(block_i, block_j)`` and is applied to
+                every pose in the coordinate batch.
+            sum_terms: Sum the score-type dimension when true.
+            apply_weights: Apply the score function's weights when true.
+
+        Returns:
+            Scores shaped ``[n_poses]`` when ``sum_terms`` is true, otherwise
+            ``[n_score_types, n_poses]``.
+        """
+        if block_pair_indices.ndim != 2 or block_pair_indices.shape[1] != 2:
+            raise ValueError("block_pair_indices must have shape [n_pairs, 2]")
+        if block_pair_indices.device != coords.device:
+            raise ValueError(
+                "block_pair_indices must be on the same device as coordinates"
+            )
+        if block_pair_indices.dtype not in (torch.int32, torch.int64):
+            raise TypeError("block_pair_indices must have an integer dtype")
+        block_i, block_j = block_pair_indices.to(torch.int64).unbind(dim=1)
+        scores = self(coords, sum_terms=sum_terms, apply_weights=apply_weights)
+        pair_dimension = 1 if sum_terms else 2
+        return scores[..., block_i, block_j].sum(dim=pair_dimension)
 
     def unweighted_scores(self, coords: torch.Tensor) -> torch.Tensor:
         parallel_scores = self._parallel_forward_scores(coords)

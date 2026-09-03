@@ -187,13 +187,16 @@ def calculate_block_pair_ddg(
         )
         pose_stack = run_cart_min(pose_stack, sfxn, coord_mask)
 
-    scorer = sfxn.render_block_pair_scoring_module(pose_stack)
+    other_mask = mask2 if mask2 is not None else ~mask
+    sets_are_disjoint = mask2 is None or not bool((mask & other_mask).any())
+    scorer = sfxn.render_block_pair_scoring_module(
+        pose_stack, interaction_only=sets_are_disjoint
+    )
     defer_weights = single_block_indices is not None
     block_pair_scores = scorer(
         pose_stack.coords, sum_terms=False, apply_weights=not defer_weights
     )
 
-    other_mask = mask2 if mask2 is not None else ~mask
     if single_block_indices is None:
         ddg_scores = _sum_cross_block_scores(
             block_pair_scores, mask, other_mask, memory_efficient=memory_efficient
@@ -203,7 +206,7 @@ def calculate_block_pair_ddg(
             block_pair_scores,
             single_block_indices,
             other_mask,
-            sets_are_disjoint=mask2 is None,
+            sets_are_disjoint=sets_are_disjoint,
         )
         term_weights = scorer.weights[:, 0, 0, 0].unsqueeze(1)
         ddg_scores = ddg_scores * term_weights
