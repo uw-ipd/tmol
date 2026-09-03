@@ -9,7 +9,7 @@ a textual summary and outputs a benchmark result json under
 
 Example:
 
-  * `dev/bin/benchmark tmol/tests/score -k cuda-full-lk_ball`
+  * `dev/bin/benchmark tmol/tests/score -k cuda-lk_ball-full`
 
 # Comparing benchmarks:
 
@@ -23,11 +23,11 @@ working tree, ie to compare uncommitted changes vs `HEAD`.
 
 Example:
 
-  * `dev/bin/compare_benchmark tmol/test/score -k cuda-full-lk_ball -- origin/master`
+  * `dev/bin/compare_benchmark tmol/tests/score -k cuda-lk_ball-full -- origin/master`
      Compare current tree vs `origin/master`.
-  * `dev/bin/compare_benchmark tmol/test/score -k cuda-full-lk_ball -- feature_branch master`
+  * `dev/bin/compare_benchmark tmol/tests/score -k cuda-lk_ball-full -- feature_branch master`
      Compare `feature_branch` vs `master`.
-  * `dev/bin/compare_benchmark tmol/test/score -k cuda-full-lk_ball`
+  * `dev/bin/compare_benchmark tmol/tests/score -k cuda-lk_ball-full`
      Compare working tree vs HEAD.
 
 Ancillary benchmark plots can be generated via `plot_*.py` scripts checked
@@ -51,4 +51,4 @@ or hardware counters with Nsight Compute when passed `--tool ncu`. Use
 the profiler; other arguments are pytest selectors.
 
 Example:
-  `dev/bin/profile_benchmark --output profile/lk-ball tmol/tests/score -k cuda-full-lk_ball`
+  `dev/bin/profile_benchmark --output profile/lk-ball tmol/tests/score -k cuda-lk_ball-full`

@@ -28,7 +28,7 @@ not choose a production batch size.
 Use `dev/bin/benchmark` with pytest selectors:
 
 ```bash
-dev/bin/benchmark tmol/tests/score -k cuda-full-lk_ball
+dev/bin/benchmark tmol/tests/score -k cuda-lk_ball-full
 ```
 
 The wrapper enables pytest benchmarks, prints a summary, and writes JSON results
@@ -40,13 +40,13 @@ under `dev/benchmark/`.
 pytest arguments first, then revisions after `--`.
 
 ```bash
-dev/bin/compare_benchmark tmol/tests/score -k cuda-full-lk_ball -- origin/master
+dev/bin/compare_benchmark tmol/tests/score -k cuda-lk_ball-full -- origin/master
 ```
 
 The meta-revision `TREE` means the current working tree:
 
 ```bash
-dev/bin/compare_benchmark tmol/tests/score -k cuda-full-lk_ball -- TREE HEAD
+dev/bin/compare_benchmark tmol/tests/score -k cuda-lk_ball-full -- TREE HEAD
 ```
 
 Ancillary benchmark plots live near the tests as `plot_*.py` scripts.
@@ -58,7 +58,7 @@ by default:
 
 ```bash
 dev/bin/profile_benchmark --output profile/ljlk \
-  tmol/tests/score -k cuda-full-ljlk
+  tmol/tests/score -k cuda-ljlk-full
 ```
 
 Use Nsight Compute when kernel-level counters are needed; arguments after `--`
@@ -67,9 +67,12 @@ are forwarded to the profiler. The wrapper uses Nsight Compute's lightweight
 
 ```bash
 dev/bin/profile_benchmark --tool ncu --output profile/ljlk-kernels \
-  tmol/tests/score -k cuda-forward-ljlk-100 -- \
-  --kernel-name regex:ljlk --launch-count 20
+  tmol/tests/score -k cuda-ljlk-forward-100 -- \
+  --kernel-name 'regex:.*LJLKPoseScoreDispatch.*forward.*' --launch-count 20
 ```
+
+Nsight Compute matches the regex against the complete demangled kernel name,
+so include leading and trailing `.*` when selecting by a class or method name.
 
 Request the much slower full replay set explicitly with `-- --set=full ...`
 when the basic occupancy and throughput counters are insufficient.
