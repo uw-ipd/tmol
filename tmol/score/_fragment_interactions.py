@@ -253,7 +253,7 @@ def calculate_fragment_interactions(
     if bool(partner_mask.flatten()[mapping_data.record_linear_indices].any()):
         raise ValueError("partner_mask must not include ligand fragment blocks")
 
-    scorer = sfxn.render_block_pair_scoring_module(pose_stack)
+    scorer = sfxn.render_block_pair_scoring_module(pose_stack, interaction_only=True)
     block_pair_scores = scorer(pose_stack.coords, sum_terms=False)
     result = _sum_fragment_partner_scores(
         block_pair_scores,
