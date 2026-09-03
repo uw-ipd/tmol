@@ -43,7 +43,13 @@ case "${NVCC_VER}" in
   *) DEFAULT_TORCH_CUDA_INDEX="https://download.pytorch.org/whl/cu128" ;;
 esac
 TORCH_CUDA_INDEX="${TMOL_CI_TORCH_CUDA_INDEX:-${DEFAULT_TORCH_CUDA_INDEX}}"
-retry uv pip install --upgrade torch --index-url "${TORCH_CUDA_INDEX}"
+NVCC_MAJOR=${NVCC_VER%%.*}
+TORCH_CUDA_MAJOR=$(python -c "import torch; print((torch.version.cuda or '').split('.')[0])" 2>/dev/null || true)
+if [[ "${TORCH_CUDA_MAJOR}" != "${NVCC_MAJOR}" ]]; then
+  retry uv pip install --upgrade torch --index-url "${TORCH_CUDA_INDEX}"
+else
+  echo "Reusing PyTorch $(python -c 'import torch; print(torch.__version__)') with CUDA $(python -c 'import torch; print(torch.version.cuda)')"
+fi
 # The extension must be configured with the same Torch/CUDA installation that
 # will load it at runtime.  PEP 517 build isolation otherwise resolves the
 # unbounded ``torch>=2.5`` build requirement independently; when a newer CUDA
@@ -52,7 +58,6 @@ retry uv pip install --upgrade torch --index-url "${TORCH_CUDA_INDEX}"
 retry uv pip install "scikit-build-core>=0.10" "pybind11>=2.12" ninja packaging
 assert_torch_cuda
 TORCH_CUDA_MAJOR=$(python -c "import torch; print(torch.version.cuda.split('.')[0])")
-NVCC_MAJOR=${NVCC_VER%%.*}
 if [[ "${TORCH_CUDA_MAJOR}" != "${NVCC_MAJOR}" ]]; then
   echo "PyTorch CUDA ${TORCH_CUDA_MAJOR} does not match nvcc ${NVCC_VER}" >&2
   exit 1
