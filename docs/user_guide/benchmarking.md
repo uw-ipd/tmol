@@ -28,7 +28,8 @@ not choose a production batch size.
 Use `dev/bin/benchmark` with pytest selectors:
 
 ```bash
-dev/bin/benchmark tmol/tests/score -k cuda-lk_ball-full
+dev/bin/benchmark tmol/tests/score/test_score_function_benchmarks.py \
+  -k cuda-lk_ball-full
 ```
 
 The wrapper enables pytest benchmarks, prints a summary, and writes JSON results
@@ -40,25 +41,32 @@ under `dev/benchmark/`.
 pytest arguments first, then revisions after `--`.
 
 ```bash
-dev/bin/compare_benchmark tmol/tests/score -k cuda-lk_ball-full -- origin/master
+dev/bin/compare_benchmark tmol/tests/score/test_score_function_benchmarks.py \
+  -k cuda-lk_ball-full -- origin/master
 ```
 
 The meta-revision `TREE` means the current working tree:
 
 ```bash
-dev/bin/compare_benchmark tmol/tests/score -k cuda-lk_ball-full -- TREE HEAD
+dev/bin/compare_benchmark tmol/tests/score/test_score_function_benchmarks.py \
+  -k cuda-lk_ball-full -- TREE HEAD
 ```
 
 Ancillary benchmark plots live near the tests as `plot_*.py` scripts.
 
 ## Profiling
 
+The selected `nsys` or `ncu` executable must be on `PATH`; on clusters, load
+the Nsight module or run the command inside the project's CUDA image.
+Unset a stale `TORCH_CUDA_ARCH_LIST` inherited from an image, or set it to the
+allocated GPU before profiling JIT extensions.
+
 `dev/bin/profile_benchmark` runs a short pytest benchmark under Nsight Systems
 by default:
 
 ```bash
 dev/bin/profile_benchmark --output profile/ljlk \
-  tmol/tests/score -k cuda-ljlk-full
+  tmol/tests/score/test_score_function_benchmarks.py -k cuda-ljlk-full
 ```
 
 Use Nsight Compute when kernel-level counters are needed; arguments after `--`
@@ -67,7 +75,8 @@ are forwarded to the profiler. The wrapper uses Nsight Compute's lightweight
 
 ```bash
 dev/bin/profile_benchmark --tool ncu --output profile/ljlk-kernels \
-  tmol/tests/score -k cuda-ljlk-forward-100 -- \
+  tmol/tests/score/test_score_function_benchmarks.py \
+  -k cuda-ljlk-forward-100 -- \
   --kernel-name 'regex:.*LJLKPoseScoreDispatch.*forward.*' --launch-count 20
 ```
 
