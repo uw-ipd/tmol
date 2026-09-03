@@ -385,10 +385,10 @@ template <
 void launch_lk_ball_pose_pair_workgroups(
     ContextManager& mgr, int n_poses, int max_n_blocks, Eval eval) {
   int const n_pairs = max_n_blocks * (max_n_blocks + 1) / 2;
+#ifdef __NVCC__
   auto eval_all = ([=] TMOL_DEVICE_FUNC(int cta) {
     eval(cta, TilePairModeTag<common::TilePairMode::InterAndIntra>{});
   });
-#ifdef __NVCC__
   // The specialized kernels remove the cold intra/inter instruction path.
   // Use them only once their throughput gain exceeds the extra launch cost.
   constexpr int min_split_workgroups = 1 << 15;
@@ -405,9 +405,12 @@ void launch_lk_ball_pose_pair_workgroups(
         mgr, n_poses, max_n_blocks, eval_intrares);
     return;
   }
-#endif
   DeviceDispatch<Dev>::template foreach_pose_workgroup<Launch>(
       mgr, n_poses, n_pairs, eval_all);
+#else
+  DeviceDispatch<Dev>::template foreach_pose_workgroup<Launch>(
+      mgr, n_poses, n_pairs, eval);
+#endif
 }
 
 template <
@@ -523,8 +526,13 @@ class LKBallPoseScoreDispatch {
     CTA_REAL_REDUCE_T_TYPEDEF;
 
     auto eval_energies_by_block = ([=] TMOL_DEVICE_FUNC(
+#ifdef __NVCC__
                                        int cta, auto pair_mode_tag) {
       constexpr auto pair_mode = decltype(pair_mode_tag)::value;
+#else
+                                       int cta) {
+      constexpr auto pair_mode = common::TilePairMode::InterAndIntra;
+#endif
       auto score_inter_lk_ball_atom_pair =
           ([=] TMOL_DEVICE_FUNC(
                int pol_start,
@@ -826,8 +834,14 @@ class LKBallPoseScoreDispatch {
     LAUNCH_BOX_32_OCC(16);
     // Define nt and reduce_t
     CTA_REAL_REDUCE_T_TYPEDEF;
-    auto eval_derivs = ([=] TMOL_DEVICE_FUNC(int cta, auto pair_mode_tag) {
+    auto eval_derivs = ([=] TMOL_DEVICE_FUNC(
+#ifdef __NVCC__
+                            int cta, auto pair_mode_tag) {
       constexpr auto pair_mode = decltype(pair_mode_tag)::value;
+#else
+                            int cta) {
+      constexpr auto pair_mode = common::TilePairMode::InterAndIntra;
+#endif
       auto pair_indices =
           lk_ball_pose_pair_indices<pair_mode>(cta, max_n_blocks);
       int const pose_ind = common::get<0>(pair_indices);
