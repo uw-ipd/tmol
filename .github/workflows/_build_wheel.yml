@@ -83,8 +83,20 @@ jobs:
             /usr/local/share/chromium /usr/local/share/powershell \
             /usr/share/swift /usr/local/julia* 2>/dev/null || true
           sudo docker image prune -af 2>/dev/null || true
+          if [ "${{ inputs.use-manylinux-build }}" = "true" ] && \
+             [ "${{ inputs.enable-cuda }}" = "true" ]; then
+            # A single full-architecture nvcc process can exceed the standard
+            # runner's 16 GB RAM. Use freed ephemeral disk for bounded overflow
+            # rather than letting the host OOM-kill the Actions runner.
+            sudo fallocate -l 16G /mnt/tmol-build.swap
+            sudo chmod 600 /mnt/tmol-build.swap
+            sudo mkswap /mnt/tmol-build.swap
+            sudo swapon /mnt/tmol-build.swap
+          fi
           echo "=== After cleanup ==="
           df -h /
+          free -h
+          swapon --show
 
       - name: Checkout
         uses: actions/checkout@v5
@@ -388,10 +400,18 @@ jobs:
 
       - name: Build wheel
         run: |
-          # Two independent nvcc jobs avoid the memory spike from nesting nvcc
-          # worker parallelism and are a stable baseline on both runtimes.
+          # Full-architecture nvcc compilations can exhaust standard hosted
+          # runners when two translation units compile concurrently. Keep those
+          # builds serial so the runner service retains CPU and memory headroom.
+          # Native/local builds retain the faster two-job default.
+          BUILD_MAX_JOBS=2
+          if [ "${{ inputs.use-manylinux-build }}" = "true" ] && \
+             [ "${{ inputs.enable-cuda }}" = "true" ] && \
+             [ "${{ inputs.runs-on }}" != "self-hosted" ]; then
+            BUILD_MAX_JOBS=1
+          fi
           $CONTAINER_EXEC \
-            "$CONTAINER_ENV_FLAG" MAX_JOBS=2 \
+            "$CONTAINER_ENV_FLAG" MAX_JOBS="$BUILD_MAX_JOBS" \
             "$CONTAINER_ENV_FLAG" CUDA_ARCHS_OVERRIDE="${{ inputs.cuda-archs }}" \
             "$CONTAINER_ENV_FLAG" CUDA_HOME="${CUDA_HOME}" \
             "$CONTAINER_ENV_FLAG" CUDAToolkit_ROOT="${CUDA_HOME}" \
