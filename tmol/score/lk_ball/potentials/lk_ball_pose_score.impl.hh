@@ -1059,8 +1059,7 @@ class LKBallPoseScoreDispatch {
       for (int workgroup = cta; workgroup < n_candidate_pairs;
            workgroup += n_workgroups) {
         eval_derivs(
-            workgroup,
-            TilePairModeTag<common::TilePairMode::InterAndIntra>{});
+            workgroup, TilePairModeTag<common::TilePairMode::InterAndIntra>{});
       }
     });
     DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
