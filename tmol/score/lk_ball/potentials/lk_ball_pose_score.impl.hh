@@ -1049,7 +1049,8 @@ class LKBallPoseScoreDispatch {
     // a prefix scan, this has no device-to-host synchronization and is safe to
     // capture in a CUDA graph.
 #ifdef __NVCC__
-    int const n_candidate_pairs = n_poses * max_n_upper_triangle_inds;
+    int const n_pairs = max_n_blocks * (max_n_blocks + 1) / 2;
+    int const n_candidate_pairs = n_poses * n_pairs;
     constexpr int max_persistent_workgroups = 1 << 14;
     int const n_workgroups = n_candidate_pairs < max_persistent_workgroups
                                  ? n_candidate_pairs
@@ -1057,14 +1058,16 @@ class LKBallPoseScoreDispatch {
     auto eval_derivs_strided = ([=] TMOL_DEVICE_FUNC(int cta) {
       for (int workgroup = cta; workgroup < n_candidate_pairs;
            workgroup += n_workgroups) {
-        eval_derivs(workgroup);
+        eval_derivs(
+            workgroup,
+            TilePairModeTag<common::TilePairMode::InterAndIntra>{});
       }
     });
     DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
         mgr, n_workgroups, eval_derivs_strided);
 #else
-    DeviceDispatch<Dev>::template foreach_pose_workgroup<launch_t>(
-        mgr, n_poses, max_n_upper_triangle_inds, eval_derivs);
+    launch_lk_ball_pose_pair_workgroups<DeviceDispatch, Dev, launch_t>(
+        mgr, n_poses, max_n_blocks, eval_derivs);
 #endif
 
     return {dV_d_pose_coords_t, dV_d_water_coords_t};
