@@ -199,6 +199,7 @@ def run_cart_min(
     optimizer_cls: type[torch.optim.Optimizer] = LBFGS_Armijo,
     optimizer_kwargs: dict[str, object] | None = None,
     verbose: bool = False,
+    cuda_graph: bool = False,
 ) -> PoseStack:
     """Run minimization on a PoseStack in Cartesian coordinate space.
 
@@ -211,13 +212,19 @@ def run_cart_min(
         optimizer_cls: Closure-based PyTorch optimizer class.
         optimizer_kwargs: Optional optimizer constructor arguments.
         verbose: Print synchronized setup and minimization timings.
+        cuda_graph: Capture the fixed-shape CUDA scoring forward/backward path.
 
     Returns:
         A new pose stack containing the minimized coordinates.
     """
     from tmol.optimization import CartesianSfxnNetwork
 
-    cart_network = CartesianSfxnNetwork(sfxn, pose_stack, coord_mask)
+    cart_network = CartesianSfxnNetwork(
+        sfxn,
+        pose_stack,
+        coord_mask,
+        cuda_graph="forward_backward" if cuda_graph else False,
+    )
 
     return run_min(
         cart_network,

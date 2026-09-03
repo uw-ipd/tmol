@@ -49,7 +49,8 @@ print(
 if torch.version.cuda is None:
     sys.exit(
         "PyTorch has no CUDA support (CPU-only wheel). "
-        "Install from https://download.pytorch.org/whl/cu128"
+        "Install a wheel matching the build CUDA toolkit from "
+        "https://download.pytorch.org/whl/"
     )
 if not torch.cuda.is_available():
     sys.exit(

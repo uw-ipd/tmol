@@ -26,6 +26,7 @@ import torch
 
 PLI_DATA_DIR = data_path("protein_ligand_test")
 LIGAND_RES_NAME = "LG1"
+ROSETTA_DDG_ATOL = 0.11
 
 # Weighted block-pair ddG (beta2016, minimize=False, pack=False, no_optH=True)
 # captured on CPU from fixture CIF + fixture .tmol params.
@@ -58,6 +59,20 @@ _GOLDEN_DDG: dict[str, float] = {
     "tk": -29.913303,
     "vegfr2": 48.350834,
 }
+
+
+def _rosetta_ddg(target: str) -> float:
+    """Read Rosetta's weighted interface score from the checked-in scorefile."""
+    suffix = (
+        "_complex_nometals.sc" if target in {"ace", "ada", "pde5"} else "_complex.sc"
+    )
+    score_lines = [
+        line.split()
+        for line in (PLI_DATA_DIR / f"{target}{suffix}").read_text().splitlines()
+        if line.startswith("SCORE:")
+    ]
+    score_fields = dict(zip(score_lines[0][1:], score_lines[1][1:]))
+    return float(score_fields["dG_total"])
 
 
 def _load_complex_cif(target: str):
@@ -126,7 +141,10 @@ def _weighted_ddg_from_fixtures(target: str, torch_device: torch.device) -> floa
 
 @pytest.mark.parametrize("target", sorted(_GOLDEN_DDG))
 def test_protein_ligand_cif_to_ddg_golden(target: str, torch_device) -> None:
-    """CIF complex + golden .tmol params reproduces pinned weighted ddG."""
+    """CIF complex reproduces pinned tmol and checked-in Rosetta ddG."""
     actual = _weighted_ddg_from_fixtures(target, torch_device)
     expected = _GOLDEN_DDG[target]
     numpy.testing.assert_allclose(actual, expected, rtol=1e-3, atol=1e-3)
+    numpy.testing.assert_allclose(
+        actual, _rosetta_ddg(target), rtol=0, atol=ROSETTA_DDG_ATOL
+    )

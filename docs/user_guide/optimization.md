@@ -140,3 +140,11 @@ The default minimizer is Cartesian and reads
 protocol but is not used by that minimizer. To minimize kinematic degrees of
 freedom, pass a configured `MoveMap`, a `FoldForest`, and a compatible
 kinematic `min_fn`.
+
+On CUDA, `fast_relax()` automatically uses graph replay for poses containing
+DNA or RNA, where repeated kernel-launch overhead is significant. Protein-only
+and protein–ligand poses remain eager. Pass `cuda_graph=True` or
+`cuda_graph=False` to override that choice; custom minimizers manage their own
+execution mode and cannot be combined with `cuda_graph=True`. Graph capture has
+a one-time startup cost, so explicitly disable it for a single latency-sensitive
+nucleic-acid relaxation that will not be repeated in the same process.

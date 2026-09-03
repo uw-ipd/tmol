@@ -26,7 +26,10 @@ if [ -z "$PYTHON_BIN" ]; then
 fi
 
 if [ ! -d .venv ]; then
-  "$PYTHON_BIN" -m venv .venv
+  # The GPU image already provides a CUDA-matched NVIDIA PyTorch build. Make it
+  # visible to the venv so clean CI jobs do not redownload several GB of CUDA
+  # wheels; build_package.sh still replaces it when the CUDA majors differ.
+  "$PYTHON_BIN" -m venv --system-site-packages .venv
 fi
 source .venv/bin/activate
 pip install pip --upgrade
