@@ -42,6 +42,16 @@ class TestDetectFromCIF:
         """A pure-protein structure yields no non-standard residues."""
         assert len(detect_nonstandard_residues(biotite_1ubq, canonical_ordering)) == 0
 
+    def test_known_residues_skip_connectivity_scan(
+        self, monkeypatch, biotite_1ubq, canonical_ordering
+    ) -> None:
+        """Known structures do not need the spatial connectivity pass."""
+        monkeypatch.setattr(
+            "tmol.ligand._detect._residue_names_with_cross_residue_bonds",
+            lambda _: pytest.fail("connectivity scan should be skipped"),
+        )
+        assert detect_nonstandard_residues(biotite_1ubq, canonical_ordering) == []
+
     def test_detects_i4b_in_184l(self, cif_184l_with_i4b, canonical_ordering) -> None:
         """The I4B ligand in 184L is detected with coords and CCD type."""
         ligands = detect_nonstandard_residues(cif_184l_with_i4b, canonical_ordering)

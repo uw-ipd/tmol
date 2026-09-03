@@ -586,18 +586,21 @@ def detect_nonstandard_residues(
     known_names = set(canonical_ordering.restype_io_equiv_classes)
     seen: set[str] = set()
     results: list[NonStandardResidueInfo] = []
-
-    covalently_linked_names = _residue_names_with_cross_residue_bonds(atom_array)
-
     residue_starts = struc.get_residue_starts(atom_array)
-
+    unknown_residues: list[tuple[int, str]] = []
     for start in residue_starts:
         res_name = atom_array.res_name[start].strip()
-
         if res_name in known_names or res_name in SKIP_RESIDUES or res_name in seen:
             continue
         seen.add(res_name)
+        unknown_residues.append((start, res_name))
 
+    if not unknown_residues:
+        return results
+
+    covalently_linked_names = _residue_names_with_cross_residue_bonds(atom_array)
+
+    for start, res_name in unknown_residues:
         mask = atom_array.res_name == atom_array.res_name[start]
         if hasattr(atom_array, "res_id"):
             mask &= atom_array.res_id == atom_array.res_id[start]
