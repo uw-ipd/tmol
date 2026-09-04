@@ -547,6 +547,10 @@ def _stress_refine(X0, L0, U0, L, U, components, chirals) -> np.ndarray:
 
     Full-weight 3D refine."""
     ei, ej, ni, nj, fi, fj, tgt, lo, hi = _pair_masks(L0, U0, L, U)
+    n_exact = len(ei)
+    n_lower = len(ni)
+    pair_i = torch.cat((ei, ni, fi))
+    pair_j = torch.cat((ej, nj, fj))
     X = torch.tensor(np.ascontiguousarray(X0), dtype=TORCH_DTYPE, requires_grad=True)
     comps = [torch.as_tensor(c, dtype=torch.long) for c in components if len(c) >= 4]
     ch = np.array(chirals, float).reshape(-1, 5)
@@ -555,8 +559,8 @@ def _stress_refine(X0, L0, U0, L, U, components, chirals) -> np.ndarray:
     )
     csgn = torch.as_tensor(ch[:, 4], dtype=TORCH_DTYPE)
 
-    def pd(i, j):
-        return ((X[i] - X[j]) ** 2).sum(1).clamp_min(1e-12).sqrt()
+    def pair_distances():
+        return ((X[pair_i] - X[pair_j]) ** 2).sum(1).clamp_min(1e-12).sqrt()
 
     def chiral_penalty():
         if len(csgn) == 0:
@@ -568,9 +572,13 @@ def _stress_refine(X0, L0, U0, L, U, components, chirals) -> np.ndarray:
 
     def closure():
         opt.zero_grad()
-        loss = W_EXACT * ((pd(ei, ej) - tgt) ** 2).sum()
-        loss = loss + W_BOUND * (torch.relu(lo - pd(ni, nj)) ** 2).sum()
-        loss = loss + W_BOUND * (torch.relu(pd(fi, fj) - hi) ** 2).sum()
+        distances = pair_distances()
+        exact = distances[:n_exact]
+        lower = distances[n_exact : n_exact + n_lower]
+        upper = distances[n_exact + n_lower :]
+        loss = W_EXACT * ((exact - tgt) ** 2).sum()
+        loss = loss + W_BOUND * (torch.relu(lo - lower) ** 2).sum()
+        loss = loss + W_BOUND * (torch.relu(upper - hi) ** 2).sum()
         for c in comps:
             P = X[c] - X[c].mean(0)
             loss = loss + W_PLANE * torch.linalg.eigvalsh(P.t() @ P)[0]
