@@ -818,34 +818,8 @@ def test_a_nonstandard_backbone_is_found_and_prepared_from_a_structure(
 # 3C3G leaves B3K, B3Q and HMR with unresolved sidechains, and their residue
 # types are completed against the chemistry the file declares. Pose
 # construction rebuilds a missing sidechain with DunbrackChiSampler, which
-# defines no rotamers for these: their sidechains are lysine's, glutamine's and
-# arginine's, but hang off a beta backbone, so what a canonical calls chi1 is a
-# backbone torsion here and no canonical library's chi line up. The sampler
-# produces nothing and the atoms stay NaN. Lifting this needs a rotamer
-# reference for a nonstandard backbone.
-_NO_ROTAMERS_FOR_A_BETA_SIDECHAIN = "beta_peptide_3c3g"
-
-
-@pytest.mark.parametrize(
-    "stem",
-    [
-        pytest.param(
-            stem,
-            marks=(
-                [
-                    pytest.mark.xfail(
-                        strict=True,
-                        reason="no rotamer library reaches a beta backbone's "
-                        "sidechain, so unresolved atoms stay NaN",
-                    )
-                ]
-                if stem == _NO_ROTAMERS_FOR_A_BETA_SIDECHAIN
-                else []
-            ),
-        )
-        for stem in sorted(_PIPELINE_FIXTURES)
-    ],
-)
+# reaches them through the canonical library each one's sidechain borrows.
+@pytest.mark.parametrize("stem", sorted(_PIPELINE_FIXTURES))
 def test_a_nonstandard_backbone_scores(stem: str, torch_device) -> None:
     """Smoke test: preparation has to survive into a pose and a number."""
     from tmol.io import pose_stack_from_biotite

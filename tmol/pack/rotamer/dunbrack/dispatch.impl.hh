@@ -358,7 +358,10 @@ struct DunbrackChiSampler {
     assert(n_possible_rotamers_per_brt.size(0) == n_brt);
     auto lambda_determine_n_possible_rots = [=] EIGEN_DEVICE_FUNC(int brt) {
       Int rottable_set = bubl_and_rottable_set_for_buildable_restype[brt][1];
-      n_possible_rotamers_per_brt[brt] = n_rotamers_for_tableset[rottable_set];
+      // fd  a residue with no rotamer library builds from its own chi samples
+      //     alone: one base rotamer, which those samples then expand
+      n_possible_rotamers_per_brt[brt] =
+          rottable_set < 0 ? 1 : n_rotamers_for_tableset[rottable_set];
     };
 
     Dispatch<D>::template forall<launch_t>(
@@ -433,6 +436,12 @@ struct DunbrackChiSampler {
       int const table_set = bubl_and_rottable_set_for_buildable_restype[brt][1];
       int const sorted_rotno =
           possible_rotamer - possible_rotamer_offset_for_brt[brt];
+
+      if (table_set < 0) {
+        // no library: the single base rotamer is the only one to build
+        rotamer_probability[possible_rotamer] = 1.0;
+        return;
+      }
 
       // Caclulate the phi/psi bin indices
       // This needs to be turned into a function...
@@ -583,7 +592,7 @@ struct DunbrackChiSampler {
     auto count_expansions_for_brt = [=] EIGEN_DEVICE_FUNC(int brt) {
       Int const nchi = nchi_for_buildable_restype[brt];
       Int const table_set = bubl_and_rottable_set_for_buildable_restype[brt][1];
-      Int const n_dun_chi = nchi_for_tableset[table_set];
+      Int const n_dun_chi = table_set < 0 ? 0 : nchi_for_tableset[table_set];
       Int n_expansions = 1;
 
       Int const n_chi = nchi_for_buildable_restype[brt];
@@ -702,36 +711,45 @@ struct DunbrackChiSampler {
       int const base_rotno = expanded_rotamer_for_brt / n_expansions;
       int const expanded_rotno = expanded_rotamer_for_brt % n_expansions;
 
+      // fd  with no rotamer library there is no table to read and no backbone
+      //     to read it at: every chi comes from the residue's own samples
+      bool const has_library = table_set >= 0;
+
       Vec<Real, 2> bbdihe, bbstep;
       Vec<Int, 2> bin_index;
-      for (int ii = 0; ii < 2; ++ii) {
-        Real wrap_iidihe = backbone_dihedrals[2 * res + ii]
-                           - rotameric_bb_start[table_set][ii];
-        while (wrap_iidihe < 0) {
-          wrap_iidihe += 2 * M_PI;
-        }
-        Real ii_period = rotameric_bb_periodicity[table_set][ii];
-        while (wrap_iidihe > ii_period) {
-          wrap_iidihe -= ii_period;
-        }
+      bbdihe[0] = bbdihe[1] = 0;
+      bin_index[0] = bin_index[1] = 0;
+      if (has_library) {
+        for (int ii = 0; ii < 2; ++ii) {
+          Real wrap_iidihe = backbone_dihedrals[2 * res + ii]
+                             - rotameric_bb_start[table_set][ii];
+          while (wrap_iidihe < 0) {
+            wrap_iidihe += 2 * M_PI;
+          }
+          Real ii_period = rotameric_bb_periodicity[table_set][ii];
+          while (wrap_iidihe > ii_period) {
+            wrap_iidihe -= ii_period;
+          }
 
-        bbstep[ii] = rotameric_bb_step[table_set][ii];
-        bbdihe[ii] = wrap_iidihe / bbstep[ii];
-        bin_index[ii] = int(bbdihe[ii]);
+          bbstep[ii] = rotameric_bb_step[table_set][ii];
+          bbdihe[ii] = wrap_iidihe / bbstep[ii];
+          bin_index[ii] = int(bbdihe[ii]);
+        }
       }
 
       // Look up the index of the rotamer: we know where the rotamer is in
       // sorted order
       // but not which chi values this represents.
-      Int const n_dun_chi = nchi_for_tableset[table_set];
+      Int const n_dun_chi = has_library ? nchi_for_tableset[table_set] : 0;
       Int const n_chi = nchi_for_buildable_restype[brt];
-      Int const tableset_offset = n_rotamers_for_tableset_offsets[table_set];
-      Int const rotmean_offset = rotameric_meansdev_tableset_offsets[table_set];
       Int const rot_table_start =
-          n_dun_chi
-              * sorted_rotamer_2_rotamer[bin_index[0]][bin_index[1]]
-                                        [tableset_offset + base_rotno]
-          + rotmean_offset;
+          has_library ? n_dun_chi
+                                * sorted_rotamer_2_rotamer
+                                    [bin_index[0]][bin_index[1]]
+                                    [n_rotamers_for_tableset_offsets[table_set]
+                                     + base_rotno]
+                            + rotameric_meansdev_tableset_offsets[table_set]
+                      : 0;
 
       // OK: we have the phi & psi values, and we have the rotamer index
       // Now we can start calculating the chi.

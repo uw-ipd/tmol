@@ -150,10 +150,31 @@ class PackerPalette:
         return [FallbackSampler()]
 
 
+def _mainchain_elements(block_type, element_for_atom_type):
+    """The element of each mainchain atom, in mainchain order.
+
+    A mainchain fingerprint identifies an atom by its position along the
+    mainchain, so two block types can only exchange dofs when their mainchains
+    agree position by position. Comparing elements rather than atom names lets
+    two backbones of the same shape exchange dofs whatever they call their
+    atoms, and comparing elements rather than atom types keeps a difference
+    that does not move an atom from blocking the exchange.
+    """
+    types = {atom.name: atom.atom_type for atom in block_type.atoms}
+    return tuple(
+        element_for_atom_type[types[name]]
+        for name in (block_type.properties.polymer.mainchain_atoms or ())
+    )
+
+
 def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockTypes):
     # Annotate the PackedBlockTypes object with the block-type to block-type comparisons
     if hasattr(pbt, "default_packer_palette_annotations"):
         return
+    element_for_atom_type = {at.name: at.element for at in pbt.chem_db.atom_types}
+    mc_elements = [
+        _mainchain_elements(bt, element_for_atom_type) for bt in pbt.active_block_types
+    ]
     allowed_block_types_for_block_type = [list() for _ in range(pbt.n_types)]
     allowed_block_is_orig = [list() for _ in range(pbt.n_types)]
     restrict_to_repacking_masks = [list() for _ in range(pbt.n_types)]
@@ -169,6 +190,7 @@ def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockType
                 == orig_bt.properties.polymer.backbone_type
                 and alt_bt.connections
                 == orig_bt.connections  # fd  use this instead of terminal variant check
+                and mc_elements[i] == mc_elements[j]
                 and set_compare(
                     alt_bt.properties.chemical_modifications,
                     orig_bt.properties.chemical_modifications,

@@ -39,7 +39,6 @@ def build_context_from_biotite(
     strict_atom_types: bool = False,
     strict_ligands: bool = True,
     ligand_params_files: list[str] | None = None,
-    sample_proton_chi: bool = True,
     chem_comp_types: dict | None = None,
     use_ccd: bool = True,
     ligand_seed: int | None = None,
@@ -73,10 +72,6 @@ def build_context_from_biotite(
             used when prepare_ligands=True.
         ligand_params_files: Optional list of tmol YAML params file paths.
             Residues defined in these files skip the RDKit/OB pipeline.
-        sample_proton_chi: If True, prepared ligands emit PROTON_CHI
-            ``chi_samples`` for polar-hydrogen rotations (driving OptHSampler).
-            Enabled by default; pass False to suppress proton-chi samples. Only
-            used when prepare_ligands=True.
         chem_comp_types: ``{comp_id: type}`` from the input file's
             ``_chem_comp`` table (see
             ``tmol.ligand.chem_comp_types_from_cif``), which says whether a
@@ -95,6 +90,13 @@ def build_context_from_biotite(
         types, parameter database, and residue type set.
     """
     torch_device = resolve_device(torch_device)
+    # aliased names are resolved before ligand detection, or the residue the
+    #    alias points at would be prepared as a nonstandard one
+    chemdb = (param_db or ParameterDatabase.get_default()).chemical
+    biotite_structure = _resolve_aliased_res_names(
+        biotite_structure,
+        {alias.name3: alias.read_as for alias in chemdb.name3_aliases},
+    )
     if prepare_ligands:
         from tmol.ligand import prepare_ligands as _prepare_ligands
 
@@ -107,7 +109,6 @@ def build_context_from_biotite(
             ph=ligand_ph,
             strict_atom_types=strict_atom_types,
             params_files=ligand_params_files,
-            sample_proton_chi=sample_proton_chi,
             strict_ligands=strict_ligands,
             return_fragment_definitions=True,
             chem_comp_types=chem_comp_types,
@@ -154,7 +155,6 @@ def pose_stack_from_biotite(  # noqa: C901
     strict_atom_types: bool = False,
     strict_ligands: bool = True,
     ligand_params_files: list[str] | None = None,
-    sample_proton_chi: bool = True,
     chem_comp_types: dict | None = None,
     use_ccd: bool = True,
     ligand_seed: int | None = None,
@@ -201,10 +201,6 @@ def pose_stack_from_biotite(  # noqa: C901
             be prepared and registered, instead of silently dropping it. Pass
             False to warn-and-skip. Only used when prepare_ligands=True.
         ligand_params_files: Optional list of tmol YAML params file paths.
-        sample_proton_chi: If True, prepared ligands emit PROTON_CHI
-            ``chi_samples`` so OptHSampler samples ligand polar-H rotamers
-            (enabled by default; pass False to disable). Only used when
-            prepare_ligands=True.
         chem_comp_types: ``{comp_id: type}`` from the input file's
             ``_chem_comp`` table, which says whether a residue belongs to a
             polymer where the file does not number it along a sequence. Only
@@ -262,7 +258,6 @@ def pose_stack_from_biotite(  # noqa: C901
             strict_atom_types=strict_atom_types,
             strict_ligands=strict_ligands,
             ligand_params_files=ligand_params_files,
-            sample_proton_chi=sample_proton_chi,
             chem_comp_types=chem_comp_types,
             use_ccd=use_ccd,
             ligand_seed=ligand_seed,
@@ -784,6 +779,23 @@ def _populate_optional_atom_metadata(
 
 
 @validate_args
+def _resolve_aliased_res_names(biotite_structure, name3_aliases):
+    """A copy of the structure with aliased residue names rewritten.
+
+    An aliased residue is read as the one it names, so nothing downstream --
+    atom mapping, restype lookup, nonstandard-residue detection -- ever sees
+    the input name. Atom names follow through the target's atom aliases.
+    """
+    if not name3_aliases:
+        return biotite_structure
+    names = biotite_structure.res_name
+    if not any(name in name3_aliases for name in numpy.unique(names)):
+        return biotite_structure
+    renamed = biotite_structure.copy()
+    renamed.res_name = numpy.array([name3_aliases.get(n, n) for n in names])
+    return renamed
+
+
 def canonical_form_from_biotite(
     biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
     torch_device: torch.device,
@@ -824,6 +836,7 @@ def canonical_form_from_biotite(
     if co is None:
         co = canonical_ordering_for_biotite()
 
+    biotite_structure = _resolve_aliased_res_names(biotite_structure, co.name3_aliases)
     biotite_structure, not_connected = _filter_supported_atoms_and_connectivity(
         biotite_structure, co
     )

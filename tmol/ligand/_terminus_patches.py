@@ -104,6 +104,35 @@ def _template_for(residue_type, connection_atom, candidates):
     return candidates[0]
 
 
+def _renumbered_chi(template, chi_taken):
+    """The template's chi, renumbered past the ones this residue already has.
+
+    A generated patch copies its template verbatim, so a residue with more chi
+    than the backbone the template was written for would be given a second
+    torsion under a name it already uses. ``chi_taken`` spans every patch of
+    one residue, because two of them can apply at once.
+    """
+    renumbered = {}
+    for torsion in template.add_torsions:
+        if not torsion.name.startswith("chi"):
+            continue
+        number = 1
+        while f"chi{number}" in chi_taken:
+            number += 1
+        renumbered[torsion.name] = f"chi{number}"
+        chi_taken.add(f"chi{number}")
+    return (
+        tuple(
+            attr.evolve(t, name=renumbered.get(t.name, t.name))
+            for t in template.add_torsions
+        ),
+        tuple(
+            attr.evolve(c, chi_dihedral=renumbered.get(c.chi_dihedral, c.chi_dihedral))
+            for c in template.add_chi_samples
+        ),
+    )
+
+
 def _rename_patch(
     template,
     residue_type,
@@ -112,15 +141,19 @@ def _rename_patch(
     add_atoms,
     chemistry,
     connection_atom,
+    chi_taken,
 ):
     """``template`` with its added atoms renamed and scoped to one residue."""
     added_names = {a.name for a in add_atoms}
     modify_atoms = _retyped_atoms(
         template, residue_type, chemistry, connection_atom, add_atoms
     )
+    add_torsions, add_chi_samples = _renumbered_chi(template, chi_taken)
     return attr.evolve(
         template,
         name=name,
+        add_torsions=add_torsions,
+        add_chi_samples=add_chi_samples,
         add_atoms=tuple(
             attr.evolve(a, name=_renamed(a.name, renames)) for a in add_atoms
         ),
@@ -489,6 +522,7 @@ def terminus_patches(
         return []
 
     taken = {a.name for a in residue_type.atoms}
+    chi_taken = {t.name for t in residue_type.torsions}
     generated = []
     for (display_name, connection), candidates in terminus_templates(
         chemdb, profile
@@ -563,6 +597,7 @@ def terminus_patches(
             add_atoms=add_atoms,
             chemistry=chemistry,
             connection_atom=connection[1],
+            chi_taken=chi_taken,
         )
         generated.append((patch, template, chemistry))
     return generated

@@ -146,6 +146,12 @@ atom_types:
   - { name: BrR , element: Br }
   - { name: IR  , element: I }
 
+# an input residue read as another's; the name does not survive input. MSE is
+#    selenomethionine, whose selenium has no parameters of its own and is read
+#    as methionine's sulfur through MET's SE atom alias
+name3_aliases:
+- { name3: MSE, read_as: MET }
+
 residues:
   - name:  ALA
     base_name: ALA
@@ -1753,6 +1759,7 @@ residues:
     - { name: HE2 ,  atom_type: Hapo }
     - { name: HE3 ,  atom_type: Hapo }
     atom_aliases:
+    - { name: SD  , alt_name: SE  }
     - { name: HB2 , alt_name: 1HB }
     - { name: HB3 , alt_name: 2HB }
     - { name: HG2 , alt_name: 1HG }
@@ -2737,7 +2744,7 @@ residues:
     - { name:   H61, phi:    0.038433 deg, theta:  59.995125 deg, d: 1.000204, parent:    N6, grand_parent:    C6, great_grand_parent:    N1 }
     - { name:   H62, phi:  179.994400 deg, theta:  59.980331 deg, d: 0.999940, parent:    N6, grand_parent:    C6, great_grand_parent:   H61 }
     - { name:    H2, phi: -179.996933 deg, theta:  64.638275 deg, d: 1.099777, parent:    C2, grand_parent:    N3, great_grand_parent:    N1 }
-    - { name:   C2', phi:  122.467056 deg, theta:  74.072716 deg, d: 1.518638, parent:   C1', grand_parent:   O4', great_grand_parent:    N9 }
+    - { name:   C2', phi:  -19.837737 deg, theta:  74.072716 deg, d: 1.518638, parent:   C1', grand_parent:   O4', great_grand_parent:   C4' }
     - { name:  H2'', phi:  120.000000 deg, theta:  68.000000 deg, d: 1.100000, parent:   C2', grand_parent:   C1', great_grand_parent:   C3' }
     - { name:   H2', phi:  120.000000 deg, theta:  68.000000 deg, d: 1.100000, parent:   C2', grand_parent:   C1', great_grand_parent:  H2'' }
     - { name:   H1', phi:  119.303581 deg, theta:  65.495010 deg, d: 1.099719, parent:   C1', grand_parent:   O4', great_grand_parent:   C2' }
@@ -2884,7 +2891,7 @@ residues:
     - { name:    C6, phi:    0.008750 deg, theta:  62.484417 deg, d: 1.338750, parent:    C5, grand_parent:    C4, great_grand_parent:    N3 }
     - { name:    H6, phi: -179.974411 deg, theta:  60.546242 deg, d: 1.099902, parent:    C6, grand_parent:    C5, great_grand_parent:    C4 }
     - { name:    H5, phi:  179.989838 deg, theta:  58.729404 deg, d: 1.100244, parent:    C5, grand_parent:    C4, great_grand_parent:    C6 }
-    - { name:   C2', phi:  122.771790 deg, theta:  74.145515 deg, d: 1.516485, parent:   C1', grand_parent:   O4', great_grand_parent:    N1 }
+    - { name:   C2', phi:  -21.209398 deg, theta:  74.145515 deg, d: 1.516485, parent:   C1', grand_parent:   O4', great_grand_parent:   C4' }
     - { name:  H2'', phi:  120.000000 deg, theta:  68.000000 deg, d: 1.100000, parent:   C2', grand_parent:   C1', great_grand_parent:   C3' }
     - { name:   H2', phi:  120.000000 deg, theta:  68.000000 deg, d: 1.100000, parent:   C2', grand_parent:   C1', great_grand_parent:  H2'' }
     - { name:   H1', phi:  119.173782 deg, theta:  65.419487 deg, d: 1.099511, parent:   C1', grand_parent:   O4', great_grand_parent:   C2' }
@@ -3041,7 +3048,7 @@ residues:
     - { name:    N2, phi: -179.965042 deg, theta:  60.217892 deg, d: 1.340771, parent:    C2, grand_parent:    N3, great_grand_parent:    N1 }
     - { name:   H22, phi:   -0.013213 deg, theta:  60.009777 deg, d: 1.000051, parent:    N2, grand_parent:    C2, great_grand_parent:    N3 }
     - { name:   H21, phi:  179.998093 deg, theta:  59.983944 deg, d: 1.000217, parent:    N2, grand_parent:    C2, great_grand_parent:   H22 }
-    - { name:   C2', phi:  122.247673 deg, theta:  74.153900 deg, d: 1.516989, parent:   C1', grand_parent:   O4', great_grand_parent:    N9 }
+    - { name:   C2', phi:  -20.990145 deg, theta:  74.153900 deg, d: 1.516989, parent:   C1', grand_parent:   O4', great_grand_parent:   C4' }
     - { name:  H2'', phi:  120.000000 deg, theta:  68.000000 deg, d: 1.100000, parent:   C2', grand_parent:   C1', great_grand_parent:   C3' }
     - { name:   H2', phi:  120.000000 deg, theta:  68.000000 deg, d: 1.100000, parent:   C2', grand_parent:   C1', great_grand_parent:  H2'' }
     - { name:   H1', phi:  119.425476 deg, theta:  65.599640 deg, d: 1.099900, parent:   C1', grand_parent:   O4', great_grand_parent:   C2' }
@@ -3196,7 +3203,7 @@ residues:
     - { name:    C6, phi:  179.988083 deg, theta:  61.995148 deg, d: 1.339471, parent:    C5, grand_parent:    C4, great_grand_parent:    C7 }
     - { name:    H6, phi: -179.945175 deg, theta:  61.848751 deg, d: 1.100448, parent:    C6, grand_parent:    C5, great_grand_parent:    C4 }
     - { name:    H3, phi:  179.994766 deg, theta:  63.632038 deg, d: 1.000129, parent:    N3, grand_parent:    C2, great_grand_parent:    C4 }
-    - { name:   C2', phi:  123.031013 deg, theta:  74.200386 deg, d: 1.516754, parent:   C1', grand_parent:   O4', great_grand_parent:    N1 }
+    - { name:   C2', phi:  -22.072580 deg, theta:  74.200386 deg, d: 1.516754, parent:   C1', grand_parent:   O4', great_grand_parent:   C4' }
     - { name:  H2'', phi:  120.000000 deg, theta:  68.000000 deg, d: 1.100000, parent:   C2', grand_parent:   C1', great_grand_parent:   C3' }
     - { name:   H2', phi:  120.000000 deg, theta:  68.000000 deg, d: 1.100000, parent:   C2', grand_parent:   C1', great_grand_parent:  H2'' }
     - { name:   H1', phi:  119.082504 deg, theta:  65.314438 deg, d: 1.099825, parent:   C1', grand_parent:   O4', great_grand_parent:   C2' }
@@ -3353,7 +3360,7 @@ residues:
     - { name:   H61, phi:    0.087344 deg, theta:  60.020244 deg, d: 1.000000, parent:    N6, grand_parent:    C6, great_grand_parent:    N1 }
     - { name:   H62, phi:  179.897268 deg, theta:  59.957047 deg, d: 1.000000, parent:    N6, grand_parent:    C6, great_grand_parent:   H61 }
     - { name:    H2, phi:  179.988203 deg, theta:  64.592452 deg, d: 1.100000, parent:    C2, grand_parent:    N3, great_grand_parent:    N1 }
-    - { name:   C2', phi:  121.677303 deg, theta:  72.333805 deg, d: 1.529377, parent:   C1', grand_parent:   O4', great_grand_parent:    N9 }
+    - { name:   C2', phi:    2.727244 deg, theta:  72.333805 deg, d: 1.529377, parent:   C1', grand_parent:   O4', great_grand_parent:   C4' }
     - { name:   O2', phi:  117.437258 deg, theta:  71.046615 deg, d: 1.420186, parent:   C2', grand_parent:   C1', great_grand_parent:   C3' }
     - { name:  HO2', phi: -180.000000 deg, theta:  71.040035 deg, d: 1.000437, parent:   O2', grand_parent:   C2', great_grand_parent:   C3' }
     - { name:   H2', phi:  123.786374 deg, theta:  68.568962 deg, d: 1.100000, parent:   C2', grand_parent:   C1', great_grand_parent:   O2' }
@@ -3389,8 +3396,8 @@ residues:
       virtual: []
     chi_samples:
     - chi_dihedral: chi2
-      samples: [0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200, 220, 240, 260, 280, 300, 320, 340]
-      expansions: []
+      samples: [60, -60, 180]
+      expansions: [20.0]
     default_jump_connection_atom: C1'
   - name:  RC
     base_name: RC
@@ -3507,7 +3514,7 @@ residues:
     - { name:    C6, phi:   -0.092795 deg, theta:  62.385126 deg, d: 1.338527, parent:    C5, grand_parent:    C4, great_grand_parent:    N3 }
     - { name:    H6, phi: -179.996478 deg, theta:  61.151615 deg, d: 1.100000, parent:    C6, grand_parent:    C5, great_grand_parent:    C4 }
     - { name:    H5, phi: -179.865222 deg, theta:  58.810690 deg, d: 1.100000, parent:    C5, grand_parent:    C4, great_grand_parent:    C6 }
-    - { name:   C2', phi:  122.249546 deg, theta:  72.257039 deg, d: 1.530107, parent:   C1', grand_parent:   O4', great_grand_parent:    N1 }
+    - { name:   C2', phi:    1.003694 deg, theta:  72.257039 deg, d: 1.530107, parent:   C1', grand_parent:   O4', great_grand_parent:   C4' }
     - { name:   O2', phi:  117.500392 deg, theta:  71.032446 deg, d: 1.419960, parent:   C2', grand_parent:   C1', great_grand_parent:   C3' }
     - { name:  HO2', phi:  180.000000 deg, theta:  70.941223 deg, d: 1.000437, parent:   O2', grand_parent:   C2', great_grand_parent:   C3' }
     - { name:   H2', phi:  123.721247 deg, theta:  68.547585 deg, d: 1.100000, parent:   C2', grand_parent:   C1', great_grand_parent:   O2' }
@@ -3543,8 +3550,8 @@ residues:
       virtual: []
     chi_samples:
     - chi_dihedral: chi2
-      samples: [0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200, 220, 240, 260, 280, 300, 320, 340]
-      expansions: []
+      samples: [60, -60, 180]
+      expansions: [20.0]
     default_jump_connection_atom: C1'
   - name:  RG
     base_name: RG
@@ -3671,7 +3678,7 @@ residues:
     - { name:    N2, phi: -179.953091 deg, theta:  60.291555 deg, d: 1.341403, parent:    C2, grand_parent:    N3, great_grand_parent:    N1 }
     - { name:   H22, phi:   -0.023997 deg, theta:  60.029272 deg, d: 1.000000, parent:    N2, grand_parent:    C2, great_grand_parent:    N3 }
     - { name:   H21, phi: -179.986340 deg, theta:  59.811229 deg, d: 1.000000, parent:    N2, grand_parent:    C2, great_grand_parent:   H22 }
-    - { name:   C2', phi:  121.681111 deg, theta:  72.336077 deg, d: 1.529029, parent:   C1', grand_parent:   O4', great_grand_parent:    N9 }
+    - { name:   C2', phi:    2.673390 deg, theta:  72.336077 deg, d: 1.529029, parent:   C1', grand_parent:   O4', great_grand_parent:   C4' }
     - { name:   O2', phi:  117.473250 deg, theta:  71.060391 deg, d: 1.420372, parent:   C2', grand_parent:   C1', great_grand_parent:   C3' }
     - { name:  HO2', phi:  180.000000 deg, theta:  70.999194 deg, d: 1.000437, parent:   O2', grand_parent:   C2', great_grand_parent:   C3' }
     - { name:   H2', phi:  123.722624 deg, theta:  68.564798 deg, d: 1.100000, parent:   C2', grand_parent:   C1', great_grand_parent:   O2' }
@@ -3707,8 +3714,8 @@ residues:
       virtual: []
     chi_samples:
     - chi_dihedral: chi2
-      samples: [0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200, 220, 240, 260, 280, 300, 320, 340]
-      expansions: []
+      samples: [60, -60, 180]
+      expansions: [20.0]
     default_jump_connection_atom: C1'
   - name:  RU
     base_name: RU
@@ -3820,7 +3827,7 @@ residues:
     - { name:    H5, phi: -179.938492 deg, theta:  59.775992 deg, d: 1.100000, parent:    C5, grand_parent:    C4, great_grand_parent:    C6 }
     - { name:    H6, phi:  179.929312 deg, theta:  62.121020 deg, d: 1.100000, parent:    C6, grand_parent:    C5, great_grand_parent:    C4 }
     - { name:    H3, phi:  179.906863 deg, theta:  63.572961 deg, d: 1.000000, parent:    N3, grand_parent:    C2, great_grand_parent:    C4 }
-    - { name:   C2', phi:  122.234823 deg, theta:  72.261575 deg, d: 1.529968, parent:   C1', grand_parent:   O4', great_grand_parent:    N1 }
+    - { name:   C2', phi:    1.096309 deg, theta:  72.261575 deg, d: 1.529968, parent:   C1', grand_parent:   O4', great_grand_parent:   C4' }
     - { name:   O2', phi:  117.480600 deg, theta:  71.078024 deg, d: 1.420555, parent:   C2', grand_parent:   C1', great_grand_parent:   C3' }
     - { name:  HO2', phi:  180.000000 deg, theta:  70.997363 deg, d: 1.000437, parent:   O2', grand_parent:   C2', great_grand_parent:   C3' }
     - { name:   H2', phi:  123.642233 deg, theta:  68.578787 deg, d: 1.100000, parent:   C2', grand_parent:   C1', great_grand_parent:   O2' }
@@ -3856,8 +3863,8 @@ residues:
       virtual: []
     chi_samples:
     - chi_dihedral: chi2
-      samples: [0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200, 220, 240, 260, 280, 300, 320, 340]
-      expansions: []
+      samples: [60, -60, 180]
+      expansions: [20.0]
     default_jump_connection_atom: C1'
   - name:  HOH
     base_name: HOH
@@ -4053,8 +4060,8 @@ variants:
     - {name: chi3, a: {atom: <C2>}, b: {atom: <C1>}, c: {atom: <O3>}, d: {atom: HO5'}}
     add_chi_samples:
     - chi_dihedral: chi3
-      samples: [0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200, 220, 240, 260, 280, 300, 320, 340]
-      expansions: []
+      samples: [60, -60, 180]
+      expansions: [20.0]
 
   # DNA 3' terminus. The pattern pins C4' as O4'-C4'-C3'-O3'
   - name:  NaThreePrime
@@ -4076,5 +4083,5 @@ variants:
     - {name: chi4, a: {atom: <C2>}, b: {atom: <C3>}, c: {atom: <O2>}, d: {atom: HO3'}}
     add_chi_samples:
     - chi_dihedral: chi4
-      samples: [0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200, 220, 240, 260, 280, 300, 320, 340]
-      expansions: []
+      samples: [60, -60, 180]
+      expansions: [20.0]

@@ -76,7 +76,7 @@ def _single_prep():
     from tmol.ligand import prepare_single_ligand
 
     info = nonstandard_residue_info_from_mol2(_smallest_mol2(), res_name="LG1")
-    return prepare_single_ligand(info, sample_proton_chi=True)
+    return prepare_single_ligand(info)
 
 
 def test_write_params_from_mol2_both_formats(tmp_path) -> None:
@@ -340,7 +340,7 @@ def test_prepare_ligands_with_params_files_skips_reprep(tmp_path) -> None:
 
     # Build a .tmol for the mol2 ligand named LG1.
     info = nonstandard_residue_info_from_mol2(_smallest_mol2(), res_name="LG1")
-    prep = prepare_single_ligand(info, sample_proton_chi=True)
+    prep = prepare_single_ligand(info)
     tmol_file = tmp_path / "lg1.tmol"
     write_params_file([prep], str(tmol_file), format="tmol")
 

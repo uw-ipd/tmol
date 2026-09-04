@@ -592,7 +592,9 @@ def test_large_ring_bonds_keep_ring_flag_in_residue_type() -> None:
         AtomTypeAssignment(atom_name=f"C{i + 1}", atom_type="CS3", element="C", index=i)
         for i in range(mol.GetNumAtoms())
     ]
-    restype = build_residue_type(mol, "LG1", atom_types)
+    restype = build_residue_type(
+        mol, "LG1", atom_types, typing_state=_build_rosetta_typing_state(mol)
+    )
     assert all(not b[3] for b in restype.bonds)
 
 

@@ -42,7 +42,9 @@ UNDEFINED_CODE = "X_"
 # stem -> (residue code, net formal charge at pH 7.4, expected chi count)
 _FIXTURES: dict[str, tuple[str, float, int]] = {
     "phosphopeptide_5ema": ("SEP", -2.0, 3),
-    "collagen_hyp_1bkv": ("HYP", 0.0, 1),
+    # proline's three chi, taken from the library HYP borrows, plus the chi
+    #    turning its own hydroxyl
+    "collagen_hyp_1bkv": ("HYP", 0.0, 4),
 }
 
 

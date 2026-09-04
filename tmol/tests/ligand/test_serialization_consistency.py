@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
-
 import pytest
 
 from tmol.tests.ligand import (
@@ -84,14 +82,3 @@ def test_proton_chi_sample_corruption_breaks_consistency(tmp_path) -> None:
     assert proton_chi_by_axis_from_reference(params_ref) != (
         proton_chi_by_axis_from_prep(tmol_prep)
     )
-
-
-def test_sample_proton_chi_setting_drives_emission() -> None:
-    """The sample_proton_chi setting toggles proton-chi sample emission."""
-    # A manifest entry's sample_proton_chi must actually change preparation:
-    # on -> proton-chi samples emitted, off -> none.
-    base = _SEED[0]
-    prep_on = prepare_seed_entry(replace(base, sample_proton_chi=True))
-    prep_off = prepare_seed_entry(replace(base, sample_proton_chi=False))
-    assert len(prep_on.residue_type.chi_samples) > 0
-    assert len(prep_off.residue_type.chi_samples) == 0

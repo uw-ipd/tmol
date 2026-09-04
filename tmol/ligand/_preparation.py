@@ -37,6 +37,13 @@ from tmol.ligand._mol3d import authoritative_charges_by_index
 from tmol.ligand._residue_builder import build_residue_type
 from tmol.ligand._structure_to_smiles import ligand_smiles_from_atom_array
 from tmol.ligand._rdkit_mol import ligand_atom_array_to_rdkit_mol
+from tmol.ligand._polymer_profile import na_base_reference
+from tmol.ligand._registry import collect_new_atom_types
+from tmol.ligand._chi_topology import apply_chi_sample_budget
+from tmol.ligand._rotamer_reference import (
+    _cached_profiles,
+    library_chi_count,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -140,8 +147,9 @@ def _rename_atoms_to_cif(
 
 def prepare_single_ligand(
     ligand_info: NonStandardResidueInfo,
-    sample_proton_chi: bool = True,
     name_source: Optional[NonStandardResidueInfo] = None,
+    assign_ring_chis: bool = False,
+    generate_heavy_chi_samples: bool = False,
 ) -> LigandPreparation:
     """Build a :class:`LigandPreparation` from a SMILES-derived ligand.
 
@@ -165,7 +173,6 @@ def prepare_single_ligand(
         ligand_info: A SMILES-derived ligand (``skip_protonation=True`` with
             authoritative ``partial_charges``). Raw CIF/atom-array ligands must
             be routed through :func:`prepare_ligands` / :func:`prepare_ligand_from_cif`.
-        sample_proton_chi: Whether to emit proton-chi samples.
         name_source: Optional ligand whose atom names the prepared residue should
             adopt (mapped to the prepared heavy atoms via the atom-order map). On
             the unified CIF path this is the original CIF ligand. Defaults to
@@ -221,7 +228,8 @@ def prepare_single_ligand(
         ligand_info.res_name,
         atom_types,
         typing_state=typing_state,
-        sample_proton_chi=sample_proton_chi,
+        assign_ring_chis=assign_ring_chis,
+        generate_heavy_chi_samples=generate_heavy_chi_samples,
         original_single_bonds=ligand_info.original_single_bonds,
     )
 
@@ -263,6 +271,36 @@ def prepare_single_ligand(
     )
 
 
+def _with_sampling_reference(residue_type, profile, param_db, atom_type_elements):
+    """Name the canonical residue whose torsion distributions this one borrows.
+
+    A nucleotide borrows base torsion tables, which it is scored on. An amino
+    acid borrows a rotamer library, which is read for sampling only and is
+    chosen while its chi are defined, since the two are the same decision.
+    """
+    if profile.backbone_type in ("dna", "rna"):
+        return attr.evolve(
+            residue_type,
+            na_base_reference=na_base_reference(
+                residue_type, profile, param_db.chemical
+            ),
+        )
+    if profile.polymer_type == "amino_acid":
+        # the borrowed library multiplies whatever the residue samples itself,
+        #    so the budget is only knowable once the reference is
+        library_names = {m.residue_name for m in param_db.scoring.dun.dun_lookup}
+        return attr.evolve(
+            residue_type,
+            chi_samples=apply_chi_sample_budget(
+                residue_type.chi_samples,
+                n_library_chi=library_chi_count(
+                    residue_type.dunbrack_reference, param_db.chemical, library_names
+                ),
+            ),
+        )
+    return residue_type
+
+
 def prepare_polymer_residue(
     atom_array,
     canonical_ordering,
@@ -270,7 +308,6 @@ def prepare_polymer_residue(
     *,
     ph: float = 7.4,
     profile=None,
-    sample_proton_chi: bool = True,
     connection_atoms=None,
     use_ccd: bool = True,
     seed: int | None = None,
@@ -288,14 +325,12 @@ def prepare_polymer_residue(
         backbone_renames,
         to_polymer_residue_type,
     )
-    from tmol.ligand._registry import collect_new_atom_types
     from tmol.ligand._terminus_patches import patch_charge_entries, terminus_patches
     from tmol.ligand._polymer_profile import (
         canonical_alpha_renames,
         complete_backbone_from_reference,
         cap_backbone_substitution,
         cap_residue,
-        na_base_reference,
         profile_for_atom_array,
         ring_nitrogen_angle,
         ring_nitrogen_angle_atom,
@@ -387,7 +422,15 @@ def prepare_polymer_residue(
             "non-standard; is its name already in the database?"
         )
     prep = _prepare_ligand_via_smiles(
-        detected[0], ph=ph, sample_proton_chi=sample_proton_chi, seed=seed
+        detected[0],
+        ph=ph,
+        seed=seed,
+        # a sidechain ring rotates the way proline's does; a nucleotide's rings
+        #    are its sugar and its base, whose torsions the na_torsion term owns
+        assign_ring_chis=profile.polymer_type == "amino_acid",
+        # heavy chi are sampled to fill in what a borrowed rotamer library does
+        #    not cover; a nucleotide has its own sampler and needs none
+        generate_heavy_chi_samples=profile.polymer_type == "amino_acid",
     )
 
     # only a profile that transplants backbone icoors needs a donor residue
@@ -404,22 +447,36 @@ def prepare_polymer_residue(
         for a in prep.residue_type.atoms
     }
     coords = _ideal_coords_by_name(prep.residue_type)
+    library_names = {m.residue_name for m in param_db.scoring.dun.dun_lookup}
+    atom_type_index = {a.name: a for a in param_db.chemical.atom_types}
+    atom_type_index.update(
+        {
+            a.name: a
+            for a in collect_new_atom_types(
+                param_db.chemical,
+                prep.residue_type,
+                atom_type_elements=prep.atom_type_elements,
+            )
+        }
+    )
     residue_type = to_polymer_residue_type(
-        prep.residue_type, coords, profile, reference, elements, cap_names
+        prep.residue_type,
+        coords,
+        profile,
+        reference,
+        elements,
+        cap_names,
+        rotamer_references=_cached_profiles(param_db.chemical, library_names),
+        atom_type_index=atom_type_index,
     )
 
     if atom_aliases:
         residue_type = attr.evolve(
             residue_type, atom_aliases=residue_type.atom_aliases + atom_aliases
         )
-    if profile.backbone_type in ("dna", "rna"):
-        # which canonical base's torsion distributions this one is scored on
-        residue_type = attr.evolve(
-            residue_type,
-            na_base_reference=na_base_reference(
-                residue_type, profile, param_db.chemical
-            ),
-        )
+    residue_type = _with_sampling_reference(
+        residue_type, profile, param_db, prep.atom_type_elements
+    )
 
     kept = {a.name for a in residue_type.atoms}
     renamed, _dropped = backbone_renames(
@@ -603,8 +660,9 @@ def _prepare_ligand_via_smiles(
     ligand_info: NonStandardResidueInfo,
     *,
     ph: float,
-    sample_proton_chi: bool,
     seed: int | None = None,
+    assign_ring_chis: bool = False,
+    generate_heavy_chi_samples: bool = False,
 ) -> LigandPreparation:
     """Prepare one ligand through the unified CIF -> SMILES -> params path.
 
@@ -617,7 +675,6 @@ def _prepare_ligand_via_smiles(
     Args:
         ligand_info: The detected (CIF/atom-array) ligand.
         ph: Target pH for protonation (applied in the SMILES -> mol2 step).
-        sample_proton_chi: Whether to emit proton-chi samples.
         seed: Fixed RNG seed for reproducible 3D coordinates; ``None`` is
             random, which makes the measured bonded parameters differ between
             runs of the same input.
@@ -638,8 +695,9 @@ def _prepare_ligand_via_smiles(
         )
         prep = prepare_single_ligand(
             smiles_info,
-            sample_proton_chi=sample_proton_chi,
             name_source=ligand_info,
+            assign_ring_chis=assign_ring_chis,
+            generate_heavy_chi_samples=generate_heavy_chi_samples,
         )
     except Exception as err:
         raise ValueError(
@@ -741,7 +799,6 @@ def prepare_ligands(  # noqa: C901
     strict_atom_types: bool = False,
     params_files: list[str] | None = None,
     params_output: str | None = None,
-    sample_proton_chi: bool = True,
     strict_ligands: bool = True,
     return_fragment_definitions: bool = False,
     chem_comp_types: dict[str, str] | None = None,
@@ -767,8 +824,6 @@ def prepare_ligands(  # noqa: C901
             skip the RDKit/OB preparation pipeline.
         params_output: Optional path to write all prepared ligand data
             to a tmol YAML params file for later reuse.
-        sample_proton_chi: Whether to emit PROTON_CHI samples in the
-            built residue type.
         strict_ligands: If True (default), raise :class:`LigandPreparationError`
             when a detected non-standard residue is skipped (metal-containing or
             covalently linked) or fails preparation, instead of silently
@@ -956,15 +1011,12 @@ def prepare_ligands(  # noqa: C901
                     canonical_ordering,
                     param_db,
                     ph=ph,
-                    sample_proton_chi=sample_proton_chi,
                     connection_atoms=lig.connection_atom_names,
                     use_ccd=use_ccd,
                     seed=seed,
                 )
             else:
-                prep = _prepare_ligand_via_smiles(
-                    lig, ph=ph, sample_proton_chi=sample_proton_chi, seed=seed
-                )
+                prep = _prepare_ligand_via_smiles(lig, ph=ph, seed=seed)
         except LigandPreparationError:
             if not is_polymer:
                 raise
@@ -1107,7 +1159,6 @@ def prepare_ligand_from_cif(
     ph: float = 7.4,
     strict_atom_types: bool = False,
     res_name: str | None = None,
-    sample_proton_chi: bool = True,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Prepare a single ligand from a CIF file and inject it into a database.
 
@@ -1124,13 +1175,12 @@ def prepare_ligand_from_cif(
         ph: Target pH for protonation.
         strict_atom_types: Fail on unknown atom-type element mappings.
         res_name: Optional residue name override.
-        sample_proton_chi: Whether to emit proton-chi samples.
 
     Returns:
         A ``(ParameterDatabase, CanonicalOrdering)`` with the ligand injected.
     """
     lig = _ligand_info_from_cif(cif_path, res_name)
-    prep = _prepare_ligand_via_smiles(lig, ph=ph, sample_proton_chi=sample_proton_chi)
+    prep = _prepare_ligand_via_smiles(lig, ph=ph)
     return _inject_single(prep, param_db, strict_atom_types)
 
 
@@ -1142,7 +1192,6 @@ def prepare_ligand_from_smiles(
     strict_atom_types: bool = False,
     res_name: str | None = None,
     protonate: bool = True,
-    sample_proton_chi: bool = True,
     seed: int | None = None,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Prepare a single ligand from a SMILES string and inject it into a database.
@@ -1166,7 +1215,7 @@ def prepare_ligand_from_smiles(
         protonate=protonate,
         seed=seed,
     )
-    prep = prepare_single_ligand(lig, sample_proton_chi=sample_proton_chi)
+    prep = prepare_single_ligand(lig)
     return _inject_single(prep, param_db, strict_atom_types)
 
 
@@ -1190,7 +1239,6 @@ def prepare_ligands_from_smiles(
     ph: float = 7.4,
     strict_atom_types: bool = False,
     protonate: bool = True,
-    sample_proton_chi: bool = True,
     seed: int | None = None,
 ) -> tuple[ParameterDatabase, dict]:
     """Prepare one residue type per SMILES, naming them L_1, L_2, ...
@@ -1213,7 +1261,6 @@ def prepare_ligands_from_smiles(
             strict_atom_types=strict_atom_types,
             res_name=name,
             protonate=protonate,
-            sample_proton_chi=sample_proton_chi,
             seed=seed,
         )
         names[smi] = name
@@ -1226,7 +1273,6 @@ def prepare_ligand_from_mol2(
     param_db: Optional[ParameterDatabase] = None,
     strict_atom_types: bool = False,
     res_name: str | None = None,
-    sample_proton_chi: bool = True,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Prepare a single ligand from a Tripos mol2 file and inject it.
 
@@ -1238,7 +1284,6 @@ def prepare_ligand_from_mol2(
         param_db: Base database (not modified); defaults to the tmol default.
         strict_atom_types: Fail on unknown atom-type element mappings.
         res_name: Optional residue name override.
-        sample_proton_chi: Whether to emit proton-chi samples.
 
     Returns:
         A ``(ParameterDatabase, CanonicalOrdering)`` with the ligand injected.
@@ -1246,5 +1291,5 @@ def prepare_ligand_from_mol2(
     from tmol.ligand._detect import nonstandard_residue_info_from_mol2
 
     lig = nonstandard_residue_info_from_mol2(mol2_path, res_name=res_name)
-    prep = prepare_single_ligand(lig, sample_proton_chi=sample_proton_chi)
+    prep = prepare_single_ligand(lig)
     return _inject_single(prep, param_db, strict_atom_types)

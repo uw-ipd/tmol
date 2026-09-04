@@ -139,80 +139,10 @@ def test_pose_stack_from_biotite_missing_single_sidechain_smoke(
     biotite_from_pose_stack(pose_stack)
 
 
-@pytest.mark.parametrize("entry", ["build_context", "pose_stack"])
-@pytest.mark.parametrize("sample_proton_chi", [True, False])
-def test_sample_proton_chi_forwarded_to_prepare_ligands(
-    entry, sample_proton_chi, torch_device, monkeypatch
-):
-    # An explicit sample_proton_chi setting must reach
-    # tmol.ligand.prepare_ligands from the integrated pose-build path. Spy on
-    # prepare_ligands to capture the kwarg, then short-circuit before the heavy
-    # canonical-form build.
-    import tmol.ligand
-
-    captured: dict = {}
-
-    class _Stop(Exception):
-        pass
-
-    def fake_prepare_ligands(structure, **kwargs):
-        captured.update(kwargs)
-        raise _Stop
-
-    monkeypatch.setattr(tmol.ligand, "prepare_ligands", fake_prepare_ligands)
-
-    structure = biotite.structure.AtomArray(1)
-    func = (
-        build_context_from_biotite
-        if entry == "build_context"
-        else pose_stack_from_biotite
-    )
-
-    with pytest.raises(_Stop):
-        func(
-            structure,
-            torch_device,
-            prepare_ligands=True,
-            sample_proton_chi=sample_proton_chi,
-        )
-    assert captured.get("sample_proton_chi") is sample_proton_chi
-
-
-@pytest.mark.parametrize("entry", ["build_context", "pose_stack"])
-def test_sample_proton_chi_enabled_by_default(entry, torch_device, monkeypatch):
-    import tmol.ligand
-
-    captured: dict = {}
-
-    class _Stop(Exception):
-        pass
-
-    def fake_prepare_ligands(structure, **kwargs):
-        captured.update(kwargs)
-        raise _Stop
-
-    monkeypatch.setattr(tmol.ligand, "prepare_ligands", fake_prepare_ligands)
-
-    structure = biotite.structure.AtomArray(1)
-    func = (
-        build_context_from_biotite
-        if entry == "build_context"
-        else pose_stack_from_biotite
-    )
-
-    with pytest.raises(_Stop):
-        func(structure, torch_device, prepare_ligands=True)
-    assert captured.get("sample_proton_chi") is True
-
-
-def test_sample_proton_chi_integrated_pose_build_behavior(torch_device):
-    # End-to-end behavior of the gate through the integrated pose-build path
-    # (forwarding alone cannot prove this):
-    #   - sample_proton_chi=False: the pose builds with finite ligand
-    #     coordinates, and the prepared LG1 residue carries torsions but no
-    #     chi_samples;
-    #   - sample_proton_chi=True: the full pose build remains finite and the
-    #     prepared LG1 residue gains proton chi_samples.
+def test_ligand_proton_chi_samples_build_finite_coords(torch_device):
+    # Proton-chi samples are always emitted, and a pose built from a ligand
+    # that carries them has finite coordinates: the sampled hydrogens are not
+    # left as unbuilt DOFs.
     import pathlib
 
     import biotite.structure
@@ -233,49 +163,25 @@ def test_sample_proton_chi_integrated_pose_build_behavior(torch_device):
     if isinstance(bt_struct, biotite.structure.AtomArrayStack):
         bt_struct = bt_struct[0]
 
-    def _lg1(context):
-        return next(
-            rt
-            for rt in context.parameter_database.chemical.residues
-            if rt.name == "LG1"
-        )
-
     # This file supplies the whole molecule under a code of its own, which the
     # component dictionary defines as an unrelated one, so it is taken as given.
-    #
-    # Explicit opt-out: a full pose builds NaN-free; LG1 has torsions, no
-    # chi_samples.
     pose_stack, context = pose_stack_from_biotite(
         bt_struct,
         torch_device,
         prepare_ligands=True,
-        sample_proton_chi=False,
         param_db=ParameterDatabase.get_default(),
         return_context=True,
         use_ccd=False,
     )
     assert torch.isfinite(pose_stack.coords[pose_stack.real_atoms]).all()
-    lg1_default = _lg1(context)
-    assert lg1_default.torsions  # heavy + proton-chi torsions always emitted
-    assert lg1_default.chi_samples == ()  # explicit opt-out suppresses samples
-
-    # Default-on: the full pose remains finite and the prepared LG1 residue
-    # carries proton chi_samples.
-    pose_on, context_on = pose_stack_from_biotite(
-        bt_struct,
-        torch_device,
-        prepare_ligands=True,
-        param_db=ParameterDatabase.get_default(),
-        return_context=True,
-        use_ccd=False,
+    lg1 = next(
+        rt for rt in context.parameter_database.chemical.residues if rt.name == "LG1"
     )
-    assert torch.isfinite(pose_on.coords[pose_on.real_atoms]).all()
-    lg1_on = _lg1(context_on)
-    assert lg1_on.torsions
-    assert lg1_on.chi_samples
+    assert lg1.torsions
+    assert lg1.chi_samples
 
 
-def test_sample_proton_chi_ligand_build_from_mol2(torch_device):
+def test_ligand_build_from_mol2_bond_orders(torch_device):
     # Parallel to the CIF-source test above, but sources LG1 from the Tripos
     # mol2 (ace.lig.mol2). The mol2 encodes the carboxylates correctly (O.co2 /
     # C.2 sybyl types => C(=O)[O-]), whereas ace.ligand.cif declares those C-O

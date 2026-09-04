@@ -183,9 +183,16 @@ class CanonicalOrdering:
     cys_inds: CysSpecialCaseIndices
     his_inds: HisSpecialCaseIndices
 
+    # input residue names read as another residue's, from the chemical database
+    name3_aliases: Mapping[str, str] = attr.ib(factory=dict)
+
     @property
     def n_restype_io_equiv_classes(self):
         return len(self.restype_io_equiv_classes)
+
+    def resolve_name3(self, name3: str) -> str:
+        """The residue name to read this input name as."""
+        return self.name3_aliases.get(name3, name3)
 
     # placeholder names an input may use when a histidine's tautomer is not
     # yet decided; every histidine class needs them, d as well as l
@@ -292,6 +299,11 @@ class CanonicalOrdering:
             down_termini_patches=down_termini_patches,
             up_termini_patches=up_termini_patches,
             termini_patch_added_atoms=termini_patch_added_atoms,
+            name3_aliases={
+                alias.name3: alias.read_as
+                for alias in chemdb.name3_aliases
+                if alias.read_as in ordered_restypes
+            },
             cys_inds=cls._init_cys_special_case_indices(
                 chemdb, ordered_restypes, restypes_ordered_atom_names
             ),
@@ -601,6 +613,7 @@ def canonical_form_from_atom_records(  # noqa: C901
     for row in atom_records.itertuples(index=False):
         resid = (row.chain, row.resi, row.insert)
         res_ind = uniq_res_ind[resid]
+        resn = canonical_ordering.resolve_name3(row.resn)
         if row.chaini not in chains_seen:
             chains_seen[row.chaini] = chain_id_counter
             chain_id_to_label[chain_id_counter] = row.chain
@@ -608,7 +621,7 @@ def canonical_form_from_atom_records(  # noqa: C901
         chain_id[0, res_ind] = chains_seen[row.chaini]
         if res_types[0, res_ind] == -2:
             try:
-                aa_ind = canonical_ordering.restype_io_equiv_classes.index(row.resn)
+                aa_ind = canonical_ordering.restype_io_equiv_classes.index(resn)
                 res_types[0, res_ind] = aa_ind
                 chain_labels[0, res_ind] = chain_id_to_label[chain_id[0, res_ind]]
                 res_labels[0, res_ind] = uniq_res_list[res_ind][1]
@@ -619,7 +632,7 @@ def canonical_form_from_atom_records(  # noqa: C901
                 res_labels[0, res_ind] = ""
                 res_ins_codes[0, res_ind] = ""
         if res_types[0, res_ind] >= 0:
-            res_at_mapping = canonical_ordering.restypes_atom_index_mapping[row.resn]
+            res_at_mapping = canonical_ordering.restypes_atom_index_mapping[resn]
 
             atname = row.atomn.strip()
             try:

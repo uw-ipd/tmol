@@ -42,26 +42,74 @@ def _dropped_atoms(cap_names, adj, hydrogens):
     return dropped
 
 
-def sidechain_roots(profile, adj, kept, hydrogens):
+def turnable_bonds(bonds, adj, hydrogens) -> frozenset:
+    """Heavy-atom bonds a torsion may turn, as frozensets of atom names.
+
+    Single, out of any ring, and with a heavy atom on either side to move: a
+    bond to a terminal atom turns nothing that is not a proton chi.
+    """
+
+    def heavy_degree(name):
+        return sum(1 for n in adj.get(name, ()) if n not in hydrogens)
+
+    turnable = set()
+    for bond in bonds:
+        a, b = bond[0], bond[1]
+        order = bond[2] if len(bond) > 2 else "SINGLE"
+        in_ring = bool(bond[3]) if len(bond) > 3 else False
+        if a in hydrogens or b in hydrogens or order != "SINGLE" or in_ring:
+            continue
+        if heavy_degree(a) > 1 and heavy_degree(b) > 1:
+            turnable.add(frozenset((a, b)))
+    return frozenset(turnable)
+
+
+def _branch_is_sidechain(root, anchor, adj, turnable, backbone) -> bool:
+    """Whether a branch off the backbone has any bond a chi could turn.
+
+    The backbone's own substituents -- a carbonyl oxygen, a methyl on an amide
+    nitrogen -- turn nothing, which is what separates them from a sidechain.
+    """
+    if frozenset((anchor, root)) in turnable:
+        return True
+    seen = {anchor, root}
+    queue = deque([root])
+    while queue:
+        node = queue.popleft()
+        for nbr in adj.get(node, ()):
+            if nbr in seen or nbr in backbone:
+                continue
+            if frozenset((node, nbr)) in turnable:
+                return True
+            seen.add(nbr)
+            queue.append(nbr)
+    return False
+
+
+def sidechain_roots(profile, bonds, adj, kept, hydrogens):
     """Heavy atoms hanging off the sidechain root that are not backbone.
 
     Structural, so no sidechain atom name is assumed; an alpha-disubstituted
     residue has two and glycine has none. Backbone is not only the mainchain:
     a nucleotide's sugar hangs off it and is backbone all the same, so the
     atoms the profile gives backbone types to are excluded too.
+
+    A backbone the profile does not describe names no such atoms, so there a
+    branch is a sidechain only if something along it can be turned.
     """
     mainchain = set(profile.mainchain_atoms) | {n for n, _t in profile.backbone_types}
     # a backbone with no privileged root may carry a sidechain anywhere along it
-    roots = (
-        profile.mainchain_atoms
-        if profile.sidechain_root_atoms is None
-        else profile.sidechain_root_atoms
-    )
+    declared = profile.sidechain_root_atoms is not None
+    roots = profile.sidechain_root_atoms if declared else profile.mainchain_atoms
+    turnable = None if declared else turnable_bonds(bonds, adj, hydrogens)
     return [
         n
         for root in roots
         for n in sorted(adj.get(root, ()))
-        if n in kept and n not in hydrogens and n not in mainchain
+        if n in kept
+        and n not in hydrogens
+        and n not in mainchain
+        and (declared or _branch_is_sidechain(n, root, adj, turnable, mainchain))
     ]
 
 
@@ -178,15 +226,91 @@ def _sidechain_traversal(profile, adj, roots, kept, hydrogens):
     return index
 
 
-def _chi_torsions(profile, restype, adj, kept, hydrogens, roots, rename, elements):
+def _closes_backbone_ring(b, c, adj, backbone) -> bool:
+    """Whether the b-c bond closes a ring made only of backbone atoms.
+
+    A nucleotide's sugar is such a ring: its bonds cannot be turned one at a
+    time without tearing it open, and the canonical nucleotides declare no chi
+    for them. Proline's ring is not one -- CB, CG and CD are sidechain -- so
+    its ring chi are unaffected.
+    """
+    if b not in backbone or c not in backbone:
+        return False
+    seen, queue = {b}, deque([b])
+    while queue:
+        node = queue.popleft()
+        for nbr in adj.get(node, ()):
+            if node == b and nbr == c:
+                continue
+            if nbr == c:
+                return True
+            if nbr in seen or nbr not in backbone:
+                continue
+            seen.add(nbr)
+            queue.append(nbr)
+    return False
+
+
+def _ring_closure_chi(profile, adj, index, kept, hydrogens):
+    """The last chi of a sidechain that closes back onto the mainchain.
+
+    Proline's chi3 turns CG-CD and is measured into N. No tree rooted on the
+    mainchain reaches that bond as a parent-child edge -- the ring is entered
+    from both ends and it becomes the back edge -- so it is derived here from
+    the order the sidechain was walked in.
+
+    Backbone is not only the mainchain: a nucleotide's sugar ring closes onto
+    atoms the profile types as backbone, and closing onto backbone is not a
+    chi however the ring is entered.
+    """
+    mainchain = set(profile.mainchain_atoms) | {n for n, _t in profile.backbone_types}
+
+    def previous(atom):
+        """The sidechain atom walked immediately before this one."""
+        before = [
+            n
+            for n in adj.get(atom, ())
+            if n in index and index[n] < index.get(atom, -1)
+        ]
+        return max(before, key=lambda n: index[n]) if before else None
+
+    for atom in sorted(index, key=lambda n: index[n], reverse=True):
+        if atom in hydrogens or atom not in kept:
+            continue
+        onto = sorted(n for n in adj.get(atom, ()) if n in mainchain and n in kept)
+        if not onto:
+            continue
+        c = previous(atom)
+        if c is None:
+            continue
+        b = previous(c)
+        if b is None:
+            continue
+        closing = [b, c, atom, onto[0]]
+        if len(set(closing)) != 4:
+            continue
+        return (index[atom], closing, "ring_closure")
+    return None
+
+
+def _chi_torsions(
+    profile, restype, adj, kept, hydrogens, roots, rename, elements, borrowed=()
+):
     """Sidechain chi, renumbered outward from the root along the longest branch.
 
     A torsion whose central bond lies wholly on the mainchain is a backbone
     torsion, not a chi. A proton chi (fourth atom a hydrogen) is only emitted
     off an O or S: those keep a lone pair when protonated, where an N-H is
     either a planar amide or a lone-pair-less ammonium.
+
+    ``borrowed`` are the chi a rotamer library defines for this residue, taken
+    from the reference it corresponds to. They lead, in the reference's own
+    order, and whatever the residue turns beyond them follows. A branch point
+    has no local rule to settle it -- hydroxyproline's CG carries both CD and
+    OD1 -- so where a library is borrowed it decides.
     """
     mainchain = set(profile.mainchain_atoms) | {n for n, _ in profile.connections}
+    backbone = set(profile.mainchain_atoms) | {n for n, _t in profile.backbone_types}
     index = _sidechain_traversal(profile, adj, roots, kept, hydrogens)
 
     candidates = []
@@ -200,6 +324,15 @@ def _chi_torsions(profile, restype, adj, kept, hydrogens, roots, rename, element
         b, c = atoms[1], atoms[2]
         if b in mainchain and c in mainchain:
             continue
+        if _closes_backbone_ring(b, c, adj, backbone):
+            continue
+        # a sidechain leaves the backbone at its root and nowhere else: the
+        #    far end of a ring that closes back onto the mainchain is reached
+        #    around the ring, not across the bond it closes
+        if b in mainchain and c not in roots and c not in mainchain:
+            continue
+        if c in mainchain and b not in roots and b not in mainchain:
+            continue
         # orient outward from the backbone: dunbrack reads the chi-defining
         #    atom off position 2, so a reversed chi rotates the wrong bond
         if index.get(b, -1) > index.get(c, -1):
@@ -212,18 +345,38 @@ def _chi_torsions(profile, restype, adj, kept, hydrogens, roots, rename, element
             continue
         candidates.append((outer, atoms, torsion.name))
 
+    # the ring closure is proline's chi3; a nucleotide's rings are its sugar
+    #    and its base, whose torsions the na_torsion term owns
+    closing = (
+        _ring_closure_chi(profile, adj, index, kept, hydrogens)
+        if profile.polymer_type == "amino_acid"
+        else None
+    )
+    if closing is not None:
+        # no bond may carry two chi: they would turn it twice, and the second
+        #    would undo whatever the first placed
+        turned = {frozenset(atoms[1:3]) for _o, atoms, _n in candidates}
+        if frozenset(closing[1][1:3]) not in turned:
+            candidates.append(closing)
+
     candidates.sort(key=lambda entry: (entry[0], entry[1]))
-    torsions, renumbered = [], {}
-    for n, (_outer, atoms, old_name) in enumerate(candidates, start=1):
+    # a borrowed chi turns its bond already; the residue's own reading of that
+    #    bond would turn it a second time
+    lent = {frozenset(atoms[1:3]) for atoms in borrowed}
+    candidates = [c for c in candidates if frozenset(c[1][1:3]) not in lent]
+
+    ordered = [(list(atoms), None) for atoms in borrowed]
+    ordered += [(atoms, old_name) for _outer, atoms, old_name in candidates]
+
+    torsions, renumbered, proton = [], {}, set()
+    for n, (atoms, old_name) in enumerate(ordered, start=1):
         name = f"chi{n}"
-        renumbered[old_name] = name
+        if old_name is not None:
+            renumbered[old_name] = name
         a, b, c, d = (UnresolvedAtom(atom=x) for x in atoms)
         torsions.append(Torsion(name=name, a=a, b=b, c=c, d=d))
-    proton = {
-        f"chi{n}"
-        for n, (_o, atoms, _name) in enumerate(candidates, start=1)
-        if atoms[3] in hydrogens
-    }
+        if atoms[3] in hydrogens:
+            proton.add(name)
     return torsions, renumbered, proton
 
 
@@ -303,7 +456,7 @@ def icoor_mainchain(profile, present):
     return mainchain[start:] + mainchain[start - 1 :: -1] if start else mainchain
 
 
-def _icoor_order(profile, adj, kept, hydrogens):
+def _icoor_order(profile, bonds, adj, kept, hydrogens):
     """Traversal order: mainchain, up, O, sidechain, its H, CA-H, down, N-H.
 
     Mirrors the canonical residues' ordering so parents always precede children.
@@ -311,7 +464,7 @@ def _icoor_order(profile, adj, kept, hydrogens):
     down_name, down_atom = profile.down if profile.down else (None, None)
     up_name, _up_atom = profile.up if profile.up else (None, None)
     mainchain = icoor_mainchain(profile, kept)
-    roots = sidechain_roots(profile, adj, kept, hydrogens)
+    roots = sidechain_roots(profile, bonds, adj, kept, hydrogens)
 
     placed = list(mainchain)
     order = list(mainchain) + ([up_name] if up_name else [])
@@ -369,7 +522,7 @@ def _icoor_order(profile, adj, kept, hydrogens):
     return order
 
 
-def _parents(profile, adj, order):
+def _parents(profile, adj, order, hydrogens=frozenset()):
     """(parent, grand_parent, great_grand_parent) for each entry in order."""
     mainchain = icoor_mainchain(profile, set(order))
     position = {name: i for i, name in enumerate(order)}
@@ -389,9 +542,11 @@ def _parents(profile, adj, order):
         ]
         parent[name] = min(placed, key=lambda n: position[n])
 
-    def placed_sibling(name, par, exclude):
+    def placed_sibling(name, par, exclude, heavy_only=False):
         for n in sorted(adj.get(par, ()), key=lambda x: position.get(x, len(order))):
             if n in exclude or n not in position:
+                continue
+            if heavy_only and n in hydrogens:
                 continue
             if position[n] < position[name]:
                 return n
@@ -410,6 +565,13 @@ def _parents(profile, adj, order):
         if gp == par or gp == name:
             gp = placed_sibling(name, par, {name, par}) or gp
         ggp = parent.get(gp, gp)
+        # A hydrogen is measured against a heavy atom on its own parent rather
+        #    than up the chain: the torsion it would otherwise use is free to
+        #    differ between the conformer the icoors were measured on and the
+        #    structure the pose is built from, and the hydrogen would not
+        #    follow its parent's other substituents.
+        if name in hydrogens:
+            ggp = placed_sibling(name, par, {name, gp}, heavy_only=True) or ggp
         if ggp in (name, par, gp):
             # a ring closing onto the root (proline's CD) has no usable sibling
             #    of the parent; step out to the grandparent's neighbours
@@ -453,22 +615,128 @@ def _computed_icoors(order, frames, coords):
     return icoors
 
 
-def sidechain_chirality(profile, coords, roots):
-    """l / d / achiral from the signed volume at the alpha carbon.
+def _carboxyl_neighbor(center, adj, elements):
+    """A carbon bonded to center that carries a terminal oxygen, or None.
+
+    Bond order cannot be used: a carboxylate records both its C-O bonds
+    single. Two such carbons are ambiguous and give None, so the caller keeps
+    its mainchain-order frame rather than guessing.
+    """
+
+    def heavy(name):
+        return [n for n in adj.get(name, ()) if elements.get(n) not in (None, "H")]
+
+    found = [
+        nbr
+        for nbr in adj.get(center, ())
+        if elements.get(nbr) == "C"
+        and any(elements.get(o) == "O" and len(heavy(o)) == 1 for o in adj.get(nbr, ()))
+    ]
+    return found[0] if len(found) == 1 else None
+
+
+def sidechain_chirality(profile, coords, roots, adj, elements):
+    """l / d / achiral from the signed volume at the sidechain-bearing atom.
 
     CIP cannot be used: L-cysteine is (R) where every other L-aa is (S).
     Zero sidechain branches (glycine) or two (alpha-disubstituted) are achiral.
     Only an amino acid has one: a nucleotide's sidechain hangs off a mainchain
     that carries no stereocenter, so the volume is a conformer artifact. Every
     other polymer takes the not-applicable sentinel the canonical ones use.
+
+    The mainchain atom the sidechain hangs off is the stereocenter. Its frame
+    is amine, carboxyl, then the remaining substituent -- picked by chemistry,
+    because a chain that leaves through a side branch (a gamma linkage, say)
+    puts the carboxyl on the branch and the mainchain on the R group, and a
+    frame taken in mainchain order would mirror the label. A backbone whose
+    stereocenter carries no carboxyl falls back to its mainchain neighbours.
     """
     if profile.polymer_type != "amino_acid":
         return "NA"
-    if len(roots) != 1 or len(profile.mainchain_atoms) < 3:
+    mainchain = tuple(profile.mainchain_atoms)
+    if len(roots) != 1 or len(mainchain) < 3:
         return "achiral"
-    n, ca, c = (coords[a] for a in profile.mainchain_atoms[:3])
-    volume = numpy.dot(numpy.cross(n - ca, c - ca), coords[roots[0]] - ca)
+    root = roots[0]
+    carries = [i for i, a in enumerate(mainchain) if root in adj.get(a, ())]
+    if len(carries) != 1 or not 0 < carries[0] < len(mainchain) - 1:
+        return "achiral"
+    index = carries[0]
+    stereocenter = mainchain[index]
+    amine = mainchain[index - 1]
+    carboxyl = _carboxyl_neighbor(stereocenter, adj, elements)
+    if carboxyl is None:
+        forward, tip = mainchain[index + 1], root
+    else:
+        rest = [
+            n
+            for n in adj.get(stereocenter, ())
+            if n not in (amine, carboxyl) and elements.get(n) not in (None, "H")
+        ]
+        if len(rest) != 1:
+            return "achiral"
+        forward, tip = carboxyl, rest[0]
+    center = coords[stereocenter]
+    volume = numpy.dot(
+        numpy.cross(coords[amine] - center, coords[forward] - center),
+        coords[tip] - center,
+    )
     return "l" if volume > 0 else "d"
+
+
+def _borrowed_chi(
+    name, atoms, bonds, coords, profile, chirality, references, atom_type_index
+):
+    """The rotamer library this residue takes its chi from, and those chi.
+
+    Decided here rather than after the fact: which torsions the residue calls
+    chi1, chi2 and so on is exactly what corresponding to a library means.
+    """
+    from tmol.ligand._rotamer_reference import (
+        SidechainGraph,
+        planar_atoms,
+        reference_chi_for_graph,
+    )
+
+    if not references or atom_type_index is None:
+        return None, ()
+    if profile.polymer_type != "amino_acid":
+        return None, ()
+    described = {a.name: atom_type_index.get(a.atom_type) for a in atoms}
+    if any(record is None for record in described.values()):
+        return None, ()
+
+    element = {n: record.element for n, record in described.items()}
+    heavy = {n for n, e in element.items() if e.upper() != "H"}
+    adjacency = {n: set() for n in element}
+    rigid = set()
+    for bond in bonds:
+        first, second = bond[0], bond[1]
+        if first not in adjacency or second not in adjacency:
+            continue
+        adjacency[first].add(second)
+        adjacency[second].add(first)
+        order = bond[2] if len(bond) > 2 else "SINGLE"
+        if order != "SINGLE" and first in heavy and second in heavy:
+            rigid.add(frozenset((first, second)))
+
+    graph = SidechainGraph(
+        name=name,
+        element=element,
+        donor=frozenset(n for n, r in described.items() if r.is_donor),
+        acceptor=frozenset(n for n, r in described.items() if r.is_acceptor),
+        adjacency={
+            n: frozenset(x for x in nbrs if x in heavy)
+            for n, nbrs in adjacency.items()
+            if n in heavy
+        },
+        rigid=frozenset(rigid),
+        planar=planar_atoms(adjacency, coords),
+        mainchain=tuple(profile.mainchain_atoms),
+        backbone_type=profile.backbone_type,
+        chirality=chirality,
+        coords=coords,
+    )
+    return reference_chi_for_graph(graph, references)
 
 
 def to_polymer_residue_type(
@@ -478,11 +746,15 @@ def to_polymer_residue_type(
     reference: RawResidueType,
     elements: dict,
     cap_names: dict,
+    rotamer_references=(),
+    atom_type_index=None,
 ) -> RawResidueType:
     """Replace a capped molecule's stubs with polymer connections.
 
     coords maps atom name to the generated conformer position; elements maps it
-    to its element symbol.
+    to its element symbol. rotamer_references are the canonical libraries this
+    residue may take its chi from, which is decided here because it decides
+    what the chi are.
     """
     hydrogen_names = {n for n, e in elements.items() if e == "H"}
     adj = _adjacency(restype.bonds)
@@ -531,9 +803,20 @@ def to_polymer_residue_type(
         adj.setdefault(conn_atom, []).append(conn_name)
         adj[conn_name] = [conn_atom]
 
-    roots = sidechain_roots(profile, adj, kept, hydrogens)
-    order = _icoor_order(profile, adj, kept, hydrogens)
-    frames = _parents(profile, adj, order)
+    roots = sidechain_roots(profile, restype.bonds, adj, kept, hydrogens)
+    chirality = sidechain_chirality(profile, coords, roots, adj, elements)
+    dunbrack_reference, borrowed = _borrowed_chi(
+        restype.name,
+        atoms,
+        bonds,
+        coords,
+        profile,
+        chirality,
+        rotamer_references,
+        atom_type_index,
+    )
+    order = _icoor_order(profile, restype.bonds, adj, kept, hydrogens)
+    frames = _parents(profile, adj, order, hydrogens)
     icoors = _computed_icoors(order, frames, coords)
 
     # the mainchain records are shared by every residue of this backbone; take
@@ -545,21 +828,24 @@ def to_polymer_residue_type(
     )
 
     chi, renumbered, proton = _chi_torsions(
-        profile, restype, adj, kept, hydrogens, roots, rename, elements
+        profile, restype, adj, kept, hydrogens, roots, rename, elements, borrowed
     )
     glycosidic, chi, renumbered, proton = _glycosidic_torsion(
         profile, adj, elements, kept, chi, renumbered, proton
     )
     torsions = _mainchain_torsions(profile, kept) + list(glycosidic) + chi
-    # proton chi keep their samples for optH; heavy chi are packed as rotamers
+    # proton chi are optH's as well as the packer's; a heavy chi is the
+    #    packer's alone. Which is which follows the renumbered chi, not the
+    #    capped molecule's, since renumbering can change what a chi measures.
     chi_samples = [
         type(s)(
             chi_dihedral=renumbered[s.chi_dihedral],
             samples=s.samples,
             expansions=s.expansions,
+            is_proton=renumbered[s.chi_dihedral] in proton,
         )
         for s in restype.chi_samples
-        if s.chi_dihedral in renumbered and renumbered[s.chi_dihedral] in proton
+        if s.chi_dihedral in renumbered
     ]
 
     properties = ChemicalProperties(
@@ -569,7 +855,7 @@ def to_polymer_residue_type(
             polymer_type=profile.polymer_type,
             backbone_type=profile.backbone_type,
             mainchain_atoms=tuple(profile.mainchain_atoms),
-            sidechain_chirality=sidechain_chirality(profile, coords, roots),
+            sidechain_chirality=chirality,
             termini_variants=(),
         ),
         chemical_modifications=(),
@@ -601,4 +887,5 @@ def to_polymer_residue_type(
             1 if len(profile.mainchain_atoms) > 1 else 0
         ],
         hydrogens_regenerated=restype.hydrogens_regenerated,
+        dunbrack_reference=dunbrack_reference,
     )

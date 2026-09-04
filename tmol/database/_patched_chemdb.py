@@ -8,6 +8,7 @@ from tmol.database.chemical import (
     VariantType,
     ChemicalDatabase,
     Icoor,
+    Name3Alias,
 )
 
 from tmol.extern.pysmiles import read_smiles
@@ -672,6 +673,7 @@ class PatchedChemicalDatabase:
     atom_types: Tuple[AtomType, ...]
     residues: Tuple[RawResidueType, ...]
     variants: Tuple[VariantType, ...]
+    name3_aliases: Tuple[Name3Alias, ...] = ()
 
     @classmethod
     def from_chem_db(cls, chemdb: ChemicalDatabase):
@@ -695,6 +697,7 @@ class PatchedChemicalDatabase:
             atom_types=chemdb.atom_types,
             residues=patched_residues,
             variants=chemdb.variants,
+            name3_aliases=chemdb.name3_aliases,
         )
 
     def with_added_residues(self, residues, atom_types=None, variants=None):

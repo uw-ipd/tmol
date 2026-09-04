@@ -91,6 +91,19 @@ class AtomAlias:
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
+class Name3Alias:
+    """An input residue name that is read as another residue's.
+
+    The residue is read, scored and written as ``read_as``; its own name does
+    not survive. Reserved for a component the database deliberately does not
+    describe, where the substitute is chemically the same molecule.
+    """
+
+    name3: str
+    read_as: str
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
 class Icoor:
     name: str
     phi: DihedralAngle
@@ -126,9 +139,17 @@ class Torsion:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class ChiSamples:
+    """Discrete values a torsion is sampled at, where no library supplies them.
+
+    A proton chi turns a hydrogen and is optH's to place as well as the
+    packer's; any other sampled chi moves heavy atoms and is the packer's
+    alone.
+    """
+
     chi_dihedral: str
     samples: Tuple[float, ...]
     expansions: Tuple[float, ...]
+    is_proton: bool = True
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -283,6 +304,7 @@ class ChemicalDatabase:
     atom_types: Tuple[AtomType, ...]
     residues: Tuple[RawResidueType, ...]
     variants: Tuple[VariantType, ...]
+    name3_aliases: Tuple[Name3Alias, ...] = ()
 
     @classmethod
     def get_default(cls) -> "ChemicalDatabase":

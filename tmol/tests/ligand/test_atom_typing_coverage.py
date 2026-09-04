@@ -89,8 +89,6 @@ _MOLECULES: dict[str, str] = {
     # Aromatic-ring / non-aromatic-ring junction: exercises the conjugated
     # bond-order ring(N=C)-N-H exception probe across an aryl-to-alkene-ring bond.
     "phenylcyclohexene": "C1=C(CCCC1)c1ccccc1",
-    # Boron isn't in the element->classifier table -> unknown-element fallback.
-    "boronic_acid": "OB(O)O",
 }
 
 
@@ -122,6 +120,18 @@ def test_assign_tmol_atom_types_is_robust(name: str) -> None:
         assert a.element
     # Indices form a complete, unique cover of the molecule's atoms.
     assert {a.index for a in assignments} == set(range(mol.GetNumAtoms()))
+
+
+def test_assign_tmol_atom_types_refuses_an_unsupported_element() -> None:
+    """An element with no atom types of its own is an error, not a guess.
+
+    Typing it as anything else would give every one of its atoms another
+    element's radius, charge and hydrogen bonding for the whole run.
+    """
+    from tmol.ligand import assign_tmol_atom_types
+
+    with pytest.raises(ValueError, match="element B"):
+        assign_tmol_atom_types(_embed_3d("OB(O)O"))
 
 
 def test_assign_tmol_atom_types_spot_checks() -> None:

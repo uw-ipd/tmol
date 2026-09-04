@@ -34,16 +34,13 @@ def prepare_seed_entry(entry) -> LigandPreparation:
     through the canonical SMILES->mol2->params path: OpenBabel builds a 3D
     MMFF94 mol2, which is read without an atom-array round-trip. Protonation is
     pinned (``protonate=False``) so the regression reproduces the ground-truth
-    protonation state deterministically. Uses the entry's charge mode and
-    proton-chi setting so the regression is genuinely driven by the manifest.
+    protonation state deterministically. Uses the entry's charge mode so the
+    regression is genuinely driven by the manifest.
     """
     info = nonstandard_residue_info_from_smiles_via_mol2(
         entry.expected_prot_smiles, res_name=entry.name, protonate=False
     )
-    return prepare_single_ligand(
-        info,
-        sample_proton_chi=entry.sample_proton_chi,
-    )
+    return prepare_single_ligand(info)
 
 
 def _chi_axes_from_reference(ref) -> set:

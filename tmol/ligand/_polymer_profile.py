@@ -1366,7 +1366,12 @@ def _build_na_profile(chemdb, kind: str) -> Optional[PolymerProfile]:
             for name, counter in sorted(hydrogen_types.items())
         ),
         mainchain_torsions=torsions,
-        transplant_icoors=tuple(sorted(shared) + ["down", "up"]),
+        # A nucleotide's backbone closes a ring, and an icoor transplants only
+        #    where both residues frame the atom the same way. Taking the
+        #    reference's placement for part of a ring and measuring the rest
+        #    off this residue's own conformer describes the ring twice over,
+        #    and it closes on neither: the whole sugar is measured here.
+        transplant_icoors=(),
         renamed_h_parents=(),
         glycosidic_torsion="chi1",
         icoor_root=_reference_icoor_root(reference, mainchain),

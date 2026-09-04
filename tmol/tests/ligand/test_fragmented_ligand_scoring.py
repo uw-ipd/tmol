@@ -140,7 +140,6 @@ def _build(structure, params_path, torch_device, *, fragmented):
         prepare_ligands=True,
         ligand_params_files=[str(params_path)],
         no_optH=True,
-        sample_proton_chi=False,
         param_db=ParameterDatabase.get_default(),
         return_context=True,
     )
@@ -283,7 +282,6 @@ def test_fragmentation_uses_ligand_already_in_parameter_database(torch_device):
         param_db=whole_context.parameter_database,
         prepare_ligands=True,
         no_optH=True,
-        sample_proton_chi=False,
     )
 
     pbt = pose.packed_block_types

@@ -105,7 +105,7 @@ class TestFullPipeline:
             cif_184l_with_i4b, canonical_ordering_for_biotite()
         )
         i4b = next(l for l in ligands if l.res_name == "I4B")
-        prep = _prepare_ligand_via_smiles(i4b, ph=7.4, sample_proton_chi=True)
+        prep = _prepare_ligand_via_smiles(i4b, ph=7.4)
 
         n_before = len(param_db.chemical.residues)
         extended_db = inject_ligand_preparations(param_db, [prep])
@@ -233,7 +233,7 @@ class TestParamsRoundtrip:
         co = canonical_ordering_for_biotite()
         ligands = detect_nonstandard_residues(cif_184l_with_i4b, co)
         i4b = next(lig for lig in ligands if lig.res_name == "I4B")
-        prep = _prepare_ligand_via_smiles(i4b, ph=7.4, sample_proton_chi=True)
+        prep = _prepare_ligand_via_smiles(i4b, ph=7.4)
         restype = prep.residue_type
 
         path = tmp_path / "I4B.params"
@@ -254,7 +254,7 @@ class TestParamsRoundtrip:
         co = canonical_ordering_for_biotite()
         ligands = detect_nonstandard_residues(cif_184l_with_i4b, co)
         i4b = next(lig for lig in ligands if lig.res_name == "I4B")
-        prep = _prepare_ligand_via_smiles(i4b, ph=7.4, sample_proton_chi=True)
+        prep = _prepare_ligand_via_smiles(i4b, ph=7.4)
         restype = prep.residue_type
 
         path = tmp_path / "I4B_bondtypes.params"

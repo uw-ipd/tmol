@@ -1463,12 +1463,15 @@ def assign_tmol_atom_types(
         z = atom.GetAtomicNum()
 
         classifier = classifiers.get(z)
-        if classifier is not None:
-            atom_type = classifier(atom, mol, state)
-        else:
-            elem = _elem_symbol(z)
-            atom_type = "CS"
-            logger.warning("Unknown element %s (Z=%d), defaulting to CS", elem, z)
+        if classifier is None:
+            # no atom type describes this element, and guessing one silently
+            #    gives the atom another element's chemistry throughout scoring
+            supported = ", ".join(sorted(_elem_symbol(k) for k in classifiers))
+            raise ValueError(
+                f"No atom types for element {_elem_symbol(z)} (Z={z}) on atom "
+                f"{idx}; tmol types {supported}"
+            )
+        atom_type = classifier(atom, mol, state)
 
         if z == 1:
             bonded_heavy_idx = -1

@@ -24,7 +24,8 @@ from tmol.database.chemical import (
     ProtonationProperties,
     RawResidueType,
 )
-from tmol.ligand._atom_typing import AtomTypeAssignment
+from tmol.ligand._atom_typing import AtomTypeAssignment, RosettaTypingState
+from tmol.ligand._chi_topology import apply_chi_sample_budget, build_chi_topology
 
 logger = logging.getLogger(__name__)
 
@@ -433,8 +434,9 @@ def build_residue_type(  # noqa: C901
     atom_types: list[AtomTypeAssignment],
     atom_aliases: tuple = (),
     *,
-    typing_state=None,
-    sample_proton_chi: bool = True,
+    typing_state: RosettaTypingState,
+    assign_ring_chis: bool = False,
+    generate_heavy_chi_samples: bool = False,
     original_single_bonds: frozenset[frozenset[str]] | None = None,
 ) -> RawResidueType:
     """Build a complete RawResidueType from a Chem.Mol.
@@ -450,6 +452,13 @@ def build_residue_type(  # noqa: C901
         res_name: Residue name (e.g. "L_1", "ATP").
         atom_types: Atom type assignments from assign_tmol_atom_types().
         atom_aliases: Optional tuple of AtomAlias for CIF name mapping.
+        typing_state: The perception state from the atom type assignment,
+            needed for rotatable bond classification.
+        assign_ring_chis: Keep single bonds inside a non-aromatic ring as chi,
+            the way proline's are. Polymer residues set it; ligands do not.
+        generate_heavy_chi_samples: Emit samples for heavy chi.
+        original_single_bonds: Bonds the source mol2 records as literal single
+            bonds, whose order kekulization must not promote.
 
     Returns:
         A fully populated RawResidueType.
@@ -539,35 +548,26 @@ def build_residue_type(  # noqa: C901
 
     icoors = _compute_icoors(mol, order, parent, grandparents, atom_names, coords)
 
-    # Rotatable-bond (CHI / PROTON_CHI) topology. Requires the perception state
-    # from atom typing; when absent (callers that don't thread it), torsions and
-    # chi_samples stay empty (the historical behavior).
-    if typing_state is not None:
-        from tmol.ligand._chi_topology import build_chi_topology
-
-        atype_by_idx = {at.index: at.atom_type for at in atom_types}
-        torsions, chi_samples = build_chi_topology(
-            mol,
-            order,
-            parent,
-            grandparents,
-            atom_names,
-            typing_state,
-            atype_by_idx=atype_by_idx,
-            original_single_bonds=original_single_bonds,
-            logger=logger,
-        )
-        # Heavy + proton-chi torsions are always emitted (inert for scoring /
-        # cartesian build; groundwork for ligand torsional potential + .params
-        # interop). Proton-chi SAMPLES are gated off by default: emitting them
-        # makes pose_stack_from_biotite treat the sampled hydrogens as
-        # DOF-controlled and produce NaN coordinates at build time. Enable
-        # `sample_proton_chi` only when OptHSampler proton-chi rotamer sampling
-        # is wanted (and the consumer drives those DOFs).
-        if not sample_proton_chi:
-            chi_samples = ()
-    else:
-        torsions, chi_samples = (), ()
+    # Rotatable-bond (CHI / PROTON_CHI) topology, classified against the
+    # perception state atom typing already built.
+    atype_by_idx = {at.index: at.atom_type for at in atom_types}
+    torsions, chi_samples = build_chi_topology(
+        mol,
+        order,
+        parent,
+        grandparents,
+        atom_names,
+        typing_state,
+        atype_by_idx=atype_by_idx,
+        original_single_bonds=original_single_bonds,
+        assign_ring_chis=assign_ring_chis,
+        generate_heavy_chi_samples=generate_heavy_chi_samples,
+        logger=logger,
+    )
+    if not generate_heavy_chi_samples:
+        # a polymer residue is budgeted once its borrowed library is known,
+        #    which is what its sampled chi have to multiply against
+        chi_samples = apply_chi_sample_budget(chi_samples)
 
     properties = ChemicalProperties(
         is_canonical=False,

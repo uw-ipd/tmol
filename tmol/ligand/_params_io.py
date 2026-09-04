@@ -107,7 +107,9 @@ def _write_rosetta_params_file(
     # PROTON_CHI lines carry the sample/expansion data for polar-hydrogen chis.
     # Rosetta-only annotations (e.g. a trailing "#biaryl" comment) are NOT
     # emitted — tmol keeps only the semantic content.
-    proton_by_chi = {cs.chi_dihedral: cs for cs in restype.chi_samples}
+    # a chi that turns heavy atoms is not a PROTON_CHI; the format has no way
+    #    to say so, and reading one back would hand it to optH
+    proton_by_chi = {cs.chi_dihedral: cs for cs in restype.chi_samples if cs.is_proton}
     for tor in sorted(restype.torsions, key=lambda t: _chi_number(t.name)):
         n = _chi_number(tor.name)
         quad = " ".join(f"{(ua.atom or ''):>4s}" for ua in (tor.a, tor.b, tor.c, tor.d))
@@ -526,7 +528,6 @@ def write_params_from_mol2(
     out_path: str | Path,
     *,
     res_name: str | None = None,
-    sample_proton_chi: bool = True,
     format: str = "rosetta",
 ) -> None:
     """Build params from a mol2 file and write Rosetta ``.params`` or tmol ``.tmol``.
@@ -535,12 +536,11 @@ def write_params_from_mol2(
         mol2_path: Input Tripos mol2 (names, coords, charges preserved verbatim).
         out_path: Output file path (see :func:`write_params_file`).
         res_name: Optional residue name override.
-        sample_proton_chi: Whether to emit PROTON_CHI samples.
         format: ``"rosetta"`` or ``"tmol"``.
     """
     from tmol.ligand._detect import nonstandard_residue_info_from_mol2
     from tmol.ligand._preparation import prepare_single_ligand
 
     info = nonstandard_residue_info_from_mol2(mol2_path, res_name=res_name)
-    prep = prepare_single_ligand(info, sample_proton_chi=sample_proton_chi)
+    prep = prepare_single_ligand(info)
     write_params_file(prep, out_path, format=format)

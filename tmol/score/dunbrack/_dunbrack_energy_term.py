@@ -128,6 +128,12 @@ class DunbrackEnergyTerm(EnergyTerm):
         semirotameric_index = s_inds[0]
         semirotameric = semirotameric_index != -1
 
+        # An amino acid the library does not cover scores no dunbrack term;
+        # a borrowed dunbrack_reference is for sampling only.
+        if rotamer_table_set < 0:
+            setattr(block_type, "dunbrack_attrs", _empty_dunbrack_attrs())
+            return
+
         semirotameric_tableset_offset = (
             numpy.array(-1)
             if not semirotameric

@@ -17,7 +17,7 @@ from tmol.database import ParameterDatabase
 
 # from tmol.pack.rotamer.dunbrack import _compiled  # noqa F401
 from tmol.pack import SetPackerTask
-from tmol.chemical import RefinedResidueType, l_base_name
+from tmol.chemical import RefinedResidueType
 from tmol.pose import (
     PackedBlockTypes,
     PoseStack,
@@ -102,13 +102,6 @@ class DunbrackChiSampler(ChiSampler):
         if hasattr(restype, "dun_sampler_cache"):
             return
 
-        # n-bb-dihedrals = 2; n-atoms in a dihedral = 4; n-entries in a uaid  = 3
-        uaids = numpy.full((2, 4, 3), -1, dtype=numpy.int32)
-        if "phi" in restype.torsion_to_uaids:
-            uaids[0] = numpy.array(restype.torsion_to_uaids["phi"], dtype=numpy.int32)
-        if "psi" in restype.torsion_to_uaids:
-            uaids[1] = numpy.array(restype.torsion_to_uaids["psi"], dtype=numpy.int32)
-
         # ok; lets ask the appropriate library what chi it defines samples for
         # and also incorporate additional chi that the residue type itself
         # defines its own samples for, as long as this is actually a residue type
@@ -120,14 +113,37 @@ class DunbrackChiSampler(ChiSampler):
         #     a d-amino acid has a mirrored library of its own, so its own name
         #     is tried before any reference it carries
         dun_lib_ind = self._library_index(restype.base_name)
+        borrowed = False
         if dun_lib_ind < 0 and restype.dunbrack_reference:
             dun_lib_ind = self._library_index(restype.dunbrack_reference)
+            borrowed = dun_lib_ind >= 0
 
-        if dun_lib_ind >= 0:
-            n_chi = self.dun_param_resolver.scoring_db_aux.nchi_for_table_set[
+        # n-bb-dihedrals = 2; n-atoms in a dihedral = 4; n-entries in a uaid  = 3
+        uaids = numpy.full((2, 4, 3), -1, dtype=numpy.int32)
+        # fd  a borrowed library was fit against an alpha backbone; on any other
+        #     backbone its phi/psi are not this residue's, so they are left
+        #     unresolved and the library is read at neutral phi/psi
+        if not (borrowed and restype.properties.polymer.backbone_type != "alpha_aa"):
+            if "phi" in restype.torsion_to_uaids:
+                uaids[0] = numpy.array(
+                    restype.torsion_to_uaids["phi"], dtype=numpy.int32
+                )
+            if "psi" in restype.torsion_to_uaids:
+                uaids[1] = numpy.array(
+                    restype.torsion_to_uaids["psi"], dtype=numpy.int32
+                )
+
+        # a residue with no library still builds rotamers if it samples chi of
+        #    its own; the library supplies the leading n_chi and its own
+        #    samples supply the rest, so with no library it supplies them all
+        n_chi = (
+            self.dun_param_resolver.scoring_db_aux.nchi_for_table_set[
                 dun_lib_ind
             ].item()
-
+            if dun_lib_ind >= 0
+            else 0
+        )
+        if dun_lib_ind >= 0 or restype.chi_samples:
             n_chi_total = n_chi
             for rt_chi in restype.chi_samples:
                 chi_name = rt_chi.chi_dihedral
@@ -310,23 +326,38 @@ class DunbrackChiSampler(ChiSampler):
         )
         setattr(packed_block_types, "dun_sampler_cache", cache)
 
+    def _library_for_rt(self, rt: RefinedResidueType) -> int:
+        """Index of the rotamer library this residue type reads, or -1.
+
+        A residue with a library of its own uses it, under its own name: a
+        d-amino acid has a mirrored library, and reading the l one would give
+        it unmirrored rotamers. A noncanonical has none, and borrows whichever
+        its ``dunbrack_reference`` names, if it names one.
+        """
+        index = self._library_index(rt.base_name)
+        if index < 0 and rt.dunbrack_reference:
+            index = self._library_index(rt.dunbrack_reference)
+        return int(index)
+
     @validate_args
     def defines_rotamers_for_rt(self, rt: RefinedResidueType):
-        # ugly hack for now:
+        """Whether a rotamer library reaches this residue type.
+
+        A library resolving answers it for most residues: glycine and alanine
+        have nothing to rotate and no library, and a noncanonical has one only
+        where a reference names it. A residue that samples heavy chi of its
+        own is built from those alone.
+        """
         if not rt.properties.polymer.is_polymer:
             return False
         if rt.properties.polymer.polymer_type != "amino_acid":
             return False
-        if rt.properties.polymer.backbone_type != "alpha_aa":
-            return False
-
-        # and then what??
-        if l_base_name(rt) in ("GLY", "ALA"):
-            return False
-
-        # all amino acids except GLY and ALA?? That feels wrong
-        # go with it for now
-        return True
+        if self._library_for_rt(rt) >= 0:
+            return True
+        # no library, but chi of its own to turn. A proton chi alone is not
+        #    enough: optH samples those, and rotamers varying only hydrogens
+        #    would duplicate its work.
+        return any(not cs.is_proton for cs in rt.chi_samples)
 
     def defines_rotamers_for_bts(
         self, pbt: PackedBlockTypes, bt_inds: Tensor[torch.int64]

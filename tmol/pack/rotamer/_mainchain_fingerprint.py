@@ -137,8 +137,10 @@ def create_non_sidechain_fingerprint(  # noqa: C901
         n_bonds[rt.bond_indices[i, 0]] += 1
         if bonded_elem_name != "H":
             n_nonh_bonds[rt.bond_indices[i, 0]] += 1
+    # a connection is a bond to the neighbouring residue, so it counts toward
+    #    the substituents of the atom that carries it
     for conn in rt.connection_to_idx:
-        n_bonds[rt.bond_indices[i, 0]] += 1
+        n_bonds[rt.connection_to_idx[conn]] += 1
         n_nonh_bonds[rt.connection_to_idx[conn]] += 1
 
     # mc_ancestors = numpy.full(rt.n_atoms, -1, dtype=numpy.int32)
@@ -146,13 +148,23 @@ def create_non_sidechain_fingerprint(  # noqa: C901
     non_sc_atom_fingerprints = []
     at_for_fingerprint = {}
     fp_seen_count = {}
-    # a protein's non-sidechain atoms all lie within one bond of the mainchain,
-    #    so the loop below always sets this. A nucleotide's do not: its sugar is
-    #    backbone and reaches two bonds out, where there is no side to be on
-    chirality = 0
 
-    for nsc_at in non_sc_atoms:
-        # find the index of the mc atom this branches from using the kinforest
+    # Every atom is walked, but only the backbone ones are described. The
+    #    duplicate index breaks ties between atoms the four fields cannot tell
+    #    apart, and counting over the whole residue keeps it a property of the
+    #    residue type: a sampler that calls an atom sidechain must not renumber
+    #    the atoms it shares with a sampler that calls it backbone.
+    is_non_sc = sc_atoms == 0
+    for nsc_at in range(rt.n_atoms):
+        # a protein's non-sidechain atoms all lie within one bond of the
+        #    mainchain, so the branches below set this. A nucleotide's do not:
+        #    its sugar is backbone and reaches two bonds out, where there is
+        #    no side to be on, and the default stands.
+        chirality = 0
+        # find the mc atom this branches from using the kinforest. mc_anc is
+        #    its position along the mainchain, which is what a fingerprint
+        #    records; `atom` is that same atom's index, for reading per-atom
+        #    arrays. The two coincide only when the mainchain atoms come first.
         mc_anc = mc_ind[nsc_at]
         bonds_from_mc = 0
         atom = nsc_at
@@ -179,19 +191,19 @@ def create_non_sidechain_fingerprint(  # noqa: C901
         if bonds_from_mc == 0:
             chirality = 0
         elif bonds_from_mc == 1:
-            if n_bonds[mc_anc] == 4:
+            if n_bonds[atom] == 4:
                 # now we need to measure the chirality of the atom
                 # or, rather, whether this atom is on the "left"
                 # or "right" of the chiral backbone atom.
                 # Measure the improper dihedral given by the
                 # mc atom and two other mc atoms
 
-                mc_ind_for_mc_anc = mc_ind[mc_anc]
+                mc_ind_for_mc_anc = mc_anc
                 mc1_icoor_ind, mc2_icoor_ind = _mc_inds_for_chiral_mc_atom(
                     rt, mc_atoms, mc_ind_for_mc_anc
                 )
 
-                mc_anc_icoor_ind = rt.at_to_icoor_ind[mc_anc]
+                mc_anc_icoor_ind = rt.at_to_icoor_ind[atom]
 
                 def t64(coord):
                     return torch.tensor(coord, dtype=torch.float64).unsqueeze(0)
@@ -245,6 +257,8 @@ def create_non_sidechain_fingerprint(  # noqa: C901
             duplicate_index=dup_idx,
         )
 
+        if not is_non_sc[nsc_at]:
+            continue
         non_sc_atom_fingerprints.append(at_fingerprint)
         at_for_fingerprint[at_fingerprint] = nsc_at
     return non_sc_atoms, tuple(non_sc_atom_fingerprints), at_for_fingerprint

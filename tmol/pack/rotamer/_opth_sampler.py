@@ -19,7 +19,7 @@ from tmol.kinematics import KinForest
 from tmol.pack.rotamer import (
     ConformerSampler,
     construct_single_residue_kinforest,
-    na_proton_chi_roots,
+    sc_roots_for_chis,
 )
 from tmol.numeric import coord_dihedrals
 from tmol.utility.tensor import exclusive_cumsum1d
@@ -137,11 +137,10 @@ def _opth_fill_dofs(
     1. Copy DOFs from pose into conf_dofs_kto.
     2. For NHQ only: atoms that are kinematic children of the chi-defining atom
        of the flip are reset to their ideal DOF values
-    3. Write the corrected chi torsion into DOF column 3 for
-       the chi-defining atom of each flip / proton-chi rotamer.
+    3. Write the chi torsion into DOF column 3 for the chi-defining atom of
+       each flip / proton-chi rotamer; correct_phi_c_from_measured_chi turns
+       it into the intended dihedral.
     """
-    from tmol.pack.rotamer import _build_chi_phi_c_corrections
-
     pbt = pose_stack.packed_block_types
     dev = conf_dofs_kto.device
 
@@ -191,7 +190,6 @@ def _opth_fill_dofs(
     dofs_ideal_t = torch.as_tensor(
         pbt.rotamer_kinforest.dofs_ideal, dtype=torch.float32, device=dev
     )
-    corrections = _build_chi_phi_c_corrections(pbt)  # (n_types, max_n_chi) numpy
 
     reset_kto, reset_bt, reset_k = [], [], []
     chi_kto, chi_val_list = [], []
@@ -221,9 +219,8 @@ def _opth_fill_dofs(
             if chi_rto < 0:
                 continue
             kfo = int(kfidx[bt_idx, chi_rto])
-            corr = float(corrections[bt_idx, chi_col])
             chi_kto.append(kfo + at_off + 1)
-            chi_val_list.append(chi_vals[si, chi_col].item() - corr)
+            chi_val_list.append(chi_vals[si, chi_col].item())
 
     if reset_kto:
         conf_dofs_kto[torch.tensor(reset_kto, dtype=torch.int64, device=dev)] = (
@@ -319,8 +316,10 @@ class OptHSampler(ConformerSampler):
             construct_single_residue_kinforest(rt)
             nhq_downstream_kfo = _compute_nhq_downstream_kfo(rt, nhq_chi_atom)
 
-        # proton chi annotation
-        if not rt.chi_samples:
+        # proton chi annotation. A chi that turns heavy atoms is sampled by the
+        #    packer alone, so optH never sees it.
+        proton_chi = [cs for cs in rt.chi_samples if cs.is_proton]
+        if not proton_chi:
             setattr(
                 rt,
                 "opth_sampler_cache",
@@ -336,20 +335,20 @@ class OptHSampler(ConformerSampler):
 
         deg_to_rad = math.pi / 180
 
-        chi_inds = [int(cs.chi_dihedral[3:]) - 1 for cs in rt.chi_samples]
+        chi_inds = [int(cs.chi_dihedral[3:]) - 1 for cs in proton_chi]
         n_chi_total = max(chi_inds) + 1
 
         chi_defining_atom = numpy.full(n_chi_total, -1, dtype=numpy.int32)
         n_samples_per_chi = numpy.zeros(n_chi_total, dtype=numpy.int32)
 
         max_n_expanded = max(
-            len(cs.samples) * (1 + 2 * len(cs.expansions)) for cs in rt.chi_samples
+            len(cs.samples) * (1 + 2 * len(cs.expansions)) for cs in proton_chi
         )
         expanded_samples = numpy.zeros(
             (n_chi_total, max_n_expanded), dtype=numpy.float32
         )
 
-        for cs in rt.chi_samples:
+        for cs in proton_chi:
             ci = int(cs.chi_dihedral[3:]) - 1
             chi_defining_atom[ci] = rt.torsion_to_uaids[cs.chi_dihedral][2][0]
 
@@ -567,7 +566,7 @@ class OptHSampler(ConformerSampler):
 
     @validate_args
     def defines_rotamers_for_rt(self, rt: RefinedResidueType):
-        if rt.chi_samples:  # has a proton chi
+        if any(cs.is_proton for cs in rt.chi_samples):
             return True
         if self.flip_NHQ:  # is NHQ if flipNHQ is enabled
             return rt.base_name in _NQ_FLIP_BASES or rt.base_name in _HIS_FLIP_BASES
@@ -581,11 +580,15 @@ class OptHSampler(ConformerSampler):
 
     @validate_args
     def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
-        # long-term, it probably makes more sense to generate this programatically
-        # e.g., the pivot atom of the first chi(?)
-        if rt.properties.polymer.polymer_type == "nucleic_acid":
-            return na_proton_chi_roots(rt)
-        return ("CB",)
+        """Roots for the chis optH turns: every proton chi, plus the flipped chi."""
+        chis = [cs.chi_dihedral for cs in rt.chi_samples if cs.is_proton]
+        if self.flip_NHQ and (
+            rt.base_name in _NQ_FLIP_BASES or rt.base_name in _HIS_FLIP_BASES
+        ):
+            chis.append(
+                sorted(k for k in rt.torsion_to_uaids if k.startswith("chi"))[-1]
+            )
+        return sc_roots_for_chis(rt, chis)
 
     def _assert_no_dun_opth_conflict(self, task: "SetPackerTask"):  # noqa: F821
         self_index_in_task = task.conformer_sampler_index[id(self)]

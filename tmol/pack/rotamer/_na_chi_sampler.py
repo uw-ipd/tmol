@@ -1,3 +1,5 @@
+import math
+
 import numpy
 import torch
 import attr
@@ -17,7 +19,7 @@ from tmol.pose import (
     PoseStack,
 )
 from tmol.pack import SetPackerTask
-from tmol.pack.rotamer import ChiSampler
+from tmol.pack.rotamer import ChiSampler, sc_roots_for_chis
 from tmol.score.na_torsion import (
     NaTorsionParams,
     N_PUCKER,
@@ -40,20 +42,6 @@ CHI_STEPS = {
 
 # a syn well deeper than this is too rare to be worth a rotamer
 MAX_SYN_WELL = 5.0
-
-# Sidechain root for each nucleotide proton chi. Normally the chi's pivot atom,
-# except for the 5'-OH: O5' roots the whole block, so the hydroxyl hydrogen
-# roots itself and everything upstream stays mainchain.
-NA_PROTON_CHI_ROOT = {"chi2": "O2'", "chi3": "HO5'", "chi4": "O3'"}
-
-
-def na_proton_chi_roots(rt):
-    """Sidechain roots for the proton chis a nucleotide actually samples."""
-    return tuple(
-        NA_PROTON_CHI_ROOT[cs.chi_dihedral]
-        for cs in rt.chi_samples
-        if cs.chi_dihedral in NA_PROTON_CHI_ROOT
-    )
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -111,7 +99,7 @@ class NaChiRotamerSampler(ChiSampler):
             (
                 int(samp.chi_dihedral[3:]) - 1,
                 rt.torsion_to_uaids[samp.chi_dihedral][2][0],
-                tuple(float(x) for x in samp.samples),
+                _expanded_samples(samp),
             )
             for samp in rt.chi_samples
         ]
@@ -171,26 +159,9 @@ class NaChiRotamerSampler(ChiSampler):
 
     @validate_args
     def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
-        # long-term, it probably makes more sense to generate this programatically
-        # e.g., the pivot atom of the first chi(?)
-        # the base hangs off the glycosidic nitrogen, which chi1 rotates; each
-        # proton chi is rooted separately so that it has something downstream
-        chi1 = rt.torsion_to_uaids["chi1"]
-        return (rt.atoms[chi1[2][0]].name,) + na_proton_chi_roots(rt)
-
-    def _chi_sets(self, base, pucker):
-        """(anti, syn) chi values in degrees for one (base, pucker) pair."""
-        p = self.params
-        poly = int(polymer_index(torch.tensor(base)))
-        sdev = float(p.sdev_chi[poly])
-        steps = CHI_STEPS[self.chi_sample_level]
-        anti = float(p.chi_means[base, pucker])
-        chis = [anti + k * sdev for k in steps]
-        # syn rotamers RNA only (for now)
-        syn_ok = self.sample_syn and poly == POLYMER_IND["rna"]
-        if syn_ok and float(p.well_chi_syn[1, pucker, base]) <= MAX_SYN_WELL:
-            chis += [SYN_MEAN + k * sdev for k in steps]
-        return chis
+        return sc_roots_for_chis(
+            rt, ("chi1",) + tuple(cs.chi_dihedral for cs in rt.chi_samples)
+        )
 
     def _pucker_for_blocks(self, poses: PoseStack, pbt: PackedBlockTypes):
         """argmax pucker state of every block's input sugar, -1 where absent."""
@@ -304,7 +275,11 @@ class NaChiRotamerSampler(ChiSampler):
 
         rot_bt = bt_for_gbt[gbt_for_rotamer]
         chi = torch.cat(
-            [chi1.unsqueeze(-1), cache["proton"][rot_bt, combo_slot]], dim=-1
+            [
+                torch.deg2rad(chi1).unsqueeze(-1),
+                cache["proton"][rot_bt, combo_slot],
+            ],
+            dim=-1,
         )
         return (
             n_rots_for_gbt,
@@ -312,6 +287,16 @@ class NaChiRotamerSampler(ChiSampler):
             cache["chi_atom"][rot_bt],
             chi,
         )
+
+
+def _expanded_samples(samp):
+    """A proton chi's samples in radians, each with its expansions either side."""
+    values = []
+    for sample in samp.samples:
+        values.append(sample)
+        for expansion in samp.expansions:
+            values.extend((sample + expansion, sample - expansion))
+    return tuple(math.radians(float(v)) for v in values)
 
 
 def _proton_combinations(proton_chi):

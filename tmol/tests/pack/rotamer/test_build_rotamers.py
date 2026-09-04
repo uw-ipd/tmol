@@ -3,7 +3,7 @@ import torch
 from types import SimpleNamespace
 
 from tmol.pack.rotamer import (
-    _build_chi4_atom_table,
+    _build_chi4_by_defining_atom,
     annotate_restype,
     annotate_packed_block_types,
     build_rotamers,
@@ -39,29 +39,35 @@ from tmol.score.hbond import (
 )
 
 
-def test_chi_atom_table_orders_double_digit_chis_numerically():
+def test_chi_atom_table_is_keyed_by_the_atom_each_chi_turns():
+    """Chi are not numbered without gaps, so position must not be the key.
+
+    A chi whose fourth atom its third does not move -- one that closes a ring
+    -- is left out, since no value written for it could take effect.
+    """
+    # atom 4 hangs off 3 and atom 8 off 7, but atom 12 hangs off the root
+    parent = numpy.array([0, 0, 1, 2, 3, 0, 5, 6, 7, 0, 9, 10, 0], dtype=numpy.int32)
     restype = SimpleNamespace(
         torsion_to_uaids={
             "chi1": ((1,), (2,), (3,), (4,)),
             "chi10": ((9,), (10,), (11,), (12,)),
             "chi2": ((5,), (6,), (7,), (8,)),
-        }
-    )
-    pbt = SimpleNamespace(n_types=1, active_block_types=[restype])
-
-    table = _build_chi4_atom_table(pbt)
-
-    numpy.testing.assert_array_equal(
-        table[0],
-        numpy.array(
-            [
-                [1, 2, 3, 4],
-                [5, 6, 7, 8],
-                [9, 10, 11, 12],
-            ],
-            dtype=numpy.int32,
+        },
+        rotamer_kinforest=SimpleNamespace(
+            kinforest_idx=numpy.arange(13, dtype=numpy.int32),
+            parent=parent,
         ),
     )
+    pbt = SimpleNamespace(n_types=1, max_n_atoms=13, active_block_types=[restype])
+
+    table = _build_chi4_by_defining_atom(pbt)
+
+    # every settable chi sits at the row of its third atom, whatever its number
+    numpy.testing.assert_array_equal(table[0, 3], [1, 2, 3, 4])
+    numpy.testing.assert_array_equal(table[0, 7], [5, 6, 7, 8])
+    # chi10 cannot move atom 12, so it gets no row
+    assert (table[0, 11] == -1).all()
+    assert (table[0, 0] == -1).all()
 
 
 def test_annotate_restypes(
@@ -1149,7 +1155,9 @@ def test_build_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
 
     n_atoms = rotamer_set.coords.shape[0]
 
-    # all the rotamers should be the same on all n_poses copies of ubq
+    # All the rotamers should be the same on all n_poses copies of ubq. The chi
+    # a rotamer is built at is measured from a trial pass over its own
+    # coordinates, so copies agree to single precision rather than exactly.
     n_atoms_per_pose = n_atoms // n_poses
     assert n_atoms_per_pose * n_poses == n_atoms
 
@@ -1159,7 +1167,7 @@ def test_build_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
         numpy.testing.assert_almost_equal(
             new_coords[:n_atoms_per_pose],
             new_coords[(n_atoms_per_pose * i) : (n_atoms_per_pose * (i + 1))],
-            decimal=5,
+            decimal=4,
         )
 
 
