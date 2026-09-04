@@ -836,8 +836,11 @@ struct Annealer {
 
     // Now launch the kernels we have created
     std::shared_ptr<mgpu::standard_context_t> context = current_context(mgr);
+    // Pack four independent trajectory warps per CTA. Their global thread IDs
+    // and Philox streams stay unchanged while CTA scheduling overhead falls.
+    constexpr int annealer_cta_threads = 128;
 
-    mgpu::transform<32, 1>(
+    mgpu::transform<annealer_cta_threads, 1>(
         hitemp_simulated_annealing, n_hitemp_simA_threads, *context);
 
     mgpu::segmented_sort(
@@ -849,7 +852,7 @@ struct Annealer {
         mgpu::less_t<float>(),
         *context);
 
-    mgpu::transform<32, 1>(
+    mgpu::transform<annealer_cta_threads, 1>(
         lotemp_simulated_annealing, n_lotemp_simA_threads, *context);
 
     mgpu::segmented_sort(
@@ -861,7 +864,8 @@ struct Annealer {
         mgpu::less_t<float>(),
         *context);
 
-    mgpu::transform<32, 1>(fullquench, n_fullquench_threads, *context);
+    mgpu::transform<annealer_cta_threads, 1>(
+        fullquench, n_fullquench_threads, *context);
 
     mgpu::segmented_sort(
         scores_fullquench.data(),
@@ -872,7 +876,8 @@ struct Annealer {
         mgpu::less_t<float>(),
         *context);
 
-    mgpu::transform<32, 1>(final_reindexing, n_fullquench_threads, *context);
+    mgpu::transform<annealer_cta_threads, 1>(
+        final_reindexing, n_fullquench_threads, *context);
 
     return {scores_final_t, rotamer_assignments_final_t};
   }
