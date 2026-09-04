@@ -30,6 +30,8 @@ from tmol.utility import (
 
 logger = logging.getLogger(__name__)
 
+_MAX_PREPARED_BATCH_SIZES = 4
+
 
 class Atom37MappingError(ValueError):
     """An AtomArray cannot be routed unambiguously into an Atom37 tensor."""
@@ -168,7 +170,7 @@ class PreparedAtom37PoseBuilder:
                 fragment_mapping=self.fragment_mapping,
             )
         n_poses = atom37_coords.shape[0]
-        topology = self._pose_topologies.get(n_poses)
+        topology = self._pose_topologies.pop(n_poses, None)
         if topology is None:
             pose_stack, details = _pose_stack_from_canonical_and_context(
                 cf,
@@ -196,9 +198,11 @@ class PreparedAtom37PoseBuilder:
                 details["ps_atom_mapping"],
                 block_has_missing_atoms,
             )
-            self._pose_topologies[n_poses] = topology
         else:
             pose_stack = topology.pose_from_canonical(cf.coords)
+        if len(self._pose_topologies) == _MAX_PREPARED_BATCH_SIZES:
+            self._pose_topologies.pop(next(iter(self._pose_topologies)))
+        self._pose_topologies[n_poses] = topology
 
         if opt_h:
             from tmol.pack import build_missing_sidechains

@@ -176,6 +176,10 @@ def test_prepared_atom37_builder_is_reusable_and_differentiable(
     torch.testing.assert_close(batched_pose.coords, expected_batched.coords)
     assert set(builder._pose_topologies) == {1, 2}
 
+    for batch_size in (3, 4, 5):
+        builder(second_coords.detach().expand(batch_size, -1, -1, -1), opt_h=False)
+    assert set(builder._pose_topologies) == {2, 3, 4, 5}
+
 
 @pytest.mark.parametrize("filename", ["1ubq.pdb", "1bna.pdb", "3zp8.pdb"])
 def test_prepared_atom37_builder_preserves_default_opth(filename, torch_device):
