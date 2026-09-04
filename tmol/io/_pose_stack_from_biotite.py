@@ -47,6 +47,7 @@ class _PreparedAtom37PoseTopology:
     block_leaf_atom_is_missing: torch.Tensor
     pose_atom_is_missing: torch.Tensor
     block_has_missing_atoms: torch.Tensor
+    real_atoms: torch.Tensor
 
     @classmethod
     def from_pose(
@@ -94,6 +95,7 @@ class _PreparedAtom37PoseTopology:
             block_leaf_atom_is_missing=block_leaf_atom_is_missing,
             pose_atom_is_missing=pose_atom_is_missing,
             block_has_missing_atoms=block_has_missing_atoms,
+            real_atoms=pose_stack.real_atoms,
         )
 
     def pose_from_canonical(self, canonical_coords: torch.Tensor) -> PoseStack:
@@ -221,7 +223,7 @@ class PreparedAtom37PoseBuilder:
                 topology.pose_atom_mapping,
                 mappings_are_finite=True,
             )
-        _assert_no_nan_coords(pose_stack)
+        _assert_no_nan_coords(pose_stack, topology.real_atoms)
         return pose_stack
 
     def _canonical_form(self, atom37_coords: torch.Tensor) -> CanonicalForm:
@@ -799,7 +801,9 @@ def _assert_no_ligand_with_missing_atoms(
         )
 
 
-def _assert_no_nan_coords(pose_stack: PoseStack) -> None:
+def _assert_no_nan_coords(
+    pose_stack: PoseStack, real_atoms: torch.Tensor | None = None
+) -> None:
     """Raise a descriptive error if any real atom in the PoseStack has NaN coords.
 
     Reports the offending pose, residue label/chain, block-type name, and atom
@@ -807,7 +811,7 @@ def _assert_no_nan_coords(pose_stack: PoseStack) -> None:
     rebuild, sidechain build) can be traced to a specific residue.
     """
     coords = pose_stack.coords
-    real = pose_stack.real_atoms
+    real = pose_stack.real_atoms if real_atoms is None else real_atoms
     nan_atom_mask = torch.isnan(coords).any(dim=-1) & real
     if not torch.any(nan_atom_mask):
         return
