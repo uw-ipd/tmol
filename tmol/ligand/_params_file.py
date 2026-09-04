@@ -31,7 +31,6 @@ YAML so entries can be copy-pasted between params files and
 ``chemical.yaml`` / ``cartbonded.yaml`` / ``elec.yaml``.
 """
 
-import copy
 import functools
 import logging
 from pathlib import Path
@@ -115,6 +114,7 @@ def _fill_properties_defaults(props: dict[str, Any]) -> dict[str, Any]:
 def _structure_residue(item: dict[str, Any]) -> RawResidueType:
     """Apply defaults for optional fields, then structure into RawResidueType."""
     populated = {**_RAW_RESIDUE_DEFAULTS, **item}
+    normalize_bond_tuples([populated])
     if "properties" in populated:
         populated["properties"] = _fill_properties_defaults(populated["properties"])
     return cattr.structure(populated, RawResidueType)
@@ -137,7 +137,7 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
     from tmol.ligand._registry import LigandPreparation
 
     path = Path(path)
-    raw = copy.deepcopy(_parse_params_document(path.read_text()))
+    raw = _parse_params_document(path.read_text())
 
     if not isinstance(raw, dict):
         raise ValueError(f"Expected mapping at YAML root, got {type(raw).__name__}")
@@ -190,7 +190,6 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
     cart = raw.get("cartbonded") or {}
 
     res_list = chem.get("residues") or []
-    normalize_bond_tuples({"residues": res_list})
     residues = [_structure_residue(item) for item in res_list]
 
     cb_raw = cart.get("residue_params") or {}
