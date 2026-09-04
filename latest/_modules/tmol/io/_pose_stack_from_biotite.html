@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../../../_static/documentation_options.js?v=c54c130b"></script>
+    <script src="../../../_static/documentation_options.js?v=0ec583c6"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -54,7 +54,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.53" />
+  <meta name="docsearch:version" content="0.1.54" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -403,7 +403,10 @@
                 <article class="bd-article">
                   
   <h1>Source code for tmol.io._pose_stack_from_biotite</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">toolz</span>
@@ -433,11 +436,363 @@
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand</span><span class="w"> </span><span class="kn">import</span> <span class="n">FragmentedLigandPoseMapping</span>
+
+<span class="n">_MAX_PREPARED_BATCH_SIZES</span> <span class="o">=</span> <span class="mi">4</span>
+
 
 <div class="viewcode-block" id="Atom37MappingError">
 <a class="viewcode-back" href="../../../api/io.html#tmol.io.Atom37MappingError">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Atom37MappingError</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""An AtomArray cannot be routed unambiguously into an Atom37 tensor."""</span></div>
+
+
+
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_PreparedAtom37PoseTopology</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Fixed pose layout plus the masks needed to rebuild missing leaf atoms."""</span>
+
+    <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span>
+    <span class="n">canonical_atom_mapping</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">pose_atom_mapping</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">block_leaf_atom_is_missing</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">pose_atom_is_missing</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">block_has_missing_atoms</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">real_atoms</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_pose</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
+        <span class="n">canonical_coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">canonical_atom_mapping</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">pose_atom_mapping</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">block_has_missing_atoms</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"_PreparedAtom37PoseTopology"</span><span class="p">:</span>
+        <span class="n">canonical_atom_mapping</span> <span class="o">=</span> <span class="n">canonical_atom_mapping</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="n">pose_atom_mapping</span> <span class="o">=</span> <span class="n">pose_atom_mapping</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="n">source_coords</span> <span class="o">=</span> <span class="n">canonical_coords</span><span class="p">[</span>
+            <span class="n">canonical_atom_mapping</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="n">canonical_atom_mapping</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
+            <span class="n">canonical_atom_mapping</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span>
+        <span class="p">]</span>
+        <span class="n">missing</span> <span class="o">=</span> <span class="o">~</span><span class="n">torch</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">source_coords</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">pose_ind</span> <span class="o">=</span> <span class="n">pose_atom_mapping</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">pose_atom</span> <span class="o">=</span> <span class="n">pose_atom_mapping</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">block_ind</span> <span class="o">=</span> <span class="n">canonical_atom_mapping</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">block_atom</span> <span class="o">=</span> <span class="n">pose_atom</span> <span class="o">-</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset64</span><span class="p">[</span><span class="n">pose_ind</span><span class="p">,</span> <span class="n">block_ind</span><span class="p">]</span>
+
+        <span class="n">block_leaf_atom_is_missing</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span><span class="p">,</span>
+                <span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_blocks</span><span class="p">,</span>
+                <span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_block_atoms</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">block_leaf_atom_is_missing</span><span class="p">[</span><span class="n">pose_ind</span><span class="p">,</span> <span class="n">block_ind</span><span class="p">,</span> <span class="n">block_atom</span><span class="p">]</span> <span class="o">=</span> <span class="n">missing</span>
+        <span class="n">pose_atom_is_missing</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="n">pose_atom_is_missing</span><span class="p">[</span><span class="n">pose_ind</span><span class="p">,</span> <span class="n">pose_atom</span><span class="p">]</span> <span class="o">=</span> <span class="n">missing</span>
+        <span class="n">canonical_atom_mapping</span> <span class="o">=</span> <span class="n">canonical_atom_mapping</span><span class="p">[</span><span class="o">~</span><span class="n">missing</span><span class="p">]</span>
+        <span class="n">pose_atom_mapping</span> <span class="o">=</span> <span class="n">pose_atom_mapping</span><span class="p">[</span><span class="o">~</span><span class="n">missing</span><span class="p">]</span>
+        <span class="n">pose_template</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">pose_stack</span><span class="o">=</span><span class="n">pose_template</span><span class="p">,</span>
+            <span class="n">canonical_atom_mapping</span><span class="o">=</span><span class="n">canonical_atom_mapping</span><span class="p">,</span>
+            <span class="n">pose_atom_mapping</span><span class="o">=</span><span class="n">pose_atom_mapping</span><span class="p">,</span>
+            <span class="n">block_leaf_atom_is_missing</span><span class="o">=</span><span class="n">block_leaf_atom_is_missing</span><span class="p">,</span>
+            <span class="n">pose_atom_is_missing</span><span class="o">=</span><span class="n">pose_atom_is_missing</span><span class="p">,</span>
+            <span class="n">block_has_missing_atoms</span><span class="o">=</span><span class="n">block_has_missing_atoms</span><span class="p">,</span>
+            <span class="n">real_atoms</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">real_atoms</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">pose_from_canonical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">canonical_coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Rebind coordinates and rebuild leaf atoms in the prepared pose layout."""</span>
+        <span class="n">mapping</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">canonical_atom_mapping</span>
+        <span class="n">pose_mapping</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose_atom_mapping</span>
+        <span class="n">source_coords</span> <span class="o">=</span> <span class="n">canonical_coords</span><span class="p">[</span><span class="n">mapping</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">mapping</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">mapping</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]]</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
+        <span class="n">coords</span><span class="p">[</span><span class="n">pose_mapping</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">pose_mapping</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">source_coords</span>
+
+        <span class="n">pbt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io.details._build_missing_leaf_atoms</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+            <span class="n">_apply_h_geometric_completion</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io.details.compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">gen_pose_leaf_atoms</span>
+
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">gen_pose_leaf_atoms</span><span class="p">(</span>
+            <span class="n">coords</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">block_leaf_atom_is_missing</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pose_atom_is_missing</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections</span><span class="p">,</span>
+            <span class="n">pbt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,</span>
+            <span class="n">pbt</span><span class="o">.</span><span class="n">atom_downstream_of_conn</span><span class="p">,</span>
+            <span class="n">pbt</span><span class="o">.</span><span class="n">build_missing_leaf_atom_icoor_ann</span><span class="o">.</span><span class="n">anc_uaids</span><span class="p">,</span>
+            <span class="n">pbt</span><span class="o">.</span><span class="n">build_missing_leaf_atom_icoor_ann</span><span class="o">.</span><span class="n">geom</span><span class="p">,</span>
+            <span class="n">pbt</span><span class="o">.</span><span class="n">build_missing_leaf_atom_icoor_ann</span><span class="o">.</span><span class="n">anc_uaids_backup</span><span class="p">,</span>
+            <span class="n">pbt</span><span class="o">.</span><span class="n">build_missing_leaf_atom_icoor_ann</span><span class="o">.</span><span class="n">geom_backup</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">_apply_h_geometric_completion</span><span class="p">(</span>
+            <span class="n">pbt</span><span class="p">,</span>
+            <span class="n">coords</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">block_leaf_atom_is_missing</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="p">)</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span>
+        <span class="k">return</span> <span class="n">pose_stack</span>
+
+
+<div class="viewcode-block" id="PreparedAtom37PoseBuilder">
+<a class="viewcode-back" href="../../../api/io.html#tmol.io.PreparedAtom37PoseBuilder">[docs]</a>
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PreparedAtom37PoseBuilder</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Bind immutable Biotite topology for repeated Atom37 pose construction."""</span>
+
+    <span class="n">context</span><span class="p">:</span> <span class="n">PoseBuildContext</span>
+    <span class="n">canonical_template</span><span class="p">:</span> <span class="n">CanonicalForm</span>
+    <span class="n">mapped_token_id</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">mapped_slot</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">mapped_residue</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">mapped_atom</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">max_token_id</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">fragment_mapping</span><span class="p">:</span> <span class="s2">"FragmentedLigandPoseMapping | None"</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">_topology_cache_safe</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">_pose_topologies</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">_PreparedAtom37PoseTopology</span><span class="p">]</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span>
+        <span class="n">factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">,</span> <span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">repr</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">atom37_coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">opt_h</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Build a differentiable pose batch; optimize hydrogens by default."""</span>
+        <span class="n">canonical_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_canonical_coords</span><span class="p">(</span><span class="n">atom37_coords</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_topology_cache_safe</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">_pose_stack_from_canonical_and_context</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_canonical_form</span><span class="p">(</span><span class="n">canonical_coords</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">,</span>
+                <span class="n">no_optH</span><span class="o">=</span><span class="ow">not</span> <span class="n">opt_h</span><span class="p">,</span>
+                <span class="n">atom37_coords</span><span class="o">=</span><span class="n">atom37_coords</span><span class="p">,</span>
+                <span class="n">fragment_mapping</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fragment_mapping</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="n">n_poses</span> <span class="o">=</span> <span class="n">atom37_coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">topology</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pose_topologies</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">topology_was_cached</span> <span class="o">=</span> <span class="n">topology</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">topology</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_canonical_form</span><span class="p">(</span><span class="n">canonical_coords</span><span class="p">)</span>
+            <span class="n">pose_stack</span><span class="p">,</span> <span class="n">details</span> <span class="o">=</span> <span class="n">_pose_stack_from_canonical_and_context</span><span class="p">(</span>
+                <span class="n">cf</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">,</span>
+                <span class="n">no_optH</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">atom37_coords</span><span class="o">=</span><span class="n">atom37_coords</span><span class="p">,</span>
+                <span class="n">fragment_mapping</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fragment_mapping</span><span class="p">,</span>
+                <span class="n">return_atom_mapping</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">block_has_missing_atoms</span> <span class="o">=</span> <span class="n">details</span><span class="p">[</span><span class="s2">"block_has_missing_atoms"</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">block_has_missing_atoms</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">opt_h</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">pose_stack</span>
+                <span class="k">return</span> <span class="n">_pose_stack_from_canonical_and_context</span><span class="p">(</span>
+                    <span class="n">cf</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">,</span>
+                    <span class="n">no_optH</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">atom37_coords</span><span class="o">=</span><span class="n">atom37_coords</span><span class="p">,</span>
+                    <span class="n">fragment_mapping</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fragment_mapping</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="n">topology</span> <span class="o">=</span> <span class="n">_PreparedAtom37PoseTopology</span><span class="o">.</span><span class="n">from_pose</span><span class="p">(</span>
+                <span class="n">pose_stack</span><span class="p">,</span>
+                <span class="n">canonical_coords</span><span class="p">,</span>
+                <span class="n">details</span><span class="p">[</span><span class="s2">"can_atom_mapping"</span><span class="p">],</span>
+                <span class="n">details</span><span class="p">[</span><span class="s2">"ps_atom_mapping"</span><span class="p">],</span>
+                <span class="n">block_has_missing_atoms</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">topology</span><span class="o">.</span><span class="n">pose_from_canonical</span><span class="p">(</span><span class="n">canonical_coords</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pose_topologies</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">_MAX_PREPARED_BATCH_SIZES</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pose_topologies</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pose_topologies</span><span class="p">)))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pose_topologies</span><span class="p">[</span><span class="n">n_poses</span><span class="p">]</span> <span class="o">=</span> <span class="n">topology</span>
+
+        <span class="k">if</span> <span class="n">opt_h</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_missing_sidechains</span>
+
+            <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">build_missing_sidechains</span><span class="p">(</span>
+                <span class="n">pose_stack</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">_opth_score_function</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">_dunbrack_sampler</span><span class="p">,</span>
+                <span class="n">topology</span><span class="o">.</span><span class="n">block_has_missing_atoms</span><span class="p">,</span>
+                <span class="n">no_optH</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">has_missing_atoms</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">_restore_canonical_input_coords</span><span class="p">(</span>
+                <span class="n">pose_stack</span><span class="p">,</span>
+                <span class="n">canonical_coords</span><span class="p">,</span>
+                <span class="n">topology</span><span class="o">.</span><span class="n">canonical_atom_mapping</span><span class="p">,</span>
+                <span class="n">topology</span><span class="o">.</span><span class="n">pose_atom_mapping</span><span class="p">,</span>
+                <span class="n">mappings_are_finite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="c1"># Pose construction validates the initial topology. Check the initial</span>
+        <span class="c1"># packed result too, but do not force a CUDA-to-host synchronization on</span>
+        <span class="c1"># every replay of an already validated fixed topology.</span>
+        <span class="k">if</span> <span class="n">opt_h</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">topology_was_cached</span><span class="p">:</span>
+            <span class="n">_assert_no_nan_coords</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">topology</span><span class="o">.</span><span class="n">real_atoms</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pose_stack</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_canonical_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atom37_coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Overlay one coordinate batch without expanding static topology data."""</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span>
+        <span class="n">_validate_atom37_coords</span><span class="p">(</span><span class="n">atom37_coords</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_token_id</span> <span class="o">&gt;=</span> <span class="n">atom37_coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="n">Atom37MappingError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"token_id </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_token_id</span><span class="si">}</span><span class="s2"> exceeds atom37_coords token count "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">atom37_coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+
+        <span class="n">n_poses</span> <span class="o">=</span> <span class="n">atom37_coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">template</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">canonical_template</span>
+        <span class="n">template_n_poses</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">template_n_poses</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Biotite structure has </span><span class="si">{</span><span class="n">template_n_poses</span><span class="si">}</span><span class="s2"> poses but "</span>
+                <span class="sa">f</span><span class="s2">"atom37_coords has </span><span class="si">{</span><span class="n">n_poses</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">coords</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">coords</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">template_n_poses</span> <span class="o">==</span> <span class="n">n_poses</span>
+            <span class="k">else</span> <span class="n">coords</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="o">*</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="n">source_coords</span> <span class="o">=</span> <span class="n">atom37_coords</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mapped_token_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mapped_slot</span><span class="p">]</span>
+        <span class="n">finite</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">source_coords</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">coords</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mapped_residue</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mapped_atom</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="n">finite</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+            <span class="n">source_coords</span><span class="p">,</span>
+            <span class="n">coords</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mapped_residue</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mapped_atom</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">coords</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_canonical_form</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CanonicalForm</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Expand the static canonical topology for an uncached batch size."""</span>
+        <span class="n">template</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">canonical_template</span>
+        <span class="n">n_poses</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">tensor_for_poses</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">value</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">n_poses</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">value</span>
+            <span class="k">return</span> <span class="n">value</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="o">*</span><span class="n">value</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">array_for_poses</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">value</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">n_poses</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">value</span>
+            <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">CanonicalForm</span><span class="p">(</span>
+            <span class="n">chain_id</span><span class="o">=</span><span class="n">tensor_for_poses</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">chain_id</span><span class="p">),</span>
+            <span class="n">res_types</span><span class="o">=</span><span class="n">tensor_for_poses</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">res_types</span><span class="p">),</span>
+            <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">,</span>
+            <span class="n">res_labels</span><span class="o">=</span><span class="n">array_for_poses</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">res_labels</span><span class="p">),</span>
+            <span class="n">residue_insertion_codes</span><span class="o">=</span><span class="n">array_for_poses</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">residue_insertion_codes</span><span class="p">),</span>
+            <span class="n">chain_labels</span><span class="o">=</span><span class="n">array_for_poses</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">chain_labels</span><span class="p">),</span>
+            <span class="n">atom_occupancy</span><span class="o">=</span><span class="n">array_for_poses</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">atom_occupancy</span><span class="p">),</span>
+            <span class="n">atom_b_factor</span><span class="o">=</span><span class="n">array_for_poses</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">atom_b_factor</span><span class="p">),</span>
+            <span class="n">disulfides</span><span class="o">=</span><span class="n">template</span><span class="o">.</span><span class="n">disulfides</span><span class="p">,</span>
+            <span class="n">res_not_connected</span><span class="o">=</span><span class="n">tensor_for_poses</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">res_not_connected</span><span class="p">),</span>
+        <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="prepare_pose_stack_from_atom37">
+<a class="viewcode-back" href="../../../api/io.html#tmol.io.prepare_pose_stack_from_atom37">[docs]</a>
+<span class="nd">@validate_args</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">prepare_pose_stack_from_atom37</span><span class="p">(</span>
+    <span class="n">biotite_structure</span><span class="p">:</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArray</span> <span class="o">|</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">,</span>
+    <span class="n">context</span><span class="p">:</span> <span class="n">PoseBuildContext</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PreparedAtom37PoseBuilder</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Prepare a callable for repeatedly binding Atom37 coordinates to topology.</span>
+
+<span class="sd">    This is the campaign-oriented counterpart to</span>
+<span class="sd">    :func:`pose_stack_from_atom37_and_biotite`: immutable residue identity,</span>
+<span class="sd">    connectivity, fragmentation, and Atom37 routing are resolved once. Calling</span>
+<span class="sd">    the returned builder with a coordinate tensor constructs a differentiable</span>
+<span class="sd">    pose while retaining TMol's usual missing-atom behavior. The returned</span>
+<span class="sd">    builder optimizes hydrogens by default; pass ``opt_h=False`` to disable it.</span>
+<span class="sd">    """</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span>
+    <span class="n">fragment_mapping</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">fragment_definitions</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand</span><span class="w"> </span><span class="kn">import</span> <span class="n">expand_fragmented_ligands</span>
+
+        <span class="n">biotite_structure</span><span class="p">,</span> <span class="n">fragment_mapping</span> <span class="o">=</span> <span class="n">expand_fragmented_ligands</span><span class="p">(</span>
+            <span class="n">biotite_structure</span><span class="p">,</span> <span class="n">context</span><span class="o">.</span><span class="n">fragment_definitions</span>
+        <span class="p">)</span>
+
+    <span class="n">canonical_template</span> <span class="o">=</span> <span class="n">canonical_form_from_biotite</span><span class="p">(</span>
+        <span class="n">biotite_structure</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">,</span>
+        <span class="n">co</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">canonical_ordering</span><span class="p">,</span>
+        <span class="n">missing_density_distance_threshold</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">filtered</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_filter_supported_atoms_and_connectivity</span><span class="p">(</span>
+        <span class="n">biotite_structure</span><span class="p">,</span> <span class="n">context</span><span class="o">.</span><span class="n">canonical_ordering</span>
+    <span class="p">)</span>
+    <span class="n">atom_residue</span> <span class="o">=</span> <span class="n">get_all_residue_positions</span><span class="p">(</span><span class="n">filtered</span><span class="p">)</span>
+    <span class="n">valid_mask</span><span class="p">,</span> <span class="n">valid_atom</span><span class="p">,</span> <span class="n">valid_residue</span> <span class="o">=</span> <span class="n">_map_atoms_to_canonical</span><span class="p">(</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">canonical_ordering</span><span class="p">,</span>
+        <span class="n">atom_residue</span><span class="p">,</span>
+        <span class="n">filtered</span><span class="o">.</span><span class="n">res_name</span><span class="p">,</span>
+        <span class="n">filtered</span><span class="o">.</span><span class="n">atom_name</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">token_id</span><span class="p">,</span> <span class="n">slot</span><span class="p">,</span> <span class="n">mapped_residue</span><span class="p">,</span> <span class="n">mapped_atom</span> <span class="o">=</span> <span class="n">_atom37_mapping</span><span class="p">(</span>
+        <span class="n">filtered</span><span class="p">,</span> <span class="n">valid_mask</span><span class="p">,</span> <span class="n">valid_residue</span><span class="p">,</span> <span class="n">valid_atom</span>
+    <span class="p">)</span>
+    <span class="n">mapped_token_id</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">token_id</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">mapped_slot</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">slot</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">mapped_residue</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">mapped_residue</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">mapped_atom</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">mapped_atom</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">mapped_reference_coords</span> <span class="o">=</span> <span class="n">canonical_template</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span>
+        <span class="p">:,</span>
+        <span class="n">mapped_residue</span><span class="p">,</span>
+        <span class="n">mapped_atom</span><span class="p">,</span>
+    <span class="p">]</span>
+    <span class="n">his_inds</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">canonical_ordering</span><span class="o">.</span><span class="n">his_inds</span>
+    <span class="n">ambiguous_his</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">his_inds</span><span class="o">.</span><span class="n">his_co_aa_ind</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">ambiguous_atom_inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">his_inds</span><span class="o">.</span><span class="n">his_HN_in_co</span><span class="p">,</span> <span class="n">his_inds</span><span class="o">.</span><span class="n">his_NH_in_co</span><span class="p">,</span> <span class="n">his_inds</span><span class="o">.</span><span class="n">his_NN_in_co</span><span class="p">],</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">is_his</span> <span class="o">=</span> <span class="n">canonical_template</span><span class="o">.</span><span class="n">res_types</span> <span class="o">==</span> <span class="n">his_inds</span><span class="o">.</span><span class="n">his_co_aa_ind</span>
+        <span class="n">ambiguous_his</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span>
+                <span class="n">is_his</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="o">&amp;</span> <span class="n">torch</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span>
+                    <span class="n">canonical_template</span><span class="o">.</span><span class="n">coords</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">ambiguous_atom_inds</span><span class="p">]</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">PreparedAtom37PoseBuilder</span><span class="p">(</span>
+        <span class="n">context</span><span class="o">=</span><span class="n">context</span><span class="p">,</span>
+        <span class="n">canonical_template</span><span class="o">=</span><span class="n">canonical_template</span><span class="p">,</span>
+        <span class="n">mapped_token_id</span><span class="o">=</span><span class="n">mapped_token_id</span><span class="p">,</span>
+        <span class="n">mapped_slot</span><span class="o">=</span><span class="n">mapped_slot</span><span class="p">,</span>
+        <span class="n">mapped_residue</span><span class="o">=</span><span class="n">mapped_residue</span><span class="p">,</span>
+        <span class="n">mapped_atom</span><span class="o">=</span><span class="n">mapped_atom</span><span class="p">,</span>
+        <span class="n">max_token_id</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">token_id</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span>
+        <span class="n">fragment_mapping</span><span class="o">=</span><span class="n">fragment_mapping</span><span class="p">,</span>
+        <span class="n">topology_cache_safe</span><span class="o">=</span><span class="p">(</span>
+            <span class="nb">bool</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">mapped_reference_coords</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">())</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">ambiguous_his</span>
+        <span class="p">),</span>
+    <span class="p">)</span></div>
 
 
 
@@ -563,9 +918,7 @@
     <span class="n">context</span><span class="p">:</span> <span class="n">PoseBuildContext</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">atom37_coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="p">(</span>
-    <span class="n">PoseStack</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PoseStack</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PoseStack</span><span class="p">,</span> <span class="n">PoseBuildContext</span><span class="p">]</span>
-<span class="p">):</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PoseStack</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PoseStack</span><span class="p">,</span> <span class="n">PoseBuildContext</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Build a PoseStack from the output generated by Biotite.</span>
 
 <span class="sd">    To score many structures that share the same ligand(s) efficiently, build</span>
@@ -632,9 +985,6 @@
 <span class="sd">    """</span>
     <span class="n">torch_device</span> <span class="o">=</span> <span class="n">resolve_device</span><span class="p">(</span><span class="n">torch_device</span><span class="p">)</span>
 
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_canonical_form</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_missing_sidechains</span>
-
     <span class="k">if</span> <span class="n">context</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">param_db</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -685,6 +1035,32 @@
         <span class="n">missing_density_distance_threshold</span><span class="o">=</span><span class="n">missing_density_distance_threshold</span><span class="p">,</span>
         <span class="n">atom37_coords</span><span class="o">=</span><span class="n">atom37_coords</span><span class="p">,</span>
     <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">_pose_stack_from_canonical_and_context</span><span class="p">(</span>
+        <span class="n">cf</span><span class="p">,</span>
+        <span class="n">context</span><span class="p">,</span>
+        <span class="n">no_optH</span><span class="o">=</span><span class="n">no_optH</span><span class="p">,</span>
+        <span class="n">atom37_coords</span><span class="o">=</span><span class="n">atom37_coords</span><span class="p">,</span>
+        <span class="n">fragment_mapping</span><span class="o">=</span><span class="n">fragment_mapping</span><span class="p">,</span>
+        <span class="n">return_context</span><span class="o">=</span><span class="n">return_context</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_pose_stack_from_canonical_and_context</span><span class="p">(</span>
+    <span class="n">cf</span><span class="p">:</span> <span class="n">CanonicalForm</span><span class="p">,</span>
+    <span class="n">context</span><span class="p">:</span> <span class="n">PoseBuildContext</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">no_optH</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">atom37_coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">fragment_mapping</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">return_context</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PoseStack</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PoseStack</span><span class="p">,</span> <span class="n">PoseBuildContext</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Finish pose construction from a canonical form and reusable context."""</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_canonical_form</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_missing_sidechains</span>
 
     <span class="k">if</span> <span class="n">atom37_coords</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">"find_additional_disulfides"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
@@ -742,6 +1118,7 @@
             <span class="n">block_has_missing_atoms</span><span class="p">,</span>
             <span class="n">no_optH</span><span class="o">=</span><span class="n">no_optH</span><span class="p">,</span>
             <span class="n">na_sampler</span><span class="o">=</span><span class="n">na_sampler</span><span class="p">,</span>
+            <span class="n">has_missing_atoms</span><span class="o">=</span><span class="n">has_missing_atoms</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">atom37_coords</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">needs_packing</span><span class="p">:</span>
@@ -771,8 +1148,7 @@
         <span class="k">return</span> <span class="n">pose_stack</span><span class="p">,</span> <span class="n">context</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">opt_return_vals</span><span class="p">)</span> <span class="o">&gt;</span> <span class="p">(</span><span class="mi">0</span> <span class="k">if</span> <span class="n">return_block_has_missing_atoms</span> <span class="k">else</span> <span class="mi">1</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">pose_stack</span><span class="p">,</span> <span class="n">opt_return_vals</span>
-    <span class="k">return</span> <span class="n">pose_stack</span></div>
-
+    <span class="k">return</span> <span class="n">pose_stack</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_restore_canonical_input_coords</span><span class="p">(</span>
@@ -780,6 +1156,7 @@
     <span class="n">canonical_coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">canonical_atom_mapping</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">pose_atom_mapping</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">mappings_are_finite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Restore finite canonical inputs after coordinate rebuilding or packing.</span>
 
@@ -797,14 +1174,18 @@
         <span class="n">canonical_atom_mapping</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
         <span class="n">canonical_atom_mapping</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span>
     <span class="p">]</span>
-    <span class="n">finite</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">source_coords</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-
     <span class="n">coords</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
-    <span class="n">coords</span><span class="p">[</span>
-        <span class="n">pose_atom_mapping</span><span class="p">[</span><span class="n">finite</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-        <span class="n">pose_atom_mapping</span><span class="p">[</span><span class="n">finite</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
-    <span class="p">]</span> <span class="o">=</span> <span class="n">source_coords</span><span class="p">[</span><span class="n">finite</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">mappings_are_finite</span><span class="p">:</span>
+        <span class="n">coords</span><span class="p">[</span><span class="n">pose_atom_mapping</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">pose_atom_mapping</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">source_coords</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">finite</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">source_coords</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">coords</span><span class="p">[</span>
+            <span class="n">pose_atom_mapping</span><span class="p">[</span><span class="n">finite</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="n">pose_atom_mapping</span><span class="p">[</span><span class="n">finite</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="n">source_coords</span><span class="p">[</span><span class="n">finite</span><span class="p">]</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
+    <span class="n">result</span><span class="o">.</span><span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span>
+    <span class="k">return</span> <span class="n">result</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_assert_no_ligand_with_missing_atoms</span><span class="p">(</span>
@@ -861,7 +1242,9 @@
         <span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_assert_no_nan_coords</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_assert_no_nan_coords</span><span class="p">(</span>
+    <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">real_atoms</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Raise a descriptive error if any real atom in the PoseStack has NaN coords.</span>
 
 <span class="sd">    Reports the offending pose, residue label/chain, block-type name, and atom</span>
@@ -869,7 +1252,7 @@
 <span class="sd">    rebuild, sidechain build) can be traced to a specific residue.</span>
 <span class="sd">    """</span>
     <span class="n">coords</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span>
-    <span class="n">real</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">real_atoms</span>
+    <span class="n">real</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">real_atoms</span> <span class="k">if</span> <span class="n">real_atoms</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">real_atoms</span>
     <span class="n">nan_atom_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">real</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">nan_atom_mask</span><span class="p">):</span>
         <span class="k">return</span>
@@ -1247,26 +1630,10 @@
     <span class="k">return</span> <span class="n">biotite_b_factors</span><span class="p">,</span> <span class="n">biotite_occupancy</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_populate_canonical_coords_from_atom37</span><span class="p">(</span>
-    <span class="n">atom37_coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-    <span class="n">biotite_structure</span><span class="p">:</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArray</span> <span class="o">|</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">,</span>
-    <span class="n">torch_device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-    <span class="n">co</span><span class="p">:</span> <span class="n">CanonicalOrdering</span><span class="p">,</span>
-    <span class="n">biotite_residues</span><span class="p">,</span>
-    <span class="n">valid_atom_mask</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-    <span class="n">valid_res_inds</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-    <span class="n">valid_atom_inds</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""Overlay mapped atom37 coordinates on the Biotite canonical coordinates.</span>
-
-<span class="sd">    Finite tensor values replace their matching Biotite atoms through one</span>
-<span class="sd">    differentiable indexed assignment. Unmapped and non-finite tensor entries</span>
-<span class="sd">    retain the reference coordinates, which is important for hydrogens and for</span>
-<span class="sd">    atoms that TMol may need to rebuild.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        The canonical coordinate tensor and its pose count.</span>
-<span class="sd">    """</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_validate_atom37_coords</span><span class="p">(</span>
+    <span class="n">atom37_coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch_device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Validate the tensor contract shared by direct and prepared adapters."""</span>
     <span class="k">if</span> <span class="n">atom37_coords</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">4</span> <span class="ow">or</span> <span class="n">atom37_coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">!=</span> <span class="p">(</span><span class="mi">37</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="s2">"atom37_coords must have shape [n_poses, n_tokens, 37, 3]; "</span>
@@ -1282,6 +1649,15 @@
             <span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">torch_device</span><span class="si">}</span><span class="s2">'; they must match"</span>
         <span class="p">)</span>
 
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_atom37_mapping</span><span class="p">(</span>
+    <span class="n">biotite_structure</span><span class="p">:</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArray</span> <span class="o">|</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">,</span>
+    <span class="n">valid_atom_mask</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">valid_res_inds</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">valid_atom_inds</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">max_n_tokens</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Validate and return source/target indices for Atom37 routing."""</span>
     <span class="n">categories</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">biotite_structure</span><span class="o">.</span><span class="n">get_annotation_categories</span><span class="p">())</span>
     <span class="n">missing</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"token_id"</span><span class="p">,</span> <span class="s2">"atom37_slot"</span><span class="p">}</span> <span class="o">-</span> <span class="n">categories</span>
     <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
@@ -1309,20 +1685,55 @@
         <span class="k">raise</span> <span class="n">Atom37MappingError</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">"atom37_slot values must be less than 37; got </span><span class="si">{</span><span class="n">maximum</span><span class="si">}</span><span class="s2">"</span>
         <span class="p">)</span>
-    <span class="k">if</span> <span class="n">numpy</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">token_id</span><span class="p">[</span><span class="n">mapped</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">atom37_coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
-        <span class="n">maximum</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">token_id</span><span class="p">[</span><span class="n">mapped</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
-        <span class="k">raise</span> <span class="n">Atom37MappingError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"token_id </span><span class="si">{</span><span class="n">maximum</span><span class="si">}</span><span class="s2"> exceeds atom37_coords token count "</span>
-            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">atom37_coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
-        <span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">numpy</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">mapped</span><span class="p">):</span>
         <span class="k">raise</span> <span class="n">Atom37MappingError</span><span class="p">(</span><span class="s2">"No supported Biotite atoms map to atom37_coords"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">max_n_tokens</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">numpy</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">token_id</span><span class="p">[</span><span class="n">mapped</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">max_n_tokens</span><span class="p">):</span>
+        <span class="n">maximum</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">token_id</span><span class="p">[</span><span class="n">mapped</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+        <span class="k">raise</span> <span class="n">Atom37MappingError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"token_id </span><span class="si">{</span><span class="n">maximum</span><span class="si">}</span><span class="s2"> exceeds atom37_coords token count </span><span class="si">{</span><span class="n">max_n_tokens</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
 
     <span class="n">source_pairs</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="n">token_id</span><span class="p">[</span><span class="n">mapped</span><span class="p">],</span> <span class="n">slot</span><span class="p">[</span><span class="n">mapped</span><span class="p">]))</span>
     <span class="k">if</span> <span class="n">numpy</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">source_pairs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">source_pairs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
         <span class="k">raise</span> <span class="n">Atom37MappingError</span><span class="p">(</span>
             <span class="s2">"Each mapped Biotite atom must use a unique (token_id, atom37_slot) pair"</span>
         <span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">token_id</span><span class="p">[</span><span class="n">mapped</span><span class="p">],</span>
+        <span class="n">slot</span><span class="p">[</span><span class="n">mapped</span><span class="p">],</span>
+        <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">valid_res_inds</span><span class="p">)[</span><span class="n">mapped</span><span class="p">],</span>
+        <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">valid_atom_inds</span><span class="p">)[</span><span class="n">mapped</span><span class="p">],</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_populate_canonical_coords_from_atom37</span><span class="p">(</span>
+    <span class="n">atom37_coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">biotite_structure</span><span class="p">:</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArray</span> <span class="o">|</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">,</span>
+    <span class="n">torch_device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="n">co</span><span class="p">:</span> <span class="n">CanonicalOrdering</span><span class="p">,</span>
+    <span class="n">biotite_residues</span><span class="p">,</span>
+    <span class="n">valid_atom_mask</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">valid_res_inds</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">valid_atom_inds</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Overlay mapped atom37 coordinates on the Biotite canonical coordinates.</span>
+
+<span class="sd">    Finite tensor values replace their matching Biotite atoms through one</span>
+<span class="sd">    differentiable indexed assignment. Unmapped and non-finite tensor entries</span>
+<span class="sd">    retain the reference coordinates, which is important for hydrogens and for</span>
+<span class="sd">    atoms that TMol may need to rebuild.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The canonical coordinate tensor and its pose count.</span>
+<span class="sd">    """</span>
+    <span class="n">_validate_atom37_coords</span><span class="p">(</span><span class="n">atom37_coords</span><span class="p">,</span> <span class="n">torch_device</span><span class="p">)</span>
+    <span class="n">token_id</span><span class="p">,</span> <span class="n">slot</span><span class="p">,</span> <span class="n">mapped_res_inds</span><span class="p">,</span> <span class="n">mapped_atom_inds</span> <span class="o">=</span> <span class="n">_atom37_mapping</span><span class="p">(</span>
+        <span class="n">biotite_structure</span><span class="p">,</span>
+        <span class="n">valid_atom_mask</span><span class="p">,</span>
+        <span class="n">valid_res_inds</span><span class="p">,</span>
+        <span class="n">valid_atom_inds</span><span class="p">,</span>
+        <span class="n">atom37_coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+    <span class="p">)</span>
 
     <span class="n">reference_coords</span><span class="p">,</span> <span class="n">reference_n_poses</span> <span class="o">=</span> <span class="n">_populate_canonical_coords</span><span class="p">(</span>
         <span class="n">biotite_structure</span><span class="p">,</span>
@@ -1342,16 +1753,12 @@
     <span class="k">if</span> <span class="n">reference_n_poses</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">n_poses</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
         <span class="n">reference_coords</span> <span class="o">=</span> <span class="n">reference_coords</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
 
-    <span class="n">mapped_token_id</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">token_id</span><span class="p">[</span><span class="n">mapped</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span><span class="p">)</span>
-    <span class="n">mapped_slot</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">slot</span><span class="p">[</span><span class="n">mapped</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span><span class="p">)</span>
+    <span class="n">mapped_token_id</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">token_id</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span><span class="p">)</span>
+    <span class="n">mapped_slot</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">slot</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span><span class="p">)</span>
     <span class="n">source_coords</span> <span class="o">=</span> <span class="n">atom37_coords</span><span class="p">[:,</span> <span class="n">mapped_token_id</span><span class="p">,</span> <span class="n">mapped_slot</span><span class="p">]</span>
     <span class="n">finite</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">source_coords</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">mapped_res_inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
-        <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">valid_res_inds</span><span class="p">)[</span><span class="n">mapped</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span>
-    <span class="p">)</span>
-    <span class="n">mapped_atom_inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
-        <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">valid_atom_inds</span><span class="p">)[</span><span class="n">mapped</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span>
-    <span class="p">)</span>
+    <span class="n">mapped_res_inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">mapped_res_inds</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span><span class="p">)</span>
+    <span class="n">mapped_atom_inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">mapped_atom_inds</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span><span class="p">)</span>
     <span class="n">reference_coords</span><span class="p">[:,</span> <span class="n">mapped_res_inds</span><span class="p">,</span> <span class="n">mapped_atom_inds</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
         <span class="n">finite</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
         <span class="n">source_coords</span><span class="p">,</span>

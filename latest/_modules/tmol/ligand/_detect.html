@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../../../_static/documentation_options.js?v=c54c130b"></script>
+    <script src="../../../_static/documentation_options.js?v=0ec583c6"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -54,7 +54,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.53" />
+  <meta name="docsearch:version" content="0.1.54" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -1002,18 +1002,21 @@
     <span class="n">known_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">canonical_ordering</span><span class="o">.</span><span class="n">restype_io_equiv_classes</span><span class="p">)</span>
     <span class="n">seen</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
     <span class="n">results</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">NonStandardResidueInfo</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-
-    <span class="n">covalently_linked_names</span> <span class="o">=</span> <span class="n">_residue_names_with_cross_residue_bonds</span><span class="p">(</span><span class="n">atom_array</span><span class="p">)</span>
-
     <span class="n">residue_starts</span> <span class="o">=</span> <span class="n">struc</span><span class="o">.</span><span class="n">get_residue_starts</span><span class="p">(</span><span class="n">atom_array</span><span class="p">)</span>
-
+    <span class="n">unknown_residues</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">start</span> <span class="ow">in</span> <span class="n">residue_starts</span><span class="p">:</span>
         <span class="n">res_name</span> <span class="o">=</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">start</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-
         <span class="k">if</span> <span class="n">res_name</span> <span class="ow">in</span> <span class="n">known_names</span> <span class="ow">or</span> <span class="n">res_name</span> <span class="ow">in</span> <span class="n">SKIP_RESIDUES</span> <span class="ow">or</span> <span class="n">res_name</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
             <span class="k">continue</span>
         <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">res_name</span><span class="p">)</span>
+        <span class="n">unknown_residues</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">start</span><span class="p">,</span> <span class="n">res_name</span><span class="p">))</span>
 
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">unknown_residues</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">results</span>
+
+    <span class="n">covalently_linked_names</span> <span class="o">=</span> <span class="n">_residue_names_with_cross_residue_bonds</span><span class="p">(</span><span class="n">atom_array</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">res_name</span> <span class="ow">in</span> <span class="n">unknown_residues</span><span class="p">:</span>
         <span class="n">mask</span> <span class="o">=</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span> <span class="o">==</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">start</span><span class="p">]</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="s2">"res_id"</span><span class="p">):</span>
             <span class="n">mask</span> <span class="o">&amp;=</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">res_id</span> <span class="o">==</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">res_id</span><span class="p">[</span><span class="n">start</span><span class="p">]</span>

@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../../../_static/documentation_options.js?v=c54c130b"></script>
+    <script src="../../../_static/documentation_options.js?v=0ec583c6"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -54,7 +54,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.53" />
+  <meta name="docsearch:version" content="0.1.54" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -911,7 +911,9 @@
 
 <div class="viewcode-block" id="ScoreFunction.render_block_pair_scoring_module">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.ScoreFunction.render_block_pair_scoring_module">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">render_block_pair_scoring_module</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">render_block_pair_scoring_module</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">interaction_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Create an object designed to evaluate the score of a set of Poses</span>
 <span class="sd">        repeatedly as the Poses change their conformation, e.g., as in</span>
 <span class="sd">        minimization. This object will derive from torch.nn.Module and</span>
@@ -919,10 +921,18 @@
 <span class="sd">        terms that themselves are derived from torch.nn.Module. This</span>
 <span class="sd">        object's __call__ will return a tensor of weighted energies of</span>
 <span class="sd">        shape (n_poses, max_n_blocks, max_n_blocks).</span>
+
+<span class="sd">        Set ``interaction_only=True`` when only strictly off-diagonal block</span>
+<span class="sd">        pairs will be consumed. Terms whose block-pair scores are known to be</span>
+<span class="sd">        diagonal-only are then omitted. Diagonal entries in the returned</span>
+<span class="sd">        matrix are incomplete in this mode.</span>
 <span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_work_initialization</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
         <span class="n">term_modules</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">t</span><span class="o">.</span><span class="n">render_block_pair_scoring_module</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_terms</span><span class="p">()</span>
+            <span class="n">t</span><span class="o">.</span><span class="n">render_block_pair_scoring_module</span><span class="p">(</span>
+                <span class="n">pose_stack</span><span class="p">,</span> <span class="n">interaction_only</span><span class="o">=</span><span class="n">interaction_only</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_terms</span><span class="p">()</span>
         <span class="p">]</span>
         <span class="k">return</span> <span class="n">BlockPairScoringModule</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weights_tensor</span><span class="p">(),</span> <span class="n">term_modules</span><span class="p">)</span></div>
 
@@ -1386,6 +1396,44 @@
         <span class="n">summed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weighted</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="k">if</span> <span class="n">sum_terms</span> <span class="k">else</span> <span class="n">weighted</span>
 
         <span class="k">return</span> <span class="n">summed</span>
+
+<div class="viewcode-block" id="BlockPairScoringModule.score_interactions">
+<a class="viewcode-back" href="../../../api/score.html#tmol.score.BlockPairScoringModule.score_interactions">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">score_interactions</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">block_pair_indices</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">sum_terms</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">apply_weights</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Sum selected block-pair entries with one indexed reduction.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            coords: Pose coordinates accepted by this rendered scorer.</span>
+<span class="sd">            block_pair_indices: Shared block pairs shaped ``[n_pairs, 2]``.</span>
+<span class="sd">                Each row contains ``(block_i, block_j)`` and is applied to</span>
+<span class="sd">                every pose in the coordinate batch.</span>
+<span class="sd">            sum_terms: Sum the score-type dimension when true.</span>
+<span class="sd">            apply_weights: Apply the score function's weights when true.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Scores shaped ``[n_poses]`` when ``sum_terms`` is true, otherwise</span>
+<span class="sd">            ``[n_score_types, n_poses]``.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="n">block_pair_indices</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">block_pair_indices</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"block_pair_indices must have shape [n_pairs, 2]"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">block_pair_indices</span><span class="o">.</span><span class="n">device</span> <span class="o">!=</span> <span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"block_pair_indices must be on the same device as coordinates"</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">block_pair_indices</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"block_pair_indices must have an integer dtype"</span><span class="p">)</span>
+        <span class="n">block_i</span><span class="p">,</span> <span class="n">block_j</span> <span class="o">=</span> <span class="n">block_pair_indices</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">scores</span> <span class="o">=</span> <span class="bp">self</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">sum_terms</span><span class="o">=</span><span class="n">sum_terms</span><span class="p">,</span> <span class="n">apply_weights</span><span class="o">=</span><span class="n">apply_weights</span><span class="p">)</span>
+        <span class="n">pair_dimension</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">sum_terms</span> <span class="k">else</span> <span class="mi">2</span>
+        <span class="k">return</span> <span class="n">scores</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">block_i</span><span class="p">,</span> <span class="n">block_j</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">pair_dimension</span><span class="p">)</span></div>
+
 
     <span class="k">def</span><span class="w"> </span><span class="nf">unweighted_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="n">parallel_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parallel_forward_scores</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>

@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../../../_static/documentation_options.js?v=c54c130b"></script>
+    <script src="../../../_static/documentation_options.js?v=0ec583c6"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -54,7 +54,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.53" />
+  <meta name="docsearch:version" content="0.1.54" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -612,6 +612,7 @@
     <span class="n">optimizer_cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">]</span> <span class="o">=</span> <span class="n">LBFGS_Armijo</span><span class="p">,</span>
     <span class="n">optimizer_kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">cuda_graph</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Run minimization on a PoseStack in Cartesian coordinate space.</span>
 
@@ -624,13 +625,19 @@
 <span class="sd">        optimizer_cls: Closure-based PyTorch optimizer class.</span>
 <span class="sd">        optimizer_kwargs: Optional optimizer constructor arguments.</span>
 <span class="sd">        verbose: Print synchronized setup and minimization timings.</span>
+<span class="sd">        cuda_graph: Capture the fixed-shape CUDA scoring forward/backward path.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        A new pose stack containing the minimized coordinates.</span>
 <span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">CartesianSfxnNetwork</span>
 
-    <span class="n">cart_network</span> <span class="o">=</span> <span class="n">CartesianSfxnNetwork</span><span class="p">(</span><span class="n">sfxn</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">,</span> <span class="n">coord_mask</span><span class="p">)</span>
+    <span class="n">cart_network</span> <span class="o">=</span> <span class="n">CartesianSfxnNetwork</span><span class="p">(</span>
+        <span class="n">sfxn</span><span class="p">,</span>
+        <span class="n">pose_stack</span><span class="p">,</span>
+        <span class="n">coord_mask</span><span class="p">,</span>
+        <span class="n">cuda_graph</span><span class="o">=</span><span class="s2">"forward_backward"</span> <span class="k">if</span> <span class="n">cuda_graph</span> <span class="k">else</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">run_min</span><span class="p">(</span>
         <span class="n">cart_network</span><span class="p">,</span>

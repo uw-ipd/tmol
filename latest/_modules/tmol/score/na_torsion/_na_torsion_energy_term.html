@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../../../../_static/documentation_options.js?v=c54c130b"></script>
+    <script src="../../../../_static/documentation_options.js?v=0ec583c6"></script>
     <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -54,7 +54,7 @@
     <link rel="search" title="Search" href="../../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.53" />
+  <meta name="docsearch:version" content="0.1.54" />
   
     
     <script src="../../../../_static/searchtools.js"></script>
@@ -540,6 +540,11 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">pose_score_term_is_invariant_zero</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">):</span>
         <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pose_has_na</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">block_pair_score_term_is_invariant_zero_off_diagonal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">):</span>
+        <span class="c1"># The torsions may read atoms from a bonded neighbour, but their energy</span>
+        <span class="c1"># is attributed to the nucleotide's diagonal block-pair entry.</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
     <span class="k">def</span><span class="w"> </span><span class="nf">get_score_term_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">):</span>
         <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
         <span class="n">has_na</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pose_has_na</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
@@ -579,7 +584,26 @@
             <span class="n">p</span><span class="o">.</span><span class="n">is_north</span><span class="p">,</span>
             <span class="n">p</span><span class="o">.</span><span class="n">pucker_temperature</span><span class="p">,</span>
             <span class="n">p</span><span class="o">.</span><span class="n">bin_blend_sdev</span><span class="p">,</span>
-        <span class="p">]</span></div>
+        <span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_rotamer_score_term_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">,</span> <span class="n">rotamer_set</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Resolve candidate torsion atom indices once when rendering."""</span>
+        <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">_rotamer_indices</span><span class="p">(</span>
+            <span class="n">rotamer_set</span><span class="o">.</span><span class="n">block_type_ind_for_rot</span><span class="p">,</span>
+            <span class="n">rotamer_set</span><span class="o">.</span><span class="n">pose_for_rot</span><span class="p">,</span>
+            <span class="n">rotamer_set</span><span class="o">.</span><span class="n">block_ind_for_rot</span><span class="p">,</span>
+            <span class="n">rotamer_set</span><span class="o">.</span><span class="n">coord_offset_for_rot</span><span class="p">,</span>
+            <span class="n">rotamer_set</span><span class="o">.</span><span class="n">rot_offset_for_block</span><span class="p">,</span>
+            <span class="n">rotamer_set</span><span class="o">.</span><span class="n">first_rot_block_type</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections</span><span class="p">,</span>
+            <span class="n">pbt</span><span class="o">.</span><span class="n">atom_downstream_of_conn</span><span class="p">,</span>
+            <span class="n">pbt</span><span class="o">.</span><span class="n">na_torsion_base</span><span class="p">,</span>
+            <span class="n">pbt</span><span class="o">.</span><span class="n">na_torsion_uaids</span><span class="p">,</span>
+            <span class="n">pbt</span><span class="o">.</span><span class="n">na_torsion_ring</span><span class="p">,</span>
+            <span class="n">pbt</span><span class="o">.</span><span class="n">na_torsion_down</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">get_score_term_attributes</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">),</span> <span class="o">*</span><span class="n">indices</span><span class="p">]</span></div>
 
 
 
@@ -700,6 +724,37 @@
             <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">rot_coords</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">rot_coords</span><span class="o">.</span><span class="n">device</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">_finish</span><span class="p">((</span><span class="n">zero</span><span class="p">,</span> <span class="n">zero</span><span class="p">),</span> <span class="n">output_block_pair_energies</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">rot_coords</span><span class="o">.</span><span class="n">is_cuda</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">output_block_pair_energies</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">.potentials</span><span class="w"> </span><span class="kn">import</span> <span class="n">na_torsion_pose_score</span>
+
+        <span class="k">return</span> <span class="n">na_torsion_pose_score</span><span class="p">(</span>
+            <span class="n">rot_coords</span><span class="p">,</span>
+            <span class="n">pose_base</span><span class="p">,</span>
+            <span class="n">pose_is_na</span><span class="p">,</span>
+            <span class="n">pose_torsion_indices</span><span class="p">,</span>
+            <span class="n">pose_torsion_ok</span><span class="p">,</span>
+            <span class="n">pose_ring_indices</span><span class="p">,</span>
+            <span class="n">pose_ring_ok</span><span class="p">,</span>
+            <span class="n">pose_prev</span><span class="p">,</span>
+            <span class="n">backbone_means</span><span class="p">,</span>
+            <span class="n">backbone_sdev</span><span class="p">,</span>
+            <span class="n">sugar_means</span><span class="p">,</span>
+            <span class="n">chi_means</span><span class="p">,</span>
+            <span class="n">sdev_sugar</span><span class="p">,</span>
+            <span class="n">sdev_chi</span><span class="p">,</span>
+            <span class="n">well_pucker</span><span class="p">,</span>
+            <span class="n">well_alpha_gamma</span><span class="p">,</span>
+            <span class="n">well_bibii_pucker</span><span class="p">,</span>
+            <span class="n">well_alphanext_bibii</span><span class="p">,</span>
+            <span class="n">well_chi_syn</span><span class="p">,</span>
+            <span class="n">is_north</span><span class="p">,</span>
+            <span class="n">weight_bb</span><span class="p">,</span>
+            <span class="n">weight_chi</span><span class="p">,</span>
+            <span class="n">weight_sugar</span><span class="p">,</span>
+            <span class="n">pucker_temperature</span><span class="p">,</span>
+            <span class="n">bin_blend_sdev</span><span class="p">,</span>
+        <span class="p">)</span>
 
     <span class="n">e_bb</span><span class="p">,</span> <span class="n">e_chi</span><span class="p">,</span> <span class="n">e_sugar</span><span class="p">,</span> <span class="n">e_well</span> <span class="o">=</span> <span class="n">_pose_subterms</span><span class="p">(</span>
         <span class="n">rot_coords</span><span class="p">,</span>
@@ -1092,6 +1147,68 @@
     <span class="k">return</span> <span class="n">rot_coord_offset</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[</span><span class="n">rot</span><span class="p">]</span> <span class="o">+</span> <span class="n">local</span><span class="p">,</span> <span class="n">ok</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_rotamer_indices</span><span class="p">(</span>
+    <span class="n">block_type_ind_for_rot</span><span class="p">,</span>
+    <span class="n">pose_ind_for_rot</span><span class="p">,</span>
+    <span class="n">block_ind_for_rot</span><span class="p">,</span>
+    <span class="n">rot_coord_offset</span><span class="p">,</span>
+    <span class="n">first_rot_for_block</span><span class="p">,</span>
+    <span class="n">first_rot_block_type</span><span class="p">,</span>
+    <span class="n">inter_residue_connections</span><span class="p">,</span>
+    <span class="n">atom_downstream_of_conn</span><span class="p">,</span>
+    <span class="n">bt_base</span><span class="p">,</span>
+    <span class="n">bt_uaids</span><span class="p">,</span>
+    <span class="n">bt_ring</span><span class="p">,</span>
+    <span class="n">bt_down</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Resolve immutable candidate atom indices for rotamer/search scoring."""</span>
+    <span class="n">bt</span> <span class="o">=</span> <span class="n">block_type_ind_for_rot</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">bt_safe</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">base</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">bt</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">bt_base</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[</span><span class="n">bt_safe</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">pose</span> <span class="o">=</span> <span class="n">pose_ind_for_rot</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">block</span> <span class="o">=</span> <span class="n">block_ind_for_rot</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+
+    <span class="n">torsion_indices</span><span class="p">,</span> <span class="n">atom_ok</span> <span class="o">=</span> <span class="n">_resolve_rotamer_uaids</span><span class="p">(</span>
+        <span class="n">bt_uaids</span><span class="p">[</span><span class="n">bt_safe</span><span class="p">],</span>
+        <span class="n">pose</span><span class="p">,</span>
+        <span class="n">block</span><span class="p">,</span>
+        <span class="n">rot_coord_offset</span><span class="p">,</span>
+        <span class="n">first_rot_for_block</span><span class="p">,</span>
+        <span class="n">first_rot_block_type</span><span class="p">,</span>
+        <span class="n">inter_residue_connections</span><span class="p">,</span>
+        <span class="n">atom_downstream_of_conn</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">is_na</span> <span class="o">=</span> <span class="n">base</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+    <span class="n">torsion_ok</span> <span class="o">=</span> <span class="n">atom_ok</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">is_na</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">ring_local</span> <span class="o">=</span> <span class="n">bt_ring</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[</span><span class="n">bt_safe</span><span class="p">]</span>
+    <span class="n">ring_ok</span> <span class="o">=</span> <span class="p">(</span><span class="n">ring_local</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">is_na</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">ring_indices</span> <span class="o">=</span> <span class="n">rot_coord_offset</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">ring_local</span>
+
+    <span class="c1"># A candidate's beta term reads the BI/BII state of the preceding</span>
+    <span class="c1"># nucleotide from that block's first (background) rotamer.</span>
+    <span class="n">down</span> <span class="o">=</span> <span class="n">bt_down</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[</span><span class="n">bt_safe</span><span class="p">]</span>
+    <span class="n">prev_block</span> <span class="o">=</span> <span class="n">inter_residue_connections</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[</span>
+        <span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">down</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="mi">0</span>
+    <span class="p">]</span>
+    <span class="n">has_prev</span> <span class="o">=</span> <span class="p">(</span><span class="n">down</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">prev_block</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">prev</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">has_prev</span><span class="p">,</span>
+        <span class="n">first_rot_for_block</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[</span><span class="n">pose</span><span class="p">,</span> <span class="n">prev_block</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">)],</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">prev_block</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">base</span><span class="p">,</span>
+        <span class="n">is_na</span><span class="p">,</span>
+        <span class="n">torsion_indices</span><span class="p">,</span>
+        <span class="n">atom_ok</span><span class="p">,</span>
+        <span class="n">torsion_ok</span><span class="p">,</span>
+        <span class="n">ring_indices</span><span class="p">,</span>
+        <span class="n">ring_ok</span><span class="p">,</span>
+        <span class="n">prev</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">eval_na_torsion_for_rotamers</span><span class="p">(</span>
     <span class="c1"># common args</span>
     <span class="n">rot_coords</span><span class="p">,</span>
@@ -1140,6 +1257,14 @@
     <span class="n">weight_bb</span><span class="p">,</span>
     <span class="n">weight_chi</span><span class="p">,</span>
     <span class="n">weight_sugar</span><span class="p">,</span>
+    <span class="n">rotamer_base</span><span class="p">,</span>
+    <span class="n">rotamer_is_na</span><span class="p">,</span>
+    <span class="n">rotamer_torsion_indices</span><span class="p">,</span>
+    <span class="n">rotamer_atom_ok</span><span class="p">,</span>
+    <span class="n">rotamer_torsion_ok</span><span class="p">,</span>
+    <span class="n">rotamer_ring_indices</span><span class="p">,</span>
+    <span class="n">rotamer_ring_ok</span><span class="p">,</span>
+    <span class="n">rotamer_prev</span><span class="p">,</span>
     <span class="n">output_block_pair_energies</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="n">device</span> <span class="o">=</span> <span class="n">rot_coords</span><span class="o">.</span><span class="n">device</span>
@@ -1150,79 +1275,77 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">has_na</span><span class="p">:</span>
         <span class="n">score</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_rots</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">bt</span> <span class="o">=</span> <span class="n">block_type_ind_for_rot</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-        <span class="n">base</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">bt</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">bt_base</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[</span><span class="n">bt</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">)],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">pose</span> <span class="o">=</span> <span class="n">pose_ind_for_rot</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-        <span class="n">block</span> <span class="o">=</span> <span class="n">block_ind_for_rot</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-        <span class="n">bt_safe</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="n">rotamer_base</span>
+        <span class="n">is_na</span> <span class="o">=</span> <span class="n">rotamer_is_na</span>
+        <span class="k">if</span> <span class="n">rot_coords</span><span class="o">.</span><span class="n">is_cuda</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">rot_coords</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">.potentials</span><span class="w"> </span><span class="kn">import</span> <span class="n">na_torsion_pose_score</span>
 
-        <span class="n">index</span><span class="p">,</span> <span class="n">ok</span> <span class="o">=</span> <span class="n">_resolve_rotamer_uaids</span><span class="p">(</span>
-            <span class="n">bt_uaids</span><span class="p">[</span><span class="n">bt_safe</span><span class="p">],</span>
-            <span class="n">pose</span><span class="p">,</span>
-            <span class="n">block</span><span class="p">,</span>
-            <span class="n">rot_coord_offset</span><span class="p">,</span>
-            <span class="n">first_rot_for_block</span><span class="p">,</span>
-            <span class="n">first_rot_block_type</span><span class="p">,</span>
-            <span class="n">inter_residue_connections</span><span class="p">,</span>
-            <span class="n">atom_downstream_of_conn</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">is_na</span> <span class="o">=</span> <span class="n">base</span> <span class="o">&gt;=</span> <span class="mi">0</span>
-        <span class="n">tor_ok</span> <span class="o">=</span> <span class="n">ok</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">is_na</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">score</span> <span class="o">=</span> <span class="n">na_torsion_pose_score</span><span class="p">(</span>
+                <span class="n">rot_coords</span><span class="p">,</span>
+                <span class="n">base</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+                <span class="n">is_na</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+                <span class="n">rotamer_torsion_indices</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+                <span class="n">rotamer_torsion_ok</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+                <span class="n">rotamer_ring_indices</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+                <span class="n">rotamer_ring_ok</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+                <span class="n">rotamer_prev</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+                <span class="n">backbone_means</span><span class="p">,</span>
+                <span class="n">backbone_sdev</span><span class="p">,</span>
+                <span class="n">sugar_means</span><span class="p">,</span>
+                <span class="n">chi_means</span><span class="p">,</span>
+                <span class="n">sdev_sugar</span><span class="p">,</span>
+                <span class="n">sdev_chi</span><span class="p">,</span>
+                <span class="n">well_pucker</span><span class="p">,</span>
+                <span class="n">well_alpha_gamma</span><span class="p">,</span>
+                <span class="n">well_bibii_pucker</span><span class="p">,</span>
+                <span class="n">well_alphanext_bibii</span><span class="p">,</span>
+                <span class="n">well_chi_syn</span><span class="p">,</span>
+                <span class="n">is_north</span><span class="p">,</span>
+                <span class="n">weight_bb</span><span class="p">,</span>
+                <span class="n">weight_chi</span><span class="p">,</span>
+                <span class="n">weight_sugar</span><span class="p">,</span>
+                <span class="n">pucker_temperature</span><span class="p">,</span>
+                <span class="n">bin_blend_sdev</span><span class="p">,</span>
+            <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
 
-        <span class="k">def</span><span class="w"> </span><span class="nf">gather_coords</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">ok</span><span class="p">):</span>
-            <span class="n">xyz</span> <span class="o">=</span> <span class="n">rot_coords</span><span class="p">[</span><span class="n">index</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">*</span><span class="n">index</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ok</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">xyz</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">xyz</span><span class="p">))</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">gather_coords</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">ok</span><span class="p">):</span>
+                <span class="n">xyz</span> <span class="o">=</span> <span class="n">rot_coords</span><span class="p">[</span><span class="n">index</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+                    <span class="o">*</span><span class="n">index</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="mi">3</span>
+                <span class="p">)</span>
+                <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ok</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">xyz</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">xyz</span><span class="p">))</span>
 
-        <span class="n">xyz</span> <span class="o">=</span> <span class="n">gather_coords</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">ok</span><span class="p">)</span>
-
-        <span class="n">ring_local</span> <span class="o">=</span> <span class="n">bt_ring</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[</span><span class="n">bt_safe</span><span class="p">]</span>
-        <span class="n">ring_ok</span> <span class="o">=</span> <span class="p">(</span><span class="n">ring_local</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">is_na</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">ring_xyz</span> <span class="o">=</span> <span class="n">gather_coords</span><span class="p">(</span>
-            <span class="n">rot_coord_offset</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">ring_local</span><span class="p">,</span> <span class="n">ring_ok</span>
-        <span class="p">)</span>
-
-        <span class="c1"># the preceding nucleotide is never itself a rotamer being built, so</span>
-        <span class="c1"># beta reads the BI/BII state off that block's background rotamer</span>
-        <span class="n">down</span> <span class="o">=</span> <span class="n">bt_down</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[</span><span class="n">bt_safe</span><span class="p">]</span>
-        <span class="n">prev_block</span> <span class="o">=</span> <span class="n">inter_residue_connections</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[</span>
-            <span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">down</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="mi">0</span>
-        <span class="p">]</span>
-        <span class="n">has_prev</span> <span class="o">=</span> <span class="p">(</span><span class="n">down</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">prev_block</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span>
-        <span class="n">prev</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
-            <span class="n">has_prev</span><span class="p">,</span>
-            <span class="n">first_rot_for_block</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[</span><span class="n">pose</span><span class="p">,</span> <span class="n">prev_block</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">)],</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">prev_block</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
-        <span class="p">)</span>
-
-        <span class="n">e_bb</span><span class="p">,</span> <span class="n">e_chi</span><span class="p">,</span> <span class="n">e_sugar</span><span class="p">,</span> <span class="n">e_well</span> <span class="o">=</span> <span class="n">_subterm_energies</span><span class="p">(</span>
-            <span class="n">xyz</span><span class="p">,</span>
-            <span class="n">tor_ok</span><span class="p">,</span>
-            <span class="n">ring_xyz</span><span class="p">,</span>
-            <span class="n">base</span><span class="p">,</span>
-            <span class="n">prev</span><span class="p">,</span>
-            <span class="n">backbone_means</span><span class="p">,</span>
-            <span class="n">backbone_sdev</span><span class="p">,</span>
-            <span class="n">sugar_means</span><span class="p">,</span>
-            <span class="n">chi_means</span><span class="p">,</span>
-            <span class="n">sdev_sugar</span><span class="p">,</span>
-            <span class="n">sdev_chi</span><span class="p">,</span>
-            <span class="n">well_pucker</span><span class="p">,</span>
-            <span class="n">well_alpha_gamma</span><span class="p">,</span>
-            <span class="n">well_bibii_pucker</span><span class="p">,</span>
-            <span class="n">well_alphanext_bibii</span><span class="p">,</span>
-            <span class="n">well_chi_syn</span><span class="p">,</span>
-            <span class="n">is_north</span><span class="p">,</span>
-            <span class="n">pucker_temperature</span><span class="p">,</span>
-            <span class="n">bin_blend_sdev</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">poly</span> <span class="o">=</span> <span class="n">polymer_index</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
-        <span class="n">harmonic</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">weight_bb</span><span class="p">[</span><span class="n">poly</span><span class="p">]</span> <span class="o">*</span> <span class="n">e_bb</span>
-            <span class="o">+</span> <span class="n">weight_chi</span><span class="p">[</span><span class="n">poly</span><span class="p">]</span> <span class="o">*</span> <span class="n">e_chi</span>
-            <span class="o">+</span> <span class="n">weight_sugar</span><span class="p">[</span><span class="n">poly</span><span class="p">]</span> <span class="o">*</span> <span class="n">e_sugar</span>
-        <span class="p">)</span>
-        <span class="n">score</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">harmonic</span><span class="p">,</span> <span class="n">e_well</span><span class="p">])</span>
-        <span class="n">score</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">is_na</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">score</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">score</span><span class="p">))</span>
+            <span class="n">xyz</span> <span class="o">=</span> <span class="n">gather_coords</span><span class="p">(</span><span class="n">rotamer_torsion_indices</span><span class="p">,</span> <span class="n">rotamer_atom_ok</span><span class="p">)</span>
+            <span class="n">ring_xyz</span> <span class="o">=</span> <span class="n">gather_coords</span><span class="p">(</span><span class="n">rotamer_ring_indices</span><span class="p">,</span> <span class="n">rotamer_ring_ok</span><span class="p">)</span>
+            <span class="n">e_bb</span><span class="p">,</span> <span class="n">e_chi</span><span class="p">,</span> <span class="n">e_sugar</span><span class="p">,</span> <span class="n">e_well</span> <span class="o">=</span> <span class="n">_subterm_energies</span><span class="p">(</span>
+                <span class="n">xyz</span><span class="p">,</span>
+                <span class="n">rotamer_torsion_ok</span><span class="p">,</span>
+                <span class="n">ring_xyz</span><span class="p">,</span>
+                <span class="n">base</span><span class="p">,</span>
+                <span class="n">rotamer_prev</span><span class="p">,</span>
+                <span class="n">backbone_means</span><span class="p">,</span>
+                <span class="n">backbone_sdev</span><span class="p">,</span>
+                <span class="n">sugar_means</span><span class="p">,</span>
+                <span class="n">chi_means</span><span class="p">,</span>
+                <span class="n">sdev_sugar</span><span class="p">,</span>
+                <span class="n">sdev_chi</span><span class="p">,</span>
+                <span class="n">well_pucker</span><span class="p">,</span>
+                <span class="n">well_alpha_gamma</span><span class="p">,</span>
+                <span class="n">well_bibii_pucker</span><span class="p">,</span>
+                <span class="n">well_alphanext_bibii</span><span class="p">,</span>
+                <span class="n">well_chi_syn</span><span class="p">,</span>
+                <span class="n">is_north</span><span class="p">,</span>
+                <span class="n">pucker_temperature</span><span class="p">,</span>
+                <span class="n">bin_blend_sdev</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">poly</span> <span class="o">=</span> <span class="n">polymer_index</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
+            <span class="n">harmonic</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">weight_bb</span><span class="p">[</span><span class="n">poly</span><span class="p">]</span> <span class="o">*</span> <span class="n">e_bb</span>
+                <span class="o">+</span> <span class="n">weight_chi</span><span class="p">[</span><span class="n">poly</span><span class="p">]</span> <span class="o">*</span> <span class="n">e_chi</span>
+                <span class="o">+</span> <span class="n">weight_sugar</span><span class="p">[</span><span class="n">poly</span><span class="p">]</span> <span class="o">*</span> <span class="n">e_sugar</span>
+            <span class="p">)</span>
+            <span class="n">score</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">harmonic</span><span class="p">,</span> <span class="n">e_well</span><span class="p">])</span>
+            <span class="n">score</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">is_na</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">score</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">score</span><span class="p">))</span>
 
     <span class="k">if</span> <span class="n">output_block_pair_energies</span><span class="p">:</span>
         <span class="c1"># a one-body term: each energy sits on the diagonal of the rotamer pair</span>

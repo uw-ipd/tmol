@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../_static/documentation_options.js?v=c54c130b"></script>
+    <script src="../_static/documentation_options.js?v=0ec583c6"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -57,7 +57,7 @@
     <link rel="prev" title="Score Terms" href="score_terms.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.53" />
+  <meta name="docsearch:version" content="0.1.54" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -530,8 +530,8 @@
 <dd><p>Perform dtype/device conversion for all subtensors.</p>
 <p>Note that this may be an invalid operations if the TensorGroup contains
 heterogenous tensor dtypes.</p>
-<p>Performs Tensor dtype and/or device conversion. A <a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensor_attributes.html#torch.dtype" title="(in PyTorch v2.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.dtype</span></code></a>
-and <a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.device</span></code></a> are inferred from the arguments of
+<p>Performs Tensor dtype and/or device conversion. A <a class="reference external" href="https://docs.pytorch.org/docs/2.14/tensor_attributes.html#torch.dtype" title="(in PyTorch v2.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.dtype</span></code></a>
+and <a class="reference external" href="https://docs.pytorch.org/docs/2.14/tensor_attributes.html#torch.device" title="(in PyTorch v2.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.device</span></code></a> are inferred from the arguments of
 <code class="docutils literal notranslate"><span class="pre">self.to(*args,</span> <span class="pre">**kwargs)</span></code>.</p>
 <p>If all subtensors already have the correct dtype and device then
 <code class="docutils literal notranslate"><span class="pre">self</span></code> is returned.</p>
@@ -578,7 +578,7 @@ and <a class="reference external" href="https://docs.pytorch.org/docs/2.13/tenso
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmol.types.like_kwargs">
-<span class="sig-prename descclassname"><span class="pre">tmol.types.</span></span><span class="sig-name descname"><span class="pre">like_kwargs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><span class="pre">Tensor</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_torch.html#like_kwargs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.like_kwargs" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmol.types.</span></span><span class="sig-name descname"><span class="pre">like_kwargs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.14/tensors.html#torch.Tensor" title="(in PyTorch v2.14)"><span class="pre">Tensor</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_torch.html#like_kwargs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.like_kwargs" title="Link to this definition">#</a></dt>
 <dd><p>Extract kwargs args needed to initialize an identical tensor.</p>
 </dd></dl>
 
@@ -598,7 +598,7 @@ and <a class="reference external" href="https://docs.pytorch.org/docs/2.13/tenso
 <dt class="sig sig-object py" id="tmol.types.torch_dtype">
 <span class="sig-prename descclassname"><span class="pre">tmol.types.</span></span><span class="sig-name descname"><span class="pre">torch_dtype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dt</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/_torch.html#torch_dtype"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.torch_dtype" title="Link to this definition">#</a></dt>
 <dt class="sig sig-object py">
-<span class="sig-prename descclassname"><span class="pre">tmol.types.</span></span><span class="sig-name descname"><span class="pre">torch_dtype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensor_attributes.html#torch.dtype" title="(in PyTorch v2.13)"><span class="pre">dtype</span></a></span></em><span class="sig-paren">)</span></dt>
+<span class="sig-prename descclassname"><span class="pre">tmol.types.</span></span><span class="sig-name descname"><span class="pre">torch_dtype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.14/tensor_attributes.html#torch.dtype" title="(in PyTorch v2.14)"><span class="pre">dtype</span></a></span></em><span class="sig-paren">)</span></dt>
 <dd><p>Resolve a torch dtype via numpy’s dtype parsing system.</p>
 </dd></dl>
 

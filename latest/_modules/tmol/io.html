@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../../_static/documentation_options.js?v=c54c130b"></script>
+    <script src="../../_static/documentation_options.js?v=0ec583c6"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -54,7 +54,7 @@
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.53" />
+  <meta name="docsearch:version" content="0.1.54" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -471,12 +471,14 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_element_from_atom_name</span>  <span class="c1"># noqa: F401</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">._pose_stack_from_biotite</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: F401</span>
     <span class="n">Atom37MappingError</span><span class="p">,</span>
+    <span class="n">PreparedAtom37PoseBuilder</span><span class="p">,</span>
     <span class="n">build_context_from_biotite</span><span class="p">,</span>
     <span class="n">pose_stack_from_biotite</span><span class="p">,</span>
     <span class="n">biotite_from_pose_stack</span><span class="p">,</span>
     <span class="n">canonical_form_from_biotite</span><span class="p">,</span>
     <span class="n">canonical_ordering_for_biotite</span><span class="p">,</span>
     <span class="n">packed_block_types_for_biotite</span><span class="p">,</span>
+    <span class="n">prepare_pose_stack_from_atom37</span><span class="p">,</span>
     <span class="n">biotite_from_canonical_form</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">._pose_stack_from_openfold</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: F401</span>
@@ -504,6 +506,7 @@
     <span class="s2">"CanonicalForm"</span><span class="p">,</span>
     <span class="s2">"CanonicalOrdering"</span><span class="p">,</span>
     <span class="s2">"PoseBuildContext"</span><span class="p">,</span>
+    <span class="s2">"PreparedAtom37PoseBuilder"</span><span class="p">,</span>
     <span class="s2">"atom_records_from_coords"</span><span class="p">,</span>
     <span class="s2">"atom_records_from_pose_stack"</span><span class="p">,</span>
     <span class="s2">"atomworks_from_pose_stack"</span><span class="p">,</span>
@@ -528,6 +531,7 @@
     <span class="s2">"packed_block_types_for_openfold"</span><span class="p">,</span>
     <span class="s2">"packed_block_types_for_rosettafold2"</span><span class="p">,</span>
     <span class="s2">"pose_stack_from_atomworks"</span><span class="p">,</span>
+    <span class="s2">"prepare_pose_stack_from_atom37"</span><span class="p">,</span>
     <span class="s2">"pose_stack_from_atom37_and_biotite"</span><span class="p">,</span>
     <span class="s2">"pose_stack_from_biotite"</span><span class="p">,</span>
     <span class="s2">"pose_stack_from_openfold"</span><span class="p">,</span>

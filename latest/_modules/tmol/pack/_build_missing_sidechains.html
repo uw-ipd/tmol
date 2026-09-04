@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../../../_static/documentation_options.js?v=c54c130b"></script>
+    <script src="../../../_static/documentation_options.js?v=0ec583c6"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -54,7 +54,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.53" />
+  <meta name="docsearch:version" content="0.1.54" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -426,6 +426,7 @@
     <span class="n">block_has_missing_atoms</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:],</span>
     <span class="n">no_optH</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">na_sampler</span><span class="p">:</span> <span class="n">NaChiRotamerSampler</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">has_missing_atoms</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Build missing sidechains and place hydrogens using per-block sampler assignment.</span>
 
@@ -459,6 +460,8 @@
 <span class="sd">        block_has_missing_atoms: Boolean tensor [n_poses, max_n_blocks]; True</span>
 <span class="sd">            for blocks that have missing non-leaf (heavy) atoms.</span>
 <span class="sd">        no_optH: When True, skip OptH and preserve old Dunbrack-only behavior.</span>
+<span class="sd">        has_missing_atoms: Cached value of ``block_has_missing_atoms.any()``.</span>
+<span class="sd">            Supplying it avoids a device synchronization in repeated builds.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        PoseStack with missing sidechains built and (by default) hydrogens</span>
@@ -468,6 +471,9 @@
 
     <span class="k">assert</span> <span class="n">block_has_missing_atoms</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span>
 
+    <span class="k">if</span> <span class="n">has_missing_atoms</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">has_missing_atoms</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">block_has_missing_atoms</span><span class="p">))</span>
+
     <span class="n">palette</span> <span class="o">=</span> <span class="n">PackerPalette</span><span class="p">()</span>
     <span class="n">task</span> <span class="o">=</span> <span class="n">PackerTask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">palette</span><span class="p">)</span>
     <span class="n">task</span><span class="o">.</span><span class="n">restrict_to_repacking</span><span class="p">()</span>
@@ -475,11 +481,14 @@
     <span class="n">fixed_sampler</span> <span class="o">=</span> <span class="n">FixedAAChiSampler</span><span class="p">()</span>
     <span class="n">opth_sampler</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">no_optH</span> <span class="k">else</span> <span class="n">OptHSampler</span><span class="p">()</span>
 
-    <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler_by_block_mask</span><span class="p">(</span><span class="n">dunbrack_sampler</span><span class="p">,</span> <span class="n">block_has_missing_atoms</span><span class="p">)</span>
-    <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler_by_block_mask</span><span class="p">(</span><span class="n">fixed_sampler</span><span class="p">,</span> <span class="n">block_has_missing_atoms</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">has_missing_atoms</span><span class="p">:</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler_by_block_mask</span><span class="p">(</span>
+            <span class="n">dunbrack_sampler</span><span class="p">,</span> <span class="n">block_has_missing_atoms</span>
+        <span class="p">)</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler_by_block_mask</span><span class="p">(</span><span class="n">fixed_sampler</span><span class="p">,</span> <span class="n">block_has_missing_atoms</span><span class="p">)</span>
     <span class="c1"># An empty sampler mask still makes the general rotamer builder execute the</span>
     <span class="c1"># sampler's setup path. Avoid that overhead for complete protein batches.</span>
-    <span class="k">if</span> <span class="n">na_sampler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">block_has_missing_atoms</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">na_sampler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">has_missing_atoms</span><span class="p">:</span>
         <span class="n">block_type_ind</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span>
         <span class="n">real_blocks</span> <span class="o">=</span> <span class="n">block_type_ind</span> <span class="o">&gt;=</span> <span class="mi">0</span>
         <span class="n">na_blocks</span> <span class="o">=</span> <span class="n">na_sampler</span><span class="o">.</span><span class="n">defines_rotamers_for_bts</span><span class="p">(</span>

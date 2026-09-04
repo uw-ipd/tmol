@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../_static/documentation_options.js?v=c54c130b"></script>
+    <script src="../_static/documentation_options.js?v=0ec583c6"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -57,7 +57,7 @@
     <link rel="prev" title="Benchmarking" href="benchmarking.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.53" />
+  <meta name="docsearch:version" content="0.1.54" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -461,11 +461,20 @@ before running the full test suite.</p></li>
 pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[dev]"</span>
 </pre></div>
 </div>
+<p>The command above uses pip’s isolated build environment. To reuse an existing
+PyTorch installation (especially in a CUDA container), install the small build
+tools once and disable build isolation:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"scikit-build-core&gt;=0.10"</span><span class="w"> </span><span class="s2">"pybind11&gt;=2.12"</span><span class="w"> </span>ninja<span class="w"> </span>packaging
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[dev]"</span>
+</pre></div>
+</div>
+<p>TMol locates the Torch and pybind11 CMake packages from this Python
+interpreter; <code class="docutils literal notranslate"><span class="pre">CMAKE_PREFIX_PATH</span></code> and <code class="docutils literal notranslate"><span class="pre">pybind11_DIR</span></code> do not need to be set.</p>
 <p>Requirements:</p>
 <ul class="simple">
 <li><p>Python 3.11 or newer.</p></li>
 <li><p>PyTorch 2.5 or newer.</p></li>
-<li><p>A C++17 compiler.</p></li>
+<li><p>A C++20-capable compiler (TMol uses C++17 with PyTorch 2.5–2.12).</p></li>
 <li><p>CMake 3.24 or newer.</p></li>
 <li><p>CUDA toolkit with <code class="docutils literal notranslate"><span class="pre">nvcc</span></code> for CUDA builds.</p></li>
 </ul>
@@ -481,7 +490,8 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
 pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
 
 <span class="c1"># Include test-only C++/CUDA extensions</span>
-pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.<span class="w"> </span>-Ccmake.define.TMOL_BUILD_TESTS<span class="o">=</span>ON
+pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[dev]"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-Ccmake.define.TMOL_BUILD_TESTS<span class="o">=</span>ON
 
 <span class="c1"># Select GPU architectures</span>
 pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.<span class="w"> </span>-Ccmake.define.CMAKE_CUDA_ARCHITECTURES<span class="o">=</span><span class="s2">"80;90"</span>

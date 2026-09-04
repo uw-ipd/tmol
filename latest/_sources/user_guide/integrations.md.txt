@@ -120,7 +120,7 @@ import torch
 
 from tmol.io import (
     build_context_from_biotite,
-    pose_stack_from_atom37_and_biotite,
+    prepare_pose_stack_from_atom37,
 )
 from tmol.score import beta2016_score_function
 
@@ -133,12 +133,11 @@ context = build_context_from_biotite(
     atom37_coords.device,
     prepare_ligands=True,
 )
+pose_builder = prepare_pose_stack_from_atom37(atom_array, context)
 
-pose_stack = pose_stack_from_atom37_and_biotite(
-    atom37_coords,  # [sample, token, 37, xyz], float32
-    atom_array,
-    context,
-)
+# One call accepts one sample or a same-topology batch. The builder can be
+# reused at every diffusion, guidance, or search step.
+pose_stack = pose_builder(atom37_coords)  # [sample, token, 37, xyz], float32
 sfxn = beta2016_score_function(
     pose_stack.device,
     param_db=context.parameter_database,
@@ -150,9 +149,11 @@ score.backward()
 
 A single call handles one sample or a whole same-topology batch; hydrogen
 optimization is enabled by default. For high-throughput diffusion or search,
-reuse `context` for every compatible candidate and render each scoring module
-once per topology and batch shape. Pass `no_optH=True` only when ideal hydrogen
-placement is an intentional speed/accuracy tradeoff.
+reuse both `pose_builder` and the scoring module for every compatible topology
+and batch shape. Pass `opt_h=False` to the builder only when ideal hydrogen
+placement is an intentional speed/accuracy tradeoff. For one-off conversion,
+`pose_stack_from_atom37_and_biotite(atom37_coords, atom_array, context)` remains
+available.
 
 A single `AtomArray` may provide topology for a batch of coordinate tensors. An
 `AtomArrayStack` must either have the same number of models as the tensor batch

@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../_static/documentation_options.js?v=c54c130b"></script>
+    <script src="../_static/documentation_options.js?v=0ec583c6"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -57,7 +57,7 @@
     <link rel="prev" title="Structure I/O and visualization" href="../workflows/structure_io.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.53" />
+  <meta name="docsearch:version" content="0.1.54" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -551,7 +551,7 @@ steps:</p>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">build_context_from_biotite</span><span class="p">,</span>
-    <span class="n">pose_stack_from_atom37_and_biotite</span><span class="p">,</span>
+    <span class="n">prepare_pose_stack_from_atom37</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
 
@@ -564,12 +564,11 @@ steps:</p>
     <span class="n">atom37_coords</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
     <span class="n">prepare_ligands</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="n">pose_builder</span> <span class="o">=</span> <span class="n">prepare_pose_stack_from_atom37</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
 
-<span class="n">pose_stack</span> <span class="o">=</span> <span class="n">pose_stack_from_atom37_and_biotite</span><span class="p">(</span>
-    <span class="n">atom37_coords</span><span class="p">,</span>  <span class="c1"># [sample, token, 37, xyz], float32</span>
-    <span class="n">atom_array</span><span class="p">,</span>
-    <span class="n">context</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="c1"># One call accepts one sample or a same-topology batch. The builder can be</span>
+<span class="c1"># reused at every diffusion, guidance, or search step.</span>
+<span class="n">pose_stack</span> <span class="o">=</span> <span class="n">pose_builder</span><span class="p">(</span><span class="n">atom37_coords</span><span class="p">)</span>  <span class="c1"># [sample, token, 37, xyz], float32</span>
 <span class="n">sfxn</span> <span class="o">=</span> <span class="n">beta2016_score_function</span><span class="p">(</span>
     <span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
     <span class="n">param_db</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">parameter_database</span><span class="p">,</span>
@@ -581,9 +580,11 @@ steps:</p>
 </div>
 <p>A single call handles one sample or a whole same-topology batch; hydrogen
 optimization is enabled by default. For high-throughput diffusion or search,
-reuse <code class="docutils literal notranslate"><span class="pre">context</span></code> for every compatible candidate and render each scoring module
-once per topology and batch shape. Pass <code class="docutils literal notranslate"><span class="pre">no_optH=True</span></code> only when ideal hydrogen
-placement is an intentional speed/accuracy tradeoff.</p>
+reuse both <code class="docutils literal notranslate"><span class="pre">pose_builder</span></code> and the scoring module for every compatible topology
+and batch shape. Pass <code class="docutils literal notranslate"><span class="pre">opt_h=False</span></code> to the builder only when ideal hydrogen
+placement is an intentional speed/accuracy tradeoff. For one-off conversion,
+<code class="docutils literal notranslate"><span class="pre">pose_stack_from_atom37_and_biotite(atom37_coords,</span> <span class="pre">atom_array,</span> <span class="pre">context)</span></code> remains
+available.</p>
 <p>A single <code class="docutils literal notranslate"><span class="pre">AtomArray</span></code> may provide topology for a batch of coordinate tensors. An
 <code class="docutils literal notranslate"><span class="pre">AtomArrayStack</span></code> must either have the same number of models as the tensor batch
 or one model that can be broadcast. Finite mapped tensor coordinates replace

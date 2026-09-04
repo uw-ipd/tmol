@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../../../_static/documentation_options.js?v=c54c130b"></script>
+    <script src="../../../_static/documentation_options.js?v=0ec583c6"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -54,7 +54,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.53" />
+  <meta name="docsearch:version" content="0.1.54" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -462,10 +462,19 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
             <span class="n">param_db</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_database</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="c1"># OptH changes proton chis and terminal NHQ groups, never the protein</span>
-        <span class="c1"># backbone. Avoid scoring rama/omega for every candidate rotamer.</span>
-        <span class="n">score_function</span><span class="o">.</span><span class="n">set_weight</span><span class="p">(</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">rama</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-        <span class="n">score_function</span><span class="o">.</span><span class="n">set_weight</span><span class="p">(</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">omega</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="c1"># OptH changes proton chis and terminal NHQ groups. These terms depend</span>
+        <span class="c1"># only on residue identity, disulfide geometry, protein backbone, or</span>
+        <span class="c1"># nucleic-acid heavy-atom torsions, so they are constant across every</span>
+        <span class="c1"># OptH candidate and cannot affect the selected assignment.</span>
+        <span class="k">for</span> <span class="n">score_type</span> <span class="ow">in</span> <span class="p">(</span>
+            <span class="n">ScoreType</span><span class="o">.</span><span class="n">disulfide</span><span class="p">,</span>
+            <span class="n">ScoreType</span><span class="o">.</span><span class="n">omega</span><span class="p">,</span>
+            <span class="n">ScoreType</span><span class="o">.</span><span class="n">rama</span><span class="p">,</span>
+            <span class="n">ScoreType</span><span class="o">.</span><span class="n">ref</span><span class="p">,</span>
+            <span class="n">ScoreType</span><span class="o">.</span><span class="n">na_torsion</span><span class="p">,</span>
+            <span class="n">ScoreType</span><span class="o">.</span><span class="n">na_torsion_well</span><span class="p">,</span>
+        <span class="p">):</span>
+            <span class="n">score_function</span><span class="o">.</span><span class="n">set_weight</span><span class="p">(</span><span class="n">score_type</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">score_function</span>
 
     <span class="nd">@cached_property</span>

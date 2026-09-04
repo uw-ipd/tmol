@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../_static/documentation_options.js?v=c54c130b"></script>
+    <script src="../_static/documentation_options.js?v=0ec583c6"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -57,7 +57,7 @@
     <link rel="prev" title="Protein-interface analysis" href="../workflows/protein_interfaces.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.53" />
+  <meta name="docsearch:version" content="0.1.54" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -569,6 +569,13 @@ score-function weights:</p>
 protocol but is not used by that minimizer. To minimize kinematic degrees of
 freedom, pass a configured <code class="docutils literal notranslate"><span class="pre">MoveMap</span></code>, a <code class="docutils literal notranslate"><span class="pre">FoldForest</span></code>, and a compatible
 kinematic <code class="docutils literal notranslate"><span class="pre">min_fn</span></code>.</p>
+<p>On CUDA, <code class="docutils literal notranslate"><span class="pre">fast_relax()</span></code> automatically uses graph replay for poses containing
+DNA or RNA, where repeated kernel-launch overhead is significant. Protein-only
+and protein–ligand poses remain eager. Pass <code class="docutils literal notranslate"><span class="pre">cuda_graph=True</span></code> or
+<code class="docutils literal notranslate"><span class="pre">cuda_graph=False</span></code> to override that choice; custom minimizers manage their own
+execution mode and cannot be combined with <code class="docutils literal notranslate"><span class="pre">cuda_graph=True</span></code>. Graph capture has
+a one-time startup cost, so explicitly disable it for a single latency-sensitive
+nucleic-acid relaxation that will not be repeated in the same process.</p>
 </section>
 </section>
 
