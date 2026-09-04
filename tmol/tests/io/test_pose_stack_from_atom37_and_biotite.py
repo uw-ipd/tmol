@@ -176,9 +176,17 @@ def test_prepared_atom37_builder_is_reusable_and_differentiable(
     torch.testing.assert_close(batched_pose.coords, expected_batched.coords)
     assert set(builder._pose_topologies) == {1, 2}
 
+    nonfinite_coords = second_coords.detach().clone()
+    nonfinite_coords[:, 0, 1] = torch.nan
+    actual_nonfinite = builder(nonfinite_coords, opt_h=False)
+    expected_nonfinite = pose_stack_from_atom37_and_biotite(
+        nonfinite_coords, structure, context, no_optH=True
+    )
+    torch.testing.assert_close(actual_nonfinite.coords, expected_nonfinite.coords)
+
     for batch_size in (3, 4, 5):
         builder(second_coords.detach().expand(batch_size, -1, -1, -1), opt_h=False)
-    assert set(builder._pose_topologies) == {2, 3, 4, 5}
+    assert set(builder._pose_topologies) == {1, 3, 4, 5}
 
 
 @pytest.mark.parametrize("filename", ["1ubq.pdb", "1bna.pdb", "3zp8.pdb"])

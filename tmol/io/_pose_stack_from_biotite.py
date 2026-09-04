@@ -173,6 +173,7 @@ class PreparedAtom37PoseBuilder:
             )
         n_poses = atom37_coords.shape[0]
         topology = self._pose_topologies.pop(n_poses, None)
+        topology_was_cached = topology is not None
         if topology is None:
             pose_stack, details = _pose_stack_from_canonical_and_context(
                 cf,
@@ -223,7 +224,11 @@ class PreparedAtom37PoseBuilder:
                 topology.pose_atom_mapping,
                 mappings_are_finite=True,
             )
-        _assert_no_nan_coords(pose_stack, topology.real_atoms)
+        # Pose construction validates the initial topology. Check the initial
+        # packed result too, but do not force a CUDA-to-host synchronization on
+        # every replay of an already validated fixed topology.
+        if opt_h and not topology_was_cached:
+            _assert_no_nan_coords(pose_stack, topology.real_atoms)
         return pose_stack
 
     def _canonical_form(self, atom37_coords: torch.Tensor) -> CanonicalForm:
