@@ -158,12 +158,23 @@ def test_prepared_atom37_builder_is_reusable_and_differentiable(
 
     second_coords = atom37.detach().clone()
     second_coords[:, :, 1] += 1
+    second_coords.requires_grad_(True)
     second_pose = builder(second_coords, opt_h=False)
     expected_second = pose_stack_from_atom37_and_biotite(
         second_coords, structure, context, no_optH=True
     )
     torch.testing.assert_close(first_pose.coords, first_snapshot)
     torch.testing.assert_close(second_pose.coords, expected_second.coords)
+    second_pose.coords[second_pose.real_atoms].sum().backward()
+    assert torch.count_nonzero(second_coords.grad) > 0
+
+    batched_coords = second_coords.detach().expand(2, -1, -1, -1).clone()
+    batched_pose = builder(batched_coords, opt_h=False)
+    expected_batched = pose_stack_from_atom37_and_biotite(
+        batched_coords, structure, context, no_optH=True
+    )
+    torch.testing.assert_close(batched_pose.coords, expected_batched.coords)
+    assert set(builder._pose_topologies) == {1, 2}
 
 
 @pytest.mark.parametrize("filename", ["1ubq.pdb", "1bna.pdb", "3zp8.pdb"])
@@ -174,12 +185,15 @@ def test_prepared_atom37_builder_preserves_default_opth(filename, torch_device):
 
     builder = prepare_pose_stack_from_atom37(structure, context)
     for coords in (atom37, atom37 + torch.randn_like(atom37) * 0.01):
+        coords = coords.detach().requires_grad_(True)
         torch.manual_seed(0)
         expected = pose_stack_from_atom37_and_biotite(coords, structure, context)
         torch.manual_seed(0)
         actual = builder(coords)
 
         torch.testing.assert_close(actual.coords, expected.coords)
+        actual.coords[actual.real_atoms].sum().backward()
+        assert torch.count_nonzero(coords.grad) > 0
 
 
 def test_prepared_atom37_builder_falls_back_for_variable_atom_presence(
