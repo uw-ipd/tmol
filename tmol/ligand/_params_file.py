@@ -31,8 +31,10 @@ YAML so entries can be copy-pasted between params files and
 ``chemical.yaml`` / ``cartbonded.yaml`` / ``elec.yaml``.
 """
 
+import copy
 import functools
 import logging
+from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -134,9 +136,37 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
     legacy flat schema (top-level ``residues:`` etc.) raise a
     ``ValueError`` pointing at the migration.
     """
+    path = Path(path).resolve()
+    stat = path.stat()
+    cached = _load_params_file_cached(
+        str(path), stat.st_mtime_ns, stat.st_ctime_ns, stat.st_size
+    )
+    return [
+        replace(
+            prep,
+            residue_type=copy.copy(prep.residue_type),
+            partial_charges=prep.partial_charges.copy(),
+            atom_type_elements=(
+                None
+                if prep.atom_type_elements is None
+                else prep.atom_type_elements.copy()
+            ),
+        )
+        for prep in cached
+    ]
+
+
+@functools.lru_cache(maxsize=32)
+def _load_params_file_cached(
+    path: str, _mtime_ns: int, _ctime_ns: int, _size: int
+) -> tuple["LigandPreparation", ...]:
+    """Load immutable-ish prototypes, invalidating when file metadata changes."""
+    return tuple(_load_params_file_uncached(Path(path)))
+
+
+def _load_params_file_uncached(path: Path) -> list["LigandPreparation"]:
     from tmol.ligand._registry import LigandPreparation
 
-    path = Path(path)
     raw = _parse_params_document(path.read_text())
 
     if not isinstance(raw, dict):
