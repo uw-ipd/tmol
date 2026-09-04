@@ -634,6 +634,9 @@ struct Annealer {
       }
 
       // Full SA run with geometric cooling
+      // Match the CPU annealer's per-pose work: a large neighbor in a jagged
+      // batch must not inflate this pose's trajectory length.
+      int const pose_inner_iterations = n_rotamers + n_rotamers / 2;
       warp_wide_sim_annealing<ChunkSize, false, false, true>(
           pose,
           &state,
@@ -645,7 +648,7 @@ struct Annealer {
           high_temp_initial,
           low_temp_initial,
           n_outer_iterations_hitemp,
-          n_inner_iterations_hitemp,
+          pose_inner_iterations,
           n_rotamers,
           false,
           false);
@@ -719,6 +722,7 @@ struct Annealer {
       }
 
       // Low-temperature cooling trajectory
+      int const pose_inner_iterations = n_rotamers / 2;
       warp_wide_sim_annealing<ChunkSize, false, false, true>(
           pose,
           &state,
@@ -730,7 +734,7 @@ struct Annealer {
           high_temp_later,
           low_temp_later,
           n_outer_iterations_lotemp,
-          n_inner_iterations_lotemp,
+          pose_inner_iterations,
           n_rotamers,
           false,
           false);
