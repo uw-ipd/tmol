@@ -31,7 +31,10 @@ YAML so entries can be copy-pasted between params files and
 ``chemical.yaml`` / ``cartbonded.yaml`` / ``elec.yaml``.
 """
 
+import copy
+import functools
 import logging
+from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -55,6 +58,7 @@ if TYPE_CHECKING:
 # schema changes; bump the minor version on backward-compatible additions.
 # The version string is written into every .tmol file and checked on load.
 TMOL_FORMAT_VERSION: str = "1.0"
+
 
 _RAW_RESIDUE_DEFAULTS: dict[str, Any] = {
     "atom_aliases": [],
@@ -107,6 +111,7 @@ def _fill_properties_defaults(props: dict[str, Any]) -> dict[str, Any]:
 def _structure_residue(item: dict[str, Any]) -> RawResidueType:
     """Apply defaults for optional fields, then structure into RawResidueType."""
     populated = {**_RAW_RESIDUE_DEFAULTS, **item}
+    normalize_bond_tuples([populated])
     if "properties" in populated:
         populated["properties"] = _fill_properties_defaults(populated["properties"])
     return cattr.structure(populated, RawResidueType)
@@ -126,11 +131,38 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
     legacy flat schema (top-level ``residues:`` etc.) raise a
     ``ValueError`` pointing at the migration.
     """
+    path = Path(path).resolve()
+    stat = path.stat()
+    cached = _load_params_file_cached(
+        str(path), stat.st_mtime_ns, stat.st_ctime_ns, stat.st_size
+    )
+    return [
+        replace(
+            prep,
+            residue_type=copy.copy(prep.residue_type),
+            partial_charges=prep.partial_charges.copy(),
+            atom_type_elements=(
+                None
+                if prep.atom_type_elements is None
+                else prep.atom_type_elements.copy()
+            ),
+        )
+        for prep in cached
+    ]
+
+
+@functools.lru_cache(maxsize=32)
+def _load_params_file_cached(
+    path: str, _mtime_ns: int, _ctime_ns: int, _size: int
+) -> tuple["LigandPreparation", ...]:
+    """Load immutable-ish prototypes, invalidating when file metadata changes."""
+    return tuple(_load_params_file_uncached(Path(path)))
+
+
+def _load_params_file_uncached(path: Path) -> list["LigandPreparation"]:
     from tmol.ligand._registry import LigandPreparation
 
-    path = Path(path)
-    with path.open() as f:
-        raw = safe_load(f)
+    raw = safe_load(path.read_text())
 
     if not isinstance(raw, dict):
         raise ValueError(f"Expected mapping at YAML root, got {type(raw).__name__}")
@@ -183,7 +215,6 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
     cart = raw.get("cartbonded") or {}
 
     res_list = chem.get("residues") or []
-    normalize_bond_tuples({"residues": res_list})
     residues = [_structure_residue(item) for item in res_list]
 
     cb_raw = cart.get("residue_params") or {}

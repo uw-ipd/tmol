@@ -119,6 +119,8 @@ def test_tmol_params_roundtrip_and_inject(tmp_path) -> None:
     loaded = load_params_file(tmol_file)
     assert len(loaded) == 1
     assert loaded[0].residue_type.name == prep.residue_type.name
+    loaded[0].partial_charges.clear()
+    assert load_params_file(tmol_file)[0].partial_charges
 
     injected = inject_params_file(ParameterDatabase.get_default(), tmol_file)
     assert any(r.name == prep.residue_type.name for r in injected.chemical.residues)
@@ -136,6 +138,7 @@ def test_tmol_loader_accepts_minor_version_difference(tmp_path) -> None:
     prep = _single_prep()
     tmol_file = tmp_path / "lig.tmol"
     write_params_file([prep], str(tmol_file), format="tmol")
+    load_params_file(tmol_file)
 
     text = tmol_file.read_text().replace('version: "1.0"', 'version: "1.9"')
     assert "1.9" in text

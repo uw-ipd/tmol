@@ -459,27 +459,30 @@ def prepare_ligands(  # noqa: C901
 
     fragment_layouts_by_name = {}
     first_residue_by_name: dict[str, struc.AtomArray] = {}
-    starts = struc.get_residue_starts(atom_array)
-    ends = np.append(starts[1:], atom_array.array_length())
-    for start, end in zip(starts, ends):
-        residue = atom_array[start:end]
-        fragment_ids = fragment_ids_from_atom_array(residue)
-        layout = (
-            None
-            if fragment_ids is None
-            else tuple(sorted(zip(map(str, residue.atom_name), map(int, fragment_ids))))
-        )
-        ligand_name = str(residue.res_name[0])
-        if (
-            ligand_name in fragment_layouts_by_name
-            and fragment_layouts_by_name[ligand_name] != layout
-        ):
-            raise LigandPreparationError(
-                f"{ligand_name}: all residues with the same name must use the "
-                f"same {FRAGMENT_ID_ANNOTATION} annotation"
+    if FRAGMENT_ID_ANNOTATION in atom_array.get_annotation_categories():
+        starts = struc.get_residue_starts(atom_array)
+        ends = np.append(starts[1:], atom_array.array_length())
+        for start, end in zip(starts, ends):
+            residue = atom_array[start:end]
+            fragment_ids = fragment_ids_from_atom_array(residue)
+            layout = (
+                None
+                if fragment_ids is None
+                else tuple(
+                    sorted(zip(map(str, residue.atom_name), map(int, fragment_ids)))
+                )
             )
-        fragment_layouts_by_name[ligand_name] = layout
-        first_residue_by_name.setdefault(ligand_name, residue)
+            ligand_name = str(residue.res_name[0])
+            if (
+                ligand_name in fragment_layouts_by_name
+                and fragment_layouts_by_name[ligand_name] != layout
+            ):
+                raise LigandPreparationError(
+                    f"{ligand_name}: all residues with the same name must use the "
+                    f"same {FRAGMENT_ID_ANNOTATION} annotation"
+                )
+            fragment_layouts_by_name[ligand_name] = layout
+            first_residue_by_name.setdefault(ligand_name, residue)
 
     params_preparations: list[LigandPreparation] = []
     if params_files:

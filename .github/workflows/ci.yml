@@ -91,6 +91,20 @@ jobs:
           MAX_JOBS: ${{ matrix.build_workers }}
         run: .github/ci/build_cpu_package.sh
 
+      - name: compile representative CPU JIT extension
+        if: matrix.platform == 'linux-x86_64'
+        env:
+          MAX_JOBS: ${{ matrix.build_workers }}
+          TMOL_USE_JIT: "1"
+        run: |
+          .venv/bin/python - <<'PY'
+          import torch
+          from tmol.kinematics.compiled import forward_kin_op
+
+          assert torch.version.cuda is None
+          print("loaded", forward_kin_op, "with torch", torch.__version__)
+          PY
+
       - name: report compiler cache
         if: always()
         run: ccache --show-stats
@@ -115,7 +129,7 @@ jobs:
           paths: testing.cpu.junit.xml
 
       - uses: codecov/codecov-action@v5
-        if: always() && matrix.platform == 'linux-x86_64'
+        if: always() && matrix.platform == 'linux-x86_64' && hashFiles('coverage.cpu.xml') != ''
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ github.workspace }}/coverage.cpu.xml
@@ -167,20 +181,13 @@ jobs:
             coverage.cuda.xml
           if-no-files-found: ignore
 
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: benchmark-results
-          path: benchmark/**/*
-          if-no-files-found: ignore
-
       - uses: test-summary/action@v2
         if: always()
         with:
           paths: testing.cuda.junit.xml
 
       - uses: codecov/codecov-action@v5
-        if: always()
+        if: always() && hashFiles('coverage.cuda.xml') != ''
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ github.workspace }}/coverage.cuda.xml

@@ -82,6 +82,13 @@ jobs:
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
             runs-on: self-hosted
             label: "py3.11 pt2.12 x86_64 manylinux"
+          - python-version: "3.11"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            torch-version: "2.14"
+            torch-package-version: "2.14.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
+            runs-on: ubuntu-22.04
+            label: "py3.11 pt2.14 x86_64 cu132"
 
           # ── x86_64 py3.12 ──
           - python-version: "3.12"
@@ -133,6 +140,13 @@ jobs:
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
             runs-on: ubuntu-22.04
             label: "py3.12 pt2.13 x86_64 cu130"
+          - python-version: "3.12"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            torch-version: "2.14"
+            torch-package-version: "2.14.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
+            runs-on: ubuntu-22.04
+            label: "py3.12 pt2.14 x86_64 cu132"
 
           # ── x86_64 py3.12 cu128 torch2.10 (foundry torch-2.10 upgrade path) ──
           # Datacenter target (no sm_75); consumed by foundry upgrade_torch_cu12_to_210.sh.
@@ -172,6 +186,13 @@ jobs:
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
             runs-on: ubuntu-24.04-arm
             label: "py3.11 pt2.12 aarch64 manylinux"
+          - python-version: "3.11"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            torch-version: "2.14"
+            torch-package-version: "2.14.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
+            runs-on: ubuntu-24.04-arm
+            label: "py3.11 pt2.14 aarch64 cu132"
 
           # ── ARM64 py3.12 ──
           - python-version: "3.12"
@@ -216,6 +237,13 @@ jobs:
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
             runs-on: ubuntu-24.04-arm
             label: "py3.12 pt2.13 aarch64 cu130"
+          - python-version: "3.12"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            torch-version: "2.14"
+            torch-package-version: "2.14.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
+            runs-on: ubuntu-24.04-arm
+            label: "py3.12 pt2.14 aarch64 cu132"
 
           # ── x86_64 py3.13/py3.14 ──
           - python-version: "3.13"
@@ -232,6 +260,13 @@ jobs:
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
             runs-on: ubuntu-22.04
             label: "py3.13 pt2.13 x86_64 cu130"
+          - python-version: "3.13"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            torch-version: "2.14"
+            torch-package-version: "2.14.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
+            runs-on: ubuntu-22.04
+            label: "py3.13 pt2.14 x86_64 cu132"
           - python-version: "3.14"
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             torch-version: "2.12"
@@ -246,6 +281,13 @@ jobs:
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
             runs-on: ubuntu-22.04
             label: "py3.14 pt2.13 x86_64 cu130"
+          - python-version: "3.14"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            torch-version: "2.14"
+            torch-package-version: "2.14.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
+            runs-on: ubuntu-22.04
+            label: "py3.14 pt2.14 x86_64 cu132"
 
           # ── ARM64 py3.13/py3.14 ──
           - python-version: "3.13"
@@ -262,6 +304,13 @@ jobs:
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
             runs-on: ubuntu-24.04-arm
             label: "py3.13 pt2.13 aarch64 cu130"
+          - python-version: "3.13"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            torch-version: "2.14"
+            torch-package-version: "2.14.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
+            runs-on: ubuntu-24.04-arm
+            label: "py3.13 pt2.14 aarch64 cu132"
           - python-version: "3.14"
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             torch-version: "2.12"
@@ -276,6 +325,13 @@ jobs:
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
             runs-on: ubuntu-24.04-arm
             label: "py3.14 pt2.13 aarch64 cu130"
+          - python-version: "3.14"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            torch-version: "2.14"
+            torch-package-version: "2.14.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
+            runs-on: ubuntu-24.04-arm
+            label: "py3.14 pt2.14 aarch64 cu132"
 
     uses: ./.github/workflows/_build_wheel.yml
     with:
@@ -293,62 +349,45 @@ jobs:
 
   # ── CPU-only wheel ─────────────────────────────────────────────────
   build_cpu_wheel:
-    name: "py${{ matrix.python-version }} CPU-only ${{ matrix.arch }}"
-    needs: verify_release_version
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - python-version: "3.11"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-          - python-version: "3.12"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-          - python-version: "3.13"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-          - python-version: "3.14"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-          - python-version: "3.11"
-            runs-on: ubuntu-24.04-arm
-            arch: aarch64
-          - python-version: "3.12"
-            runs-on: ubuntu-24.04-arm
-            arch: aarch64
-          - python-version: "3.13"
-            runs-on: ubuntu-24.04-arm
-            arch: aarch64
-          - python-version: "3.14"
-            runs-on: ubuntu-24.04-arm
-            arch: aarch64
-    uses: ./.github/workflows/_build_wheel.yml
-    with:
-      runs-on: ${{ matrix.runs-on }}
-      container-image: unused-for-manylinux-cpu
-      torch-version: "2.13"
-      torch-package-version: "2.13.0"
-      python-version: ${{ matrix.python-version }}
-      label: "py${{ matrix.python-version }} CPU-only ${{ matrix.arch }}"
-      pip-torch-cuda-url: "https://download.pytorch.org/whl/cpu"
-      enable-cuda: false
-      use-manylinux-build: true
-      target-arch: ${{ matrix.arch }}
-
-  # ── Apple Silicon CPU-only wheel ───────────────────────────────────
-  build_macos_cpu_wheel:
-    name: "py${{ matrix.python-version }} CPU-only macOS arm64"
+    name: "py${{ matrix.python-version }} pt${{ matrix.torch-version }} CPU-only ${{ matrix.platform.arch }}"
     needs: verify_release_version
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.11", "3.12", "3.13", "3.14"]
+        torch-version: ["2.13", "2.14"]
+        platform:
+          - runs-on: ubuntu-22.04
+            arch: x86_64
+          - runs-on: ubuntu-24.04-arm
+            arch: aarch64
+    uses: ./.github/workflows/_build_wheel.yml
+    with:
+      runs-on: ${{ matrix.platform.runs-on }}
+      container-image: unused-for-manylinux-cpu
+      torch-version: ${{ matrix.torch-version }}
+      torch-package-version: ${{ format('{0}.0', matrix.torch-version) }}
+      python-version: ${{ matrix.python-version }}
+      label: "py${{ matrix.python-version }} pt${{ matrix.torch-version }} CPU-only ${{ matrix.platform.arch }}"
+      pip-torch-cuda-url: "https://download.pytorch.org/whl/cpu"
+      enable-cuda: false
+      use-manylinux-build: true
+      target-arch: ${{ matrix.platform.arch }}
+
+  # ── Apple Silicon CPU-only wheel ───────────────────────────────────
+  build_macos_cpu_wheel:
+    name: "py${{ matrix.python-version }} pt${{ matrix.torch-version }} CPU-only macOS arm64"
+    needs: verify_release_version
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+        torch-version: ["2.13", "2.14"]
     uses: ./.github/workflows/_build_macos_wheel.yml
     with:
       python-version: ${{ matrix.python-version }}
-      torch-package-version: "2.13.0"
-      label: "py${{ matrix.python-version }} CPU-only macOS arm64"
+      torch-package-version: ${{ format('{0}.0', matrix.torch-version) }}
+      label: "py${{ matrix.python-version }} pt${{ matrix.torch-version }} CPU-only macOS arm64"
 
   # ── sdist ──────────────────────────────────────────────────────────
   build_sdist:
@@ -422,8 +461,8 @@ jobs:
       - name: Validate release wheel manifest
         run: |
           python scripts/validate_release_manifest.py wheels \
-            --gpu-count 26 \
-            --cpu-count 12 \
+            --gpu-count 34 \
+            --cpu-count 24 \
             --platform manylinux_2_28_x86_64 \
             --platform manylinux_2_28_aarch64 \
             --platform macosx_14_0_arm64 \
@@ -453,6 +492,14 @@ jobs:
             --require cu130torch2.13:cp313:aarch64 \
             --require cu132torch2.12:cp314:aarch64 \
             --require cu130torch2.13:cp314:aarch64 \
+            --require cu132torch2.14:cp311:x86_64 \
+            --require cu132torch2.14:cp312:x86_64 \
+            --require cu132torch2.14:cp313:x86_64 \
+            --require cu132torch2.14:cp314:x86_64 \
+            --require cu132torch2.14:cp311:aarch64 \
+            --require cu132torch2.14:cp312:aarch64 \
+            --require cu132torch2.14:cp313:aarch64 \
+            --require cu132torch2.14:cp314:aarch64 \
             --require cputorch2.13:cp311:x86_64 \
             --require cputorch2.13:cp312:x86_64 \
             --require cputorch2.13:cp313:x86_64 \
@@ -464,7 +511,19 @@ jobs:
             --require cputorch2.13:cp311:arm64 \
             --require cputorch2.13:cp312:arm64 \
             --require cputorch2.13:cp313:arm64 \
-            --require cputorch2.13:cp314:arm64
+            --require cputorch2.13:cp314:arm64 \
+            --require cputorch2.14:cp311:x86_64 \
+            --require cputorch2.14:cp312:x86_64 \
+            --require cputorch2.14:cp313:x86_64 \
+            --require cputorch2.14:cp314:x86_64 \
+            --require cputorch2.14:cp311:aarch64 \
+            --require cputorch2.14:cp312:aarch64 \
+            --require cputorch2.14:cp313:aarch64 \
+            --require cputorch2.14:cp314:aarch64 \
+            --require cputorch2.14:cp311:arm64 \
+            --require cputorch2.14:cp312:arm64 \
+            --require cputorch2.14:cp313:arm64 \
+            --require cputorch2.14:cp314:arm64
 
       - name: Upload sdist to PyPI
         env:

@@ -30,6 +30,7 @@
 #include <moderngpu/operators.hxx>
 
 #include <chrono>
+#include <type_traits>
 
 // Definitions for TILE_SIZE and MAX_N_WATERS
 // Shared between this file and gen_pose_waters.impl.hh
@@ -333,6 +334,9 @@ namespace potentials {
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
+template <common::TilePairMode Mode>
+using TilePairModeTag = std::integral_constant<common::TilePairMode, Mode>;
+
 // TO DO: standardize tiled inter-block count pair
 template <int TILE, typename InterEnergyData>
 EIGEN_DEVICE_FUNC int interres_count_pair_separation(
@@ -350,6 +354,63 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
         inter_dat.pair_data.conn_seps);
   }
   return separation;
+}
+
+template <common::TilePairMode Mode>
+inline TMOL_DEVICE_FUNC common::tuple<int, int, int> lk_ball_pose_pair_indices(
+    int cta, int max_n_blocks) {
+  if constexpr (Mode == common::TilePairMode::Inter) {
+    int const n_pairs = max_n_blocks * (max_n_blocks - 1) / 2;
+    auto pair = common::upper_triangle_inds_from_linear_index(
+        cta % n_pairs, max_n_blocks);
+    return common::make_tuple(
+        cta / n_pairs, common::get<0>(pair), common::get<1>(pair));
+  } else if constexpr (Mode == common::TilePairMode::Intra) {
+    int const block = cta % max_n_blocks;
+    return common::make_tuple(cta / max_n_blocks, block, block);
+  } else {
+    int const n_pairs = max_n_blocks * (max_n_blocks + 1) / 2;
+    auto pair = common::upper_triangle_inds_from_linear_index(
+        cta % n_pairs, max_n_blocks + 1);
+    return common::make_tuple(
+        cta / n_pairs, common::get<0>(pair), common::get<1>(pair) - 1);
+  }
+}
+
+template <
+    template <tmol::Device> class DeviceDispatch,
+    tmol::Device Dev,
+    typename Launch,
+    typename Eval>
+void launch_lk_ball_pose_pair_workgroups(
+    ContextManager& mgr, int n_poses, int max_n_blocks, Eval eval) {
+  int const n_pairs = max_n_blocks * (max_n_blocks + 1) / 2;
+#ifdef __NVCC__
+  auto eval_all = ([=] TMOL_DEVICE_FUNC(int cta) {
+    eval(cta, TilePairModeTag<common::TilePairMode::InterAndIntra>{});
+  });
+  // The specialized kernels remove the cold intra/inter instruction path.
+  // Use them only once their throughput gain exceeds the extra launch cost.
+  constexpr int min_split_workgroups = 1 << 15;
+  if (max_n_blocks > 1 && n_poses * n_pairs >= min_split_workgroups) {
+    auto eval_interres = ([=] TMOL_DEVICE_FUNC(int cta) {
+      eval(cta, TilePairModeTag<common::TilePairMode::Inter>{});
+    });
+    auto eval_intrares = ([=] TMOL_DEVICE_FUNC(int cta) {
+      eval(cta, TilePairModeTag<common::TilePairMode::Intra>{});
+    });
+    DeviceDispatch<Dev>::template foreach_pose_workgroup<Launch>(
+        mgr, n_poses, max_n_blocks * (max_n_blocks - 1) / 2, eval_interres);
+    DeviceDispatch<Dev>::template foreach_pose_workgroup<Launch>(
+        mgr, n_poses, max_n_blocks, eval_intrares);
+    return;
+  }
+  DeviceDispatch<Dev>::template foreach_pose_workgroup<Launch>(
+      mgr, n_poses, n_pairs, eval_all);
+#else
+  DeviceDispatch<Dev>::template foreach_pose_workgroup<Launch>(
+      mgr, n_poses, n_pairs, eval);
+#endif
 }
 
 template <
@@ -464,11 +525,14 @@ class LKBallPoseScoreDispatch {
     // Define nt and reduce_t
     CTA_REAL_REDUCE_T_TYPEDEF;
 
-    // The total number of unique block pairs (including self-pairs)
-    int const max_n_upper_triangle_inds =
-        (max_n_blocks * (max_n_blocks + 1)) / 2;
-
-    auto eval_energies_by_block = ([=] TMOL_DEVICE_FUNC(int cta) {
+    auto eval_energies_by_block = ([=] TMOL_DEVICE_FUNC(
+#ifdef __NVCC__
+                                       int cta, auto pair_mode_tag) {
+      constexpr auto pair_mode = decltype(pair_mode_tag)::value;
+#else
+                                       int cta) {
+      constexpr auto pair_mode = common::TilePairMode::InterAndIntra;
+#endif
       auto score_inter_lk_ball_atom_pair =
           ([=] TMOL_DEVICE_FUNC(
                int pol_start,
@@ -546,17 +610,11 @@ class LKBallPoseScoreDispatch {
 
       int const max_important_bond_separation = 4;
 
-      int const pose_ind = cta / (max_n_upper_triangle_inds);
-      int const block_ind_pair = cta % (max_n_upper_triangle_inds);
-
-      // We do not have to kill half of our thread blocks simply because they
-      // represent the lower triangle now that we're using upper-triangle
-      // indices
-      auto upper_triangle_ind = common::upper_triangle_inds_from_linear_index(
-          block_ind_pair, max_n_blocks + 1);
-
-      int const block_ind1 = common::get<0>(upper_triangle_ind);
-      int const block_ind2 = common::get<1>(upper_triangle_ind) - 1;
+      auto pair_indices =
+          lk_ball_pose_pair_indices<pair_mode>(cta, max_n_blocks);
+      int const pose_ind = common::get<0>(pair_indices);
+      int const block_ind1 = common::get<1>(pair_indices);
+      int const block_ind2 = common::get<2>(pair_indices);
 
       // We still kill CTAs targetting non-neighboring block pairs, though,
       // and that can be a lot
@@ -616,7 +674,8 @@ class LKBallPoseScoreDispatch {
           LKBallScoringData<Real>,
           LKBallScoringData<Real>,
           Real,
-          TILE_SIZE>(
+          TILE_SIZE,
+          pair_mode>(
           shared,
           pose_ind,
           rot_ind1,
@@ -674,8 +733,8 @@ class LKBallPoseScoreDispatch {
             scratch_rot_neighbors,
             max_dis);
     // 3 Only the forward pass in this calculation
-    DeviceDispatch<Dev>::template foreach_pose_workgroup<launch_t>(
-        mgr, n_poses, max_n_upper_triangle_inds, eval_energies_by_block);
+    launch_lk_ball_pose_pair_workgroups<DeviceDispatch, Dev, launch_t>(
+        mgr, n_poses, max_n_blocks, eval_energies_by_block);
 
     return {output_t, scratch_rot_neighbors_t};
   }
@@ -775,17 +834,19 @@ class LKBallPoseScoreDispatch {
     LAUNCH_BOX_32_OCC(16);
     // Define nt and reduce_t
     CTA_REAL_REDUCE_T_TYPEDEF;
-    int const max_n_upper_triangle_inds =
-        (max_n_blocks * (max_n_blocks + 1)) / 2;
-
-    auto eval_derivs = ([=] TMOL_DEVICE_FUNC(int cta) {
-      int const pose_ind = cta / max_n_upper_triangle_inds;
-      int const block_ind_pair = cta % max_n_upper_triangle_inds;
-
-      auto upper_triangle_ind = common::upper_triangle_inds_from_linear_index(
-          block_ind_pair, max_n_blocks + 1);
-      int const block_ind1 = common::get<0>(upper_triangle_ind);
-      int const block_ind2 = common::get<1>(upper_triangle_ind) - 1;
+    auto eval_derivs = ([=] TMOL_DEVICE_FUNC(
+#ifdef __NVCC__
+                            int cta, auto pair_mode_tag) {
+      constexpr auto pair_mode = decltype(pair_mode_tag)::value;
+#else
+                            int cta) {
+      constexpr auto pair_mode = common::TilePairMode::InterAndIntra;
+#endif
+      auto pair_indices =
+          lk_ball_pose_pair_indices<pair_mode>(cta, max_n_blocks);
+      int const pose_ind = common::get<0>(pair_indices);
+      int const block_ind1 = common::get<1>(pair_indices);
+      int const block_ind2 = common::get<2>(pair_indices);
 
       // Reject empty work before setting up the derivative machinery below.
       if (scratch_rot_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
@@ -954,7 +1015,8 @@ class LKBallPoseScoreDispatch {
           LKBallScoringData<Real>,
           LKBallScoringData<Real>,
           Real,
-          TILE_SIZE>(
+          TILE_SIZE,
+          pair_mode>(
           shared,
           pose_ind,
           rot_ind1,
@@ -979,10 +1041,33 @@ class LKBallPoseScoreDispatch {
           store_calculated_energies);
     });
 
-    // Since we have the sphere overlap results from the forward pass,
-    // there's only a single kernel launch here
-    DeviceDispatch<Dev>::template foreach_pose_workgroup<launch_t>(
-        mgr, n_poses, max_n_upper_triangle_inds, eval_derivs);
+    // Large, spatially sparse pose stacks can contain far more candidate
+    // block pairs than neighboring pairs.  A CTA for every candidate then
+    // spends most of the launch scheduling budget only checking a zero in the
+    // neighbor matrix.  Keep a sufficiently large resident grid and let each
+    // warp stride over candidates instead.  Unlike compacting the matrix with
+    // a prefix scan, this has no device-to-host synchronization and is safe to
+    // capture in a CUDA graph.
+#ifdef __NVCC__
+    int const n_pairs = max_n_blocks * (max_n_blocks + 1) / 2;
+    int const n_candidate_pairs = n_poses * n_pairs;
+    constexpr int max_persistent_workgroups = 1 << 14;
+    int const n_workgroups = n_candidate_pairs < max_persistent_workgroups
+                                 ? n_candidate_pairs
+                                 : max_persistent_workgroups;
+    auto eval_derivs_strided = ([=] TMOL_DEVICE_FUNC(int cta) {
+      for (int workgroup = cta; workgroup < n_candidate_pairs;
+           workgroup += n_workgroups) {
+        eval_derivs(
+            workgroup, TilePairModeTag<common::TilePairMode::InterAndIntra>{});
+      }
+    });
+    DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
+        mgr, n_workgroups, eval_derivs_strided);
+#else
+    launch_lk_ball_pose_pair_workgroups<DeviceDispatch, Dev, launch_t>(
+        mgr, n_poses, max_n_blocks, eval_derivs);
+#endif
 
     return {dV_d_pose_coords_t, dV_d_water_coords_t};
   }

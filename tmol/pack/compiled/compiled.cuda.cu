@@ -634,6 +634,9 @@ struct Annealer {
       }
 
       // Full SA run with geometric cooling
+      // Match the CPU annealer's per-pose work: a large neighbor in a jagged
+      // batch must not inflate this pose's trajectory length.
+      int const pose_inner_iterations = n_rotamers + n_rotamers / 2;
       warp_wide_sim_annealing<ChunkSize, false, false, true>(
           pose,
           &state,
@@ -645,7 +648,7 @@ struct Annealer {
           high_temp_initial,
           low_temp_initial,
           n_outer_iterations_hitemp,
-          n_inner_iterations_hitemp,
+          pose_inner_iterations,
           n_rotamers,
           false,
           false);
@@ -683,13 +686,14 @@ struct Annealer {
     // Phase 2: low-temp SA seeded from top hitemp trajectories (each seeds
     // n_lotemp_expansions independent lotemp runs).
     auto lotemp_simulated_annealing = [=] MGPU_DEVICE(int thread_id) {
-      auto seeds = at::cuda::philox::unpack(lotemp_philox_state);
-      curandStatePhilox4_32_10_t state;
-      curand_init(std::get<0>(seeds), thread_id, std::get<1>(seeds), &state);
-
       cooperative_groups::thread_block_tile<32> g =
           cooperative_groups::tiled_partition<32>(
               cooperative_groups::this_thread_block());
+      curandStatePhilox4_32_10_t state;
+      if (g.thread_rank() == 0) {
+        auto seeds = at::cuda::philox::unpack(lotemp_philox_state);
+        curand_init(std::get<0>(seeds), thread_id, std::get<1>(seeds), &state);
+      }
 
       int const cta_id = thread_id / 32;
       int const pose = cta_id / n_lotemp_simA_traj;
@@ -718,6 +722,7 @@ struct Annealer {
       }
 
       // Low-temperature cooling trajectory
+      int const pose_inner_iterations = n_rotamers / 2;
       warp_wide_sim_annealing<ChunkSize, false, false, true>(
           pose,
           &state,
@@ -729,7 +734,7 @@ struct Annealer {
           high_temp_later,
           low_temp_later,
           n_outer_iterations_lotemp,
-          n_inner_iterations_lotemp,
+          pose_inner_iterations,
           n_rotamers,
           false,
           false);
@@ -762,13 +767,14 @@ struct Annealer {
 
     // Phase 3: full greedy quench from top lotemp trajectories.
     auto fullquench = ([=] MGPU_DEVICE(int thread_id) {
-      auto seeds = at::cuda::philox::unpack(quench_philox_state);
-      curandStatePhilox4_32_10_t state;
-      curand_init(std::get<0>(seeds), thread_id, std::get<1>(seeds), &state);
-
       cooperative_groups::thread_block_tile<32> g =
           cooperative_groups::tiled_partition<32>(
               cooperative_groups::this_thread_block());
+      curandStatePhilox4_32_10_t state;
+      if (g.thread_rank() == 0) {
+        auto seeds = at::cuda::philox::unpack(quench_philox_state);
+        curand_init(std::get<0>(seeds), thread_id, std::get<1>(seeds), &state);
+      }
       int const cta_id = thread_id / 32;
       int const pose = cta_id / n_fullquench_traj;
       int const traj_id = cta_id % n_fullquench_traj;
@@ -836,9 +842,21 @@ struct Annealer {
 
     // Now launch the kernels we have created
     std::shared_ptr<mgpu::standard_context_t> context = current_context(mgr);
+    // Pack four independent trajectory warps per CTA. Their global thread IDs
+    // and Philox streams stay unchanged while CTA scheduling overhead falls.
+    constexpr int annealer_cta_threads = 128;
 
-    mgpu::transform<32, 1>(
-        hitemp_simulated_annealing, n_hitemp_simA_threads, *context);
+    // On Ampere and newer, longer trajectories amortize a small amount of spill
+    // traffic and benefit from extra latency hiding. Short and older-GPU
+    // workloads retain the unconstrained kernel.
+    using HitempLaunch = mgpu::launch_params_t<annealer_cta_threads, 1, 1, 6>;
+    if (max_n_rotamers >= 128 && context->ptx_version() >= 80) {
+      mgpu::transform<HitempLaunch>(
+          hitemp_simulated_annealing, n_hitemp_simA_threads, *context);
+    } else {
+      mgpu::transform<annealer_cta_threads, 1>(
+          hitemp_simulated_annealing, n_hitemp_simA_threads, *context);
+    }
 
     mgpu::segmented_sort(
         scores_hitemp.data(),
@@ -849,7 +867,7 @@ struct Annealer {
         mgpu::less_t<float>(),
         *context);
 
-    mgpu::transform<32, 1>(
+    mgpu::transform<annealer_cta_threads, 1>(
         lotemp_simulated_annealing, n_lotemp_simA_threads, *context);
 
     mgpu::segmented_sort(
@@ -861,7 +879,8 @@ struct Annealer {
         mgpu::less_t<float>(),
         *context);
 
-    mgpu::transform<32, 1>(fullquench, n_fullquench_threads, *context);
+    mgpu::transform<annealer_cta_threads, 1>(
+        fullquench, n_fullquench_threads, *context);
 
     mgpu::segmented_sort(
         scores_fullquench.data(),
@@ -872,7 +891,8 @@ struct Annealer {
         mgpu::less_t<float>(),
         *context);
 
-    mgpu::transform<32, 1>(final_reindexing, n_fullquench_threads, *context);
+    mgpu::transform<annealer_cta_threads, 1>(
+        final_reindexing, n_fullquench_threads, *context);
 
     return {scores_final_t, rotamer_assignments_final_t};
   }

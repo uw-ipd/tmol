@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# All GPU-allocation work in one Slurm job: build, CUDA tests, benchmarks.
+# Build and test inside one GPU allocation.
 #
 # Invoked inside apptainer on a gpu-train node (see ci.yml). CPU tests run in a
 # separate GitHub-hosted job and do not occupy the GPU allocation.
@@ -18,6 +18,15 @@ source .venv/bin/activate
 echo "=== build ==="
 .github/ci/build_package.sh
 
+echo "=== representative CUDA JIT compile ==="
+TMOL_USE_JIT=1 python - <<'PY'
+import torch
+from tmol.kinematics.compiled import forward_kin_op
+
+assert torch.cuda.is_available()
+print("loaded", forward_kin_op, "with torch", torch.__version__)
+PY
+
 echo "=== tests (CUDA) ==="
 .github/ci/run_gpu_tests.sh
 
@@ -26,6 +35,3 @@ python .github/scripts/smoke_tutorial_notebooks.py \
   docs/tutorial/02_gpu_batching.ipynb \
   docs/tutorial/06_fast_relax.ipynb \
   --execution-device cuda
-
-echo "=== benchmarks ==="
-.github/ci/run_benchmarks.sh

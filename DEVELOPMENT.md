@@ -20,7 +20,7 @@ git clone https://github.com/uw-ipd/tmol.git && cd tmol
 pip install -e ".[dev]"   # builds C++/CUDA extensions via CMake
 ```
 
-Requirements: Python 3.11+, PyTorch 2.8+, C++17 compiler, CMake 3.24+. CUDA toolkit (`nvcc`) is optional — without it, only CPU extensions are built. Pre-built wheels are published for Python `cp311`-`cp314`.
+Requirements: Python 3.11+, PyTorch 2.5+, a C++20-capable compiler (tmol uses C++17 with PyTorch 2.5–2.12 and C++20 with PyTorch 2.13+), and CMake 3.24+. CUDA toolkit (`nvcc`) is optional — without it, only CPU extensions are built. Pre-built wheels are published for Python `cp311`-`cp314`.
 
 ## Building Extensions
 
@@ -59,7 +59,7 @@ tmol's C++/CUDA kernels can be loaded in two ways:
 
 - **AOT (Ahead-Of-Time)**: Pre-compiled `.so` libraries are bundled inside the installed package (e.g., from a wheel). Operations are registered in `torch.ops.tmol_*` namespaces. This is the default and requires no compiler at runtime.
 
-- **JIT (Just-In-Time)**: Source files (`.cpp`, `.cu`) are compiled on first use via `torch.utils.cpp_extension.load()`. This requires `nvcc` and a C++ compiler to be available. Useful for kernel development where you want to edit and reload C++/CUDA code without rebuilding the whole package.
+- **JIT (Just-In-Time)**: Source files (`.cpp`, `.cu`) are compiled on first use via `torch.utils.cpp_extension.load()`. This requires a C++ compiler and `ninja`; `nvcc` is needed only for CUDA kernels. On CPU-only platforms, including Apple Silicon, CUDA sources are omitted automatically. Useful for kernel development where you want to edit and reload C++/CUDA code without rebuilding the whole package.
 
 Two environment variables control which path is taken:
 
@@ -96,10 +96,12 @@ flowchart TD
 | End user                      | `pip install tmol` (sdist) | None   | AOT (compiled at install time) |
 | Kernel developer              | `pip install -e .` | `TMOL_USE_JIT=1` | JIT |
 | CI without GPU                | Pre-built wheel    | None            | AOT  |
+| macOS / CPU-only from source  | `pip install -e .` (optionally force `TMOL_ENABLE_CUDA=OFF`) | None (or `TMOL_USE_JIT=1`) | AOT (or JIT) |
 
 ### CUDA toolkit for JIT mode
 
-JIT mode requires `nvcc` and CUDA headers. You can either:
+Building CUDA kernels in JIT mode requires `nvcc` and CUDA headers. CPU-only
+JIT needs only a C++ compiler and `ninja`. To build CUDA kernels, you can either:
 
 1. **Use a CUDA-enabled container** (NGC, conda) or set `CUDA_HOME` to point to your system CUDA toolkit.
 2. **Install the pip CUDA extra**, which downloads `nvcc` and runtime libraries:
@@ -185,8 +187,8 @@ tmol uses GitHub Actions for all CI:
 
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
-| `ci.yml` | Push to `master`/`kdidi/**`, PRs | Lint, test (CPU + CUDA), benchmark. Runs on a **self-hosted GPU runner** (fela) inside an Apptainer NGC container. |
-| `wheel-smoke.yml` | Push to wheel feature branches, manual | Builds and installs the complete 32-wheel manylinux matrix, checks auditwheel metadata and glibc-2.28 portability, and loads a representative wheel on the self-hosted GPU runner. |
+| `ci.yml` | Push to `master`/`kdidi/**`, PRs | Lint and test on CPU and CUDA. CUDA runs on a **self-hosted GPU runner** (fela) inside an Apptainer NGC container. |
+| `wheel-smoke.yml` | Push to wheel feature branches, manual | Builds and installs the complete supported wheel matrix, checks auditwheel metadata and glibc-2.28 portability, and loads a representative wheel on the self-hosted GPU runner. |
 | `publish.yml` | Push `v*` tag, manual | Builds manylinux wheels (GPU + CPU) + sdist, uploads sdist to PyPI, uploads wheels to a GitHub Release. |
 
 ### CI architecture
@@ -201,7 +203,7 @@ Push/PR -> GitHub Actions -> self-hosted runner (fela, bare metal)
                           NGC PyTorch container (GPU access)
                                   |
                                   v
-                          Setup -> Lint -> Test CPU -> Test CUDA -> Benchmark
+                           Setup -> Lint -> Test CPU -> Test CUDA
 ```
 
 ### Self-hosted runner

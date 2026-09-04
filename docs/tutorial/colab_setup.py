@@ -10,7 +10,7 @@ from urllib.request import urlretrieve
 
 TUTORIAL_REF = "master"
 RAW_BASE = f"https://raw.githubusercontent.com/uw-ipd/tmol/{TUTORIAL_REF}"
-TMOL_RELEASE = "0.1.53"
+TMOL_RELEASE = "0.1.54"
 RELEASE_WHEEL_TORCH_MINOR = "2.11"
 RELEASE_WHEEL_CUDA = "12.8"
 RELEASE_WHEEL_PYTHONS = frozenset({(3, 12), (3, 13)})

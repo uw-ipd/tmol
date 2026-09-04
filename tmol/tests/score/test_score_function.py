@@ -576,6 +576,52 @@ def test_block_pair_scoring_matches_whole_pose(ubq_pdb, default_database, torch_
         assert torch.equal(parallel_score, serial_score)
 
 
+def test_interaction_only_block_pair_scoring_skips_diagonal_terms(
+    ubq_pdb, default_database, torch_device
+):
+    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
+    sfxn = beta2016_score_function(torch_device, default_database)
+    full_scorer = sfxn.render_block_pair_scoring_module(pose_stack)
+    interaction_scorer = sfxn.render_block_pair_scoring_module(
+        pose_stack, interaction_only=True
+    )
+
+    full = full_scorer(pose_stack.coords, sum_terms=False)
+    interaction = interaction_scorer(pose_stack.coords, sum_terms=False)
+    off_diagonal = ~torch.eye(
+        pose_stack.max_n_blocks, dtype=torch.bool, device=torch_device
+    )
+    torch.testing.assert_close(interaction[..., off_diagonal], full[..., off_diagonal])
+    block_pairs = torch.nonzero(off_diagonal, as_tuple=False)
+    torch.testing.assert_close(
+        interaction_scorer.score_interactions(
+            pose_stack.coords, block_pairs, sum_terms=False
+        ),
+        full[..., off_diagonal].sum(dim=2),
+    )
+    assert len(interaction_scorer._active_term_modules) < len(
+        full_scorer._active_term_modules
+    )
+
+
+def test_score_interactions_validates_block_pairs(ubq_pdb, torch_device):
+    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=2)
+    scorer = beta2016_score_function(torch_device).render_block_pair_scoring_module(
+        pose_stack, interaction_only=True
+    )
+
+    with pytest.raises(ValueError, match="shape"):
+        scorer.score_interactions(
+            pose_stack.coords,
+            torch.zeros((2,), dtype=torch.int64, device=torch_device),
+        )
+    with pytest.raises(TypeError, match="integer"):
+        scorer.score_interactions(
+            pose_stack.coords,
+            torch.zeros((1, 2), dtype=torch.float32, device=torch_device),
+        )
+
+
 def test_block_pair_gradients_respect_sparse_upstream_weights(
     ubq_pdb, default_database, torch_device
 ):

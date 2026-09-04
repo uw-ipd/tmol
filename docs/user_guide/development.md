@@ -17,11 +17,23 @@ cd tmol
 pip install -e ".[dev]"
 ```
 
+The command above uses pip's isolated build environment. To reuse an existing
+PyTorch installation (especially in a CUDA container), install the small build
+tools once and disable build isolation:
+
+```bash
+python -m pip install "scikit-build-core>=0.10" "pybind11>=2.12" ninja packaging
+python -m pip install --no-build-isolation -e ".[dev]"
+```
+
+TMol locates the Torch and pybind11 CMake packages from this Python
+interpreter; `CMAKE_PREFIX_PATH` and `pybind11_DIR` do not need to be set.
+
 Requirements:
 
 - Python 3.11 or newer.
 - PyTorch 2.5 or newer.
-- A C++17 compiler.
+- A C++20-capable compiler (TMol uses C++17 with PyTorch 2.5–2.12).
 - CMake 3.24 or newer.
 - CUDA toolkit with `nvcc` for CUDA builds.
 
@@ -40,7 +52,8 @@ TMol builds extensions with CMake through `scikit-build-core`.
 pip install -e .
 
 # Include test-only C++/CUDA extensions
-pip install -e . -Ccmake.define.TMOL_BUILD_TESTS=ON
+pip install --no-build-isolation -e ".[dev]" \
+  -Ccmake.define.TMOL_BUILD_TESTS=ON
 
 # Select GPU architectures
 pip install -e . -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="80;90"

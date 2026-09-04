@@ -133,6 +133,11 @@ class NaTorsionEnergyTerm(EnergyTerm):
     def pose_score_term_is_invariant_zero(self, pose_stack):
         return not self._pose_has_na(pose_stack)
 
+    def block_pair_score_term_is_invariant_zero_off_diagonal(self, pose_stack):
+        # The torsions may read atoms from a bonded neighbour, but their energy
+        # is attributed to the nucleotide's diagonal block-pair entry.
+        return True
+
     def get_score_term_attributes(self, pose_stack):
         p = self.params
         has_na = self._pose_has_na(pose_stack)
@@ -173,6 +178,25 @@ class NaTorsionEnergyTerm(EnergyTerm):
             p.pucker_temperature,
             p.bin_blend_sdev,
         ]
+
+    def get_rotamer_score_term_attributes(self, pose_stack, rotamer_set):
+        """Resolve candidate torsion atom indices once when rendering."""
+        pbt = pose_stack.packed_block_types
+        indices = _rotamer_indices(
+            rotamer_set.block_type_ind_for_rot,
+            rotamer_set.pose_for_rot,
+            rotamer_set.block_ind_for_rot,
+            rotamer_set.coord_offset_for_rot,
+            rotamer_set.rot_offset_for_block,
+            rotamer_set.first_rot_block_type,
+            pose_stack.inter_residue_connections,
+            pbt.atom_downstream_of_conn,
+            pbt.na_torsion_base,
+            pbt.na_torsion_uaids,
+            pbt.na_torsion_ring,
+            pbt.na_torsion_down,
+        )
+        return [*self.get_score_term_attributes(pose_stack), *indices]
 
 
 def _resolve_uaids(
@@ -290,6 +314,37 @@ def eval_na_torsion_for_pose(
             (n_poses, max_n_blocks), dtype=rot_coords.dtype, device=rot_coords.device
         )
         return _finish((zero, zero), output_block_pair_energies)
+
+    if rot_coords.is_cuda and not output_block_pair_energies:
+        from .potentials import na_torsion_pose_score
+
+        return na_torsion_pose_score(
+            rot_coords,
+            pose_base,
+            pose_is_na,
+            pose_torsion_indices,
+            pose_torsion_ok,
+            pose_ring_indices,
+            pose_ring_ok,
+            pose_prev,
+            backbone_means,
+            backbone_sdev,
+            sugar_means,
+            chi_means,
+            sdev_sugar,
+            sdev_chi,
+            well_pucker,
+            well_alpha_gamma,
+            well_bibii_pucker,
+            well_alphanext_bibii,
+            well_chi_syn,
+            is_north,
+            weight_bb,
+            weight_chi,
+            weight_sugar,
+            pucker_temperature,
+            bin_blend_sdev,
+        )
 
     e_bb, e_chi, e_sugar, e_well = _pose_subterms(
         rot_coords,
@@ -678,6 +733,68 @@ def _resolve_rotamer_uaids(
     return rot_coord_offset.to(torch.int64)[rot] + local, ok
 
 
+def _rotamer_indices(
+    block_type_ind_for_rot,
+    pose_ind_for_rot,
+    block_ind_for_rot,
+    rot_coord_offset,
+    first_rot_for_block,
+    first_rot_block_type,
+    inter_residue_connections,
+    atom_downstream_of_conn,
+    bt_base,
+    bt_uaids,
+    bt_ring,
+    bt_down,
+):
+    """Resolve immutable candidate atom indices for rotamer/search scoring."""
+    bt = block_type_ind_for_rot.to(torch.int64)
+    bt_safe = bt.clamp_min(0)
+    base = torch.where(bt >= 0, bt_base.to(torch.int64)[bt_safe], -1)
+    pose = pose_ind_for_rot.to(torch.int64)
+    block = block_ind_for_rot.to(torch.int64)
+
+    torsion_indices, atom_ok = _resolve_rotamer_uaids(
+        bt_uaids[bt_safe],
+        pose,
+        block,
+        rot_coord_offset,
+        first_rot_for_block,
+        first_rot_block_type,
+        inter_residue_connections,
+        atom_downstream_of_conn,
+    )
+    is_na = base >= 0
+    torsion_ok = atom_ok.all(-1) & is_na.unsqueeze(-1)
+
+    ring_local = bt_ring.to(torch.int64)[bt_safe]
+    ring_ok = (ring_local >= 0) & is_na.unsqueeze(-1)
+    ring_indices = rot_coord_offset.to(torch.int64).unsqueeze(-1) + ring_local
+
+    # A candidate's beta term reads the BI/BII state of the preceding
+    # nucleotide from that block's first (background) rotamer.
+    down = bt_down.to(torch.int64)[bt_safe]
+    prev_block = inter_residue_connections.to(torch.int64)[
+        pose, block, down.clamp_min(0), 0
+    ]
+    has_prev = (down >= 0) & (prev_block >= 0)
+    prev = torch.where(
+        has_prev,
+        first_rot_for_block.to(torch.int64)[pose, prev_block.clamp_min(0)],
+        torch.full_like(prev_block, -1),
+    )
+    return (
+        base,
+        is_na,
+        torsion_indices,
+        atom_ok,
+        torsion_ok,
+        ring_indices,
+        ring_ok,
+        prev,
+    )
+
+
 def eval_na_torsion_for_rotamers(
     # common args
     rot_coords,
@@ -726,6 +843,14 @@ def eval_na_torsion_for_rotamers(
     weight_bb,
     weight_chi,
     weight_sugar,
+    rotamer_base,
+    rotamer_is_na,
+    rotamer_torsion_indices,
+    rotamer_atom_ok,
+    rotamer_torsion_ok,
+    rotamer_ring_indices,
+    rotamer_ring_ok,
+    rotamer_prev,
     output_block_pair_energies: bool,
 ):
     device = rot_coords.device
@@ -736,79 +861,77 @@ def eval_na_torsion_for_rotamers(
     if not has_na:
         score = torch.zeros((2, n_rots), dtype=dtype, device=device)
     else:
-        bt = block_type_ind_for_rot.to(torch.int64)
-        base = torch.where(bt >= 0, bt_base.to(torch.int64)[bt.clamp_min(0)], -1)
-        pose = pose_ind_for_rot.to(torch.int64)
-        block = block_ind_for_rot.to(torch.int64)
-        bt_safe = bt.clamp_min(0)
+        base = rotamer_base
+        is_na = rotamer_is_na
+        if rot_coords.is_cuda and not rot_coords.requires_grad:
+            from .potentials import na_torsion_pose_score
 
-        index, ok = _resolve_rotamer_uaids(
-            bt_uaids[bt_safe],
-            pose,
-            block,
-            rot_coord_offset,
-            first_rot_for_block,
-            first_rot_block_type,
-            inter_residue_connections,
-            atom_downstream_of_conn,
-        )
-        is_na = base >= 0
-        tor_ok = ok.all(-1) & is_na.unsqueeze(-1)
+            score = na_torsion_pose_score(
+                rot_coords,
+                base.unsqueeze(1),
+                is_na.unsqueeze(1),
+                rotamer_torsion_indices.unsqueeze(1),
+                rotamer_torsion_ok.unsqueeze(1),
+                rotamer_ring_indices.unsqueeze(1),
+                rotamer_ring_ok.unsqueeze(1),
+                rotamer_prev.unsqueeze(1),
+                backbone_means,
+                backbone_sdev,
+                sugar_means,
+                chi_means,
+                sdev_sugar,
+                sdev_chi,
+                well_pucker,
+                well_alpha_gamma,
+                well_bibii_pucker,
+                well_alphanext_bibii,
+                well_chi_syn,
+                is_north,
+                weight_bb,
+                weight_chi,
+                weight_sugar,
+                pucker_temperature,
+                bin_blend_sdev,
+            )[0]
+        else:
 
-        def gather_coords(index, ok):
-            xyz = rot_coords[index.clamp_min(0).reshape(-1)].reshape(*index.shape, 3)
-            return torch.where(ok.unsqueeze(-1), xyz, torch.zeros_like(xyz))
+            def gather_coords(index, ok):
+                xyz = rot_coords[index.clamp_min(0).reshape(-1)].reshape(
+                    *index.shape, 3
+                )
+                return torch.where(ok.unsqueeze(-1), xyz, torch.zeros_like(xyz))
 
-        xyz = gather_coords(index, ok)
-
-        ring_local = bt_ring.to(torch.int64)[bt_safe]
-        ring_ok = (ring_local >= 0) & is_na.unsqueeze(-1)
-        ring_xyz = gather_coords(
-            rot_coord_offset.to(torch.int64).unsqueeze(-1) + ring_local, ring_ok
-        )
-
-        # the preceding nucleotide is never itself a rotamer being built, so
-        # beta reads the BI/BII state off that block's background rotamer
-        down = bt_down.to(torch.int64)[bt_safe]
-        prev_block = inter_residue_connections.to(torch.int64)[
-            pose, block, down.clamp_min(0), 0
-        ]
-        has_prev = (down >= 0) & (prev_block >= 0)
-        prev = torch.where(
-            has_prev,
-            first_rot_for_block.to(torch.int64)[pose, prev_block.clamp_min(0)],
-            torch.full_like(prev_block, -1),
-        )
-
-        e_bb, e_chi, e_sugar, e_well = _subterm_energies(
-            xyz,
-            tor_ok,
-            ring_xyz,
-            base,
-            prev,
-            backbone_means,
-            backbone_sdev,
-            sugar_means,
-            chi_means,
-            sdev_sugar,
-            sdev_chi,
-            well_pucker,
-            well_alpha_gamma,
-            well_bibii_pucker,
-            well_alphanext_bibii,
-            well_chi_syn,
-            is_north,
-            pucker_temperature,
-            bin_blend_sdev,
-        )
-        poly = polymer_index(base)
-        harmonic = (
-            weight_bb[poly] * e_bb
-            + weight_chi[poly] * e_chi
-            + weight_sugar[poly] * e_sugar
-        )
-        score = torch.stack([harmonic, e_well])
-        score = torch.where(is_na.unsqueeze(0), score, torch.zeros_like(score))
+            xyz = gather_coords(rotamer_torsion_indices, rotamer_atom_ok)
+            ring_xyz = gather_coords(rotamer_ring_indices, rotamer_ring_ok)
+            e_bb, e_chi, e_sugar, e_well = _subterm_energies(
+                xyz,
+                rotamer_torsion_ok,
+                ring_xyz,
+                base,
+                rotamer_prev,
+                backbone_means,
+                backbone_sdev,
+                sugar_means,
+                chi_means,
+                sdev_sugar,
+                sdev_chi,
+                well_pucker,
+                well_alpha_gamma,
+                well_bibii_pucker,
+                well_alphanext_bibii,
+                well_chi_syn,
+                is_north,
+                pucker_temperature,
+                bin_blend_sdev,
+            )
+            poly = polymer_index(base)
+            harmonic = (
+                weight_bb[poly] * e_bb
+                + weight_chi[poly] * e_chi
+                + weight_sugar[poly] * e_sugar
+            )
+            score = torch.stack([harmonic, e_well])
+            score = torch.where(is_na.unsqueeze(0), score, torch.zeros_like(score))
 
     if output_block_pair_energies:
         # a one-body term: each energy sits on the diagonal of the rotamer pair
