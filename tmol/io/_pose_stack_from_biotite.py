@@ -216,6 +216,7 @@ class PreparedAtom37PoseBuilder:
                 self.context._dunbrack_sampler,
                 topology.block_has_missing_atoms,
                 no_optH=False,
+                has_missing_atoms=False,
             )
             pose_stack = _restore_canonical_input_coords(
                 pose_stack,
@@ -683,6 +684,7 @@ def _pose_stack_from_canonical_and_context(
             block_has_missing_atoms,
             no_optH=no_optH,
             na_sampler=na_sampler,
+            has_missing_atoms=has_missing_atoms,
         )
 
     if atom37_coords is not None and needs_packing:

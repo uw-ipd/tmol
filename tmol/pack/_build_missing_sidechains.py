@@ -22,6 +22,7 @@ def build_missing_sidechains(
     block_has_missing_atoms: Tensor[torch.bool][:, :],
     no_optH: bool = False,
     na_sampler: NaChiRotamerSampler = None,
+    has_missing_atoms: bool | None = None,
 ) -> PoseStack:
     """Build missing sidechains and place hydrogens using per-block sampler assignment.
 
@@ -55,6 +56,8 @@ def build_missing_sidechains(
         block_has_missing_atoms: Boolean tensor [n_poses, max_n_blocks]; True
             for blocks that have missing non-leaf (heavy) atoms.
         no_optH: When True, skip OptH and preserve old Dunbrack-only behavior.
+        has_missing_atoms: Cached value of ``block_has_missing_atoms.any()``.
+            Supplying it avoids a device synchronization in repeated builds.
 
     Returns:
         PoseStack with missing sidechains built and (by default) hydrogens
@@ -64,6 +67,9 @@ def build_missing_sidechains(
 
     assert block_has_missing_atoms.device == pose_stack.device
 
+    if has_missing_atoms is None:
+        has_missing_atoms = bool(torch.any(block_has_missing_atoms))
+
     palette = PackerPalette()
     task = PackerTask(pose_stack, palette)
     task.restrict_to_repacking()
@@ -71,11 +77,14 @@ def build_missing_sidechains(
     fixed_sampler = FixedAAChiSampler()
     opth_sampler = None if no_optH else OptHSampler()
 
-    task.add_conformer_sampler_by_block_mask(dunbrack_sampler, block_has_missing_atoms)
-    task.add_conformer_sampler_by_block_mask(fixed_sampler, block_has_missing_atoms)
+    if has_missing_atoms:
+        task.add_conformer_sampler_by_block_mask(
+            dunbrack_sampler, block_has_missing_atoms
+        )
+        task.add_conformer_sampler_by_block_mask(fixed_sampler, block_has_missing_atoms)
     # An empty sampler mask still makes the general rotamer builder execute the
     # sampler's setup path. Avoid that overhead for complete protein batches.
-    if na_sampler is not None and torch.any(block_has_missing_atoms):
+    if na_sampler is not None and has_missing_atoms:
         block_type_ind = pose_stack.block_type_ind64
         real_blocks = block_type_ind >= 0
         na_blocks = na_sampler.defines_rotamers_for_bts(
