@@ -683,13 +683,14 @@ struct Annealer {
     // Phase 2: low-temp SA seeded from top hitemp trajectories (each seeds
     // n_lotemp_expansions independent lotemp runs).
     auto lotemp_simulated_annealing = [=] MGPU_DEVICE(int thread_id) {
-      auto seeds = at::cuda::philox::unpack(lotemp_philox_state);
-      curandStatePhilox4_32_10_t state;
-      curand_init(std::get<0>(seeds), thread_id, std::get<1>(seeds), &state);
-
       cooperative_groups::thread_block_tile<32> g =
           cooperative_groups::tiled_partition<32>(
               cooperative_groups::this_thread_block());
+      curandStatePhilox4_32_10_t state;
+      if (g.thread_rank() == 0) {
+        auto seeds = at::cuda::philox::unpack(lotemp_philox_state);
+        curand_init(std::get<0>(seeds), thread_id, std::get<1>(seeds), &state);
+      }
 
       int const cta_id = thread_id / 32;
       int const pose = cta_id / n_lotemp_simA_traj;
@@ -762,13 +763,14 @@ struct Annealer {
 
     // Phase 3: full greedy quench from top lotemp trajectories.
     auto fullquench = ([=] MGPU_DEVICE(int thread_id) {
-      auto seeds = at::cuda::philox::unpack(quench_philox_state);
-      curandStatePhilox4_32_10_t state;
-      curand_init(std::get<0>(seeds), thread_id, std::get<1>(seeds), &state);
-
       cooperative_groups::thread_block_tile<32> g =
           cooperative_groups::tiled_partition<32>(
               cooperative_groups::this_thread_block());
+      curandStatePhilox4_32_10_t state;
+      if (g.thread_rank() == 0) {
+        auto seeds = at::cuda::philox::unpack(quench_philox_state);
+        curand_init(std::get<0>(seeds), thread_id, std::get<1>(seeds), &state);
+      }
       int const cta_id = thread_id / 32;
       int const pose = cta_id / n_fullquench_traj;
       int const traj_id = cta_id % n_fullquench_traj;
