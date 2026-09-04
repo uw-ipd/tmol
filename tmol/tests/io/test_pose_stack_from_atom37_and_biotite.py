@@ -149,6 +149,9 @@ def test_prepared_atom37_builder_is_reusable_and_differentiable(
 
     first_coords = atom37.detach().clone().requires_grad_(True)
     first_pose = builder(first_coords, opt_h=False)
+    assert (
+        next(iter(builder._pose_topologies.values())).pose_stack.coords.grad_fn is None
+    )
     first_snapshot = first_pose.coords.detach().clone()
     first_pose.coords[first_pose.real_atoms].sum().backward()
     assert torch.count_nonzero(first_coords.grad) > 0
@@ -156,20 +159,64 @@ def test_prepared_atom37_builder_is_reusable_and_differentiable(
     second_coords = atom37.detach().clone()
     second_coords[:, :, 1] += 1
     second_pose = builder(second_coords, opt_h=False)
+    expected_second = pose_stack_from_atom37_and_biotite(
+        second_coords, structure, context, no_optH=True
+    )
     torch.testing.assert_close(first_pose.coords, first_snapshot)
-    assert not torch.equal(first_pose.coords, second_pose.coords)
+    torch.testing.assert_close(second_pose.coords, expected_second.coords)
 
 
-def test_prepared_atom37_builder_preserves_default_opth(biotite_1ubq, torch_device):
-    structure, atom37 = _atomized_atom37(_first_residues(biotite_1ubq, 2), torch_device)
+@pytest.mark.parametrize("filename", ["1ubq.pdb", "1bna.pdb", "3zp8.pdb"])
+def test_prepared_atom37_builder_preserves_default_opth(filename, torch_device):
+    structure = _first_residues(_load_structure(data_path("pdb", filename)), 2)
+    structure, atom37 = _atomized_atom37(structure, torch_device)
     context = build_context_from_biotite(structure, torch_device)
 
-    torch.manual_seed(0)
-    expected = pose_stack_from_atom37_and_biotite(atom37, structure, context)
-    torch.manual_seed(0)
-    actual = prepare_pose_stack_from_atom37(structure, context)(atom37)
+    builder = prepare_pose_stack_from_atom37(structure, context)
+    for coords in (atom37, atom37 + torch.randn_like(atom37) * 0.01):
+        torch.manual_seed(0)
+        expected = pose_stack_from_atom37_and_biotite(coords, structure, context)
+        torch.manual_seed(0)
+        actual = builder(coords)
 
-    torch.testing.assert_close(actual.coords, expected.coords)
+        torch.testing.assert_close(actual.coords, expected.coords)
+
+
+def test_prepared_atom37_builder_falls_back_for_variable_atom_presence(
+    biotite_1ubq, torch_device
+):
+    structure = _first_residues(biotite_1ubq, 2)
+    oxygen = int(np.flatnonzero(structure.atom_name == "O")[0])
+    structure.coord[oxygen] = np.nan
+    structure, atom37 = _atomized_atom37(structure, torch_device)
+    context = build_context_from_biotite(structure, torch_device)
+    builder = prepare_pose_stack_from_atom37(structure, context)
+
+    first = builder(atom37, opt_h=False)
+    second_coords = atom37.clone()
+    second_coords[0, oxygen, 1] = torch.tensor([1.0, 2.0, 3.0], device=torch_device)
+    expected_second = pose_stack_from_atom37_and_biotite(
+        second_coords, structure, context, no_optH=True
+    )
+    actual_second = builder(second_coords, opt_h=False)
+
+    assert torch.isfinite(first.coords[first.real_atoms]).all()
+    assert not builder._topology_cache_safe
+    assert not builder._pose_topologies
+    torch.testing.assert_close(actual_second.coords, expected_second.coords)
+
+
+def test_prepared_atom37_builder_falls_back_for_ambiguous_histidine_hydrogen(
+    biotite_1ubq, torch_device
+):
+    structure = biotite_1ubq[biotite_1ubq.res_name == "HIS"].copy()
+    structure.atom_name[structure.atom_name == "HE2"] = "HN"
+    structure, _ = _atomized_atom37(structure, torch_device)
+    context = build_context_from_biotite(structure, torch_device)
+
+    builder = prepare_pose_stack_from_atom37(structure, context)
+
+    assert not builder._topology_cache_safe
 
 
 def test_atom37_pose_uses_ligand_context(torch_device):

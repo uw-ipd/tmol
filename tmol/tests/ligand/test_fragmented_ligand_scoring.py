@@ -331,6 +331,14 @@ def test_fragmented_ligand_preserves_atom37_routing(torch_device):
     prepared_pose.coords[prepared_pose.real_atoms].sum().backward()
     assert torch.count_nonzero(prepared_coords.grad) > 0
 
+    shifted_coords = atom37.detach().clone()
+    shifted_coords[:, :, 1, 0] += 0.25
+    expected_shifted = pose_stack_from_atom37_and_biotite(
+        shifted_coords, annotated, context, no_optH=True
+    )
+    actual_shifted = builder(shifted_coords, opt_h=False)
+    torch.testing.assert_close(actual_shifted.coords, expected_shifted.coords)
+
 
 def test_fragment_interactions_validate_inputs(torch_device):
     from tmol.score import calculate_fragment_interactions

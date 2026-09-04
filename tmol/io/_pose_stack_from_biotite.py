@@ -1,3 +1,5 @@
+import copy
+
 import attr
 import torch
 import numpy
@@ -34,6 +36,105 @@ class Atom37MappingError(ValueError):
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
+class _PreparedAtom37PoseTopology:
+    """Fixed pose layout plus the masks needed to rebuild missing leaf atoms."""
+
+    pose_stack: PoseStack
+    canonical_atom_mapping: torch.Tensor
+    pose_atom_mapping: torch.Tensor
+    block_leaf_atom_is_missing: torch.Tensor
+    pose_atom_is_missing: torch.Tensor
+    block_has_missing_atoms: torch.Tensor
+
+    @classmethod
+    def from_pose(
+        cls,
+        pose_stack: PoseStack,
+        canonical_coords: torch.Tensor,
+        canonical_atom_mapping: torch.Tensor,
+        pose_atom_mapping: torch.Tensor,
+        block_has_missing_atoms: torch.Tensor,
+    ) -> "_PreparedAtom37PoseTopology":
+        canonical_atom_mapping = canonical_atom_mapping.to(torch.int64)
+        pose_atom_mapping = pose_atom_mapping.to(torch.int64)
+        source_coords = canonical_coords[
+            canonical_atom_mapping[:, 0],
+            canonical_atom_mapping[:, 1],
+            canonical_atom_mapping[:, 2],
+        ]
+        missing = ~torch.isfinite(source_coords).all(dim=-1)
+        pose_ind = pose_atom_mapping[:, 0]
+        pose_atom = pose_atom_mapping[:, 1]
+        block_ind = canonical_atom_mapping[:, 1]
+        block_atom = pose_atom - pose_stack.block_coord_offset64[pose_ind, block_ind]
+
+        block_leaf_atom_is_missing = torch.zeros(
+            (
+                pose_stack.n_poses,
+                pose_stack.max_n_blocks,
+                pose_stack.max_n_block_atoms,
+            ),
+            dtype=torch.bool,
+            device=pose_stack.device,
+        )
+        block_leaf_atom_is_missing[pose_ind, block_ind, block_atom] = missing
+        pose_atom_is_missing = torch.zeros(
+            pose_stack.coords.shape[:2], dtype=torch.bool, device=pose_stack.device
+        )
+        pose_atom_is_missing[pose_ind, pose_atom] = missing
+        canonical_atom_mapping = canonical_atom_mapping[~missing]
+        pose_atom_mapping = pose_atom_mapping[~missing]
+        pose_template = pose_stack.clone()
+        return cls(
+            pose_stack=pose_template,
+            canonical_atom_mapping=canonical_atom_mapping,
+            pose_atom_mapping=pose_atom_mapping,
+            block_leaf_atom_is_missing=block_leaf_atom_is_missing,
+            pose_atom_is_missing=pose_atom_is_missing,
+            block_has_missing_atoms=block_has_missing_atoms,
+        )
+
+    def pose_from_canonical(self, canonical_coords: torch.Tensor) -> PoseStack:
+        """Rebind coordinates and rebuild leaf atoms in the prepared pose layout."""
+        mapping = self.canonical_atom_mapping
+        pose_mapping = self.pose_atom_mapping
+        source_coords = canonical_coords[mapping[:, 0], mapping[:, 1], mapping[:, 2]]
+        coords = torch.zeros_like(self.pose_stack.coords)
+        coords[pose_mapping[:, 0], pose_mapping[:, 1]] = source_coords
+
+        pbt = self.pose_stack.packed_block_types
+        from tmol.io.details._build_missing_leaf_atoms import (
+            _apply_h_geometric_completion,
+        )
+        from tmol.io.details.compiled import gen_pose_leaf_atoms
+
+        coords = gen_pose_leaf_atoms(
+            coords,
+            self.block_leaf_atom_is_missing,
+            self.pose_atom_is_missing,
+            self.pose_stack.block_coord_offset,
+            self.pose_stack.block_type_ind,
+            self.pose_stack.inter_residue_connections,
+            pbt.n_atoms,
+            pbt.atom_downstream_of_conn,
+            pbt.build_missing_leaf_atom_icoor_ann.anc_uaids,
+            pbt.build_missing_leaf_atom_icoor_ann.geom,
+            pbt.build_missing_leaf_atom_icoor_ann.anc_uaids_backup,
+            pbt.build_missing_leaf_atom_icoor_ann.geom_backup,
+        )
+        coords = _apply_h_geometric_completion(
+            pbt,
+            coords,
+            self.block_leaf_atom_is_missing,
+            self.pose_stack.block_coord_offset,
+            self.pose_stack.block_type_ind,
+        )
+        pose_stack = copy.copy(self.pose_stack)
+        pose_stack.coords = coords
+        return pose_stack
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
 class PreparedAtom37PoseBuilder:
     """Bind immutable Biotite topology for repeated Atom37 pose construction."""
 
@@ -45,24 +146,79 @@ class PreparedAtom37PoseBuilder:
     mapped_atom: torch.Tensor
     max_token_id: int
     fragment_mapping: object | None = None
+    _topology_cache_safe: bool = True
+    _pose_topologies: dict[int, _PreparedAtom37PoseTopology] = attr.ib(
+        factory=dict, eq=False, repr=False
+    )
 
     def __call__(
         self,
         atom37_coords: torch.Tensor,
         *,
         opt_h: bool = True,
-        **kwargs: object,
-    ) -> PoseStack | tuple[PoseStack, dict]:
+    ) -> PoseStack:
         """Build a differentiable pose batch; optimize hydrogens by default."""
         cf = self._canonical_form(atom37_coords)
-        return _pose_stack_from_canonical_and_context(
-            cf,
-            self.context,
-            no_optH=not opt_h,
-            atom37_coords=atom37_coords,
-            fragment_mapping=self.fragment_mapping,
-            **kwargs,
-        )
+        if not self._topology_cache_safe:
+            return _pose_stack_from_canonical_and_context(
+                cf,
+                self.context,
+                no_optH=not opt_h,
+                atom37_coords=atom37_coords,
+                fragment_mapping=self.fragment_mapping,
+            )
+        n_poses = atom37_coords.shape[0]
+        topology = self._pose_topologies.get(n_poses)
+        if topology is None:
+            pose_stack, details = _pose_stack_from_canonical_and_context(
+                cf,
+                self.context,
+                no_optH=True,
+                atom37_coords=atom37_coords,
+                fragment_mapping=self.fragment_mapping,
+                return_atom_mapping=True,
+            )
+            block_has_missing_atoms = details["block_has_missing_atoms"]
+            if bool(torch.any(block_has_missing_atoms)):
+                if not opt_h:
+                    return pose_stack
+                return _pose_stack_from_canonical_and_context(
+                    cf,
+                    self.context,
+                    no_optH=False,
+                    atom37_coords=atom37_coords,
+                    fragment_mapping=self.fragment_mapping,
+                )
+            topology = _PreparedAtom37PoseTopology.from_pose(
+                pose_stack,
+                cf.coords,
+                details["can_atom_mapping"],
+                details["ps_atom_mapping"],
+                block_has_missing_atoms,
+            )
+            self._pose_topologies[n_poses] = topology
+        else:
+            pose_stack = topology.pose_from_canonical(cf.coords)
+
+        if opt_h:
+            from tmol.pack import build_missing_sidechains
+
+            pose_stack = build_missing_sidechains(
+                pose_stack,
+                self.context._opth_score_function,
+                self.context._dunbrack_sampler,
+                topology.block_has_missing_atoms,
+                no_optH=False,
+            )
+            pose_stack = _restore_canonical_input_coords(
+                pose_stack,
+                cf.coords,
+                topology.canonical_atom_mapping,
+                topology.pose_atom_mapping,
+                mappings_are_finite=True,
+            )
+        _assert_no_nan_coords(pose_stack)
+        return pose_stack
 
     def _canonical_form(self, atom37_coords: torch.Tensor) -> CanonicalForm:
         device = self.context.packed_block_types.device
@@ -160,15 +316,43 @@ def prepare_pose_stack_from_atom37(
     token_id, slot, mapped_residue, mapped_atom = _atom37_mapping(
         filtered, valid_mask, valid_residue, valid_atom
     )
+    mapped_token_id = torch.as_tensor(token_id, device=device)
+    mapped_slot = torch.as_tensor(slot, device=device)
+    mapped_residue = torch.as_tensor(mapped_residue, device=device)
+    mapped_atom = torch.as_tensor(mapped_atom, device=device)
+    mapped_reference_coords = canonical_template.coords[
+        :,
+        mapped_residue,
+        mapped_atom,
+    ]
+    his_inds = context.canonical_ordering.his_inds
+    ambiguous_his = False
+    if his_inds.his_co_aa_ind >= 0:
+        ambiguous_atom_inds = torch.tensor(
+            [his_inds.his_HN_in_co, his_inds.his_NH_in_co, his_inds.his_NN_in_co],
+            device=device,
+        )
+        is_his = canonical_template.res_types == his_inds.his_co_aa_ind
+        ambiguous_his = bool(
+            torch.any(
+                is_his.unsqueeze(-1)
+                & torch.isfinite(
+                    canonical_template.coords[:, :, ambiguous_atom_inds]
+                ).all(dim=-1)
+            )
+        )
     return PreparedAtom37PoseBuilder(
         context=context,
         canonical_template=canonical_template,
-        mapped_token_id=torch.as_tensor(token_id, device=device),
-        mapped_slot=torch.as_tensor(slot, device=device),
-        mapped_residue=torch.as_tensor(mapped_residue, device=device),
-        mapped_atom=torch.as_tensor(mapped_atom, device=device),
+        mapped_token_id=mapped_token_id,
+        mapped_slot=mapped_slot,
+        mapped_residue=mapped_residue,
+        mapped_atom=mapped_atom,
         max_token_id=int(token_id.max()),
         fragment_mapping=fragment_mapping,
+        topology_cache_safe=(
+            bool(torch.isfinite(mapped_reference_coords).all()) and not ambiguous_his
+        ),
     )
 
 
@@ -525,6 +709,7 @@ def _restore_canonical_input_coords(
     canonical_coords: torch.Tensor,
     canonical_atom_mapping: torch.Tensor,
     pose_atom_mapping: torch.Tensor,
+    mappings_are_finite: bool = False,
 ) -> PoseStack:
     """Restore finite canonical inputs after coordinate rebuilding or packing.
 
@@ -542,14 +727,18 @@ def _restore_canonical_input_coords(
         canonical_atom_mapping[:, 1],
         canonical_atom_mapping[:, 2],
     ]
-    finite = torch.isfinite(source_coords).all(dim=-1)
-
     coords = pose_stack.coords.clone()
-    coords[
-        pose_atom_mapping[finite, 0],
-        pose_atom_mapping[finite, 1],
-    ] = source_coords[finite]
-    return attr.evolve(pose_stack, coords=coords)
+    if mappings_are_finite:
+        coords[pose_atom_mapping[:, 0], pose_atom_mapping[:, 1]] = source_coords
+    else:
+        finite = torch.isfinite(source_coords).all(dim=-1)
+        coords[
+            pose_atom_mapping[finite, 0],
+            pose_atom_mapping[finite, 1],
+        ] = source_coords[finite]
+    result = copy.copy(pose_stack)
+    result.coords = coords
+    return result
 
 
 def _assert_no_ligand_with_missing_atoms(
