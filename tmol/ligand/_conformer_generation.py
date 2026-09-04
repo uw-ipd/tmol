@@ -377,7 +377,9 @@ def _planar_component_distances(atoms, r0, ang, max_iters: int = 150):
     pair_j = torch.tensor([p[1] for p in tp])
     target_distance = torch.tensor([p[2] for p in tp], dtype=torch.double)
     Y = torch.tensor(np.ascontiguousarray(Y0), dtype=torch.double, requires_grad=True)
-    opt = _LigandLBFGS([Y], max_iter=max_iters, line_search_fn="strong_wolfe")
+    opt = _LigandLBFGS(
+        [Y], max_iter=max_iters, history_size=50, line_search_fn="strong_wolfe"
+    )
 
     def closure():
         Y.grad = None
@@ -535,7 +537,9 @@ def _chiral_anneal(X0, L0, U0, L, U, components, chirals, rng_seed: int) -> np.n
         return (torch.relu(CHIRAL_MARGIN - csgn * v) ** 2).sum()
 
     def run(iters, w_dim4):
-        opt = _LigandLBFGS([X], max_iter=iters, line_search_fn="strong_wolfe")
+        opt = _LigandLBFGS(
+            [X], max_iter=iters, history_size=50, line_search_fn="strong_wolfe"
+        )
 
         def closure():
             # This optimizer owns only X. Clearing it directly is equivalent to
@@ -587,7 +591,9 @@ def _stress_refine(X0, L0, U0, L, U, components, chirals) -> np.ndarray:
         v = ((X[c1] - X[c0]) * torch.linalg.cross(X[c2] - X[c0], X[c3] - X[c0])).sum(1)
         return (torch.relu(CHIRAL_MARGIN - csgn * v) ** 2).sum()
 
-    opt = _LigandLBFGS([X], max_iter=REFINE_ITERS, line_search_fn="strong_wolfe")
+    opt = _LigandLBFGS(
+        [X], max_iter=REFINE_ITERS, history_size=50, line_search_fn="strong_wolfe"
+    )
 
     def closure():
         # See the stage-A closure above: X is the optimizer's sole parameter.
