@@ -846,8 +846,17 @@ struct Annealer {
     // and Philox streams stay unchanged while CTA scheduling overhead falls.
     constexpr int annealer_cta_threads = 128;
 
-    mgpu::transform<annealer_cta_threads, 1>(
-        hitemp_simulated_annealing, n_hitemp_simA_threads, *context);
+    // On Ampere and newer, longer trajectories amortize a small amount of spill
+    // traffic and benefit from extra latency hiding. Short and older-GPU
+    // workloads retain the unconstrained kernel.
+    using HitempLaunch = mgpu::launch_params_t<annealer_cta_threads, 1, 1, 6>;
+    if (max_n_rotamers >= 128 && context->ptx_version() >= 80) {
+      mgpu::transform<HitempLaunch>(
+          hitemp_simulated_annealing, n_hitemp_simA_threads, *context);
+    } else {
+      mgpu::transform<annealer_cta_threads, 1>(
+          hitemp_simulated_annealing, n_hitemp_simA_threads, *context);
+    }
 
     mgpu::segmented_sort(
         scores_hitemp.data(),
