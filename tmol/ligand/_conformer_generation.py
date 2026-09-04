@@ -55,6 +55,22 @@ STAGE_A_ANNEAL = (0.0, 0.5, 5.0, 50.0)  # 4th-dimension penalty ramp
 N_RESTART = 5  # max random stage-A restarts; stop on all chiral signs correct
 TORCH_DTYPE = torch.float32
 
+# Optimizer construction normally enters ``torch._disable_dynamo`` through
+# ``add_param_group`` and imports the full TorchDynamo stack on first use. This
+# ligand-only optimizer is never compiled; bypassing that wrapper saves seconds
+# of cold-start work while retaining the same validation and state setup.
+_ADD_PARAM_GROUP = getattr(
+    torch.optim.Optimizer.add_param_group,
+    "__wrapped__",
+    torch.optim.Optimizer.add_param_group,
+)
+
+
+class _LigandLBFGS(torch.optim.LBFGS):
+    def add_param_group(self, param_group) -> None:
+        _ADD_PARAM_GROUP(self, param_group)
+
+
 _ELECTRONEGATIVITY = {
     1: 2.20,
     6: 2.55,
@@ -361,10 +377,10 @@ def _planar_component_distances(atoms, r0, ang, max_iters: int = 150):
     pair_j = torch.tensor([p[1] for p in tp])
     target_distance = torch.tensor([p[2] for p in tp], dtype=torch.double)
     Y = torch.tensor(np.ascontiguousarray(Y0), dtype=torch.double, requires_grad=True)
-    opt = torch.optim.LBFGS([Y], max_iter=max_iters, line_search_fn="strong_wolfe")
+    opt = _LigandLBFGS([Y], max_iter=max_iters, line_search_fn="strong_wolfe")
 
     def closure():
-        opt.zero_grad()
+        Y.grad = None
         d = ((Y[pair_i] - Y[pair_j]) ** 2).sum(1).clamp_min(1e-12).sqrt()
         loss = ((d - target_distance) ** 2).sum()
         loss.backward()
@@ -519,10 +535,13 @@ def _chiral_anneal(X0, L0, U0, L, U, components, chirals, rng_seed: int) -> np.n
         return (torch.relu(CHIRAL_MARGIN - csgn * v) ** 2).sum()
 
     def run(iters, w_dim4):
-        opt = torch.optim.LBFGS([X], max_iter=iters, line_search_fn="strong_wolfe")
+        opt = _LigandLBFGS([X], max_iter=iters, line_search_fn="strong_wolfe")
 
         def closure():
-            opt.zero_grad()
+            # This optimizer owns only X. Clearing it directly is equivalent to
+            # zero_grad(set_to_none=True) and avoids importing TorchDynamo just
+            # to reset one gradient during ligand preparation.
+            X.grad = None
             loss = W_EXACT * ((pd(ei, ej) - tgt) ** 2).sum()
             loss = loss + W_BOUND * (torch.relu(lo - pd(ni, nj)) ** 2).sum()
             loss = loss + W_BOUND * (torch.relu(pd(fi, fj) - hi) ** 2).sum()
@@ -568,10 +587,11 @@ def _stress_refine(X0, L0, U0, L, U, components, chirals) -> np.ndarray:
         v = ((X[c1] - X[c0]) * torch.linalg.cross(X[c2] - X[c0], X[c3] - X[c0])).sum(1)
         return (torch.relu(CHIRAL_MARGIN - csgn * v) ** 2).sum()
 
-    opt = torch.optim.LBFGS([X], max_iter=REFINE_ITERS, line_search_fn="strong_wolfe")
+    opt = _LigandLBFGS([X], max_iter=REFINE_ITERS, line_search_fn="strong_wolfe")
 
     def closure():
-        opt.zero_grad()
+        # See the stage-A closure above: X is the optimizer's sole parameter.
+        X.grad = None
         distances = pair_distances()
         exact = distances[:n_exact]
         lower = distances[n_exact : n_exact + n_lower]
