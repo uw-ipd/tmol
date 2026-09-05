@@ -210,8 +210,10 @@ class TermRotamerScoringModule(TermScoringModule):
                 _i32(t)
                 for t in [
                     rotamer_set.coord_offset_for_rot,  # rot coord offset
-                    rotamer_set.pose_ind_for_atom,  # pose_ind_for_atom?? unused
-                    rotamer_set.rot_offset_for_block,  # first rot for block
+                    rotamer_set.pose_ind_for_atom,
+                    # In a RotamerSet, each block's first rotamer is also its
+                    # offset into the global rotamer table.
+                    rotamer_set.rot_offset_for_block,  # first_rot_for_block
                     rotamer_set.first_rot_block_type,  # first rot block type
                     rotamer_set.block_ind_for_rot,
                     rotamer_set.pose_for_rot,
@@ -219,7 +221,7 @@ class TermRotamerScoringModule(TermScoringModule):
                     rotamer_set.n_rots_for_pose,
                     rotamer_set.rot_offset_for_pose,
                     rotamer_set.n_rots_for_block,
-                    rotamer_set.rot_offset_for_block,  # three times?!
+                    rotamer_set.rot_offset_for_block,
                     rotamer_set.max_n_rots_per_pose,
                 ]
             ],

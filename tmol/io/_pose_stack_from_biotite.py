@@ -144,7 +144,17 @@ class _PreparedAtom37PoseTopology:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class PreparedAtom37PoseBuilder:
-    """Bind immutable Biotite topology for repeated Atom37 pose construction."""
+    """Bind immutable Biotite topology for repeated Atom37 pose construction.
+
+    Calls accept float32 coordinates shaped ``[n_poses, n_tokens, 37, 3]`` on
+    the context's device. The first call for a batch size prepares its fixed
+    pose topology; up to four recently used batch sizes are cached. Inputs with
+    coordinate-dependent atom presence or ambiguous histidine hydrogens use the
+    normal uncached construction path.
+
+    The builder owns a mutable topology cache and is not safe for concurrent
+    calls. Use one builder per calling thread when pose construction overlaps.
+    """
 
     context: PoseBuildContext
     canonical_template: CanonicalForm
@@ -165,7 +175,18 @@ class PreparedAtom37PoseBuilder:
         *,
         opt_h: bool = True,
     ) -> PoseStack:
-        """Build a differentiable pose batch; optimize hydrogens by default."""
+        """Build a differentiable pose batch.
+
+        Args:
+            atom37_coords: Float32 coordinates shaped
+                ``[n_poses, n_tokens, 37, 3]`` on the context's device.
+            opt_h: Optimize hydrogen positions after construction. Enabled by
+                default to match :func:`pose_stack_from_atom37_and_biotite`.
+
+        Returns:
+            A pose whose coordinates remain differentiable with respect to
+            ``atom37_coords``.
+        """
         canonical_coords = self._canonical_coords(atom37_coords)
         if not self._topology_cache_safe:
             return _pose_stack_from_canonical_and_context(
