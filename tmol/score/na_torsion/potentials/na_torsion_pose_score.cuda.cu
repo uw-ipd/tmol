@@ -291,6 +291,16 @@ __device__ __forceinline__ DihedralDeriv<Real> dihedral_deriv(
   Real fg = dot(f, g);
   Real hg = dot(h, g);
   DihedralDeriv<Real> result;
+  // A dihedral has no defined derivative when either plane normal or the
+  // central bond vanishes. Match the clamped normalization used above by
+  // returning the finite zero subgradient at that singular geometry.
+  if (a2 <= Real(1e-18) || b2 <= Real(1e-18) || gnorm <= Real(1e-9)) {
+#pragma unroll
+    for (int atom = 0; atom < 4; ++atom) {
+      result.atom[atom] = {Real(0), Real(0), Real(0)};
+    }
+    return result;
+  }
   result.atom[0] = a * (-gnorm / a2);
   result.atom[1] =
       a * (gnorm / a2 + fg / (a2 * gnorm)) - b * (hg / (b2 * gnorm));
@@ -446,203 +456,11 @@ __device__ __forceinline__ void add_pucker_gradient(
   }
 }
 
-template <typename Real>
-__global__ void na_torsion_forward_kernel(
-    Real const* coords,
-    int64_t const* base,
-    bool const* is_na,
-    int64_t const* torsion_indices,
-    bool const* torsion_ok,
-    int64_t const* ring_indices,
-    bool const* ring_ok,
-    int64_t const* prev,
-    Real const* backbone_means,
-    Real const* backbone_sdev,
-    Real const* sugar_means,
-    Real const* chi_means,
-    Real const* sdev_sugar,
-    Real const* sdev_chi,
-    Real const* well_pucker,
-    Real const* well_alpha_gamma,
-    Real const* well_bibii_pucker,
-    Real const* well_alphanext_bibii,
-    Real const* well_chi_syn,
-    bool const* is_north,
-    Real const* weight_bb,
-    Real const* weight_chi,
-    Real const* weight_sugar,
-    Real pucker_temperature,
-    Real bin_blend_sdev,
-    int n_poses,
-    int max_n_blocks,
-    Real* output) {
-  int flat_block = blockIdx.x * blockDim.x + threadIdx.x;
-  int n_blocks = n_poses * max_n_blocks;
-  if (flat_block >= n_blocks || !is_na[flat_block]) return;
-
-  int pose = flat_block / max_n_blocks;
-  int base_ind = int(base[flat_block]);
-  int polymer = base_ind >> 2;
-  Real torsion[N_TORSION];
-#pragma unroll
-  for (int tor = 0; tor < N_TORSION; ++tor) {
-    torsion[tor] =
-        torsion_angle(coords, torsion_indices, torsion_ok, flat_block, tor);
-  }
-  Real pucker[N_PUCKER];
-  pucker_weights(
-      coords, ring_indices, ring_ok, flat_block, pucker_temperature, pucker);
-
-  Real const* means = backbone_means + polymer * 6 * 3;
-  Real const* sdev_bb = backbone_sdev + polymer * 6;
-  Real zero = Real(0);
-  Real e_bb = zero;
-  Real alpha_w[3], gamma_w[3];
-  triple_bin_weights(
-      torsion[ALPHA], means + ALPHA * 3, bin_blend_sdev, alpha_w);
-  triple_bin_weights(
-      torsion[GAMMA], means + GAMMA * 3, bin_blend_sdev, gamma_w);
-  if (torsion_ok[flat_block * N_TORSION + ALPHA]) {
-    e_bb += blended_devsq(torsion[ALPHA], means + ALPHA * 3, alpha_w, 3)
-            / (sdev_bb[ALPHA] * sdev_bb[ALPHA]);
-  }
-  if (torsion_ok[flat_block * N_TORSION + GAMMA]) {
-    e_bb += blended_devsq(torsion[GAMMA], means + GAMMA * 3, gamma_w, 3)
-            / (sdev_bb[GAMMA] * sdev_bb[GAMMA]);
-  }
-
-  bool both = torsion_ok[flat_block * N_TORSION + EPSILON]
-              && torsion_ok[flat_block * N_TORSION + ZETA];
-  Real w_bi = sigmoid(
-      Real(-40)
-      * sin(
-          wrap_degrees(torsion[EPSILON] - torsion[ZETA])
-          * Real(3.14159265358979323846 / 180.0)));
-  Real bibii_w[2] = {w_bi, Real(1) - w_bi};
-  if (both) {
-    for (int tor = EPSILON; tor <= ZETA; ++tor) {
-      e_bb += blended_devsq(torsion[tor], means + tor * 3, bibii_w, 2)
-              / (sdev_bb[tor] * sdev_bb[tor]);
-    }
-  }
-
-  int prev_block = int(prev[flat_block]);
-  bool prev_ok = prev_block >= 0 && torsion_ok[prev_block * N_TORSION + EPSILON]
-                 && torsion_ok[prev_block * N_TORSION + ZETA];
-  Real w_beta = Real(1);
-  if (prev_ok) {
-    Real prev_epsilon =
-        torsion_angle(coords, torsion_indices, torsion_ok, prev_block, EPSILON);
-    Real prev_zeta =
-        torsion_angle(coords, torsion_indices, torsion_ok, prev_block, ZETA);
-    w_beta = sigmoid(
-        Real(-40)
-        * sin(
-            wrap_degrees(prev_epsilon - prev_zeta)
-            * Real(3.14159265358979323846 / 180.0)));
-  }
-  Real beta_w[2] = {w_beta, Real(1) - w_beta};
-  if (torsion_ok[flat_block * N_TORSION + BETA]) {
-    e_bb += blended_devsq(torsion[BETA], means + BETA * 3, beta_w, 2)
-            / (sdev_bb[BETA] * sdev_bb[BETA]);
-  }
-
-  Real chi = torsion[CHI];
-  Real chi_mod = mod360(chi);
-  Real w_syn = sigmoid((chi_mod - Real(20)) / Real(5))
-               * sigmoid((Real(100) - chi_mod) / Real(5));
-  Real e_chi = zero;
-  if (torsion_ok[flat_block * N_TORSION + CHI]) {
-    Real dev_syn = wrap_degrees(chi - Real(50));
-#pragma unroll
-    for (int puck = 0; puck < N_PUCKER; ++puck) {
-      Real dev = wrap_degrees(chi - chi_means[base_ind * N_PUCKER + puck]);
-      e_chi += pucker[puck]
-               * ((Real(1) - w_syn) * dev * dev + w_syn * dev_syn * dev_syn);
-    }
-    e_chi /= sdev_chi[polymer] * sdev_chi[polymer];
-  }
-
-  constexpr int sugar_torsion[4] = {DELTA, 6, 7, 8};
-  Real e_sugar = zero;
-#pragma unroll
-  for (int slot = 0; slot < 4; ++slot) {
-    int tor = sugar_torsion[slot];
-    if (!torsion_ok[flat_block * N_TORSION + tor]) continue;
-#pragma unroll
-    for (int puck = 0; puck < N_PUCKER; ++puck) {
-      Real dev = wrap_degrees(
-          torsion[tor] - sugar_means[(polymer * N_PUCKER + puck) * 4 + slot]);
-      e_sugar += pucker[puck] * dev * dev;
-    }
-  }
-  e_sugar /= sdev_sugar[polymer] * sdev_sugar[polymer];
-
-  Real e_well = zero;
-#pragma unroll
-  for (int puck = 0; puck < N_PUCKER; ++puck) {
-    e_well += pucker[puck] * well_pucker[polymer * N_PUCKER + puck];
-  }
-  if (torsion_ok[flat_block * N_TORSION + ALPHA]
-      && torsion_ok[flat_block * N_TORSION + GAMMA]) {
-#pragma unroll
-    for (int a = 0; a < 3; ++a) {
-#pragma unroll
-      for (int g = 0; g < 3; ++g) {
-        e_well += alpha_w[a] * well_alpha_gamma[(polymer * 3 + a) * 3 + g]
-                  * gamma_w[g];
-      }
-    }
-  }
-  if (both) {
-    Real north = zero;
-#pragma unroll
-    for (int puck = 0; puck < N_PUCKER; ++puck) {
-      if (is_north[puck]) north += pucker[puck];
-    }
-    Real ns[2] = {north, Real(1) - north};
-#pragma unroll
-    for (int bi = 0; bi < 2; ++bi) {
-#pragma unroll
-      for (int state = 0; state < 2; ++state) {
-        e_well += bibii_w[bi]
-                  * well_bibii_pucker[(polymer * 2 + bi) * 2 + state]
-                  * ns[state];
-      }
-    }
-  }
-  if (prev_ok && torsion_ok[flat_block * N_TORSION + ALPHA]) {
-#pragma unroll
-    for (int a = 0; a < 3; ++a) {
-#pragma unroll
-      for (int bi = 0; bi < 2; ++bi) {
-        e_well += alpha_w[a] * well_alphanext_bibii[(polymer * 3 + a) * 2 + bi]
-                  * beta_w[bi];
-      }
-    }
-  }
-  if (torsion_ok[flat_block * N_TORSION + CHI]) {
-#pragma unroll
-    for (int syn = 0; syn < 2; ++syn) {
-      Real syn_w = syn == 0 ? Real(1) - w_syn : w_syn;
-#pragma unroll
-      for (int puck = 0; puck < N_PUCKER; ++puck) {
-        e_well += syn_w * well_chi_syn[(syn * N_PUCKER + puck) * 8 + base_ind]
-                  * pucker[puck];
-      }
-    }
-  }
-
-  Real harmonic = weight_bb[polymer] * e_bb + weight_chi[polymer] * e_chi
-                  + weight_sugar[polymer] * e_sugar;
-  atomicAdd(output + pose, harmonic);
-  atomicAdd(output + n_poses + pose, e_well);
-}
-
-template <typename Real>
-// The gradient path accumulates the two energies while their shared torsion,
-// pucker, and bin intermediates are live, avoiding a separate forward kernel.
-__global__ void na_torsion_derivative_kernel(
+// One templated kernel owns the scoring equations. The forward specialization
+// removes derivative-only state at compile time; the gradient specialization
+// accumulates energy and derivatives while shared intermediates are live.
+template <typename Real, bool ComputeDerivatives>
+__global__ void na_torsion_kernel(
     Real const* coords,
     int64_t const* base,
     bool const* is_na,
@@ -911,6 +729,8 @@ __global__ void na_torsion_derivative_kernel(
   atomicAdd(output + pose, energy[0]);
   atomicAdd(output + n_poses + pose, energy[1]);
 
+  if constexpr (!ComputeDerivatives) return;
+
 #pragma unroll
   for (int tor = 0; tor < N_TORSION; ++tor) {
     add_torsion_gradient(
@@ -1000,7 +820,7 @@ std::tuple<at::Tensor, at::Tensor> na_torsion_pose_score_cuda(
   AT_DISPATCH_FLOATING_TYPES(
       coords.scalar_type(), "na_torsion_pose_score_cuda", [&] {
         if (!compute_derivs) {
-          na_torsion_forward_kernel<scalar_t><<<blocks, threads, 0, stream>>>(
+          na_torsion_kernel<scalar_t, false><<<blocks, threads, 0, stream>>>(
               coords.const_data_ptr<scalar_t>(),
               base.const_data_ptr<int64_t>(),
               is_na.const_data_ptr<bool>(),
@@ -1028,40 +848,41 @@ std::tuple<at::Tensor, at::Tensor> na_torsion_pose_score_cuda(
               scalar_t(bin_blend_sdev),
               n_poses,
               max_n_blocks,
+              int(coords.size(0)),
+              nullptr,
               output.mutable_data_ptr<scalar_t>());
         } else {
-          na_torsion_derivative_kernel<scalar_t>
-              <<<blocks, threads, 0, stream>>>(
-                  coords.const_data_ptr<scalar_t>(),
-                  base.const_data_ptr<int64_t>(),
-                  is_na.const_data_ptr<bool>(),
-                  torsion_indices.const_data_ptr<int64_t>(),
-                  torsion_ok.const_data_ptr<bool>(),
-                  ring_indices.const_data_ptr<int64_t>(),
-                  ring_ok.const_data_ptr<bool>(),
-                  prev.const_data_ptr<int64_t>(),
-                  backbone_means.const_data_ptr<scalar_t>(),
-                  backbone_sdev.const_data_ptr<scalar_t>(),
-                  sugar_means.const_data_ptr<scalar_t>(),
-                  chi_means.const_data_ptr<scalar_t>(),
-                  sdev_sugar.const_data_ptr<scalar_t>(),
-                  sdev_chi.const_data_ptr<scalar_t>(),
-                  well_pucker.const_data_ptr<scalar_t>(),
-                  well_alpha_gamma.const_data_ptr<scalar_t>(),
-                  well_bibii_pucker.const_data_ptr<scalar_t>(),
-                  well_alphanext_bibii.const_data_ptr<scalar_t>(),
-                  well_chi_syn.const_data_ptr<scalar_t>(),
-                  is_north.const_data_ptr<bool>(),
-                  weight_bb.const_data_ptr<scalar_t>(),
-                  weight_chi.const_data_ptr<scalar_t>(),
-                  weight_sugar.const_data_ptr<scalar_t>(),
-                  scalar_t(pucker_temperature),
-                  scalar_t(bin_blend_sdev),
-                  n_poses,
-                  max_n_blocks,
-                  int(coords.size(0)),
-                  derivatives.mutable_data_ptr<scalar_t>(),
-                  output.mutable_data_ptr<scalar_t>());
+          na_torsion_kernel<scalar_t, true><<<blocks, threads, 0, stream>>>(
+              coords.const_data_ptr<scalar_t>(),
+              base.const_data_ptr<int64_t>(),
+              is_na.const_data_ptr<bool>(),
+              torsion_indices.const_data_ptr<int64_t>(),
+              torsion_ok.const_data_ptr<bool>(),
+              ring_indices.const_data_ptr<int64_t>(),
+              ring_ok.const_data_ptr<bool>(),
+              prev.const_data_ptr<int64_t>(),
+              backbone_means.const_data_ptr<scalar_t>(),
+              backbone_sdev.const_data_ptr<scalar_t>(),
+              sugar_means.const_data_ptr<scalar_t>(),
+              chi_means.const_data_ptr<scalar_t>(),
+              sdev_sugar.const_data_ptr<scalar_t>(),
+              sdev_chi.const_data_ptr<scalar_t>(),
+              well_pucker.const_data_ptr<scalar_t>(),
+              well_alpha_gamma.const_data_ptr<scalar_t>(),
+              well_bibii_pucker.const_data_ptr<scalar_t>(),
+              well_alphanext_bibii.const_data_ptr<scalar_t>(),
+              well_chi_syn.const_data_ptr<scalar_t>(),
+              is_north.const_data_ptr<bool>(),
+              weight_bb.const_data_ptr<scalar_t>(),
+              weight_chi.const_data_ptr<scalar_t>(),
+              weight_sugar.const_data_ptr<scalar_t>(),
+              scalar_t(pucker_temperature),
+              scalar_t(bin_blend_sdev),
+              n_poses,
+              max_n_blocks,
+              int(coords.size(0)),
+              derivatives.mutable_data_ptr<scalar_t>(),
+              output.mutable_data_ptr<scalar_t>());
         }
       });
   C10_CUDA_KERNEL_LAUNCH_CHECK();
