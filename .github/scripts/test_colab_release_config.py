@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 import tomllib
 from pathlib import Path
 
@@ -17,6 +18,16 @@ def _load_colab_setup():
     spec = importlib.util.spec_from_file_location("_test_colab_setup", path)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _load_release_matrix():
+    path = ROOT / "scripts/release_matrix.py"
+    spec = importlib.util.spec_from_file_location("_test_release_matrix", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
 
@@ -73,78 +84,81 @@ def test_colab_pip_install_constrains_active_torch(monkeypatch):
     module._pip_install(["numpy>=1.24"], "2.11.0+cu128")
 
 
-def test_colab_release_lanes_match_publish_and_smoke_matrices():
+def test_release_matrix_drives_publish_smoke_and_manifest():
+    matrix = _load_release_matrix()
+    publish_rows = matrix.gpu_wheel_rows()
+    smoke_rows = matrix.linux_wheel_rows()
+    expected_keys = matrix.expected_wheel_keys()
+
+    assert len(publish_rows) == 34
+    assert len(smoke_rows) == 50
+    assert len(expected_keys) == 58
+    assert len(
+        {(row["python-tag"], row["local-tag"], row["arch"]) for row in smoke_rows}
+    ) == len(smoke_rows)
+
+    colab_rows = [row for row in publish_rows if row.get("cuda-archs")]
+    assert {
+        (row["python-version"], row["local-tag"], row["cuda-archs"])
+        for row in colab_rows
+    } == {
+        ("3.12", "cu128torch2.11", "75;80;89"),
+        ("3.13", "cu128torch2.11", "75;80;89"),
+    }
+    assert {
+        (row["python-version"], row["arch"])
+        for row in publish_rows
+        if row["local-tag"] == "cu132torch2.14"
+    } == {
+        (python_version, arch)
+        for python_version in matrix.PYTHON_VERSIONS
+        for arch in matrix.LINUX_ARCHES
+    }
+    # This release lane was previously absent from the complete smoke matrix.
+    assert any(
+        row["python-version"] == "3.12"
+        and row["local-tag"] == "cu130torch2.12"
+        and row["arch"] == "x86_64"
+        for row in smoke_rows
+    )
+    assert {
+        row["runs-on"]
+        for row in publish_rows
+        if row["local-tag"] == "cu132torch2.12" and row["arch"] == "x86_64"
+    } == {"self-hosted"}
+    assert {
+        row["runs-on"]
+        for row in smoke_rows
+        if row["local-tag"] == "cu132torch2.12" and row["arch"] == "x86_64"
+    } == {"ubuntu-22.04"}
+
     build_template = _workflow(".github/workflows/_build_wheel.yml")
     cuda_archs = build_template[True]["workflow_call"]["inputs"]["cuda-archs"]
     assert "75;80;86;89;90" in cuda_archs["description"]
     assert "every sm_75+ target reported by nvcc" in cuda_archs["description"]
 
     publish = _workflow(".github/workflows/publish.yml")
-    publish_rows = publish["jobs"]["build_wheels"]["strategy"]["matrix"]["include"]
-    assert len(publish_rows) == 34
-
-    colab_rows = [row for row in publish_rows if row.get("cuda-archs") == "75;80;89"]
-    assert colab_rows == [
-        {
-            "python-version": "3.12",
-            "container-image": "nvcr.io/nvidia/pytorch:25.02-py3",
-            "torch-version": "2.11",
-            "torch-package-version": "2.11.0",
-            "pip-torch-cuda-url": "https://download.pytorch.org/whl/cu128",
-            "cuda-archs": "75;80;89",
-            "runs-on": "ubuntu-22.04",
-            "label": "py3.12 pt2.11 x86_64 Colab cu128",
-        },
-        {
-            "python-version": "3.13",
-            "container-image": "nvcr.io/nvidia/pytorch:25.02-py3",
-            "torch-version": "2.11",
-            "torch-package-version": "2.11.0",
-            "pip-torch-cuda-url": "https://download.pytorch.org/whl/cu128",
-            "cuda-archs": "75;80;89",
-            "runs-on": "ubuntu-22.04",
-            "label": "py3.13 pt2.11 x86_64 Colab cu128",
-        },
-    ]
-    assert any(
-        row["torch-version"] == "2.8"
-        and row["pip-torch-cuda-url"].endswith("/cu129")
-        and row["runs-on"] == "ubuntu-22.04"
-        for row in publish_rows
+    verify = publish["jobs"]["verify_release_version"]
+    assert verify["outputs"]["gpu_matrix"] == "${{ steps.matrix.outputs.gpu }}"
+    assert verify["outputs"]["linux_cpu_matrix"] == (
+        "${{ steps.matrix.outputs.linux_cpu }}"
     )
-    assert {
-        (row["python-version"], row["runs-on"])
-        for row in publish_rows
-        if row["torch-version"] == "2.14"
-    } == {
-        (python_version, runner)
-        for python_version in ("3.11", "3.12", "3.13", "3.14")
-        for runner in ("ubuntu-22.04", "ubuntu-24.04-arm")
-    }
-    assert all(
-        row["pip-torch-cuda-url"].endswith("/cu132")
-        for row in publish_rows
-        if row["torch-version"] == "2.14"
+    assert verify["outputs"]["macos_matrix"] == "${{ steps.matrix.outputs.macos }}"
+    assert publish["jobs"]["build_wheels"]["strategy"]["matrix"] == (
+        "${{ fromJSON(needs.verify_release_version.outputs.gpu_matrix) }}"
     )
-    assert publish["jobs"]["build_cpu_wheel"]["strategy"]["matrix"][
-        "torch-version"
-    ] == ["2.13", "2.14"]
-    assert publish["jobs"]["build_macos_cpu_wheel"]["strategy"]["matrix"][
-        "torch-version"
-    ] == ["2.13", "2.14"]
-
     manifest_step = next(
         step
         for step in publish["jobs"]["upload"]["steps"]
         if step.get("name") == "Validate release wheel manifest"
     )
-    assert "--gpu-count 34" in manifest_step["run"]
-    assert "--cpu-count 24" in manifest_step["run"]
-    assert "--require cu128torch2.11:cp312:x86_64" in manifest_step["run"]
-    assert "--require cu128torch2.11:cp313:x86_64" in manifest_step["run"]
-    assert "--require cu128torch2.8:cp312:x86_64" not in manifest_step["run"]
-    assert "--require cu132torch2.14:cp314:aarch64" in manifest_step["run"]
-    assert "--require cputorch2.14:cp314:arm64" in manifest_step["run"]
+    assert manifest_step["run"] == "python scripts/validate_release_manifest.py wheels"
+    assert publish["jobs"]["build_cpu_wheel"]["strategy"]["matrix"] == (
+        "${{ fromJSON(needs.verify_release_version.outputs.linux_cpu_matrix) }}"
+    )
+    assert publish["jobs"]["build_macos_cpu_wheel"]["strategy"]["matrix"] == (
+        "${{ fromJSON(needs.verify_release_version.outputs.macos_matrix) }}"
+    )
 
     version_step = next(
         step
@@ -152,53 +166,20 @@ def test_colab_release_lanes_match_publish_and_smoke_matrices():
         if step.get("name") == "Determine version from sdist filename"
     )
     assert "Version(sys.argv[1]).is_prerelease" in version_step["run"]
-    release_step = next(
-        step
-        for step in publish["jobs"]["upload"]["steps"]
-        if step.get("name") == "Create or get GitHub Release"
-    )
-    assert release_step["with"]["prerelease"] == (
-        "${{ steps.version.outputs.prerelease }}"
-    )
 
     smoke = _workflow(".github/workflows/wheel-smoke.yml")
-    build_rows = smoke["jobs"]["build"]["strategy"]["matrix"]["include"]
-    test_rows = smoke["jobs"]["test"]["strategy"]["matrix"]["include"]
-    assert len(build_rows) == len(test_rows) == 49
-    assert any(
-        row["python-version"] == "3.13"
-        and row.get("local-tag") == "cu128torch2.11"
-        and row.get("cuda-archs") == "75;80;89"
-        for row in build_rows
+    assert smoke["jobs"]["build"]["strategy"]["matrix"] == (
+        "${{ fromJSON(needs.release_matrix.outputs.linux) }}"
     )
-    assert any(
-        row["python-version"] == "3.13" and row.get("local-tag") == "cu128torch2.11"
-        for row in test_rows
+    assert smoke["jobs"]["test"]["strategy"]["matrix"] == (
+        "${{ fromJSON(needs.release_matrix.outputs.linux) }}"
     )
-    assert any(row.get("local-tag") == "cu129torch2.8" for row in build_rows)
-    assert any(row.get("local-tag") == "cu129torch2.8" for row in test_rows)
-    assert sum(row.get("local-tag") == "cu132torch2.14" for row in build_rows) == 8
-    assert sum(row.get("local-tag") == "cu132torch2.14" for row in test_rows) == 8
-    assert sum(row.get("local-tag") == "cputorch2.14" for row in build_rows) == 8
-    assert sum(row.get("local-tag") == "cputorch2.14" for row in test_rows) == 8
-    mac_build_matrix = smoke["jobs"]["build-macos-cpu"]["strategy"]["matrix"]
-    assert "github.event_name == 'pull_request'" in mac_build_matrix["python-version"]
-    assert mac_build_matrix["torch-version"] == ["2.13", "2.14"]
-    mac_test_matrix = smoke["jobs"]["test-macos-cpu"]["strategy"]["matrix"]
-    assert "github.event_name == 'pull_request'" in mac_test_matrix["python"]
-    assert mac_test_matrix["torch-version"] == ["2.13", "2.14"]
-    expected_cpu_smoke = {
-        ("2.13", "x86_64"),
-        ("2.14", "aarch64"),
-    }
-    assert {
-        (row["torch-version"], row["arch"])
-        for row in smoke["jobs"]["build-linux-cpu"]["strategy"]["matrix"]["include"]
-    } == expected_cpu_smoke
-    assert {
-        (row["torch-version"], row["arch"])
-        for row in smoke["jobs"]["test-linux-cpu"]["strategy"]["matrix"]["include"]
-    } == expected_cpu_smoke
+    expected_cpu_smoke = {("2.13", "x86_64"), ("2.14", "aarch64")}
+    for job in ("build-linux-cpu", "test-linux-cpu"):
+        assert {
+            (row["torch-version"], row["arch"])
+            for row in smoke["jobs"][job]["strategy"]["matrix"]["include"]
+        } == expected_cpu_smoke
     assert {
         row["torch-version"]
         for row in smoke["jobs"]["build-linux-cuda"]["strategy"]["matrix"]["include"]

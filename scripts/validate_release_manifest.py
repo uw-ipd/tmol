@@ -8,6 +8,8 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from release_matrix import RELEASE_PLATFORMS, expected_wheel_keys
+
 WHEEL_RE = re.compile(
     r"^tmol-(?P<version>[^+]+)\+"
     r"(?P<local>cputorch\d+\.\d+|cu\d+torch\d+\.\d+)-"
@@ -50,23 +52,11 @@ def parse_wheel(path: Path) -> Wheel:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("wheel_dir", type=Path)
-    parser.add_argument("--gpu-count", type=int, required=True)
-    parser.add_argument("--cpu-count", type=int, required=True)
-    parser.add_argument("--platform", action="append", default=[])
-    parser.add_argument(
-        "--require",
-        action="append",
-        default=[],
-        metavar="LOCAL:CP_TAG:ARCH",
-    )
     args = parser.parse_args()
 
     paths = sorted(args.wheel_dir.glob("*.whl"))
-    if len(paths) != len({path.name for path in paths}):
-        raise SystemExit("duplicate wheel filenames found")
-
     try:
         wheels = [parse_wheel(path) for path in paths]
     except ValueError as error:
@@ -78,14 +68,16 @@ def main() -> None:
 
     gpu = [wheel for wheel in wheels if not wheel.local.startswith("cpu")]
     cpu = [wheel for wheel in wheels if wheel.local.startswith("cpu")]
-    if len(gpu) != args.gpu_count:
-        raise SystemExit(f"expected {args.gpu_count} GPU wheels, found {len(gpu)}")
-    if len(cpu) != args.cpu_count:
-        raise SystemExit(f"expected {args.cpu_count} CPU wheels, found {len(cpu)}")
+    expected_keys = expected_wheel_keys()
+    expected_gpu_count = sum(not key.startswith("cpu") for key in expected_keys)
+    expected_cpu_count = len(expected_keys) - expected_gpu_count
+    if len(gpu) != expected_gpu_count:
+        raise SystemExit(f"expected {expected_gpu_count} GPU wheels, found {len(gpu)}")
+    if len(cpu) != expected_cpu_count:
+        raise SystemExit(f"expected {expected_cpu_count} CPU wheels, found {len(cpu)}")
 
-    allowed_platforms = set(args.platform)
     found_platforms = {wheel.platform for wheel in wheels}
-    unexpected = found_platforms - allowed_platforms
+    unexpected = found_platforms - RELEASE_PLATFORMS
     if unexpected:
         raise SystemExit(f"unexpected platform tags: {sorted(unexpected)}")
 
@@ -93,18 +85,9 @@ def main() -> None:
     if len(wheel_keys) != len(set(wheel_keys)):
         raise SystemExit("duplicate Python/local-version/architecture variants found")
 
-    required_keys = set(args.require)
-    if len(required_keys) != len(args.require):
-        raise SystemExit("duplicate --require variants supplied to validator")
-    if len(required_keys) != len(wheels):
-        raise SystemExit(
-            f"expected an exact {len(wheels)}-variant manifest, "
-            f"but {len(required_keys)} required variants were supplied"
-        )
-
     found_keys = set(wheel_keys)
-    missing = required_keys - found_keys
-    extra = found_keys - required_keys
+    missing = expected_keys - found_keys
+    extra = found_keys - expected_keys
     if missing or extra:
         raise SystemExit(
             f"release manifest mismatch; missing={sorted(missing)}, "

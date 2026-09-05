@@ -21,6 +21,10 @@ jobs:
   verify_release_version:
     name: Verify release tag matches project version
     runs-on: ubuntu-latest
+    outputs:
+      gpu_matrix: ${{ steps.matrix.outputs.gpu }}
+      linux_cpu_matrix: ${{ steps.matrix.outputs.linux_cpu }}
+      macos_matrix: ${{ steps.matrix.outputs.macos }}
     steps:
       - uses: actions/checkout@v5
 
@@ -63,6 +67,13 @@ jobs:
           print(f"Release version check passed: v{tag_version}")
           PY
 
+      - name: Generate wheel matrices
+        id: matrix
+        run: |
+          echo "gpu=$(python scripts/release_matrix.py gpu)" >> "$GITHUB_OUTPUT"
+          echo "linux_cpu=$(python scripts/release_matrix.py linux-cpu)" >> "$GITHUB_OUTPUT"
+          echo "macos=$(python scripts/release_matrix.py macos)" >> "$GITHUB_OUTPUT"
+
   # ── GPU wheels ───────────────────────────────────────────────────────
   build_wheels:
     name: "${{ matrix.label }}"
@@ -72,267 +83,7 @@ jobs:
       # Large bursts of full-architecture CUDA builds repeatedly lost hosted
       # runners. Seven-way fan-out completed the same hosted lanes reliably.
       max-parallel: 7
-      matrix:
-        include:
-          # ── x86_64 py3.11 ──
-          - python-version: "3.11"
-            container-image: nvcr.io/nvidia/pytorch:26.04-py3
-            torch-version: "2.12"
-            torch-package-version: "2.12.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
-            runs-on: self-hosted
-            label: "py3.11 pt2.12 x86_64 manylinux"
-          - python-version: "3.11"
-            container-image: nvcr.io/nvidia/pytorch:26.04-py3
-            torch-version: "2.14"
-            torch-package-version: "2.14.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
-            runs-on: ubuntu-22.04
-            label: "py3.11 pt2.14 x86_64 cu132"
-
-          # ── x86_64 py3.12 ──
-          - python-version: "3.12"
-            container-image: nvcr.io/nvidia/pytorch:25.06-py3
-            torch-version: "2.8"
-            torch-package-version: "2.8.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu129"
-            runs-on: ubuntu-22.04
-            label: "py3.12 pt2.8 cu129 x86_64"
-          - python-version: "3.12"
-            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
-            torch-version: "2.9"
-            torch-package-version: "2.9.1"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
-            runs-on: ubuntu-22.04
-            label: "py3.12 pt2.9 cu130 x86_64"
-          - python-version: "3.12"
-            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
-            torch-version: "2.10"
-            torch-package-version: "2.10.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
-            runs-on: ubuntu-22.04
-            label: "py3.12 pt2.10 cu130 x86_64"
-          - python-version: "3.12"
-            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
-            torch-version: "2.11"
-            torch-package-version: "2.11.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
-            runs-on: ubuntu-22.04
-            label: "py3.12 pt2.11 cu130 x86_64"
-          - python-version: "3.12"
-            container-image: nvcr.io/nvidia/pytorch:26.04-py3
-            torch-version: "2.12"
-            torch-package-version: "2.12.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
-            runs-on: ubuntu-22.04
-            label: "py3.12 pt2.12 cu130 x86_64 manylinux"
-          - python-version: "3.12"
-            container-image: nvcr.io/nvidia/pytorch:26.04-py3
-            torch-version: "2.12"
-            torch-package-version: "2.12.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
-            runs-on: self-hosted
-            label: "py3.12 pt2.12 x86_64 manylinux"
-          - python-version: "3.12"
-            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
-            torch-version: "2.13"
-            torch-package-version: "2.13.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
-            runs-on: ubuntu-22.04
-            label: "py3.12 pt2.13 x86_64 cu130"
-          - python-version: "3.12"
-            container-image: nvcr.io/nvidia/pytorch:26.04-py3
-            torch-version: "2.14"
-            torch-package-version: "2.14.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
-            runs-on: ubuntu-22.04
-            label: "py3.12 pt2.14 x86_64 cu132"
-
-          # ── x86_64 py3.12 cu128 torch2.10 (foundry torch-2.10 upgrade path) ──
-          # Datacenter target (no sm_75); consumed by foundry upgrade_torch_cu12_to_210.sh.
-          - python-version: "3.12"
-            container-image: nvcr.io/nvidia/pytorch:25.02-py3
-            torch-version: "2.10"
-            torch-package-version: "2.10.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu128"
-            runs-on: ubuntu-22.04
-            label: "py3.12 pt2.10 x86_64 manylinux cu128"
-
-          # ── x86_64 Colab wheels (T4/sm_75, torch 2.11 cu128) ──
-          # Colab may update Python independently of its PyTorch/CUDA lane;
-          # explicit archs cover T4(75)/A100(80)/L4(89).
-          - python-version: "3.12"
-            container-image: nvcr.io/nvidia/pytorch:25.02-py3
-            torch-version: "2.11"
-            torch-package-version: "2.11.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu128"
-            cuda-archs: "75;80;89"
-            runs-on: ubuntu-22.04
-            label: "py3.12 pt2.11 x86_64 Colab cu128"
-          - python-version: "3.13"
-            container-image: nvcr.io/nvidia/pytorch:25.02-py3
-            torch-version: "2.11"
-            torch-package-version: "2.11.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu128"
-            cuda-archs: "75;80;89"
-            runs-on: ubuntu-22.04
-            label: "py3.13 pt2.11 x86_64 Colab cu128"
-
-          # ── ARM64 py3.11 ──
-          - python-version: "3.11"
-            container-image: nvcr.io/nvidia/pytorch:26.04-py3
-            torch-version: "2.12"
-            torch-package-version: "2.12.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
-            runs-on: ubuntu-24.04-arm
-            label: "py3.11 pt2.12 aarch64 manylinux"
-          - python-version: "3.11"
-            container-image: nvcr.io/nvidia/pytorch:26.04-py3
-            torch-version: "2.14"
-            torch-package-version: "2.14.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
-            runs-on: ubuntu-24.04-arm
-            label: "py3.11 pt2.14 aarch64 cu132"
-
-          # ── ARM64 py3.12 ──
-          - python-version: "3.12"
-            container-image: nvcr.io/nvidia/pytorch:25.06-py3
-            torch-version: "2.8"
-            torch-package-version: "2.8.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu129"
-            runs-on: ubuntu-24.04-arm
-            label: "py3.12 pt2.8 cu129 aarch64"
-          - python-version: "3.12"
-            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
-            torch-version: "2.9"
-            torch-package-version: "2.9.1"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
-            runs-on: ubuntu-24.04-arm
-            label: "py3.12 pt2.9 cu130 aarch64"
-          - python-version: "3.12"
-            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
-            torch-version: "2.10"
-            torch-package-version: "2.10.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
-            runs-on: ubuntu-24.04-arm
-            label: "py3.12 pt2.10 cu130 aarch64"
-          - python-version: "3.12"
-            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
-            torch-version: "2.11"
-            torch-package-version: "2.11.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
-            runs-on: ubuntu-24.04-arm
-            label: "py3.12 pt2.11 cu130 aarch64"
-          - python-version: "3.12"
-            container-image: nvcr.io/nvidia/pytorch:26.04-py3
-            torch-version: "2.12"
-            torch-package-version: "2.12.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
-            runs-on: ubuntu-24.04-arm
-            label: "py3.12 pt2.12 aarch64 manylinux"
-          - python-version: "3.12"
-            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
-            torch-version: "2.13"
-            torch-package-version: "2.13.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
-            runs-on: ubuntu-24.04-arm
-            label: "py3.12 pt2.13 aarch64 cu130"
-          - python-version: "3.12"
-            container-image: nvcr.io/nvidia/pytorch:26.04-py3
-            torch-version: "2.14"
-            torch-package-version: "2.14.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
-            runs-on: ubuntu-24.04-arm
-            label: "py3.12 pt2.14 aarch64 cu132"
-
-          # ── x86_64 py3.13/py3.14 ──
-          - python-version: "3.13"
-            container-image: nvcr.io/nvidia/pytorch:26.04-py3
-            torch-version: "2.12"
-            torch-package-version: "2.12.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
-            runs-on: self-hosted
-            label: "py3.13 pt2.12 x86_64 manylinux"
-          - python-version: "3.13"
-            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
-            torch-version: "2.13"
-            torch-package-version: "2.13.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
-            runs-on: ubuntu-22.04
-            label: "py3.13 pt2.13 x86_64 cu130"
-          - python-version: "3.13"
-            container-image: nvcr.io/nvidia/pytorch:26.04-py3
-            torch-version: "2.14"
-            torch-package-version: "2.14.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
-            runs-on: ubuntu-22.04
-            label: "py3.13 pt2.14 x86_64 cu132"
-          - python-version: "3.14"
-            container-image: nvcr.io/nvidia/pytorch:26.04-py3
-            torch-version: "2.12"
-            torch-package-version: "2.12.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
-            runs-on: self-hosted
-            label: "py3.14 pt2.12 x86_64 manylinux"
-          - python-version: "3.14"
-            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
-            torch-version: "2.13"
-            torch-package-version: "2.13.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
-            runs-on: ubuntu-22.04
-            label: "py3.14 pt2.13 x86_64 cu130"
-          - python-version: "3.14"
-            container-image: nvcr.io/nvidia/pytorch:26.04-py3
-            torch-version: "2.14"
-            torch-package-version: "2.14.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
-            runs-on: ubuntu-22.04
-            label: "py3.14 pt2.14 x86_64 cu132"
-
-          # ── ARM64 py3.13/py3.14 ──
-          - python-version: "3.13"
-            container-image: nvcr.io/nvidia/pytorch:26.04-py3
-            torch-version: "2.12"
-            torch-package-version: "2.12.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
-            runs-on: ubuntu-24.04-arm
-            label: "py3.13 pt2.12 aarch64 manylinux"
-          - python-version: "3.13"
-            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
-            torch-version: "2.13"
-            torch-package-version: "2.13.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
-            runs-on: ubuntu-24.04-arm
-            label: "py3.13 pt2.13 aarch64 cu130"
-          - python-version: "3.13"
-            container-image: nvcr.io/nvidia/pytorch:26.04-py3
-            torch-version: "2.14"
-            torch-package-version: "2.14.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
-            runs-on: ubuntu-24.04-arm
-            label: "py3.13 pt2.14 aarch64 cu132"
-          - python-version: "3.14"
-            container-image: nvcr.io/nvidia/pytorch:26.04-py3
-            torch-version: "2.12"
-            torch-package-version: "2.12.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
-            runs-on: ubuntu-24.04-arm
-            label: "py3.14 pt2.12 aarch64 manylinux"
-          - python-version: "3.14"
-            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
-            torch-version: "2.13"
-            torch-package-version: "2.13.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
-            runs-on: ubuntu-24.04-arm
-            label: "py3.14 pt2.13 aarch64 cu130"
-          - python-version: "3.14"
-            container-image: nvcr.io/nvidia/pytorch:26.04-py3
-            torch-version: "2.14"
-            torch-package-version: "2.14.0"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
-            runs-on: ubuntu-24.04-arm
-            label: "py3.14 pt2.14 aarch64 cu132"
-
+      matrix: ${{ fromJSON(needs.verify_release_version.outputs.gpu_matrix) }}
     uses: ./.github/workflows/_build_wheel.yml
     with:
       runs-on: ${{ matrix.runs-on }}
@@ -341,53 +92,44 @@ jobs:
       torch-package-version: ${{ matrix.torch-package-version || '' }}
       python-version: ${{ matrix.python-version }}
       label: ${{ matrix.label }}
-      pip-torch-cuda-url: ${{ matrix.pip-torch-cuda-url || '' }}
+      pip-torch-cuda-url: ${{ matrix.torch-index-url || '' }}
       enable-cuda: true
       cuda-archs: ${{ matrix.cuda-archs || '' }}
       use-manylinux-build: true
-      target-arch: ${{ contains(matrix.runs-on, 'arm') && 'aarch64' || 'x86_64' }}
+      target-arch: ${{ matrix.arch }}
 
   # ── CPU-only wheel ─────────────────────────────────────────────────
   build_cpu_wheel:
-    name: "py${{ matrix.python-version }} pt${{ matrix.torch-version }} CPU-only ${{ matrix.platform.arch }}"
+    name: ${{ matrix.label }}
     needs: verify_release_version
     strategy:
       fail-fast: false
-      matrix:
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
-        torch-version: ["2.13", "2.14"]
-        platform:
-          - runs-on: ubuntu-22.04
-            arch: x86_64
-          - runs-on: ubuntu-24.04-arm
-            arch: aarch64
+      matrix: ${{ fromJSON(needs.verify_release_version.outputs.linux_cpu_matrix) }}
     uses: ./.github/workflows/_build_wheel.yml
     with:
-      runs-on: ${{ matrix.platform.runs-on }}
+      runs-on: ${{ matrix.runs-on }}
       container-image: unused-for-manylinux-cpu
       torch-version: ${{ matrix.torch-version }}
-      torch-package-version: ${{ format('{0}.0', matrix.torch-version) }}
+      torch-package-version: ${{ matrix.torch-package-version }}
       python-version: ${{ matrix.python-version }}
-      label: "py${{ matrix.python-version }} pt${{ matrix.torch-version }} CPU-only ${{ matrix.platform.arch }}"
+      label: ${{ matrix.label }}
       pip-torch-cuda-url: "https://download.pytorch.org/whl/cpu"
       enable-cuda: false
       use-manylinux-build: true
-      target-arch: ${{ matrix.platform.arch }}
+      target-arch: ${{ matrix.arch }}
 
   # ── Apple Silicon CPU-only wheel ───────────────────────────────────
   build_macos_cpu_wheel:
-    name: "py${{ matrix.python-version }} pt${{ matrix.torch-version }} CPU-only macOS arm64"
+    name: ${{ matrix.label }}
     needs: verify_release_version
     strategy:
       fail-fast: false
-      matrix:
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
-        torch-version: ["2.13", "2.14"]
+      matrix: ${{ fromJSON(needs.verify_release_version.outputs.macos_matrix) }}
     uses: ./.github/workflows/_build_macos_wheel.yml
     with:
       python-version: ${{ matrix.python-version }}
-      torch-package-version: ${{ format('{0}.0', matrix.torch-version) }}
-      label: "py${{ matrix.python-version }} pt${{ matrix.torch-version }} CPU-only macOS arm64"
+      torch-package-version: ${{ matrix.torch-package-version }}
+      label: ${{ matrix.label }}
 
   # ── sdist ──────────────────────────────────────────────────────────
   build_sdist:
@@ -459,71 +201,7 @@ jobs:
           ls -lh wheels/ || echo "(no wheels)"
 
       - name: Validate release wheel manifest
-        run: |
-          python scripts/validate_release_manifest.py wheels \
-            --gpu-count 34 \
-            --cpu-count 24 \
-            --platform manylinux_2_28_x86_64 \
-            --platform manylinux_2_28_aarch64 \
-            --platform macosx_14_0_arm64 \
-            --require cu132torch2.12:cp311:x86_64 \
-            --require cu129torch2.8:cp312:x86_64 \
-            --require cu128torch2.11:cp312:x86_64 \
-            --require cu128torch2.11:cp313:x86_64 \
-            --require cu130torch2.9:cp312:x86_64 \
-            --require cu130torch2.10:cp312:x86_64 \
-            --require cu128torch2.10:cp312:x86_64 \
-            --require cu130torch2.11:cp312:x86_64 \
-            --require cu130torch2.12:cp312:x86_64 \
-            --require cu132torch2.12:cp312:x86_64 \
-            --require cu130torch2.13:cp312:x86_64 \
-            --require cu132torch2.12:cp313:x86_64 \
-            --require cu130torch2.13:cp313:x86_64 \
-            --require cu132torch2.12:cp314:x86_64 \
-            --require cu130torch2.13:cp314:x86_64 \
-            --require cu132torch2.12:cp311:aarch64 \
-            --require cu129torch2.8:cp312:aarch64 \
-            --require cu130torch2.9:cp312:aarch64 \
-            --require cu130torch2.10:cp312:aarch64 \
-            --require cu130torch2.11:cp312:aarch64 \
-            --require cu132torch2.12:cp312:aarch64 \
-            --require cu130torch2.13:cp312:aarch64 \
-            --require cu132torch2.12:cp313:aarch64 \
-            --require cu130torch2.13:cp313:aarch64 \
-            --require cu132torch2.12:cp314:aarch64 \
-            --require cu130torch2.13:cp314:aarch64 \
-            --require cu132torch2.14:cp311:x86_64 \
-            --require cu132torch2.14:cp312:x86_64 \
-            --require cu132torch2.14:cp313:x86_64 \
-            --require cu132torch2.14:cp314:x86_64 \
-            --require cu132torch2.14:cp311:aarch64 \
-            --require cu132torch2.14:cp312:aarch64 \
-            --require cu132torch2.14:cp313:aarch64 \
-            --require cu132torch2.14:cp314:aarch64 \
-            --require cputorch2.13:cp311:x86_64 \
-            --require cputorch2.13:cp312:x86_64 \
-            --require cputorch2.13:cp313:x86_64 \
-            --require cputorch2.13:cp314:x86_64 \
-            --require cputorch2.13:cp311:aarch64 \
-            --require cputorch2.13:cp312:aarch64 \
-            --require cputorch2.13:cp313:aarch64 \
-            --require cputorch2.13:cp314:aarch64 \
-            --require cputorch2.13:cp311:arm64 \
-            --require cputorch2.13:cp312:arm64 \
-            --require cputorch2.13:cp313:arm64 \
-            --require cputorch2.13:cp314:arm64 \
-            --require cputorch2.14:cp311:x86_64 \
-            --require cputorch2.14:cp312:x86_64 \
-            --require cputorch2.14:cp313:x86_64 \
-            --require cputorch2.14:cp314:x86_64 \
-            --require cputorch2.14:cp311:aarch64 \
-            --require cputorch2.14:cp312:aarch64 \
-            --require cputorch2.14:cp313:aarch64 \
-            --require cputorch2.14:cp314:aarch64 \
-            --require cputorch2.14:cp311:arm64 \
-            --require cputorch2.14:cp312:arm64 \
-            --require cputorch2.14:cp313:arm64 \
-            --require cputorch2.14:cp314:arm64
+        run: python scripts/validate_release_manifest.py wheels
 
       - name: Upload sdist to PyPI
         env:

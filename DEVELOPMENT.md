@@ -191,6 +191,10 @@ tmol uses GitHub Actions for all CI:
 | `wheel-smoke.yml` | Push to wheel feature branches, manual | Builds and installs the complete supported wheel matrix, checks auditwheel metadata and glibc-2.28 portability, and loads a representative wheel on the self-hosted GPU runner. |
 | `publish.yml` | Push `v*` tag, manual | Builds manylinux wheels (GPU + CPU) + sdist, uploads sdist to PyPI, uploads wheels to a GitHub Release. |
 
+The full Linux build, smoke-test, and release-manifest matrix is defined once in
+`scripts/release_matrix.py`. Update that file when adding a Python, PyTorch,
+CUDA, or architecture lane; pull-request smoke jobs stay intentionally focused.
+
 ### CI architecture
 
 ```
