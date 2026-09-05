@@ -390,6 +390,7 @@ void launch_compact_block_neighbors(
   int const max_n_blocks = block_neighbors.size(1);
   int const n_pairs = max_n_blocks * (max_n_blocks + 1) / 2;
   int const n_candidates = n_poses * n_pairs;
+  if (n_candidates == 0) return;
   auto neighbor_indices_t = TPack<Int, 1, D>::empty({n_candidates});
   auto neighbor_indices = neighbor_indices_t.view;
   auto n_neighbors_t = TPack<Int, 1, D>::zeros({1});
