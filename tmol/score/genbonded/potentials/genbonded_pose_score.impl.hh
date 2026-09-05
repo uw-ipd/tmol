@@ -41,7 +41,7 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 // Maximum hierarchy depth stored per atom in gen_atom_type_hierarchy.
 // Must match MAX_HIER_DEPTH in genbonded_energy_term.py.
-#define GB_MAX_HIER_DEPTH 3
+#define GB_MAX_HIER_DEPTH 4
 
 // Bond-type encoding for the central bond in inter-block torsion hash keys.
 // 0 = wildcard ('~') — matches any bond type.
@@ -188,7 +188,7 @@ TMOL_DEVICE_FUNC int inter_block_improper_for_side(
     int coord_offset1,
     int coord_offset2,
     TView<Vec<Int, 3>, 3, D> atom_paths_from_conn,
-    TView<Vec<Int, 3>, 2, D> atom_type_hierarchy,
+    TView<Vec<Int, 4>, 2, D> atom_type_hierarchy,
     TView<Int, 2, D> source_atom_index,
     TView<Vec<Int, 5>, 1, D> improper_hash_keys,
     Vec<Int, 4>& atoms) {
@@ -292,7 +292,7 @@ TMOL_DEVICE_FUNC int inter_block_torsion_parameter(
     Int coord_offset1,
     Int coord_offset2,
     Int bond_type,
-    TView<Vec<Int, 3>, 2, D> atom_type_hierarchy,
+    TView<Vec<Int, 4>, 2, D> atom_type_hierarchy,
     TView<Int, 2, D> source_atom_index,
     TView<Int, 1, D> source_block_type_index,
     TView<Vec<Int, 5>, 1, D> intra_subgraphs,
@@ -416,7 +416,7 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::forward(
     TView<Vec<Int, 5>, 1, D> gen_intra_subgraphs,
     TView<Int, 1, D> gen_intra_subgraph_offsets,
     TView<Vec<Real, 5>, 1, D> gen_intra_params,
-    TView<Vec<Int, 3>, 2, D> gen_atom_type_hierarchy,
+    TView<Vec<Int, 4>, 2, D> gen_atom_type_hierarchy,
     TView<Int, 2, D> gen_connection_bond_types,
     TView<Int, 2, D> gen_source_atom_index,
     TView<Int, 1, D> gen_source_block_type_index,
@@ -641,26 +641,30 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::forward(
       // original three-coordinate atom. Restrict to fragments of one source
       // ligand so polymer connections are unchanged.
       auto eval_inter_improper = ([&] TMOL_DEVICE_FUNC(int tid) {
-        if (tid >= 2) return;
         if (!same_source_ligand_fragments<Int, D>(
                 block_type1, block_type2, gen_source_block_type_index))
           return;
-        Vec<Int, 4> atoms;
-        int val_idx = inter_block_improper_for_side<Int, D>(
-            tid,
-            block_type1,
-            block_type2,
-            conn_ind1,
-            conn_ind2,
-            rot_coord_offset1,
-            rot_coord_offset2,
-            atom_paths_from_conn,
-            gen_atom_type_hierarchy,
-            gen_source_atom_index,
-            gen_inter_improper_hash_keys,
-            atoms);
-        if (val_idx >= 0) {
-          score_improper(atoms, gen_inter_improper_hash_values[val_idx]);
+        // Either connection atom can be the three-coordinate center, so both
+        // sides are evaluated. The loop strides over the workgroup because a
+        // single-threaded one would otherwise only ever see side 0.
+        for (int side = tid; side < 2; side += nt) {
+          Vec<Int, 4> atoms;
+          int val_idx = inter_block_improper_for_side<Int, D>(
+              side,
+              block_type1,
+              block_type2,
+              conn_ind1,
+              conn_ind2,
+              rot_coord_offset1,
+              rot_coord_offset2,
+              atom_paths_from_conn,
+              gen_atom_type_hierarchy,
+              gen_source_atom_index,
+              gen_inter_improper_hash_keys,
+              atoms);
+          if (val_idx >= 0) {
+            score_improper(atoms, gen_inter_improper_hash_values[val_idx]);
+          }
         }
       });
       DeviceOps<D>::template for_each_in_workgroup<nt>(eval_inter_improper);
@@ -720,7 +724,7 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::backward(
     TView<Vec<Int, 5>, 1, D> gen_intra_subgraphs,
     TView<Int, 1, D> gen_intra_subgraph_offsets,
     TView<Vec<Real, 5>, 1, D> gen_intra_params,
-    TView<Vec<Int, 3>, 2, D> gen_atom_type_hierarchy,
+    TView<Vec<Int, 4>, 2, D> gen_atom_type_hierarchy,
     TView<Int, 2, D> gen_connection_bond_types,
     TView<Int, 2, D> gen_source_atom_index,
     TView<Int, 1, D> gen_source_block_type_index,
@@ -904,31 +908,35 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::backward(
       DeviceOps<D>::template for_each_in_workgroup<nt>(eval_inter_block);
 
       auto eval_inter_improper = ([&] TMOL_DEVICE_FUNC(int tid) {
-        if (tid >= 2) return;
         if (!same_source_ligand_fragments<Int, D>(
                 block_type1, block_type2, gen_source_block_type_index))
           return;
-        Vec<Int, 4> atoms;
-        int val_idx = inter_block_improper_for_side<Int, D>(
-            tid,
-            block_type1,
-            block_type2,
-            conn_ind1,
-            conn_ind2,
-            rot_coord_offset1,
-            rot_coord_offset2,
-            atom_paths_from_conn,
-            gen_atom_type_hierarchy,
-            gen_source_atom_index,
-            gen_inter_improper_hash_keys,
-            atoms);
-        if (val_idx >= 0) {
-          score_improper_weighted(
-              atoms,
-              gen_inter_improper_hash_values[val_idx],
-              pose_ind,
-              block_ind1,
-              block_ind2);
+        // Either connection atom can be the three-coordinate center, so both
+        // sides are evaluated. The loop strides over the workgroup because a
+        // single-threaded one would otherwise only ever see side 0.
+        for (int side = tid; side < 2; side += nt) {
+          Vec<Int, 4> atoms;
+          int val_idx = inter_block_improper_for_side<Int, D>(
+              side,
+              block_type1,
+              block_type2,
+              conn_ind1,
+              conn_ind2,
+              rot_coord_offset1,
+              rot_coord_offset2,
+              atom_paths_from_conn,
+              gen_atom_type_hierarchy,
+              gen_source_atom_index,
+              gen_inter_improper_hash_keys,
+              atoms);
+          if (val_idx >= 0) {
+            score_improper_weighted(
+                atoms,
+                gen_inter_improper_hash_values[val_idx],
+                pose_ind,
+                block_ind1,
+                block_ind2);
+          }
         }
       });
       DeviceOps<D>::template for_each_in_workgroup<nt>(eval_inter_improper);
@@ -974,7 +982,7 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
     TView<Vec<Int, 5>, 1, D> gen_intra_subgraphs,
     TView<Int, 1, D> gen_intra_subgraph_offsets,
     TView<Vec<Real, 5>, 1, D> gen_intra_params,
-    TView<Vec<Int, 3>, 2, D> gen_atom_type_hierarchy,
+    TView<Vec<Int, 4>, 2, D> gen_atom_type_hierarchy,
     TView<Int, 2, D> gen_connection_bond_types,
     TView<Int, 2, D> gen_source_atom_index,
     TView<Int, 1, D> gen_source_block_type_index,
@@ -1221,26 +1229,30 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
       DeviceOps<D>::template for_each_in_workgroup<nt>(eval_inter);
 
       auto eval_inter_improper = ([&] TMOL_DEVICE_FUNC(int tid) {
-        if (tid >= 2) return;
         if (!same_source_ligand_fragments<Int, D>(
                 block_type1, block_type2, gen_source_block_type_index))
           return;
-        Vec<Int, 4> atoms;
-        int val_idx = inter_block_improper_for_side<Int, D>(
-            tid,
-            block_type1,
-            block_type2,
-            conn_ind1,
-            conn_ind2,
-            rot_coord_offset1,
-            rot_coord_offset2,
-            atom_paths_from_conn,
-            gen_atom_type_hierarchy,
-            gen_source_atom_index,
-            gen_inter_improper_hash_keys,
-            atoms);
-        if (val_idx >= 0) {
-          score_improper(atoms, gen_inter_improper_hash_values[val_idx]);
+        // Either connection atom can be the three-coordinate center, so both
+        // sides are evaluated. The loop strides over the workgroup because a
+        // single-threaded one would otherwise only ever see side 0.
+        for (int side = tid; side < 2; side += nt) {
+          Vec<Int, 4> atoms;
+          int val_idx = inter_block_improper_for_side<Int, D>(
+              side,
+              block_type1,
+              block_type2,
+              conn_ind1,
+              conn_ind2,
+              rot_coord_offset1,
+              rot_coord_offset2,
+              atom_paths_from_conn,
+              gen_atom_type_hierarchy,
+              gen_source_atom_index,
+              gen_inter_improper_hash_keys,
+              atoms);
+          if (val_idx >= 0) {
+            score_improper(atoms, gen_inter_improper_hash_values[val_idx]);
+          }
         }
       });
       DeviceOps<D>::template for_each_in_workgroup<nt>(eval_inter_improper);
@@ -1298,7 +1310,7 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::backward(
     TView<Vec<Int, 5>, 1, D> gen_intra_subgraphs,
     TView<Int, 1, D> gen_intra_subgraph_offsets,
     TView<Vec<Real, 5>, 1, D> gen_intra_params,
-    TView<Vec<Int, 3>, 2, D> gen_atom_type_hierarchy,
+    TView<Vec<Int, 4>, 2, D> gen_atom_type_hierarchy,
     TView<Int, 2, D> gen_connection_bond_types,
     TView<Int, 2, D> gen_source_atom_index,
     TView<Int, 1, D> gen_source_block_type_index,
@@ -1451,26 +1463,30 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::backward(
       DeviceOps<D>::template for_each_in_workgroup<nt>(eval_inter);
 
       auto eval_inter_improper = ([&] TMOL_DEVICE_FUNC(int tid) {
-        if (tid >= 2) return;
         if (!same_source_ligand_fragments<Int, D>(
                 block_type1, block_type2, gen_source_block_type_index))
           return;
-        Vec<Int, 4> atoms;
-        int val_idx = inter_block_improper_for_side<Int, D>(
-            tid,
-            block_type1,
-            block_type2,
-            conn_ind1,
-            conn_ind2,
-            rot_coord_offset1,
-            rot_coord_offset2,
-            atom_paths_from_conn,
-            gen_atom_type_hierarchy,
-            gen_source_atom_index,
-            gen_inter_improper_hash_keys,
-            atoms);
-        if (val_idx >= 0) {
-          score_improper(atoms, gen_inter_improper_hash_values[val_idx]);
+        // Either connection atom can be the three-coordinate center, so both
+        // sides are evaluated. The loop strides over the workgroup because a
+        // single-threaded one would otherwise only ever see side 0.
+        for (int side = tid; side < 2; side += nt) {
+          Vec<Int, 4> atoms;
+          int val_idx = inter_block_improper_for_side<Int, D>(
+              side,
+              block_type1,
+              block_type2,
+              conn_ind1,
+              conn_ind2,
+              rot_coord_offset1,
+              rot_coord_offset2,
+              atom_paths_from_conn,
+              gen_atom_type_hierarchy,
+              gen_source_atom_index,
+              gen_inter_improper_hash_keys,
+              atoms);
+          if (val_idx >= 0) {
+            score_improper(atoms, gen_inter_improper_hash_values[val_idx]);
+          }
         }
       });
       DeviceOps<D>::template for_each_in_workgroup<nt>(eval_inter_improper);

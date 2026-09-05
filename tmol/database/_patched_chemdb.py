@@ -478,6 +478,33 @@ def _validate_patch_icoors(patch, added_ats_and_conns):
         raise RuntimeError(err_msg)
 
 
+def pattern_namemaps(variant, resgraph, patchgraph):
+    """Each distinct way the patch's pattern binds to the residue.
+
+    A namemap sends every pattern placeholder to the name it matched, which is
+    an atom's or, at a connection, the connection's. Two bindings that modify
+    the same atoms are one binding found twice.
+    """
+    atoms_match = (
+        lambda x, y: ("element" not in y)
+        or ("element" not in x)
+        or x["element"] == y["element"]
+    )
+    gm = iso.GraphMatcher(resgraph, patchgraph, node_match=atoms_match)
+    _added, modded, _deleted = get_modified_atoms(variant)
+
+    unique, namemaps = [], []
+    for subgraph_x in gm.subgraph_monomorphisms_iter():
+        namemap = {
+            "<" + patchgraph.nodes[y]["name"] + ">": x for x, y in subgraph_x.items()
+        }
+        mod_i = [namemap[x] for x in modded]
+        if mod_i not in unique:
+            unique.append(mod_i)
+            namemaps.append(namemap)
+    return namemaps
+
+
 # apply a patch to a rawresidue
 #    res, resgraph - base residue, graph
 #    variant, patchgraph - patch variant, patch graph
@@ -486,37 +513,21 @@ def _validate_patch_icoors(patch, added_ats_and_conns):
 #    newreses - list of new residues produced by the patch (currently only support for 1)
 #    newmarked - updated list of modified atoms in new residue
 def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
-    atoms_match = (
-        lambda x, y: ("element" not in y)
-        or ("element" not in x)
-        or x["element"] == y["element"]
-    )
-    gm = iso.GraphMatcher(resgraph, patchgraph, node_match=atoms_match)
-
     added, modded, deleted = get_modified_atoms(variant)
     assert len(modded) + len(deleted) > 0, (
         "Patch " + variant.name + " does not modify any atoms!"
     )
 
-    # find patchsets that are unique w.r.t. list of modded atoms
-    mod_unique = []
-    namemaps = []
-    for i, subgraph_x in enumerate(gm.subgraph_monomorphisms_iter()):
-        namemap = {
-            "<" + patchgraph.nodes[y]["name"] + ">": x for x, y in subgraph_x.items()
-        }
-        mod_i = [namemap[x] for x in modded]
-        if mod_i not in mod_unique:
-            mod_unique.append(mod_i)
-            namemaps.append(namemap)
+    namemaps = pattern_namemaps(variant, resgraph, patchgraph)
 
     # fd: this could be supported in the future, with a few issues to work out
     #    -if the patch adds atoms, we need to figure out how to ensure unique names
     #    -need a patch naming scheme if a patch applied twice
-    assert len(mod_unique) <= 1, (
+    assert len(namemaps) <= 1, (
         f"Patch {variant.name} applies to residue {res.name} multiple times, "
-        f"matching the atom sets {mod_unique}. Narrow the pattern, or scope the "
-        f"patch with applies_to."
+        f"matching the atom sets "
+        f"{[[m[x] for x in modded] for m in namemaps]}. Narrow the pattern, or "
+        f"scope the patch with applies_to."
     )
 
     # apply patches

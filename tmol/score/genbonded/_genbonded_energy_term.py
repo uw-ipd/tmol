@@ -45,7 +45,7 @@ from tmol.score.common import (
 )
 
 # Maximum hierarchy depth for any atom type (concrete -> class -> X).
-MAX_HIER_DEPTH = 3
+MAX_HIER_DEPTH = 4
 
 # Bond-type character to integer encoding (must match impl.hh GB_BOND_WILDCARD etc.)
 BOND_CHAR_TO_INT = {

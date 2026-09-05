@@ -14,13 +14,16 @@ atom types, and MMFF94 its charges. None of those need a conformer, so no
 structure is generated for it.
 """
 
+import collections
 import logging
 
 import math
 
 import attr
 
+from tmol.database._patched_chemdb import RestypeGraphBuilder, pattern_namemaps
 from tmol.database.chemical import Atom, VariantScope
+from tmol.extern.pysmiles import read_smiles
 
 logger = logging.getLogger(__name__)
 
@@ -256,7 +259,7 @@ def _cap_subtree(profile, root):
     return reached
 
 
-def terminal_cap_profile(profile, chemdb, template, terminus):
+def terminal_cap_profile(profile, chemdb, template, at_down):
     """``profile`` with one connection capped as a chain end, not as a stub.
 
     A residue at a terminus is a different molecule from the same residue in a
@@ -264,7 +267,7 @@ def terminal_cap_profile(profile, chemdb, template, terminus):
     the terminus patch puts there: an acid's oxygen where the patch adds one,
     and nothing where it adds only hydrogens, since protonation supplies those.
     """
-    partner = profile.down_partner if terminus == "nterm" else profile.up_partner
+    partner = profile.down_partner if at_down else profile.up_partner
     if partner is None:
         return None
     elements = {at.name: at.element for at in chemdb.atom_types}
@@ -280,13 +283,64 @@ def terminal_cap_profile(profile, chemdb, template, terminus):
     return attr.evolve(profile, caps=tuple(kept))
 
 
+def _pattern_binding(chemdb, residue_type, template):
+    """Which residue atom each of the template's pattern placeholders names.
+
+    None where the pattern does not bind exactly one way, since then no single
+    atom answers for a placeholder.
+    """
+    elements = collections.defaultdict(
+        str, {at.name: at.element for at in chemdb.atom_types}
+    )
+    patchgraph = read_smiles(
+        template.pattern, explicit_hydrogen=True, do_fill_valence=False
+    )
+    namemaps = pattern_namemaps(
+        template,
+        RestypeGraphBuilder(elements).from_raw_res(residue_type),
+        patchgraph,
+    )
+    return namemaps[0] if len(namemaps) == 1 else None
+
+
+def _atoms_the_patch_strips(template, residue_type, binding, chemdb):
+    """The residue's own heavy atoms the terminal form does not keep, by name.
+
+    A patch also removes the connection it acts on, which is not an atom, and
+    the atoms it replaces with others of the same element -- an acid's carbonyl
+    oxygen for its two. Those still describe the terminal form and stay; only a
+    group the patch takes away outright is stripped. Hydrogens are left to
+    protonation.
+    """
+    if binding is None:
+        return frozenset()
+    element_of = {at.name: at.element for at in chemdb.atom_types}
+    added = {
+        element_of.get(a.atom_type, "")
+        for a in template.add_atoms
+        if element_of.get(a.atom_type, "") not in ("", "H")
+    }
+    removed = {binding.get(str(a)) for a in template.remove_atoms}
+    types = {a.name: a.atom_type for a in residue_type.atoms}
+    return frozenset(
+        name
+        for name in removed
+        if name in types
+        and element_of.get(types[name], "") not in ("", "H")
+        and element_of.get(types[name], "") not in added
+    )
+
+
 def _terminal_chemistry(
-    atom_array, residue_type, profile, chemdb, template, terminus, ph
+    atom_array, residue_type, profile, chemdb, template, connection, ph
 ):
     """Protonation, atom types and charges of the residue's terminal form.
 
     The molecule is only ever a SMILES here: Dimorphite, the ligand typer and
     MMFF94 all work from topology, so nothing is embedded.
+
+    ``connection`` is the chain end this patch acts on, so the terminal form is
+    built at the end the patch actually changes.
     """
     from rdkit import Chem
 
@@ -295,16 +349,31 @@ def _terminal_chemistry(
     from tmol.ligand._polymer_profile import cap_residue
     from tmol.ligand._structure_to_smiles import ligand_smiles_from_atom_array
 
-    terminal = terminal_cap_profile(profile, chemdb, template, terminus)
+    terminal = terminal_cap_profile(
+        profile, chemdb, template, connection == profile.down
+    )
     if terminal is None:
         return None
-    connection = profile.down if terminus == "nterm" else profile.up
     capped, _cap_names = cap_residue(atom_array, terminal)
 
+    # the terminal form is what the patch leaves behind, so a group it takes
+    #    away is gone from the molecule that gets typed
+    binding = _pattern_binding(chemdb, residue_type, template)
+    stripped = _atoms_the_patch_strips(template, residue_type, binding, chemdb)
+    if stripped:
+        capped = capped[[str(n) not in stripped for n in capped.atom_name]]
+
+    # types are read off the atom the patch builds its added atoms against,
+    #    which is the connection only where the patch keeps it
+    site_name = connection[1]
+    placeholder = _connection_placeholder(template, template.add_atoms)
+    if binding is not None and placeholder is not None:
+        site_name = binding.get(str(placeholder), site_name)
+
     names = [str(n) for n in capped.atom_name]
-    if connection[1] not in names:
+    if site_name not in names:
         return None
-    connection_index = names.index(connection[1])
+    connection_index = names.index(site_name)
 
     smiles = ligand_smiles_from_atom_array(capped, with_atom_map=True)
     mol = Chem.MolFromSmiles(_dimorphite_protonate_smiles(smiles, ph=ph))
@@ -328,6 +397,7 @@ def _terminal_chemistry(
     return {
         "measured": True,
         "element_of": element_of,
+        "mainchain": frozenset(profile.mainchain_atoms or ()),
         "added_elements": {
             element_of.get(a.atom_type, "")
             for a in template.add_atoms
@@ -547,7 +617,7 @@ def terminus_patches(
                     profile,
                     chemdb,
                     template,
-                    display_name,
+                    connection,
                     ph,
                 )
             except Exception as err:  # noqa: BLE001 - reported, and no patch
@@ -614,9 +684,14 @@ def _terminal_group_heavy(chemistry):
     heavy = [
         e for e in chemistry["heavy"] if e["element"] in chemistry["added_elements"]
     ]
-    # the atom the residue does not have goes first; within an element the
-    #    atoms are equivalent, so which takes which name does not matter
-    return sorted(heavy, key=lambda e: (e["in_base"], e["name"] or ""))
+    # the atom the residue does not have goes first, then the ones off the
+    #    backbone: a terminal group hangs off the mainchain rather than being
+    #    part of it. Within an element the atoms are equivalent, so which takes
+    #    which name does not matter
+    mainchain = chemistry.get("mainchain", ())
+    return sorted(
+        heavy, key=lambda e: (e["in_base"], e["name"] in mainchain, e["name"] or "")
+    )
 
 
 def _terminal_add_atoms(template, chemistry):
