@@ -563,6 +563,9 @@ def test_large_cuda_pose_score_matches_serial_terms_on_caller_stream(
     assert scorer._cuda_term_streams is not None
     torch.testing.assert_close(actual, expected, rtol=1e-5, atol=5e-3)
 
+    scorer.enable_cuda_graphs(coords, mode="forward")
+    torch.testing.assert_close(scorer(coords), expected, rtol=1e-5, atol=5e-3)
+
 
 def test_block_pair_scoring_matches_whole_pose(ubq_pdb, default_database, torch_device):
     # passing the database bypasses the memoized score function, which the
@@ -607,6 +610,36 @@ def test_block_pair_scoring_matches_whole_pose(ubq_pdb, default_database, torch_
             serial_score = block_scorer(pose_stack.coords)
 
         assert torch.equal(parallel_score, serial_score)
+
+
+def test_large_cuda_compact_scores_match_block_pair_reference(
+    systems_bysize, default_database, torch_device
+):
+    if torch_device.type != "cuda":
+        pytest.skip("Requires CUDA")
+
+    pose = pose_stack_from_pdb(systems_bysize[600], torch_device)
+    sfxn = beta2016_score_function(torch_device, default_database)
+    whole_scorer = sfxn.render_whole_pose_scoring_module(pose)
+    block_scorer = sfxn.render_block_pair_scoring_module(pose)
+
+    with torch.inference_mode():
+        compact = whole_scorer(pose.coords, sum_terms=False, apply_weights=False)
+        block_pairs = block_scorer(pose.coords, sum_terms=False, apply_weights=False)
+
+    torch.testing.assert_close(
+        compact, block_pairs.sum(dim=(2, 3)), rtol=1e-5, atol=3e-3
+    )
+
+    whole_coords = pose.coords.detach().clone().requires_grad_(True)
+    whole_score = whole_scorer(whole_coords).sum()
+    whole_grad = torch.autograd.grad(whole_score, whole_coords)[0]
+    block_coords = pose.coords.detach().clone().requires_grad_(True)
+    block_score = block_scorer(block_coords).sum()
+    block_grad = torch.autograd.grad(block_score, block_coords)[0]
+
+    torch.testing.assert_close(whole_score, block_score, rtol=1e-5, atol=1e-2)
+    torch.testing.assert_close(whole_grad, block_grad, rtol=2e-3, atol=2e-3)
 
 
 def test_interaction_only_block_pair_scoring_skips_diagonal_terms(

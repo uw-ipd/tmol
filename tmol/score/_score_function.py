@@ -43,7 +43,7 @@ _CPU_WIDE_FORWARD_SCORE_MIN_THREADS = 32
 _CPU_PARALLEL_SCORE_BACKWARD_MIN_COORD_ELEMENTS = 8192
 # Independent CUDA terms overlap profitably for one large pose or a wide batch,
 # but stream setup and coordination cost more than they save for small poses.
-_CUDA_PARALLEL_SCORE_MIN_COORD_ELEMENTS = 16 * 1024
+_CUDA_PARALLEL_SCORE_MIN_COORD_ELEMENTS = 20 * 1024
 _CPU_SCORE_TERM_EXECUTORS: dict[int, ThreadPoolExecutor] = {}
 _CPU_SCORE_TERM_EXECUTOR_LOCK = threading.Lock()
 _ScoreCallResult = TypeVar("_ScoreCallResult")

@@ -700,20 +700,7 @@ class LKBallPoseScoreDispatch {
           store_calculated_energies);
     });
 
-    ///////////////////////////////////////////////////////////////////////
-
-    // Three steps
-    // 0: setup
-    // 1: launch a kernel to find a small bounding sphere surrounding the
-    // blocks 2: launch a kernel to look for spheres that are within
-    // striking distance of each other 3: launch a kernel to evaluate
-    // lk-ball desolvation between pairs of blocks within striking distance
-
-    // 0
-    // TO DO: let DeviceDispatch hold a cuda stream (??)
-    // at::cuda::CUDAStream wrapped_stream =
-    // at::cuda::getDefaultCUDAStream(); mgpu::standard_context_t
-    // context(wrapped_stream.stream());
+    // Build block neighbors before dispatching LK-ball pair scoring.
     score::common::sphere_overlap::
         compute_block_spheres<DeviceDispatch, Dev, Real, Int>::f(
             mgr,
@@ -732,9 +719,21 @@ class LKBallPoseScoreDispatch {
             scratch_rot_spheres,
             scratch_rot_neighbors,
             max_dis);
-    // 3 Only the forward pass in this calculation
-    launch_lk_ball_pose_pair_workgroups<DeviceDispatch, Dev, launch_t>(
-        mgr, n_poses, max_n_blocks, eval_energies_by_block);
+#ifdef __NVCC__
+    if (!output_block_pair_energies && max_n_blocks >= 256) {
+      auto eval_all = ([=] TMOL_DEVICE_FUNC(int cta) {
+        eval_energies_by_block(
+            cta, TilePairModeTag<common::TilePairMode::InterAndIntra>{});
+      });
+      score::common::sphere_overlap::
+          launch_compact_block_neighbors<DeviceDispatch, Dev, launch_t, Int>(
+              mgr, scratch_rot_neighbors, eval_all);
+    } else
+#endif
+    {
+      launch_lk_ball_pose_pair_workgroups<DeviceDispatch, Dev, launch_t>(
+          mgr, n_poses, max_n_blocks, eval_energies_by_block);
+    }
 
     return {output_t, scratch_rot_neighbors_t};
   }
@@ -1427,22 +1426,7 @@ class LKBallRotamerScoreDispatch {
           store_calculated_energies);
     });
 
-    ///////////////////////////////////////////////////////////////////////
-
-    // Three steps
-    // 0: setup
-    // 1: launch a kernel to find a small bounding sphere surrounding the
-    // blocks 2: launch a kernel to look for spheres that are within
-    // striking distance of each other 3: launch a kernel to evaluate
-    // lk-ball desolvation between pairs of blocks within striking distance
-
-    // 0
-    // TO DO: let DeviceDispatch hold a cuda stream (??)
-    // at::cuda::CUDAStream wrapped_stream =
-    // at::cuda::getDefaultCUDAStream(); mgpu::standard_context_t
-    // context(wrapped_stream.stream());
-
-    // 3 Only the forward pass in this calculation
+    // Evaluate the prepared rotamer-pair dispatch list.
     DeviceDispatch<Dev>::template foreach_independent_workgroup<launch_t>(
         mgr, dispatch_indices.size(1), eval_energies_by_block);
 

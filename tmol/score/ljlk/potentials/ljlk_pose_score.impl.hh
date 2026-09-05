@@ -1160,20 +1160,31 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
         mgr, n_poses, max_n_upper_triangle_inds, eval_energies_by_block);
   } else {
     int const n_workgroups = n_poses * max_n_upper_triangle_inds;
-    if (!require_gradient && n_workgroups >= min_high_occupancy_workgroups) {
-      DeviceOperations<D>::template foreach_pose_workgroup<
-          launch_t_high_occupancy>(
-          mgr, n_poses, max_n_upper_triangle_inds, eval_energies_by_block);
-    } else if (!require_gradient) {
-      DeviceOperations<D>::template foreach_pose_workgroup<launch_t>(
-          mgr, n_poses, max_n_upper_triangle_inds, eval_energies_by_block);
-    } else if (n_workgroups >= min_high_occupancy_workgroups) {
-      DeviceOperations<D>::template foreach_pose_workgroup<
-          launch_t_high_occupancy>(
-          mgr, n_poses, max_n_upper_triangle_inds, eval_energies);
-    } else {
-      DeviceOperations<D>::template foreach_pose_workgroup<launch_t>(
-          mgr, n_poses, max_n_upper_triangle_inds, eval_energies);
+#ifdef __NVCC__
+    if (!require_gradient && max_n_blocks >= 256) {
+      score::common::sphere_overlap::launch_compact_block_neighbors<
+          DeviceOperations,
+          D,
+          launch_t_high_occupancy,
+          Int>(mgr, scratch_rot_neighbors, eval_energies_by_block);
+    } else
+#endif
+    {
+      if (!require_gradient && n_workgroups >= min_high_occupancy_workgroups) {
+        DeviceOperations<D>::template foreach_pose_workgroup<
+            launch_t_high_occupancy>(
+            mgr, n_poses, max_n_upper_triangle_inds, eval_energies_by_block);
+      } else if (!require_gradient) {
+        DeviceOperations<D>::template foreach_pose_workgroup<launch_t>(
+            mgr, n_poses, max_n_upper_triangle_inds, eval_energies_by_block);
+      } else if (n_workgroups >= min_high_occupancy_workgroups) {
+        DeviceOperations<D>::template foreach_pose_workgroup<
+            launch_t_high_occupancy>(
+            mgr, n_poses, max_n_upper_triangle_inds, eval_energies);
+      } else {
+        DeviceOperations<D>::template foreach_pose_workgroup<launch_t>(
+            mgr, n_poses, max_n_upper_triangle_inds, eval_energies);
+      }
     }
   }
 
