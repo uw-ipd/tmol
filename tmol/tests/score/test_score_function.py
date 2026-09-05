@@ -538,6 +538,32 @@ def test_cuda_graphed_protein_score_matches_eager(ubq_pdb, torch_device):
         graphed(changed_coords.cpu())
 
 
+def test_large_cuda_pose_score_matches_serial_terms_on_caller_stream(
+    systems_bysize, torch_device
+):
+    if torch_device.type != "cuda":
+        pytest.skip("Requires CUDA")
+
+    pose = pose_stack_from_pdb(systems_bysize[600], torch_device)
+    scorer = beta2016_score_function(torch_device).render_whole_pose_scoring_module(
+        pose
+    )
+    coords = pose.coords.detach().clone()
+    caller_stream = torch.cuda.Stream()
+
+    with torch.inference_mode(), torch.cuda.stream(caller_stream):
+        # Queue an input change on the caller stream. The term streams must
+        # observe it, and the returned score must be safe to consume there.
+        coords[0, 0, 0] += 0.125
+        serial_terms = torch.cat([term(coords) for term in scorer.term_modules], dim=0)
+        expected = (serial_terms * scorer.weights).sum(dim=0)
+        actual = scorer(coords)
+
+    caller_stream.synchronize()
+    assert scorer._cuda_term_streams is not None
+    torch.testing.assert_close(actual, expected, rtol=1e-5, atol=5e-3)
+
+
 def test_block_pair_scoring_matches_whole_pose(ubq_pdb, default_database, torch_device):
     # passing the database bypasses the memoized score function, which the
     # set_weight below would otherwise mutate for the rest of the session

@@ -41,6 +41,9 @@ _MAX_CPU_FORWARD_SCORE_TERM_WORKERS = 8
 _CPU_WIDE_FORWARD_SCORE_MIN_POSES = 20
 _CPU_WIDE_FORWARD_SCORE_MIN_THREADS = 32
 _CPU_PARALLEL_SCORE_BACKWARD_MIN_COORD_ELEMENTS = 8192
+# Independent CUDA terms overlap profitably for one large pose or a wide batch,
+# but stream setup and coordination cost more than they save for small poses.
+_CUDA_PARALLEL_SCORE_MIN_COORD_ELEMENTS = 16 * 1024
 _CPU_SCORE_TERM_EXECUTORS: dict[int, ThreadPoolExecutor] = {}
 _CPU_SCORE_TERM_EXECUTOR_LOCK = threading.Lock()
 _ScoreCallResult = TypeVar("_ScoreCallResult")
@@ -683,6 +686,11 @@ class WholePoseScoringModule:
     ):
         self.weights = torch.nn.Parameter(weights.unsqueeze(1), requires_grad=False)
         self.term_modules = tuple(term_modules)
+        self._active_term_indices = tuple(
+            index
+            for index, term in enumerate(self.term_modules)
+            if not isinstance(term, ZeroTermPoseScoringModule)
+        )
         self._has_trainable_term_parameters = any(
             parameter.requires_grad
             for term in self.term_modules
@@ -691,6 +699,7 @@ class WholePoseScoringModule:
         self._cpu_term_workers, self._cpu_forward_workers = (
             _cpu_score_term_worker_counts(len(self.term_modules), weights.device)
         )
+        self._cuda_term_streams: tuple[torch.cuda.Stream, ...] | None = None
 
     def __call__(
         self,
@@ -718,6 +727,17 @@ class WholePoseScoringModule:
 
     def unweighted_scores(self, coords: torch.Tensor) -> torch.Tensor:
         needs_grad = torch.is_grad_enabled() and coords.requires_grad
+        if (
+            coords.device.type == "cuda"
+            and not needs_grad
+            and not (torch.is_grad_enabled() and self._has_trainable_term_parameters)
+            and len(self._active_term_indices) >= 2
+            and coords.numel() >= _CUDA_PARALLEL_SCORE_MIN_COORD_ELEMENTS
+        ):
+            cuda_scores = self._parallel_cuda_forward_scores(coords)
+            if cuda_scores is not None:
+                return torch.cat(cuda_scores, dim=0)
+
         cpu_workers = self._cpu_term_workers
         if torch.is_grad_enabled() and self._has_trainable_term_parameters:
             cpu_workers = 0
@@ -754,6 +774,43 @@ class WholePoseScoringModule:
             for term in self.term_modules
         ]
         return torch.cat([future.result() for future in futures], dim=0)
+
+    def _parallel_cuda_forward_scores(
+        self, coords: torch.Tensor
+    ) -> tuple[torch.Tensor, ...] | None:
+        """Run independent large-workload inference terms on separate streams."""
+        with torch.cuda.device(coords.device):
+            if torch.cuda.is_current_stream_capturing():
+                return None
+
+        if self._cuda_term_streams is None:
+            self._cuda_term_streams = tuple(
+                torch.cuda.Stream(device=coords.device)
+                for _ in self._active_term_indices
+            )
+
+        current = torch.cuda.current_stream(coords.device)
+        scores: list[torch.Tensor | None] = [None] * len(self.term_modules)
+        for index, term in enumerate(self.term_modules):
+            if isinstance(term, ZeroTermPoseScoringModule):
+                scores[index] = term(coords)
+        for stream, index in zip(self._cuda_term_streams, self._active_term_indices):
+            stream.wait_stream(current)
+            coords.record_stream(stream)
+            with torch.cuda.stream(stream):
+                scores[index] = self.term_modules[index](coords)
+
+        for stream, index in zip(self._cuda_term_streams, self._active_term_indices):
+            current.wait_stream(stream)
+            score = scores[index]
+            assert score is not None
+            score.record_stream(current)
+
+        complete_scores = []
+        for score in scores:
+            assert score is not None
+            complete_scores.append(score)
+        return tuple(complete_scores)
 
     def enable_cuda_graphs(
         self, example_coords: torch.Tensor, mode: str = "both"
