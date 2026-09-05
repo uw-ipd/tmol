@@ -536,7 +536,11 @@ jobs:
         run: |
           SDIST=$(ls dist/*.tar.gz | head -1 | xargs basename)
           VERSION=$(echo "$SDIST" | sed 's/^tmol-//;s/\.tar\.gz$//')
+          PRERELEASE=$(python -c \
+            'from packaging.version import Version; import sys; print(str(Version(sys.argv[1]).is_prerelease).lower())' \
+            "$VERSION")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$PRERELEASE" >> "$GITHUB_OUTPUT"
           echo "Detected version: $VERSION"
 
       - name: Create or get GitHub Release
@@ -546,7 +550,7 @@ jobs:
           tag_name: "v${{ steps.version.outputs.version }}"
           name: "v${{ steps.version.outputs.version }}"
           draft: false
-          prerelease: true
+          prerelease: ${{ steps.version.outputs.prerelease }}
           generate_release_notes: false
           files: wheels/*.whl
         env:

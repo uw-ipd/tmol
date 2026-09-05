@@ -146,6 +146,21 @@ def test_colab_release_lanes_match_publish_and_smoke_matrices():
     assert "--require cu132torch2.14:cp314:aarch64" in manifest_step["run"]
     assert "--require cputorch2.14:cp314:arm64" in manifest_step["run"]
 
+    version_step = next(
+        step
+        for step in publish["jobs"]["upload"]["steps"]
+        if step.get("name") == "Determine version from sdist filename"
+    )
+    assert "Version(sys.argv[1]).is_prerelease" in version_step["run"]
+    release_step = next(
+        step
+        for step in publish["jobs"]["upload"]["steps"]
+        if step.get("name") == "Create or get GitHub Release"
+    )
+    assert release_step["with"]["prerelease"] == (
+        "${{ steps.version.outputs.prerelease }}"
+    )
+
     smoke = _workflow(".github/workflows/wheel-smoke.yml")
     build_rows = smoke["jobs"]["build"]["strategy"]["matrix"]["include"]
     test_rows = smoke["jobs"]["test"]["strategy"]["matrix"]["include"]

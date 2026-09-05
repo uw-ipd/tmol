@@ -530,6 +530,13 @@ def test_cuda_graphed_protein_score_matches_eager(ubq_pdb, torch_device):
         graphed(changed_coords), eager(changed_coords), rtol=1e-5, atol=1e-3
     )
 
+    with pytest.raises(ValueError, match="must have shape"):
+        graphed(changed_coords[0])
+    with pytest.raises(TypeError, match="must have dtype"):
+        graphed(changed_coords.to(torch.float64))
+    with pytest.raises(ValueError, match="must be on"):
+        graphed(changed_coords.cpu())
+
 
 def test_block_pair_scoring_matches_whole_pose(ubq_pdb, default_database, torch_device):
     # passing the database bypasses the memoized score function, which the

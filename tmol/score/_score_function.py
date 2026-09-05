@@ -447,14 +447,14 @@ class ScoreFunction:
 
         return self._multi_body_terms
 
-    def render_whole_pose_scoring_module(self, pose_stack: PoseStack, cuda_graph=False):
-        """Create an object designed to evaluate the score of a set of Poses
-        repeatedly as the Poses change their conformation, e.g., as in
-        minimization. This object will derive from torch.nn.Module and
-        it will contain a set of objects rendered by the ScoreFunction's
-        terms that themselves are derived from torch.nn.Module. This
-        object's __call__ will return a tensor of weighted energies of
-        shape (n_poses,).
+    def render_whole_pose_scoring_module(
+        self, pose_stack: PoseStack, cuda_graph: bool | str = False
+    ) -> "WholePoseScoringModule":
+        """Render a callable that repeatedly scores one fixed pose topology.
+
+        The returned callable owns the term-specific ``torch.nn.Module`` objects
+        for ``pose_stack``. Its default call returns weighted energies shaped
+        ``[n_poses]`` as coordinates change during inference or minimization.
 
         Set ``cuda_graph`` to ``"forward"`` for repeated inference,
         ``"forward_backward"`` for repeated scoring with coordinate gradients,
@@ -474,14 +474,11 @@ class ScoreFunction:
 
     def render_block_pair_scoring_module(
         self, pose_stack: PoseStack, *, interaction_only: bool = False
-    ):
-        """Create an object designed to evaluate the score of a set of Poses
-        repeatedly as the Poses change their conformation, e.g., as in
-        minimization. This object will derive from torch.nn.Module and
-        it will contain a set of objects rendered by the ScoreFunction's
-        terms that themselves are derived from torch.nn.Module. This
-        object's __call__ will return a tensor of weighted energies of
-        shape (n_poses, max_n_blocks, max_n_blocks).
+    ) -> "BlockPairScoringModule":
+        """Render a callable that retains scores for every residue-block pair.
+
+        The default call returns weighted energies shaped
+        ``[n_poses, max_n_blocks, max_n_blocks]``.
 
         Set ``interaction_only=True`` when only strictly off-diagonal block
         pairs will be consumed. Terms whose block-pair scores are known to be
@@ -695,7 +692,12 @@ class WholePoseScoringModule:
             _cpu_score_term_worker_counts(len(self.term_modules), weights.device)
         )
 
-    def __call__(self, coords, sum_terms=True, apply_weights=True):
+    def __call__(
+        self,
+        coords: torch.Tensor,
+        sum_terms: bool = True,
+        apply_weights: bool = True,
+    ) -> torch.Tensor:
         if sum_terms and apply_weights:
             needs_grad = torch.is_grad_enabled() and coords.requires_grad
             if needs_grad and hasattr(self, "_cuda_graphed_autograd"):
@@ -714,7 +716,7 @@ class WholePoseScoringModule:
 
         return summed
 
-    def unweighted_scores(self, coords):
+    def unweighted_scores(self, coords: torch.Tensor) -> torch.Tensor:
         needs_grad = torch.is_grad_enabled() and coords.requires_grad
         cpu_workers = self._cpu_term_workers
         if torch.is_grad_enabled() and self._has_trainable_term_parameters:
@@ -753,7 +755,9 @@ class WholePoseScoringModule:
         ]
         return torch.cat([future.result() for future in futures], dim=0)
 
-    def enable_cuda_graphs(self, example_coords, mode="both"):
+    def enable_cuda_graphs(
+        self, example_coords: torch.Tensor, mode: str = "both"
+    ) -> "WholePoseScoringModule":
         """Capture the default weighted score for a fixed coordinate shape.
 
         The returned scorer accepts new coordinate values with the same shape,
@@ -834,7 +838,22 @@ class _InferenceCUDAGraph:
             with torch.cuda.graph(self._graph, stream=stream), torch.no_grad():
                 self._output = module(self._coords)
 
-    def __call__(self, coords):
+    def __call__(self, coords: torch.Tensor) -> torch.Tensor:
+        if coords.shape != self._coords.shape:
+            raise ValueError(
+                "CUDA graph coordinates must have shape "
+                f"{tuple(self._coords.shape)}; got {tuple(coords.shape)}"
+            )
+        if coords.dtype != self._coords.dtype:
+            raise TypeError(
+                "CUDA graph coordinates must have dtype "
+                f"{self._coords.dtype}; got {coords.dtype}"
+            )
+        if coords.device != self._coords.device:
+            raise ValueError(
+                "CUDA graph coordinates must be on "
+                f"{self._coords.device}; got {coords.device}"
+            )
         self._coords.copy_(coords)
         self._graph.replay()
         return self._output
@@ -897,7 +916,12 @@ class BlockPairScoringModule:
         ]
         return tuple(future.result() for future in futures)
 
-    def __call__(self, coords, sum_terms=True, apply_weights=True):
+    def __call__(
+        self,
+        coords: torch.Tensor,
+        sum_terms: bool = True,
+        apply_weights: bool = True,
+    ) -> torch.Tensor:
         if not torch.is_grad_enabled() and coords.requires_grad:
             coords = coords.detach()
         if sum_terms and apply_weights:
