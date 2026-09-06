@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../../../_static/documentation_options.js?v=0ec583c6"></script>
+    <script src="../../../_static/documentation_options.js?v=aabd07df"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -54,7 +54,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.54" />
+  <meta name="docsearch:version" content="0.1.55" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -439,13 +439,13 @@
 <span class="n">_CUDA_ROTAMER_LAYOUT_DEDUP_MIN_BYTES</span> <span class="o">=</span> <span class="mi">16</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span>
 <span class="n">_CPU_ROTAMER_SORTED_LAYOUT_MIN_NNZ</span> <span class="o">=</span> <span class="mi">4096</span>
 <span class="n">_MAX_CPU_SCORE_TERM_WORKERS</span> <span class="o">=</span> <span class="mi">4</span>
-<span class="c1"># Large multi-pose, forward-only scoring benefits from exposing more</span>
-<span class="c1"># independent terms. Differentiable scoring stays at four workers because its</span>
-<span class="c1"># concurrent backward graphs otherwise compete for the same intra-op threads.</span>
-<span class="n">_MAX_CPU_FORWARD_SCORE_TERM_WORKERS</span> <span class="o">=</span> <span class="mi">8</span>
-<span class="n">_CPU_WIDE_FORWARD_SCORE_MIN_POSES</span> <span class="o">=</span> <span class="mi">20</span>
-<span class="n">_CPU_WIDE_FORWARD_SCORE_MIN_THREADS</span> <span class="o">=</span> <span class="mi">32</span>
 <span class="n">_CPU_PARALLEL_SCORE_BACKWARD_MIN_COORD_ELEMENTS</span> <span class="o">=</span> <span class="mi">8192</span>
+<span class="c1"># Independent CUDA terms overlap profitably for one large pose or a wide batch,</span>
+<span class="c1"># but stream setup and coordination cost more than they save for small poses.</span>
+<span class="n">_CUDA_PARALLEL_SCORE_MIN_COORD_ELEMENTS</span> <span class="o">=</span> <span class="mi">20</span> <span class="o">*</span> <span class="mi">1024</span>
+<span class="c1"># Backward has more stream-coordination overhead than inference. Keep eager</span>
+<span class="c1"># gradient scoring serial until the batch is large enough to amortize it.</span>
+<span class="n">_CUDA_PARALLEL_GRAD_SCORE_MIN_COORD_ELEMENTS</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">*</span> <span class="mi">1024</span>
 <span class="n">_CPU_SCORE_TERM_EXECUTORS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">ThreadPoolExecutor</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 <span class="n">_CPU_SCORE_TERM_EXECUTOR_LOCK</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
 <span class="n">_ScoreCallResult</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">"_ScoreCallResult"</span><span class="p">)</span>
@@ -463,18 +463,12 @@
         <span class="k">return</span> <span class="n">executor</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_cpu_score_term_worker_counts</span><span class="p">(</span>
-    <span class="n">n_terms</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""Return conservative default and large-forward CPU worker counts."""</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_cpu_score_term_worker_count</span><span class="p">(</span><span class="n">n_terms</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return the number of independent CPU score terms to run concurrently."""</span>
     <span class="k">if</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="s2">"cpu"</span><span class="p">:</span>
-        <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="mi">0</span>
     <span class="n">n_threads</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">get_num_threads</span><span class="p">()</span>
-    <span class="n">workers</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">_MAX_CPU_SCORE_TERM_WORKERS</span><span class="p">,</span> <span class="n">n_threads</span><span class="p">,</span> <span class="n">n_terms</span><span class="p">)</span>
-    <span class="n">forward_workers</span> <span class="o">=</span> <span class="n">workers</span>
-    <span class="k">if</span> <span class="n">n_threads</span> <span class="o">&gt;=</span> <span class="n">_CPU_WIDE_FORWARD_SCORE_MIN_THREADS</span><span class="p">:</span>
-        <span class="n">forward_workers</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">_MAX_CPU_FORWARD_SCORE_TERM_WORKERS</span><span class="p">,</span> <span class="n">n_threads</span><span class="p">,</span> <span class="n">n_terms</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">workers</span><span class="p">,</span> <span class="n">forward_workers</span>
+    <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="n">_MAX_CPU_SCORE_TERM_WORKERS</span><span class="p">,</span> <span class="n">n_threads</span><span class="p">,</span> <span class="n">n_terms</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_reset_cpu_score_term_executors_after_fork</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -883,14 +877,14 @@
 
 <div class="viewcode-block" id="ScoreFunction.render_whole_pose_scoring_module">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.ScoreFunction.render_whole_pose_scoring_module">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">render_whole_pose_scoring_module</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">cuda_graph</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">"""Create an object designed to evaluate the score of a set of Poses</span>
-<span class="sd">        repeatedly as the Poses change their conformation, e.g., as in</span>
-<span class="sd">        minimization. This object will derive from torch.nn.Module and</span>
-<span class="sd">        it will contain a set of objects rendered by the ScoreFunction's</span>
-<span class="sd">        terms that themselves are derived from torch.nn.Module. This</span>
-<span class="sd">        object's __call__ will return a tensor of weighted energies of</span>
-<span class="sd">        shape (n_poses,).</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">render_whole_pose_scoring_module</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">cuda_graph</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"WholePoseScoringModule"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Render a callable that repeatedly scores one fixed pose topology.</span>
+
+<span class="sd">        The returned callable owns the term-specific ``torch.nn.Module`` objects</span>
+<span class="sd">        for ``pose_stack``. Its default call returns weighted energies shaped</span>
+<span class="sd">        ``[n_poses]`` as coordinates change during inference or minimization.</span>
 
 <span class="sd">        Set ``cuda_graph`` to ``"forward"`` for repeated inference,</span>
 <span class="sd">        ``"forward_backward"`` for repeated scoring with coordinate gradients,</span>
@@ -913,14 +907,11 @@
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.ScoreFunction.render_block_pair_scoring_module">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">render_block_pair_scoring_module</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">interaction_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="p">):</span>
-<span class="w">        </span><span class="sd">"""Create an object designed to evaluate the score of a set of Poses</span>
-<span class="sd">        repeatedly as the Poses change their conformation, e.g., as in</span>
-<span class="sd">        minimization. This object will derive from torch.nn.Module and</span>
-<span class="sd">        it will contain a set of objects rendered by the ScoreFunction's</span>
-<span class="sd">        terms that themselves are derived from torch.nn.Module. This</span>
-<span class="sd">        object's __call__ will return a tensor of weighted energies of</span>
-<span class="sd">        shape (n_poses, max_n_blocks, max_n_blocks).</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"BlockPairScoringModule"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Render a callable that retains scores for every residue-block pair.</span>
+
+<span class="sd">        The default call returns weighted energies shaped</span>
+<span class="sd">        ``[n_poses, max_n_blocks, max_n_blocks]``.</span>
 
 <span class="sd">        Set ``interaction_only=True`` when only strictly off-diagonal block</span>
 <span class="sd">        pairs will be consumed. Terms whose block-pair scores are known to be</span>
@@ -952,10 +943,10 @@
 <span class="sd">            rotamer_set: Candidate conformers and their pose/block indexing.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            A callable that accepts rotamer coordinates and returns an</span>
-<span class="sd">            uncoalesced sparse COO tensor shaped</span>
-<span class="sd">            ``[n_poses, n_rotamers, n_rotamers]``. Call ``coalesce()`` before</span>
-<span class="sd">            reading its indices or values.</span>
+<span class="sd">            A callable that accepts rotamer coordinates and returns a sparse</span>
+<span class="sd">            COO tensor shaped ``[n_poses, n_rotamers, n_rotamers]``. Call</span>
+<span class="sd">            ``coalesce()`` before reading its indices or values; optimized CPU</span>
+<span class="sd">            results may already be coalesced.</span>
 <span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_work_initialization</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
         <span class="n">term_modules</span> <span class="o">=</span> <span class="p">[</span>
@@ -1147,16 +1138,27 @@
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">weights</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">term_modules</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_active_term_indices</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+            <span class="n">index</span>
+            <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">term</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">ZeroTermPoseScoringModule</span><span class="p">)</span>
+        <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_has_trainable_term_parameters</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span>
             <span class="n">parameter</span><span class="o">.</span><span class="n">requires_grad</span>
             <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span>
             <span class="k">for</span> <span class="n">parameter</span> <span class="ow">in</span> <span class="n">term</span><span class="o">.</span><span class="n">parameters</span><span class="p">()</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_term_workers</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_forward_workers</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">_cpu_score_term_worker_counts</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span><span class="p">),</span> <span class="n">weights</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_term_workers</span> <span class="o">=</span> <span class="n">_cpu_score_term_worker_count</span><span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span><span class="p">),</span> <span class="n">weights</span><span class="o">.</span><span class="n">device</span>
         <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cuda_term_streams</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">Stream</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">sum_terms</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">apply_weights</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">sum_terms</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">apply_weights</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">sum_terms</span> <span class="ow">and</span> <span class="n">apply_weights</span><span class="p">:</span>
             <span class="n">needs_grad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_grad_enabled</span><span class="p">()</span> <span class="ow">and</span> <span class="n">coords</span><span class="o">.</span><span class="n">requires_grad</span>
             <span class="k">if</span> <span class="n">needs_grad</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_cuda_graphed_autograd"</span><span class="p">):</span>
@@ -1175,17 +1177,26 @@
 
         <span class="k">return</span> <span class="n">summed</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">unweighted_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">unweighted_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="n">needs_grad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_grad_enabled</span><span class="p">()</span> <span class="ow">and</span> <span class="n">coords</span><span class="o">.</span><span class="n">requires_grad</span>
+        <span class="n">parallel_min_elements</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">_CUDA_PARALLEL_GRAD_SCORE_MIN_COORD_ELEMENTS</span>
+            <span class="k">if</span> <span class="n">needs_grad</span>
+            <span class="k">else</span> <span class="n">_CUDA_PARALLEL_SCORE_MIN_COORD_ELEMENTS</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"cuda"</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">is_grad_enabled</span><span class="p">()</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_has_trainable_term_parameters</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_active_term_indices</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span>
+            <span class="ow">and</span> <span class="n">coords</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="n">parallel_min_elements</span>
+        <span class="p">):</span>
+            <span class="n">cuda_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parallel_cuda_scores</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">needs_grad</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">cuda_scores</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">cuda_scores</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
         <span class="n">cpu_workers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_term_workers</span>
         <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_grad_enabled</span><span class="p">()</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_has_trainable_term_parameters</span><span class="p">:</span>
             <span class="n">cpu_workers</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">if</span> <span class="p">(</span>
-            <span class="n">cpu_workers</span> <span class="o">&gt;=</span> <span class="mi">2</span>
-            <span class="ow">and</span> <span class="ow">not</span> <span class="n">needs_grad</span>
-            <span class="ow">and</span> <span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">_CPU_WIDE_FORWARD_SCORE_MIN_POSES</span>
-        <span class="p">):</span>
-            <span class="n">cpu_workers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_forward_workers</span>
         <span class="k">if</span> <span class="n">cpu_workers</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">term</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span> <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
@@ -1214,9 +1225,59 @@
         <span class="p">]</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span> <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">futures</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parallel_cuda_scores</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">needs_grad</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Run independent large-workload score terms on separate streams."""</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cuda_term_streams</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Creating side streams during an unrelated user capture is unsafe.</span>
+            <span class="c1"># Our graph wrapper warms this path first, so its streams already</span>
+            <span class="c1"># exist when capture begins.</span>
+            <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_current_stream_capturing</span><span class="p">():</span>
+                    <span class="k">return</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cuda_term_streams</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">Stream</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_active_term_indices</span>
+            <span class="p">)</span>
+
+        <span class="n">current</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">current_stream</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">scores</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span><span class="p">)</span>
+        <span class="c1"># Distinct zero-copy views give every term a caller-stream autograd</span>
+        <span class="c1"># node, synchronizing returned gradients before leaf accumulation.</span>
+        <span class="n">term_coords</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">view_as</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_active_term_indices</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">needs_grad</span>
+            <span class="k">else</span> <span class="p">(</span><span class="n">coords</span><span class="p">,)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_active_term_indices</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">term</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">ZeroTermPoseScoringModule</span><span class="p">):</span>
+                <span class="n">scores</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">term</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">stream</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">term_input</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cuda_term_streams</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_active_term_indices</span><span class="p">,</span> <span class="n">term_coords</span>
+        <span class="p">):</span>
+            <span class="n">stream</span><span class="o">.</span><span class="n">wait_stream</span><span class="p">(</span><span class="n">current</span><span class="p">)</span>
+            <span class="n">term_input</span><span class="o">.</span><span class="n">record_stream</span><span class="p">(</span><span class="n">stream</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">stream</span><span class="p">(</span><span class="n">stream</span><span class="p">):</span>
+                <span class="n">scores</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span><span class="p">[</span><span class="n">index</span><span class="p">](</span><span class="n">term_input</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">stream</span><span class="p">,</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cuda_term_streams</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_active_term_indices</span><span class="p">):</span>
+            <span class="n">current</span><span class="o">.</span><span class="n">wait_stream</span><span class="p">(</span><span class="n">stream</span><span class="p">)</span>
+            <span class="n">score</span> <span class="o">=</span> <span class="n">scores</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="n">score</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">score</span><span class="o">.</span><span class="n">record_stream</span><span class="p">(</span><span class="n">current</span><span class="p">)</span>
+
+        <span class="n">complete_scores</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">score</span> <span class="ow">in</span> <span class="n">scores</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">score</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">complete_scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">complete_scores</span><span class="p">)</span>
+
 <div class="viewcode-block" id="WholePoseScoringModule.enable_cuda_graphs">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.WholePoseScoringModule.enable_cuda_graphs">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">enable_cuda_graphs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">example_coords</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"both"</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">enable_cuda_graphs</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">example_coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"both"</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"WholePoseScoringModule"</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Capture the default weighted score for a fixed coordinate shape.</span>
 
 <span class="sd">        The returned scorer accepts new coordinate values with the same shape,</span>
@@ -1235,12 +1296,9 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"unsupported CUDA graph mode: </span><span class="si">{</span><span class="n">mode</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">mode</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"forward"</span><span class="p">,</span> <span class="s2">"both"</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_cuda_graphed_forward"</span><span class="p">):</span>
-            <span class="n">graph_module</span> <span class="o">=</span> <span class="n">_DefaultWholePoseScoringModule</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span>
-            <span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_cuda_graphed_forward</span> <span class="o">=</span> <span class="n">_InferenceCUDAGraph</span><span class="p">(</span>
-                <span class="n">graph_module</span><span class="p">,</span> <span class="n">example_coords</span>
-            <span class="p">)</span>
+            <span class="c1"># Capture this scorer rather than the serial graph module so large</span>
+            <span class="c1"># inference workloads retain independent term-stream overlap.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cuda_graphed_forward</span> <span class="o">=</span> <span class="n">_InferenceCUDAGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">example_coords</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">mode</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"forward_backward"</span><span class="p">,</span> <span class="s2">"both"</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span> <span class="s2">"_cuda_graphed_autograd"</span>
@@ -1299,7 +1357,22 @@
             <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">graph</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="n">stream</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_output</span> <span class="o">=</span> <span class="n">module</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_coords</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">coords</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coords</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"CUDA graph coordinates must have shape "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_coords</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="si">}</span><span class="s2">; got </span><span class="si">{</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">coords</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coords</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">"CUDA graph coordinates must have dtype "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_coords</span><span class="o">.</span><span class="n">dtype</span><span class="si">}</span><span class="s2">; got </span><span class="si">{</span><span class="n">coords</span><span class="o">.</span><span class="n">dtype</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">coords</span><span class="o">.</span><span class="n">device</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coords</span><span class="o">.</span><span class="n">device</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"CUDA graph coordinates must be on "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_coords</span><span class="o">.</span><span class="n">device</span><span class="si">}</span><span class="s2">; got </span><span class="si">{</span><span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_coords</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">replay</span><span class="p">()</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output</span>
@@ -1329,21 +1402,15 @@
             <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span>
             <span class="k">for</span> <span class="n">parameter</span> <span class="ow">in</span> <span class="n">term</span><span class="o">.</span><span class="n">parameters</span><span class="p">()</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_term_workers</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_forward_workers</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">_cpu_score_term_worker_counts</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span><span class="p">),</span> <span class="n">weights</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_term_workers</span> <span class="o">=</span> <span class="n">_cpu_score_term_worker_count</span><span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span><span class="p">),</span> <span class="n">weights</span><span class="o">.</span><span class="n">device</span>
         <span class="p">)</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_cpu_workers_for_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Return the worker count selected for this pose batch."""</span>
-        <span class="k">if</span> <span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">_CPU_WIDE_FORWARD_SCORE_MIN_POSES</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_forward_workers</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_term_workers</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_parallel_forward_scores</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Evaluate active CPU terms concurrently for a forward-only call."""</span>
-        <span class="n">cpu_workers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_workers_for_coords</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+        <span class="n">cpu_workers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_term_workers</span>
         <span class="n">differentiable</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_grad_enabled</span><span class="p">()</span> <span class="ow">and</span> <span class="p">(</span>
             <span class="n">coords</span><span class="o">.</span><span class="n">requires_grad</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_has_trainable_term_parameters</span>
         <span class="p">)</span>
@@ -1364,7 +1431,12 @@
         <span class="p">]</span>
         <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span> <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">futures</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">sum_terms</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">apply_weights</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">sum_terms</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">apply_weights</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_grad_enabled</span><span class="p">()</span> <span class="ow">and</span> <span class="n">coords</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">:</span>
             <span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">sum_terms</span> <span class="ow">and</span> <span class="n">apply_weights</span><span class="p">:</span>
@@ -1473,7 +1545,7 @@
             <span class="n">weights</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">term_modules</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_term_workers</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_cpu_score_term_worker_counts</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_term_workers</span> <span class="o">=</span> <span class="n">_cpu_score_term_worker_count</span><span class="p">(</span>
             <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span><span class="p">),</span> <span class="n">weights</span><span class="o">.</span><span class="n">device</span>
         <span class="p">)</span>
 

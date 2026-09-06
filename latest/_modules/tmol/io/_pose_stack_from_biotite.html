@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../../../_static/documentation_options.js?v=0ec583c6"></script>
+    <script src="../../../_static/documentation_options.js?v=aabd07df"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -54,7 +54,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.54" />
+  <meta name="docsearch:version" content="0.1.55" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -554,7 +554,17 @@
 <a class="viewcode-back" href="../../../api/io.html#tmol.io.PreparedAtom37PoseBuilder">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">PreparedAtom37PoseBuilder</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Bind immutable Biotite topology for repeated Atom37 pose construction."""</span>
+<span class="w">    </span><span class="sd">"""Bind immutable Biotite topology for repeated Atom37 pose construction.</span>
+
+<span class="sd">    Calls accept float32 coordinates shaped ``[n_poses, n_tokens, 37, 3]`` on</span>
+<span class="sd">    the context's device. The first call for a batch size prepares its fixed</span>
+<span class="sd">    pose topology; up to four recently used batch sizes are cached. Inputs with</span>
+<span class="sd">    coordinate-dependent atom presence or ambiguous histidine hydrogens use the</span>
+<span class="sd">    normal uncached construction path.</span>
+
+<span class="sd">    The builder owns a mutable topology cache and is not safe for concurrent</span>
+<span class="sd">    calls. Use one builder per calling thread when pose construction overlaps.</span>
+<span class="sd">    """</span>
 
     <span class="n">context</span><span class="p">:</span> <span class="n">PoseBuildContext</span>
     <span class="n">canonical_template</span><span class="p">:</span> <span class="n">CanonicalForm</span>
@@ -575,7 +585,18 @@
         <span class="o">*</span><span class="p">,</span>
         <span class="n">opt_h</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Build a differentiable pose batch; optimize hydrogens by default."""</span>
+<span class="w">        </span><span class="sd">"""Build a differentiable pose batch.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            atom37_coords: Float32 coordinates shaped</span>
+<span class="sd">                ``[n_poses, n_tokens, 37, 3]`` on the context's device.</span>
+<span class="sd">            opt_h: Optimize hydrogen positions after construction. Enabled by</span>
+<span class="sd">                default to match :func:`pose_stack_from_atom37_and_biotite`.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A pose whose coordinates remain differentiable with respect to</span>
+<span class="sd">            ``atom37_coords``.</span>
+<span class="sd">        """</span>
         <span class="n">canonical_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_canonical_coords</span><span class="p">(</span><span class="n">atom37_coords</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_topology_cache_safe</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">_pose_stack_from_canonical_and_context</span><span class="p">(</span>

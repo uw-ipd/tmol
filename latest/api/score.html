@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../_static/documentation_options.js?v=0ec583c6"></script>
+    <script src="../_static/documentation_options.js?v=aabd07df"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -57,7 +57,7 @@
     <link rel="prev" title="Relax" href="relax.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.54" />
+  <meta name="docsearch:version" content="0.1.55" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -640,14 +640,10 @@ their options, nor the packed block types have changed.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="tmol.score.ScoreFunction.render_block_pair_scoring_module">
-<span class="sig-name descname"><span class="pre">render_block_pair_scoring_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose._pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">interaction_only</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#ScoreFunction.render_block_pair_scoring_module"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ScoreFunction.render_block_pair_scoring_module" title="Link to this definition">#</a></dt>
-<dd><p>Create an object designed to evaluate the score of a set of Poses
-repeatedly as the Poses change their conformation, e.g., as in
-minimization. This object will derive from torch.nn.Module and
-it will contain a set of objects rendered by the ScoreFunction’s
-terms that themselves are derived from torch.nn.Module. This
-object’s __call__ will return a tensor of weighted energies of
-shape (n_poses, max_n_blocks, max_n_blocks).</p>
+<span class="sig-name descname"><span class="pre">render_block_pair_scoring_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose._pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">interaction_only</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#tmol.score.BlockPairScoringModule" title="tmol.score._score_function.BlockPairScoringModule"><span class="pre">BlockPairScoringModule</span></a></span></span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#ScoreFunction.render_block_pair_scoring_module"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ScoreFunction.render_block_pair_scoring_module" title="Link to this definition">#</a></dt>
+<dd><p>Render a callable that retains scores for every residue-block pair.</p>
+<p>The default call returns weighted energies shaped
+<code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">max_n_blocks,</span> <span class="pre">max_n_blocks]</span></code>.</p>
 <p>Set <code class="docutils literal notranslate"><span class="pre">interaction_only=True</span></code> when only strictly off-diagonal block
 pairs will be consumed. Terms whose block-pair scores are known to be
 diagonal-only are then omitted. Diagonal entries in the returned
@@ -667,24 +663,21 @@ rotamers.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A callable that accepts rotamer coordinates and returns an
-uncoalesced sparse COO tensor shaped
-<code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">n_rotamers,</span> <span class="pre">n_rotamers]</span></code>. Call <code class="docutils literal notranslate"><span class="pre">coalesce()</span></code> before
-reading its indices or values.</p>
+<dd class="field-even"><p>A callable that accepts rotamer coordinates and returns a sparse
+COO tensor shaped <code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">n_rotamers,</span> <span class="pre">n_rotamers]</span></code>. Call
+<code class="docutils literal notranslate"><span class="pre">coalesce()</span></code> before reading its indices or values; optimized CPU
+results may already be coalesced.</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="tmol.score.ScoreFunction.render_whole_pose_scoring_module">
-<span class="sig-name descname"><span class="pre">render_whole_pose_scoring_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose._pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">cuda_graph</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#ScoreFunction.render_whole_pose_scoring_module"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ScoreFunction.render_whole_pose_scoring_module" title="Link to this definition">#</a></dt>
-<dd><p>Create an object designed to evaluate the score of a set of Poses
-repeatedly as the Poses change their conformation, e.g., as in
-minimization. This object will derive from torch.nn.Module and
-it will contain a set of objects rendered by the ScoreFunction’s
-terms that themselves are derived from torch.nn.Module. This
-object’s __call__ will return a tensor of weighted energies of
-shape (n_poses,).</p>
+<span class="sig-name descname"><span class="pre">render_whole_pose_scoring_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose._pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">cuda_graph</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#tmol.score.WholePoseScoringModule" title="tmol.score._score_function.WholePoseScoringModule"><span class="pre">WholePoseScoringModule</span></a></span></span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#ScoreFunction.render_whole_pose_scoring_module"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ScoreFunction.render_whole_pose_scoring_module" title="Link to this definition">#</a></dt>
+<dd><p>Render a callable that repeatedly scores one fixed pose topology.</p>
+<p>The returned callable owns the term-specific <code class="docutils literal notranslate"><span class="pre">torch.nn.Module</span></code> objects
+for <code class="docutils literal notranslate"><span class="pre">pose_stack</span></code>. Its default call returns weighted energies shaped
+<code class="docutils literal notranslate"><span class="pre">[n_poses]</span></code> as coordinates change during inference or minimization.</p>
 <p>Set <code class="docutils literal notranslate"><span class="pre">cuda_graph</span></code> to <code class="docutils literal notranslate"><span class="pre">&quot;forward&quot;</span></code> for repeated inference,
 <code class="docutils literal notranslate"><span class="pre">&quot;forward_backward&quot;</span></code> for repeated scoring with coordinate gradients,
 or <code class="docutils literal notranslate"><span class="pre">True</span></code> to capture both paths. Graph capture requires CUDA and a
@@ -758,7 +751,7 @@ requested weight is nonzero.</p>
 <p>Rendered energy modules that score complete poses.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="tmol.score.WholePoseScoringModule.enable_cuda_graphs">
-<span class="sig-name descname"><span class="pre">enable_cuda_graphs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">example_coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'both'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#WholePoseScoringModule.enable_cuda_graphs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.WholePoseScoringModule.enable_cuda_graphs" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">enable_cuda_graphs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">example_coords</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.14/tensors.html#torch.Tensor" title="(in PyTorch v2.14)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'both'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#tmol.score.WholePoseScoringModule" title="tmol.score._score_function.WholePoseScoringModule"><span class="pre">WholePoseScoringModule</span></a></span></span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#WholePoseScoringModule.enable_cuda_graphs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.WholePoseScoringModule.enable_cuda_graphs" title="Link to this definition">#</a></dt>
 <dd><p>Capture the default weighted score for a fixed coordinate shape.</p>
 <p>The returned scorer accepts new coordinate values with the same shape,
 dtype, and device and retains forward and backward support. Calls that
