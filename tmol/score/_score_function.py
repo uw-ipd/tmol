@@ -34,12 +34,6 @@ SFXN_FORMAT_VERSION: str = "1.0"
 _CUDA_ROTAMER_LAYOUT_DEDUP_MIN_BYTES = 16 * 1024 * 1024
 _CPU_ROTAMER_SORTED_LAYOUT_MIN_NNZ = 4096
 _MAX_CPU_SCORE_TERM_WORKERS = 4
-# Large multi-pose, forward-only scoring benefits from exposing more
-# independent terms. Differentiable scoring stays at four workers because its
-# concurrent backward graphs otherwise compete for the same intra-op threads.
-_MAX_CPU_FORWARD_SCORE_TERM_WORKERS = 8
-_CPU_WIDE_FORWARD_SCORE_MIN_POSES = 20
-_CPU_WIDE_FORWARD_SCORE_MIN_THREADS = 32
 _CPU_PARALLEL_SCORE_BACKWARD_MIN_COORD_ELEMENTS = 8192
 # Independent CUDA terms overlap profitably for one large pose or a wide batch,
 # but stream setup and coordination cost more than they save for small poses.
@@ -61,18 +55,12 @@ def _cpu_score_term_executor(n_workers: int) -> ThreadPoolExecutor:
         return executor
 
 
-def _cpu_score_term_worker_counts(
-    n_terms: int, device: torch.device
-) -> tuple[int, int]:
-    """Return conservative default and large-forward CPU worker counts."""
+def _cpu_score_term_worker_count(n_terms: int, device: torch.device) -> int:
+    """Return the number of independent CPU score terms to run concurrently."""
     if device.type != "cpu":
-        return 0, 0
+        return 0
     n_threads = torch.get_num_threads()
-    workers = min(_MAX_CPU_SCORE_TERM_WORKERS, n_threads, n_terms)
-    forward_workers = workers
-    if n_threads >= _CPU_WIDE_FORWARD_SCORE_MIN_THREADS:
-        forward_workers = min(_MAX_CPU_FORWARD_SCORE_TERM_WORKERS, n_threads, n_terms)
-    return workers, forward_workers
+    return min(_MAX_CPU_SCORE_TERM_WORKERS, n_threads, n_terms)
 
 
 def _reset_cpu_score_term_executors_after_fork() -> None:
@@ -696,8 +684,8 @@ class WholePoseScoringModule:
             for term in self.term_modules
             for parameter in term.parameters()
         )
-        self._cpu_term_workers, self._cpu_forward_workers = (
-            _cpu_score_term_worker_counts(len(self.term_modules), weights.device)
+        self._cpu_term_workers = _cpu_score_term_worker_count(
+            len(self.term_modules), weights.device
         )
         self._cuda_term_streams: tuple[torch.cuda.Stream, ...] | None = None
 
@@ -741,12 +729,6 @@ class WholePoseScoringModule:
         cpu_workers = self._cpu_term_workers
         if torch.is_grad_enabled() and self._has_trainable_term_parameters:
             cpu_workers = 0
-        if (
-            cpu_workers >= 2
-            and not needs_grad
-            and coords.shape[0] >= _CPU_WIDE_FORWARD_SCORE_MIN_POSES
-        ):
-            cpu_workers = self._cpu_forward_workers
         if cpu_workers < 2:
             return torch.cat([term(coords) for term in self.term_modules], dim=0)
 
@@ -937,21 +919,15 @@ class BlockPairScoringModule:
             for term in self.term_modules
             for parameter in term.parameters()
         )
-        self._cpu_term_workers, self._cpu_forward_workers = (
-            _cpu_score_term_worker_counts(len(self.term_modules), weights.device)
+        self._cpu_term_workers = _cpu_score_term_worker_count(
+            len(self.term_modules), weights.device
         )
-
-    def _cpu_workers_for_coords(self, coords: torch.Tensor) -> int:
-        """Return the worker count selected for this pose batch."""
-        if coords.shape[0] >= _CPU_WIDE_FORWARD_SCORE_MIN_POSES:
-            return self._cpu_forward_workers
-        return self._cpu_term_workers
 
     def _parallel_forward_scores(
         self, coords: torch.Tensor
     ) -> tuple[torch.Tensor, ...] | None:
         """Evaluate active CPU terms concurrently for a forward-only call."""
-        cpu_workers = self._cpu_workers_for_coords(coords)
+        cpu_workers = self._cpu_term_workers
         differentiable = torch.is_grad_enabled() and (
             coords.requires_grad or self._has_trainable_term_parameters
         )
@@ -1080,7 +1056,7 @@ class RotamerScoringModule:
             weights.view(-1, 1, 1, 1), requires_grad=False
         )
         self.term_modules = tuple(term_modules)
-        self._cpu_term_workers, _ = _cpu_score_term_worker_counts(
+        self._cpu_term_workers = _cpu_score_term_worker_count(
             len(self.term_modules), weights.device
         )
 

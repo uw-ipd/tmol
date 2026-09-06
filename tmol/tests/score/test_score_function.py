@@ -273,31 +273,6 @@ def test_cpu_whole_pose_terms_run_concurrently_and_preserve_modes(monkeypatch):
     )
 
 
-def test_large_cpu_forward_uses_wider_term_pool(monkeypatch):
-    class SumTerm(torch.nn.Module):
-        def forward(self, coords):
-            return coords.sum().reshape(1, 1)
-
-    worker_counts = []
-    executor_for_workers = score_function_module._cpu_score_term_executor
-
-    def recording_executor(n_workers):
-        worker_counts.append(n_workers)
-        return executor_for_workers(n_workers)
-
-    monkeypatch.setattr(torch, "get_num_threads", lambda: 32)
-    monkeypatch.setattr(
-        score_function_module, "_cpu_score_term_executor", recording_executor
-    )
-    scorer = WholePoseScoringModule(torch.ones(8), [SumTerm() for _ in range(8)])
-    coords = torch.ones((20, 1, 3))
-
-    scorer(coords)
-    scorer(coords.requires_grad_()).sum().backward()
-
-    assert worker_counts == [8, 4]
-
-
 def test_cpu_whole_pose_preserves_trainable_term_gradients(monkeypatch):
     class TrainableTerm(torch.nn.Module):
         def __init__(self, scale):
@@ -606,7 +581,6 @@ def test_block_pair_scoring_matches_whole_pose(ubq_pdb, default_database, torch_
             parallel_score = block_scorer(pose_stack.coords)
 
         block_scorer._cpu_term_workers = 0
-        block_scorer._cpu_forward_workers = 0
         with torch.no_grad():
             serial_score = block_scorer(pose_stack.coords)
 
