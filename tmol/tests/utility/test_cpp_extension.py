@@ -37,3 +37,14 @@ def test_custom_extension_flags_preserve_release_optimization():
 
     assert kwargs["extra_cflags"][:2] == ["-O3", "-DCUSTOM_CXX"]
     assert kwargs["extra_cuda_cflags"][:2] == ["-O3", "-DCUSTOM_CUDA"]
+
+
+def test_custom_extension_include_paths_are_preserved():
+    kwargs = _cpp_extension._augment_kwargs(
+        "test_extension",
+        ["test.cpp"],
+        extra_include_paths=["/custom/include"],
+        with_cuda=False,
+    )
+
+    assert kwargs["extra_include_paths"][0] == "/custom/include"

@@ -827,28 +827,31 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         store_calculated_energies);
   });
 
-  ///////////////////////////////////////////////////////////////////////
-
-  // Three steps
-  // 0: setup
-  // 1: launch a kernel to find a small bounding sphere surrounding the blocks
-  // 2: launch a kernel to look for spheres that are within striking distance of
-  // each other
-  // 3: launch a kernel to evaluate lj/lk between pairs of blocks
-  // within striking distance
-
-  // 0
-  // TO DO: let DeviceDispatch hold a cuda stream (??)
-  // at::cuda::CUDAStream wrapped_stream = at::cuda::getDefaultCUDAStream();
-  // mgpu::standard_context_t context(wrapped_stream.stream());
-
-  // 3
-  if (output_block_pair_energies || !compute_derivs) {
-    DeviceDispatch<D>::template foreach_pose_workgroup<launch_t>(
-        mgr, n_poses, max_n_upper_triangle_inds, eval_energies_by_block);
-  } else {
-    DeviceDispatch<D>::template foreach_pose_workgroup<launch_t>(
-        mgr, n_poses, max_n_upper_triangle_inds, eval_energies);
+  // Score neighboring block pairs. Sparse large CUDA poses use a
+  // device-resident compact list to avoid launching dead scoring CTAs.
+#ifdef __NVCC__
+  if (!output_block_pair_energies
+      && score::common::sphere_overlap::should_compact_block_neighbors(
+          n_poses, max_n_blocks, compute_derivs)) {
+    if (compute_derivs) {
+      score::common::sphere_overlap::
+          launch_compact_block_neighbors<DeviceDispatch, D, launch_t, Int>(
+              mgr, scratch_rot_neighbors, eval_energies);
+    } else {
+      score::common::sphere_overlap::
+          launch_compact_block_neighbors<DeviceDispatch, D, launch_t, Int>(
+              mgr, scratch_rot_neighbors, eval_energies_by_block);
+    }
+  } else
+#endif
+  {
+    if (output_block_pair_energies || !compute_derivs) {
+      DeviceDispatch<D>::template foreach_pose_workgroup<launch_t>(
+          mgr, n_poses, max_n_upper_triangle_inds, eval_energies_by_block);
+    } else {
+      DeviceDispatch<D>::template foreach_pose_workgroup<launch_t>(
+          mgr, n_poses, max_n_upper_triangle_inds, eval_energies);
+    }
   }
 
   return {output_t, dV_dcoords_t, scratch_rot_neighbors_t};
@@ -1419,19 +1422,7 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         store_calculated_energies);
   });
 
-  ///////////////////////////////////////////////////////////////////////
-
-  // Two steps
-  // 1: setup
-  // 2 launch a kernel to evaluate lj/lk between pairs of blocks
-  // within striking distance
-
-  // 1
-  // TO DO: let DeviceDispatch hold a cuda stream (??)
-  // at::cuda::CUDAStream wrapped_stream = at::cuda::getDefaultCUDAStream();
-  // mgpu::standard_context_t context(wrapped_stream.stream());
-
-  // 2
+  // Evaluate the prepared rotamer-pair dispatch list.
   if (compute_derivs) {
     DeviceDispatch<D>::template foreach_workgroup<launch_t>(
         mgr, dispatch_indices.size(1), eval_energies_by_block);

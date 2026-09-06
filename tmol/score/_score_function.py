@@ -34,13 +34,13 @@ SFXN_FORMAT_VERSION: str = "1.0"
 _CUDA_ROTAMER_LAYOUT_DEDUP_MIN_BYTES = 16 * 1024 * 1024
 _CPU_ROTAMER_SORTED_LAYOUT_MIN_NNZ = 4096
 _MAX_CPU_SCORE_TERM_WORKERS = 4
-# Large multi-pose, forward-only scoring benefits from exposing more
-# independent terms. Differentiable scoring stays at four workers because its
-# concurrent backward graphs otherwise compete for the same intra-op threads.
-_MAX_CPU_FORWARD_SCORE_TERM_WORKERS = 8
-_CPU_WIDE_FORWARD_SCORE_MIN_POSES = 20
-_CPU_WIDE_FORWARD_SCORE_MIN_THREADS = 32
 _CPU_PARALLEL_SCORE_BACKWARD_MIN_COORD_ELEMENTS = 8192
+# Independent CUDA terms overlap profitably for one large pose or a wide batch,
+# but stream setup and coordination cost more than they save for small poses.
+_CUDA_PARALLEL_SCORE_MIN_COORD_ELEMENTS = 20 * 1024
+# Backward has more stream-coordination overhead than inference. Keep eager
+# gradient scoring serial until the batch is large enough to amortize it.
+_CUDA_PARALLEL_GRAD_SCORE_MIN_COORD_ELEMENTS = 100 * 1024
 _CPU_SCORE_TERM_EXECUTORS: dict[int, ThreadPoolExecutor] = {}
 _CPU_SCORE_TERM_EXECUTOR_LOCK = threading.Lock()
 _ScoreCallResult = TypeVar("_ScoreCallResult")
@@ -58,18 +58,12 @@ def _cpu_score_term_executor(n_workers: int) -> ThreadPoolExecutor:
         return executor
 
 
-def _cpu_score_term_worker_counts(
-    n_terms: int, device: torch.device
-) -> tuple[int, int]:
-    """Return conservative default and large-forward CPU worker counts."""
+def _cpu_score_term_worker_count(n_terms: int, device: torch.device) -> int:
+    """Return the number of independent CPU score terms to run concurrently."""
     if device.type != "cpu":
-        return 0, 0
+        return 0
     n_threads = torch.get_num_threads()
-    workers = min(_MAX_CPU_SCORE_TERM_WORKERS, n_threads, n_terms)
-    forward_workers = workers
-    if n_threads >= _CPU_WIDE_FORWARD_SCORE_MIN_THREADS:
-        forward_workers = min(_MAX_CPU_FORWARD_SCORE_TERM_WORKERS, n_threads, n_terms)
-    return workers, forward_workers
+    return min(_MAX_CPU_SCORE_TERM_WORKERS, n_threads, n_terms)
 
 
 def _reset_cpu_score_term_executors_after_fork() -> None:
@@ -447,14 +441,14 @@ class ScoreFunction:
 
         return self._multi_body_terms
 
-    def render_whole_pose_scoring_module(self, pose_stack: PoseStack, cuda_graph=False):
-        """Create an object designed to evaluate the score of a set of Poses
-        repeatedly as the Poses change their conformation, e.g., as in
-        minimization. This object will derive from torch.nn.Module and
-        it will contain a set of objects rendered by the ScoreFunction's
-        terms that themselves are derived from torch.nn.Module. This
-        object's __call__ will return a tensor of weighted energies of
-        shape (n_poses,).
+    def render_whole_pose_scoring_module(
+        self, pose_stack: PoseStack, cuda_graph: bool | str = False
+    ) -> "WholePoseScoringModule":
+        """Render a callable that repeatedly scores one fixed pose topology.
+
+        The returned callable owns the term-specific ``torch.nn.Module`` objects
+        for ``pose_stack``. Its default call returns weighted energies shaped
+        ``[n_poses]`` as coordinates change during inference or minimization.
 
         Set ``cuda_graph`` to ``"forward"`` for repeated inference,
         ``"forward_backward"`` for repeated scoring with coordinate gradients,
@@ -474,14 +468,11 @@ class ScoreFunction:
 
     def render_block_pair_scoring_module(
         self, pose_stack: PoseStack, *, interaction_only: bool = False
-    ):
-        """Create an object designed to evaluate the score of a set of Poses
-        repeatedly as the Poses change their conformation, e.g., as in
-        minimization. This object will derive from torch.nn.Module and
-        it will contain a set of objects rendered by the ScoreFunction's
-        terms that themselves are derived from torch.nn.Module. This
-        object's __call__ will return a tensor of weighted energies of
-        shape (n_poses, max_n_blocks, max_n_blocks).
+    ) -> "BlockPairScoringModule":
+        """Render a callable that retains scores for every residue-block pair.
+
+        The default call returns weighted energies shaped
+        ``[n_poses, max_n_blocks, max_n_blocks]``.
 
         Set ``interaction_only=True`` when only strictly off-diagonal block
         pairs will be consumed. Terms whose block-pair scores are known to be
@@ -510,10 +501,10 @@ class ScoreFunction:
             rotamer_set: Candidate conformers and their pose/block indexing.
 
         Returns:
-            A callable that accepts rotamer coordinates and returns an
-            uncoalesced sparse COO tensor shaped
-            ``[n_poses, n_rotamers, n_rotamers]``. Call ``coalesce()`` before
-            reading its indices or values.
+            A callable that accepts rotamer coordinates and returns a sparse
+            COO tensor shaped ``[n_poses, n_rotamers, n_rotamers]``. Call
+            ``coalesce()`` before reading its indices or values; optimized CPU
+            results may already be coalesced.
         """
         self.pre_work_initialization(pose_stack)
         term_modules = [
@@ -686,16 +677,27 @@ class WholePoseScoringModule:
     ):
         self.weights = torch.nn.Parameter(weights.unsqueeze(1), requires_grad=False)
         self.term_modules = tuple(term_modules)
+        self._active_term_indices = tuple(
+            index
+            for index, term in enumerate(self.term_modules)
+            if not isinstance(term, ZeroTermPoseScoringModule)
+        )
         self._has_trainable_term_parameters = any(
             parameter.requires_grad
             for term in self.term_modules
             for parameter in term.parameters()
         )
-        self._cpu_term_workers, self._cpu_forward_workers = (
-            _cpu_score_term_worker_counts(len(self.term_modules), weights.device)
+        self._cpu_term_workers = _cpu_score_term_worker_count(
+            len(self.term_modules), weights.device
         )
+        self._cuda_term_streams: tuple[torch.cuda.Stream, ...] | None = None
 
-    def __call__(self, coords, sum_terms=True, apply_weights=True):
+    def __call__(
+        self,
+        coords: torch.Tensor,
+        sum_terms: bool = True,
+        apply_weights: bool = True,
+    ) -> torch.Tensor:
         if sum_terms and apply_weights:
             needs_grad = torch.is_grad_enabled() and coords.requires_grad
             if needs_grad and hasattr(self, "_cuda_graphed_autograd"):
@@ -714,17 +716,26 @@ class WholePoseScoringModule:
 
         return summed
 
-    def unweighted_scores(self, coords):
+    def unweighted_scores(self, coords: torch.Tensor) -> torch.Tensor:
         needs_grad = torch.is_grad_enabled() and coords.requires_grad
+        parallel_min_elements = (
+            _CUDA_PARALLEL_GRAD_SCORE_MIN_COORD_ELEMENTS
+            if needs_grad
+            else _CUDA_PARALLEL_SCORE_MIN_COORD_ELEMENTS
+        )
+        if (
+            coords.device.type == "cuda"
+            and not (torch.is_grad_enabled() and self._has_trainable_term_parameters)
+            and len(self._active_term_indices) >= 2
+            and coords.numel() >= parallel_min_elements
+        ):
+            cuda_scores = self._parallel_cuda_scores(coords, needs_grad)
+            if cuda_scores is not None:
+                return torch.cat(cuda_scores, dim=0)
+
         cpu_workers = self._cpu_term_workers
         if torch.is_grad_enabled() and self._has_trainable_term_parameters:
             cpu_workers = 0
-        if (
-            cpu_workers >= 2
-            and not needs_grad
-            and coords.shape[0] >= _CPU_WIDE_FORWARD_SCORE_MIN_POSES
-        ):
-            cpu_workers = self._cpu_forward_workers
         if cpu_workers < 2:
             return torch.cat([term(coords) for term in self.term_modules], dim=0)
 
@@ -753,7 +764,57 @@ class WholePoseScoringModule:
         ]
         return torch.cat([future.result() for future in futures], dim=0)
 
-    def enable_cuda_graphs(self, example_coords, mode="both"):
+    def _parallel_cuda_scores(
+        self, coords: torch.Tensor, needs_grad: bool
+    ) -> tuple[torch.Tensor, ...] | None:
+        """Run independent large-workload score terms on separate streams."""
+        if self._cuda_term_streams is None:
+            # Creating side streams during an unrelated user capture is unsafe.
+            # Our graph wrapper warms this path first, so its streams already
+            # exist when capture begins.
+            with torch.cuda.device(coords.device):
+                if torch.cuda.is_current_stream_capturing():
+                    return None
+            self._cuda_term_streams = tuple(
+                torch.cuda.Stream(device=coords.device)
+                for _ in self._active_term_indices
+            )
+
+        current = torch.cuda.current_stream(coords.device)
+        scores: list[torch.Tensor | None] = [None] * len(self.term_modules)
+        # Distinct zero-copy views give every term a caller-stream autograd
+        # node, synchronizing returned gradients before leaf accumulation.
+        term_coords = (
+            tuple(coords.view_as(coords) for _ in self._active_term_indices)
+            if needs_grad
+            else (coords,) * len(self._active_term_indices)
+        )
+        for index, term in enumerate(self.term_modules):
+            if isinstance(term, ZeroTermPoseScoringModule):
+                scores[index] = term(coords)
+        for stream, index, term_input in zip(
+            self._cuda_term_streams, self._active_term_indices, term_coords
+        ):
+            stream.wait_stream(current)
+            term_input.record_stream(stream)
+            with torch.cuda.stream(stream):
+                scores[index] = self.term_modules[index](term_input)
+
+        for stream, index in zip(self._cuda_term_streams, self._active_term_indices):
+            current.wait_stream(stream)
+            score = scores[index]
+            assert score is not None
+            score.record_stream(current)
+
+        complete_scores = []
+        for score in scores:
+            assert score is not None
+            complete_scores.append(score)
+        return tuple(complete_scores)
+
+    def enable_cuda_graphs(
+        self, example_coords: torch.Tensor, mode: str = "both"
+    ) -> "WholePoseScoringModule":
         """Capture the default weighted score for a fixed coordinate shape.
 
         The returned scorer accepts new coordinate values with the same shape,
@@ -772,12 +833,9 @@ class WholePoseScoringModule:
             raise ValueError(f"unsupported CUDA graph mode: {mode!r}")
 
         if mode in ("forward", "both") and not hasattr(self, "_cuda_graphed_forward"):
-            graph_module = _DefaultWholePoseScoringModule(
-                self.weights, self.term_modules
-            )
-            self._cuda_graphed_forward = _InferenceCUDAGraph(
-                graph_module, example_coords
-            )
+            # Capture this scorer rather than the serial graph module so large
+            # inference workloads retain independent term-stream overlap.
+            self._cuda_graphed_forward = _InferenceCUDAGraph(self, example_coords)
 
         if mode in ("forward_backward", "both") and not hasattr(
             self, "_cuda_graphed_autograd"
@@ -834,7 +892,22 @@ class _InferenceCUDAGraph:
             with torch.cuda.graph(self._graph, stream=stream), torch.no_grad():
                 self._output = module(self._coords)
 
-    def __call__(self, coords):
+    def __call__(self, coords: torch.Tensor) -> torch.Tensor:
+        if coords.shape != self._coords.shape:
+            raise ValueError(
+                "CUDA graph coordinates must have shape "
+                f"{tuple(self._coords.shape)}; got {tuple(coords.shape)}"
+            )
+        if coords.dtype != self._coords.dtype:
+            raise TypeError(
+                "CUDA graph coordinates must have dtype "
+                f"{self._coords.dtype}; got {coords.dtype}"
+            )
+        if coords.device != self._coords.device:
+            raise ValueError(
+                "CUDA graph coordinates must be on "
+                f"{self._coords.device}; got {coords.device}"
+            )
         self._coords.copy_(coords)
         self._graph.replay()
         return self._output
@@ -862,21 +935,15 @@ class BlockPairScoringModule:
             for term in self.term_modules
             for parameter in term.parameters()
         )
-        self._cpu_term_workers, self._cpu_forward_workers = (
-            _cpu_score_term_worker_counts(len(self.term_modules), weights.device)
+        self._cpu_term_workers = _cpu_score_term_worker_count(
+            len(self.term_modules), weights.device
         )
-
-    def _cpu_workers_for_coords(self, coords: torch.Tensor) -> int:
-        """Return the worker count selected for this pose batch."""
-        if coords.shape[0] >= _CPU_WIDE_FORWARD_SCORE_MIN_POSES:
-            return self._cpu_forward_workers
-        return self._cpu_term_workers
 
     def _parallel_forward_scores(
         self, coords: torch.Tensor
     ) -> tuple[torch.Tensor, ...] | None:
         """Evaluate active CPU terms concurrently for a forward-only call."""
-        cpu_workers = self._cpu_workers_for_coords(coords)
+        cpu_workers = self._cpu_term_workers
         differentiable = torch.is_grad_enabled() and (
             coords.requires_grad or self._has_trainable_term_parameters
         )
@@ -897,7 +964,12 @@ class BlockPairScoringModule:
         ]
         return tuple(future.result() for future in futures)
 
-    def __call__(self, coords, sum_terms=True, apply_weights=True):
+    def __call__(
+        self,
+        coords: torch.Tensor,
+        sum_terms: bool = True,
+        apply_weights: bool = True,
+    ) -> torch.Tensor:
         if not torch.is_grad_enabled() and coords.requires_grad:
             coords = coords.detach()
         if sum_terms and apply_weights:
@@ -1000,7 +1072,7 @@ class RotamerScoringModule:
             weights.view(-1, 1, 1, 1), requires_grad=False
         )
         self.term_modules = tuple(term_modules)
-        self._cpu_term_workers, _ = _cpu_score_term_worker_counts(
+        self._cpu_term_workers = _cpu_score_term_worker_count(
             len(self.term_modules), weights.device
         )
 

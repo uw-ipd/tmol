@@ -8,6 +8,7 @@
 
 #include <tmol/score/common/diamond_macros.hh>
 #include <tmol/score/common/launch_box_macros.hh>
+#include <tmol/score/common/upper_triangle_indices.hh>
 
 #include <moderngpu/operators.hxx>
 #include <tmol/utility/tensor/context_manager.hh>
@@ -19,6 +20,24 @@ namespace sphere_overlap {
 
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
+
+inline bool should_compact_block_neighbors(
+    int n_poses, int max_n_blocks, bool computes_derivatives) {
+  // Compaction pays for one large inference pose or a wide batch of smaller
+  // poses. Derivative kernels carry more useful work per CTA, so require both
+  // a large pose and a genuinely wide workload.
+  constexpr int min_blocks_per_pose = 256;
+  constexpr int min_inference_candidates = 1 << 16;
+  constexpr int min_batched_blocks_for_derivatives = 1000;
+  int const pairs_per_pose = max_n_blocks * (max_n_blocks + 1) / 2;
+  bool const large_inference_workload =
+      max_n_blocks >= min_blocks_per_pose
+      || n_poses * pairs_per_pose >= min_inference_candidates;
+  if (!large_inference_workload) return false;
+  return !computes_derivatives
+         || (max_n_blocks >= min_blocks_per_pose
+             && n_poses * max_n_blocks >= min_batched_blocks_for_derivatives);
+}
 
 template <
     template <tmol::Device> class DeviceDispatch,
@@ -343,6 +362,77 @@ struct detect_block_neighbors {
         mgr, n_poses * block_pairs_per_pose, detect_neighbors);
   }
 };
+
+template <
+    template <tmol::Device> class DeviceDispatch,
+    tmol::Device D,
+    typename Int>
+struct compact_block_neighbors {
+  static void f(
+      ContextManager& mgr,
+      TView<Int, 3, D> block_neighbors,
+      TView<Int, 1, D> neighbor_indices,
+      TView<Int, 1, D> n_neighbors) {
+    LAUNCH_BOX_32;
+
+    int const n_poses = block_neighbors.size(0);
+    int const max_n_blocks = block_neighbors.size(1);
+    int const n_pairs = max_n_blocks * (max_n_blocks + 1) / 2;
+    auto compact = ([=] TMOL_DEVICE_FUNC(int candidate) {
+      int const pose = candidate / n_pairs;
+      auto pair = common::upper_triangle_inds_from_linear_index(
+          candidate % n_pairs, max_n_blocks + 1);
+      int const block1 = common::get<0>(pair);
+      int const block2 = common::get<1>(pair) - 1;
+      if (block_neighbors[pose][block1][block2] == 0) return;
+
+      int const output = accumulate<D, Int>::add(n_neighbors[0], Int(1));
+      neighbor_indices[output] = candidate;
+    });
+    DeviceDispatch<D>::template forall_independent<launch_t>(
+        mgr, n_poses * n_pairs, compact);
+  }
+};
+
+template <
+    template <tmol::Device> class DeviceDispatch,
+    tmol::Device D,
+    typename Launch,
+    typename Int,
+    typename Eval>
+void launch_compact_block_neighbors(
+    ContextManager& mgr, TView<Int, 3, D> block_neighbors, Eval eval) {
+  // Keep the compact count on device so this remains capture-safe. A bounded
+  // grid then strides over only neighboring pairs without a host sync.
+  int const n_poses = block_neighbors.size(0);
+  int const max_n_blocks = block_neighbors.size(1);
+  int const n_pairs = max_n_blocks * (max_n_blocks + 1) / 2;
+  int const n_candidates = n_poses * n_pairs;
+  if (n_candidates == 0) return;
+  auto neighbor_indices_t = TPack<Int, 1, D>::empty({n_candidates});
+  auto neighbor_indices = neighbor_indices_t.view;
+  auto n_neighbors_t = TPack<Int, 1, D>::zeros({1});
+  auto n_neighbors = n_neighbors_t.view;
+  compact_block_neighbors<DeviceDispatch, D, Int>::f(
+      mgr, block_neighbors, neighbor_indices, n_neighbors);
+
+  constexpr int wide_batch_candidates = 1 << 20;
+  constexpr int normal_workgroups = 1 << 14;
+  constexpr int wide_batch_workgroups = 1 << 15;
+  int const max_workgroups = n_candidates >= wide_batch_candidates
+                                 ? wide_batch_workgroups
+                                 : normal_workgroups;
+  int const n_workgroups =
+      n_candidates < max_workgroups ? n_candidates : max_workgroups;
+  auto eval_compact = ([=] TMOL_DEVICE_FUNC(int cta) {
+    for (int index = cta; index < n_candidates; index += n_workgroups) {
+      if (index >= n_neighbors[0]) return;
+      eval(neighbor_indices[index]);
+    }
+  });
+  DeviceDispatch<D>::template foreach_workgroup<Launch>(
+      mgr, n_workgroups, eval_compact);
+}
 
 template <
     template <tmol::Device> class DeviceDispatch,

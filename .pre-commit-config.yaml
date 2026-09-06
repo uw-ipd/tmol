@@ -18,7 +18,7 @@ repos:
             (?x)^(
                 tmol/extern/.* |
                 tmol/ligand/external/.* |
-                dev/.* 
+                dev/.* |
                 \.conda/.*
             )$
   - repo: https://github.com/pycqa/flake8
@@ -29,7 +29,6 @@ repos:
             (?x)^(
                 tmol/extern/.* |
                 tmol/ligand/external/.* |
-                dev/.* 
+                dev/.* |
                 \.venv/.*
             )$
-            

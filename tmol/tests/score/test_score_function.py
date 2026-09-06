@@ -273,31 +273,6 @@ def test_cpu_whole_pose_terms_run_concurrently_and_preserve_modes(monkeypatch):
     )
 
 
-def test_large_cpu_forward_uses_wider_term_pool(monkeypatch):
-    class SumTerm(torch.nn.Module):
-        def forward(self, coords):
-            return coords.sum().reshape(1, 1)
-
-    worker_counts = []
-    executor_for_workers = score_function_module._cpu_score_term_executor
-
-    def recording_executor(n_workers):
-        worker_counts.append(n_workers)
-        return executor_for_workers(n_workers)
-
-    monkeypatch.setattr(torch, "get_num_threads", lambda: 32)
-    monkeypatch.setattr(
-        score_function_module, "_cpu_score_term_executor", recording_executor
-    )
-    scorer = WholePoseScoringModule(torch.ones(8), [SumTerm() for _ in range(8)])
-    coords = torch.ones((20, 1, 3))
-
-    scorer(coords)
-    scorer(coords.requires_grad_()).sum().backward()
-
-    assert worker_counts == [8, 4]
-
-
 def test_cpu_whole_pose_preserves_trainable_term_gradients(monkeypatch):
     class TrainableTerm(torch.nn.Module):
         def __init__(self, scale):
@@ -530,6 +505,54 @@ def test_cuda_graphed_protein_score_matches_eager(ubq_pdb, torch_device):
         graphed(changed_coords), eager(changed_coords), rtol=1e-5, atol=1e-3
     )
 
+    with pytest.raises(ValueError, match="must have shape"):
+        graphed(changed_coords[0])
+    with pytest.raises(TypeError, match="must have dtype"):
+        graphed(changed_coords.to(torch.float64))
+    with pytest.raises(ValueError, match="must be on"):
+        graphed(changed_coords.cpu())
+
+
+def test_large_cuda_pose_score_matches_serial_terms_on_caller_stream(
+    systems_bysize, torch_device
+):
+    if torch_device.type != "cuda":
+        pytest.skip("Requires CUDA")
+
+    pose = pose_stack_from_pdb(systems_bysize[600], torch_device)
+    scorer = beta2016_score_function(torch_device).render_whole_pose_scoring_module(
+        pose
+    )
+    coords = pose.coords.detach().clone()
+    caller_stream = torch.cuda.Stream()
+
+    with torch.inference_mode(), torch.cuda.stream(caller_stream):
+        # Queue an input change on the caller stream. The term streams must
+        # observe it, and the returned score must be safe to consume there.
+        coords[0, 0, 0] += 0.125
+        serial_terms = torch.cat([term(coords) for term in scorer.term_modules], dim=0)
+        expected = (serial_terms * scorer.weights).sum(dim=0)
+        actual = scorer(coords)
+
+    caller_stream.synchronize()
+    assert scorer._cuda_term_streams is not None
+    # Independent term reductions use atomics, so their final addition order
+    # differs across streams and launches.
+    torch.testing.assert_close(actual, expected, rtol=5e-5, atol=1e-2)
+
+    scorer.enable_cuda_graphs(coords, mode="forward")
+    assert scorer._cuda_term_streams is not None
+    torch.testing.assert_close(scorer(coords), expected, rtol=5e-5, atol=1e-2)
+
+    with torch.inference_mode(), torch.cuda.stream(caller_stream):
+        coords[0, 0, 1] -= 0.25
+        serial_terms = torch.cat([term(coords) for term in scorer.term_modules], dim=0)
+        stream_expected = (serial_terms * scorer.weights).sum(dim=0)
+        stream_actual = scorer(coords).clone()
+
+    caller_stream.synchronize()
+    torch.testing.assert_close(stream_actual, stream_expected, rtol=5e-5, atol=1e-2)
+
 
 def test_block_pair_scoring_matches_whole_pose(ubq_pdb, default_database, torch_device):
     # passing the database bypasses the memoized score function, which the
@@ -569,11 +592,55 @@ def test_block_pair_scoring_matches_whole_pose(ubq_pdb, default_database, torch_
             parallel_score = block_scorer(pose_stack.coords)
 
         block_scorer._cpu_term_workers = 0
-        block_scorer._cpu_forward_workers = 0
         with torch.no_grad():
             serial_score = block_scorer(pose_stack.coords)
 
         assert torch.equal(parallel_score, serial_score)
+
+
+def test_large_cuda_compact_scores_match_block_pair_reference(
+    systems_bysize, default_database, torch_device
+):
+    if torch_device.type != "cuda":
+        pytest.skip("Requires CUDA")
+
+    single_pose = pose_stack_from_pdb(systems_bysize[300], torch_device)
+    # Eight 300-residue poses cross both compact-dispatch thresholds and the
+    # higher threshold for differentiable cross-term stream overlap.
+    pose = PoseStackBuilder.from_poses([single_pose] * 8, torch_device)
+    sfxn = beta2016_score_function(torch_device, default_database)
+    whole_scorer = sfxn.render_whole_pose_scoring_module(pose)
+    block_scorer = sfxn.render_block_pair_scoring_module(pose)
+
+    with torch.inference_mode():
+        compact = whole_scorer(pose.coords, sum_terms=False, apply_weights=False)
+        block_pairs = block_scorer(pose.coords, sum_terms=False, apply_weights=False)
+
+    torch.testing.assert_close(
+        compact, block_pairs.sum(dim=(2, 3)), rtol=1e-5, atol=3e-3
+    )
+
+    caller_stream = torch.cuda.Stream()
+    with torch.cuda.stream(caller_stream):
+        whole_coords = pose.coords.detach().clone().requires_grad_(True)
+        whole_score = whole_scorer(whole_coords).sum()
+        whole_grad = torch.autograd.grad(whole_score, whole_coords)[0]
+    caller_stream.synchronize()
+    block_coords = pose.coords.detach().clone().requires_grad_(True)
+    block_score = block_scorer(block_coords).sum()
+    block_grad = torch.autograd.grad(block_score, block_coords)[0]
+
+    torch.testing.assert_close(whole_score, block_score, rtol=1e-5, atol=1e-2)
+    torch.testing.assert_close(whole_grad, block_grad, rtol=2e-3, atol=2e-3)
+
+    # Both the inference graph's side streams and the autograd graph must
+    # preserve the device-resident compact neighbor count.
+    whole_scorer.enable_cuda_graphs(whole_coords, mode="both")
+    graph_coords = pose.coords.detach().clone().requires_grad_(True)
+    graph_score = whole_scorer(graph_coords).sum()
+    graph_grad = torch.autograd.grad(graph_score, graph_coords)[0]
+    torch.testing.assert_close(graph_score, whole_score, rtol=1e-5, atol=1e-2)
+    torch.testing.assert_close(graph_grad, whole_grad, rtol=2e-3, atol=2e-3)
 
 
 def test_interaction_only_block_pair_scoring_skips_diagonal_terms(

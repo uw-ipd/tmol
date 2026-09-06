@@ -747,22 +747,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
         store_calculated_energies);
   });
 
-  ///////////////////////////////////////////////////////////////////////
-
-  // 0: setup
-  // 1: launch a kernel to find a small bounding sphere surrounding the
-  // blocks
-  // 2: launch a kernel to look for spheres that are within
-  // striking distance of each other
-  // 3: launch a kernel to generate a list of pairs of indices for rotamers
-  // within this distance
-  // 4. launch a kernel to evaluate LJLK for each pair in this list of indices
-
-  // 0
-  // TO DO: let DeviceDispatch hold a cuda stream (??)
-  // at::cuda::CUDAStream wrapped_stream =
-  // at::cuda::getDefaultCUDAStream(); mgpu::standard_context_t
-  // context(wrapped_stream.stream());
+  // Build block neighbors, then score the retained H-bond pairs.
   score::common::sphere_overlap::
       compute_block_spheres<DeviceOperations, Dev, Real, Int>::f(
           mgr,
@@ -783,8 +768,19 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
           scratch_rot_neighbors,
           Real(5.5));
 
-  DeviceDispatch<Dev>::template foreach_pose_workgroup<launch_t>(
-      mgr, n_poses, max_n_upper_triangle_inds, eval_energies);
+#ifdef __NVCC__
+  if (!output_block_pair_energies
+      && score::common::sphere_overlap::should_compact_block_neighbors(
+          n_poses, max_n_blocks, compute_derivs)) {
+    score::common::sphere_overlap::
+        launch_compact_block_neighbors<DeviceDispatch, Dev, launch_t, Int>(
+            mgr, scratch_rot_neighbors, eval_energies);
+  } else
+#endif
+  {
+    DeviceDispatch<Dev>::template foreach_pose_workgroup<launch_t>(
+        mgr, n_poses, max_n_upper_triangle_inds, eval_energies);
+  }
 
   // DeviceDispatch<Dev>::synchronize_device();
   return {output_t, dV_dcoords_t, scratch_rot_neighbors_t};
@@ -1388,22 +1384,7 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
         store_calculated_energies);
   });
 
-  ///////////////////////////////////////////////////////////////////////
-
-  // 0: setup
-  // 1: launch a kernel to find a small bounding sphere surrounding the
-  // blocks
-  // 2: launch a kernel to look for spheres that are within
-  // striking distance of each other
-  // 3: launch a kernel to generate a list of pairs of indices for rotamers
-  // within this distance
-  // 4. launch a kernel to evaluate LJLK for each pair in this list of indices
-
-  // 0
-  // TO DO: let DeviceDispatch hold a cuda stream (??)
-  // at::cuda::CUDAStream wrapped_stream =
-  // at::cuda::getDefaultCUDAStream(); mgpu::standard_context_t
-  // context(wrapped_stream.stream());
+  // Evaluate the prepared rotamer-pair dispatch list.
 
   if (compute_derivs) {
     DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(

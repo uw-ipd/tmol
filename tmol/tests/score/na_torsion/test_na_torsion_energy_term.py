@@ -233,6 +233,28 @@ def test_native_cuda_pose_gradients_match_reference(
     torch.testing.assert_close(native_grad, reference_grad, rtol=5e-4, atol=5e-2)
 
 
+def test_native_cuda_degenerate_dihedral_has_finite_subgradient(dna_pdb, torch_device):
+    if torch_device.type != "cuda":
+        pytest.skip("native NA torsion scoring is CUDA-only")
+
+    term, pose = _term_and_pose(dna_pdb, torch_device)
+    coords = pose.coords.detach().clone()
+    _, _, torsion_indices, torsion_ok, *_ = pose.na_torsion_pose_params
+    pose_index, block, torsion = torch.nonzero(torsion_ok, as_tuple=False)[0]
+    atoms = torsion_indices[pose_index, block, torsion]
+    coords.view(-1, 3)[atoms] = torch.tensor(
+        [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [2.0, 0.0, 0.0], [3.0, 0.0, 0.0]],
+        device=torch_device,
+    )
+    coords.requires_grad_(True)
+
+    scores = _native_pose_scores(term, pose, coords)
+    (gradient,) = torch.autograd.grad(scores.sum(), coords)
+
+    assert torch.isfinite(scores).all()
+    assert torch.isfinite(gradient).all()
+
+
 @pytest.mark.parametrize("fixture", ["dna_pdb", "rna_pdb", "protein_dna_pdb"])
 def test_native_cuda_pose_scoring_is_graph_capture_safe(
     fixture, request, default_database, torch_device

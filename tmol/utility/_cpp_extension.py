@@ -158,7 +158,7 @@ def _augment_kwargs(name, sources, **kwargs):
         + _required_cuda_flags
     )
     kwargs["extra_include_paths"] = (
-        list(kwargs.get("extra_include_flags", [])) + _default_include_paths
+        list(kwargs.get("extra_include_paths", [])) + _default_include_paths
     )
 
     if kwargs.get("with_cuda") is None:
