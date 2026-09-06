@@ -258,17 +258,14 @@ or using a versioned wheel URL; published versions and artifacts are immutable.
 
 ## Code Style
 
-tmol uses [black](https://black.readthedocs.io/) for Python formatting, [flake8](https://flake8.pycqa.org/) for linting, and [clang-format](https://clang.llvm.org/docs/ClangFormat.html) for C++.
+tmol uses [black](https://black.readthedocs.io/) for Python formatting,
+[flake8](https://flake8.pycqa.org/) for linting, and
+[clang-format](https://clang.llvm.org/docs/ClangFormat.html) for C++. Run the
+same configured hooks and exclusions as CI:
 
 ```bash
-# Check formatting
-black --check .
-
-# Auto-format
-black .
-
-# Lint
-flake8
+python -m pip install pre-commit
+pre-commit run --all-files --show-diff-on-failure
 ```
 
 ### Pre-commit hooks
