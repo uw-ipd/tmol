@@ -7,8 +7,8 @@
 # and installed via explicit wheel URL (or pinned local version with
 # --find-links).
 #
-# Three separate jobs so you can RE-RUN just the upload if it fails
-# without rebuilding wheels/sdist.
+# Separate build and upload jobs let you re-run only the upload if it fails,
+# without rebuilding wheels or the sdist.
 
 name: Publish Release Artifacts
 

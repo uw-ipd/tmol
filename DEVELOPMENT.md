@@ -192,8 +192,8 @@ tmol uses GitHub Actions for all CI:
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
 | `ci.yml` | Push to `master`/`kdidi/**`, PRs | Lint and test on CPU and CUDA. CUDA runs on a **self-hosted GPU runner** (fela) inside an Apptainer NGC container. |
-| `wheel-smoke.yml` | Push to wheel feature branches, manual | Builds and installs the complete supported wheel matrix, checks auditwheel metadata and glibc-2.28 portability, and loads a representative wheel on the self-hosted GPU runner. |
-| `publish.yml` | Push `v*` tag, manual | Builds manylinux wheels (GPU + CPU) + sdist, uploads sdist to PyPI, uploads wheels to a GitHub Release. |
+| `wheel-smoke.yml` | Relevant PRs, maintenance branches, manual | Builds representative PR wheels or the complete matrix, then checks installation, platform metadata, portability, and GPU loading. |
+| `publish.yml` | Push `v*` tag, manual | Builds Linux GPU/CPU and Apple Silicon CPU wheels plus an sdist, uploads the sdist to PyPI, and uploads wheels to a GitHub Release. |
 
 The full Linux build, smoke-test, and release-manifest matrix is defined once in
 `scripts/release_matrix.py`. Update that file when adding a Python, PyTorch,
@@ -241,7 +241,8 @@ or using a versioned wheel URL; published versions and artifacts are immutable.
    - The workflow rejects tags that do not match `project.version`.
 4. Wait for workflow completion:
    - `build_wheels` (GPU matrix)
-   - `build_cpu_wheel`
+   - `build_cpu_wheel` (Linux CPU matrix)
+   - `build_macos_cpu_wheel` (Apple Silicon CPU matrix)
    - `build_sdist`
    - release manifest validation
    - `upload`
