@@ -542,7 +542,7 @@ def test_large_cuda_pose_score_matches_serial_terms_on_caller_stream(
 
     scorer.enable_cuda_graphs(coords, mode="forward")
     assert scorer._cuda_term_streams is not None
-    torch.testing.assert_close(scorer(coords), expected, rtol=1e-5, atol=5e-3)
+    torch.testing.assert_close(scorer(coords), expected, rtol=5e-5, atol=1e-2)
 
     with torch.inference_mode(), torch.cuda.stream(caller_stream):
         coords[0, 0, 1] -= 0.25

@@ -501,10 +501,10 @@ class ScoreFunction:
             rotamer_set: Candidate conformers and their pose/block indexing.
 
         Returns:
-            A callable that accepts rotamer coordinates and returns an
-            uncoalesced sparse COO tensor shaped
-            ``[n_poses, n_rotamers, n_rotamers]``. Call ``coalesce()`` before
-            reading its indices or values.
+            A callable that accepts rotamer coordinates and returns a sparse
+            COO tensor shaped ``[n_poses, n_rotamers, n_rotamers]``. Call
+            ``coalesce()`` before reading its indices or values; optimized CPU
+            results may already be coalesced.
         """
         self.pre_work_initialization(pose_stack)
         term_modules = [
