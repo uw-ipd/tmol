@@ -1161,12 +1161,21 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
   } else {
     int const n_workgroups = n_poses * max_n_upper_triangle_inds;
 #ifdef __NVCC__
-    if (!require_gradient && max_n_blocks >= 256) {
-      score::common::sphere_overlap::launch_compact_block_neighbors<
-          DeviceOperations,
-          D,
-          launch_t_high_occupancy,
-          Int>(mgr, scratch_rot_neighbors, eval_energies_by_block);
+    if (score::common::sphere_overlap::should_compact_block_neighbors(
+            n_poses, max_n_blocks, require_gradient)) {
+      if (require_gradient) {
+        score::common::sphere_overlap::launch_compact_block_neighbors<
+            DeviceOperations,
+            D,
+            launch_t_high_occupancy,
+            Int>(mgr, scratch_rot_neighbors, eval_energies);
+      } else {
+        score::common::sphere_overlap::launch_compact_block_neighbors<
+            DeviceOperations,
+            D,
+            launch_t_high_occupancy,
+            Int>(mgr, scratch_rot_neighbors, eval_energies_by_block);
+      }
     } else
 #endif
     {

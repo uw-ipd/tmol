@@ -769,7 +769,9 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
           Real(5.5));
 
 #ifdef __NVCC__
-  if (!output_block_pair_energies && !compute_derivs && max_n_blocks >= 256) {
+  if (!output_block_pair_energies
+      && score::common::sphere_overlap::should_compact_block_neighbors(
+          n_poses, max_n_blocks, compute_derivs)) {
     score::common::sphere_overlap::
         launch_compact_block_neighbors<DeviceDispatch, Dev, launch_t, Int>(
             mgr, scratch_rot_neighbors, eval_energies);

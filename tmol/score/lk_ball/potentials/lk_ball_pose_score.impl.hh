@@ -720,7 +720,9 @@ class LKBallPoseScoreDispatch {
             scratch_rot_neighbors,
             max_dis);
 #ifdef __NVCC__
-    if (!output_block_pair_energies && max_n_blocks >= 256) {
+    if (!output_block_pair_energies
+        && score::common::sphere_overlap::should_compact_block_neighbors(
+            n_poses, max_n_blocks, false)) {
       auto eval_all = ([=] TMOL_DEVICE_FUNC(int cta) {
         eval_energies_by_block(
             cta, TilePairModeTag<common::TilePairMode::InterAndIntra>{});

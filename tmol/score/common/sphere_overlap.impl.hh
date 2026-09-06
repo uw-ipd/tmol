@@ -21,6 +21,17 @@ namespace sphere_overlap {
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
+inline bool should_compact_block_neighbors(
+    int n_poses, int max_n_blocks, bool computes_derivatives) {
+  // Compaction pays for itself on one large inference pose. Derivative kernels
+  // carry more useful work per CTA, so wait for a genuinely wide workload.
+  constexpr int min_blocks_per_pose = 256;
+  constexpr int min_batched_blocks_for_derivatives = 1000;
+  return max_n_blocks >= min_blocks_per_pose
+         && (!computes_derivatives
+             || n_poses * max_n_blocks >= min_batched_blocks_for_derivatives);
+}
+
 template <
     template <tmol::Device> class DeviceDispatch,
     tmol::Device D,

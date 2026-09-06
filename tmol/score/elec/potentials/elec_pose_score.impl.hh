@@ -830,10 +830,18 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // Score neighboring block pairs. Sparse large CUDA poses use a
   // device-resident compact list to avoid launching dead scoring CTAs.
 #ifdef __NVCC__
-  if (!output_block_pair_energies && !compute_derivs && max_n_blocks >= 256) {
-    score::common::sphere_overlap::
-        launch_compact_block_neighbors<DeviceDispatch, D, launch_t, Int>(
-            mgr, scratch_rot_neighbors, eval_energies_by_block);
+  if (!output_block_pair_energies
+      && score::common::sphere_overlap::should_compact_block_neighbors(
+          n_poses, max_n_blocks, compute_derivs)) {
+    if (compute_derivs) {
+      score::common::sphere_overlap::
+          launch_compact_block_neighbors<DeviceDispatch, D, launch_t, Int>(
+              mgr, scratch_rot_neighbors, eval_energies);
+    } else {
+      score::common::sphere_overlap::
+          launch_compact_block_neighbors<DeviceDispatch, D, launch_t, Int>(
+              mgr, scratch_rot_neighbors, eval_energies_by_block);
+    }
   } else
 #endif
   {

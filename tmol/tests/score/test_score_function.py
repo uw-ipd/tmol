@@ -619,7 +619,9 @@ def test_large_cuda_compact_scores_match_block_pair_reference(
         pytest.skip("Requires CUDA")
 
     single_pose = pose_stack_from_pdb(systems_bysize[300], torch_device)
-    pose = PoseStackBuilder.from_poses([single_pose] * 2, torch_device)
+    # Four 300-residue poses cross the differentiable compact-dispatch
+    # threshold as well as the cheaper inference threshold.
+    pose = PoseStackBuilder.from_poses([single_pose] * 4, torch_device)
     sfxn = beta2016_score_function(torch_device, default_database)
     whole_scorer = sfxn.render_whole_pose_scoring_module(pose)
     block_scorer = sfxn.render_block_pair_scoring_module(pose)
