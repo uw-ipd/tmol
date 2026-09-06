@@ -225,7 +225,14 @@ def test_download_retries_then_succeeds(monkeypatch, tmp_path):
             raise URLError("temporary network error")
         return _Response(b"wheel-bytes")
 
+    real_named_temporary_file = backend.tempfile.NamedTemporaryFile
+
+    def named_temporary_file(**kwargs):
+        assert Path(kwargs["dir"]) == tmp_path
+        return real_named_temporary_file(**kwargs)
+
     monkeypatch.setattr(backend, "urlopen", fake_urlopen)
+    monkeypatch.setattr(backend.tempfile, "NamedTemporaryFile", named_temporary_file)
 
     assert (
         backend._download_to_path("https://example.invalid/wheel.whl", out_path) is True
