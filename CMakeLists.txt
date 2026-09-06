@@ -474,6 +474,16 @@ if(TMOL_HAS_CUDA)
     tmol/score/lk_ball/potentials/gen_pose_waters.cuda.cu
     tmol/score/na_torsion/potentials/na_torsion_pose_score.cuda.cu
   )
+  # Approximate CUDA math is accurate for the pairwise nonbonded terms and
+  # materially improves their throughput. Keep torsion/geometry kernels exact:
+  # their gradients are substantially more sensitive to approximate trig.
+  set_source_files_properties(
+    tmol/score/elec/potentials/elec_pose_score.cuda.cu
+    tmol/score/hbond/potentials/hbond_pose_score.cuda.cu
+    tmol/score/ljlk/potentials/ljlk_pose_score.cuda.cu
+    tmol/score/lk_ball/potentials/lk_ball_pose_score.cuda.cu
+    PROPERTIES COMPILE_OPTIONS "--use_fast_math"
+  )
 endif()
 
 add_library(_C MODULE ${_C_SOURCES})
