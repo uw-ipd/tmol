@@ -159,11 +159,11 @@ pip install git+https://github.com/uw-ipd/tmol.git@vX.Y.Z
 pytest --pyargs tmol.tests -v
 ```
 
-On Google Colab (Python 3.12, torch 2.8, Turing T4) use the `+cu128torch2.8`
-wheel — it is the only variant built with `sm_75`:
+On Google Colab (Python 3.12 or 3.13, PyTorch 2.11, Turing T4), use the
+matching `+cu128torch2.11` wheel. This lane explicitly includes `sm_75`:
 
 ```bash
-pip install "https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.8-cp312-cp312-manylinux_2_28_x86_64.whl"
+pip install "https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.11-cp312-cp312-manylinux_2_28_x86_64.whl"
 ```
 
 ## Containers

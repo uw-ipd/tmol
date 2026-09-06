@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Define the Linux wheel matrix used by release and smoke workflows."""
+"""Define the wheel matrices used by release and smoke workflows."""
 
 from __future__ import annotations
 
