@@ -23,13 +23,20 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 inline bool should_compact_block_neighbors(
     int n_poses, int max_n_blocks, bool computes_derivatives) {
-  // Compaction pays for itself on one large inference pose. Derivative kernels
-  // carry more useful work per CTA, so wait for a genuinely wide workload.
+  // Compaction pays for one large inference pose or a wide batch of smaller
+  // poses. Derivative kernels carry more useful work per CTA, so require both
+  // a large pose and a genuinely wide workload.
   constexpr int min_blocks_per_pose = 256;
+  constexpr int min_inference_candidates = 1 << 16;
   constexpr int min_batched_blocks_for_derivatives = 1000;
-  return max_n_blocks >= min_blocks_per_pose
-         && (!computes_derivatives
-             || n_poses * max_n_blocks >= min_batched_blocks_for_derivatives);
+  int const pairs_per_pose = max_n_blocks * (max_n_blocks + 1) / 2;
+  bool const large_inference_workload =
+      max_n_blocks >= min_blocks_per_pose
+      || n_poses * pairs_per_pose >= min_inference_candidates;
+  if (!large_inference_workload) return false;
+  return !computes_derivatives
+         || (max_n_blocks >= min_blocks_per_pose
+             && n_poses * max_n_blocks >= min_batched_blocks_for_derivatives);
 }
 
 template <
