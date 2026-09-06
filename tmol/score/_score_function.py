@@ -779,11 +779,13 @@ class WholePoseScoringModule:
         self, coords: torch.Tensor
     ) -> tuple[torch.Tensor, ...] | None:
         """Run independent large-workload inference terms on separate streams."""
-        with torch.cuda.device(coords.device):
-            if torch.cuda.is_current_stream_capturing():
-                return None
-
         if self._cuda_term_streams is None:
+            # Creating side streams during an unrelated user capture is unsafe.
+            # Our graph wrapper warms this path first, so its streams already
+            # exist when capture begins.
+            with torch.cuda.device(coords.device):
+                if torch.cuda.is_current_stream_capturing():
+                    return None
             self._cuda_term_streams = tuple(
                 torch.cuda.Stream(device=coords.device)
                 for _ in self._active_term_indices
@@ -833,12 +835,9 @@ class WholePoseScoringModule:
             raise ValueError(f"unsupported CUDA graph mode: {mode!r}")
 
         if mode in ("forward", "both") and not hasattr(self, "_cuda_graphed_forward"):
-            graph_module = _DefaultWholePoseScoringModule(
-                self.weights, self.term_modules
-            )
-            self._cuda_graphed_forward = _InferenceCUDAGraph(
-                graph_module, example_coords
-            )
+            # Capture this scorer rather than the serial graph module so large
+            # inference workloads retain independent term-stream overlap.
+            self._cuda_graphed_forward = _InferenceCUDAGraph(self, example_coords)
 
         if mode in ("forward_backward", "both") and not hasattr(
             self, "_cuda_graphed_autograd"

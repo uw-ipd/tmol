@@ -564,6 +564,7 @@ def test_large_cuda_pose_score_matches_serial_terms_on_caller_stream(
     torch.testing.assert_close(actual, expected, rtol=1e-5, atol=5e-3)
 
     scorer.enable_cuda_graphs(coords, mode="forward")
+    assert scorer._cuda_term_streams is not None
     torch.testing.assert_close(scorer(coords), expected, rtol=1e-5, atol=5e-3)
 
 
@@ -643,6 +644,15 @@ def test_large_cuda_compact_scores_match_block_pair_reference(
 
     torch.testing.assert_close(whole_score, block_score, rtol=1e-5, atol=1e-2)
     torch.testing.assert_close(whole_grad, block_grad, rtol=2e-3, atol=2e-3)
+
+    # Both the inference graph's side streams and the autograd graph must
+    # preserve the device-resident compact neighbor count.
+    whole_scorer.enable_cuda_graphs(whole_coords, mode="both")
+    graph_coords = pose.coords.detach().clone().requires_grad_(True)
+    graph_score = whole_scorer(graph_coords).sum()
+    graph_grad = torch.autograd.grad(graph_score, graph_coords)[0]
+    torch.testing.assert_close(graph_score, whole_score, rtol=1e-5, atol=1e-2)
+    torch.testing.assert_close(graph_grad, whole_grad, rtol=2e-3, atol=2e-3)
 
 
 def test_interaction_only_block_pair_scoring_skips_diagonal_terms(
