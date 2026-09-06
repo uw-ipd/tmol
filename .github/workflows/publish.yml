@@ -89,11 +89,11 @@ jobs:
       runs-on: ${{ matrix.runs-on }}
       container-image: ${{ matrix.container-image }}
       torch-version: ${{ matrix.torch-version }}
-      torch-package-version: ${{ matrix.torch-package-version || '' }}
+      torch-package-version: ${{ matrix.torch-package-version }}
       python-version: ${{ matrix.python-version }}
       label: ${{ matrix.label }}
-      pip-torch-cuda-url: ${{ matrix.torch-index-url || '' }}
-      enable-cuda: true
+      pip-torch-cuda-url: ${{ matrix.torch-index-url }}
+      enable-cuda: ${{ matrix.enable-cuda }}
       cuda-archs: ${{ matrix.cuda-archs || '' }}
       use-manylinux-build: true
       target-arch: ${{ matrix.arch }}
@@ -108,13 +108,13 @@ jobs:
     uses: ./.github/workflows/_build_wheel.yml
     with:
       runs-on: ${{ matrix.runs-on }}
-      container-image: unused-for-manylinux-cpu
+      container-image: ${{ matrix.container-image }}
       torch-version: ${{ matrix.torch-version }}
       torch-package-version: ${{ matrix.torch-package-version }}
       python-version: ${{ matrix.python-version }}
       label: ${{ matrix.label }}
-      pip-torch-cuda-url: "https://download.pytorch.org/whl/cpu"
-      enable-cuda: false
+      pip-torch-cuda-url: ${{ matrix.torch-index-url }}
+      enable-cuda: ${{ matrix.enable-cuda }}
       use-manylinux-build: true
       target-arch: ${{ matrix.arch }}
 

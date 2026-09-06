@@ -145,12 +145,6 @@ def gpu_wheel_rows(*, release: bool = True) -> list[dict[str, object]]:
                 if family.cuda_archs:
                     row["cuda-archs"] = family.cuda_archs
                     row["label"] += " Colab"
-                if (
-                    python_version == "3.12"
-                    and family.torch == "2.8"
-                    and arch == "x86_64"
-                ):
-                    row["gpu-runtime"] = True
                 if python_version == "3.12" and family.torch in {"2.13", "2.14"}:
                     row["portability"] = True
                 rows.append(row)

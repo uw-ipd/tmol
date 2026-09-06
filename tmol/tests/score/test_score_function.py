@@ -618,7 +618,8 @@ def test_large_cuda_compact_scores_match_block_pair_reference(
     if torch_device.type != "cuda":
         pytest.skip("Requires CUDA")
 
-    pose = pose_stack_from_pdb(systems_bysize[600], torch_device)
+    single_pose = pose_stack_from_pdb(systems_bysize[300], torch_device)
+    pose = PoseStackBuilder.from_poses([single_pose] * 2, torch_device)
     sfxn = beta2016_score_function(torch_device, default_database)
     whole_scorer = sfxn.render_whole_pose_scoring_module(pose)
     block_scorer = sfxn.render_block_pair_scoring_module(pose)

@@ -233,9 +233,7 @@ def test_native_cuda_pose_gradients_match_reference(
     torch.testing.assert_close(native_grad, reference_grad, rtol=5e-4, atol=5e-2)
 
 
-def test_native_cuda_degenerate_dihedral_has_finite_subgradient(
-    dna_pdb, torch_device
-):
+def test_native_cuda_degenerate_dihedral_has_finite_subgradient(dna_pdb, torch_device):
     if torch_device.type != "cuda":
         pytest.skip("native NA torsion scoring is CUDA-only")
 

@@ -180,9 +180,10 @@ def test_release_matrix_drives_publish_smoke_and_manifest():
             (row["torch-version"], row["arch"])
             for row in smoke["jobs"][job]["strategy"]["matrix"]["include"]
         } == expected_cpu_smoke
+    cuda_smoke = smoke["jobs"]["build-linux-cuda"]
+    assert cuda_smoke["with"]["cuda-archs"] == "all"
     assert {
-        row["torch-version"]
-        for row in smoke["jobs"]["build-linux-cuda"]["strategy"]["matrix"]["include"]
+        row["torch-version"] for row in cuda_smoke["strategy"]["matrix"]["include"]
     } == {"2.14"}
 
 
