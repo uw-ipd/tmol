@@ -542,6 +542,15 @@ def test_large_cuda_pose_score_matches_serial_terms_on_caller_stream(
     assert scorer._cuda_term_streams is not None
     torch.testing.assert_close(scorer(coords), expected, rtol=1e-5, atol=5e-3)
 
+    with torch.inference_mode(), torch.cuda.stream(caller_stream):
+        coords[0, 0, 1] -= 0.25
+        serial_terms = torch.cat([term(coords) for term in scorer.term_modules], dim=0)
+        stream_expected = (serial_terms * scorer.weights).sum(dim=0)
+        stream_actual = scorer(coords).clone()
+
+    caller_stream.synchronize()
+    torch.testing.assert_close(stream_actual, stream_expected, rtol=1e-5, atol=5e-3)
+
 
 def test_block_pair_scoring_matches_whole_pose(ubq_pdb, default_database, torch_device):
     # passing the database bypasses the memoized score function, which the
