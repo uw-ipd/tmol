@@ -475,8 +475,8 @@ if(TMOL_HAS_CUDA)
     tmol/score/na_torsion/potentials/na_torsion_pose_score.cuda.cu
   )
   # Approximate CUDA math is accurate for the pairwise nonbonded terms and
-  # materially improves their throughput. Keep torsion/geometry kernels exact:
-  # their gradients are substantially more sensitive to approximate trig.
+  # materially improves their throughput. Keep every other term exact:
+  # torsion-heavy gradients are substantially more sensitive to approximation.
   set_source_files_properties(
     tmol/score/elec/potentials/elec_pose_score.cuda.cu
     tmol/score/hbond/potentials/hbond_pose_score.cuda.cu

@@ -129,9 +129,9 @@ pytest tmol/tests/ --cov=./tmol --junitxml=results.xml
 pytest --benchmark-enable --benchmark-only --benchmark-max-time=.1
 ```
 
-CUDA pairwise nonbonded kernels use approximate math for throughput, so compare
-their scores and gradients within the tested tolerances rather than bitwise.
-Torsion and geometry kernels retain precise CUDA math.
+AOT CUDA builds use approximate math for four pairwise nonbonded score kernels,
+so compare their scores and gradients within the tested tolerances rather than
+bitwise. All other AOT kernels and explicit JIT builds retain precise CUDA math.
 
 ### Ligand charges
 
