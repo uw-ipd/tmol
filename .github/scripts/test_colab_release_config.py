@@ -41,11 +41,11 @@ def test_colab_selects_the_published_wheel_for_each_supported_python():
     source = (ROOT / "docs/tutorial/colab_setup.py").read_text(encoding="utf-8")
 
     assert module.TUTORIAL_REF == "master"
-    assert module.TMOL_RELEASE == "0.1.54"
     assert module.RELEASE_WHEEL_TORCH_MINOR == "2.11"
     assert module.RELEASE_WHEEL_CUDA == "12.8"
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-    assert module.TMOL_RELEASE == project["project"]["version"]
+    release = project["project"]["version"]
+    assert module.TMOL_RELEASE == release
     assert (
         project["tool"]["scikit-build"]["cmake"]["define"]["CMAKE_CUDA_ARCHITECTURES"][
             "default"
@@ -54,10 +54,12 @@ def test_colab_selects_the_published_wheel_for_each_supported_python():
     )
     assert module.RELEASE_WHEEL_PYTHONS == {(3, 12), (3, 13)}
     assert module._wheel_url((3, 12)).endswith(
-        "/v0.1.54/" "tmol-0.1.54+cu128torch2.11-cp312-cp312-manylinux_2_28_x86_64.whl"
+        f"/v{release}/tmol-{release}+cu128torch2.11-"
+        "cp312-cp312-manylinux_2_28_x86_64.whl"
     )
     assert module._wheel_url((3, 13)).endswith(
-        "/v0.1.54/" "tmol-0.1.54+cu128torch2.11-cp313-cp313-manylinux_2_28_x86_64.whl"
+        f"/v{release}/tmol-{release}+cu128torch2.11-"
+        "cp313-cp313-manylinux_2_28_x86_64.whl"
     )
     with pytest.raises(ValueError, match="Unsupported Colab Python version"):
         module._wheel_url((3, 14))
