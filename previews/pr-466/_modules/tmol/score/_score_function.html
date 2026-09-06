@@ -943,10 +943,10 @@
 <span class="sd">            rotamer_set: Candidate conformers and their pose/block indexing.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            A callable that accepts rotamer coordinates and returns an</span>
-<span class="sd">            uncoalesced sparse COO tensor shaped</span>
-<span class="sd">            ``[n_poses, n_rotamers, n_rotamers]``. Call ``coalesce()`` before</span>
-<span class="sd">            reading its indices or values.</span>
+<span class="sd">            A callable that accepts rotamer coordinates and returns a sparse</span>
+<span class="sd">            COO tensor shaped ``[n_poses, n_rotamers, n_rotamers]``. Call</span>
+<span class="sd">            ``coalesce()`` before reading its indices or values; optimized CPU</span>
+<span class="sd">            results may already be coalesced.</span>
 <span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_work_initialization</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
         <span class="n">term_modules</span> <span class="o">=</span> <span class="p">[</span>

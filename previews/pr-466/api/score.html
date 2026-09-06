@@ -663,10 +663,10 @@ rotamers.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A callable that accepts rotamer coordinates and returns an
-uncoalesced sparse COO tensor shaped
-<code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">n_rotamers,</span> <span class="pre">n_rotamers]</span></code>. Call <code class="docutils literal notranslate"><span class="pre">coalesce()</span></code> before
-reading its indices or values.</p>
+<dd class="field-even"><p>A callable that accepts rotamer coordinates and returns a sparse
+COO tensor shaped <code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">n_rotamers,</span> <span class="pre">n_rotamers]</span></code>. Call
+<code class="docutils literal notranslate"><span class="pre">coalesce()</span></code> before reading its indices or values; optimized CPU
+results may already be coalesced.</p>
 </dd>
 </dl>
 </dd></dl>
