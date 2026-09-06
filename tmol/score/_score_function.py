@@ -38,6 +38,9 @@ _CPU_PARALLEL_SCORE_BACKWARD_MIN_COORD_ELEMENTS = 8192
 # Independent CUDA terms overlap profitably for one large pose or a wide batch,
 # but stream setup and coordination cost more than they save for small poses.
 _CUDA_PARALLEL_SCORE_MIN_COORD_ELEMENTS = 20 * 1024
+# Backward has more stream-coordination overhead than inference. Keep eager
+# gradient scoring serial until the batch is large enough to amortize it.
+_CUDA_PARALLEL_GRAD_SCORE_MIN_COORD_ELEMENTS = 100 * 1024
 _CPU_SCORE_TERM_EXECUTORS: dict[int, ThreadPoolExecutor] = {}
 _CPU_SCORE_TERM_EXECUTOR_LOCK = threading.Lock()
 _ScoreCallResult = TypeVar("_ScoreCallResult")
@@ -715,14 +718,18 @@ class WholePoseScoringModule:
 
     def unweighted_scores(self, coords: torch.Tensor) -> torch.Tensor:
         needs_grad = torch.is_grad_enabled() and coords.requires_grad
+        parallel_min_elements = (
+            _CUDA_PARALLEL_GRAD_SCORE_MIN_COORD_ELEMENTS
+            if needs_grad
+            else _CUDA_PARALLEL_SCORE_MIN_COORD_ELEMENTS
+        )
         if (
             coords.device.type == "cuda"
-            and not needs_grad
             and not (torch.is_grad_enabled() and self._has_trainable_term_parameters)
             and len(self._active_term_indices) >= 2
-            and coords.numel() >= _CUDA_PARALLEL_SCORE_MIN_COORD_ELEMENTS
+            and coords.numel() >= parallel_min_elements
         ):
-            cuda_scores = self._parallel_cuda_forward_scores(coords)
+            cuda_scores = self._parallel_cuda_scores(coords, needs_grad)
             if cuda_scores is not None:
                 return torch.cat(cuda_scores, dim=0)
 
@@ -757,10 +764,10 @@ class WholePoseScoringModule:
         ]
         return torch.cat([future.result() for future in futures], dim=0)
 
-    def _parallel_cuda_forward_scores(
-        self, coords: torch.Tensor
+    def _parallel_cuda_scores(
+        self, coords: torch.Tensor, needs_grad: bool
     ) -> tuple[torch.Tensor, ...] | None:
-        """Run independent large-workload inference terms on separate streams."""
+        """Run independent large-workload score terms on separate streams."""
         if self._cuda_term_streams is None:
             # Creating side streams during an unrelated user capture is unsafe.
             # Our graph wrapper warms this path first, so its streams already
@@ -775,14 +782,23 @@ class WholePoseScoringModule:
 
         current = torch.cuda.current_stream(coords.device)
         scores: list[torch.Tensor | None] = [None] * len(self.term_modules)
+        # Distinct zero-copy views give every term a caller-stream autograd
+        # node, synchronizing returned gradients before leaf accumulation.
+        term_coords = (
+            tuple(coords.view_as(coords) for _ in self._active_term_indices)
+            if needs_grad
+            else (coords,) * len(self._active_term_indices)
+        )
         for index, term in enumerate(self.term_modules):
             if isinstance(term, ZeroTermPoseScoringModule):
                 scores[index] = term(coords)
-        for stream, index in zip(self._cuda_term_streams, self._active_term_indices):
+        for stream, index, term_input in zip(
+            self._cuda_term_streams, self._active_term_indices, term_coords
+        ):
             stream.wait_stream(current)
-            coords.record_stream(stream)
+            term_input.record_stream(stream)
             with torch.cuda.stream(stream):
-                scores[index] = self.term_modules[index](coords)
+                scores[index] = self.term_modules[index](term_input)
 
         for stream, index in zip(self._cuda_term_streams, self._active_term_indices):
             current.wait_stream(stream)
