@@ -239,7 +239,11 @@ def numerical_consistency(timing: pd.DataFrame) -> list[str]:
         (timing.status == "ok") & timing.protocol.isin(["score", "score_gradient"])
     ]
     issues = []
-    keys = ["engine", "engine_version", "dataset_id"]
+    # Dataset IDs are reused across modalities (the ligand corpus grafts a
+    # validated ligand onto the same protein backbone), and score-only and
+    # score-gradient are distinct benchmark contracts. Compare only execution
+    # modes of the same logical measurement.
+    keys = ["engine", "engine_version", "protocol", "modality", "dataset_id"]
     for key, group in scoring.groupby(keys, sort=True):
         scores = group.validation_score_mean.dropna()
         if len(scores) > 1:

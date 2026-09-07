@@ -178,7 +178,7 @@ def main() -> None:
     # single PyRosetta reference. Aggregations reflect how Rosetta splits terms
     # that tmol evaluates together.
     pyrosetta = {
-        (r["dataset_id"], r["protocol"]): r
+        (r["modality"], r["dataset_id"], r["protocol"]): r
         for r in results
         if r["engine"] == "pyrosetta" and r["status"] == "ok"
     }
@@ -193,7 +193,9 @@ def main() -> None:
             and result["status"] == "ok"
         ):
             continue
-        reference = pyrosetta.get((result["dataset_id"], "score"))
+        reference = pyrosetta.get(
+            (result["modality"], result["dataset_id"], "score")
+        )
         if reference is None:
             continue
         if (
