@@ -13,6 +13,8 @@ shared black CPU reference. Score-gradient points are medians of seven
 synchronized intervals after five warmups; FastRelax points are reproducibly
 seeded complete native workflows. Higher is better. Missing high-size or
 high-batch points have explicit failure records in the accompanying tables.
+Each panel has independent logarithmic x and y limits because the modalities
+and workflows span substantially different residue and throughput ranges.
 
 ## Multimodal workload memory
 
@@ -23,4 +25,6 @@ PyTorch's CUDA allocator after resetting its peak counter and include pose,
 scorer, and workflow setup. These measurements describe the relevant working
 set within each device domain; CPU RSS and CUDA allocation are not intended as
 byte-for-byte allocator comparisons. Missing points denote recorded loading,
-memory, indexing, or timeout failures.
+memory, indexing, or timeout failures. Each panel uses independent logarithmic
+x and y limits; an unfinished partial render labels panels with no completed
+measurements as pending.
