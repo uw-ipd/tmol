@@ -126,6 +126,16 @@ fully fused candidate in symmetric A–B–C–D–D–C–B–A order.
 `slurm/run_repack_ab_cpu.sh` independently benchmarks fixed-input repacking in
 A–B–B–A order, which distinguishes a packer-code regression from packing a
 different conformation produced by an earlier minimization stage.
+Build the candidate with `slurm/build_candidate_release.sh` before final timing.
+It enforces the same Release configuration and `TMOL_BUILD_TESTS=OFF` setting
+as the frozen 0.1.55 baseline; test-enabled developer binaries are validation
+artifacts and must not be mixed into production performance comparisons.
+Every candidate A/B job performs this check again before measuring and writes a
+provenance JSON under `$TMOL_CANDIDATE_AB_ROOT/metadata`. The record includes
+source revisions and cleanliness, selected CMake cache values, compiled
+extension sizes and SHA-256 hashes, Python package freezes, the container hash,
+and node hardware. A dirty source tree or mismatched production build aborts
+the job instead of producing results that look comparable but are not.
 
 For a large matrix, `src/feed_scheduler.py` can feed ordered table segments as
 capacity becomes available under the 3,000-job QOS cap and schedule the final
