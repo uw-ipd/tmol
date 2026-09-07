@@ -21,6 +21,7 @@ apptainer exec --nv --bind "${source_dir}:/work" --pwd /work "${image}" \
     OPENBLAS_NUM_THREADS=1 \
     "${environment}/bin/python" -m pytest \
     tmol/tests/score/test_score_function.py \
+    tmol/tests/score/cartbonded \
     tmol/tests/score/ljlk \
     tmol/tests/score/elec \
     tmol/tests/score/hbond \
