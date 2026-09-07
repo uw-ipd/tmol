@@ -95,6 +95,13 @@ def main() -> None:
     parser.add_argument("--candidate-env", type=Path, required=True)
     parser.add_argument("--harness-root", type=Path, required=True)
     parser.add_argument("--image", type=Path, required=True)
+    parser.add_argument(
+        "--reference-file",
+        action="append",
+        type=Path,
+        default=[],
+        help="Immutable manifest, task table, or reference result to hash.",
+    )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
@@ -106,6 +113,7 @@ def main() -> None:
         "slurm_job_id": os.environ.get("SLURM_JOB_ID"),
         "platform": platform.platform(),
         "container": checked_file(args.image),
+        "reference_files": [checked_file(path) for path in args.reference_file],
         "harness": git_state(args.harness_root),
         "baseline": baseline,
         "candidate": candidate,

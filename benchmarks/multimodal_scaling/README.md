@@ -107,6 +107,28 @@ fully derived and can be regenerated at any time.
 versus PyRosetta CPU ratio in fixed residue-count bins, so small-pose and
 large-pose gaps are not hidden by a single overall median.
 
+To measure an optimized candidate across every frozen CPU input rather than
+projecting from the small matched A/B subset, use the separately resumable
+broad-candidate sweep:
+
+```bash
+export TMOL_BROAD_CANDIDATE_ROOT=/mnt/data/kdidi/tmol-broad-candidate-cpu
+python3 src/submit_broad_candidate_cpu.py \
+  --output-root "$TMOL_BROAD_CANDIDATE_ROOT" \
+  --candidate-source /path/to/clean/candidate/worktree \
+  --candidate-env /path/to/candidate/environment
+
+python3 src/summarize_broad_candidate_cpu.py \
+  --candidate-root "$TMOL_BROAD_CANDIDATE_ROOT" \
+  --reference-summary "$TMOL_BENCH_ROOT/results/summary/timing_summary.csv"
+```
+
+The submitter hashes the container, frozen manifest, reference summary, exact
+task tables, source trees, compiled extensions, and Python environments before
+submitting. Each array task also refuses to run if the candidate revision moved
+or became dirty. Results therefore remain attributable even when a long
+FastRelax sweep is resumed later with `--start-offset`.
+
 To compare an optimization branch with the frozen 0.1.55 baseline on the same
 node, use `slurm/run_candidate_ab.sh`. It runs each representative multimodal
 score-gradient and FastRelax configuration in A–B–B–A order, always in fresh
