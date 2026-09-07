@@ -22,12 +22,17 @@ def main() -> None:
     args = parser.parse_args()
 
     import torch
+    import tmol.pack._pack_rotamers as pack_rotamers_module
     import tmol.relax._fast_relax as fast_relax_module
     from tmol.score._score_function import WholePoseScoringModule
 
     original_call = WholePoseScoringModule.__call__
     original_pack = fast_relax_module.pack_rotamers
     original_minimize = fast_relax_module._DefaultCartesianMinimizer.__call__
+    original_build_rotamers = pack_rotamers_module.build_rotamers
+    original_calculate_energies = pack_rotamers_module._calculate_packer_energies
+    original_anneal = pack_rotamers_module.run_simulated_annealing
+    original_assign = pack_rotamers_module.impose_top_rotamer_assignments
     counts = {
         "total": 0,
         "grad_enabled": 0,
@@ -36,6 +41,14 @@ def main() -> None:
         "packing_seconds": 0.0,
         "minimization_calls": 0,
         "minimization_seconds": 0.0,
+        "rotamer_build_calls": 0,
+        "rotamer_build_seconds": 0.0,
+        "packer_energy_calls": 0,
+        "packer_energy_seconds": 0.0,
+        "annealing_calls": 0,
+        "annealing_seconds": 0.0,
+        "assignment_calls": 0,
+        "assignment_seconds": 0.0,
     }
 
     def synchronize():
@@ -66,9 +79,33 @@ def main() -> None:
         counts["minimization_seconds"] += time.perf_counter() - start
         return result
 
+    def timed_subphase(original, calls_key, seconds_key):
+        def wrapped(*call_args, **call_kwargs):
+            synchronize()
+            start = time.perf_counter()
+            result = original(*call_args, **call_kwargs)
+            synchronize()
+            counts[calls_key] += 1
+            counts[seconds_key] += time.perf_counter() - start
+            return result
+
+        return wrapped
+
     WholePoseScoringModule.__call__ = counted_call
     fast_relax_module.pack_rotamers = counted_pack
     fast_relax_module._DefaultCartesianMinimizer.__call__ = counted_minimize
+    pack_rotamers_module.build_rotamers = timed_subphase(
+        original_build_rotamers, "rotamer_build_calls", "rotamer_build_seconds"
+    )
+    pack_rotamers_module._calculate_packer_energies = timed_subphase(
+        original_calculate_energies, "packer_energy_calls", "packer_energy_seconds"
+    )
+    pack_rotamers_module.run_simulated_annealing = timed_subphase(
+        original_anneal, "annealing_calls", "annealing_seconds"
+    )
+    pack_rotamers_module.impose_top_rotamer_assignments = timed_subphase(
+        original_assign, "assignment_calls", "assignment_seconds"
+    )
     try:
         row = benchmark_tmol.select(args.dataset, args.modality)
         result = benchmark_tmol.benchmark_fastrelax(row, args.device, args.batch_size)
@@ -76,6 +113,10 @@ def main() -> None:
         WholePoseScoringModule.__call__ = original_call
         fast_relax_module.pack_rotamers = original_pack
         fast_relax_module._DefaultCartesianMinimizer.__call__ = original_minimize
+        pack_rotamers_module.build_rotamers = original_build_rotamers
+        pack_rotamers_module._calculate_packer_energies = original_calculate_energies
+        pack_rotamers_module.run_simulated_annealing = original_anneal
+        pack_rotamers_module.impose_top_rotamer_assignments = original_assign
 
     result.update(
         {

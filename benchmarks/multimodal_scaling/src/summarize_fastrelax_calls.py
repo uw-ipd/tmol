@@ -29,6 +29,11 @@ def main() -> None:
         parser.error(f"no JSON FastRelax call-count records found under {args.input}")
 
     rows = []
+
+    def median_optional(counts, key):
+        values = [count[key] for count in counts if key in count]
+        return statistics.median(values) if values else None
+
     for (dataset_id, modality, label), records in groups.items():
         counts = [record["whole_pose_call_counts"] for record in records]
         rows.append(
@@ -39,8 +44,7 @@ def main() -> None:
                 "label": label,
                 "replicates": len(records),
                 "median_total_seconds": statistics.median(
-                    record["seconds_per_structure_samples"][0]
-                    for record in records
+                    record["seconds_per_structure_samples"][0] for record in records
                 ),
                 "median_packing_seconds": statistics.median(
                     count["packing_seconds"] for count in counts
@@ -54,6 +58,18 @@ def main() -> None:
                 "median_gradient_calls": statistics.median(
                     count["coords_require_grad"] for count in counts
                 ),
+                "median_rotamer_build_seconds": median_optional(
+                    counts, "rotamer_build_seconds"
+                ),
+                "median_packer_energy_seconds": median_optional(
+                    counts, "packer_energy_seconds"
+                ),
+                "median_annealing_seconds": median_optional(
+                    counts, "annealing_seconds"
+                ),
+                "median_assignment_seconds": median_optional(
+                    counts, "assignment_seconds"
+                ),
                 "median_final_score": statistics.median(
                     record["validation_score_mean"] for record in records
                 ),
@@ -65,18 +81,19 @@ def main() -> None:
         if row["label"] == "baseline"
     }
     for row in rows:
-        baseline_total = baseline_totals.get(
-            (row["dataset_id"], row["modality"])
-        )
+        baseline_total = baseline_totals.get((row["dataset_id"], row["modality"]))
         row["speedup_over_baseline"] = (
             baseline_total / row["median_total_seconds"]
             if baseline_total is not None
             else None
         )
 
-    order = {label: index for index, label in enumerate(
-        ("baseline", "optimizer-only", "shared-ordered", "candidate")
-    )}
+    order = {
+        label: index
+        for index, label in enumerate(
+            ("baseline", "optimizer-only", "shared-ordered", "candidate")
+        )
+    }
     rows.sort(
         key=lambda row: (
             row["modality"],
@@ -108,9 +125,30 @@ def main() -> None:
                 speedup=f"{speedup:.3f}x" if speedup is not None else "pending",
             )
         )
-    (args.output / "fastrelax_call_report.md").write_text(
-        "\n".join(report) + "\n"
-    )
+    subphase_rows = [
+        row for row in rows if row["median_packer_energy_seconds"] is not None
+    ]
+    if subphase_rows:
+        report.extend(
+            [
+                "",
+                "## Packing subphases",
+                "",
+                "Energy tables include rotamer scoring and interaction-graph construction. All columns are synchronized wall time summed across the FastRelax packing calls.",
+                "",
+                "| Dataset | Variant | Build rotamers (s) | Energy tables (s) | Annealing (s) | Assignment (s) |",
+                "|---|---|---:|---:|---:|---:|",
+            ]
+        )
+        for row in subphase_rows:
+            report.append(
+                f"| {row['dataset_id']} | {row['label']} | "
+                f"{row['median_rotamer_build_seconds']:.4f} | "
+                f"{row['median_packer_energy_seconds']:.4f} | "
+                f"{row['median_annealing_seconds']:.4f} | "
+                f"{row['median_assignment_seconds']:.4f} |"
+            )
+    (args.output / "fastrelax_call_report.md").write_text("\n".join(report) + "\n")
 
 
 if __name__ == "__main__":

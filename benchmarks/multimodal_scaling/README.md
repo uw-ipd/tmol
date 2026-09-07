@@ -146,8 +146,10 @@ On a congested GPU cluster, `slurm/run_candidate_ab_cpu.sh` and
 job resumes into the same output directory and skips those completed records.
 If a seeded FastRelax A/B changes trajectory, use
 `slurm/run_fastrelax_call_counts_cpu.sh` to record whole-pose score and
-gradient-bearing call counts alongside wall time. This separates faster score
-calls from a changed line-search path that performs more calls. The job
+gradient-bearing call counts alongside wall time. It also separates packing
+into rotamer construction, energy-table/interaction-graph construction,
+simulated annealing, and assignment. This distinguishes faster score calls
+from a changed line-search path or non-scoring packer overhead. The job
 compares the 0.1.55 baseline, optimizer-only candidate, shared-neighbor
 candidate with the original LJ/LK/electrostatics accumulation order, and the
 fully fused candidate in symmetric A–B–C–D–D–C–B–A order.
