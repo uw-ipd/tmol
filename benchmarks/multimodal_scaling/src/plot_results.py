@@ -122,6 +122,16 @@ def plot_panel(ax, data: pd.DataFrame, modality: str, workload: str, metric: str
         )
 
 
+def autoscale_panel_independently(ax) -> None:
+    """Fit both axes to this panel's artists, without row/column coupling."""
+    ax.relim()
+    ax.autoscale_view(scalex=True, scaley=True)
+    ax.margins(x=0.04, y=0.08)
+    # Keep tick labels visible even if sharing is enabled accidentally in a
+    # future refactor. Workloads and modalities span very different ranges.
+    ax.tick_params(axis="both", which="both", labelbottom=True, labelleft=True)
+
+
 def legend_handles():
     device_handles = [
         mpl.lines.Line2D(
@@ -164,6 +174,7 @@ def composite_figure(data: pd.DataFrame, metric: str) -> None:
             plot_panel(ax, data, modality, workload, metric)
             ax.set_xscale("log")
             ax.set_yscale("log")
+            autoscale_panel_independently(ax)
             ax.grid(which="major", color="#D9D9D9", linewidth=0.55)
             ax.grid(which="minor", color="#EEEEEE", linewidth=0.35)
             panel = chr(ord("a") + row_index * len(MODALITIES) + column_index)
