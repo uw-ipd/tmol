@@ -26,9 +26,9 @@ mkdir -p "${output}/logs" "${output}/raw"
 baseline_commit=$(git -C "${baseline_source}" rev-parse HEAD)
 candidate_commit=$(git -C "${candidate_source}" rev-parse HEAD)
 harness_git_root=$(git -C "${harness}" rev-parse --show-toplevel)
-provenance="${output}/metadata/candidate_ab_provenance-${SLURM_JOB_ID:-manual}.json"
+provenance="/results/metadata/candidate_ab_provenance-${SLURM_JOB_ID:-manual}.json"
 
-apptainer exec --bind "${harness}:/harness" "${image}" \
+apptainer exec --bind "${harness}:/harness,${output}:/results" "${image}" \
     python3 /harness/src/capture_candidate_provenance.py \
     --baseline-source "${baseline_source}" --baseline-env "${baseline_env}" \
     --candidate-source "${candidate_source}" --candidate-env "${candidate_env}" \
