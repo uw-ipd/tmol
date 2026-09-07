@@ -104,6 +104,13 @@ TMOL_BENCH_ROOT="$TMOL_BENCH_ROOT" sbatch slurm/plot_existing.sh
 The raw JSON files are the durable measurements; summary CSVs and figures are
 fully derived and can be regenerated at any time.
 
+To compare an optimization branch with the frozen 0.1.55 baseline on the same
+node, use `slurm/run_candidate_ab.sh`. It runs each representative multimodal
+score-gradient and FastRelax configuration in A–B–B–A order, always in fresh
+processes, and writes both raw JSON and a derived report under
+`$TMOL_CANDIDATE_AB_ROOT`. Override `TMOL_CANDIDATE_SOURCE` and
+`TMOL_CANDIDATE_ENV` to test another worktree without changing the script.
+
 For a large matrix, `src/feed_scheduler.py` can feed ordered table segments as
 capacity becomes available under the 3,000-job QOS cap and schedule the final
 report with `afterany` dependencies. Its progress is atomically recorded in
