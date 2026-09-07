@@ -136,6 +136,10 @@ source revisions and cleanliness, selected CMake cache values, compiled
 extension sizes and SHA-256 hashes, Python package freezes, the container hash,
 and node hardware. A dirty source tree or mismatched production build aborts
 the job instead of producing results that look comparable but are not.
+The job also derives `candidate_vs_pyrosetta.{csv,md}`. That report combines
+the broad matrix's PyRosetta/0.1.55 ratio with the same-node 0.1.55/candidate
+A/B ratio, avoiding a misleading direct comparison of absolute timings taken
+in different jobs.
 
 For a large matrix, `src/feed_scheduler.py` can feed ordered table segments as
 capacity becomes available under the 3,000-job QOS cap and schedule the final

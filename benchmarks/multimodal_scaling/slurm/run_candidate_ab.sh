@@ -127,3 +127,10 @@ apptainer exec --bind "${output}:/results,${harness}:/harness" \
     --pwd /harness "${image}" \
     python3 /harness/src/summarize_candidate_ab.py \
     --input /results/raw --output /results/summary
+
+apptainer exec --bind "${output}:/results,${harness}:/harness,${bench}:/bench" \
+    --pwd /harness "${image}" \
+    python3 /harness/src/compare_candidate_to_pyrosetta.py \
+    --candidate-summary /results/summary/candidate_ab_summary.csv \
+    --reference-summary /bench/results/summary/timing_summary.csv \
+    --output /results/summary
