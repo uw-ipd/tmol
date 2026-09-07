@@ -51,3 +51,6 @@ run_one baseline 1 "${baseline_source}" "${baseline_env}"
 run_one candidate 1 "${candidate_source}" "${candidate_env}"
 run_one candidate 2 "${candidate_source}" "${candidate_env}"
 run_one baseline 2 "${baseline_source}" "${baseline_env}"
+
+python3 "${harness}/src/summarize_repack_ab.py" \
+    --input "${output}/repack" --output "${output}/summary"

@@ -132,6 +132,8 @@ fully fused candidate in symmetric A–B–C–D–D–C–B–A order.
 `slurm/run_repack_ab_cpu.sh` independently benchmarks fixed-input repacking in
 A–B–B–A order, which distinguishes a packer-code regression from packing a
 different conformation produced by an earlier minimization stage.
+Both jobs write raw JSON plus CSV and Markdown summaries under
+`$TMOL_CANDIDATE_AB_ROOT/summary`.
 If repacking regresses, `slurm/profile_rotamer_terms_cpu.sh` applies the same
 A–B–B–A design to every rotamer score term on included proteins near 31, 150,
 and 547 residues, identifying the term that accounts for the end-to-end

@@ -71,3 +71,6 @@ run_one optimizer-only 2 "${candidate_source}" "${candidate_env}" \
     "${candidate_commit}" 0 0
 run_one baseline 2 "${baseline_source}" "${baseline_env}" \
     "${baseline_commit}" 0 0
+
+python3 "${harness}/src/summarize_fastrelax_calls.py" \
+    --input "${output}/call-counts" --output "${output}/summary"
