@@ -37,16 +37,18 @@ run_one() {
     local dataset=$8
     local device=$9
     local batch=${10}
-    local destination="${output}/raw/${protocol}-${modality}-${dataset}-${device}-b${batch}-${label}-r${replicate}.json"
+    local filename="${protocol}-${modality}-${dataset}-${device}-b${batch}-${label}-r${replicate}.json"
+    local host_destination="${output}/raw/${filename}"
+    local container_destination="/results/raw/${filename}"
     local nv=()
     if [[ ${device} == cuda ]]; then
         nv=(--nv)
     fi
-    if [[ -s ${destination} ]]; then
+    if [[ -s ${host_destination} ]]; then
         return
     fi
     if ! apptainer exec "${nv[@]}" \
-        --bind "${bench}:/bench,${harness}:/harness,${source}:/work" \
+        --bind "${bench}:/bench,${harness}:/harness,${source}:/work,${output}:/results" \
         --pwd /harness "${image}" \
         env TMOL_BENCH_ROOT=/bench TMOL_USE_JIT=0 \
         OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
@@ -55,8 +57,8 @@ run_one() {
         --device "${device}" --batch-size "${batch}" \
         --protocol "${protocol}" --cuda-execution eager \
         --tmol-version "${label}" --tmol-commit "${commit}" \
-        --output "${destination}"; then
-        [[ -s ${destination} ]] || return 1
+        --output "${container_destination}"; then
+        [[ -s ${host_destination} ]] || return 1
     fi
 }
 
