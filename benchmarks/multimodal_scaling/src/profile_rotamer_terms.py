@@ -97,7 +97,14 @@ def main() -> None:
                 "commit": args.commit,
                 "dataset_id": args.dataset,
                 "modality": args.modality,
-                "polymer_residues": int(row["polymer_residues"]),
+                "polymer_residues": sum(
+                    int(row[key])
+                    for key in (
+                        "protein_residues",
+                        "dna_residues",
+                        "rna_residues",
+                    )
+                ),
                 "device": args.device,
                 "batch_size": args.batch_size,
                 "n_rotamers": int(rotamers.n_rots_for_pose.sum()),
