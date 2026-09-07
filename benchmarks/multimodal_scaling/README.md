@@ -130,8 +130,10 @@ fully fused candidate in symmetric A–B–C–D–D–C–B–A order.
 A–B–B–A order, which distinguishes a packer-code regression from packing a
 different conformation produced by an earlier minimization stage.
 If repacking regresses, `slurm/profile_rotamer_terms_cpu.sh` applies the same
-A–B–B–A design to every rotamer score term on 43-, 154-, and 548-residue
-inputs, identifying the term that accounts for the end-to-end change.
+A–B–B–A design to every rotamer score term on included proteins near 31, 150,
+and 547 residues, identifying the term that accounts for the end-to-end
+change. Set `TMOL_ROTAMER_PROFILE_DATASETS` to a whitespace-separated list of
+dataset IDs to select different records from the active frozen manifest.
 Build the candidate with `slurm/build_candidate_release.sh` before final timing.
 It enforces the same Release configuration and `TMOL_BUILD_TESTS=OFF` setting
 as the frozen 0.1.55 baseline; test-enabled developer binaries are validation

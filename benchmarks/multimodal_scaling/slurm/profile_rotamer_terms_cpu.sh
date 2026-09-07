@@ -19,6 +19,10 @@ baseline_source=${TMOL_BASELINE_SOURCE:-/mnt/home/kdidi/tmol-paper-sources/v0.1.
 baseline_env=${TMOL_BASELINE_ENV:-/mnt/home/kdidi/tmol-paper-benchmark/envs/tmol-0.1.55}
 candidate_source=${TMOL_CANDIDATE_SOURCE:-/mnt/home/kdidi/projects/tmol-pr468-shared-integration}
 candidate_env=${TMOL_CANDIDATE_ENV:-/mnt/home/kdidi/tmol-shared-neighbor-bench/env}
+# These are included protein records near 31, 150, and 547 residues in the
+# frozen expanded manifest. Override with a whitespace-separated list when
+# profiling a different manifest.
+profile_datasets=${TMOL_ROTAMER_PROFILE_DATASETS:-"1aie 1f3g 1v0b"}
 
 mkdir -p "${output}/rotamer-term-profile"
 baseline_commit=$(git -C "${baseline_source}" rev-parse HEAD)
@@ -46,7 +50,8 @@ run_one() {
         --output "/results/rotamer-term-profile/${dataset}-${label}-r${replicate}.json"
 }
 
-for dataset in 5uoi 5yzf 5m4a; do
+read -r -a datasets <<< "${profile_datasets}"
+for dataset in "${datasets[@]}"; do
     run_one baseline "${baseline_source}" "${baseline_env}" "${baseline_commit}" "${dataset}" 1
     run_one candidate "${candidate_source}" "${candidate_env}" "${candidate_commit}" "${dataset}" 1
     run_one candidate "${candidate_source}" "${candidate_env}" "${candidate_commit}" "${dataset}" 2
