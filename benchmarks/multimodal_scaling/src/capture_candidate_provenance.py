@@ -39,6 +39,13 @@ def checked_file(path: Path) -> dict:
 
 def git_state(path: Path) -> dict:
     status = command("git", "-C", str(path), "status", "--porcelain")
+    # Ninja creates this empty transient lock in the source worktree while an
+    # editable build is active. It is not an input and can briefly outlive the
+    # build process, so do not mistake it for an unreproducible source change.
+    if status is not None:
+        status = "\n".join(
+            line for line in status.splitlines() if line.strip() != "?? .ninja_lock"
+        )
     return {
         "path": str(path),
         "revision": command("git", "-C", str(path), "rev-parse", "HEAD"),
