@@ -113,6 +113,9 @@ processes, and writes both raw JSON and a derived report under
 Run `slurm/validate_candidate.sh` against the same worktree and environment to
 cover the shared-neighbor score terms, optimizer kernels, minimizers, and
 FastRelax on both CPU and CUDA before accepting the A/B result.
+On a congested GPU cluster, `slurm/run_candidate_ab_cpu.sh` and
+`slurm/validate_candidate_cpu.sh` run the CPU subset independently; the full
+job resumes into the same output directory and skips those completed records.
 
 For a large matrix, `src/feed_scheduler.py` can feed ordered table segments as
 capacity becomes available under the 3,000-job QOS cap and schedule the final

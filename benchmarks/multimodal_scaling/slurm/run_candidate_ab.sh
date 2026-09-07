@@ -20,6 +20,7 @@ baseline_source=${TMOL_BASELINE_SOURCE:-/mnt/home/kdidi/tmol-paper-sources/v0.1.
 baseline_env=${TMOL_BASELINE_ENV:-/mnt/home/kdidi/tmol-paper-benchmark/envs/tmol-0.1.55}
 candidate_source=${TMOL_CANDIDATE_SOURCE:-/mnt/home/kdidi/projects/tmol-pr468-shared-integration}
 candidate_env=${TMOL_CANDIDATE_ENV:-/mnt/home/kdidi/tmol-shared-neighbor-bench/env}
+device_filter=${TMOL_AB_DEVICE_FILTER:-all}
 
 mkdir -p "${output}/logs" "${output}/raw"
 baseline_commit=$(git -C "${baseline_source}" rev-parse HEAD)
@@ -91,6 +92,9 @@ configurations=(
 
 for configuration in "${configurations[@]}"; do
     read -r protocol modality dataset device batch <<< "${configuration}"
+    if [[ ${device_filter} != all && ${device} != "${device_filter}" ]]; then
+        continue
+    fi
     baseline_replicate=0
     candidate_replicate=0
     for label in baseline candidate candidate baseline; do
