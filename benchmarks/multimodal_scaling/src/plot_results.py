@@ -179,21 +179,13 @@ def composite_figure(data: pd.DataFrame, metric: str) -> None:
             ax.grid(which="minor", color="#EEEEEE", linewidth=0.35)
             panel = chr(ord("a") + row_index * len(MODALITIES) + column_index)
             ax.text(
-                -0.10,
-                1.04,
-                f"({panel})",
-                transform=ax.transAxes,
-                va="bottom",
-                fontsize=8,
-                fontweight="bold",
-            )
-            ax.text(
                 0.02,
                 0.97,
-                workload_title,
+                f"({panel})  {workload_title}",
                 transform=ax.transAxes,
                 va="top",
                 color="#555555",
+                fontweight="bold",
             )
             if row_index == 0:
                 ax.set_title(modality_title)
