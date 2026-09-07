@@ -19,7 +19,7 @@ python=${envs}/tmol-0.1.55/bin/python
 
 mkdir -p "${bench}/logs" "${bench}/results/summary" "${bench}/figures"
 
-for script in collect_results.py summarize_results.py plot_results.py; do
+for script in collect_results.py summarize_results.py analyze_cpu_gaps.py plot_results.py; do
     apptainer exec \
         --bind "${bench}:/bench,${harness}:/harness" \
         --pwd /harness \

@@ -103,6 +103,9 @@ TMOL_BENCH_ROOT="$TMOL_BENCH_ROOT" sbatch slurm/plot_existing.sh
 
 The raw JSON files are the durable measurements; summary CSVs and figures are
 fully derived and can be regenerated at any time.
+`results/summary/cpu_gap_by_length.{csv,md}` reports the paired latest-TMol
+versus PyRosetta CPU ratio in fixed residue-count bins, so small-pose and
+large-pose gaps are not hidden by a single overall median.
 
 To compare an optimization branch with the frozen 0.1.55 baseline on the same
 node, use `slurm/run_candidate_ab.sh`. It runs each representative multimodal
