@@ -16,18 +16,26 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
-    groups: dict[str, list[dict]] = defaultdict(list)
+    groups: dict[tuple[str, str, str], list[dict]] = defaultdict(list)
     for path in sorted(args.input.glob("*.json")):
         record = json.loads(path.read_text())
-        groups[record["engine_version"]].append(record)
+        key = (
+            record["dataset_id"],
+            record["modality"],
+            record["engine_version"],
+        )
+        groups[key].append(record)
     if not groups:
         parser.error(f"no JSON FastRelax call-count records found under {args.input}")
 
     rows = []
-    for label, records in groups.items():
+    for (dataset_id, modality, label), records in groups.items():
         counts = [record["whole_pose_call_counts"] for record in records]
         rows.append(
             {
+                "dataset_id": dataset_id,
+                "modality": modality,
+                "polymer_residues": records[0]["polymer_residues"],
                 "label": label,
                 "replicates": len(records),
                 "median_total_seconds": statistics.median(
@@ -51,15 +59,15 @@ def main() -> None:
                 ),
             }
         )
-    baseline_total = next(
-        (
-            row["median_total_seconds"]
-            for row in rows
-            if row["label"] == "baseline"
-        ),
-        None,
-    )
+    baseline_totals = {
+        (row["dataset_id"], row["modality"]): row["median_total_seconds"]
+        for row in rows
+        if row["label"] == "baseline"
+    }
     for row in rows:
+        baseline_total = baseline_totals.get(
+            (row["dataset_id"], row["modality"])
+        )
         row["speedup_over_baseline"] = (
             baseline_total / row["median_total_seconds"]
             if baseline_total is not None
@@ -69,7 +77,15 @@ def main() -> None:
     order = {label: index for index, label in enumerate(
         ("baseline", "optimizer-only", "shared-ordered", "candidate")
     )}
-    rows.sort(key=lambda row: (order.get(row["label"], len(order)), row["label"]))
+    rows.sort(
+        key=lambda row: (
+            row["modality"],
+            row["polymer_residues"],
+            row["dataset_id"],
+            order.get(row["label"], len(order)),
+            row["label"],
+        )
+    )
     args.output.mkdir(parents=True, exist_ok=True)
     with (args.output / "fastrelax_call_summary.csv").open("w", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=rows[0].keys())
@@ -81,13 +97,13 @@ def main() -> None:
         "",
         "Speedup is baseline total time divided by variant total time.",
         "",
-        "| Variant | Replicates | Total (s) | Packing (s) | Minimization (s) | Score calls | Gradient calls | Final score | Speedup |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| Dataset | Modality | Residues | Variant | Replicates | Total (s) | Packing (s) | Minimization (s) | Score calls | Gradient calls | Final score | Speedup |",
+        "|---|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for row in rows:
         speedup = row["speedup_over_baseline"]
         report.append(
-            "| {label} | {replicates} | {median_total_seconds:.4f} | {median_packing_seconds:.4f} | {median_minimization_seconds:.4f} | {median_score_calls:g} | {median_gradient_calls:g} | {median_final_score:.6f} | {speedup} |".format(
+            "| {dataset_id} | {modality} | {polymer_residues} | {label} | {replicates} | {median_total_seconds:.4f} | {median_packing_seconds:.4f} | {median_minimization_seconds:.4f} | {median_score_calls:g} | {median_gradient_calls:g} | {median_final_score:.6f} | {speedup} |".format(
                 **row,
                 speedup=f"{speedup:.3f}x" if speedup is not None else "pending",
             )

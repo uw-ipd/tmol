@@ -19,6 +19,8 @@ baseline_source=${TMOL_BASELINE_SOURCE:-/mnt/home/kdidi/tmol-paper-sources/v0.1.
 baseline_env=${TMOL_BASELINE_ENV:-/mnt/home/kdidi/tmol-paper-benchmark/envs/tmol-0.1.55}
 candidate_source=${TMOL_CANDIDATE_SOURCE:-/mnt/home/kdidi/projects/tmol-pr468-shared-integration}
 candidate_env=${TMOL_CANDIDATE_ENV:-/mnt/home/kdidi/tmol-shared-neighbor-bench/env}
+dataset=${TMOL_FASTRELAX_PROFILE_DATASET:-1acd}
+modality=${TMOL_FASTRELAX_PROFILE_MODALITY:-protein}
 
 mkdir -p "${output}/call-counts"
 harness_git_root=$(git -C "${harness}" rev-parse --show-toplevel)
@@ -47,9 +49,10 @@ run_one() {
         TMOL_FUSED_LJLK_ELEC="${fused_ljlk_elec}" \
         OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
         "${environment}/bin/python" /harness/src/benchmark_fastrelax_calls.py \
-        --dataset 1acd --modality protein --device cpu --batch-size 1 \
+        --dataset "${dataset}" --modality "${modality}" \
+        --device cpu --batch-size 1 \
         --label "${label}" --commit "${commit}" \
-        --output "/results/call-counts/protein-1acd-${label}-r${replicate}.json"
+        --output "/results/call-counts/${modality}-${dataset}-${label}-r${replicate}.json"
 }
 
 baseline_commit=$(git -C "${baseline_source}" rev-parse HEAD)

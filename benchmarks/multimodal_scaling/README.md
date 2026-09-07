@@ -129,6 +129,8 @@ calls from a changed line-search path that performs more calls. The job
 compares the 0.1.55 baseline, optimizer-only candidate, shared-neighbor
 candidate with the original LJ/LK/electrostatics accumulation order, and the
 fully fused candidate in symmetric A–B–C–D–D–C–B–A order.
+Set `TMOL_FASTRELAX_PROFILE_DATASET` and
+`TMOL_FASTRELAX_PROFILE_MODALITY` to profile another manifest record.
 `slurm/run_repack_ab_cpu.sh` independently benchmarks fixed-input repacking in
 A–B–B–A order, which distinguishes a packer-code regression from packing a
 different conformation produced by an earlier minimization stage.
