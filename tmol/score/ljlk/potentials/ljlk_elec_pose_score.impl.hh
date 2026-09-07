@@ -203,11 +203,10 @@ TMOL_DEVICE_FUNC std::array<Real, 4> score_atom_pair(
     Real const radial_derivs[4] = {
         ljatr_deriv, ljrep_deriv, lk_deriv, elec_deriv};
     if constexpr (weighted) {
-      Real const weighted_deriv =
-          score_weights[0] * radial_derivs[0]
-          + score_weights[1] * radial_derivs[1]
-          + score_weights[2] * radial_derivs[2]
-          + score_weights[3] * radial_derivs[3];
+      Real const weighted_deriv = score_weights[0] * radial_derivs[0]
+                                  + score_weights[1] * radial_derivs[1]
+                                  + score_weights[2] * radial_derivs[2]
+                                  + score_weights[3] * radial_derivs[3];
       Real3 const dxyz1 = weighted_deriv * unit_delta;
 #pragma unroll
       for (int axis = 0; axis < 3; ++axis) {
@@ -338,13 +337,11 @@ auto ljlk_elec_forward_impl(
   (void)max_n_rots_per_pose;
 
   int constexpr n_output_scores = weighted ? 1 : 4;
-  auto output_t =
-      TPack<Real, 4, D>::zeros({n_output_scores, n_poses, 1, 1});
+  auto output_t = TPack<Real, 4, D>::zeros({n_output_scores, n_poses, 1, 1});
   auto output = output_t.view;
   auto dV_dcoords_t =
-      require_gradient
-          ? TPack<Real3, 2, D>::zeros({n_output_scores, n_atoms})
-          : TPack<Real3, 2, D>::empty({n_output_scores, 0});
+      require_gradient ? TPack<Real3, 2, D>::zeros({n_output_scores, n_atoms})
+                       : TPack<Real3, 2, D>::empty({n_output_scores, 0});
   auto dV_dcoords = dV_dcoords_t.view;
 
   LAUNCH_BOX_32_OCC_AS(launch_t, 32);
@@ -833,9 +830,9 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
             elec_global_params,
         TView<Int, 1, D> shared_compact_block_neighbors,
         TView<Real, 1, D> score_weights,
-        bool require_gradient)
-    -> std::tuple<TPack<Real, 4, D>, TPack<LJLKExternalVec<Real, 3>, 2, D>> {
-#define TMOL_LJLK_ELEC_WEIGHTED_FORWARD_ARGS                                 \
+        bool require_gradient) -> std::
+        tuple<TPack<Real, 4, D>, TPack<LJLKExternalVec<Real, 3>, 2, D>> {
+#define TMOL_LJLK_ELEC_WEIGHTED_FORWARD_ARGS                                  \
   mgr, rot_coords, rot_coord_offset, pose_ind_for_atom, first_rot_for_block,  \
       first_rot_block_type, block_ind_for_rot, pose_ind_for_rot,              \
       block_type_ind_for_rot, n_rots_for_pose, rot_offset_for_pose,           \
@@ -907,8 +904,7 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
         Int fused_weight_begin,
         Int fused_weight_width) -> TPack<Real, 2, D> {
   int const n_poses = output_gradient.size(0);
-  auto lane_gradients_t =
-      TPack<Real, 2, D>::empty({n_score_lanes, n_poses});
+  auto lane_gradients_t = TPack<Real, 2, D>::empty({n_score_lanes, n_poses});
   auto lane_gradients = lane_gradients_t.view;
   LAUNCH_BOX_32_OCC_AS(launch_t, 32);
   DeviceOperations<D>::template forall<launch_t>(

@@ -332,22 +332,22 @@ class LJLKAndElecPoseScoreOp
     Tensor score;
     Tensor dscore_dcoords;
     using Int = int32_t;
-#define TMOL_FUSED_SCORE_ARGS                                                 \
-  mgr, TCAST(rot_coords), TCAST(rot_coord_offset), TCAST(pose_ind_for_atom),  \
-      TCAST(first_rot_for_block), TCAST(first_rot_block_type),                \
-      TCAST(block_ind_for_rot), TCAST(pose_ind_for_rot),                      \
-      TCAST(block_type_ind_for_rot), TCAST(n_rots_for_pose),                  \
-      TCAST(rot_offset_for_pose), TCAST(n_rots_for_block),                    \
-      TCAST(rot_offset_for_block), max_n_rots_per_pose,                       \
-      TCAST(pose_stack_min_bond_separation),                                  \
-      TCAST(pose_stack_inter_block_bondsep), TCAST(block_type_n_atoms),       \
-      TCAST(block_type_atom_types), TCAST(block_type_n_interblock_bonds),     \
-      TCAST(block_type_atoms_forming_chemical_bonds),                         \
-      TCAST(block_type_ljlk_path_distance),                                   \
-      TCAST(block_type_is_ligand_fragment), TCAST(ljlk_type_params),          \
-      TCAST(ljlk_global_params), TCAST(block_type_partial_charge),            \
-      TCAST(block_type_elec_inter_repr_path_distance),                        \
-      TCAST(block_type_elec_intra_repr_path_distance),                        \
+#define TMOL_FUSED_SCORE_ARGS                                                \
+  mgr, TCAST(rot_coords), TCAST(rot_coord_offset), TCAST(pose_ind_for_atom), \
+      TCAST(first_rot_for_block), TCAST(first_rot_block_type),               \
+      TCAST(block_ind_for_rot), TCAST(pose_ind_for_rot),                     \
+      TCAST(block_type_ind_for_rot), TCAST(n_rots_for_pose),                 \
+      TCAST(rot_offset_for_pose), TCAST(n_rots_for_block),                   \
+      TCAST(rot_offset_for_block), max_n_rots_per_pose,                      \
+      TCAST(pose_stack_min_bond_separation),                                 \
+      TCAST(pose_stack_inter_block_bondsep), TCAST(block_type_n_atoms),      \
+      TCAST(block_type_atom_types), TCAST(block_type_n_interblock_bonds),    \
+      TCAST(block_type_atoms_forming_chemical_bonds),                        \
+      TCAST(block_type_ljlk_path_distance),                                  \
+      TCAST(block_type_is_ligand_fragment), TCAST(ljlk_type_params),         \
+      TCAST(ljlk_global_params), TCAST(block_type_partial_charge),           \
+      TCAST(block_type_elec_inter_repr_path_distance),                       \
+      TCAST(block_type_elec_intra_repr_path_distance),                       \
       TCAST(elec_global_params), TCAST(shared_compact_block_neighbors)
     TMOL_DISPATCH_FLOATING_DEVICE(
         rot_coords.options(), "ljlk_elec_pose_score_op", ([&] {
@@ -359,17 +359,18 @@ class LJLKAndElecPoseScoreOp
                   DispatchMethod,
                   Dev,
                   Real,
-                  Int>::forward_weighted(
-                  TMOL_FUSED_SCORE_ARGS,
-                  TCAST(score_weights),
-                  rot_coords.requires_grad());
+                  Int>::
+                  forward_weighted(
+                      TMOL_FUSED_SCORE_ARGS,
+                      TCAST(score_weights),
+                      rot_coords.requires_grad());
             } else {
               return LJLKAndElecPoseScoreDispatch<
                   DispatchMethod,
                   Dev,
                   Real,
-                  Int>::forward(
-                  TMOL_FUSED_SCORE_ARGS, rot_coords.requires_grad());
+                  Int>::
+                  forward(TMOL_FUSED_SCORE_ARGS, rot_coords.requires_grad());
             }
           }();
           score = std::get<0>(result).tensor.squeeze(-1).squeeze(-1);
@@ -390,8 +391,8 @@ class LJLKAndElecPoseScoreOp
 };
 
 template <template <tmol::Device> class DispatchMethod>
-class WeightedFusedScoreSumOp
-    : public torch::autograd::Function<WeightedFusedScoreSumOp<DispatchMethod>> {
+class WeightedFusedScoreSumOp : public torch::autograd::Function<
+                                    WeightedFusedScoreSumOp<DispatchMethod>> {
  public:
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
@@ -412,7 +413,7 @@ class WeightedFusedScoreSumOp
         fused_weight_begin >= 0 && fused_weight_width > 0
             && fused_weight_begin < score_lanes.size(0)
             && score_lanes.size(0)
-                == score_weights.size(0) - fused_weight_width + 1,
+                   == score_weights.size(0) - fused_weight_width + 1,
         "invalid fused score-lane mapping");
 
     Tensor output;
@@ -421,17 +422,15 @@ class WeightedFusedScoreSumOp
         score_lanes.options(), "weighted_fused_score_sum_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
-          output = LJLKAndElecPoseScoreDispatch<
-                       DispatchMethod,
-                       Dev,
-                       Real,
-                       Int>::reduce_weighted_scores(
-                       mgr,
-                       TCAST(score_lanes),
-                       TCAST(score_weights),
-                       fused_weight_begin,
-                       fused_weight_width)
-                       .tensor;
+          output =
+              LJLKAndElecPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::
+                  reduce_weighted_scores(
+                      mgr,
+                      TCAST(score_lanes),
+                      TCAST(score_weights),
+                      fused_weight_begin,
+                      fused_weight_width)
+                      .tensor;
         }));
     ctx->save_for_backward({score_weights});
     ctx->saved_data["n_score_lanes"] = score_lanes.size(0);
@@ -458,18 +457,16 @@ class WeightedFusedScoreSumOp
         output_gradient.options(), "weighted_fused_score_sum_backward", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
-          score_lane_gradients = LJLKAndElecPoseScoreDispatch<
-                                     DispatchMethod,
-                                     Dev,
-                                     Real,
-                                     Int>::reduce_weighted_score_gradients(
-                                     mgr,
-                                     TCAST(output_gradient),
-                                     TCAST(score_weights),
-                                     n_score_lanes,
-                                     fused_weight_begin,
-                                     fused_weight_width)
-                                     .tensor;
+          score_lane_gradients =
+              LJLKAndElecPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::
+                  reduce_weighted_score_gradients(
+                      mgr,
+                      TCAST(output_gradient),
+                      TCAST(score_weights),
+                      n_score_lanes,
+                      fused_weight_begin,
+                      fused_weight_width)
+                      .tensor;
         }));
     tensor_list gradients(4);
     gradients[0] = score_lane_gradients;
