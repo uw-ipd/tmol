@@ -764,7 +764,7 @@ def test_cpu_rotamer_scorer_coalesces_subset_layouts(
     torch.testing.assert_close(coords.grad, torch.tensor(24.0))
 
 
-def test_rotamer_scorer_reuses_only_exact_cutoff_dispatch(
+def test_rotamer_scorer_reuses_only_exact_cutoff_dispatch_on_cpu(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
@@ -775,7 +775,7 @@ def test_rotamer_scorer_reuses_only_exact_cutoff_dispatch(
     class Producer(torch.nn.Module):
         n_poses = 1
         n_rots = 1
-        block_neighbor_cutoff = 5.5
+        block_neighbor_cutoff = 6.0
         rotamer_dispatch_key = "sphere_overlap"
 
         def forward(self, coords):
@@ -798,8 +798,8 @@ def test_rotamer_scorer_reuses_only_exact_cutoff_dispatch(
                 indices.clone() if shared_dispatch is None else shared_dispatch
             )
 
-    matching = Consumer(5.5)
-    changed = Consumer(6.0)
+    matching = Consumer(6.0)
+    changed = Consumer(6.5)
     scorer = RotamerScoringModule(torch.ones(3), [Producer(), matching, changed])
 
     scores = scorer(torch.ones(()))
@@ -807,6 +807,15 @@ def test_rotamer_scorer_reuses_only_exact_cutoff_dispatch(
     assert matching.received is indices
     assert changed.received is None
     torch.testing.assert_close(scores.to_dense(), torch.tensor([[[3.0]]]))
+
+
+def test_rotamer_superset_dispatch_policy() -> None:
+    compatible = score_function_module._rotamer_dispatch_cutoff_compatible
+
+    assert compatible("cpu", 6.0, 6.0)
+    assert not compatible("cpu", 6.0, 5.5)
+    assert compatible("cuda", 6.0, 5.5)
+    assert not compatible("cuda", 5.5, 6.0)
 
 
 def test_cpu_rotamer_terms_run_concurrently(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -80,6 +80,17 @@ def _use_weighted_fused_score(
     return atoms_per_pose >= _CUDA_WEIGHTED_FUSED_MIN_BATCH_ATOMS_PER_POSE
 
 
+def _rotamer_dispatch_cutoff_compatible(
+    device_type: str,
+    producer_cutoff: float,
+    consumer_cutoff: float,
+) -> bool:
+    """Select exact layouts everywhere and larger-cutoff supersets on CUDA."""
+    return producer_cutoff == consumer_cutoff or (
+        device_type == "cuda" and producer_cutoff > consumer_cutoff
+    )
+
+
 def _cpu_score_term_executor(n_workers: int) -> ThreadPoolExecutor:
     """Return a process-local executor shared by rendered CPU scorers."""
     with _CPU_SCORE_TERM_EXECUTOR_LOCK:
@@ -1677,29 +1688,45 @@ class RotamerScoringModule:
         else:
             # Do not retain every term's complete score/index tensors. CUDA
             # packing layouts can be many GiB apiece, so consume each result
-            # before evaluating the next term. Neighbor-sphere dispatch is
-            # determined only by the rotamer set and cutoff; exact-compatible
-            # consumers may reuse the preceding layout without retaining the
-            # score tensors for every term.
+            # before evaluating the next term.
             def sequential_term_results():
-                dispatch_by_compatibility = {}
+                # A larger-cutoff sphere-overlap layout is a safe superset for
+                # a smaller consumer, whose native potential still applies its
+                # own cutoff. Measurements favor this on CUDA; exact layouts
+                # remain reusable on every device.
+                dispatch_by_key = {}
                 for term in self.term_modules:
                     cutoff = getattr(term, "block_neighbor_cutoff", None)
                     dispatch_key = getattr(term, "rotamer_dispatch_key", None)
-                    compatibility = (dispatch_key, cutoff)
                     accepts_shared = getattr(term, "accepts_shared_dispatch", False)
-                    if accepts_shared:
-                        result = term.forward(
-                            coords, dispatch_by_compatibility.get(compatibility)
-                        )
+                    compatible_dispatch = None
+                    if (
+                        accepts_shared
+                        and dispatch_key is not None
+                        and cutoff is not None
+                    ):
+                        producers = dispatch_by_key.get(dispatch_key, ())
+                        compatible = [
+                            (producer_cutoff, indices)
+                            for producer_cutoff, indices in producers
+                            if _rotamer_dispatch_cutoff_compatible(
+                                coords.device.type,
+                                producer_cutoff,
+                                cutoff,
+                            )
+                        ]
+                        if compatible:
+                            _, compatible_dispatch = min(
+                                compatible, key=lambda item: item[0]
+                            )
+                    if compatible_dispatch is not None:
+                        result = term.forward(coords, compatible_dispatch)
                     else:
                         result = term.forward(coords)
-                    if (
-                        dispatch_key is not None
-                        and cutoff is not None
-                        and compatibility not in dispatch_by_compatibility
-                    ):
-                        dispatch_by_compatibility[compatibility] = result[1]
+                    if dispatch_key is not None and cutoff is not None:
+                        dispatch_by_key.setdefault(dispatch_key, []).append(
+                            (cutoff, result[1])
+                        )
                     yield result
 
             term_results = sequential_term_results()

@@ -239,7 +239,8 @@ struct ElecRotamerScoreDispatch {
       TView<ElecGlobalParams<Real>, 1, D> global_params,
       Real max_dis,
       bool output_block_pair_energies,
-      bool compute_derivs) -> std::
+      bool compute_derivs,
+      TPack<Int, 2, D> shared_dispatch_indices) -> std::
       tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 2, D>, TPack<Int, 2, D> >;
 
   static auto backward(

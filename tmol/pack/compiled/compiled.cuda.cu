@@ -372,8 +372,9 @@ MGPU_DEVICE float warp_wide_sim_annealing(
         int64_t const k_prev_chunk_offset =
             prev_chunk == new_chunk
                 ? k_new_chunk_offset
-                : ig.chunk_offsets_[k_offset_offset
-                                    + k_chunk * ran_res_n_chunks + prev_chunk];
+                : ig.chunk_offsets_
+                      [k_offset_offset + k_chunk * ran_res_n_chunks
+                       + prev_chunk];
         float prev_contrib = 0.0f;
         if (k_prev_chunk_offset >= 0) {
           prev_contrib = ig.energy2b_
