@@ -119,7 +119,10 @@ job resumes into the same output directory and skips those completed records.
 If a seeded FastRelax A/B changes trajectory, use
 `slurm/run_fastrelax_call_counts_cpu.sh` to record whole-pose score and
 gradient-bearing call counts alongside wall time. This separates faster score
-calls from a changed line-search path that performs more calls.
+calls from a changed line-search path that performs more calls. The job
+compares the 0.1.55 baseline, optimizer-only candidate, shared-neighbor
+candidate with the original LJ/LK/electrostatics accumulation order, and the
+fully fused candidate.
 
 For a large matrix, `src/feed_scheduler.py` can feed ordered table segments as
 capacity becomes available under the 3,000-job QOS cap and schedule the final

@@ -27,10 +27,14 @@ run_one() {
     local source=$2
     local environment=$3
     local commit=$4
+    local shared_neighbors=$5
+    local fused_ljlk_elec=$6
     apptainer exec \
         --bind "${bench}:/bench,${harness}:/harness,${source}:/work,${output}:/results" \
         --pwd /harness "${image}" \
         env TMOL_BENCH_ROOT=/bench TMOL_USE_JIT=0 \
+        TMOL_SHARED_BLOCK_NEIGHBORS="${shared_neighbors}" \
+        TMOL_FUSED_LJLK_ELEC="${fused_ljlk_elec}" \
         OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
         "${environment}/bin/python" /harness/src/benchmark_fastrelax_calls.py \
         --dataset 1acd --modality protein --device cpu --batch-size 1 \
@@ -39,6 +43,11 @@ run_one() {
 }
 
 run_one baseline "${baseline_source}" "${baseline_env}" \
-    "$(git -C "${baseline_source}" rev-parse HEAD)"
+    "$(git -C "${baseline_source}" rev-parse HEAD)" 0 0
+candidate_commit=$(git -C "${candidate_source}" rev-parse HEAD)
+run_one optimizer-only "${candidate_source}" "${candidate_env}" \
+    "${candidate_commit}" 0 0
+run_one shared-ordered "${candidate_source}" "${candidate_env}" \
+    "${candidate_commit}" compact 0
 run_one candidate "${candidate_source}" "${candidate_env}" \
-    "$(git -C "${candidate_source}" rev-parse HEAD)"
+    "${candidate_commit}" compact auto
