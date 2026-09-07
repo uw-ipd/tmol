@@ -9,7 +9,8 @@ and interpretation.
 > - **Deep tutorial:** {doc}`02 — GPU Batching with TMol
 >   </tutorial/02_gpu_batching>`.
 > - **Related workflows:** {doc}`Packing </workflows/packing>` and
->   {doc}`developer benchmarking </user_guide/benchmarking>`.
+>   {doc}`developer benchmarking </user_guide/benchmarking>`; for CPU
+>   execution, see {doc}`CPU threading </user_guide/cpu_threading>`.
 > - **API reference:** {doc}`Pose </api/pose>` and {doc}`Scoring </api/score>`.
 > - **Rosetta mapping:** {doc}`GPU batching and external orchestration
 >   </tutorial/rosetta_crosswalk>`.

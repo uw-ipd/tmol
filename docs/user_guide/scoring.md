@@ -51,10 +51,9 @@ score.backward()
 
 ## CPU batch throughput
 
-Whole-pose CPU scoring uses PyTorch's process-wide intra-op thread budget.
-PyTorch defaults to the CPUs available to the process, including an affinity-
-restricted scheduler allocation. Inspect or override that budget before
-rendering a scorer:
+Whole-pose CPU scoring follows PyTorch's process-wide intra-op thread budget.
+Inspect the active value and, when needed, override it before rendering a
+scorer:
 
 ```python
 print(torch.get_num_threads())
@@ -65,8 +64,9 @@ TMol parallelizes independent poses and score terms and can shard the dominant
 pair traversal for a single pose. Small workloads may use fewer threads when
 additional shards would cost more than they save. When several processes or
 data-loader workers score at once, divide the available cores between them to
-avoid oversubscription. `OMP_NUM_THREADS` is the equivalent launch-time
-override.
+avoid oversubscription. See {doc}`CPU threading </user_guide/cpu_threading>`
+for affinity-aware discovery, scheduler examples, launch-time overrides, and
+benchmarking guidance.
 
 ## Ligand-aware Scoring
 

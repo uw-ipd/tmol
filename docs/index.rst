@@ -15,7 +15,8 @@ Choose a path
 
 Start with :doc:`quickstart` for a first score calculation. Continue with the
 interactive :doc:`examples <examples_index>`, use a concise
-:doc:`workflow <workflows/index>`, or look up a specific operation in the
+:doc:`workflow <workflows/index>`, ask an agent to follow a repository
+:doc:`skill <agent_skills>`, or look up a specific operation in the
 :doc:`task index <tutorial/recipe_index>`.
 
 .. raw:: html
@@ -45,5 +46,6 @@ interactive :doc:`examples <examples_index>`, use a concise
    Quickstart <quickstart>
    Workflows <workflows/index>
    Examples <examples_index>
+   Agent skills <agent_skills>
    API <api_reference>
    Contributing <contributor_guide>

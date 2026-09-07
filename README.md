@@ -21,10 +21,11 @@ Explore the **[TMol documentation](https://uw-ipd.github.io/tmol/)** for
 complete installation guidance, executable tutorials, workflows, and the API
 reference.
 
-Three ways in:
+Four ways in:
 
 - 🚀 **Start scoring** → [quick start](#quick-start), then the full **[Quickstart](https://uw-ipd.github.io/tmol/latest/quickstart.html)**.
 - 🧬 **Build a workflow** → **[scoring, packing, minimization, FastRelax, and ligand recipes](https://uw-ipd.github.io/tmol/latest/workflows/index.html)**.
+- 🤖 **Guide an agent** → **[portable TMol skills](skills/README.md)** for setup, scoring, packing/relax, and development.
 - 🛠️ **Develop TMol** → **[contributor guide](https://uw-ipd.github.io/tmol/latest/contributor_guide.html)**.
 
 ## Install

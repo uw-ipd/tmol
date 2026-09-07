@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0",
+  "skill": "tmol-setup",
+  "cases": [
+    {
+      "id": "verify-existing-cpu-install",
+      "prompt": "Verify this existing CPU-only TMol checkout without installing system packages. Report the TMol and PyTorch versions, CUDA availability, active CPU thread count, and run one focused CPU scoring test.",
+      "setup": {
+        "cwd": "TMol repository root with its Python environment available",
+        "requires": ["Python 3.11+", "PyTorch 2.5+"]
+      },
+      "expected_behavior": [
+        "Inspects the active Python, TMol, PyTorch, and CUDA state before changing the environment",
+        "Does not require nvcc for the requested CPU-only verification",
+        "Reports torch.get_num_threads()",
+        "Runs a focused non-CUDA scoring test and reports its exit status"
+      ],
+      "success_criteria": {
+        "focused_test_exit_code": 0,
+        "reports_versions": true,
+        "reports_cpu_threads": true
+      }
+    }
+  ]
+}

@@ -57,3 +57,12 @@ useful module, class, and function docstrings because those docstrings become
 the reference documentation.
 
 Use Google or NumPy-style docstrings.
+
+## Agent skills
+
+Repository skills under `skills/` encode recurring workflows for coding agents.
+Keep each `SKILL.md` narrow and grounded in current public commands and APIs.
+Link substantial explanations to the maintained docs instead of copying them
+into several skills. When behavior changes, update the relevant skill, its
+human-readable skill card, and its bounded eval case together. See
+{doc}`Agent skills </agent_skills>` for the catalog.

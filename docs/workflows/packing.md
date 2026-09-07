@@ -8,7 +8,8 @@ develops local repacking and explicitly scoped mutation or design experiments.
 > - **Deep tutorial:** {doc}`04 — Packing and Mutation Scan
 >   </tutorial/04_packing_and_mutation_scan>`.
 > - **Related workflows:** {doc}`Optimization </user_guide/optimization>` and
->   {doc}`Nucleic acids </workflows/nucleic_acids>`.
+>   {doc}`Nucleic acids </workflows/nucleic_acids>`; for CPU execution, see
+>   {doc}`CPU threading </user_guide/cpu_threading>`.
 > - **API reference:** {doc}`Packing </api/pack>` and
 >   {doc}`Relax </api/relax>`.
 > - **Rosetta mapping:** {doc}`Packing, design, and mutation scans
