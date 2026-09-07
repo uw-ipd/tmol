@@ -894,14 +894,11 @@ class WholePoseScoringModule:
                     weight_begin + self._execution_modules[fused_index].n_score_types,
                 )
         cpu_threads = torch.get_num_threads() if weights.device.type == "cpu" else 1
+        # Use the same compact execution policy for single- and multi-pose
+        # scorers so batching cannot perturb nonlinear minimization trajectories.
         self._cpu_fused_shards = (
             min(8, max(2, cpu_threads // 2))
-            if self._fused_ljlk_elec_module_index is not None
-            and cpu_threads >= 2
-            and self._execution_modules[
-                self._fused_ljlk_elec_module_index
-            ].ljlk_module.n_poses
-            == 1
+            if self._fused_ljlk_elec_module_index is not None and cpu_threads >= 2
             else 0
         )
         self._cpu_fused_workers = min(
