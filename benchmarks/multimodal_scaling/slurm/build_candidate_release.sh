@@ -22,8 +22,8 @@ apptainer exec --bind "${source_dir}:/work" --pwd /work "${image}" \
     "${environment}/bin/python" -m pip install -e /work \
     --no-deps --no-build-isolation -Ccmake.define.TMOL_BUILD_TESTS=OFF
 
-grep -Fx 'CMAKE_BUILD_TYPE:STRING=Release' /work/CMakeCache.txt
-grep -Fx 'TMOL_BUILD_TESTS:BOOL=OFF' /work/CMakeCache.txt
+grep -Fx 'CMAKE_BUILD_TYPE:STRING=Release' "${source_dir}/CMakeCache.txt"
+grep -Fx 'TMOL_BUILD_TESTS:BOOL=OFF' "${source_dir}/CMakeCache.txt"
 apptainer exec --bind "${source_dir}:/work" --pwd /work "${image}" \
     env TMOL_USE_JIT=0 "${environment}/bin/python" -c \
     'import tmol; print(tmol.__version__, tmol.__file__)'
