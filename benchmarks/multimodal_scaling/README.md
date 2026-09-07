@@ -110,6 +110,9 @@ score-gradient and FastRelax configuration in A–B–B–A order, always in fre
 processes, and writes both raw JSON and a derived report under
 `$TMOL_CANDIDATE_AB_ROOT`. Override `TMOL_CANDIDATE_SOURCE` and
 `TMOL_CANDIDATE_ENV` to test another worktree without changing the script.
+Run `slurm/validate_candidate.sh` against the same worktree and environment to
+cover the shared-neighbor score terms, optimizer kernels, minimizers, and
+FastRelax on both CPU and CUDA before accepting the A/B result.
 
 For a large matrix, `src/feed_scheduler.py` can feed ordered table segments as
 capacity becomes available under the 3,000-job QOS cap and schedule the final
