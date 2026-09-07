@@ -14,6 +14,11 @@ from benchmark_tmol import imports, replicated_pose, select
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", required=True)
+    parser.add_argument(
+        "--modality",
+        choices=("protein", "protein_ligand", "protein_nucleic"),
+        default="protein",
+    )
     parser.add_argument("--device", choices=("cpu", "cuda"), required=True)
     parser.add_argument("--batch-size", type=int, default=1)
     parser.add_argument("--warmup", type=int, default=1)
@@ -34,7 +39,7 @@ def main() -> None:
     from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
 
     device = torch.device(args.device)
-    row = select(args.dataset)
+    row = select(args.dataset, args.modality)
     pose, database = replicated_pose(row, device, args.batch_size)
     score_function = beta2016_score_function(device, param_db=database)
     task = PackerTask(pose, PackerPalette())
@@ -91,6 +96,7 @@ def main() -> None:
                 "label": args.label,
                 "commit": args.commit,
                 "dataset_id": args.dataset,
+                "modality": args.modality,
                 "polymer_residues": int(row["polymer_residues"]),
                 "device": args.device,
                 "batch_size": args.batch_size,

@@ -45,7 +45,7 @@ run_one() {
         env TMOL_BENCH_ROOT=/bench TMOL_USE_JIT=0 \
         OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
         "${environment}/bin/python" /harness/src/profile_rotamer_terms.py \
-        --dataset "${dataset}" --device cpu --batch-size 1 \
+        --dataset "${dataset}" --modality protein --device cpu --batch-size 1 \
         --label "${label}" --commit "${commit}" \
         --output "/results/rotamer-term-profile/${dataset}-${label}-r${replicate}.json"
 }
