@@ -58,7 +58,12 @@ pip install tmol
 
 During a PyPI source-distribution build, TMol tries to fetch a matching
 pre-built wheel from GitHub Releases. If no compatible wheel exists, it builds
-locally.
+locally. Because an isolated build may see a different PyTorch variant than
+the runtime environment, pin the wheel lane when PyTorch is already installed:
+
+```bash
+TMOL_WHEEL_LOCAL_TAG=cputorch2.14 pip install tmol
+```
 
 Useful environment variables:
 
@@ -134,11 +139,11 @@ python -c "import sys, torch; print(f'Python {sys.version_info.major}.{sys.versi
 ## Google Colab
 
 Colab GPU runtimes currently use PyTorch 2.11.0 with CUDA 12.8 and may provide
-Python 3.12 or 3.13. TMol v0.1.55 provides separate Python-ABI wheels compiled
+Python 3.12 or 3.13. TMol v0.1.56 provides separate Python-ABI wheels compiled
 for T4 (`sm_75`), A100 (`sm_80`), and L4 (`sm_89`) GPUs. For Python 3.13:
 
 ```bash
-pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/v0.1.55/tmol-0.1.55+cu128torch2.11-cp313-cp313-manylinux_2_28_x86_64.whl"
+pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/v0.1.56/tmol-0.1.56+cu128torch2.11-cp313-cp313-manylinux_2_28_x86_64.whl"
 ```
 
 The tutorial bootstrap selects the wheel matching the runtime's Python ABI and
