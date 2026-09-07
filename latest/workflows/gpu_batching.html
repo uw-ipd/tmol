@@ -53,7 +53,7 @@
     <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/workflows/gpu_batching.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Scoring and analysis" href="../user_guide/scoring.html" />
+    <link rel="next" title="CPU threading" href="../user_guide/cpu_threading.html" />
     <link rel="prev" title="Model and structure integrations" href="../user_guide/integrations.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
@@ -156,6 +156,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../agent_skills.html">
+    Agent skills
   </a>
 </li>
 
@@ -290,6 +297,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../agent_skills.html">
+    Agent skills
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../api_reference.html">
     API
   </a>
@@ -364,6 +378,7 @@
 <li class="toctree-l1"><a class="reference internal" href="structure_io.html">Structure I/O and visualization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/integrations.html">Model and structure integrations</a></li>
 <li class="toctree-l1 current active"><a class="current reference internal" href="#">GPU batching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/cpu_threading.html">CPU threading</a></li>
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Score, design, and refine</span></p>
 <ul class="nav bd-sidenav">
@@ -452,7 +467,8 @@ and interpretation.</p>
 installation.</p></li>
 <li><p><strong>Deep tutorial:</strong> <a class="reference internal" href="../tutorial/02_gpu_batching.html"><span class="doc">02 — GPU Batching with TMol</span></a>.</p></li>
 <li><p><strong>Related workflows:</strong> <a class="reference internal" href="packing.html"><span class="doc">Packing</span></a> and
-<a class="reference internal" href="../user_guide/benchmarking.html"><span class="doc">developer benchmarking</span></a>.</p></li>
+<a class="reference internal" href="../user_guide/benchmarking.html"><span class="doc">developer benchmarking</span></a>; for CPU
+execution, see <a class="reference internal" href="../user_guide/cpu_threading.html"><span class="doc">CPU threading</span></a>.</p></li>
 <li><p><strong>API reference:</strong> <a class="reference internal" href="../api/pose.html"><span class="doc">Pose</span></a> and <a class="reference internal" href="../api/score.html"><span class="doc">Scoring</span></a>.</p></li>
 <li><p><strong>Rosetta mapping:</strong> <a class="reference internal" href="../tutorial/rosetta_crosswalk.html"><span class="doc">GPU batching and external orchestration</span></a>.</p></li>
 </ul>
@@ -542,11 +558,11 @@ separate from the <a class="reference internal" href="../user_guide/benchmarking
       </div>
     </a>
     <a class="right-next"
-       href="../user_guide/scoring.html"
+       href="../user_guide/cpu_threading.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Scoring and analysis</p>
+        <p class="prev-next-title">CPU threading</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>

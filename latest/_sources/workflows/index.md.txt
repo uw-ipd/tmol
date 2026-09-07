@@ -22,6 +22,11 @@ corresponding Tutorials for deeper analysis.
     <span class="docs-card-title">GPU batching</span>
     <span class="docs-card-description">Batch compatible structures, measure CUDA work correctly, and chunk larger application workloads.</span>
   </a>
+  <a class="docs-card" href="../user_guide/cpu_threading.html">
+    <span class="docs-card-kicker">Parallelize</span>
+    <span class="docs-card-title">CPU threading</span>
+    <span class="docs-card-description">Inspect affinity and PyTorch's active budget, select a thread count, and avoid multi-process oversubscription.</span>
+  </a>
   <a class="docs-card" href="../user_guide/scoring.html">
     <span class="docs-card-kicker">Evaluate</span>
     <span class="docs-card-title">Scoring and analysis</span>
@@ -62,6 +67,7 @@ corresponding Tutorials for deeper analysis.
 structure_io
 ../user_guide/integrations
 gpu_batching
+../user_guide/cpu_threading
 ```
 
 ```{toctree}

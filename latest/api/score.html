@@ -160,6 +160,13 @@
 </li>
 
 
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../agent_skills.html">
+    Agent skills
+  </a>
+</li>
+
+
 <li class="nav-item current active">
   <a class="nav-link nav-internal" href="../api_reference.html">
     API
@@ -285,6 +292,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../agent_skills.html">
+    Agent skills
   </a>
 </li>
 
@@ -552,6 +566,16 @@ into
 <p>Rendered energy modules that build sparse rotamer-pair energy tables.</p>
 <p>Large identical index layouts are combined before sparse coalescing to
 avoid retaining and sorting redundant block-pair indices.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.RotamerScoringModule.forward_sparse_entries">
+<span class="sig-name descname"><span class="pre">forward_sparse_entries</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coords</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.14/tensors.html#torch.Tensor" title="(in PyTorch v2.14)"><span class="pre">Tensor</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.pytorch.org/docs/2.14/tensors.html#torch.Tensor" title="(in PyTorch v2.14)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.pytorch.org/docs/2.14/tensors.html#torch.Tensor" title="(in PyTorch v2.14)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/tmol/score/_score_function.html#RotamerScoringModule.forward_sparse_entries"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.RotamerScoringModule.forward_sparse_entries" title="Link to this definition">#</a></dt>
+<dd><p>Return weighted, uncoalesced <code class="docutils literal notranslate"><span class="pre">(indices,</span> <span class="pre">values)</span></code> for packing.</p>
+<p>Duplicate coordinates may remain when two score terms use different
+layouts. Consumers must accumulate rather than assign their values.
+Indices remain int32 so the packer avoids an unnecessary int64 COO
+round-trip.</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -902,7 +926,10 @@ mapping records that define the fragment columns.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.IndexedBonds.to_directed"><code class="docutils literal notranslate"><span class="pre">IndexedBonds.to_directed()</span></code></a></li>
 </ul>
 </li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.RotamerScoringModule"><code class="docutils literal notranslate"><span class="pre">RotamerScoringModule</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.RotamerScoringModule"><code class="docutils literal notranslate"><span class="pre">RotamerScoringModule</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.RotamerScoringModule.forward_sparse_entries"><code class="docutils literal notranslate"><span class="pre">RotamerScoringModule.forward_sparse_entries()</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ScoreFunction"><code class="docutils literal notranslate"><span class="pre">ScoreFunction</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ScoreFunction.all_score_types"><code class="docutils literal notranslate"><span class="pre">ScoreFunction.all_score_types()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ScoreFunction.all_terms"><code class="docutils literal notranslate"><span class="pre">ScoreFunction.all_terms()</span></code></a></li>

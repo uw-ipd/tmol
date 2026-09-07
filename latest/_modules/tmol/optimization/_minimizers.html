@@ -158,6 +158,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../agent_skills.html">
+    Agent skills
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../api_reference.html">
     API
   </a>
@@ -280,6 +287,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../agent_skills.html">
+    Agent skills
   </a>
 </li>
 
@@ -603,6 +617,118 @@
 
 
 
+<span class="k">class</span><span class="w"> </span><span class="nc">_ReusableLBFGSFactory</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Construct once, then reset LBFGS when parameters and options match."""</span>
+
+    <span class="n">supports_segments</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="p">:</span> <span class="n">LBFGS_Armijo</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_reused</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_same_options</span><span class="p">(</span><span class="n">left</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">],</span> <span class="n">right</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">left</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">!=</span> <span class="n">right</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">left_value</span> <span class="ow">in</span> <span class="n">left</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">right_value</span> <span class="o">=</span> <span class="n">right</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">left_value</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span>
+                <span class="n">right_value</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+            <span class="p">):</span>
+                <span class="k">if</span> <span class="n">left_value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">right_value</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="kc">False</span>
+            <span class="k">elif</span> <span class="n">left_value</span> <span class="o">!=</span> <span class="n">right_value</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="o">**</span><span class="n">options</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LBFGS_Armijo</span><span class="p">:</span>
+        <span class="n">parameters</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">LBFGS_Armijo</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="o">**</span><span class="n">options</span><span class="p">)</span>
+        <span class="n">parameter</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">reusable</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="n">parameter</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_same_options</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_reused</span> <span class="o">=</span> <span class="n">reusable</span>
+        <span class="k">if</span> <span class="n">reusable</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">LBFGS_Armijo</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="o">**</span><span class="n">options</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter</span> <span class="o">=</span> <span class="n">parameter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">options</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span>
+
+
+<div class="viewcode-block" id="CartesianMinimizer">
+<a class="viewcode-back" href="../../../api/optimization.html#tmol.optimization.CartesianMinimizer">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">CartesianMinimizer</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Reusable Cartesian minimizer for pose stacks with stable topology.</span>
+
+<span class="sd">    Rendering a score function builds topology-dependent tensors and, when</span>
+<span class="sd">    requested, captures a CUDA graph.  Those are setup costs rather than part</span>
+<span class="sd">    of the numerical minimization.  This class retains that rendered network</span>
+<span class="sd">    across calls and resets only its coordinates when the score function,</span>
+<span class="sd">    topology, shape, and coordinate mask remain compatible.</span>
+
+<span class="sd">    Create one instance per reusable workflow.  A topology or score-function</span>
+<span class="sd">    change is detected automatically and safely rebuilds the network.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        cuda_graph: Capture and replay the fixed-shape CUDA forward/backward</span>
+<span class="sd">            score path.  This has a one-time setup and memory cost and requires</span>
+<span class="sd">            CUDA, so it is most useful when the instance will be reused.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cuda_graph</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cuda_graph</span> <span class="o">=</span> <span class="n">cuda_graph</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">:</span> <span class="n">CartesianSfxnNetwork</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="p">:</span> <span class="n">LBFGS_Armijo</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_optimizer_reused</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lbfgs_factory</span> <span class="o">=</span> <span class="n">_ReusableLBFGSFactory</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
+        <span class="n">sfxn</span><span class="p">:</span> <span class="n">ScoreFunction</span><span class="p">,</span>
+        <span class="n">coord_mask</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">optimizer_cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">]</span> <span class="o">=</span> <span class="n">LBFGS_Armijo</span><span class="p">,</span>
+        <span class="n">optimizer_kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Minimize one pose stack, reusing compatible rendered state."""</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">CartesianSfxnNetwork</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">_reset</span><span class="p">(</span>
+            <span class="n">sfxn</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">,</span> <span class="n">coord_mask</span>
+        <span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="o">=</span> <span class="n">CartesianSfxnNetwork</span><span class="p">(</span>
+                <span class="n">sfxn</span><span class="p">,</span>
+                <span class="n">pose_stack</span><span class="p">,</span>
+                <span class="n">coord_mask</span><span class="p">,</span>
+                <span class="n">cuda_graph</span><span class="o">=</span><span class="s2">"forward_backward"</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cuda_graph</span> <span class="k">else</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="n">selected_optimizer</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_lbfgs_factory</span> <span class="k">if</span> <span class="n">optimizer_cls</span> <span class="ow">is</span> <span class="n">LBFGS_Armijo</span> <span class="k">else</span> <span class="n">optimizer_cls</span>
+        <span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">run_min</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">,</span>
+            <span class="n">optimizer_cls</span><span class="o">=</span><span class="n">selected_optimizer</span><span class="p">,</span>
+            <span class="n">optimizer_kwargs</span><span class="o">=</span><span class="n">optimizer_kwargs</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lbfgs_factory</span><span class="o">.</span><span class="n">optimizer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_optimizer_reused</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lbfgs_factory</span><span class="o">.</span><span class="n">last_reused</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+
 <div class="viewcode-block" id="run_cart_min">
 <a class="viewcode-back" href="../../../api/optimization.html#tmol.optimization.run_cart_min">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">run_cart_min</span><span class="p">(</span>
@@ -630,17 +756,10 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        A new pose stack containing the minimized coordinates.</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">CartesianSfxnNetwork</span>
-
-    <span class="n">cart_network</span> <span class="o">=</span> <span class="n">CartesianSfxnNetwork</span><span class="p">(</span>
-        <span class="n">sfxn</span><span class="p">,</span>
+    <span class="k">return</span> <span class="n">CartesianMinimizer</span><span class="p">(</span><span class="n">cuda_graph</span><span class="o">=</span><span class="n">cuda_graph</span><span class="p">)(</span>
         <span class="n">pose_stack</span><span class="p">,</span>
-        <span class="n">coord_mask</span><span class="p">,</span>
-        <span class="n">cuda_graph</span><span class="o">=</span><span class="s2">"forward_backward"</span> <span class="k">if</span> <span class="n">cuda_graph</span> <span class="k">else</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">run_min</span><span class="p">(</span>
-        <span class="n">cart_network</span><span class="p">,</span>
+        <span class="n">sfxn</span><span class="p">,</span>
+        <span class="n">coord_mask</span><span class="o">=</span><span class="n">coord_mask</span><span class="p">,</span>
         <span class="n">optimizer_cls</span><span class="o">=</span><span class="n">optimizer_cls</span><span class="p">,</span>
         <span class="n">optimizer_kwargs</span><span class="o">=</span><span class="n">optimizer_kwargs</span><span class="p">,</span>
         <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>

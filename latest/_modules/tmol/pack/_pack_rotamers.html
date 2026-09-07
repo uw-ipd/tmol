@@ -158,6 +158,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../agent_skills.html">
+    Agent skills
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../api_reference.html">
     API
   </a>
@@ -285,6 +292,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../agent_skills.html">
+    Agent skills
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../api_reference.html">
     API
   </a>
@@ -400,11 +414,14 @@
                 <article class="bd-article">
                   
   <h1>Source code for tmol.pack._pack_rotamers</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PDBInfo</span><span class="p">,</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">PoseStackBuilder</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreFunction</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -437,6 +454,24 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        A new pose stack containing the lowest-ranked assignment per pose.</span>
 <span class="sd">    """</span>
+
+    <span class="n">max_poses_per_chunk</span> <span class="o">=</span> <span class="n">_max_poses_per_packing_chunk</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span> <span class="o">&gt;</span> <span class="n">max_poses_per_chunk</span><span class="p">:</span>
+        <span class="n">packed_chunks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">first_pose</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_poses_per_chunk</span><span class="p">):</span>
+            <span class="n">last_pose</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">first_pose</span> <span class="o">+</span> <span class="n">max_poses_per_chunk</span><span class="p">,</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span><span class="p">)</span>
+            <span class="n">chunk_pose_stack</span> <span class="o">=</span> <span class="n">_slice_pose_stack_for_packing</span><span class="p">(</span>
+                <span class="n">pose_stack</span><span class="p">,</span> <span class="n">first_pose</span><span class="p">,</span> <span class="n">last_pose</span>
+            <span class="p">)</span>
+            <span class="n">chunk_task</span> <span class="o">=</span> <span class="n">_slice_packer_task</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">first_pose</span><span class="p">,</span> <span class="n">last_pose</span><span class="p">)</span>
+            <span class="n">packed_chunk</span> <span class="o">=</span> <span class="n">pack_rotamers</span><span class="p">(</span>
+                <span class="n">chunk_pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="n">chunk_task</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span>
+            <span class="p">)</span>
+            <span class="n">packed_chunks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">packed_chunk</span><span class="p">)</span>
+        <span class="n">combined_pose_stack</span> <span class="o">=</span> <span class="n">PoseStackBuilder</span><span class="o">.</span><span class="n">from_poses</span><span class="p">(</span>
+            <span class="n">packed_chunks</span><span class="p">,</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">combined_pose_stack</span>
 
     <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
         <span class="n">synchronize_device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
@@ -494,14 +529,179 @@
 
 
 
+<span class="n">_SMALL_PACKING_POSE_CHUNK</span> <span class="o">=</span> <span class="mi">25</span>
+<span class="n">_DEFAULT_PACKING_POSE_CHUNK</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="n">_ESTIMATED_PACKING_BYTES_PER_BLOCK</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span>
+<span class="n">_PACKING_FREE_MEMORY_FRACTION</span> <span class="o">=</span> <span class="mf">0.25</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_max_poses_per_packing_chunk</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return a bounded, memory-aware native-packer batch size.</span>
+
+<span class="sd">    Native score dispatches use signed 32-bit per-chunk indices. Keeping the</span>
+<span class="sd">    batch bounded prevents a wide pose stack from overflowing those indices</span>
+<span class="sd">    and also limits transient score/index storage. The size cutoff and memory</span>
+<span class="sd">    estimate are deliberately conservative: packing scratch grows with both</span>
+<span class="sd">    residue count and rotamer density. The environment override is primarily</span>
+<span class="sd">    for deterministic tests and performance tuning.</span>
+<span class="sd">    """</span>
+    <span class="n">configured</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"TMOL_PACK_MAX_POSES_PER_CHUNK"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">configured</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">chunk_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">configured</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"TMOL_PACK_MAX_POSES_PER_CHUNK must be a positive integer; "</span>
+                <span class="sa">f</span><span class="s2">"got </span><span class="si">{</span><span class="n">configured</span><span class="si">!r}</span><span class="s2">"</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
+        <span class="k">if</span> <span class="n">chunk_size</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"TMOL_PACK_MAX_POSES_PER_CHUNK must be a positive integer; "</span>
+                <span class="sa">f</span><span class="s2">"got </span><span class="si">{</span><span class="n">configured</span><span class="si">!r}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">chunk_size</span>
+
+    <span class="n">max_n_blocks</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_blocks</span>
+    <span class="n">chunk_size</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">_SMALL_PACKING_POSE_CHUNK</span>
+        <span class="k">if</span> <span class="n">max_n_blocks</span> <span class="o">&lt;=</span> <span class="mi">256</span>
+        <span class="k">else</span> <span class="n">_DEFAULT_PACKING_POSE_CHUNK</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"cuda"</span><span class="p">:</span>
+        <span class="n">free_bytes</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">mem_get_info</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">memory_budget</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">free_bytes</span> <span class="o">*</span> <span class="n">_PACKING_FREE_MEMORY_FRACTION</span><span class="p">)</span>
+        <span class="n">estimated_bytes_per_pose</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">)</span> <span class="o">*</span> <span class="n">_ESTIMATED_PACKING_BYTES_PER_BLOCK</span>
+        <span class="p">)</span>
+        <span class="n">memory_limited_chunk</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">memory_budget</span> <span class="o">//</span> <span class="n">estimated_bytes_per_pose</span><span class="p">)</span>
+        <span class="n">chunk_size</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">chunk_size</span><span class="p">,</span> <span class="n">memory_limited_chunk</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">chunk_size</span>
+
+
+<span class="n">_PACKER_TASK_POSE_TENSORS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">"is_real_block"</span><span class="p">,</span>
+    <span class="s2">"per_block_orig_block_type"</span><span class="p">,</span>
+    <span class="s2">"per_block_n_considered_block_types"</span><span class="p">,</span>
+    <span class="s2">"per_block_considered_block_types"</span><span class="p">,</span>
+    <span class="s2">"per_block_considered_block_types_is_orig"</span><span class="p">,</span>
+    <span class="s2">"restrict_to_repacking_masks"</span><span class="p">,</span>
+    <span class="s2">"per_block_is_block_type_allowed"</span><span class="p">,</span>
+    <span class="s2">"per_block_conformer_sampler_allowed"</span><span class="p">,</span>
+    <span class="s2">"per_block_chi_expansion"</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_slice_pose_stack_for_packing</span><span class="p">(</span>
+    <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">first_pose</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">last_pose</span><span class="p">:</span> <span class="nb">int</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Make a cheap contiguous view for an unconstrained packing chunk.</span>
+
+<span class="sd">    The packer reads the input topology and coordinates but returns a new pose</span>
+<span class="sd">    stack, so ordinary FastRelax chunks can share input storage safely. Fall</span>
+<span class="sd">    back to the general builder for the uncommon metadata types whose pose</span>
+<span class="sd">    indices need remapping.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">split_block_mapping</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">PoseStackBuilder</span><span class="o">.</span><span class="n">from_poses</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">first_pose</span><span class="p">,</span> <span class="n">last_pose</span><span class="p">)],</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="n">chunk_constraint_set</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">constraint_set</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">constraints</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">constraint_set</span>
+        <span class="n">constraint_poses</span> <span class="o">=</span> <span class="n">constraints</span><span class="o">.</span><span class="n">constraint_atoms</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">selected</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="p">((</span><span class="n">constraint_poses</span> <span class="o">&gt;=</span> <span class="n">first_pose</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">constraint_poses</span> <span class="o">&lt;</span> <span class="n">last_pose</span><span class="p">))</span><span class="o">.</span><span class="n">any</span><span class="p">(</span>
+                <span class="n">dim</span><span class="o">=</span><span class="mi">1</span>
+            <span class="p">)</span>
+        <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">chunk_atoms</span> <span class="o">=</span> <span class="n">constraints</span><span class="o">.</span><span class="n">constraint_atoms</span><span class="p">[</span><span class="n">selected</span><span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="n">chunk_atom_poses</span> <span class="o">=</span> <span class="n">chunk_atoms</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">real_atoms</span> <span class="o">=</span> <span class="n">chunk_atom_poses</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">chunk_atom_poses</span><span class="p">[</span><span class="n">real_atoms</span><span class="p">]</span> <span class="o">-=</span> <span class="n">first_pose</span>
+        <span class="n">chunk_atoms</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">chunk_atom_poses</span>
+        <span class="n">chunk_unique_blocks</span> <span class="o">=</span> <span class="n">constraints</span><span class="o">.</span><span class="n">constraint_unique_blocks</span><span class="p">[</span><span class="n">selected</span><span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="n">chunk_unique_blocks</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-=</span> <span class="n">first_pose</span>
+        <span class="n">chunk_constraint_set</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+            <span class="n">constraints</span><span class="p">,</span>
+            <span class="n">n_poses</span><span class="o">=</span><span class="n">last_pose</span> <span class="o">-</span> <span class="n">first_pose</span><span class="p">,</span>
+            <span class="n">constraint_function_inds</span><span class="o">=</span><span class="n">constraints</span><span class="o">.</span><span class="n">constraint_function_inds</span><span class="p">[</span><span class="n">selected</span><span class="p">],</span>
+            <span class="n">constraint_atoms</span><span class="o">=</span><span class="n">chunk_atoms</span><span class="p">,</span>
+            <span class="n">constraint_params</span><span class="o">=</span><span class="n">constraints</span><span class="o">.</span><span class="n">constraint_params</span><span class="p">[</span><span class="n">selected</span><span class="p">],</span>
+            <span class="n">constraint_num_unique_blocks</span><span class="o">=</span><span class="n">constraints</span><span class="o">.</span><span class="n">constraint_num_unique_blocks</span><span class="p">[</span>
+                <span class="n">selected</span>
+            <span class="p">],</span>
+            <span class="n">constraint_unique_blocks</span><span class="o">=</span><span class="n">chunk_unique_blocks</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="n">pdb_info</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span>
+    <span class="n">chunk_pdb_info</span> <span class="o">=</span> <span class="n">PDBInfo</span><span class="p">(</span>
+        <span class="n">residue_labels</span><span class="o">=</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_labels</span><span class="p">[</span><span class="n">first_pose</span><span class="p">:</span><span class="n">last_pose</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+        <span class="n">residue_insertion_codes</span><span class="o">=</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_insertion_codes</span><span class="p">[</span>
+            <span class="n">first_pose</span><span class="p">:</span><span class="n">last_pose</span>
+        <span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+        <span class="n">chain_labels</span><span class="o">=</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">chain_labels</span><span class="p">[</span><span class="n">first_pose</span><span class="p">:</span><span class="n">last_pose</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+        <span class="n">atom_occupancy</span><span class="o">=</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">atom_occupancy</span><span class="p">[</span><span class="n">first_pose</span><span class="p">:</span><span class="n">last_pose</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+        <span class="n">atom_b_factor</span><span class="o">=</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">atom_b_factor</span><span class="p">[</span><span class="n">first_pose</span><span class="p">:</span><span class="n">last_pose</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">view</span><span class="p">(</span><span class="n">tensor</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">tensor</span><span class="p">[</span><span class="n">first_pose</span><span class="p">:</span><span class="n">last_pose</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">PoseStack</span><span class="p">(</span>
+        <span class="n">packed_block_types</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="p">,</span>
+        <span class="n">coords</span><span class="o">=</span><span class="n">view</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="p">),</span>
+        <span class="n">block_coord_offset</span><span class="o">=</span><span class="n">view</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset</span><span class="p">),</span>
+        <span class="n">block_coord_offset64</span><span class="o">=</span><span class="n">view</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset64</span><span class="p">),</span>
+        <span class="n">inter_residue_connections</span><span class="o">=</span><span class="n">view</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections</span><span class="p">),</span>
+        <span class="n">inter_residue_connections64</span><span class="o">=</span><span class="n">view</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections64</span><span class="p">),</span>
+        <span class="n">inter_block_bondsep</span><span class="o">=</span><span class="n">view</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_block_bondsep</span><span class="p">),</span>
+        <span class="n">inter_block_bondsep64</span><span class="o">=</span><span class="n">view</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_block_bondsep64</span><span class="p">),</span>
+        <span class="n">block_type_ind</span><span class="o">=</span><span class="n">view</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">),</span>
+        <span class="n">block_type_ind64</span><span class="o">=</span><span class="n">view</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">),</span>
+        <span class="n">chain_id</span><span class="o">=</span><span class="n">view</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">chain_id</span><span class="p">),</span>
+        <span class="n">chain_id64</span><span class="o">=</span><span class="n">view</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">chain_id64</span><span class="p">),</span>
+        <span class="n">pdb_info</span><span class="o">=</span><span class="n">chunk_pdb_info</span><span class="p">,</span>
+        <span class="n">constraint_set</span><span class="o">=</span><span class="n">chunk_constraint_set</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">split_block_mapping</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_slice_packer_task</span><span class="p">(</span><span class="n">task</span><span class="p">:</span> <span class="n">PackerTask</span><span class="p">,</span> <span class="n">first_pose</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">last_pose</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PackerTask</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Shallow-copy a configured task and slice all pose-major tensors."""</span>
+    <span class="n">chunk_task</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">attribute</span> <span class="ow">in</span> <span class="n">_PACKER_TASK_POSE_TENSORS</span><span class="p">:</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">attribute</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">chunk_task</span><span class="p">,</span> <span class="n">attribute</span><span class="p">,</span> <span class="n">value</span><span class="p">[</span><span class="n">first_pose</span><span class="p">:</span><span class="n">last_pose</span><span class="p">])</span>
+    <span class="n">chunk_task</span><span class="o">.</span><span class="n">real_block_pose</span><span class="p">,</span> <span class="n">chunk_task</span><span class="o">.</span><span class="n">real_block_block</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span>
+        <span class="n">chunk_task</span><span class="o">.</span><span class="n">is_real_block</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">chunk_task</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_calculate_packer_energies</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="n">rotamer_set</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_interaction_graph</span>
 
     <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
     <span class="n">rotamer_scoring_module</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_rotamer_scoring_module</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">rotamer_set</span><span class="p">)</span>
 
-    <span class="n">energies</span> <span class="o">=</span> <span class="n">rotamer_scoring_module</span><span class="p">(</span><span class="n">rotamer_set</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
-    <span class="n">energies</span> <span class="o">=</span> <span class="n">energies</span><span class="o">.</span><span class="n">coalesce</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"cuda"</span><span class="p">:</span>
+        <span class="c1"># CUDA graph construction atomically accumulates duplicate coordinates,</span>
+        <span class="c1"># so it can consume raw int32 entries. Avoid constructing/coalescing a</span>
+        <span class="c1"># PyTorch COO tensor: COO promotes coordinates to int64 and sorting can</span>
+        <span class="c1"># briefly require another full-size copy.</span>
+        <span class="n">energy_indices</span><span class="p">,</span> <span class="n">energy_values</span> <span class="o">=</span> <span class="n">rotamer_scoring_module</span><span class="o">.</span><span class="n">forward_sparse_entries</span><span class="p">(</span>
+            <span class="n">rotamer_set</span><span class="o">.</span><span class="n">coords</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># The CPU interaction-graph accumulator is deliberately non-atomic.</span>
+        <span class="c1"># Coalesce cross-layout duplicates before its parallel native loops.</span>
+        <span class="n">energies</span> <span class="o">=</span> <span class="n">rotamer_scoring_module</span><span class="p">(</span><span class="n">rotamer_set</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span><span class="o">.</span><span class="n">coalesce</span><span class="p">()</span>
+        <span class="n">energy_indices</span> <span class="o">=</span> <span class="n">energies</span><span class="o">.</span><span class="n">indices</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">energy_values</span> <span class="o">=</span> <span class="n">energies</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
         <span class="n">synchronize_device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
@@ -535,8 +735,8 @@
         <span class="n">rotamer_set</span><span class="o">.</span><span class="n">pose_for_rot</span><span class="p">,</span>
         <span class="n">rotamer_set</span><span class="o">.</span><span class="n">block_type_ind_for_rot</span><span class="p">,</span>
         <span class="n">rotamer_set</span><span class="o">.</span><span class="n">block_ind_for_rot</span><span class="p">,</span>
-        <span class="n">energies</span><span class="o">.</span><span class="n">indices</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
-        <span class="n">energies</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span>
+        <span class="n">energy_indices</span><span class="p">,</span>
+        <span class="n">energy_values</span><span class="p">,</span>
         <span class="n">verbose</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>

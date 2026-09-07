@@ -158,6 +158,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../agent_skills.html">
+    Agent skills
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../api_reference.html">
     API
   </a>
@@ -280,6 +287,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../agent_skills.html">
+    Agent skills
   </a>
 </li>
 
@@ -428,10 +442,9 @@
     <span class="n">IncludeCurrentSampler</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">CartesianSfxnNetwork</span><span class="p">,</span>
+    <span class="n">CartesianMinimizer</span><span class="p">,</span>
     <span class="n">run_cart_min</span><span class="p">,</span>
     <span class="n">run_kin_min</span><span class="p">,</span>
-    <span class="n">run_min</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility._device</span><span class="w"> </span><span class="kn">import</span> <span class="n">synchronize_device</span>
@@ -567,8 +580,7 @@
 <span class="w">    </span><span class="sd">"""Cartesian minimizer that reuses rendering for unchanged pose topology."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cuda_graph</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cuda_graph</span> <span class="o">=</span> <span class="n">cuda_graph</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">:</span> <span class="n">CartesianSfxnNetwork</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">minimizer</span> <span class="o">=</span> <span class="n">CartesianMinimizer</span><span class="p">(</span><span class="n">cuda_graph</span><span class="o">=</span><span class="n">cuda_graph</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -583,17 +595,10 @@
         <span class="n">coord_mask</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">move_map</span><span class="o">.</span><span class="n">coord_mask</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">move_map</span><span class="p">,</span> <span class="n">CartesianMoveMap</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
         <span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">_reset</span><span class="p">(</span>
-            <span class="n">sfxn</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">,</span> <span class="n">coord_mask</span>
-        <span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="o">=</span> <span class="n">CartesianSfxnNetwork</span><span class="p">(</span>
-                <span class="n">sfxn</span><span class="p">,</span>
-                <span class="n">pose_stack</span><span class="p">,</span>
-                <span class="n">coord_mask</span><span class="p">,</span>
-                <span class="n">cuda_graph</span><span class="o">=</span><span class="s2">"forward_backward"</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cuda_graph</span> <span class="k">else</span> <span class="kc">False</span><span class="p">,</span>
-            <span class="p">)</span>
-        <span class="k">return</span> <span class="n">run_min</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">,</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">minimizer</span><span class="p">(</span>
+            <span class="n">pose_stack</span><span class="p">,</span>
+            <span class="n">sfxn</span><span class="p">,</span>
+            <span class="n">coord_mask</span><span class="o">=</span><span class="n">coord_mask</span><span class="p">,</span>
             <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
             <span class="n">optimizer_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">"verbose"</span><span class="p">:</span> <span class="n">verbose</span><span class="p">},</span>
         <span class="p">)</span>

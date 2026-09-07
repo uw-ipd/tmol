@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Development &#8212; TMol</title>
+    <title>CPU threading &#8212; TMol</title>
   
   
   
@@ -48,13 +48,13 @@
     <script>let toggleOpenOnPrint = 'true';</script>
     <script src="../_static/togglebutton.js?v=b8b12719"></script>
     <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
-    <script>DOCUMENTATION_OPTIONS.pagename = 'user_guide/development';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'user_guide/cpu_threading';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
-    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/user_guide/development.html" />
+    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/user_guide/cpu_threading.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Examples" href="../examples_index.html" />
-    <link rel="prev" title="Benchmarking" href="benchmarking.html" />
+    <link rel="next" title="Scoring and analysis" href="scoring.html" />
+    <link rel="prev" title="GPU batching" href="../workflows/gpu_batching.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="0.1.56" />
@@ -374,11 +374,11 @@
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
   <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Prepare structures</span></p>
-<ul class="nav bd-sidenav">
+<ul class="current nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="../workflows/structure_io.html">Structure I/O and visualization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="integrations.html">Model and structure integrations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../workflows/gpu_batching.html">GPU batching</a></li>
-<li class="toctree-l1"><a class="reference internal" href="cpu_threading.html">CPU threading</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">CPU threading</a></li>
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Score, design, and refine</span></p>
 <ul class="nav bd-sidenav">
@@ -393,9 +393,9 @@
 <li class="toctree-l1"><a class="reference internal" href="../workflows/nucleic_acids.html">Nucleic acids</a></li>
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Develop and benchmark</span></p>
-<ul class="current nav bd-sidenav">
+<ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="benchmarking.html">Benchmarking</a></li>
-<li class="toctree-l1 current active"><a class="current reference internal" href="#">Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
 </ul>
 </div>
 </nav></div>
@@ -439,7 +439,7 @@
     
     <li class="breadcrumb-item"><a href="../workflows/index.html" class="nav-link">Workflows</a></li>
     
-    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Development</span></li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">CPU threading</span></li>
   </ul>
 </nav>
 </div>
@@ -456,190 +456,93 @@
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <section id="development">
-<h1>Development<a class="headerlink" href="#development" title="Link to this heading">#</a></h1>
-<p>This page summarizes local development, extension loading, testing, CI, and
-release workflows.</p>
+  <section id="cpu-threading">
+<h1>CPU threading<a class="headerlink" href="#cpu-threading" title="Link to this heading">#</a></h1>
+<p>TMol uses PyTorch’s process-wide CPU thread budget. In a normal environment,
+PyTorch initializes that budget from the CPUs visible to the process and its
+OpenMP settings. TMol does not require a separate thread-count API: inspect and
+change the same setting used by the rest of a PyTorch application.</p>
 <blockquote>
 <div><ul class="simple">
-<li><p><strong>Prerequisites:</strong> Complete the <a class="reference internal" href="../installation.html"><span class="doc">source installation</span></a>
-before running the full test suite.</p></li>
-<li><p><strong>Related guides:</strong> <a class="reference internal" href="benchmarking.html"><span class="doc">Benchmarking</span></a> and
-<a class="reference internal" href="../contributor_guide.html"><span class="doc">Contributor Guide</span></a>.</p></li>
-<li><p><strong>API reference:</strong> <a class="reference internal" href="../api_reference.html"><span class="doc">TMol API reference</span></a>.</p></li>
+<li><p><strong>Related workflows:</strong> <a class="reference internal" href="scoring.html"><span class="doc">Scoring</span></a>,
+<a class="reference internal" href="../workflows/packing.html"><span class="doc">Packing</span></a>, and
+<a class="reference internal" href="optimization.html"><span class="doc">Minimization and FastRelax</span></a>.</p></li>
+<li><p><strong>Performance measurement:</strong> <a class="reference internal" href="benchmarking.html"><span class="doc">Benchmarking</span></a>.</p></li>
+<li><p><strong>PyTorch API:</strong> <a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.set_num_threads.html"><code class="docutils literal notranslate"><span class="pre">torch.set_num_threads()</span></code></a>.</p></li>
 </ul>
 </div></blockquote>
-<section id="local-setup">
-<h2>Local Setup<a class="headerlink" href="#local-setup" title="Link to this heading">#</a></h2>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/uw-ipd/tmol.git
-<span class="nb">cd</span><span class="w"> </span>tmol
-pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[dev]"</span>
+<section id="inspect-the-allocation-and-active-budget">
+<h2>Inspect the allocation and active budget<a class="headerlink" href="#inspect-the-allocation-and-active-budget" title="Link to this heading">#</a></h2>
+<p>On Linux, process affinity is the most useful answer to “how many CPUs may this
+process use?” It respects scheduler and container restrictions:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="n">available_cpus</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="nb">len</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">sched_getaffinity</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">os</span><span class="p">,</span> <span class="s2">"sched_getaffinity"</span><span class="p">)</span>
+    <span class="k">else</span> <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span> <span class="ow">or</span> <span class="mi">1</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"CPUs available to this process: </span><span class="si">{</span><span class="n">available_cpus</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"PyTorch intra-op threads: </span><span class="si">{</span><span class="n">torch</span><span class="o">.</span><span class="n">get_num_threads</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The command above uses pip’s isolated build environment. To reuse an existing
-PyTorch installation (especially in a CUDA container), install the small build
-tools once and disable build isolation:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"scikit-build-core&gt;=0.10"</span><span class="w"> </span><span class="s2">"pybind11&gt;=2.12"</span><span class="w"> </span>ninja<span class="w"> </span>packaging
-python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[dev]"</span>
+<p>When no thread environment variable or application setting overrides it,
+PyTorch normally uses the CPUs available to the process. Always print both
+values in performance logs: a scheduler can grant many host CPUs while exposing
+only the allocated affinity mask, and an inherited <code class="docutils literal notranslate"><span class="pre">OMP_NUM_THREADS</span></code> can choose
+a smaller active budget.</p>
+</section>
+<section id="override-the-budget">
+<h2>Override the budget<a class="headerlink" href="#override-the-budget" title="Link to this heading">#</a></h2>
+<p>Set the budget before rendering TMol scorers or starting autograd work:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">torch</span><span class="o">.</span><span class="n">set_num_threads</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>TMol locates the Torch and pybind11 CMake packages from this Python
-interpreter; <code class="docutils literal notranslate"><span class="pre">CMAKE_PREFIX_PATH</span></code> and <code class="docutils literal notranslate"><span class="pre">pybind11_DIR</span></code> do not need to be set.</p>
-<p>Requirements:</p>
-<ul class="simple">
-<li><p>Python 3.11 or newer.</p></li>
-<li><p>PyTorch 2.5 or newer.</p></li>
-<li><p>A C++20-capable compiler (TMol uses C++17 with PyTorch 2.5–2.12).</p></li>
-<li><p>CMake 3.24 or newer.</p></li>
-<li><p>CUDA toolkit with <code class="docutils literal notranslate"><span class="pre">nvcc</span></code> for CUDA builds.</p></li>
-</ul>
-<p>Without CUDA, use a CPU-only build:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.<span class="w"> </span>-Ccmake.define.TMOL_ENABLE_CUDA<span class="o">=</span>OFF
+<p>For a command-line job, set the equivalent launch-time controls:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">OMP_NUM_THREADS</span><span class="o">=</span><span class="m">8</span><span class="w"> </span><span class="nv">MKL_NUM_THREADS</span><span class="o">=</span><span class="m">8</span><span class="w"> </span>python<span class="w"> </span>workflow.py
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">MKL_NUM_THREADS</span></code> controls MKL independently and takes precedence for MKL
+operations. <code class="docutils literal notranslate"><span class="pre">torch.get_num_threads()</span></code> is the authoritative value for PyTorch
+intra-op work after startup. <code class="docutils literal notranslate"><span class="pre">torch.set_num_interop_threads()</span></code> controls a
+different, process-wide pool and generally does not need changing for TMol; if
+an application changes it, PyTorch requires doing so before inter-op work starts.</p>
+<p>For Slurm, request CPUs and either rely on the launcher’s affinity or set the
+same number explicitly:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>srun<span class="w"> </span>--cpus-per-task<span class="o">=</span><span class="m">8</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>env<span class="w"> </span><span class="nv">OMP_NUM_THREADS</span><span class="o">=</span><span class="m">8</span><span class="w"> </span><span class="nv">MKL_NUM_THREADS</span><span class="o">=</span><span class="m">8</span><span class="w"> </span>python<span class="w"> </span>workflow.py
 </pre></div>
 </div>
 </section>
-<section id="building-extensions">
-<h2>Building Extensions<a class="headerlink" href="#building-extensions" title="Link to this heading">#</a></h2>
-<p>TMol builds extensions with CMake through <code class="docutils literal notranslate"><span class="pre">scikit-build-core</span></code>.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Production extensions</span>
-pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
-
-<span class="c1"># Include test-only C++/CUDA extensions</span>
-pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[dev]"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-Ccmake.define.TMOL_BUILD_TESTS<span class="o">=</span>ON
-
-<span class="c1"># Select GPU architectures</span>
-pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.<span class="w"> </span>-Ccmake.define.CMAKE_CUDA_ARCHITECTURES<span class="o">=</span><span class="s2">"80;90"</span>
-
-<span class="c1"># Control parallelism</span>
-<span class="nv">MAX_JOBS</span><span class="o">=</span><span class="m">4</span><span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.<span class="w"> </span>-Ccmake.define.TMOL_NVCC_THREADS<span class="o">=</span><span class="m">2</span>
-</pre></div>
-</div>
-<p>Important CMake variables:</p>
-<div class="pst-scrollable-table-container"><table class="table">
-<thead>
-<tr class="row-odd"><th class="head"><p>Variable</p></th>
-<th class="head"><p>Default</p></th>
-<th class="head"><p>Meaning</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CMAKE_CUDA_ARCHITECTURES</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">native</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">native</span></code> compiles only for GPUs visible at configure time. <code class="docutils literal notranslate"><span class="pre">all</span></code>, used for release wheels, emits SASS for every sm_75+ target reported by <code class="docutils literal notranslate"><span class="pre">nvcc</span> <span class="pre">--list-gpu-code</span></code>, plus PTX for the newest target.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TMOL_BUILD_TESTS</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">OFF</span></code></p></td>
-<td><p>Build test-only extensions.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TMOL_NVCC_THREADS</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">4</span></code></p></td>
-<td><p>Threads per <code class="docutils literal notranslate"><span class="pre">nvcc</span></code> invocation.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TMOL_ENABLE_CUDA</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">ON</span></code></p></td>
-<td><p>Turn off for CPU-only builds.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MAX_JOBS</span></code></p></td>
-<td><p>auto</p></td>
-<td><p>Maximum parallel build jobs.</p></td>
-</tr>
-</tbody>
-</table>
-</div>
+<section id="how-tmol-uses-the-budget">
+<h2>How TMol uses the budget<a class="headerlink" href="#how-tmol-uses-the-budget" title="Link to this heading">#</a></h2>
+<p>When a CPU scoring module is rendered, TMol derives bounded worker and pair-
+traversal shard counts from <code class="docutils literal notranslate"><span class="pre">torch.get_num_threads()</span></code>. It can parallelize
+independent score terms, poses, and the dominant pair traversal, but deliberately
+uses fewer workers for small workloads where coordination would cost more than
+it saves. The requested PyTorch budget is therefore a ceiling, not a promise
+that every score call will keep every logical CPU busy.</p>
+<p>Changes to the thread budget should happen before rendering a scorer because
+the scorer’s internal execution plan is selected at construction time. Render
+a new scorer after changing the budget.</p>
+<p>Packing, minimization, and FastRelax call the same scoring machinery and inherit
+the same process budget. CUDA kernels do not use this CPU thread count, although
+structure preparation and other host-side work still can.</p>
 </section>
-<section id="aot-vs-jit-extension-loading">
-<h2>AOT vs JIT Extension Loading<a class="headerlink" href="#aot-vs-jit-extension-loading" title="Link to this heading">#</a></h2>
-<p>TMol can load kernels two ways:</p>
-<ul class="simple">
-<li><p>AOT: pre-built shared libraries bundled in the installed wheel.</p></li>
-<li><p>JIT: source files compiled on first use through <code class="docutils literal notranslate"><span class="pre">torch.utils.cpp_extension</span></code>.</p></li>
-</ul>
-<p>Environment variables:</p>
-<div class="pst-scrollable-table-container"><table class="table">
-<thead>
-<tr class="row-odd"><th class="head"><p>Variable</p></th>
-<th class="head"><p>Effect</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TMOL_USE_JIT=1</span></code></p></td>
-<td><p>Force JIT mode.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TMOL_JIT_FALLBACK=1</span></code></p></td>
-<td><p>Try AOT first, then JIT if AOT is unavailable.</p></td>
-</tr>
-</tbody>
-</table>
-</div>
-<p>Use JIT mode while editing kernels. Use AOT mode for normal installed packages.</p>
-</section>
-<section id="tests">
-<h2>Tests<a class="headerlink" href="#tests" title="Link to this heading">#</a></h2>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># All tests</span>
-pytest<span class="w"> </span>tmol/tests/<span class="w"> </span>-v
-
-<span class="c1"># Specific file</span>
-pytest<span class="w"> </span>tmol/tests/score/test_score_function.py<span class="w"> </span>-v
-
-<span class="c1"># Skip CUDA-parametrized cases</span>
-pytest<span class="w"> </span>tmol/tests/<span class="w"> </span>-v<span class="w"> </span>-k<span class="w"> </span><span class="s2">"not cuda"</span>
-
-<span class="c1"># Coverage</span>
-pytest<span class="w"> </span>tmol/tests/<span class="w"> </span>--cov<span class="o">=</span>./tmol<span class="w"> </span>--junitxml<span class="o">=</span>results.xml
-
-<span class="c1"># Benchmarks</span>
-pytest<span class="w"> </span>--benchmark-enable<span class="w"> </span>--benchmark-only<span class="w"> </span>--benchmark-max-time<span class="o">=</span>.1
-</pre></div>
-</div>
-<p>Ligand charge generation is intentionally strict. Partial charges come from the
-SMILES to OpenBabel MMFF94 mol2 step and are applied by atom index. There is no
-RDKit/Gasteiger fallback and no charge-mode switch.</p>
-</section>
-<section id="containers">
-<h2>Containers<a class="headerlink" href="#containers" title="Link to this heading">#</a></h2>
-<p>Docker:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>tmol-dev<span class="w"> </span>-f<span class="w"> </span>containers/docker/tmol-dev.Dockerfile<span class="w"> </span>.
-docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>-it<span class="w"> </span>-v<span class="w"> </span><span class="s2">"</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">:/tmol_host"</span><span class="w"> </span>-w<span class="w"> </span>/tmol_host<span class="w"> </span>tmol-dev<span class="w"> </span>bash
-pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
-</pre></div>
-</div>
-<p>Apptainer:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>apptainer<span class="w"> </span>build<span class="w"> </span>tmol-dev.sif<span class="w"> </span>containers/apptainer/tmol-dev.def
-apptainer<span class="w"> </span>run<span class="w"> </span>--nv<span class="w"> </span>--bind<span class="w"> </span><span class="s2">"</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">:/tmol_host"</span><span class="w"> </span>tmol-dev.sif
-</pre></div>
-</div>
-</section>
-<section id="ci">
-<h2>CI<a class="headerlink" href="#ci" title="Link to this heading">#</a></h2>
-<p>GitHub Actions runs linting, the Linux x86-64, Linux aarch64, and Apple Silicon
-CPU suites, and CPU documentation builds on hosted runners. CUDA tests,
-benchmarks, and the CUDA-only tutorial smoke tests use the self-hosted DIGS
-runner. PR docs builds upload rendered HTML artifacts; same-repository PRs also
-publish previews under the Pages site.</p>
-</section>
-<section id="releasing">
-<h2>Releasing<a class="headerlink" href="#releasing" title="Link to this heading">#</a></h2>
-<p>Versioned wheel and sdist publication happens from <code class="docutils literal notranslate"><span class="pre">v*</span></code> tags. Linux x86-64,
-Linux aarch64, and Apple Silicon CPU wheels are built for each supported
-CPython version and qualified by their PyTorch minor. The tag version
-must match <code class="docutils literal notranslate"><span class="pre">[project].version</span></code> in <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code>.</p>
-<p>Before using a versioned wheel URL, check the GitHub Releases page. The version
-in a checkout is not proof that a release has been published.</p>
-</section>
-<section id="code-style">
-<h2>Code Style<a class="headerlink" href="#code-style" title="Link to this heading">#</a></h2>
-<p>TMol uses Black for Python formatting, Flake8 for linting, and clang-format for
-C++/CUDA formatting.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>black<span class="w"> </span>--check<span class="w"> </span>.
-black<span class="w"> </span>.
-flake8
-</pre></div>
-</div>
-<p>Run pre-commit before opening a PR:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pre-commit<span class="w"> </span>run<span class="w"> </span>--all-files
-</pre></div>
-</div>
+<section id="choose-a-practical-value">
+<h2>Choose a practical value<a class="headerlink" href="#choose-a-practical-value" title="Link to this heading">#</a></h2>
+<p>Start with all CPUs in the process affinity mask for one TMol process. Then
+measure representative structures at smaller values; memory bandwidth,
+workload size, and the mix of score terms can produce a plateau before every
+logical CPU is useful. Prefer physical cores before adding sibling hardware
+threads when topology is known.</p>
+<p>For multiple processes or data-loader workers, divide the allocation between
+them instead of giving every process the full count. For example, four worker
+processes in a 32-CPU allocation should normally start near eight intra-op
+threads each. Record the affinity, <code class="docutils literal notranslate"><span class="pre">torch.get_num_threads()</span></code>, pose sizes, batch
+size, and process count with benchmark results so comparisons remain
+reproducible.</p>
 </section>
 </section>
 
@@ -654,20 +557,20 @@ flake8
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="benchmarking.html"
+       href="../workflows/gpu_batching.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Benchmarking</p>
+        <p class="prev-next-title">GPU batching</p>
       </div>
     </a>
     <a class="right-next"
-       href="../examples_index.html"
+       href="scoring.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Examples</p>
+        <p class="prev-next-title">Scoring and analysis</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -690,21 +593,17 @@ flake8
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#local-setup">Local Setup</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#building-extensions">Building Extensions</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#aot-vs-jit-extension-loading">AOT vs JIT Extension Loading</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tests">Tests</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#containers">Containers</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ci">CI</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#releasing">Releasing</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#code-style">Code Style</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#inspect-the-allocation-and-active-budget">Inspect the allocation and active budget</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#override-the-budget">Override the budget</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#how-tmol-uses-the-budget">How TMol uses the budget</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#choose-a-practical-value">Choose a practical value</a></li>
 </ul>
   </nav></div>
 
   <div class="sidebar-secondary-item">
 
   <div class="tocsection sourcelink">
-    <a href="../_sources/user_guide/development.md.txt">
+    <a href="../_sources/user_guide/cpu_threading.md.txt">
       <i class="fa-solid fa-file-lines"></i> Show Source
     </a>
   </div>

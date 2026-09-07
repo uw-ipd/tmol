@@ -161,6 +161,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../agent_skills.html">
+    Agent skills
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../api_reference.html">
     API
   </a>
@@ -290,6 +297,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../agent_skills.html">
+    Agent skills
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../api_reference.html">
     API
   </a>
@@ -364,6 +378,7 @@
 <li class="toctree-l1"><a class="reference internal" href="structure_io.html">Structure I/O and visualization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/integrations.html">Model and structure integrations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gpu_batching.html">GPU batching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/cpu_threading.html">CPU threading</a></li>
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Score, design, and refine</span></p>
 <ul class="nav bd-sidenav">
@@ -460,6 +475,11 @@ corresponding Tutorials for deeper analysis.</p>
     <span class="docs-card-title">GPU batching</span>
     <span class="docs-card-description">Batch compatible structures, measure CUDA work correctly, and chunk larger application workloads.</span>
   </a>
+  <a class="docs-card" href="../user_guide/cpu_threading.html">
+    <span class="docs-card-kicker">Parallelize</span>
+    <span class="docs-card-title">CPU threading</span>
+    <span class="docs-card-description">Inspect affinity and PyTorch's active budget, select a thread count, and avoid multi-process oversubscription.</span>
+  </a>
   <a class="docs-card" href="../user_guide/scoring.html">
     <span class="docs-card-kicker">Evaluate</span>
     <span class="docs-card-title">Scoring and analysis</span>
@@ -511,6 +531,13 @@ corresponding Tutorials for deeper analysis.</p>
 <li class="toctree-l1"><a class="reference internal" href="gpu_batching.html">GPU batching</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="gpu_batching.html#time-cuda-work-correctly">Time CUDA work correctly</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gpu_batching.html#chunk-larger-workloads">Chunk larger workloads</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/cpu_threading.html">CPU threading</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/cpu_threading.html#inspect-the-allocation-and-active-budget">Inspect the allocation and active budget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/cpu_threading.html#override-the-budget">Override the budget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/cpu_threading.html#how-tmol-uses-the-budget">How TMol uses the budget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/cpu_threading.html#choose-a-practical-value">Choose a practical value</a></li>
 </ul>
 </li>
 </ul>

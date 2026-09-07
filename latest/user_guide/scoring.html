@@ -54,7 +54,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Packing" href="../workflows/packing.html" />
-    <link rel="prev" title="GPU batching" href="../workflows/gpu_batching.html" />
+    <link rel="prev" title="CPU threading" href="cpu_threading.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="0.1.56" />
@@ -156,6 +156,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../agent_skills.html">
+    Agent skills
   </a>
 </li>
 
@@ -290,6 +297,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../agent_skills.html">
+    Agent skills
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../api_reference.html">
     API
   </a>
@@ -364,6 +378,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../workflows/structure_io.html">Structure I/O and visualization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="integrations.html">Model and structure integrations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../workflows/gpu_batching.html">GPU batching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cpu_threading.html">CPU threading</a></li>
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Score, design, and refine</span></p>
 <ul class="current nav bd-sidenav">
@@ -489,15 +504,20 @@ while coordinates change, and its outputs can participate in autograd:</p>
 </div>
 <section id="cpu-batch-throughput">
 <h2>CPU batch throughput<a class="headerlink" href="#cpu-batch-throughput" title="Link to this heading">#</a></h2>
-<p>Whole-pose CPU scoring parallelizes independent poses through PyTorch’s
-intra-op thread pool. Set the pool from the cores actually allocated to the
-process, and normally do not assign more scoring threads than poses:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">torch</span><span class="o">.</span><span class="n">set_num_threads</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">allocated_physical_cores</span><span class="p">))</span>
+<p>Whole-pose CPU scoring follows PyTorch’s process-wide intra-op thread budget.
+Inspect the active value and, when needed, override it before rendering a
+scorer:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">get_num_threads</span><span class="p">())</span>
+<span class="n">torch</span><span class="o">.</span><span class="n">set_num_threads</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The pose boundary keeps gradients race-free, so a one-pose batch does not gain
-intra-pose parallelism. When several processes or data-loader workers score at
-once, divide the available cores between them to avoid oversubscription.</p>
+<p>TMol parallelizes independent poses and score terms and can shard the dominant
+pair traversal for a single pose. Small workloads may use fewer threads when
+additional shards would cost more than they save. When several processes or
+data-loader workers score at once, divide the available cores between them to
+avoid oversubscription. See <a class="reference internal" href="cpu_threading.html"><span class="doc">CPU threading</span></a>
+for affinity-aware discovery, scheduler examples, launch-time overrides, and
+benchmarking guidance.</p>
 </section>
 <section id="ligand-aware-scoring">
 <h2>Ligand-aware Scoring<a class="headerlink" href="#ligand-aware-scoring" title="Link to this heading">#</a></h2>
@@ -588,12 +608,12 @@ the connected multi-block context.</p>
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="../workflows/gpu_batching.html"
+       href="cpu_threading.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">GPU batching</p>
+        <p class="prev-next-title">CPU threading</p>
       </div>
     </a>
     <a class="right-next"

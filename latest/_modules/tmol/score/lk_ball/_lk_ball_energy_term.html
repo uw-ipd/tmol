@@ -158,6 +158,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../agent_skills.html">
+    Agent skills
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../api_reference.html">
     API
   </a>
@@ -280,6 +287,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../agent_skills.html">
+    Agent skills
   </a>
 </li>
 
@@ -655,9 +669,10 @@
             <span class="n">gen_pose_waters</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="n">common_args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
-        <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
-        <span class="n">block_pair_scoring</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">common_args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">block_pair_scoring</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">shared_block_neighbors</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
         <span class="n">args</span> <span class="o">=</span> <span class="p">[</span>
             <span class="o">*</span><span class="n">common_args</span><span class="p">,</span>
@@ -705,6 +720,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_max_dis</span><span class="p">,</span>
             <span class="n">water_coords</span><span class="p">,</span>
             <span class="n">block_pair_scoring</span><span class="p">,</span>
+            <span class="n">shared_block_neighbors</span><span class="p">,</span>
         <span class="p">]</span>
         <span class="k">if</span> <span class="n">common_args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">:</span>
             <span class="n">convert_float64</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
@@ -713,13 +729,14 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">rotamer_score_lk_ball</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.lk_ball.potentials</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-            <span class="n">lk_ball_rotamer_score</span><span class="p">,</span>
+            <span class="n">lk_ball_rotamer_score_shared</span><span class="p">,</span>
             <span class="n">gen_pose_waters</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="n">common_args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
-        <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
-        <span class="n">block_pair_scoring</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">common_args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">shared_dispatch_indices</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">block_pair_scoring</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
 
         <span class="n">args</span> <span class="o">=</span> <span class="p">[</span>
             <span class="o">*</span><span class="n">common_args</span><span class="p">,</span>
@@ -771,13 +788,22 @@
         <span class="k">if</span> <span class="n">common_args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">:</span>
             <span class="n">convert_float64</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">lk_ball_rotamer_score</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">lk_ball_rotamer_score_shared</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">shared_dispatch_indices</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_pose_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose_score_lk_ball</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_rotamer_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rotamer_score_lk_ball</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_block_neighbor_cutoff</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_dis</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">accepts_shared_rotamer_dispatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">rotamer_dispatch_key</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">"sphere_overlap"</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_score_term_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">pose_stack</span><span class="p">]</span></div>

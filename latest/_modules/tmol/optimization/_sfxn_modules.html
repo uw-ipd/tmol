@@ -158,6 +158,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../agent_skills.html">
+    Agent skills
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../api_reference.html">
     API
   </a>
@@ -280,6 +287,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../agent_skills.html">
+    Agent skills
   </a>
 </li>
 
@@ -442,6 +456,7 @@
         <span class="c1"># clone: forward() writes into full_coords in place, which would</span>
         <span class="c1"># otherwise overwrite the caller's coordinates</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_uses_default_coord_mask</span> <span class="o">=</span> <span class="n">coord_mask</span> <span class="ow">is</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">coord_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="c1"># Padding coordinates never contribute to a pose's score. Excluding</span>
             <span class="c1"># them keeps heterogeneous batches from allocating and updating</span>
@@ -480,9 +495,10 @@
         <span class="n">coord_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return whether this network can score another pose without rendering."""</span>
-        <span class="k">if</span> <span class="n">coord_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">coord_mask</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">real_atoms</span>
-        <span class="k">return</span> <span class="p">(</span>
+        <span class="c1"># Check cheap Python identity and shape predicates before any tensor</span>
+        <span class="c1"># comparison. The normal repeated-topology path shares these tensors,</span>
+        <span class="c1"># so it avoids both rebuilding ``real_atoms`` and synchronizing CUDA.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
             <span class="n">score_function</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">_score_function</span>
             <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_score_function_versions</span>
             <span class="o">==</span> <span class="p">(</span>
@@ -492,14 +508,28 @@
             <span class="ow">and</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
             <span class="ow">and</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">constraint_set</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">constraint_set</span>
             <span class="ow">and</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span>
-            <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">coord_mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">coord_mask</span><span class="p">)</span>
-            <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">)</span>
-            <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span>
-                <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset</span>
-            <span class="p">)</span>
             <span class="ow">and</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections</span>
             <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections</span>
             <span class="ow">and</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_block_bondsep</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_block_bondsep</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="n">coord_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_uses_default_coord_mask</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">elif</span> <span class="n">coord_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">coord_mask</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span>
+            <span class="n">coord_mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">coord_mask</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span>
+            <span class="ow">or</span> <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">)</span>
+        <span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset</span>
+            <span class="ow">or</span> <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span>
+                <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset</span>
+            <span class="p">)</span>
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_reset</span><span class="p">(</span>
@@ -560,7 +590,6 @@
         <span class="n">dof_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">kin_dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
     <span class="p">):</span>
-
         <span class="nb">super</span><span class="p">(</span><span class="n">KinForestSfxnNetwork</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="n">torch_device</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span>
@@ -643,7 +672,6 @@
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">pose_stack_from_dofs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
-
         <span class="n">full_dofs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_dofs</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
         <span class="n">flat_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flat_coords</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
         <span class="n">full_dofs</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">_dof_flat_idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">masked_dofs</span>
