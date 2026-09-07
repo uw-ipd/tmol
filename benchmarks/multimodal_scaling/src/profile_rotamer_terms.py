@@ -40,9 +40,7 @@ def main() -> None:
     task = PackerTask(pose, PackerPalette())
     task.restrict_to_repacking()
     defaults = tmol.database.ParameterDatabase.get_default()
-    task.add_conformer_sampler(
-        create_dunbrack_sampler_from_database(defaults, device)
-    )
+    task.add_conformer_sampler(create_dunbrack_sampler_from_database(defaults, device))
     task.add_conformer_sampler(FixedAAChiSampler())
     task.add_conformer_sampler(IncludeCurrentSampler())
     pose, rotamers = build_rotamers(

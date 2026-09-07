@@ -50,10 +50,24 @@ def main() -> None:
             record.get("peak_memory_bytes") or record.get("process_peak_rss_bytes")
             for record in candidate
         ]
+        base_scores = [
+            record["validation_score_mean"]
+            for record in baseline
+            if record.get("validation_score_mean") is not None
+        ]
+        candidate_scores = [
+            record["validation_score_mean"]
+            for record in candidate
+            if record.get("validation_score_mean") is not None
+        ]
         complete = bool(base_seconds and candidate_seconds)
         base_median = statistics.median(base_seconds) if base_seconds else None
         candidate_median = (
             statistics.median(candidate_seconds) if candidate_seconds else None
+        )
+        base_score = statistics.median(base_scores) if base_scores else None
+        candidate_score = (
+            statistics.median(candidate_scores) if candidate_scores else None
         )
         rows.append(
             {
@@ -86,6 +100,13 @@ def main() -> None:
                     if base_memory and candidate_memory
                     else None
                 ),
+                "baseline_validation_score": base_score,
+                "candidate_validation_score": candidate_score,
+                "validation_score_delta": (
+                    candidate_score - base_score
+                    if base_score is not None and candidate_score is not None
+                    else None
+                ),
             }
         )
 
@@ -103,18 +124,23 @@ def main() -> None:
         "",
         "Speedup is baseline 0.1.55 time divided by candidate time; values above 1 are faster.",
         "Peak memory ratio is candidate divided by baseline; values below 1 use less memory.",
+        "Final score delta is candidate minus baseline. A nonzero FastRelax value means floating-point scheduling changed the optimization trajectory, so its wall time is not a pure per-call kernel comparison.",
         "",
-        "| Protocol | Modality | Residues | Device | Batch | Speedup | Memory ratio | Successful A/B | Failed A/B |",
-        "|---|---|---:|---|---:|---:|---:|---:|---:|",
+        "| Protocol | Modality | Residues | Device | Batch | Speedup | Memory ratio | Final score delta | Successful A/B | Failed A/B |",
+        "|---|---|---:|---|---:|---:|---:|---:|---:|---:|",
     ]
     for row in rows:
         speedup = row["candidate_speedup"]
         memory = row["candidate_memory_ratio"]
+        score_delta = row["validation_score_delta"]
         report.append(
-            "| {protocol} | {modality} | {polymer_residues} | {device} | {batch_size} | {speedup} | {memory} | {baseline_replicates}/{candidate_replicates} | {baseline_failures}/{candidate_failures} |".format(
+            "| {protocol} | {modality} | {polymer_residues} | {device} | {batch_size} | {speedup} | {memory} | {score_delta} | {baseline_replicates}/{candidate_replicates} | {baseline_failures}/{candidate_failures} |".format(
                 **row,
                 speedup=f"{speedup:.3f}x" if speedup is not None else "pending",
                 memory=f"{memory:.3f}x" if memory is not None else "pending",
+                score_delta=(
+                    f"{score_delta:+.6g}" if score_delta is not None else "pending"
+                ),
             )
         )
     (args.output / "candidate_ab_report.md").write_text("\n".join(report) + "\n")
