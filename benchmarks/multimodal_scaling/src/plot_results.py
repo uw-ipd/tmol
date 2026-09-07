@@ -140,8 +140,8 @@ def composite_figure(data: pd.DataFrame, metric: str) -> None:
         len(WORKLOADS),
         len(MODALITIES),
         figsize=(14.2, 7.4),
-        sharex=True,
-        sharey="row",
+        sharex=False,
+        sharey=False,
         constrained_layout=True,
     )
     for row_index, (workload, workload_title) in enumerate(WORKLOADS.items()):
@@ -150,7 +150,6 @@ def composite_figure(data: pd.DataFrame, metric: str) -> None:
             plot_panel(ax, data, modality, workload, metric)
             ax.set_xscale("log")
             ax.set_yscale("log")
-            ax.set_xlim(25, 1600)
             ax.grid(which="major", color="#D9D9D9", linewidth=0.55)
             ax.grid(which="minor", color="#EEEEEE", linewidth=0.35)
             panel = chr(ord("a") + row_index * len(MODALITIES) + column_index)
@@ -173,15 +172,13 @@ def composite_figure(data: pd.DataFrame, metric: str) -> None:
             )
             if row_index == 0:
                 ax.set_title(modality_title)
-            if row_index == len(WORKLOADS) - 1:
-                ax.set_xlabel("Polymer residues per structure")
-            if column_index == 0:
-                ylabel = (
-                    "Throughput (structures s$^{-1}$)"
-                    if metric == "speed"
-                    else "Peak working memory (GiB)"
-                )
-                ax.set_ylabel(f"{ylabel}\n{workload_title}")
+            ax.set_xlabel("Polymer residues per structure")
+            ylabel = (
+                "Throughput (structures s$^{-1}$)"
+                if metric == "speed"
+                else "Peak working memory (GiB)"
+            )
+            ax.set_ylabel(ylabel)
 
     fig.legend(
         handles=legend_handles(),
