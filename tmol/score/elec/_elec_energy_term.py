@@ -159,9 +159,18 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         return elec_pose_scores
 
     def get_rotamer_score_term_function(self):
-        from tmol.score.elec.potentials import elec_rotamer_scores
+        from tmol.score.elec.potentials import elec_rotamer_scores_shared
 
-        return elec_rotamer_scores
+        return elec_rotamer_scores_shared
+
+    def get_block_neighbor_cutoff(self):
+        return self._max_dis
+
+    def rotamer_dispatch_key(self):
+        return "sphere_overlap"
+
+    def accepts_shared_rotamer_dispatch(self):
+        return True
 
     def get_score_term_attributes(self, pose_stack):
         if self._scoring_global_params is None:

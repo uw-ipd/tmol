@@ -105,6 +105,9 @@ struct lk_isotropic_pair {
       Real lk_inv_lambda2_i,
       Real max_dis,
       bool is_cc_pair) -> Real {
+    if (bonded_path_length < Real(4)) {
+      return 0.0;
+    }
     Real d_min = lj_sigma_ij * .89;
     if (is_cc_pair)
       d_min = std::max(d_min, Real(4.2));  // C-C modifypot flatten
@@ -175,6 +178,9 @@ struct lk_isotropic_pair {
       Real lk_inv_lambda2_i,
       Real max_dis,
       bool is_cc_pair) -> V_dV_t {
+    if (bonded_path_length < Real(4)) {
+      return {0.0, 0.0};
+    }
     Real d_min = lj_sigma_ij * .89;
     if (is_cc_pair)
       d_min = std::max(d_min, Real(4.2));  // C-C modifypot flatten
@@ -259,6 +265,9 @@ struct lk_isotropic_score {
       LKTypeParams<Real> i,
       LKTypeParams<Real> j,
       LJGlobalParams<Real> global) -> Real {
+    if (bonded_path_length < Real(4)) {
+      return 0.0;
+    }
     if (dist > global.max_dis) {
       return 0.0;
     }
@@ -358,6 +367,9 @@ struct lk_isotropic_score {
       LKTypeParams<Real> i,
       LKTypeParams<Real> j,
       LJGlobalParams<Real> global) -> V_dV_t {
+    if (bonded_path_length < Real(4)) {
+      return {0.0, 0.0};
+    }
     Real sigma = lj_sigma<Real>(i, j, global);
     bool is_cc_pair = i.is_carbon_lk && j.is_carbon_lk;
 

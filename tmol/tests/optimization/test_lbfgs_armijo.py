@@ -95,6 +95,62 @@ def test_large_negative_gradient_does_not_converge():
     torch.testing.assert_close(x.grad, torch.tensor([-10.0], dtype=x.dtype))
 
 
+def test_short_run_allocates_only_reachable_history():
+    x = torch.nn.Parameter(torch.tensor([3.0, -2.0]))
+    optimizer = LBFGS_Armijo(
+        [x], max_iter=3, history_size=128, rtol=0.0, atol=0.0, gradtol=0.0
+    )
+
+    def closure():
+        optimizer.zero_grad()
+        loss = (x * x).sum()
+        loss.backward()
+        return loss
+
+    optimizer.step(closure)
+
+    assert optimizer.state[x]["old_dirs_mat"].shape[0] == 2
+    assert optimizer.state[x]["old_stps_mat"].shape[0] == 2
+
+
+def test_reset_reuses_scratch_and_restarts_trajectory():
+    initial = torch.tensor([3.0, -2.0])
+    x = torch.nn.Parameter(initial.clone())
+    optimizer = LBFGS_Armijo([x], max_iter=3, rtol=0.0, atol=0.0, gradtol=0.0)
+
+    def closure():
+        optimizer.zero_grad()
+        loss = (x * x).sum()
+        loss.backward()
+        return loss
+
+    optimizer.step(closure)
+    first = x.detach().clone()
+    history_ptr = optimizer.state[x]["old_dirs_mat"].data_ptr()
+    with torch.no_grad():
+        x.copy_(initial)
+    optimizer.reset()
+    optimizer.step(closure)
+
+    torch.testing.assert_close(x, first)
+    assert optimizer.state[x]["old_dirs_mat"].data_ptr() == history_ptr
+
+
+def test_fixed_iterations_skips_early_convergence():
+    x = torch.nn.Parameter(torch.zeros(2))
+    optimizer = LBFGS_Armijo([x], max_iter=4, fixed_iterations=True)
+
+    def closure():
+        optimizer.zero_grad()
+        loss = (x * x).sum()
+        loss.backward()
+        return loss
+
+    optimizer.step(closure)
+
+    assert optimizer.state[x]["n_iter"] == 4
+
+
 @pytest.mark.xfail(reason="sparse tensor _copy failure in torch 1.6")
 def test_lbfgs_armijo_sparse():
     indices = torch.LongTensor([[0, 0, 1], [0, 1, 1]])

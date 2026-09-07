@@ -110,6 +110,7 @@ struct HBondPoseScoreDispatch {
       TView<Vec<Real, 3>, 2, Dev> derived_coords,
       TView<Int, 2, Dev> derived_atom_inds,
 
+      TView<Int, 1, Dev> shared_compact_block_neighbors,
       bool output_block_pair_energies,
       bool compute_derivs)
       -> std::tuple<

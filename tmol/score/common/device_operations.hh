@@ -77,11 +77,11 @@ struct DeviceOperations {
   //   - exc_scan_offsets: the result of running exclusive scan on the
   //     the number of work units that each generator produces
   //.  - n_generators: the number of generators / length of exc_scan_offset
-  template <typename launch_t, typename Int>
+  template <typename launch_t, typename Offset, typename Int = int32_t>
   static TPack<Int, 1, D> load_balancing_search(
       ContextManager& mgr,
       int n_work_units_total,  // The count of the total number of work units
-      Int* exc_scan_offsets,
+      Offset* exc_scan_offsets,
       int n_generators);
 
   // Perform a reduction on a given device array and return the result to the

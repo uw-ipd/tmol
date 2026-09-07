@@ -11,6 +11,7 @@
 
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/count_pair.hh>
+#include <tmol/score/common/counting.hh>
 #include <tmol/score/common/data_loading.hh>
 #include <tmol/score/common/diamond_macros.hh>
 #include <tmol/score/common/geom.hh>
@@ -443,7 +444,7 @@ auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   assert(pose_stack_inter_block_connections.size(1) == max_n_blocks);
   assert(pose_stack_inter_block_connections.size(2) == max_n_conns);
 
-  auto n_energies_for_rot_t = TPack<Int, 1, D>::zeros({n_rots});
+  auto n_energies_for_rot_t = TPack<int64_t, 1, D>::zeros({n_rots});
   auto n_energies_for_rot = n_energies_for_rot_t.view;
 
   // Optimal launch box on v100 and a100 is nt=32, vt=1
@@ -460,7 +461,7 @@ auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     if (rot_block_type == -1) {
       return;
     }
-    int n_energies = 0;
+    int64_t n_energies = 0;
     for (int conn_index = 0; conn_index < max_n_conns; conn_index++) {
       if (disulfide_conns[rot_block_type][conn_index]) {
         int const other_block_index =
@@ -484,15 +485,25 @@ auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   });
   DeviceDispatch<D>::template forall<launch_t>(
       mgr, n_rots, count_dispatch_indices);
-  auto n_energies_for_rot_offset_t = TPack<Int, 1, D>::zeros({n_rots});
+
+  int64_t const max_n_energies_for_rot_64 = DeviceDispatch<D>::reduce(
+      mgr, n_energies_for_rot.data(), n_rots, mgpu::maximum_t<int64_t>());
+  int const max_n_energies_for_rot = score::common::checked_dispatch_size(
+      max_n_energies_for_rot_64, "disulfide per-rotamer dispatch");
+  int const candidate_dispatch = score::common::checked_dispatch_product(
+      n_rots, max_n_energies_for_rot, "disulfide candidate dispatch");
+
+  auto n_energies_for_rot_offset_t = TPack<int64_t, 1, D>::zeros({n_rots});
   auto n_energies_for_rot_offset = n_energies_for_rot_offset_t.view;
-  int n_dispatch_total =
+  int64_t const n_dispatch_total_64 =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
           mgr,
           n_energies_for_rot.data(),
           n_energies_for_rot_offset.data(),
           n_rots,
-          mgpu::plus_t<Int>());
+          mgpu::plus_t<int64_t>());
+  int const n_dispatch_total = score::common::checked_dispatch_size(
+      n_dispatch_total_64, "disulfide output dispatch");
 
   TPack<Real, 2, D> V_t;
   auto dispatch_indices_t = TPack<Int, 2, D>::zeros({3, n_dispatch_total});
@@ -513,9 +524,6 @@ auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // to imagine a disulfide-like chemical bond forming twice
   // between two residues
   auto conns_for_dispatch_indices = conns_for_dispatch_indices_t.view;
-
-  int const max_n_energies_for_rot = DeviceDispatch<D>::reduce(
-      mgr, n_energies_for_rot.data(), n_rots, mgpu::maximum_t<Int>());
 
   auto mark_dispatch_indices = ([=] TMOL_DEVICE_FUNC(int ind) {
     int const rot_ind1 = ind / max_n_energies_for_rot;
@@ -584,7 +592,7 @@ auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     }
   });
   DeviceDispatch<D>::template forall<launch_t>(
-      mgr, n_rots * max_n_energies_for_rot, mark_dispatch_indices);
+      mgr, candidate_dispatch, mark_dispatch_indices);
 
   auto eval_energies = ([=] TMOL_DEVICE_FUNC(int dispatch_ind) {
     int const pose_ind = dispatch_indices[0][dispatch_ind];

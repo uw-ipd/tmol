@@ -162,39 +162,61 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
                      ? TPack<Vec<Real, 3>, 2, D>::zeros({3, n_atoms})
                      : TPack<Vec<Real, 3>, 2, D>::empty({3, 0});
 
+  // The derivative-enabled CUDA kernel fully writes every scratch element it
+  // consumes.  Skip separate initialization launches there, while retaining
+  // the established CPU and inference allocation paths.
   auto dihedral_atom_inds_t =
-      TPack<Vec<Int, DIH_N_ATOMS>, 2, D>::zeros({n_rots, max_n_dih});
+      D == Device::CPU || !accumulate_derivs
+          ? TPack<Vec<Int, DIH_N_ATOMS>, 2, D>::zeros({n_rots, max_n_dih})
+          : TPack<Vec<Int, DIH_N_ATOMS>, 2, D>::empty({n_rots, max_n_dih});
   auto dihedral_atom_inds = dihedral_atom_inds_t.view;
-  auto dihedral_values_t = TPack<Real, 2, D>::zeros({n_rots, max_n_dih});
+  auto dihedral_values_t = D == Device::CPU || !accumulate_derivs
+                               ? TPack<Real, 2, D>::zeros({n_rots, max_n_dih})
+                               : TPack<Real, 2, D>::empty({n_rots, max_n_dih});
   auto dihedral_values = dihedral_values_t.view;
   auto dihedral_deriv_t =
       accumulate_derivs
-          ? TPack<Eigen::Matrix<Real, DIH_N_ATOMS, 3>, 2, D>::zeros(
-                {n_rots, max_n_dih})
+          ? (D == Device::CPU
+                 ? TPack<Eigen::Matrix<Real, DIH_N_ATOMS, 3>, 2, D>::zeros(
+                       {n_rots, max_n_dih})
+                 : TPack<Eigen::Matrix<Real, DIH_N_ATOMS, 3>, 2, D>::empty(
+                       {n_rots, max_n_dih}))
           : TPack<Eigen::Matrix<Real, DIH_N_ATOMS, 3>, 2, D>::empty(
                 {n_rots, max_n_dih});
   auto dihedral_deriv = dihedral_deriv_t.view;
 
-  auto rotameric_rottable_assignment_t = TPack<Int, 1, D>::zeros({n_rots});
+  auto rotameric_rottable_assignment_t =
+      D == Device::CPU || !accumulate_derivs
+          ? TPack<Int, 1, D>::zeros({n_rots})
+          : TPack<Int, 1, D>::empty({n_rots});
   auto rotameric_rottable_assignment = rotameric_rottable_assignment_t.view;
 
-  auto semirotameric_rottable_assignment_t = TPack<Int, 1, D>::zeros({n_rots});
+  auto semirotameric_rottable_assignment_t =
+      D == Device::CPU || !accumulate_derivs
+          ? TPack<Int, 1, D>::zeros({n_rots})
+          : TPack<Int, 1, D>::empty({n_rots});
   auto semirotameric_rottable_assignment =
       semirotameric_rottable_assignment_t.view;
 
   auto dneglnprob_rot_dbb_xyz_t =
-      accumulate_derivs ? TPack<CoordQuad, 2, D>::zeros({n_rots, 2})
-                        : TPack<CoordQuad, 2, D>::empty({n_rots, 2});
+      accumulate_derivs
+          ? (D == Device::CPU ? TPack<CoordQuad, 2, D>::zeros({n_rots, 2})
+                              : TPack<CoordQuad, 2, D>::empty({n_rots, 2}))
+          : TPack<CoordQuad, 2, D>::empty({n_rots, 2});
   auto dneglnprob_rot_dbb_xyz = dneglnprob_rot_dbb_xyz_t.view;
 
   auto drotchi_devpen_dtor_xyz_t =
-      accumulate_derivs ? TPack<CoordQuad, 2, D>::zeros({n_rots, 3})
-                        : TPack<CoordQuad, 2, D>::empty({n_rots, 3});
+      accumulate_derivs
+          ? (D == Device::CPU ? TPack<CoordQuad, 2, D>::zeros({n_rots, 3})
+                              : TPack<CoordQuad, 2, D>::empty({n_rots, 3}))
+          : TPack<CoordQuad, 2, D>::empty({n_rots, 3});
   auto drotchi_devpen_dtor_xyz = drotchi_devpen_dtor_xyz_t.view;
 
   auto dneglnprob_nonrot_dtor_xyz_t =
-      accumulate_derivs ? TPack<CoordQuad, 2, D>::zeros({n_rots, 3})
-                        : TPack<CoordQuad, 2, D>::empty({n_rots, 3});
+      accumulate_derivs
+          ? (D == Device::CPU ? TPack<CoordQuad, 2, D>::zeros({n_rots, 3})
+                              : TPack<CoordQuad, 2, D>::empty({n_rots, 3}))
+          : TPack<CoordQuad, 2, D>::empty({n_rots, 3});
   auto dneglnprob_nonrot_dtor_xyz = dneglnprob_nonrot_dtor_xyz_t.view;
 
   auto V = V_t.view;
@@ -562,31 +584,49 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
 
   auto dV_dx_t = TPack<Vec<Real, 3>, 2, D>::zeros({3, n_atoms});
 
+  // Each CUDA work item fully initializes the scratch for its rotamer; retain
+  // the prior zero-initialized allocation on CPU.
   auto dihedral_atom_inds_t =
-      TPack<Vec<Int, DIH_N_ATOMS>, 2, D>::zeros({n_rots, max_n_dih});
+      D == Device::CPU
+          ? TPack<Vec<Int, DIH_N_ATOMS>, 2, D>::zeros({n_rots, max_n_dih})
+          : TPack<Vec<Int, DIH_N_ATOMS>, 2, D>::empty({n_rots, max_n_dih});
   auto dihedral_atom_inds = dihedral_atom_inds_t.view;
-  auto dihedral_values_t = TPack<Real, 2, D>::zeros({n_rots, max_n_dih});
+  auto dihedral_values_t = D == Device::CPU
+                               ? TPack<Real, 2, D>::zeros({n_rots, max_n_dih})
+                               : TPack<Real, 2, D>::empty({n_rots, max_n_dih});
   auto dihedral_values = dihedral_values_t.view;
   auto dihedral_deriv_t =
-      TPack<Eigen::Matrix<Real, DIH_N_ATOMS, 3>, 2, D>::zeros(
-          {n_rots, max_n_dih});
+      D == Device::CPU
+          ? TPack<Eigen::Matrix<Real, DIH_N_ATOMS, 3>, 2, D>::zeros(
+                {n_rots, max_n_dih})
+          : TPack<Eigen::Matrix<Real, DIH_N_ATOMS, 3>, 2, D>::empty(
+                {n_rots, max_n_dih});
   auto dihedral_deriv = dihedral_deriv_t.view;
 
-  auto rotameric_rottable_assignment_t = TPack<Int, 1, D>::zeros({n_rots});
+  auto rotameric_rottable_assignment_t =
+      D == Device::CPU ? TPack<Int, 1, D>::zeros({n_rots})
+                       : TPack<Int, 1, D>::empty({n_rots});
   auto rotameric_rottable_assignment = rotameric_rottable_assignment_t.view;
 
-  auto semirotameric_rottable_assignment_t = TPack<Int, 1, D>::zeros({n_rots});
+  auto semirotameric_rottable_assignment_t =
+      D == Device::CPU ? TPack<Int, 1, D>::zeros({n_rots})
+                       : TPack<Int, 1, D>::empty({n_rots});
   auto semirotameric_rottable_assignment =
       semirotameric_rottable_assignment_t.view;
 
-  auto dneglnprob_rot_dbb_xyz_t = TPack<CoordQuad, 2, D>::zeros({n_rots, 2});
+  auto dneglnprob_rot_dbb_xyz_t =
+      D == Device::CPU ? TPack<CoordQuad, 2, D>::zeros({n_rots, 2})
+                       : TPack<CoordQuad, 2, D>::empty({n_rots, 2});
   auto dneglnprob_rot_dbb_xyz = dneglnprob_rot_dbb_xyz_t.view;
 
-  auto drotchi_devpen_dtor_xyz_t = TPack<CoordQuad, 2, D>::zeros({n_rots, 3});
+  auto drotchi_devpen_dtor_xyz_t =
+      D == Device::CPU ? TPack<CoordQuad, 2, D>::zeros({n_rots, 3})
+                       : TPack<CoordQuad, 2, D>::empty({n_rots, 3});
   auto drotchi_devpen_dtor_xyz = drotchi_devpen_dtor_xyz_t.view;
 
   auto dneglnprob_nonrot_dtor_xyz_t =
-      TPack<CoordQuad, 2, D>::zeros({n_rots, 3});
+      D == Device::CPU ? TPack<CoordQuad, 2, D>::zeros({n_rots, 3})
+                       : TPack<CoordQuad, 2, D>::empty({n_rots, 3});
   auto dneglnprob_nonrot_dtor_xyz = dneglnprob_nonrot_dtor_xyz_t.view;
 
   auto dV_dx = dV_dx_t.view;

@@ -60,6 +60,9 @@ def elec_delec_ddist(
     Real e_j,
     Real bonded_path_length,
     ElecGlobalParams<Real> const& params) -> tuple<Real, Real> {
+  if (bonded_path_length < Real(4)) {
+    return {0, 0};
+  }
   Real low_poly_start = params.min_dis - Real(0.25);
   Real low_poly_end = params.min_dis + Real(0.25);
   Real hi_poly_start = params.max_dis - Real(1);
@@ -121,6 +124,9 @@ def elec(
     Real e_j,
     Real bonded_path_length,
     ElecGlobalParams<Real> const& params) -> Real {
+  if (bonded_path_length < Real(4)) {
+    return 0;
+  }
   Real low_poly_start = params.min_dis - Real(0.25);
   Real low_poly_end = params.min_dis + Real(0.25);
   Real hi_poly_start = params.max_dis - Real(1);

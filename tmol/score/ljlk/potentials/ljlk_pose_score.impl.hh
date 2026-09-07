@@ -686,6 +686,91 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
+auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::
+    build_compact_block_neighbors(
+        ContextManager& mgr,
+        TView<Vec<Real, 3>, 1, D> rot_coords,
+        TView<Int, 1, D> rot_coord_offset,
+        TView<Int, 2, D> first_rot_for_block,
+        TView<Int, 1, D> block_ind_for_rot,
+        TView<Int, 1, D> pose_ind_for_rot,
+        TView<Int, 1, D> block_type_ind_for_rot,
+        TView<Int, 1, D> block_type_n_atoms,
+        Real reach) -> TPack<Int, 1, D> {
+  int const n_poses = first_rot_for_block.size(0);
+  int const max_n_blocks = first_rot_for_block.size(1);
+  int const n_pairs =
+      static_cast<int>((int64_t(max_n_blocks) * (max_n_blocks + 1)) / 2);
+  auto block_spheres_t =
+      D == Device::CPU ? TPack<Real, 3, D>::zeros({n_poses, max_n_blocks, 4})
+                       : TPack<Real, 3, D>::empty({n_poses, max_n_blocks, 4});
+  if constexpr (D == Device::CUDA) {
+    auto neighbor_indices_t =
+        rot_coord_offset.size(0) == 0
+            ? TPack<Int, 1, D>::zeros({n_poses * n_pairs + 1})
+            : TPack<Int, 1, D>::empty({n_poses * n_pairs + 1});
+    score::common::sphere_overlap::
+        compute_block_spheres<DeviceOperations, D, Real, Int, true>::f(
+            mgr,
+            rot_coords,
+            rot_coord_offset,
+            block_ind_for_rot,
+            pose_ind_for_rot,
+            block_type_ind_for_rot,
+            block_type_n_atoms,
+            block_spheres_t.view,
+            neighbor_indices_t.view.data());
+    score::common::sphere_overlap::
+        detect_compact_block_neighbors<DeviceOperations, D, Real, Int>::f(
+            mgr,
+            first_rot_for_block,
+            block_spheres_t.view,
+            neighbor_indices_t.view,
+            reach);
+    return neighbor_indices_t;
+  } else {
+    score::common::sphere_overlap::
+        compute_block_spheres<DeviceOperations, D, Real, Int>::f(
+            mgr,
+            rot_coords,
+            rot_coord_offset,
+            block_ind_for_rot,
+            pose_ind_for_rot,
+            block_type_ind_for_rot,
+            block_type_n_atoms,
+            block_spheres_t.view);
+    std::vector<Int> retained;
+    if (score::common::sphere_overlap::try_cpu_spatial_compact_block_neighbors(
+            first_rot_for_block, block_spheres_t.view, reach, retained)) {
+      auto neighbor_indices_t =
+          TPack<Int, 1, D>::empty({int64_t(retained.size()) + 1});
+      neighbor_indices_t.view[0] = static_cast<Int>(retained.size());
+      if (!retained.empty()) {
+        std::memcpy(
+            neighbor_indices_t.view.data() + 1,
+            retained.data(),
+            retained.size() * sizeof(Int));
+      }
+      return neighbor_indices_t;
+    }
+    auto neighbor_indices_t =
+        TPack<Int, 1, D>::zeros({int64_t(n_poses) * n_pairs + 1});
+    score::common::sphere_overlap::
+        detect_compact_block_neighbors<DeviceOperations, D, Real, Int>::f(
+            mgr,
+            first_rot_for_block,
+            block_spheres_t.view,
+            neighbor_indices_t.view,
+            reach);
+    return neighbor_indices_t;
+  }
+}
+
+template <
+    template <tmol::Device> class DeviceOperations,
+    tmol::Device D,
+    typename Real,
+    typename Int>
 auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
     ContextManager& mgr,
     // common params
@@ -748,6 +833,8 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
     TView<LJGlobalParams<Real>, 1, D> global_params,
 
     Real max_dis,
+
+    TView<Int, 1, D> shared_compact_block_neighbors,
 
     // should the output be per-pose (npose x nterms x 1 x 1)
     //   or per block-pair (npose x nterms x len x len)
@@ -821,13 +908,23 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
                           : TPack<Vec<Real, 3>, 2, D>::empty({3, 0});
   auto dV_dcoords = dV_dcoords_t.view;
 
-  auto scratch_rot_spheres_t =
-      TPack<Real, 3, D>::zeros({n_poses, max_n_blocks, 4});
-  auto scratch_rot_spheres = scratch_rot_spheres_t.view;
-
-  auto scratch_rot_neighbors_t =
-      TPack<Int, 3, D>::zeros({n_poses, max_n_blocks, max_n_blocks});
-  auto scratch_rot_neighbors = scratch_rot_neighbors_t.view;
+  bool const use_shared_compact_block_neighbors =
+      shared_compact_block_neighbors.size(0) != 0;
+  TPack<Real, 3, D> scratch_rot_spheres_t;
+  TPack<Int, 3, D> scratch_rot_neighbors_t;
+  TView<Real, 3, D> scratch_rot_spheres;
+  TView<Int, 3, D> scratch_rot_neighbors;
+  if (!use_shared_compact_block_neighbors) {
+    scratch_rot_spheres_t =
+        D == Device::CPU ? TPack<Real, 3, D>::zeros({n_poses, max_n_blocks, 4})
+                         : TPack<Real, 3, D>::empty({n_poses, max_n_blocks, 4});
+    scratch_rot_neighbors_t =
+        D == Device::CPU
+            ? TPack<Int, 3, D>::zeros({n_poses, max_n_blocks, max_n_blocks})
+            : TPack<Int, 3, D>::empty({n_poses, max_n_blocks, max_n_blocks});
+    scratch_rot_spheres = scratch_rot_spheres_t.view;
+    scratch_rot_neighbors = scratch_rot_neighbors_t.view;
+  }
 
   TPack<Real, 4, D> output_t;
   if (output_block_pair_energies) {
@@ -848,7 +945,8 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
   // Define nt and reduce_t
   CTA_REAL_REDUCE_T_TYPEDEF;
   // The total number of unique block pairs (including self-pairs)
-  int const max_n_upper_triangle_inds = (max_n_blocks * (max_n_blocks + 1)) / 2;
+  int const max_n_upper_triangle_inds =
+      static_cast<int>((int64_t(max_n_blocks) * (max_n_blocks + 1)) / 2);
 
   // There are two versions of scoring:
   // Block-pair scoring, where the output is written to an n-pose x n-blocks x
@@ -908,7 +1006,8 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
 
     // We still kill CTAs targetting non-neighboring block pairs, though,
     // and that can be a lot
-    if (scratch_rot_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
+    if (!use_shared_compact_block_neighbors
+        && scratch_rot_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
       return;
     }
     int const rot_ind1 = rot_offset_for_block[pose_ind][block_ind1];
@@ -1046,7 +1145,8 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
 
     // We still kill CTAs targetting non-neighboring block pairs, though,
     // and that can be a lot
-    if (scratch_rot_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
+    if (!use_shared_compact_block_neighbors
+        && scratch_rot_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
       return;
     }
     int const rot_ind1 = rot_offset_for_block[pose_ind][block_ind1];
@@ -1136,26 +1236,42 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
   // each other
   // 3: launch a kernel to evaluate lj/lk between pairs of blocks
   // within striking distance
-  score::common::sphere_overlap::
-      compute_block_spheres<DeviceOperations, D, Real, Int>::f(
-          mgr,
-          rot_coords,
-          rot_coord_offset,
-          block_ind_for_rot,
-          pose_ind_for_rot,
-          block_type_ind_for_rot,
-          block_type_n_atoms,
-          scratch_rot_spheres);
+  if (!use_shared_compact_block_neighbors) {
+    score::common::sphere_overlap::
+        compute_block_spheres<DeviceOperations, D, Real, Int>::f(
+            mgr,
+            rot_coords,
+            rot_coord_offset,
+            block_ind_for_rot,
+            pose_ind_for_rot,
+            block_type_ind_for_rot,
+            block_type_n_atoms,
+            scratch_rot_spheres);
 
-  score::common::sphere_overlap::
-      detect_block_neighbors<DeviceOperations, D, Real, Int>::f(
-          mgr,
-          first_rot_block_type,
-          scratch_rot_spheres,
-          scratch_rot_neighbors,
-          max_dis);
+    score::common::sphere_overlap::
+        detect_block_neighbors<DeviceOperations, D, Real, Int>::f(
+            mgr,
+            first_rot_block_type,
+            scratch_rot_spheres,
+            scratch_rot_neighbors,
+            max_dis);
+  }
 
-  if (output_block_pair_energies) {
+  if (!output_block_pair_energies && use_shared_compact_block_neighbors) {
+    if (require_gradient) {
+      score::common::sphere_overlap::launch_precomputed_block_neighbors<
+          DeviceOperations,
+          D,
+          launch_t_high_occupancy,
+          Int>(mgr, shared_compact_block_neighbors, eval_energies);
+    } else {
+      score::common::sphere_overlap::launch_precomputed_block_neighbors<
+          DeviceOperations,
+          D,
+          launch_t_high_occupancy,
+          Int>(mgr, shared_compact_block_neighbors, eval_energies_by_block);
+    }
+  } else if (output_block_pair_energies) {
     DeviceOperations<D>::template foreach_pose_workgroup<launch_t>(
         mgr, n_poses, max_n_upper_triangle_inds, eval_energies_by_block);
   } else {
@@ -1338,7 +1454,8 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::backward(
   // Define nt and reduce_t
   CTA_REAL_REDUCE_T_TYPEDEF;
   // The total number of unique block pairs (including self-pairs)
-  int const max_n_upper_triangle_inds = (max_n_blocks * (max_n_blocks + 1)) / 2;
+  int const max_n_upper_triangle_inds =
+      static_cast<int>((int64_t(max_n_blocks) * (max_n_blocks + 1)) / 2);
 
   auto eval_derivs = ([=] TMOL_DEVICE_FUNC(int cta) {
     auto atom_pair_lj_fn =
@@ -1657,15 +1774,20 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
   auto dV_dcoords_t = TPack<Vec<Real, 3>, 2, D>::zeros({3, n_atoms});
   auto dV_dcoords = dV_dcoords_t.view;
 
-  auto scratch_rot_spheres_t = TPack<Real, 2, D>::zeros({n_rots, 4});
+  auto scratch_rot_spheres_t = D == Device::CPU
+                                   ? TPack<Real, 2, D>::zeros({n_rots, 4})
+                                   : TPack<Real, 2, D>::empty({n_rots, 4});
   auto scratch_rot_spheres = scratch_rot_spheres_t.view;
 
   auto scratch_block_spheres_t =
-      TPack<Real, 3, D>::zeros({n_poses, max_n_blocks, 4});
+      D == Device::CPU ? TPack<Real, 3, D>::zeros({n_poses, max_n_blocks, 4})
+                       : TPack<Real, 3, D>::empty({n_poses, max_n_blocks, 4});
   auto scratch_block_spheres = scratch_block_spheres_t.view;
 
   auto scratch_block_neighbors_t =
-      TPack<Int, 3, D>::zeros({n_poses, max_n_blocks, max_n_blocks});
+      D == Device::CPU
+          ? TPack<Int, 3, D>::zeros({n_poses, max_n_blocks, max_n_blocks})
+          : TPack<Int, 3, D>::empty({n_poses, max_n_blocks, max_n_blocks});
   auto scratch_block_neighbors = scratch_block_neighbors_t.view;
 
   score::common::sphere_overlap::

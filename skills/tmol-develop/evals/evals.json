@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0",
+  "skill": "tmol-develop",
+  "cases": [
+    {
+      "id": "review-cuda-performance-change",
+      "prompt": "Review a TMol CUDA scoring optimization against origin/master. Confirm correctness and flexibility, measure latency, peak memory, and physical launches on representative B1 and B32 inputs, and prepare only the production change and focused regression tests for review.",
+      "setup": {
+        "cwd": "clean TMol worktree on the candidate branch",
+        "requires": ["supported NVIDIA GPU", "CUDA development environment", "origin/master available"]
+      },
+      "expected_behavior": [
+        "Uses isolated build/JIT caches for baseline and candidate",
+        "Synchronizes CUDA timing and uses matched representative inputs",
+        "Tests decomposed and unweighted scores, custom or zero weights, and gradients when affected",
+        "Reports latency, peak allocated memory, launch counts, and correctness together",
+        "Keeps raw profiles, plots, and one-off benchmark harnesses outside the production diff",
+        "Runs focused, subsystem, and code-quality gates before recommending merge"
+      ],
+      "success_criteria": {
+        "correctness_gate_passes": true,
+        "reports_b1_and_b32": true,
+        "reports_speed_memory_and_launches": true,
+        "production_diff_excludes_raw_benchmark_artifacts": true
+      }
+    }
+  ]
+}

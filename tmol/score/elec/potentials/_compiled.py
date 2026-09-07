@@ -13,3 +13,4 @@ _ops = load_ops(
 
 elec_pose_scores = _ops.elec_pose_scores
 elec_rotamer_scores = _ops.elec_rotamer_scores
+elec_rotamer_scores_shared = _ops.elec_rotamer_scores_shared

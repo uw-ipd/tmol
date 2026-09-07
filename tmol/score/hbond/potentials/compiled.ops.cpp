@@ -80,7 +80,8 @@ class HBondPoseScoresOp
       Tensor derived_coords,
       Tensor derived_atom_inds,
 
-      bool output_block_pair_energies
+      bool output_block_pair_energies,
+      Tensor shared_compact_block_neighbors
 
   ) {
     at::Tensor score;
@@ -145,12 +146,15 @@ class HBondPoseScoresOp
                   TCAST(derived_coords),
                   TCAST(derived_atom_inds),
 
+                  TCAST(shared_compact_block_neighbors),
                   output_block_pair_energies,
                   rot_coords.requires_grad());
 
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;
-          block_neighbors = std::get<2>(result).tensor;
+          block_neighbors = shared_compact_block_neighbors.numel() != 0
+                                ? shared_compact_block_neighbors
+                                : std::get<2>(result).tensor;
         }));
 
     if (output_block_pair_energies) {
@@ -364,7 +368,7 @@ class HBondPoseScoresOp
             torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
             torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
             torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor()};
+            torch::Tensor(),  torch::Tensor()};
   }
 };
 
@@ -764,7 +768,8 @@ std::vector<Tensor> hbond_pose_scores_op(
     Tensor derived_coords,
     Tensor derived_atom_inds,
 
-    bool output_block_pair_energies) {
+    bool output_block_pair_energies,
+    Tensor shared_compact_block_neighbors) {
   return HBondPoseScoresOp<DispatchMethod>::apply(
       // common params
       rot_coords,
@@ -814,7 +819,8 @@ std::vector<Tensor> hbond_pose_scores_op(
       derived_coords,
       derived_atom_inds,
 
-      output_block_pair_energies);
+      output_block_pair_energies,
+      shared_compact_block_neighbors);
 }
 
 template <template <tmol::Device> class DispatchMethod>

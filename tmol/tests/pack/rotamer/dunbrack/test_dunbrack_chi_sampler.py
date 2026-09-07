@@ -275,6 +275,34 @@ def test_interpolate_probabilities_for_possible_rotamers(
         rotprob_gold, rotamer_probability.cpu().numpy(), rtol=1e-5, atol=1e-5
     )
 
+    # The upper endpoint is the same periodic coordinate as the table start.
+    # It must wrap to bin zero instead of indexing one beyond the table.
+    table_start = dun_params.rotameric_bb_start[12]
+    table_period = dun_params.rotameric_bb_periodicity[12]
+    endpoint_dihedrals = table_start + table_period
+    endpoint_probability = torch.full_like(rotamer_probability, -1.0)
+    start_probability = torch.full_like(rotamer_probability, -1.0)
+    for dihedrals, output in (
+        (endpoint_dihedrals, endpoint_probability),
+        (table_start, start_probability),
+    ):
+        compiled.interpolate_probabilities_for_possible_rotamers(
+            dun_params.rotameric_prob_tables,
+            dun_params.rotprob_table_sizes,
+            dun_params.rotprob_table_strides,
+            dun_params.rotameric_bb_start,
+            dun_params.rotameric_bb_step,
+            dun_params.rotameric_bb_periodicity,
+            dun_params.n_rotamers_for_tableset_offsets,
+            dun_params.sorted_rotamer_2_rotamer,
+            rottable_set_for_buildable_restype,
+            brt_for_possible_rotamer,
+            possible_rotamer_offset_for_brt,
+            dihedrals,
+            output,
+        )
+    torch.testing.assert_close(endpoint_probability, start_probability)
+
 
 def test_determine_n_base_rotamers_to_build_1(torch_device):
     compiled = get_compiled()

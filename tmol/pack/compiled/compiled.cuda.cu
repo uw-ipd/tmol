@@ -366,9 +366,15 @@ MGPU_DEVICE float warp_wide_sim_annealing(
                              + new_in_chunk];
         }
 
+        // The proposed and current rotamers commonly occupy the same chunk.
+        // In that case both table entries share one sparse chunk offset; avoid
+        // repeating this irregular global-memory lookup for every neighbor.
         int64_t const k_prev_chunk_offset =
-            ig.chunk_offsets_
-                [k_offset_offset + k_chunk * ran_res_n_chunks + prev_chunk];
+            prev_chunk == new_chunk
+                ? k_new_chunk_offset
+                : ig.chunk_offsets_
+                      [k_offset_offset + k_chunk * ran_res_n_chunks
+                       + prev_chunk];
         float prev_contrib = 0.0f;
         if (k_prev_chunk_offset >= 0) {
           prev_contrib = ig.energy2b_

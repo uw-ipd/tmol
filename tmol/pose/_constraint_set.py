@@ -164,6 +164,12 @@ class ConstraintSet:
         for i, cs in enumerate(constraint_sets):
             if cs is not None:
                 n_cs_constraints = cs.constraint_function_inds.size(0)
+                if n_cs_constraints == 0:
+                    # Split batched sets retain their parameter-column width
+                    # even when a particular pose has no constraints. An
+                    # all-empty concatenation has a zero-width destination;
+                    # avoid assigning a [0, N] source into that [0, 0] slice.
+                    continue
                 constraint_atoms_shifted = cs.constraint_atoms.detach().clone()
                 constraint_atoms_pose = constraint_atoms_shifted[:, :, 0]
                 is_real_pose = constraint_atoms_pose[:, :] != -1

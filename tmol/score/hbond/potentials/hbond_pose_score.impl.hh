@@ -495,6 +495,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     TView<Vec<Real, 3>, 2, Dev> derived_coords,
     TView<Int, 2, Dev> derived_atom_inds,
 
+    TView<Int, 1, Dev> shared_compact_block_neighbors,
     bool output_block_pair_energies,
     bool compute_derivs
 
@@ -592,32 +593,43 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
                           : TPack<Vec<Real, 3>, 2, Dev>::empty({1, 0});
   auto dV_dcoords = dV_dcoords_t.view;
 
-  auto scratch_rot_spheres_t =
-      TPack<Real, 3, Dev>::zeros({n_poses, max_n_blocks, 4});
-  auto scratch_rot_spheres = scratch_rot_spheres_t.view;
+  bool const use_shared_compact_block_neighbors =
+      shared_compact_block_neighbors.size(0) != 0;
+  TPack<Real, 3, Dev> scratch_rot_spheres_t;
+  TPack<Int, 3, Dev> scratch_rot_neighbors_t;
+  TView<Real, 3, Dev> scratch_rot_spheres;
+  TView<Int, 3, Dev> scratch_rot_neighbors;
+  if (!use_shared_compact_block_neighbors) {
+    scratch_rot_spheres_t =
+        Dev == Device::CPU
+            ? TPack<Real, 3, Dev>::zeros({n_poses, max_n_blocks, 4})
+            : TPack<Real, 3, Dev>::empty({n_poses, max_n_blocks, 4});
+    scratch_rot_neighbors_t =
+        Dev == Device::CPU
+            ? TPack<Int, 3, Dev>::zeros({n_poses, max_n_blocks, max_n_blocks})
+            : TPack<Int, 3, Dev>::empty({n_poses, max_n_blocks, max_n_blocks});
+    scratch_rot_spheres = scratch_rot_spheres_t.view;
+    scratch_rot_neighbors = scratch_rot_neighbors_t.view;
 
-  auto scratch_rot_neighbors_t =
-      TPack<Int, 3, Dev>::zeros({n_poses, max_n_blocks, max_n_blocks});
-  auto scratch_rot_neighbors = scratch_rot_neighbors_t.view;
+    score::common::sphere_overlap::
+        compute_block_spheres<DeviceDispatch, Dev, Real, Int>::f(
+            mgr,
+            rot_coords,
+            rot_coord_offset,
+            block_ind_for_rot,
+            pose_ind_for_rot,
+            block_type_ind_for_rot,
+            block_type_n_atoms,
+            scratch_rot_spheres);
 
-  score::common::sphere_overlap::
-      compute_block_spheres<DeviceDispatch, Dev, Real, Int>::f(
-          mgr,
-          rot_coords,
-          rot_coord_offset,
-          block_ind_for_rot,
-          pose_ind_for_rot,
-          block_type_ind_for_rot,
-          block_type_n_atoms,
-          scratch_rot_spheres);
-
-  score::common::sphere_overlap::
-      detect_block_neighbors<DeviceDispatch, Dev, Real, Int>::f(
-          mgr,
-          first_rot_block_type,
-          scratch_rot_spheres,
-          scratch_rot_neighbors,
-          Real(5.5));
+    score::common::sphere_overlap::
+        detect_block_neighbors<DeviceDispatch, Dev, Real, Int>::f(
+            mgr,
+            first_rot_block_type,
+            scratch_rot_spheres,
+            scratch_rot_neighbors,
+            Real(5.5));
+  }
 
   TPack<Real, 4, Dev> output_t;
   if (output_block_pair_energies) {
@@ -641,7 +653,8 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   CTA_REAL_REDUCE_T_TYPEDEF;
 
   // The total number of unique block pairs (including self-pairs)
-  int const max_n_upper_triangle_inds = (max_n_blocks * (max_n_blocks + 1)) / 2;
+  int const max_n_upper_triangle_inds =
+      static_cast<int>((int64_t(max_n_blocks) * (max_n_blocks + 1)) / 2);
 
   auto eval_energies = ([=] TMOL_DEVICE_FUNC(int cta) {
     auto hbond_atom_energy = ([=] HBOND_ATOM_ENERGY);
@@ -672,7 +685,8 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 
     // We still kill CTAs targetting non-neighboring block pairs, though,
     // and that can be a lot
-    if (scratch_rot_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
+    if (!use_shared_compact_block_neighbors
+        && scratch_rot_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
       return;
     }
     int const rot_ind1 = rot_offset_for_block[pose_ind][block_ind1];
@@ -747,29 +761,13 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
         store_calculated_energies);
   });
 
-  // Build block neighbors, then score the retained H-bond pairs.
-  score::common::sphere_overlap::
-      compute_block_spheres<DeviceOperations, Dev, Real, Int>::f(
-          mgr,
-          rot_coords,
-          rot_coord_offset,
-          block_ind_for_rot,
-          pose_ind_for_rot,
-          block_type_ind_for_rot,
-          block_type_n_atoms,
-          scratch_rot_spheres);
-  // printf("computed block spheres\n");
-
-  score::common::sphere_overlap::
-      detect_block_neighbors<DeviceOperations, Dev, Real, Int>::f(
-          mgr,
-          first_rot_block_type,
-          scratch_rot_spheres,
-          scratch_rot_neighbors,
-          Real(5.5));
-
 #ifdef __NVCC__
-  if (!output_block_pair_energies
+  if (!output_block_pair_energies && use_shared_compact_block_neighbors) {
+    score::common::sphere_overlap::
+        launch_precomputed_block_neighbors<DeviceDispatch, Dev, launch_t, Int>(
+            mgr, shared_compact_block_neighbors, eval_energies);
+  } else if (
+      !output_block_pair_energies
       && score::common::sphere_overlap::should_compact_block_neighbors(
           n_poses, max_n_blocks, compute_derivs)) {
     score::common::sphere_overlap::
@@ -778,8 +776,16 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   } else
 #endif
   {
-    DeviceDispatch<Dev>::template foreach_pose_workgroup<launch_t>(
-        mgr, n_poses, max_n_upper_triangle_inds, eval_energies);
+    if (!output_block_pair_energies && use_shared_compact_block_neighbors) {
+      score::common::sphere_overlap::launch_precomputed_block_neighbors<
+          DeviceDispatch,
+          Dev,
+          launch_t,
+          Int>(mgr, shared_compact_block_neighbors, eval_energies);
+    } else {
+      DeviceDispatch<Dev>::template foreach_pose_workgroup<launch_t>(
+          mgr, n_poses, max_n_upper_triangle_inds, eval_energies);
+    }
   }
 
   // DeviceDispatch<Dev>::synchronize_device();
@@ -904,7 +910,8 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
   // Define nt and reduce_t
   CTA_REAL_REDUCE_T_TYPEDEF;
   // The total number of unique block pairs (including self-pairs)
-  int const max_n_upper_triangle_inds = (max_n_blocks * (max_n_blocks + 1)) / 2;
+  int const max_n_upper_triangle_inds =
+      static_cast<int>((int64_t(max_n_blocks) * (max_n_blocks + 1)) / 2);
 
   auto eval_derivs = ([=] TMOL_DEVICE_FUNC(int cta) {
     int const max_important_bond_separation = 4;
@@ -1229,15 +1236,21 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   auto dV_dcoords_t = TPack<Vec<Real, 3>, 2, Dev>::zeros({1, n_atoms});
   auto dV_dcoords = dV_dcoords_t.view;
 
-  auto scratch_rot_spheres_t = TPack<Real, 2, Dev>::zeros({n_rots, 4});
+  auto scratch_rot_spheres_t = Dev == Device::CPU
+                                   ? TPack<Real, 2, Dev>::zeros({n_rots, 4})
+                                   : TPack<Real, 2, Dev>::empty({n_rots, 4});
   auto scratch_rot_spheres = scratch_rot_spheres_t.view;
 
   auto scratch_block_spheres_t =
-      TPack<Real, 3, Dev>::zeros({n_poses, max_n_blocks, 4});
+      Dev == Device::CPU
+          ? TPack<Real, 3, Dev>::zeros({n_poses, max_n_blocks, 4})
+          : TPack<Real, 3, Dev>::empty({n_poses, max_n_blocks, 4});
   auto scratch_block_spheres = scratch_block_spheres_t.view;
 
   auto scratch_block_neighbors_t =
-      TPack<Int, 3, Dev>::zeros({n_poses, max_n_blocks, max_n_blocks});
+      Dev == Device::CPU
+          ? TPack<Int, 3, Dev>::zeros({n_poses, max_n_blocks, max_n_blocks})
+          : TPack<Int, 3, Dev>::empty({n_poses, max_n_blocks, max_n_blocks});
   auto scratch_block_neighbors = scratch_block_neighbors_t.view;
 
   score::common::sphere_overlap::

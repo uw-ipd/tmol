@@ -360,7 +360,8 @@ template <common::TilePairMode Mode>
 inline TMOL_DEVICE_FUNC common::tuple<int, int, int> lk_ball_pose_pair_indices(
     int cta, int max_n_blocks) {
   if constexpr (Mode == common::TilePairMode::Inter) {
-    int const n_pairs = max_n_blocks * (max_n_blocks - 1) / 2;
+    int const n_pairs =
+        static_cast<int>((int64_t(max_n_blocks) * (max_n_blocks - 1)) / 2);
     auto pair = common::upper_triangle_inds_from_linear_index(
         cta % n_pairs, max_n_blocks);
     return common::make_tuple(
@@ -369,7 +370,8 @@ inline TMOL_DEVICE_FUNC common::tuple<int, int, int> lk_ball_pose_pair_indices(
     int const block = cta % max_n_blocks;
     return common::make_tuple(cta / max_n_blocks, block, block);
   } else {
-    int const n_pairs = max_n_blocks * (max_n_blocks + 1) / 2;
+    int const n_pairs =
+        static_cast<int>((int64_t(max_n_blocks) * (max_n_blocks + 1)) / 2);
     auto pair = common::upper_triangle_inds_from_linear_index(
         cta % n_pairs, max_n_blocks + 1);
     return common::make_tuple(
@@ -384,7 +386,8 @@ template <
     typename Eval>
 void launch_lk_ball_pose_pair_workgroups(
     ContextManager& mgr, int n_poses, int max_n_blocks, Eval eval) {
-  int const n_pairs = max_n_blocks * (max_n_blocks + 1) / 2;
+  int const n_pairs =
+      static_cast<int>((int64_t(max_n_blocks) * (max_n_blocks + 1)) / 2);
 #ifdef __NVCC__
   auto eval_all = ([=] TMOL_DEVICE_FUNC(int cta) {
     eval(cta, TilePairModeTag<common::TilePairMode::InterAndIntra>{});
@@ -400,7 +403,7 @@ void launch_lk_ball_pose_pair_workgroups(
       eval(cta, TilePairModeTag<common::TilePairMode::Intra>{});
     });
     DeviceDispatch<Dev>::template foreach_pose_workgroup<Launch>(
-        mgr, n_poses, max_n_blocks * (max_n_blocks - 1) / 2, eval_interres);
+        mgr, n_poses, n_pairs - max_n_blocks, eval_interres);
     DeviceDispatch<Dev>::template foreach_pose_workgroup<Launch>(
         mgr, n_poses, max_n_blocks, eval_intrares);
     return;
@@ -485,6 +488,7 @@ class LKBallPoseScoreDispatch {
       TView<LKBallGlobalParams<Real>, 1, Dev> global_params,
       Real max_dis,
       TView<Vec<Real, 3>, 2, Dev> water_coords,
+      TView<Int, 1, Dev> shared_compact_block_neighbors,
       bool output_block_pair_energies)
       -> std::tuple<TPack<Real, 4, Dev>, TPack<Int, 3, Dev>> {
     using tmol::score::common::accumulate;
@@ -501,13 +505,25 @@ class LKBallPoseScoreDispatch {
         block_type_atoms_forming_chemical_bonds.size(1);
     int const max_n_tiles = block_type_tile_pol_occ_inds.size(1);
 
-    auto scratch_rot_spheres_t =
-        TPack<Real, 3, Dev>::zeros({n_poses, max_n_blocks, 4});
-    auto scratch_rot_spheres = scratch_rot_spheres_t.view;
-
-    auto scratch_rot_neighbors_t =
-        TPack<Int, 3, Dev>::zeros({n_poses, max_n_blocks, max_n_blocks});
-    auto scratch_rot_neighbors = scratch_rot_neighbors_t.view;
+    bool const use_shared_compact_block_neighbors =
+        shared_compact_block_neighbors.size(0) != 0;
+    TPack<Real, 3, Dev> scratch_rot_spheres_t;
+    auto scratch_rot_neighbors_t = TPack<Int, 3, Dev>::empty({0, 0, 0});
+    TView<Real, 3, Dev> scratch_rot_spheres;
+    TView<Int, 3, Dev> scratch_rot_neighbors;
+    if (!use_shared_compact_block_neighbors) {
+      scratch_rot_spheres_t =
+          Dev == Device::CPU
+              ? TPack<Real, 3, Dev>::zeros({n_poses, max_n_blocks, 4})
+              : TPack<Real, 3, Dev>::empty({n_poses, max_n_blocks, 4});
+      scratch_rot_neighbors_t =
+          Dev == Device::CPU
+              ? TPack<Int, 3, Dev>::zeros({n_poses, max_n_blocks, max_n_blocks})
+              : TPack<Int, 3, Dev>::empty(
+                    {n_poses, max_n_blocks, max_n_blocks});
+      scratch_rot_spheres = scratch_rot_spheres_t.view;
+      scratch_rot_neighbors = scratch_rot_neighbors_t.view;
+    }
 
     TPack<Real, 4, Dev> output_t;
     if (output_block_pair_energies) {
@@ -618,7 +634,8 @@ class LKBallPoseScoreDispatch {
 
       // We still kill CTAs targetting non-neighboring block pairs, though,
       // and that can be a lot
-      if (scratch_rot_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
+      if (!use_shared_compact_block_neighbors
+          && scratch_rot_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
         return;
       }
       int const rot_ind1 = rot_offset_for_block[pose_ind][block_ind1];
@@ -701,26 +718,39 @@ class LKBallPoseScoreDispatch {
     });
 
     // Build block neighbors before dispatching LK-ball pair scoring.
-    score::common::sphere_overlap::
-        compute_block_spheres<DeviceDispatch, Dev, Real, Int>::f(
-            mgr,
-            rot_coords,
-            rot_coord_offset,
-            block_ind_for_rot,
-            pose_ind_for_rot,
-            block_type_ind_for_rot,
-            block_type_n_atoms,
-            scratch_rot_spheres);
+    if (!use_shared_compact_block_neighbors) {
+      score::common::sphere_overlap::
+          compute_block_spheres<DeviceDispatch, Dev, Real, Int>::f(
+              mgr,
+              rot_coords,
+              rot_coord_offset,
+              block_ind_for_rot,
+              pose_ind_for_rot,
+              block_type_ind_for_rot,
+              block_type_n_atoms,
+              scratch_rot_spheres);
 
-    score::common::sphere_overlap::
-        detect_block_neighbors<DeviceDispatch, Dev, Real, Int>::f(
-            mgr,
-            first_rot_block_type,
-            scratch_rot_spheres,
-            scratch_rot_neighbors,
-            max_dis);
+      score::common::sphere_overlap::
+          detect_block_neighbors<DeviceDispatch, Dev, Real, Int>::f(
+              mgr,
+              first_rot_block_type,
+              scratch_rot_spheres,
+              scratch_rot_neighbors,
+              max_dis);
+    }
 #ifdef __NVCC__
-    if (!output_block_pair_energies
+    if (!output_block_pair_energies && use_shared_compact_block_neighbors) {
+      auto eval_all = ([=] TMOL_DEVICE_FUNC(int cta) {
+        eval_energies_by_block(
+            cta, TilePairModeTag<common::TilePairMode::InterAndIntra>{});
+      });
+      score::common::sphere_overlap::launch_precomputed_block_neighbors<
+          DeviceDispatch,
+          Dev,
+          launch_t,
+          Int>(mgr, shared_compact_block_neighbors, eval_all);
+    } else if (
+        !output_block_pair_energies
         && score::common::sphere_overlap::should_compact_block_neighbors(
             n_poses, max_n_blocks, false)) {
       auto eval_all = ([=] TMOL_DEVICE_FUNC(int cta) {
@@ -730,12 +760,22 @@ class LKBallPoseScoreDispatch {
       score::common::sphere_overlap::
           launch_compact_block_neighbors<DeviceDispatch, Dev, launch_t, Int>(
               mgr, scratch_rot_neighbors, eval_all);
-    } else
-#endif
-    {
+    } else {
       launch_lk_ball_pose_pair_workgroups<DeviceDispatch, Dev, launch_t>(
           mgr, n_poses, max_n_blocks, eval_energies_by_block);
     }
+#else
+    if (!output_block_pair_energies && use_shared_compact_block_neighbors) {
+      score::common::sphere_overlap::launch_precomputed_block_neighbors<
+          DeviceDispatch,
+          Dev,
+          launch_t,
+          Int>(mgr, shared_compact_block_neighbors, eval_energies_by_block);
+    } else {
+      launch_lk_ball_pose_pair_workgroups<DeviceDispatch, Dev, launch_t>(
+          mgr, n_poses, max_n_blocks, eval_energies_by_block);
+    }
+#endif
 
     return {output_t, scratch_rot_neighbors_t};
   }
@@ -804,6 +844,7 @@ class LKBallPoseScoreDispatch {
       // LKBall potential parameters
       TView<LKBallGlobalParams<Real>, 1, Dev> global_params,
       TView<Int, 3, Dev> scratch_rot_neighbors,  // from forward pass
+      TView<Int, 1, Dev> compact_block_neighbors,
       TView<Real, 4, Dev> dTdV,
       bool block_pair_scoring)
       -> std::tuple<TPack<Vec<Real, 3>, 1, Dev>, TPack<Vec<Real, 3>, 2, Dev>> {
@@ -821,6 +862,8 @@ class LKBallPoseScoreDispatch {
     int const max_n_interblock_bonds =
         block_type_atoms_forming_chemical_bonds.size(1);
     int const max_n_tiles = block_type_tile_pol_occ_inds.size(1);
+    bool const use_compact_block_neighbors =
+        compact_block_neighbors.size(0) != 0;
 
     auto dV_d_pose_coords_t = TPack<Vec<Real, 3>, 1, Dev>::zeros({n_atoms});
     auto dV_d_pose_coords = dV_d_pose_coords_t.view;
@@ -850,7 +893,8 @@ class LKBallPoseScoreDispatch {
       int const block_ind2 = common::get<2>(pair_indices);
 
       // Reject empty work before setting up the derivative machinery below.
-      if (scratch_rot_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
+      if (!use_compact_block_neighbors
+          && scratch_rot_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
         return;
       }
       int const rot_ind1 = rot_offset_for_block[pose_ind][block_ind1];
@@ -1050,7 +1094,20 @@ class LKBallPoseScoreDispatch {
     // a prefix scan, this has no device-to-host synchronization and is safe to
     // capture in a CUDA graph.
 #ifdef __NVCC__
-    int const n_pairs = max_n_blocks * (max_n_blocks + 1) / 2;
+    if (use_compact_block_neighbors) {
+      auto eval_compact = ([=] TMOL_DEVICE_FUNC(int cta) {
+        eval_derivs(
+            cta, TilePairModeTag<common::TilePairMode::InterAndIntra>{});
+      });
+      score::common::sphere_overlap::launch_precomputed_block_neighbors<
+          DeviceDispatch,
+          Dev,
+          launch_t,
+          Int>(mgr, compact_block_neighbors, eval_compact);
+      return {dV_d_pose_coords_t, dV_d_water_coords_t};
+    }
+    int const n_pairs =
+        static_cast<int>((int64_t(max_n_blocks) * (max_n_blocks + 1)) / 2);
     int const n_candidate_pairs = n_poses * n_pairs;
     constexpr int max_persistent_workgroups = 1 << 14;
     int const n_workgroups = n_candidate_pairs < max_persistent_workgroups
@@ -1066,8 +1123,16 @@ class LKBallPoseScoreDispatch {
     DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
         mgr, n_workgroups, eval_derivs_strided);
 #else
-    launch_lk_ball_pose_pair_workgroups<DeviceDispatch, Dev, launch_t>(
-        mgr, n_poses, max_n_blocks, eval_derivs);
+    if (use_compact_block_neighbors) {
+      score::common::sphere_overlap::launch_precomputed_block_neighbors<
+          DeviceDispatch,
+          Dev,
+          launch_t,
+          Int>(mgr, compact_block_neighbors, eval_derivs);
+    } else {
+      launch_lk_ball_pose_pair_workgroups<DeviceDispatch, Dev, launch_t>(
+          mgr, n_poses, max_n_blocks, eval_derivs);
+    }
 #endif
 
     return {dV_d_pose_coords_t, dV_d_water_coords_t};
@@ -1146,7 +1211,8 @@ class LKBallRotamerScoreDispatch {
       TView<LKBallGlobalParams<Real>, 1, Dev> global_params,
       Real max_dis,
       TView<Vec<Real, 3>, 2, Dev> water_coords,
-      bool output_block_pair_energies)
+      bool output_block_pair_energies,
+      TPack<Int, 2, Dev> shared_dispatch_indices)
       -> std::tuple<TPack<Real, 2, Dev>, TPack<Int, 2, Dev>> {
     using tmol::score::common::accumulate;
     using Real3 = Vec<Real, 3>;
@@ -1215,48 +1281,63 @@ class LKBallRotamerScoreDispatch {
     assert(block_type_path_distance.size(1) == max_n_block_atoms);
     assert(block_type_path_distance.size(2) == max_n_block_atoms);
 
-    auto scratch_rot_spheres_t = TPack<Real, 2, Dev>::zeros({n_rots, 4});
-    auto scratch_rot_spheres = scratch_rot_spheres_t.view;
+    TPack<Int, 2, Dev> dispatch_indices_t;
+    if (shared_dispatch_indices.size(0) == 3) {
+      dispatch_indices_t = shared_dispatch_indices;
+    } else {
+      auto scratch_rot_spheres_t =
+          Dev == Device::CPU ? TPack<Real, 2, Dev>::zeros({n_rots, 4})
+                             : TPack<Real, 2, Dev>::empty({n_rots, 4});
+      auto scratch_rot_spheres = scratch_rot_spheres_t.view;
 
-    auto scratch_block_spheres_t =
-        TPack<Real, 3, Dev>::zeros({n_poses, max_n_blocks, 4});
-    auto scratch_block_spheres = scratch_block_spheres_t.view;
+      auto scratch_block_spheres_t =
+          Dev == Device::CPU
+              ? TPack<Real, 3, Dev>::zeros({n_poses, max_n_blocks, 4})
+              : TPack<Real, 3, Dev>::empty({n_poses, max_n_blocks, 4});
+      auto scratch_block_spheres = scratch_block_spheres_t.view;
 
-    auto scratch_block_neighbors_t =
-        TPack<Int, 3, Dev>::zeros({n_poses, max_n_blocks, max_n_blocks});
-    auto scratch_block_neighbors = scratch_block_neighbors_t.view;
+      auto scratch_block_neighbors_t =
+          Dev == Device::CPU
+              ? TPack<Int, 3, Dev>::zeros({n_poses, max_n_blocks, max_n_blocks})
+              : TPack<Int, 3, Dev>::empty(
+                    {n_poses, max_n_blocks, max_n_blocks});
+      auto scratch_block_neighbors = scratch_block_neighbors_t.view;
 
-    score::common::sphere_overlap::
-        compute_rot_spheres<DeviceDispatch, Dev, Real, Int>::f(
-            mgr,
-            rot_coords,
-            rot_coord_offset,
-            block_type_ind_for_rot,
-            block_type_n_atoms,
-            scratch_rot_spheres);
+      score::common::sphere_overlap::
+          compute_rot_spheres<DeviceDispatch, Dev, Real, Int>::f(
+              mgr,
+              rot_coords,
+              rot_coord_offset,
+              block_type_ind_for_rot,
+              block_type_n_atoms,
+              scratch_rot_spheres);
 
-    score::common::sphere_overlap::
-        compute_block_spheres_from_rot_spheres<DeviceDispatch, Dev, Real, Int>::
-            f(mgr,
-              scratch_rot_spheres,
-              n_rots_for_block,
-              rot_offset_for_block,
-              scratch_block_spheres);
-
-    score::common::sphere_overlap::
-        detect_block_neighbors<DeviceDispatch, Dev, Real, Int>::f(
-            mgr,
-            first_rot_block_type,
-            scratch_block_spheres,
-            scratch_block_neighbors,
-            max_dis);
-
-    auto dispatch_indices_t = score::common::sphere_overlap::
-        rot_neighbor_indices_from_block_neighbors<DeviceDispatch, Dev, Int>::f(
-            mgr,
-            scratch_block_neighbors,
+      score::common::sphere_overlap::compute_block_spheres_from_rot_spheres<
+          DeviceDispatch,
+          Dev,
+          Real,
+          Int>::
+          f(mgr,
+            scratch_rot_spheres,
             n_rots_for_block,
-            rot_offset_for_block);
+            rot_offset_for_block,
+            scratch_block_spheres);
+
+      score::common::sphere_overlap::
+          detect_block_neighbors<DeviceDispatch, Dev, Real, Int>::f(
+              mgr,
+              first_rot_block_type,
+              scratch_block_spheres,
+              scratch_block_neighbors,
+              max_dis);
+
+      dispatch_indices_t = score::common::sphere_overlap::
+          rot_neighbor_indices_from_block_neighbors<DeviceDispatch, Dev, Int>::
+              f(mgr,
+                scratch_block_neighbors,
+                n_rots_for_block,
+                rot_offset_for_block);
+    }
     auto dispatch_indices = dispatch_indices_t.view;
 
     TPack<Real, 2, Dev> output_t;

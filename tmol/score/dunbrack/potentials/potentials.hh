@@ -271,7 +271,7 @@ def block_interpolate_rotameric_tables(
       wrap_iidihe += 2 * M_PI;
     }
     Real ii_period = rotameric_bb_periodicity[table_set][ii];
-    while (wrap_iidihe > ii_period) {
+    while (wrap_iidihe >= ii_period) {
       wrap_iidihe -= ii_period;
     }
 
@@ -351,7 +351,7 @@ def interpolate_rotameric_tables(
       wrap_iidihe += 2 * M_PI;
     }
     Real ii_period = rotameric_bb_periodicity[table_set][ii];
-    while (wrap_iidihe > ii_period) {
+    while (wrap_iidihe >= ii_period) {
       wrap_iidihe -= ii_period;
     }
 
@@ -674,7 +674,7 @@ def block_rotameric_chi_probability(
       wrap_iidihe += 2 * M_PI;
     }
     Real ii_period = rotameric_bb_periodicity[table_set][ii];
-    while (wrap_iidihe > ii_period) {
+    while (wrap_iidihe >= ii_period) {
       wrap_iidihe -= ii_period;
     }
 
@@ -730,7 +730,7 @@ def rotameric_chi_probability(
       wrap_iidihe += 2 * M_PI;
     }
     Real ii_period = rotameric_bb_periodicity[table_set][ii];
-    while (wrap_iidihe > ii_period) {
+    while (wrap_iidihe >= ii_period) {
       wrap_iidihe -= ii_period;
     }
 
@@ -889,7 +889,7 @@ def block_semirotameric_energy(
       wrap_iidihe += 2 * M_PI;
     }
     Real ii_period = semirot_periodicity[semirot_table_set][ii];
-    while (wrap_iidihe > ii_period) {
+    while (wrap_iidihe >= ii_period) {
       wrap_iidihe -= ii_period;
     }
     temp_dihe_deg(ii) = wrap_iidihe * 180 / M_PI;
@@ -970,7 +970,7 @@ def semirotameric_energy(
       wrap_iidihe += 2 * M_PI;
     }
     Real ii_period = semirot_periodicity[semirot_table_set][ii];
-    while (wrap_iidihe > ii_period) {
+    while (wrap_iidihe >= ii_period) {
       wrap_iidihe -= ii_period;
     }
     temp_dihe_deg(ii) = wrap_iidihe * 180 / M_PI;

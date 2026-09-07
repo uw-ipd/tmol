@@ -400,6 +400,9 @@ endfunction()
 # ═══════════════════════════════════════════════════════════════════════════════
 
 set(_C_SOURCES
+  # optimization
+  tmol/optimization/armijo_compiled.ops.cpp
+  tmol/optimization/armijo_compiled.cpu.cpp
   # io/details/compiled
   tmol/io/details/compiled/compiled.ops.cpp
   tmol/io/details/compiled/gen_pose_leaf_atoms.cpu.cpp
@@ -444,6 +447,7 @@ set(_C_SOURCES
   # score/ljlk
   tmol/score/ljlk/potentials/compiled.ops.cpp
   tmol/score/ljlk/potentials/ljlk_pose_score.cpu.cpp
+  tmol/score/ljlk/potentials/ljlk_elec_pose_score.cpu.cpp
   # score/lk_ball
   tmol/score/lk_ball/potentials/compiled.ops.cpp
   tmol/score/lk_ball/potentials/lk_ball_pose_score.cpu.cpp
@@ -454,6 +458,7 @@ set(_C_SOURCES
 
 if(TMOL_HAS_CUDA)
   list(APPEND _C_SOURCES
+    tmol/optimization/armijo_compiled.cuda.cu
     tmol/io/details/compiled/gen_pose_leaf_atoms.cuda.cu
     tmol/io/details/compiled/resolve_his_taut.cuda.cu
     tmol/kinematics/compiled/compiled.cuda.cu
@@ -470,6 +475,7 @@ if(TMOL_HAS_CUDA)
     tmol/score/hbond/potentials/hbond_pose_score.cuda.cu
     tmol/score/hbond/potentials/gen_hbond_bases.cuda.cu
     tmol/score/ljlk/potentials/ljlk_pose_score.cuda.cu
+    tmol/score/ljlk/potentials/ljlk_elec_pose_score.cuda.cu
     tmol/score/lk_ball/potentials/lk_ball_pose_score.cuda.cu
     tmol/score/lk_ball/potentials/gen_pose_waters.cuda.cu
     tmol/score/na_torsion/potentials/na_torsion_pose_score.cuda.cu
@@ -481,6 +487,7 @@ if(TMOL_HAS_CUDA)
     tmol/score/elec/potentials/elec_pose_score.cuda.cu
     tmol/score/hbond/potentials/hbond_pose_score.cuda.cu
     tmol/score/ljlk/potentials/ljlk_pose_score.cuda.cu
+    tmol/score/ljlk/potentials/ljlk_elec_pose_score.cuda.cu
     tmol/score/lk_ball/potentials/lk_ball_pose_score.cuda.cu
     PROPERTIES COMPILE_OPTIONS "--use_fast_math"
   )
