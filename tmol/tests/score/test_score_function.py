@@ -214,6 +214,9 @@ def test_cpu_fused_shard_planner_preserves_fallbacks(
     assert fused._execution_modules[0].classname == "LJLK+Elec"
     assert fused._cpu_fused_shards == 2
     assert fused._can_use_weighted_fused_default(pose.coords.detach())
+    assert fused._can_use_weighted_fused_default(
+        pose.coords.detach().requires_grad_(True)
+    ) == (score_function_module.sys.platform != "darwin")
 
     monkeypatch.setattr(torch, "get_num_threads", lambda: 16)
     wide = beta2016_score_function(
@@ -223,7 +226,7 @@ def test_cpu_fused_shard_planner_preserves_fallbacks(
     assert not wide._can_use_weighted_fused_default(pose.coords.detach())
     assert wide._can_use_weighted_fused_default(
         pose.coords.detach().requires_grad_(True)
-    )
+    ) == (score_function_module.sys.platform != "darwin")
     monkeypatch.setattr(torch, "get_num_threads", lambda: 4)
 
     separate_coords = pose.coords.detach().clone().requires_grad_(True)

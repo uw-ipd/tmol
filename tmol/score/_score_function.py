@@ -1,6 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 import logging
 import os
+import sys
 import threading
 from typing import Callable, Dict, Sequence, TypeVar
 import warnings
@@ -59,14 +60,20 @@ def _use_weighted_fused_score(
     force_for_cuda_graph: bool = False,
     needs_gradient: bool | None = None,
 ) -> bool:
-    """Select weighted native score reduction without regressing CUDA latency."""
+    """Select weighted native reduction without latency or stability regressions."""
     if force_for_cuda_graph:
         return True
     if coords.device.type == "cpu":
-        return True
+        if needs_gradient is None:
+            needs_gradient = torch.is_grad_enabled() and coords.requires_grad
+        # Apple's CPU backend needs independent gradient lanes to keep
+        # heterogeneous minimization trajectories stable. Linux CPU backends
+        # retain the faster compact weighted reduction.
+        return not needs_gradient or sys.platform != "darwin"
 
     if needs_gradient is None:
         needs_gradient = torch.is_grad_enabled() and coords.requires_grad
+
     if (
         needs_gradient
         and coords.numel() >= _CUDA_WEIGHTED_FUSED_MIN_GRAD_COORD_ELEMENTS
