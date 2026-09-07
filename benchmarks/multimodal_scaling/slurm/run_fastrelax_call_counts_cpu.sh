@@ -24,11 +24,12 @@ mkdir -p "${output}/call-counts"
 
 run_one() {
     local label=$1
-    local source=$2
-    local environment=$3
-    local commit=$4
-    local shared_neighbors=$5
-    local fused_ljlk_elec=$6
+    local replicate=$2
+    local source=$3
+    local environment=$4
+    local commit=$5
+    local shared_neighbors=$6
+    local fused_ljlk_elec=$7
     apptainer exec \
         --bind "${bench}:/bench,${harness}:/harness,${source}:/work,${output}:/results" \
         --pwd /harness "${image}" \
@@ -39,15 +40,25 @@ run_one() {
         "${environment}/bin/python" /harness/src/benchmark_fastrelax_calls.py \
         --dataset 1acd --modality protein --device cpu --batch-size 1 \
         --label "${label}" --commit "${commit}" \
-        --output "/results/call-counts/protein-1acd-${label}.json"
+        --output "/results/call-counts/protein-1acd-${label}-r${replicate}.json"
 }
 
-run_one baseline "${baseline_source}" "${baseline_env}" \
-    "$(git -C "${baseline_source}" rev-parse HEAD)" 0 0
+baseline_commit=$(git -C "${baseline_source}" rev-parse HEAD)
 candidate_commit=$(git -C "${candidate_source}" rev-parse HEAD)
-run_one optimizer-only "${candidate_source}" "${candidate_env}" \
+
+run_one baseline 1 "${baseline_source}" "${baseline_env}" \
+    "${baseline_commit}" 0 0
+run_one optimizer-only 1 "${candidate_source}" "${candidate_env}" \
     "${candidate_commit}" 0 0
-run_one shared-ordered "${candidate_source}" "${candidate_env}" \
+run_one shared-ordered 1 "${candidate_source}" "${candidate_env}" \
     "${candidate_commit}" compact 0
-run_one candidate "${candidate_source}" "${candidate_env}" \
+run_one candidate 1 "${candidate_source}" "${candidate_env}" \
     "${candidate_commit}" compact auto
+run_one candidate 2 "${candidate_source}" "${candidate_env}" \
+    "${candidate_commit}" compact auto
+run_one shared-ordered 2 "${candidate_source}" "${candidate_env}" \
+    "${candidate_commit}" compact 0
+run_one optimizer-only 2 "${candidate_source}" "${candidate_env}" \
+    "${candidate_commit}" 0 0
+run_one baseline 2 "${baseline_source}" "${baseline_env}" \
+    "${baseline_commit}" 0 0
