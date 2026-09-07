@@ -400,6 +400,9 @@ endfunction()
 # ═══════════════════════════════════════════════════════════════════════════════
 
 set(_C_SOURCES
+  # optimization
+  tmol/optimization/armijo_compiled.ops.cpp
+  tmol/optimization/armijo_compiled.cpu.cpp
   # io/details/compiled
   tmol/io/details/compiled/compiled.ops.cpp
   tmol/io/details/compiled/gen_pose_leaf_atoms.cpu.cpp
@@ -454,6 +457,7 @@ set(_C_SOURCES
 
 if(TMOL_HAS_CUDA)
   list(APPEND _C_SOURCES
+    tmol/optimization/armijo_compiled.cuda.cu
     tmol/io/details/compiled/gen_pose_leaf_atoms.cuda.cu
     tmol/io/details/compiled/resolve_his_taut.cuda.cu
     tmol/kinematics/compiled/compiled.cuda.cu

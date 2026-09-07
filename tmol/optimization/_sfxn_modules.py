@@ -38,6 +38,7 @@ class CartesianSfxnNetwork(torch.nn.Module):
         # clone: forward() writes into full_coords in place, which would
         # otherwise overwrite the caller's coordinates
         self.full_coords = pose_stack.coords.clone().detach()
+        self._uses_default_coord_mask = coord_mask is None
         if coord_mask is None:
             # Padding coordinates never contribute to a pose's score. Excluding
             # them keeps heterogeneous batches from allocating and updating
@@ -76,9 +77,10 @@ class CartesianSfxnNetwork(torch.nn.Module):
         coord_mask=None,
     ) -> bool:
         """Return whether this network can score another pose without rendering."""
-        if coord_mask is None:
-            coord_mask = pose_stack.real_atoms
-        return (
+        # Check cheap Python identity and shape predicates before any tensor
+        # comparison. The normal repeated-topology path shares these tensors,
+        # so it avoids both rebuilding ``real_atoms`` and synchronizing CUDA.
+        if not (
             score_function is self._score_function
             and self._score_function_versions
             == (
@@ -88,14 +90,28 @@ class CartesianSfxnNetwork(torch.nn.Module):
             and pose_stack.packed_block_types is self.pose_stack.packed_block_types
             and pose_stack.constraint_set is self.pose_stack.constraint_set
             and pose_stack.coords.shape == self.pose_stack.coords.shape
-            and torch.equal(coord_mask, self.coord_mask)
-            and torch.equal(pose_stack.block_type_ind, self.pose_stack.block_type_ind)
-            and torch.equal(
-                pose_stack.block_coord_offset, self.pose_stack.block_coord_offset
-            )
             and pose_stack.inter_residue_connections
             is self.pose_stack.inter_residue_connections
             and pose_stack.inter_block_bondsep is self.pose_stack.inter_block_bondsep
+        ):
+            return False
+
+        if coord_mask is None:
+            if not self._uses_default_coord_mask:
+                return False
+        elif coord_mask is not self.coord_mask and not torch.equal(
+            coord_mask, self.coord_mask
+        ):
+            return False
+
+        return (
+            pose_stack.block_type_ind is self.pose_stack.block_type_ind
+            or torch.equal(pose_stack.block_type_ind, self.pose_stack.block_type_ind)
+        ) and (
+            pose_stack.block_coord_offset is self.pose_stack.block_coord_offset
+            or torch.equal(
+                pose_stack.block_coord_offset, self.pose_stack.block_coord_offset
+            )
         )
 
     def _reset(
@@ -150,7 +166,6 @@ class KinForestSfxnNetwork(torch.nn.Module):
         dof_mask=None,
         kin_dtype=torch.float32,
     ):
-
         super(KinForestSfxnNetwork, self).__init__()
 
         torch_device = pose_stack.device
@@ -230,7 +245,6 @@ class KinForestSfxnNetwork(torch.nn.Module):
         return self.whole_pose_scoring_module(self.full_coords)
 
     def pose_stack_from_dofs(self) -> PoseStack:
-
         full_dofs = self.full_dofs.clone()
         flat_coords = self.flat_coords.detach()
         full_dofs.view(-1)[self._dof_flat_idx] = self.masked_dofs

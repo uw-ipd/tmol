@@ -79,7 +79,8 @@ struct compute_rot_spheres {
 
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(per_thread_com);
 
-      // The center of mass
+      // CPU's scalar workgroup implementation is faster with the square root
+      // before reduction; CUDA reduces squared distances to execute one sqrt.
       Real dmax(0);
 
       DeviceDispatch<D>::synchronize_workgroup();
@@ -100,20 +101,33 @@ struct compute_rot_spheres {
             d2max = d2;
           }
         }
-        dmax = sqrt(d2max);
+        if constexpr (D == Device::CPU) {
+          dmax = sqrt(d2max);
+        }
       });
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
           per_thread_dist_to_com);
 
-      dmax = DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
-          dmax, mgpu::maximum_t<Real>());
+      if constexpr (D == Device::CPU) {
+        dmax = DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
+            dmax, mgpu::maximum_t<Real>());
+      } else {
+        d2max = DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
+            d2max, mgpu::maximum_t<Real>());
+      }
 
       auto thread0_write_out_result = ([=] TMOL_DEVICE_FUNC(int tid) {
         if (tid == 0) {
           rot_spheres[rot_ind][0] = com[0];
           rot_spheres[rot_ind][1] = com[1];
           rot_spheres[rot_ind][2] = com[2];
-          rot_spheres[rot_ind][3] = dmax;
+          if constexpr (D == Device::CPU) {
+            rot_spheres[rot_ind][3] = dmax;
+          } else {
+            // Reduce squared distances first and take one square root per
+            // block, rather than one per participating GPU thread.
+            rot_spheres[rot_ind][3] = sqrt(d2max);
+          }
         }
       });
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
@@ -168,7 +182,8 @@ struct compute_block_spheres {
 
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(per_thread_com);
 
-      // The center of mass
+      // CPU's scalar workgroup implementation is faster with the square root
+      // before reduction; CUDA reduces squared distances to execute one sqrt.
       Real dmax(0);
 
       DeviceDispatch<D>::synchronize_workgroup();
@@ -189,20 +204,33 @@ struct compute_block_spheres {
             d2max = d2;
           }
         }
-        dmax = sqrt(d2max);
+        if constexpr (D == Device::CPU) {
+          dmax = sqrt(d2max);
+        }
       });
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
           per_thread_dist_to_com);
 
-      dmax = DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
-          dmax, mgpu::maximum_t<Real>());
+      if constexpr (D == Device::CPU) {
+        dmax = DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
+            dmax, mgpu::maximum_t<Real>());
+      } else {
+        d2max = DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
+            d2max, mgpu::maximum_t<Real>());
+      }
 
       auto thread0_write_out_result = ([=] TMOL_DEVICE_FUNC(int tid) {
         if (tid == 0) {
           block_spheres[pose_ind][block_ind][0] = com[0];
           block_spheres[pose_ind][block_ind][1] = com[1];
           block_spheres[pose_ind][block_ind][2] = com[2];
-          block_spheres[pose_ind][block_ind][3] = dmax;
+          if constexpr (D == Device::CPU) {
+            block_spheres[pose_ind][block_ind][3] = dmax;
+          } else {
+            // Reduce squared distances first and take one square root per
+            // block, rather than one per participating GPU thread.
+            block_spheres[pose_ind][block_ind][3] = sqrt(d2max);
+          }
         }
       });
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
@@ -248,10 +276,16 @@ struct detect_rot_neighbors {
 
       if (rot_ind1 >= n_rots_for_pose[pose_ind]
           || rot_ind2 >= n_rots_for_pose[pose_ind]) {
+        if (D == Device::CUDA) {
+          rot_neighbors[pose_ind][rot_ind1][rot_ind2] = 0;
+        }
         return;
       }
 
       if (rot_ind1 > rot_ind2) {
+        if (D == Device::CUDA) {
+          rot_neighbors[pose_ind][rot_ind1][rot_ind2] = 0;
+        }
         return;
       }
 
@@ -264,15 +298,24 @@ struct detect_rot_neighbors {
       bool same_rot = rot_ind1 == rot_ind2;
       bool same_block = block_ind1 == block_ind2;
       if (same_block && !same_rot) {
+        if (D == Device::CUDA) {
+          rot_neighbors[pose_ind][rot_ind1][rot_ind2] = 0;
+        }
         return;
       }
 
       int const block_type1 = block_type_ind_for_rot[global_rot_ind1];
       if (block_type1 < 0) {
+        if (D == Device::CUDA) {
+          rot_neighbors[pose_ind][rot_ind1][rot_ind2] = 0;
+        }
         return;
       }
       int const block_type2 = block_type_ind_for_rot[global_rot_ind2];
       if (block_type2 < 0) {
+        if (D == Device::CUDA) {
+          rot_neighbors[pose_ind][rot_ind1][rot_ind2] = 0;
+        }
         return;
       }
 
@@ -291,8 +334,13 @@ struct detect_rot_neighbors {
 
       Real d_threshold = sphere1[3] + sphere2[3] + reach;
 
+      // CUDA writes every cell so its caller can avoid a separate fill. CPU
+      // retains zero-initialized scratch because skipping non-neighbor stores
+      // is faster there.
       if (d2 < d_threshold * d_threshold) {
         rot_neighbors[pose_ind][rot_ind1][rot_ind2] = 1;
+      } else if (D == Device::CUDA) {
+        rot_neighbors[pose_ind][rot_ind1][rot_ind2] = 0;
       }
     });
     std::uint64_t n_rot_pairs = std::uint64_t(n_rots_for_block.size(0))
@@ -327,15 +375,24 @@ struct detect_block_neighbors {
       int const block_ind2 = pair % max_n_blocks;
 
       if (block_ind1 > block_ind2) {
+        if (D == Device::CUDA) {
+          block_neighbors[pose_ind][block_ind1][block_ind2] = 0;
+        }
         return;
       }
 
       int const block_type1 = pose_stack_block_type[pose_ind][block_ind1];
       if (block_type1 < 0) {
+        if (D == Device::CUDA) {
+          block_neighbors[pose_ind][block_ind1][block_ind2] = 0;
+        }
         return;
       }
       int const block_type2 = pose_stack_block_type[pose_ind][block_ind2];
       if (block_type2 < 0) {
+        if (D == Device::CUDA) {
+          block_neighbors[pose_ind][block_ind1][block_ind2] = 0;
+        }
         return;
       }
 
@@ -354,8 +411,13 @@ struct detect_block_neighbors {
 
       Real d_threshold = sphere1[3] + sphere2[3] + reach;
 
+      // CUDA writes every cell so its caller can avoid a separate fill. CPU
+      // retains zero-initialized scratch because skipping non-neighbor stores
+      // is faster there.
       if (d2 < d_threshold * d_threshold) {
         block_neighbors[pose_ind][block_ind1][block_ind2] = 1;
+      } else if (D == Device::CUDA) {
+        block_neighbors[pose_ind][block_ind1][block_ind2] = 0;
       }
     });
     DeviceDispatch<D>::template forall_independent<launch_t>(

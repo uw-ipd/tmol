@@ -593,11 +593,15 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   auto dV_dcoords = dV_dcoords_t.view;
 
   auto scratch_rot_spheres_t =
-      TPack<Real, 3, Dev>::zeros({n_poses, max_n_blocks, 4});
+      Dev == Device::CPU
+          ? TPack<Real, 3, Dev>::zeros({n_poses, max_n_blocks, 4})
+          : TPack<Real, 3, Dev>::empty({n_poses, max_n_blocks, 4});
   auto scratch_rot_spheres = scratch_rot_spheres_t.view;
 
   auto scratch_rot_neighbors_t =
-      TPack<Int, 3, Dev>::zeros({n_poses, max_n_blocks, max_n_blocks});
+      Dev == Device::CPU
+          ? TPack<Int, 3, Dev>::zeros({n_poses, max_n_blocks, max_n_blocks})
+          : TPack<Int, 3, Dev>::empty({n_poses, max_n_blocks, max_n_blocks});
   auto scratch_rot_neighbors = scratch_rot_neighbors_t.view;
 
   score::common::sphere_overlap::
@@ -1229,15 +1233,21 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   auto dV_dcoords_t = TPack<Vec<Real, 3>, 2, Dev>::zeros({1, n_atoms});
   auto dV_dcoords = dV_dcoords_t.view;
 
-  auto scratch_rot_spheres_t = TPack<Real, 2, Dev>::zeros({n_rots, 4});
+  auto scratch_rot_spheres_t = Dev == Device::CPU
+                                   ? TPack<Real, 2, Dev>::zeros({n_rots, 4})
+                                   : TPack<Real, 2, Dev>::empty({n_rots, 4});
   auto scratch_rot_spheres = scratch_rot_spheres_t.view;
 
   auto scratch_block_spheres_t =
-      TPack<Real, 3, Dev>::zeros({n_poses, max_n_blocks, 4});
+      Dev == Device::CPU
+          ? TPack<Real, 3, Dev>::zeros({n_poses, max_n_blocks, 4})
+          : TPack<Real, 3, Dev>::empty({n_poses, max_n_blocks, 4});
   auto scratch_block_spheres = scratch_block_spheres_t.view;
 
   auto scratch_block_neighbors_t =
-      TPack<Int, 3, Dev>::zeros({n_poses, max_n_blocks, max_n_blocks});
+      Dev == Device::CPU
+          ? TPack<Int, 3, Dev>::zeros({n_poses, max_n_blocks, max_n_blocks})
+          : TPack<Int, 3, Dev>::empty({n_poses, max_n_blocks, max_n_blocks});
   auto scratch_block_neighbors = scratch_block_neighbors_t.view;
 
   score::common::sphere_overlap::

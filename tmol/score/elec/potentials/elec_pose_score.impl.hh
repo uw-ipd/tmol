@@ -511,11 +511,14 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   auto dV_dcoords = dV_dcoords_t.view;
 
   auto scratch_rot_spheres_t =
-      TPack<Real, 3, D>::zeros({n_poses, max_n_blocks, 4});
+      D == Device::CPU ? TPack<Real, 3, D>::zeros({n_poses, max_n_blocks, 4})
+                       : TPack<Real, 3, D>::empty({n_poses, max_n_blocks, 4});
   auto scratch_rot_spheres = scratch_rot_spheres_t.view;
 
   auto scratch_rot_neighbors_t =
-      TPack<Int, 3, D>::zeros({n_poses, max_n_blocks, max_n_blocks});
+      D == Device::CPU
+          ? TPack<Int, 3, D>::zeros({n_poses, max_n_blocks, max_n_blocks})
+          : TPack<Int, 3, D>::empty({n_poses, max_n_blocks, max_n_blocks});
   auto scratch_rot_neighbors = scratch_rot_neighbors_t.view;
 
   score::common::sphere_overlap::
@@ -1259,15 +1262,20 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   auto dV_dcoords_t = TPack<Vec<Real, 3>, 2, D>::zeros({1, n_atoms});
   auto dV_dcoords = dV_dcoords_t.view;
 
-  auto scratch_rot_spheres_t = TPack<Real, 2, D>::zeros({n_rots, 4});
+  auto scratch_rot_spheres_t = D == Device::CPU
+                                   ? TPack<Real, 2, D>::zeros({n_rots, 4})
+                                   : TPack<Real, 2, D>::empty({n_rots, 4});
   auto scratch_rot_spheres = scratch_rot_spheres_t.view;
 
   auto scratch_block_spheres_t =
-      TPack<Real, 3, D>::zeros({n_poses, max_n_blocks, 4});
+      D == Device::CPU ? TPack<Real, 3, D>::zeros({n_poses, max_n_blocks, 4})
+                       : TPack<Real, 3, D>::empty({n_poses, max_n_blocks, 4});
   auto scratch_block_spheres = scratch_block_spheres_t.view;
 
   auto scratch_block_neighbors_t =
-      TPack<Int, 3, D>::zeros({n_poses, max_n_blocks, max_n_blocks});
+      D == Device::CPU
+          ? TPack<Int, 3, D>::zeros({n_poses, max_n_blocks, max_n_blocks})
+          : TPack<Int, 3, D>::empty({n_poses, max_n_blocks, max_n_blocks});
   auto scratch_block_neighbors = scratch_block_neighbors_t.view;
 
   score::common::sphere_overlap::

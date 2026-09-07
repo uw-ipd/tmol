@@ -36,6 +36,7 @@ except PackageNotFoundError:
 
 __all__ = [
     "CanonicalOrdering",
+    "CartesianMinimizer",
     "CartesianMoveMap",
     "ConstraintEnergyTerm",
     "ConstraintSet",
@@ -127,7 +128,13 @@ for _module, _names in (
     ),
     (
         "tmol.optimization",
-        ("build_kinforest_network", "run_cart_min", "run_kin_min", "run_min"),
+        (
+            "CartesianMinimizer",
+            "build_kinforest_network",
+            "run_cart_min",
+            "run_kin_min",
+            "run_min",
+        ),
     ),
     (
         "tmol.pose",

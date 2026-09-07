@@ -26,10 +26,9 @@ from tmol.pack.rotamer import (
     IncludeCurrentSampler,
 )
 from tmol.optimization import (
-    CartesianSfxnNetwork,
+    CartesianMinimizer,
     run_cart_min,
     run_kin_min,
-    run_min,
 )
 from tmol.types import Tensor
 from tmol.utility._device import synchronize_device
@@ -165,8 +164,7 @@ class _DefaultCartesianMinimizer:
     """Cartesian minimizer that reuses rendering for unchanged pose topology."""
 
     def __init__(self, cuda_graph: bool):
-        self.cuda_graph = cuda_graph
-        self.network: CartesianSfxnNetwork | None = None
+        self.minimizer = CartesianMinimizer(cuda_graph=cuda_graph)
 
     def __call__(
         self,
@@ -181,17 +179,10 @@ class _DefaultCartesianMinimizer:
         coord_mask = (
             move_map.coord_mask if isinstance(move_map, CartesianMoveMap) else None
         )
-        if self.network is None or not self.network._reset(
-            sfxn, pose_stack, coord_mask
-        ):
-            self.network = CartesianSfxnNetwork(
-                sfxn,
-                pose_stack,
-                coord_mask,
-                cuda_graph="forward_backward" if self.cuda_graph else False,
-            )
-        return run_min(
-            self.network,
+        return self.minimizer(
+            pose_stack,
+            sfxn,
+            coord_mask=coord_mask,
             verbose=verbose,
             optimizer_kwargs={"verbose": verbose},
         )
