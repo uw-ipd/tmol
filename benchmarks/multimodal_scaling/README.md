@@ -116,6 +116,10 @@ FastRelax on both CPU and CUDA before accepting the A/B result.
 On a congested GPU cluster, `slurm/run_candidate_ab_cpu.sh` and
 `slurm/validate_candidate_cpu.sh` run the CPU subset independently; the full
 job resumes into the same output directory and skips those completed records.
+If a seeded FastRelax A/B changes trajectory, use
+`slurm/run_fastrelax_call_counts_cpu.sh` to record whole-pose score and
+gradient-bearing call counts alongside wall time. This separates faster score
+calls from a changed line-search path that performs more calls.
 
 For a large matrix, `src/feed_scheduler.py` can feed ordered table segments as
 capacity becomes available under the 3,000-job QOS cap and schedule the final
