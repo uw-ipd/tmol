@@ -445,7 +445,9 @@ struct DunbrackChiSampler {
           wrap_iidihe += 2 * M_PI;
         }
         Real ii_period = rotameric_bb_periodicity[table_set][ii];
-        while (wrap_iidihe > ii_period) {
+        // The upper endpoint is periodic with zero. Keeping an exact endpoint
+        // would produce bin_index == table_size and index one past the table.
+        while (wrap_iidihe >= ii_period) {
           wrap_iidihe -= ii_period;
         }
 
@@ -711,7 +713,9 @@ struct DunbrackChiSampler {
           wrap_iidihe += 2 * M_PI;
         }
         Real ii_period = rotameric_bb_periodicity[table_set][ii];
-        while (wrap_iidihe > ii_period) {
+        // The upper endpoint is periodic with zero. Keeping an exact endpoint
+        // would produce bin_index == table_size and index one past the table.
+        while (wrap_iidihe >= ii_period) {
           wrap_iidihe -= ii_period;
         }
 
