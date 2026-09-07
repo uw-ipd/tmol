@@ -144,6 +144,9 @@ Build the candidate with `slurm/build_candidate_release.sh` before final timing.
 It enforces the same Release configuration and `TMOL_BUILD_TESTS=OFF` setting
 as the frozen 0.1.55 baseline; test-enabled developer binaries are validation
 artifacts and must not be mixed into production performance comparisons.
+Set `TMOL_ENABLE_CUDA_BUILD=OFF` only for CPU-only historical checkpoints that
+cannot compile against the current CUDA toolchain; the chosen value is passed
+explicitly and verified in `CMakeCache.txt`.
 Every candidate A/B job performs this check again before measuring and writes a
 provenance JSON under `$TMOL_CANDIDATE_AB_ROOT/metadata`. The record includes
 source revisions and cleanliness, selected CMake cache values, compiled
