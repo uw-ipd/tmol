@@ -23,6 +23,7 @@ candidate_env=${TMOL_CANDIDATE_ENV:-/mnt/home/kdidi/tmol-shared-neighbor-bench/e
 # frozen expanded manifest. Override with a whitespace-separated list when
 # profiling a different manifest.
 profile_datasets=${TMOL_ROTAMER_PROFILE_DATASETS:-"1aie 1f3g 1v0b"}
+profile_modality=${TMOL_ROTAMER_PROFILE_MODALITY:-protein}
 
 mkdir -p "${output}/rotamer-term-profile"
 baseline_commit=$(git -C "${baseline_source}" rev-parse HEAD)
@@ -45,7 +46,8 @@ run_one() {
         env TMOL_BENCH_ROOT=/bench TMOL_USE_JIT=0 \
         OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
         "${environment}/bin/python" /harness/src/profile_rotamer_terms.py \
-        --dataset "${dataset}" --modality protein --device cpu --batch-size 1 \
+        --dataset "${dataset}" --modality "${profile_modality}" \
+        --device cpu --batch-size 1 \
         --label "${label}" --commit "${commit}" \
         --output "/results/rotamer-term-profile/${dataset}-${label}-r${replicate}.json"
 }
