@@ -1,0 +1,42 @@
+{
+  "schema_version": 3,
+  "latest_tmol": {
+    "version": "0.1.55",
+    "commit": "39f757f8837f853b85d6ce367938934e832c1033"
+  },
+  "historical_tmol": {
+    "default_version": "0.1.46",
+    "default_commit": "4ac54af52f9dc02cfc6a439f151eea63561e6cf0",
+    "nucleic_version": "0.1.47",
+    "nucleic_commit": "2e73c9fb030e64e175161e9a385bb3229262a99b"
+  },
+  "pyrosetta": {
+    "version": "2024.39",
+    "commit": "59628fbc5bc09f1221e1642f1f8d157ce49b1410",
+    "score_functions": {
+      "protein": "beta_nov16_cart",
+      "protein_ligand": "beta_genpot_cart",
+      "protein_nucleic": "beta_nov16_cart"
+    }
+  },
+  "tmol_score_function": "beta2016",
+  "modalities": ["protein", "protein_ligand", "protein_nucleic"],
+  "protocols": ["score", "score_gradient", "fastrelax"],
+  "tmol_gpu_batch_sizes": [1, 10, 100, 1000],
+  "cpu_batch_sizes": [1],
+  "warmup_iterations": 5,
+  "timed_samples": 7,
+  "target_seconds_per_sample": 1.0,
+  "minimum_iterations": 3,
+  "maximum_iterations": 1000,
+  "pyrosetta_score_cache_policy": "clear_energies_each_call",
+  "fastrelax_repeats": 1,
+  "fastrelax_timed_samples": 1,
+  "threads": 1,
+  "seed": 20260906,
+  "expanded_structures_per_modality": 128,
+  "memory_contract": {
+    "cpu": "process peak resident set size",
+    "cuda": "peak bytes allocated by the PyTorch CUDA allocator"
+  }
+}
