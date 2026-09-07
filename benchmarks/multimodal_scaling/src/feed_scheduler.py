@@ -27,8 +27,11 @@ def active_jobs() -> int:
     return len(output.splitlines())
 
 
-def persist(path: Path, targets: list[dict], job_ids: list[str]) -> None:
+def persist(
+    path: Path, targets: list[dict], job_ids: list[str], complete: bool = False
+) -> None:
     payload = {
+        "complete": complete,
         "targets": targets,
         "submitted_job_ids": job_ids,
         "updated_unix_time": time.time(),
@@ -101,9 +104,13 @@ def main() -> None:
     parser.add_argument(
         "--target",
         action="append",
-        required=True,
         metavar="PROTOCOL:DEVICE:OFFSET",
         help="Ordered table segment to submit; repeat for subsequent segments.",
+    )
+    parser.add_argument(
+        "--resume-state",
+        action="store_true",
+        help="Resume offsets and dependency IDs from --state after a requeue.",
     )
     parser.add_argument("--dependency-job", action="append", default=[])
     parser.add_argument("--job-limit", type=int, default=3000)
@@ -119,22 +126,37 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    targets = []
-    for value in args.target:
-        protocol, device, offset_text = value.split(":")
-        if protocol not in {"score_gradient", "fastrelax"}:
-            raise ValueError(f"unknown protocol: {protocol}")
-        if device not in {"cpu", "cuda"}:
-            raise ValueError(f"unknown device: {device}")
-        offset = int(offset_text)
-        count = table_size(protocol, device)
-        if not 0 <= offset <= count:
-            raise ValueError(f"offset {offset} outside {protocol}/{device} table")
-        targets.append(
-            {"protocol": protocol, "device": device, "offset": offset, "count": count}
-        )
-
-    job_ids = list(args.dependency_job)
+    if args.resume_state and args.state.exists():
+        previous = json.loads(args.state.read_text())
+        if previous.get("complete"):
+            print("feeder state is already complete", flush=True)
+            return
+        targets = previous["targets"]
+        job_ids = list(previous["submitted_job_ids"])
+        print(f"resumed {args.state}", flush=True)
+    else:
+        if not args.target:
+            raise ValueError("at least one --target is required for a new feeder")
+        targets = []
+        for value in args.target:
+            protocol, device, offset_text = value.split(":")
+            if protocol not in {"score_gradient", "fastrelax"}:
+                raise ValueError(f"unknown protocol: {protocol}")
+            if device not in {"cpu", "cuda"}:
+                raise ValueError(f"unknown device: {device}")
+            offset = int(offset_text)
+            count = table_size(protocol, device)
+            if not 0 <= offset <= count:
+                raise ValueError(f"offset {offset} outside {protocol}/{device} table")
+            targets.append(
+                {
+                    "protocol": protocol,
+                    "device": device,
+                    "offset": offset,
+                    "count": count,
+                }
+            )
+        job_ids = list(args.dependency_job)
     persist(args.state, targets, job_ids)
     for target in targets:
         while target["offset"] < target["count"]:
@@ -180,7 +202,7 @@ def main() -> None:
             print(error.output.strip(), flush=True)
             time.sleep(args.poll_seconds)
     print("finalizer", finalizer, flush=True)
-    persist(args.state, targets, [*job_ids, finalizer])
+    persist(args.state, targets, [*job_ids, finalizer], complete=True)
 
 
 if __name__ == "__main__":

@@ -106,3 +106,5 @@ report with `afterany` dependencies. Its progress is atomically recorded in
 `metadata/scheduler_feeder_state.json`; `slurm/feed_remaining.sh` is the
 resource-light Slurm wrapper. Pass already submitted array IDs with repeated
 `--dependency-job` arguments so the finalizer waits for the complete run.
+Use `--resume-state` for the production feeder so a Slurm requeue reloads the
+last atomically persisted offsets instead of replaying its original arguments.
