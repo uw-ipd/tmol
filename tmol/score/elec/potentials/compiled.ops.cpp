@@ -57,7 +57,8 @@ class ElecPoseScoreOp
       Tensor block_type_is_ligand_fragment,
       Tensor global_params,
       double max_dis,  // host scalar; needed by detect-neighbors call
-      bool output_block_pair_energies) {
+      bool output_block_pair_energies,
+      Tensor shared_compact_block_neighbors) {
     at::Tensor score;
     at::Tensor dscore_dcoords;
     at::Tensor block_neighbors;
@@ -100,12 +101,15 @@ class ElecPoseScoreOp
                   TCAST(block_type_is_ligand_fragment),
                   TCAST(global_params),
                   (Real)max_dis,
+                  TCAST(shared_compact_block_neighbors),
                   output_block_pair_energies,
                   rot_coords.requires_grad());
 
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;
-          block_neighbors = std::get<2>(result).tensor;
+          block_neighbors = shared_compact_block_neighbors.numel() != 0
+                                ? shared_compact_block_neighbors
+                                : std::get<2>(result).tensor;
         }));
 
     if (output_block_pair_energies) {
@@ -253,7 +257,7 @@ class ElecPoseScoreOp
         dV_d_pose_coords, torch::Tensor(), torch::Tensor(), torch::Tensor(),
         torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
         torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(),
 
         torch::Tensor(),  torch::Tensor(),
 
@@ -546,7 +550,8 @@ std::vector<Tensor> elec_pose_scores_op(
     Tensor block_type_is_ligand_fragment,
     Tensor global_params,
     double max_dis,
-    bool output_block_pair_energies) {
+    bool output_block_pair_energies,
+    Tensor shared_compact_block_neighbors) {
   return ElecPoseScoreOp<DispatchMethod>::apply(
       rot_coords,
       rot_coord_offset,
@@ -575,7 +580,8 @@ std::vector<Tensor> elec_pose_scores_op(
       block_type_is_ligand_fragment,
       global_params,
       max_dis,
-      output_block_pair_energies);
+      output_block_pair_energies,
+      shared_compact_block_neighbors);
 }
 
 template <template <tmol::Device> class DispatchMethod>

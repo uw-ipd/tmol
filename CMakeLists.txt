@@ -447,6 +447,7 @@ set(_C_SOURCES
   # score/ljlk
   tmol/score/ljlk/potentials/compiled.ops.cpp
   tmol/score/ljlk/potentials/ljlk_pose_score.cpu.cpp
+  tmol/score/ljlk/potentials/ljlk_elec_pose_score.cpu.cpp
   # score/lk_ball
   tmol/score/lk_ball/potentials/compiled.ops.cpp
   tmol/score/lk_ball/potentials/lk_ball_pose_score.cpu.cpp
@@ -474,6 +475,7 @@ if(TMOL_HAS_CUDA)
     tmol/score/hbond/potentials/hbond_pose_score.cuda.cu
     tmol/score/hbond/potentials/gen_hbond_bases.cuda.cu
     tmol/score/ljlk/potentials/ljlk_pose_score.cuda.cu
+    tmol/score/ljlk/potentials/ljlk_elec_pose_score.cuda.cu
     tmol/score/lk_ball/potentials/lk_ball_pose_score.cuda.cu
     tmol/score/lk_ball/potentials/gen_pose_waters.cuda.cu
     tmol/score/na_torsion/potentials/na_torsion_pose_score.cuda.cu
@@ -485,6 +487,7 @@ if(TMOL_HAS_CUDA)
     tmol/score/elec/potentials/elec_pose_score.cuda.cu
     tmol/score/hbond/potentials/hbond_pose_score.cuda.cu
     tmol/score/ljlk/potentials/ljlk_pose_score.cuda.cu
+    tmol/score/ljlk/potentials/ljlk_elec_pose_score.cuda.cu
     tmol/score/lk_ball/potentials/lk_ball_pose_score.cuda.cu
     PROPERTIES COMPILE_OPTIONS "--use_fast_math"
   )

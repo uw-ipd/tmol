@@ -1,6 +1,8 @@
 #include <torch/torch.h>
 #include <torch/script.h>
 
+#include <limits>
+
 #include <tmol/utility/tensor/TensorCast.h>
 #include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
@@ -9,6 +11,7 @@
 #include <tmol/score/common/whole_pose_scoring.hh>
 
 #include "ljlk_pose_score.hh"
+#include "ljlk_elec_pose_score.hh"
 // #include "rotamer_pair_energy_lj.hh"
 // #include "rotamer_pair_energy_lk.hh"
 
@@ -63,7 +66,8 @@ class LJLKPoseScoreOp
       Tensor type_params,
       Tensor global_params,
       double max_dis,  // host scalar; needed by detect-neighbors call
-      bool output_block_pair_energies) {
+      bool output_block_pair_energies,
+      Tensor shared_compact_block_neighbors) {
     at::Tensor score, dscore_dcoords, block_neighbors;
 
     using Int = int32_t;
@@ -106,12 +110,15 @@ class LJLKPoseScoreOp
                   TCAST(type_params),
                   TCAST(global_params),
                   (Real)max_dis,
+                  TCAST(shared_compact_block_neighbors),
                   output_block_pair_energies,
                   rot_coords.requires_grad());
 
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;
-          block_neighbors = std::get<2>(result).tensor;
+          block_neighbors = shared_compact_block_neighbors.numel() != 0
+                                ? shared_compact_block_neighbors
+                                : std::get<2>(result).tensor;
         }));
 
     if (output_block_pair_energies) {
@@ -270,7 +277,203 @@ class LJLKPoseScoreOp
             torch::Tensor(),  torch::Tensor(),
 
             torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor()};
+            torch::Tensor(),  torch::Tensor(), torch::Tensor()};
+  }
+};
+
+template <template <tmol::Device> class DispatchMethod, bool weighted>
+class LJLKAndElecPoseScoreOp
+    : public torch::autograd::Function<
+          LJLKAndElecPoseScoreOp<DispatchMethod, weighted>> {
+ public:
+  static std::vector<Tensor> forward(
+      AutogradContext* ctx,
+      Tensor rot_coords,
+      Tensor rot_coord_offset,
+      Tensor pose_ind_for_atom,
+      Tensor first_rot_for_block,
+      Tensor first_rot_block_type,
+      Tensor block_ind_for_rot,
+      Tensor pose_ind_for_rot,
+      Tensor block_type_ind_for_rot,
+      Tensor n_rots_for_pose,
+      Tensor rot_offset_for_pose,
+      Tensor n_rots_for_block,
+      Tensor rot_offset_for_block,
+      int64_t max_n_rots_per_pose,
+      Tensor pose_stack_min_bond_separation,
+      Tensor pose_stack_inter_block_bondsep,
+      Tensor block_type_n_atoms,
+      Tensor block_type_atom_types,
+      Tensor block_type_n_interblock_bonds,
+      Tensor block_type_atoms_forming_chemical_bonds,
+      Tensor block_type_ljlk_path_distance,
+      Tensor block_type_is_ligand_fragment,
+      Tensor ljlk_type_params,
+      Tensor ljlk_global_params,
+      Tensor block_type_partial_charge,
+      Tensor block_type_elec_inter_repr_path_distance,
+      Tensor block_type_elec_intra_repr_path_distance,
+      Tensor elec_global_params,
+      Tensor shared_compact_block_neighbors,
+      Tensor score_weights) {
+    TORCH_CHECK(
+        shared_compact_block_neighbors.numel() != 0,
+        "fused LJ/LK + electrostatics requires compact block neighbors");
+    if constexpr (weighted) {
+      TORCH_CHECK(
+          score_weights.dim() == 1 && score_weights.size(0) == 4,
+          "weighted fused LJ/LK + electrostatics requires four score weights");
+      TORCH_CHECK(
+          score_weights.device() == rot_coords.device()
+              && score_weights.scalar_type() == rot_coords.scalar_type(),
+          "fused score weights must match coordinate dtype and device");
+    }
+    Tensor score;
+    Tensor dscore_dcoords;
+    using Int = int32_t;
+#define TMOL_FUSED_SCORE_ARGS                                                 \
+  mgr, TCAST(rot_coords), TCAST(rot_coord_offset), TCAST(pose_ind_for_atom),  \
+      TCAST(first_rot_for_block), TCAST(first_rot_block_type),                \
+      TCAST(block_ind_for_rot), TCAST(pose_ind_for_rot),                      \
+      TCAST(block_type_ind_for_rot), TCAST(n_rots_for_pose),                  \
+      TCAST(rot_offset_for_pose), TCAST(n_rots_for_block),                    \
+      TCAST(rot_offset_for_block), max_n_rots_per_pose,                       \
+      TCAST(pose_stack_min_bond_separation),                                  \
+      TCAST(pose_stack_inter_block_bondsep), TCAST(block_type_n_atoms),       \
+      TCAST(block_type_atom_types), TCAST(block_type_n_interblock_bonds),     \
+      TCAST(block_type_atoms_forming_chemical_bonds),                         \
+      TCAST(block_type_ljlk_path_distance),                                   \
+      TCAST(block_type_is_ligand_fragment), TCAST(ljlk_type_params),          \
+      TCAST(ljlk_global_params), TCAST(block_type_partial_charge),            \
+      TCAST(block_type_elec_inter_repr_path_distance),                        \
+      TCAST(block_type_elec_intra_repr_path_distance),                        \
+      TCAST(elec_global_params), TCAST(shared_compact_block_neighbors)
+    TMOL_DISPATCH_FLOATING_DEVICE(
+        rot_coords.options(), "ljlk_elec_pose_score_op", ([&] {
+          using Real = scalar_t;
+          constexpr tmol::Device Dev = device_t;
+          auto result = [&]() {
+            if constexpr (weighted) {
+              return LJLKAndElecPoseScoreDispatch<
+                  DispatchMethod,
+                  Dev,
+                  Real,
+                  Int>::forward_weighted(
+                  TMOL_FUSED_SCORE_ARGS,
+                  TCAST(score_weights),
+                  rot_coords.requires_grad());
+            } else {
+              return LJLKAndElecPoseScoreDispatch<
+                  DispatchMethod,
+                  Dev,
+                  Real,
+                  Int>::forward(
+                  TMOL_FUSED_SCORE_ARGS, rot_coords.requires_grad());
+            }
+          }();
+          score = std::get<0>(result).tensor.squeeze(-1).squeeze(-1);
+          dscore_dcoords = std::get<1>(result).tensor;
+        }));
+#undef TMOL_FUSED_SCORE_ARGS
+    ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
+    return {score};
+  }
+
+  static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
+    auto const saved = ctx->get_saved_variables();
+    tensor_list gradients(29);
+    gradients[0] =
+        common::accumulate_whole_pose_gradients(saved[0], grad_outputs[0]);
+    return gradients;
+  }
+};
+
+template <template <tmol::Device> class DispatchMethod>
+class WeightedFusedScoreSumOp
+    : public torch::autograd::Function<WeightedFusedScoreSumOp<DispatchMethod>> {
+ public:
+  static std::vector<Tensor> forward(
+      AutogradContext* ctx,
+      Tensor score_lanes,
+      Tensor score_weights,
+      int64_t fused_weight_begin,
+      int64_t fused_weight_width) {
+    TORCH_CHECK(
+        score_lanes.dim() == 2 && score_weights.dim() == 2
+            && score_weights.size(1) == 1,
+        "weighted score reduction expects [lane, pose] scores and [lane, 1] "
+        "weights");
+    TORCH_CHECK(
+        score_lanes.device() == score_weights.device()
+            && score_lanes.scalar_type() == score_weights.scalar_type(),
+        "score lanes and weights must have the same dtype and device");
+    TORCH_CHECK(
+        fused_weight_begin >= 0 && fused_weight_width > 0
+            && fused_weight_begin < score_lanes.size(0)
+            && score_lanes.size(0)
+                == score_weights.size(0) - fused_weight_width + 1,
+        "invalid fused score-lane mapping");
+
+    Tensor output;
+    using Int = int32_t;
+    TMOL_DISPATCH_FLOATING_DEVICE(
+        score_lanes.options(), "weighted_fused_score_sum_op", ([&] {
+          using Real = scalar_t;
+          constexpr tmol::Device Dev = device_t;
+          output = LJLKAndElecPoseScoreDispatch<
+                       DispatchMethod,
+                       Dev,
+                       Real,
+                       Int>::reduce_weighted_scores(
+                       mgr,
+                       TCAST(score_lanes),
+                       TCAST(score_weights),
+                       fused_weight_begin,
+                       fused_weight_width)
+                       .tensor;
+        }));
+    ctx->save_for_backward({score_weights});
+    ctx->saved_data["n_score_lanes"] = score_lanes.size(0);
+    ctx->saved_data["fused_weight_begin"] = fused_weight_begin;
+    ctx->saved_data["fused_weight_width"] = fused_weight_width;
+    return {output};
+  }
+
+  static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
+    Tensor const score_weights = ctx->get_saved_variables()[0];
+    // TView preserves the incoming stride, including the zero stride produced
+    // by score.sum()'s expanded gradient. Avoid materializing that expansion:
+    // the native reduction reads it correctly and saves one CPU copy or CUDA
+    // kernel launch from every default score-plus-gradient call.
+    Tensor const output_gradient = grad_outputs[0];
+    int64_t const n_score_lanes = ctx->saved_data["n_score_lanes"].toInt();
+    int64_t const fused_weight_begin =
+        ctx->saved_data["fused_weight_begin"].toInt();
+    int64_t const fused_weight_width =
+        ctx->saved_data["fused_weight_width"].toInt();
+    Tensor score_lane_gradients;
+    using Int = int32_t;
+    TMOL_DISPATCH_FLOATING_DEVICE(
+        output_gradient.options(), "weighted_fused_score_sum_backward", ([&] {
+          using Real = scalar_t;
+          constexpr tmol::Device Dev = device_t;
+          score_lane_gradients = LJLKAndElecPoseScoreDispatch<
+                                     DispatchMethod,
+                                     Dev,
+                                     Real,
+                                     Int>::reduce_weighted_score_gradients(
+                                     mgr,
+                                     TCAST(output_gradient),
+                                     TCAST(score_weights),
+                                     n_score_lanes,
+                                     fused_weight_begin,
+                                     fused_weight_width)
+                                     .tensor;
+        }));
+    tensor_list gradients(4);
+    gradients[0] = score_lane_gradients;
+    return gradients;
   }
 };
 
@@ -557,7 +760,8 @@ std::vector<Tensor> ljlk_pose_scores_op(
     Tensor ljlk_type_params,
     Tensor global_params,
     double max_dis,
-    bool output_block_pair_energies) {
+    bool output_block_pair_energies,
+    Tensor shared_compact_block_neighbors) {
   return LJLKPoseScoreOp<DispatchMethod>::apply(
       // common params
       rot_coords,
@@ -589,7 +793,200 @@ std::vector<Tensor> ljlk_pose_scores_op(
       ljlk_type_params,
       global_params,
       max_dis,
-      output_block_pair_energies);
+      output_block_pair_energies,
+      shared_compact_block_neighbors);
+}
+
+template <template <tmol::Device> class DispatchMethod>
+std::vector<Tensor> ljlk_elec_pose_scores_op(
+    Tensor rot_coords,
+    Tensor rot_coord_offset,
+    Tensor pose_ind_for_atom,
+    Tensor first_rot_for_block,
+    Tensor first_rot_block_type,
+    Tensor block_ind_for_rot,
+    Tensor pose_ind_for_rot,
+    Tensor block_type_ind_for_rot,
+    Tensor n_rots_for_pose,
+    Tensor rot_offset_for_pose,
+    Tensor n_rots_for_block,
+    Tensor rot_offset_for_block,
+    int64_t max_n_rots_per_pose,
+    Tensor pose_stack_min_bond_separation,
+    Tensor pose_stack_inter_block_bondsep,
+    Tensor block_type_n_atoms,
+    Tensor block_type_atom_types,
+    Tensor block_type_n_interblock_bonds,
+    Tensor block_type_atoms_forming_chemical_bonds,
+    Tensor block_type_ljlk_path_distance,
+    Tensor block_type_is_ligand_fragment,
+    Tensor ljlk_type_params,
+    Tensor ljlk_global_params,
+    Tensor block_type_partial_charge,
+    Tensor block_type_elec_inter_repr_path_distance,
+    Tensor block_type_elec_intra_repr_path_distance,
+    Tensor elec_global_params,
+    Tensor shared_compact_block_neighbors) {
+  return LJLKAndElecPoseScoreOp<DispatchMethod, false>::apply(
+      rot_coords,
+      rot_coord_offset,
+      pose_ind_for_atom,
+      first_rot_for_block,
+      first_rot_block_type,
+      block_ind_for_rot,
+      pose_ind_for_rot,
+      block_type_ind_for_rot,
+      n_rots_for_pose,
+      rot_offset_for_pose,
+      n_rots_for_block,
+      rot_offset_for_block,
+      max_n_rots_per_pose,
+      pose_stack_min_bond_separation,
+      pose_stack_inter_block_bondsep,
+      block_type_n_atoms,
+      block_type_atom_types,
+      block_type_n_interblock_bonds,
+      block_type_atoms_forming_chemical_bonds,
+      block_type_ljlk_path_distance,
+      block_type_is_ligand_fragment,
+      ljlk_type_params,
+      ljlk_global_params,
+      block_type_partial_charge,
+      block_type_elec_inter_repr_path_distance,
+      block_type_elec_intra_repr_path_distance,
+      elec_global_params,
+      shared_compact_block_neighbors,
+      torch::empty({0}, rot_coords.options()));
+}
+
+template <template <tmol::Device> class DispatchMethod>
+std::vector<Tensor> ljlk_elec_weighted_pose_scores_op(
+    Tensor rot_coords,
+    Tensor rot_coord_offset,
+    Tensor pose_ind_for_atom,
+    Tensor first_rot_for_block,
+    Tensor first_rot_block_type,
+    Tensor block_ind_for_rot,
+    Tensor pose_ind_for_rot,
+    Tensor block_type_ind_for_rot,
+    Tensor n_rots_for_pose,
+    Tensor rot_offset_for_pose,
+    Tensor n_rots_for_block,
+    Tensor rot_offset_for_block,
+    int64_t max_n_rots_per_pose,
+    Tensor pose_stack_min_bond_separation,
+    Tensor pose_stack_inter_block_bondsep,
+    Tensor block_type_n_atoms,
+    Tensor block_type_atom_types,
+    Tensor block_type_n_interblock_bonds,
+    Tensor block_type_atoms_forming_chemical_bonds,
+    Tensor block_type_ljlk_path_distance,
+    Tensor block_type_is_ligand_fragment,
+    Tensor ljlk_type_params,
+    Tensor ljlk_global_params,
+    Tensor block_type_partial_charge,
+    Tensor block_type_elec_inter_repr_path_distance,
+    Tensor block_type_elec_intra_repr_path_distance,
+    Tensor elec_global_params,
+    Tensor shared_compact_block_neighbors,
+    Tensor score_weights) {
+  return LJLKAndElecPoseScoreOp<DispatchMethod, true>::apply(
+      rot_coords,
+      rot_coord_offset,
+      pose_ind_for_atom,
+      first_rot_for_block,
+      first_rot_block_type,
+      block_ind_for_rot,
+      pose_ind_for_rot,
+      block_type_ind_for_rot,
+      n_rots_for_pose,
+      rot_offset_for_pose,
+      n_rots_for_block,
+      rot_offset_for_block,
+      max_n_rots_per_pose,
+      pose_stack_min_bond_separation,
+      pose_stack_inter_block_bondsep,
+      block_type_n_atoms,
+      block_type_atom_types,
+      block_type_n_interblock_bonds,
+      block_type_atoms_forming_chemical_bonds,
+      block_type_ljlk_path_distance,
+      block_type_is_ligand_fragment,
+      ljlk_type_params,
+      ljlk_global_params,
+      block_type_partial_charge,
+      block_type_elec_inter_repr_path_distance,
+      block_type_elec_intra_repr_path_distance,
+      elec_global_params,
+      shared_compact_block_neighbors,
+      score_weights);
+}
+
+template <template <tmol::Device> class DispatchMethod>
+std::vector<Tensor> weighted_fused_score_sum_op(
+    Tensor score_lanes,
+    Tensor score_weights,
+    int64_t fused_weight_begin,
+    int64_t fused_weight_width) {
+  return WeightedFusedScoreSumOp<DispatchMethod>::apply(
+      score_lanes, score_weights, fused_weight_begin, fused_weight_width);
+}
+
+std::vector<Tensor> build_compact_block_neighbors_op(
+    Tensor rot_coords,
+    Tensor rot_coord_offset,
+    Tensor first_rot_block_type,
+    Tensor block_ind_for_rot,
+    Tensor pose_ind_for_rot,
+    Tensor block_type_ind_for_rot,
+    Tensor block_type_n_atoms,
+    double reach) {
+  TORCH_CHECK(
+      first_rot_block_type.dim() == 2,
+      "first_rot_block_type must have shape [n_poses, max_n_blocks]");
+  int64_t const n_poses = first_rot_block_type.size(0);
+  int64_t const max_n_blocks = first_rot_block_type.size(1);
+  int64_t constexpr max_int = std::numeric_limits<int32_t>::max();
+  TORCH_CHECK(
+      n_poses <= max_int,
+      "compact block-neighbor indexing supports at most ",
+      max_int,
+      " poses; got ",
+      n_poses);
+  TORCH_CHECK(
+      max_n_blocks <= 65535,
+      "compact block-neighbor indexing supports at most 65,535 blocks per "
+      "pose; got ",
+      max_n_blocks);
+  int64_t const pairs_per_pose = max_n_blocks * (max_n_blocks + 1) / 2;
+  TORCH_CHECK(
+      pairs_per_pose == 0 || n_poses <= (max_int - 1) / pairs_per_pose,
+      "compact block-neighbor indexing exceeds int32 capacity for ",
+      n_poses,
+      " poses and ",
+      max_n_blocks,
+      " blocks per pose");
+  Tensor neighbor_indices;
+  using Int = int32_t;
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      rot_coords.options(), "build_compact_block_neighbors", ([&] {
+        using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
+        neighbor_indices =
+            LJLKPoseScoreDispatch<DeviceOperations, Dev, Real, Int>::
+                build_compact_block_neighbors(
+                    mgr,
+                    TCAST(rot_coords),
+                    TCAST(rot_coord_offset),
+                    TCAST(first_rot_block_type),
+                    TCAST(block_ind_for_rot),
+                    TCAST(pose_ind_for_rot),
+                    TCAST(block_type_ind_for_rot),
+                    TCAST(block_type_n_atoms),
+                    (Real)reach)
+                    .tensor;
+      }));
+  return {neighbor_indices};
 }
 
 template <template <tmol::Device> class DispatchMethod>
@@ -662,7 +1059,15 @@ std::vector<Tensor> ljlk_rotamer_scores_op(
 // See https://stackoverflow.com/a/3221914
 TORCH_LIBRARY(tmol_ljlk, m) {
   m.def("ljlk_pose_scores", &ljlk_pose_scores_op<DeviceOperations>);
+  m.def("ljlk_elec_pose_scores", &ljlk_elec_pose_scores_op<DeviceOperations>);
+  m.def(
+      "ljlk_elec_weighted_pose_scores",
+      &ljlk_elec_weighted_pose_scores_op<DeviceOperations>);
+  m.def(
+      "weighted_fused_score_sum",
+      &weighted_fused_score_sum_op<DeviceOperations>);
   m.def("ljlk_rotamer_scores", &ljlk_rotamer_scores_op<DeviceOperations>);
+  m.def("build_compact_block_neighbors", &build_compact_block_neighbors_op);
 }
 
 }  // namespace potentials

@@ -13,6 +13,7 @@
 #include <tmol/score/unresolved_atom.hh>
 
 #include <tmol/score/common/accumulate.hh>
+#include <tmol/score/common/counting.hh>
 #include <tmol/score/common/diamond_macros.hh>
 #include <tmol/score/common/launch_box_macros.hh>
 #include <tmol/score/common/tuple.hh>
@@ -764,7 +765,7 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
   // them in the second step.
 
   auto n_energies_for_block_t =
-      TPack<Int, 2, Dev>::zeros({n_poses, max_n_blocks});
+      TPack<int64_t, 2, Dev>::zeros({n_poses, max_n_blocks});
   auto n_energies_for_block = n_energies_for_block_t.view;
   auto count_n_rotamer_energies = ([=] TMOL_DEVICE_FUNC(int index) {
     // Look at each residue and make sure that it has both upper and lower
@@ -805,21 +806,36 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
     // too.
     int const upper_n_rots = n_rots_for_block[pose_ind][upper_nbr_block_ind];
 
-    n_energies_for_block[pose_ind][block_ind] = n_rots * upper_n_rots;
+    n_energies_for_block[pose_ind][block_ind] = int64_t(n_rots) * upper_n_rots;
   });
+  int const n_pose_block_cells = score::common::checked_dispatch_product(
+      n_poses, max_n_blocks, "backbone-torsion count dispatch");
   DeviceDispatch<Dev>::template forall<launch_t>(
-      mgr, n_poses * max_n_blocks, count_n_rotamer_energies);
+      mgr, n_pose_block_cells, count_n_rotamer_energies);
+
+  int const max_n_rots_per_block = DeviceDispatch<Dev>::reduce(
+      mgr, n_rots_for_block.data(), n_pose_block_cells, mgpu::maximum_t<Int>());
+  int const pose_block_rot_cells = score::common::checked_dispatch_product(
+      n_pose_block_cells,
+      max_n_rots_per_block,
+      "backbone-torsion candidate dispatch");
+  int const candidate_dispatch = score::common::checked_dispatch_product(
+      pose_block_rot_cells,
+      max_n_rots_per_block,
+      "backbone-torsion candidate dispatch");
 
   auto n_energies_for_block_offset_t =
-      TPack<Int, 2, Dev>::zeros({n_poses, max_n_blocks});
+      TPack<int64_t, 2, Dev>::zeros({n_poses, max_n_blocks});
   auto n_energies_for_block_offset = n_energies_for_block_offset_t.view;
-  int n_dispatch_total =
+  int64_t const n_dispatch_total_64 =
       DeviceDispatch<Dev>::template scan_and_return_total<mgpu::scan_type_exc>(
           mgr,
           n_energies_for_block.data(),
           n_energies_for_block_offset.data(),
-          n_poses * max_n_blocks,
-          mgpu::plus_t<Int>());
+          n_pose_block_cells,
+          mgpu::plus_t<int64_t>());
+  int const n_dispatch_total = score::common::checked_dispatch_size(
+      n_dispatch_total_64, "backbone-torsion output dispatch");
 
   TPack<Real, 2, Dev> V_t;
   auto dispatch_indices_t = TPack<Int, 2, Dev>::zeros({3, n_dispatch_total});
@@ -829,12 +845,6 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
     V_t = TPack<Real, 2, Dev>::zeros({2, n_poses});
   }
   auto dV_dxyz_t = TPack<Vec<Real, 3>, 2, Dev>::zeros({2, n_atoms});
-
-  int const max_n_rots_per_block = DeviceDispatch<Dev>::reduce(
-      mgr,
-      n_rots_for_block.data(),
-      n_poses * max_n_blocks,
-      mgpu::maximum_t<Int>());
 
   auto V = V_t.view;
   auto dV_dxyz = dV_dxyz_t.view;
@@ -899,9 +909,7 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
     }
   });
   DeviceDispatch<Dev>::template forall<launch_t>(
-      mgr,
-      n_poses * max_n_blocks * max_n_rots_per_block * max_n_rots_per_block,
-      mark_dispatch_indices);
+      mgr, candidate_dispatch, mark_dispatch_indices);
 
   auto rama_omega_func = ([=] TMOL_DEVICE_FUNC(int ind) {
     int const pose_ind = dispatch_indices[0][ind];

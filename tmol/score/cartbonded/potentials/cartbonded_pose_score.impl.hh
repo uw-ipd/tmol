@@ -12,6 +12,7 @@
 
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/connection.hh>
+#include <tmol/score/common/counting.hh>
 #include <tmol/score/common/count_pair.hh>
 #include <tmol/score/common/data_loading.hh>
 #include <tmol/score/common/diamond_macros.hh>
@@ -171,6 +172,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     // relative to the offset listed in cart_subgraph_offsets, where
     // do the subgraphs for each of the three types begin?
     TView<Vec<Int, 3>, 1, D> cart_subgraph_type_offsets,
+    TView<Int, 1, D> cart_subgraph_param_indices,
 
     // int max_subgraphs_per_block,
     bool output_block_pair_energies,
@@ -230,6 +232,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   assert(cart_subgraph_offsets.size(0) == n_block_types);
   assert(cart_subgraph_type_counts.size(0) == n_block_types);
   assert(cart_subgraph_type_offsets.size(0) == n_block_types);
+  assert(cart_subgraph_param_indices.size(0) == n_subgraphs);
 
   // Algorithm: launch n_rots * (max_n_conns + 1) CTAs, each looking
   // at a single residue's (rotamer's) connection (+ one "connection" to self),
@@ -383,33 +386,11 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         // rot_ind1, block_type1, cta, tid);
 
         for (int i = tid; i < n_subgraphs; i += nt) {
-          int param_index = -1;
-          Vec<Int, 4> subgraph_atom_indices = {-1, -1, -1, -1};
-          for (bool wildcard : {false, true}) {
-            for (bool reverse : {false, true}) {
-              Vec<Int, 4> subgraph = cart_subgraphs[subgraph_offset + i];
-              if (reverse) reverse_subgraph(subgraph);
-
-              const auto& atom_id_table = (wildcard)
-                                              ? atom_wildcard_ids[block_type1]
-                                              : atom_unique_ids[block_type1];
-              Vec<Int, 4> subgraph_atom_ids =
-                  get_atom_ids(atom_id_table, subgraph);
-              param_index =
-                  hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
-
-              subgraph_atom_indices =
-                  atom_local_to_global_indices(subgraph, rot_coord_offset1);
-
-              if (param_index != -1) {
-                break;
-              }
-            }
-            if (param_index != -1) {
-              break;
-            }
-          }
+          int const subgraph_index = subgraph_offset + i;
+          int const param_index = cart_subgraph_param_indices[subgraph_index];
           if (param_index != -1) {
+            Vec<Int, 4> subgraph_atom_indices = atom_local_to_global_indices(
+                cart_subgraphs[subgraph_index], rot_coord_offset1);
             score_subgraph(subgraph_atom_indices, param_index);
           }
         }
@@ -660,6 +641,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     // relative to the offset listed in cart_subgraph_offsets, where
     // do the subgraphs for each of the three types begin?
     TView<Vec<Int, 3>, 1, D> cart_subgraph_type_offsets,
+    TView<Int, 1, D> cart_subgraph_param_indices,
 
     TView<Real, 4, D> dTdV  // nterms x n-poses x max_n_blocks x max_n_blocks
     ) -> TPack<Vec<Real, 3>, 2, D> {
@@ -820,33 +802,11 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
       int n_subgraphs = subgraph_offset_next - subgraph_offset;
       auto eval_intra_res_subgraphs = ([&] TMOL_DEVICE_FUNC(int tid) {
         for (int i = tid; i < n_subgraphs; i += nt) {
-          int param_index = -1;
-          Vec<Int, 4> subgraph_atom_indices = {-1, -1, -1, -1};
-          for (bool wildcard : {false, true}) {
-            for (bool reverse : {false, true}) {
-              Vec<Int, 4> subgraph = cart_subgraphs[subgraph_offset + i];
-              if (reverse) reverse_subgraph(subgraph);
-
-              const auto& atom_id_table = (wildcard)
-                                              ? atom_wildcard_ids[block_type1]
-                                              : atom_unique_ids[block_type1];
-              Vec<Int, 4> subgraph_atom_ids =
-                  get_atom_ids(atom_id_table, subgraph);
-              param_index =
-                  hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
-
-              subgraph_atom_indices =
-                  atom_local_to_global_indices(subgraph, rot_coord_offset1);
-
-              if (param_index != -1) {
-                break;
-              }
-            }
-            if (param_index != -1) {
-              break;
-            }
-          }
+          int const subgraph_index = subgraph_offset + i;
+          int const param_index = cart_subgraph_param_indices[subgraph_index];
           if (param_index != -1) {
+            Vec<Int, 4> subgraph_atom_indices = atom_local_to_global_indices(
+                cart_subgraphs[subgraph_index], rot_coord_offset1);
             score_subgraph(
                 subgraph_atom_indices,
                 param_index,
@@ -1042,6 +1002,7 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     // relative to the offset listed in cart_subgraph_offsets, where
     // do the subgraphs for each of the three types begin?
     TView<Vec<Int, 3>, 1, D> cart_subgraph_type_offsets,
+    TView<Int, 1, D> cart_subgraph_param_indices,
 
     // int max_subgraphs_per_block,
     bool output_block_pair_energies,
@@ -1051,7 +1012,7 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         TPack<Real, 2, D>,          // V_t,
         TPack<Vec<Real, 3>, 2, D>,  // dV_dx_t,
         TPack<Int, 2, D>,           // dispatch_indices_t,
-        TPack<Int, 1, D>,           // n_output_intxns_for_rot_conn_offset,
+        TPack<int64_t, 1, D>,       // n_output_intxns_for_rot_conn_offset,
         TPack<Int, 1, D>            // rotconn_for_output_intxn,
         > {
   using tmol::score::common::get_connection_spanning_subgraphs_offset;
@@ -1118,14 +1079,15 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   CTA_REAL_REDUCE_T_TYPEDEF;
 
   // Convention: conn == max_n_conns ==> the intra-rotamer set of cart energies
-  int const max_n_interactions = n_rots * (max_n_conns + 1);
+  int const max_n_interactions = score::common::checked_dispatch_product(
+      n_rots, max_n_conns + 1, "Cartesian-bonded count dispatch");
 
   // Here we only count the rotconns to "upper" neighbors
   auto n_output_intxns_for_rot_conn_t =
-      TPack<Int, 1, D>::zeros({max_n_interactions});
+      TPack<int64_t, 1, D>::zeros({max_n_interactions});
   auto n_output_intxns_for_rot_conn = n_output_intxns_for_rot_conn_t.view;
   auto n_output_intxns_for_rot_conn_offset_t =
-      TPack<Int, 1, D>::zeros({max_n_interactions});
+      TPack<int64_t, 1, D>::zeros({max_n_interactions});
   auto n_output_intxns_for_rot_conn_offset =
       n_output_intxns_for_rot_conn_offset_t.view;
 
@@ -1167,13 +1129,15 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
   // Scan and LBS on n output intxns: figure out how many rotamer pair
   // interactions there are and which pair each work unit should be assigned to.
-  int n_output_intxns_total =
+  int64_t const n_output_intxns_total_64 =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
           mgr,
           n_output_intxns_for_rot_conn.data(),
           n_output_intxns_for_rot_conn_offset.data(),
           max_n_interactions,
-          mgpu::plus_t<Int>());
+          mgpu::plus_t<int64_t>());
+  int const n_output_intxns_total = score::common::checked_dispatch_size(
+      n_output_intxns_total_64, "Cartesian-bonded output dispatch");
   TPack<Int, 1, D> rotconn_for_output_intxn_t =
       DeviceDispatch<D>::template load_balancing_search<launch_t>(
           mgr,
@@ -1340,33 +1304,11 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       int n_subgraphs = subgraph_offset_next - subgraph_offset;
       auto eval_intra_res_subgraphs = ([&] TMOL_DEVICE_FUNC(int tid) {
         for (int i = tid; i < n_subgraphs; i += nt) {
-          int param_index = -1;
-          Vec<Int, 4> subgraph_atom_indices = {-1, -1, -1, -1};
-          for (bool wildcard : {false, true}) {
-            for (bool reverse : {false, true}) {
-              Vec<Int, 4> subgraph = cart_subgraphs[subgraph_offset + i];
-              if (reverse) reverse_subgraph(subgraph);
-
-              const auto& atom_id_table = (wildcard)
-                                              ? atom_wildcard_ids[block_type1]
-                                              : atom_unique_ids[block_type1];
-              Vec<Int, 4> subgraph_atom_ids =
-                  get_atom_ids(atom_id_table, subgraph);
-              param_index =
-                  hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
-
-              subgraph_atom_indices =
-                  atom_local_to_global_indices(subgraph, rot_coord_offset1);
-
-              if (param_index != -1) {
-                break;
-              }
-            }
-            if (param_index != -1) {
-              break;
-            }
-          }
+          int const subgraph_index = subgraph_offset + i;
+          int const param_index = cart_subgraph_param_indices[subgraph_index];
           if (param_index != -1) {
+            Vec<Int, 4> subgraph_atom_indices = atom_local_to_global_indices(
+                cart_subgraphs[subgraph_index], rot_coord_offset1);
             score_subgraph(subgraph_atom_indices, param_index);
           }
         }
@@ -1593,9 +1535,10 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     // relative to the offset listed in cart_subgraph_offsets, where
     // do the subgraphs for each of the three types begin?
     TView<Vec<Int, 3>, 1, D> cart_subgraph_type_offsets,
+    TView<Int, 1, D> cart_subgraph_param_indices,
 
     TView<Int, 2, D> dispatch_indices,
-    TView<Int, 1, D> n_output_intxns_for_rot_conn_offset,
+    TView<int64_t, 1, D> n_output_intxns_for_rot_conn_offset,
     TView<Int, 1, D> rotconn_for_output_intxn,
 
     TView<Real, 2, D> dTdV  // nterms x n-dispatch
@@ -1752,33 +1695,11 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
       int n_subgraphs = subgraph_offset_next - subgraph_offset;
       auto eval_intra_res_subgraphs = ([&] TMOL_DEVICE_FUNC(int tid) {
         for (int i = tid; i < n_subgraphs; i += nt) {
-          int param_index = -1;
-          Vec<Int, 4> subgraph_atom_indices = {-1, -1, -1, -1};
-          for (bool wildcard : {false, true}) {
-            for (bool reverse : {false, true}) {
-              Vec<Int, 4> subgraph = cart_subgraphs[subgraph_offset + i];
-              if (reverse) reverse_subgraph(subgraph);
-
-              const auto& atom_id_table = (wildcard)
-                                              ? atom_wildcard_ids[block_type1]
-                                              : atom_unique_ids[block_type1];
-              Vec<Int, 4> subgraph_atom_ids =
-                  get_atom_ids(atom_id_table, subgraph);
-              param_index =
-                  hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
-
-              subgraph_atom_indices =
-                  atom_local_to_global_indices(subgraph, rot_coord_offset1);
-
-              if (param_index != -1) {
-                break;
-              }
-            }
-            if (param_index != -1) {
-              break;
-            }
-          }
+          int const subgraph_index = subgraph_offset + i;
+          int const param_index = cart_subgraph_param_indices[subgraph_index];
           if (param_index != -1) {
+            Vec<Int, 4> subgraph_atom_indices = atom_local_to_global_indices(
+                cart_subgraphs[subgraph_index], rot_coord_offset1);
             score_subgraph(subgraph_atom_indices, param_index);
           }
         }

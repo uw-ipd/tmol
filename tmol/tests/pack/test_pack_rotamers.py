@@ -2,6 +2,7 @@ import attrs
 import pytest
 import torch
 import math
+from types import SimpleNamespace
 
 from tmol.pose import (
     ConstraintSet,
@@ -30,6 +31,12 @@ from tmol.pack.rotamer import (
 from tmol.io import pose_stack_from_pdb
 
 from tmol.score.constraint import ConstraintEnergyTerm
+from tmol.pack._pack_rotamers import (
+    _PACKER_TASK_POSE_TENSORS,
+    _max_poses_per_packing_chunk,
+    _slice_packer_task,
+    _slice_pose_stack_for_packing,
+)
 
 
 def setup_pose_stack_and_task(poses, torch_device, dun_sampler):
@@ -44,10 +51,21 @@ def setup_pose_stack_and_task(poses, torch_device, dun_sampler):
     return pose_stack, task
 
 
-def build_packer_energy_tables(pose_stack, rotamer_set, sfxn, chunk_size=16):
+def build_packer_energy_tables(
+    pose_stack, rotamer_set, sfxn, chunk_size=16, raw_entries=False
+):
     pbt = pose_stack.packed_block_types
     rotamer_scoring_module = sfxn.render_rotamer_scoring_module(pose_stack, rotamer_set)
-    energies = rotamer_scoring_module(rotamer_set.coords).coalesce()
+    if raw_entries:
+        energy_indices, energy_values = rotamer_scoring_module.forward_sparse_entries(
+            rotamer_set.coords
+        )
+    else:
+        energies = rotamer_scoring_module(rotamer_set.coords).coalesce()
+        energy_indices, energy_values = (
+            energies.indices().to(torch.int32),
+            energies.values(),
+        )
 
     (
         max_n_bump_checked_rotamers_per_pose_tensor,
@@ -75,8 +93,8 @@ def build_packer_energy_tables(pose_stack, rotamer_set, sfxn, chunk_size=16):
         rotamer_set.pose_for_rot,
         rotamer_set.block_type_ind_for_rot,
         rotamer_set.block_ind_for_rot,
-        energies.indices().to(torch.int32),
-        energies.values(),
+        energy_indices,
+        energy_values,
         False,
     )
 
@@ -237,6 +255,137 @@ def test_pack_rotamers(
     )
 
 
+def test_raw_rotamer_entries_match_coalesced_interaction_graph(
+    default_database, ubq_pdb, dun_sampler, torch_device
+):
+    if torch_device.type != "cuda":
+        pytest.skip("raw duplicate accumulation requires CUDA atomics")
+
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=20)
+    pose_stack, task = setup_pose_stack_and_task([pose] * 2, torch_device, dun_sampler)
+    task = SetPackerTask.from_packer_task(task)
+    sfxn = get_packer_sfxn(default_database, torch_device)
+    pose_stack, rotamer_set = build_rotamers(
+        pose_stack, task, pose_stack.packed_block_types.chem_db
+    )
+    coalesced = build_packer_energy_tables(pose_stack, rotamer_set, sfxn)
+    raw = build_packer_energy_tables(pose_stack, rotamer_set, sfxn, raw_entries=True)
+
+    for coalesced_tensor, raw_tensor in zip(coalesced[:-1], raw[:-1]):
+        torch.testing.assert_close(coalesced_tensor, raw_tensor)
+    coalesced_tables, raw_tables = coalesced[-1], raw[-1]
+    assert (
+        coalesced_tables.max_n_rotamers_per_pose == raw_tables.max_n_rotamers_per_pose
+    )
+    assert coalesced_tables.chunk_size == raw_tables.chunk_size
+    for attribute in (
+        "pose_n_res",
+        "pose_n_rotamers",
+        "pose_rotamer_offset",
+        "nrotamers_for_res",
+        "oneb_offsets",
+        "res_for_rot",
+        "chunk_offset_offsets",
+        "chunk_offsets",
+        "energy1b",
+        "energy2b",
+    ):
+        torch.testing.assert_close(
+            getattr(coalesced_tables, attribute),
+            getattr(raw_tables, attribute),
+            atol=1e-3,
+            rtol=1e-5,
+        )
+
+
+def test_pack_rotamers_pose_chunks_preserve_pose_order_and_task(
+    default_database, ubq_pdb, dun_sampler, torch_device, monkeypatch
+):
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=20)
+    pose_stack, task = setup_pose_stack_and_task([pose] * 4, torch_device, dun_sampler)
+    sliced_pose_stack = _slice_pose_stack_for_packing(pose_stack, 1, 3)
+    assert sliced_pose_stack.n_poses == 2
+    assert torch.equal(sliced_pose_stack.coords, pose_stack.coords[1:3])
+    assert (
+        sliced_pose_stack.coords.untyped_storage().data_ptr()
+        == pose_stack.coords.untyped_storage().data_ptr()
+    )
+    sliced_task = _slice_packer_task(task, 1, 3)
+    for attribute in _PACKER_TASK_POSE_TENSORS:
+        assert torch.equal(
+            getattr(sliced_task, attribute), getattr(task, attribute)[1:3]
+        )
+    sfxn = get_packer_sfxn(default_database, torch_device)
+
+    torch.manual_seed(11723)
+    monkeypatch.setenv("TMOL_PACK_MAX_POSES_PER_CHUNK", "100")
+    unchunked = pack_rotamers(pose_stack, sfxn, task)
+
+    torch.manual_seed(11723)
+    monkeypatch.setenv("TMOL_PACK_MAX_POSES_PER_CHUNK", "2")
+    chunked = pack_rotamers(pose_stack, sfxn, task)
+
+    # Annealing intentionally consumes a different RNG stream when the batch
+    # shape changes, so exact rotamer coordinates need not match. Residue
+    # identities, pose order, shapes, and validity must be preserved.
+    assert torch.equal(unchunked.block_type_ind, chunked.block_type_ind)
+    assert unchunked.coords.shape == chunked.coords.shape
+    assert torch.isfinite(chunked.coords).all()
+
+
+@pytest.mark.parametrize("n_blocks,expected", [(256, 25), (257, 10), (1025, 10)])
+def test_default_packing_chunk_size_tiers(n_blocks, expected, monkeypatch):
+    monkeypatch.delenv("TMOL_PACK_MAX_POSES_PER_CHUNK", raising=False)
+    pose_stack = SimpleNamespace(max_n_blocks=n_blocks, device=torch.device("cpu"))
+    assert _max_poses_per_packing_chunk(pose_stack) == expected
+
+
+@pytest.mark.parametrize("configured", ["0", "-1", "not-an-int"])
+def test_packing_chunk_size_rejects_invalid_override(configured, monkeypatch):
+    monkeypatch.setenv("TMOL_PACK_MAX_POSES_PER_CHUNK", configured)
+    pose_stack = SimpleNamespace(max_n_blocks=20, device=torch.device("cpu"))
+    with pytest.raises(ValueError, match="must be a positive integer"):
+        _max_poses_per_packing_chunk(pose_stack)
+
+
+def test_shared_rotamer_dispatch_matches_independent_lk_ball_layout(
+    default_database, ubq_pdb, dun_sampler, torch_device
+):
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=10)
+    pose_stack, task = setup_pose_stack_and_task([pose], torch_device, dun_sampler)
+    task = SetPackerTask.from_packer_task(task)
+    sfxn = get_packer_sfxn(default_database, torch_device)
+    pose_stack, rotamer_set = build_rotamers(
+        pose_stack, task, pose_stack.packed_block_types.chem_db
+    )
+    scorer = sfxn.render_rotamer_scoring_module(pose_stack, rotamer_set)
+
+    shared_coords = rotamer_set.coords.detach().clone().requires_grad_(True)
+    shared = scorer(shared_coords).coalesce()
+    (shared_grad,) = torch.autograd.grad(shared.values().sum(), shared_coords)
+
+    lk_ball = next(term for term in scorer.term_modules if term.classname == "LKBall")
+    lk_ball.block_neighbor_cutoff += 0.5
+    fallback_coords = rotamer_set.coords.detach().clone().requires_grad_(True)
+    fallback = scorer(fallback_coords).coalesce()
+    (fallback_grad,) = torch.autograd.grad(fallback.values().sum(), fallback_coords)
+
+    torch.testing.assert_close(shared.to_dense(), fallback.to_dense())
+    if torch_device.type == "cuda":
+        # Rotamer gradients use atomics, so even two independent evaluations
+        # need not be elementwise deterministic. Require the shared-layout
+        # error to remain inside the measured independent-repeat envelope.
+        repeat_coords = rotamer_set.coords.detach().clone().requires_grad_(True)
+        repeat = scorer(repeat_coords).coalesce()
+        (repeat_grad,) = torch.autograd.grad(repeat.values().sum(), repeat_coords)
+        torch.testing.assert_close(fallback.to_dense(), repeat.to_dense())
+        repeat_error = torch.max(torch.abs(fallback_grad - repeat_grad))
+        shared_error = torch.max(torch.abs(shared_grad - fallback_grad))
+        assert shared_error <= 2 * repeat_error + 1e-6
+    else:
+        torch.testing.assert_close(shared_grad, fallback_grad)
+
+
 def test_pack_rotamers_optH(default_database, ubq_pdb, torch_device):
     n_poses = 4
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
@@ -314,7 +463,9 @@ def test_pack_rotamers_optH(default_database, ubq_pdb, torch_device):
     )
 
 
-def test_pack_rotamers_w_cst(default_database, ubq_pdb, dun_sampler, torch_device):
+def test_pack_rotamers_w_cst(
+    default_database, ubq_pdb, dun_sampler, torch_device, monkeypatch
+):
     n_poses = 4
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
     pose_stack, task = setup_pose_stack_and_task(
@@ -378,31 +529,26 @@ def test_pack_rotamers_w_cst(default_database, ubq_pdb, dun_sampler, torch_devic
     )
 
     pose_stack = attrs.evolve(pose_stack, constraint_set=constraints)
-    (
-        rotamer_for_nonmolten_block,
-        n_molten_blocks_per_pose,
-        bc_rot_offset_for_molten_block,
-        bc_rot_to_orig_rot,
-        bg_bg_energies,
-        packer_energy_tables,
-    ) = build_packer_energy_tables(pose_stack, rotamer_set, sfxn)
-    # bg_bg_energies, packer_energy_tables = build_packer_energy_tables(
-    #     pose_stack, rotamer_set, sfxn
-    # )
-    # run_pack_and_assert_scores(
-    #     pose_stack, rotamer_set, packer_energy_tables, sfxn, bg_bg_energies
-    # )
-    _, _ = run_pack_and_assert_scores(
-        pose_stack,
-        rotamer_set,
-        packer_energy_tables,
-        sfxn,
-        rotamer_for_nonmolten_block,
-        n_molten_blocks_per_pose,
-        bc_rot_offset_for_molten_block,
-        bc_rot_to_orig_rot,
-        bg_bg_energies,
+    # Exercise constraint slicing and remapping: constraint pose indices must
+    # be remapped independently for every packing chunk.
+    monkeypatch.setenv("TMOL_PACK_MAX_POSES_PER_CHUNK", "2")
+    packed = pack_rotamers(pose_stack, sfxn, task)
+    assert packed.n_poses == n_poses
+    assert packed.constraint_set is not None
+    assert (
+        packed.constraint_set.constraint_functions == constraints.constraint_functions
     )
+    for attribute in (
+        "constraint_function_inds",
+        "constraint_atoms",
+        "constraint_params",
+        "constraint_num_unique_blocks",
+        "constraint_unique_blocks",
+    ):
+        torch.testing.assert_close(
+            getattr(packed.constraint_set, attribute), getattr(constraints, attribute)
+        )
+    assert torch.isfinite(packed.coords).all()
     if torch_device == torch.device("cuda"):
         torch.cuda.synchronize()
 

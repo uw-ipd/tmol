@@ -12,6 +12,7 @@
 
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/connection.hh>
+#include <tmol/score/common/counting.hh>
 #include <tmol/score/common/diamond_macros.hh>
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/hash_util.hh>
@@ -995,7 +996,7 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
         TPack<Real, 2, D>,
         TPack<Vec<Real, 3>, 2, D>,
         TPack<Int, 2, D>,
-        TPack<Int, 1, D>,
+        TPack<int64_t, 1, D>,
         TPack<Int, 1, D>> {
   int const n_atoms = rot_coords.size(0);
   int const n_rots = rot_coord_offset.size(0);
@@ -1009,13 +1010,14 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
   CTA_REAL_REDUCE_T_TYPEDEF;
 
   // Convention: conn == max_n_conns => intra-rotamer interactions.
-  int const max_n_interactions = n_rots * (max_n_conns + 1);
+  int const max_n_interactions = score::common::checked_dispatch_product(
+      n_rots, max_n_conns + 1, "generic-bonded count dispatch");
 
   auto n_output_intxns_for_rot_conn_t =
-      TPack<Int, 1, D>::zeros({max_n_interactions});
+      TPack<int64_t, 1, D>::zeros({max_n_interactions});
   auto n_output_intxns_for_rot_conn = n_output_intxns_for_rot_conn_t.view;
   auto n_output_intxns_for_rot_conn_offset_t =
-      TPack<Int, 1, D>::zeros({max_n_interactions});
+      TPack<int64_t, 1, D>::zeros({max_n_interactions});
   auto n_output_intxns_for_rot_conn_offset =
       n_output_intxns_for_rot_conn_offset_t.view;
 
@@ -1043,13 +1045,15 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
   DeviceOps<D>::template forall<launch_t>(
       mgr, max_n_interactions, count_intxns_for_rot_conn);
 
-  int n_output_intxns_total =
+  int64_t const n_output_intxns_total_64 =
       DeviceOps<D>::template scan_and_return_total<mgpu::scan_type_exc>(
           mgr,
           n_output_intxns_for_rot_conn.data(),
           n_output_intxns_for_rot_conn_offset.data(),
           max_n_interactions,
-          mgpu::plus_t<Int>());
+          mgpu::plus_t<int64_t>());
+  int const n_output_intxns_total = score::common::checked_dispatch_size(
+      n_output_intxns_total_64, "generic-bonded output dispatch");
   TPack<Int, 1, D> rotconn_for_output_intxn_t =
       DeviceOps<D>::template load_balancing_search<launch_t>(
           mgr,
@@ -1319,7 +1323,7 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::backward(
     TView<Vec<Real, 5>, 1, D> gen_inter_improper_hash_values,
 
     TView<Int, 2, D> dispatch_indices,
-    TView<Int, 1, D> n_output_intxns_for_rot_conn_offset,
+    TView<int64_t, 1, D> n_output_intxns_for_rot_conn_offset,
     TView<Int, 1, D> rotconn_for_output_intxn,
     TView<Real, 2, D> dTdV) -> TPack<Vec<Real, 3>, 2, D> {
   int const n_atoms = rot_coords.size(0);

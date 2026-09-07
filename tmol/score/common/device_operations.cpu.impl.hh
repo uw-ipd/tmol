@@ -7,6 +7,7 @@ error_this_should_not_be_compiled();  // nvcc should not include this file
 #include <ATen/Parallel.h>
 
 #include "device_operations.hh"
+#include "counting.hh"
 #include <tmol/utility/tensor/context_manager.hh>
 
 namespace tmol {
@@ -42,8 +43,10 @@ struct DeviceOperations<tmol::Device::CPU> {
   template <typename launch_t, typename Func>
   static void forall_grouped(
       ContextManager& mgr, int n_groups, int items_per_group, Func f) {
+    int const n_items = checked_dispatch_product(
+        n_groups, items_per_group, "grouped CPU dispatch");
     if (n_groups <= 1) {
-      forall<launch_t>(mgr, n_groups * items_per_group, f);
+      forall<launch_t>(mgr, n_items, f);
       return;
     }
 
@@ -107,8 +110,10 @@ struct DeviceOperations<tmol::Device::CPU> {
   template <typename launch_t, typename Func>
   static void foreach_grouped_workgroup(
       ContextManager& mgr, int n_groups, int workgroups_per_group, Func f) {
+    int const n_workgroups = checked_dispatch_product(
+        n_groups, workgroups_per_group, "grouped CPU workgroup dispatch");
     if (n_groups <= 1) {
-      foreach_workgroup<launch_t>(mgr, n_groups * workgroups_per_group, f);
+      foreach_workgroup<launch_t>(mgr, n_workgroups, f);
       return;
     }
 
@@ -172,22 +177,22 @@ struct DeviceOperations<tmol::Device::CPU> {
   //   - exc_scan_offsets: the result of running exclusive scan on the
   //     the number of work units that each generator produces
   //.  - n_generators: the number of generators / length of exc_scan_offset
-  template <typename launch_t, typename Int>
+  template <typename launch_t, typename Offset, typename Int = int32_t>
   static TPack<Int, 1, tmol::Device::CPU> load_balancing_search(
       ContextManager&,
       int n_work_units_total,  // The count of the total number of work units
-      Int* exc_scan_offsets,
+      Offset* exc_scan_offsets,
       int n_generators) {
     auto gen_for_work_item_t =
         TPack<Int, 1, tmol::Device::CPU>::zeros({n_work_units_total});
     auto gen_for_work_item = gen_for_work_item_t.view;
 
     for (int i = 0; i < n_generators; ++i) {
-      int i_offset = exc_scan_offsets[i];
-      int i_n_work_units =
+      int64_t i_offset = exc_scan_offsets[i];
+      int64_t i_n_work_units =
           (i + 1 == n_generators ? n_work_units_total : exc_scan_offsets[i + 1])
           - i_offset;
-      for (int j = 0; j < i_n_work_units; ++j) {
+      for (int64_t j = 0; j < i_n_work_units; ++j) {
         gen_for_work_item[i_offset + j] = i;
       }
     }

@@ -62,6 +62,7 @@ class CartBondedPoseScoreOp
       Tensor cart_subgraph_offsets,
       Tensor cart_subgraph_type_counts,
       Tensor cart_subgraph_type_offsets,
+      Tensor cart_subgraph_param_indices,
 
       bool output_block_pair_energies) {
     at::Tensor score;
@@ -105,6 +106,7 @@ class CartBondedPoseScoreOp
                       TCAST(cart_subgraph_offsets),
                       TCAST(cart_subgraph_type_counts),
                       TCAST(cart_subgraph_type_offsets),
+                      TCAST(cart_subgraph_param_indices),
 
                       output_block_pair_energies,
                       rot_coords.requires_grad());
@@ -142,7 +144,8 @@ class CartBondedPoseScoreOp
            cart_subgraphs,
            cart_subgraph_offsets,
            cart_subgraph_type_counts,
-           cart_subgraph_type_offsets});
+           cart_subgraph_type_offsets,
+           cart_subgraph_param_indices});
     } else {
       // Return a 2D tensor with shape [5 x n_poses]
       score = score.squeeze(-1).squeeze(-1);
@@ -203,6 +206,7 @@ class CartBondedPoseScoreOp
       auto cart_subgraph_offsets = saved[i++];
       auto cart_subgraph_type_counts = saved[i++];
       auto cart_subgraph_type_offsets = saved[i++];
+      auto cart_subgraph_param_indices = saved[i++];
 
       using Int = int32_t;
 
@@ -244,6 +248,7 @@ class CartBondedPoseScoreOp
                         TCAST(cart_subgraph_offsets),
                         TCAST(cart_subgraph_type_counts),
                         TCAST(cart_subgraph_type_offsets),
+                        TCAST(cart_subgraph_param_indices),
 
                         TCAST(dTdV));
 
@@ -277,6 +282,7 @@ class CartBondedPoseScoreOp
         torch::Tensor(),
         torch::Tensor(),
 
+        torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
@@ -322,6 +328,7 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
       Tensor cart_subgraph_offsets,
       Tensor cart_subgraph_type_counts,
       Tensor cart_subgraph_type_offsets,
+      Tensor cart_subgraph_param_indices,
 
       bool output_block_pair_energies) {
     at::Tensor score;
@@ -368,6 +375,7 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
                       TCAST(cart_subgraph_offsets),
                       TCAST(cart_subgraph_type_counts),
                       TCAST(cart_subgraph_type_offsets),
+                      TCAST(cart_subgraph_param_indices),
 
                       output_block_pair_energies,
                       rot_coords.requires_grad());
@@ -409,6 +417,7 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
            cart_subgraph_offsets,
            cart_subgraph_type_counts,
            cart_subgraph_type_offsets,
+           cart_subgraph_param_indices,
 
            dispatch_indices,
            n_output_intxns_for_rot_conn_offset,
@@ -478,6 +487,7 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
       auto cart_subgraph_offsets = saved[i++];
       auto cart_subgraph_type_counts = saved[i++];
       auto cart_subgraph_type_offsets = saved[i++];
+      auto cart_subgraph_param_indices = saved[i++];
 
       // Tensors generated during the forward pass
       auto dispatch_indices = saved[i++];
@@ -524,6 +534,7 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
                         TCAST(cart_subgraph_offsets),
                         TCAST(cart_subgraph_type_counts),
                         TCAST(cart_subgraph_type_offsets),
+                        TCAST(cart_subgraph_param_indices),
 
                         TCAST(dispatch_indices),
                         TCAST(n_output_intxns_for_rot_conn_offset),
@@ -567,6 +578,7 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
         torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
+        torch::Tensor(),
 
         torch::Tensor()};
   }
@@ -602,6 +614,7 @@ std::vector<Tensor> cartbonded_pose_scores_op(
     Tensor cart_subgraph_offsets,
     Tensor cart_subgraph_type_counts,
     Tensor cart_subgraph_type_offsets,
+    Tensor cart_subgraph_param_indices,
 
     bool output_block_pair_energies) {
   return CartBondedPoseScoreOp<DispatchMethod>::apply(
@@ -632,6 +645,7 @@ std::vector<Tensor> cartbonded_pose_scores_op(
       cart_subgraph_offsets,
       cart_subgraph_type_counts,
       cart_subgraph_type_offsets,
+      cart_subgraph_param_indices,
       output_block_pair_energies);
 }
 
@@ -665,6 +679,7 @@ std::vector<Tensor> cartbonded_rotamer_scores_op(
     Tensor cart_subgraph_offsets,
     Tensor cart_subgraph_type_counts,
     Tensor cart_subgraph_type_offsets,
+    Tensor cart_subgraph_param_indices,
 
     bool output_block_pair_energies) {
   return CartBondedRotamerScoreOp<DispatchMethod>::apply(
@@ -695,6 +710,7 @@ std::vector<Tensor> cartbonded_rotamer_scores_op(
       cart_subgraph_offsets,
       cart_subgraph_type_counts,
       cart_subgraph_type_offsets,
+      cart_subgraph_param_indices,
       output_block_pair_energies);
 }
 

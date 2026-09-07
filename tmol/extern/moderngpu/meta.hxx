@@ -76,13 +76,13 @@ MGPU_HOST_DEVICE constexpr bool is_pow2(int x) {
   return 0 == (x & (x - 1));
 }
 MGPU_HOST_DEVICE constexpr int div_up(int x, int y) {
-  return (x + y - 1) / y;
+  return x / y + (x % y != 0);
 }
 MGPU_HOST_DEVICE constexpr int64_t div_up(int64_t x, int64_t y) {
-  return (x + y - 1) / y;
+  return x / y + (x % y != 0);
 }
 MGPU_HOST_DEVICE constexpr size_t div_up(size_t x, size_t y) {
-  return (x + y - 1) / y;
+  return x / y + (x % y != 0);
 }
 MGPU_HOST_DEVICE constexpr int s_log2(int x, int p = 0) {
   return x > 1 ? s_log2(x / 2) + 1 : p;

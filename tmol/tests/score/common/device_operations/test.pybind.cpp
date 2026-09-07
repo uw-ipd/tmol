@@ -1,5 +1,7 @@
 #include <tmol/utility/tensor/pybind.h>
+#include <tmol/score/common/counting.hh>
 #include <tmol/tests/score/common/device_operations/test.hh>
+#include <moderngpu/meta.hxx>
 
 namespace tmol {
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
@@ -7,6 +9,27 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   using namespace tmol::tests::score::common::device_operations;
 
   using CPU = DevOpsTests<Device::CPU>;
+
+  m.def(
+      "test_checked_dispatch_size",
+      [](int64_t count) {
+        return tmol::score::common::checked_dispatch_size(
+            count, "test dispatch");
+      },
+      "count"_a);
+  m.def(
+      "test_checked_dispatch_product",
+      [](int64_t lhs, int64_t rhs) {
+        return tmol::score::common::checked_dispatch_product(
+            lhs, rhs, "test dispatch product");
+      },
+      "lhs"_a,
+      "rhs"_a);
+  m.def(
+      "test_safe_div_up",
+      [](int value, int divisor) { return mgpu::div_up(value, divisor); },
+      "value"_a,
+      "divisor"_a);
 
   m.def("test_forall", &CPU::test_forall, "src"_a);
   m.def("test_forall_independent", &CPU::test_forall_independent, "src"_a);

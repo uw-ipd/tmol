@@ -394,7 +394,8 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
       Tensor global_params,
       double max_dis,  // host scalar; needed by detect-neighbors call
       Tensor water_coords,
-      bool output_block_pair_energies) {
+      bool output_block_pair_energies,
+      Tensor shared_compact_block_neighbors) {
     at::Tensor score;
     at::Tensor block_neighbors;
 
@@ -442,6 +443,7 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
                   TCAST(global_params),
                   (Real)max_dis,
                   TCAST(water_coords),
+                  TCAST(shared_compact_block_neighbors),
                   output_block_pair_energies);
 
           score = std::get<0>(result).tensor;
@@ -486,11 +488,15 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
 
          global_params,
          water_coords,
-         block_neighbors});
+         block_neighbors,
+         shared_compact_block_neighbors});
 
     ctx->saved_data["block_pair_scoring"] = output_block_pair_energies;
 
-    return {score, block_neighbors};
+    auto returned_neighbors = shared_compact_block_neighbors.numel() != 0
+                                  ? shared_compact_block_neighbors
+                                  : block_neighbors;
+    return {score, returned_neighbors};
   }
 
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
@@ -529,6 +535,7 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
     auto global_params = saved[i++];
     auto water_coords = saved[i++];
     auto block_neighbors = saved[i++];
+    auto compact_block_neighbors = saved[i++];
 
     at::Tensor dV_d_pose_coords, dV_d_water_coords;
     using Int = int32_t;
@@ -582,6 +589,7 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
 
                   TCAST(global_params),
                   TCAST(block_neighbors),
+                  TCAST(compact_block_neighbors),
                   TCAST(dTdV),
                   block_pair_scoring);
 
@@ -597,6 +605,7 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
         torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
         torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
         torch::Tensor(),  torch::Tensor(), dV_d_water_coords, torch::Tensor(),
+        torch::Tensor(),
     };
   }
 };
@@ -638,7 +647,8 @@ class LKBallRotamerScoreOp
       Tensor global_params,
       double max_dis,  // host scalar; needed by detect-neighbors call
       Tensor water_coords,
-      bool output_block_pair_energies) {
+      bool output_block_pair_energies,
+      Tensor shared_dispatch_indices) {
     at::Tensor score;
     at::Tensor dispatch_indices;
 
@@ -686,7 +696,8 @@ class LKBallRotamerScoreOp
                   TCAST(global_params),
                   (Real)max_dis,
                   TCAST(water_coords),
-                  output_block_pair_energies);
+                  output_block_pair_energies,
+                  TCAST(shared_dispatch_indices));
 
           score = std::get<0>(result).tensor;
           dispatch_indices = std::get<1>(result).tensor;
@@ -828,6 +839,7 @@ class LKBallRotamerScoreOp
         torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
         torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
         torch::Tensor(),  torch::Tensor(), dV_d_water_coords, torch::Tensor(),
+        torch::Tensor(),
     };
   }
 };
@@ -865,7 +877,8 @@ std::vector<Tensor> lkball_pose_score(
     Tensor global_params,
     double max_dis,
     Tensor water_coords,
-    bool output_block_pair_energies) {
+    bool output_block_pair_energies,
+    Tensor shared_compact_block_neighbors) {
   return LKBallPoseScoreOp::apply(
       // common params
       rot_coords,
@@ -898,7 +911,8 @@ std::vector<Tensor> lkball_pose_score(
       global_params,
       max_dis,
       water_coords,
-      output_block_pair_energies);
+      output_block_pair_energies,
+      shared_compact_block_neighbors);
 }
 
 std::vector<Tensor> lkball_rotamer_score(
@@ -935,6 +949,8 @@ std::vector<Tensor> lkball_rotamer_score(
     double max_dis,
     Tensor water_coords,
     bool output_block_pair_energies) {
+  auto empty_dispatch_indices =
+      torch::empty({0, 0}, rot_coord_offset.options().dtype(torch::kInt32));
   return LKBallRotamerScoreOp::apply(
       // common params
       rot_coords,
@@ -967,12 +983,88 @@ std::vector<Tensor> lkball_rotamer_score(
       global_params,
       max_dis,
       water_coords,
-      output_block_pair_energies);
+      output_block_pair_energies,
+      empty_dispatch_indices);
+}
+
+std::vector<Tensor> lkball_rotamer_score_shared(
+    Tensor rot_coords,
+    Tensor rot_coord_offset,
+    Tensor pose_ind_for_atom,
+    Tensor first_rot_for_block,
+    Tensor first_rot_block_type,
+    Tensor block_ind_for_rot,
+    Tensor pose_ind_for_rot,
+    Tensor block_type_ind_for_rot,
+    Tensor n_rots_for_pose,
+    Tensor rot_offset_for_pose,
+    Tensor n_rots_for_block,
+    Tensor rot_offset_for_block,
+    int64_t max_n_rots_per_pose,
+    Tensor pose_stack_inter_residue_connections,
+    Tensor pose_stack_min_bond_separation,
+    Tensor pose_stack_inter_block_bondsep,
+    Tensor block_type_n_atoms,
+    Tensor block_type_n_interblock_bonds,
+    Tensor block_type_atoms_forming_chemical_bonds,
+    Tensor block_type_tile_n_polar_atoms,
+    Tensor block_type_tile_n_occluder_atoms,
+    Tensor block_type_tile_pol_occ_inds,
+    Tensor block_type_tile_lk_ball_params,
+    Tensor block_type_path_distance,
+    Tensor global_params,
+    double max_dis,
+    Tensor water_coords,
+    bool output_block_pair_energies,
+    Tensor shared_dispatch_indices) {
+  TORCH_CHECK(
+      shared_dispatch_indices.dim() == 2
+          && (shared_dispatch_indices.size(0) == 3
+              || (shared_dispatch_indices.size(0) == 0
+                  && shared_dispatch_indices.size(1) == 0)),
+      "shared rotamer dispatch indices must have shape [3, nnz] or [0, 0]");
+  TORCH_CHECK(
+      shared_dispatch_indices.scalar_type() == torch::kInt32,
+      "shared rotamer dispatch indices must have dtype int32");
+  TORCH_CHECK(
+      shared_dispatch_indices.device() == rot_coords.device(),
+      "shared rotamer dispatch indices must be on the coordinate device");
+  return LKBallRotamerScoreOp::apply(
+      rot_coords,
+      rot_coord_offset,
+      pose_ind_for_atom,
+      first_rot_for_block,
+      first_rot_block_type,
+      block_ind_for_rot,
+      pose_ind_for_rot,
+      block_type_ind_for_rot,
+      n_rots_for_pose,
+      rot_offset_for_pose,
+      n_rots_for_block,
+      rot_offset_for_block,
+      max_n_rots_per_pose,
+      pose_stack_inter_residue_connections,
+      pose_stack_min_bond_separation,
+      pose_stack_inter_block_bondsep,
+      block_type_n_atoms,
+      block_type_n_interblock_bonds,
+      block_type_atoms_forming_chemical_bonds,
+      block_type_tile_n_polar_atoms,
+      block_type_tile_n_occluder_atoms,
+      block_type_tile_pol_occ_inds,
+      block_type_tile_lk_ball_params,
+      block_type_path_distance,
+      global_params,
+      max_dis,
+      water_coords,
+      output_block_pair_energies,
+      shared_dispatch_indices);
 }
 
 TORCH_LIBRARY(tmol_lk_ball, m) {
   m.def("lk_ball_pose_score", &lkball_pose_score);
   m.def("lk_ball_rotamer_score", &lkball_rotamer_score);
+  m.def("lk_ball_rotamer_score_shared", &lkball_rotamer_score_shared);
   m.def("gen_pose_waters", &pose_watergen_op);
 }
 

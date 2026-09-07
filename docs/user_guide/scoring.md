@@ -51,17 +51,22 @@ score.backward()
 
 ## CPU batch throughput
 
-Whole-pose CPU scoring parallelizes independent poses through PyTorch's
-intra-op thread pool. Set the pool from the cores actually allocated to the
-process, and normally do not assign more scoring threads than poses:
+Whole-pose CPU scoring uses PyTorch's process-wide intra-op thread budget.
+PyTorch defaults to the CPUs available to the process, including an affinity-
+restricted scheduler allocation. Inspect or override that budget before
+rendering a scorer:
 
 ```python
-torch.set_num_threads(min(n_poses, allocated_physical_cores))
+print(torch.get_num_threads())
+torch.set_num_threads(8)
 ```
 
-The pose boundary keeps gradients race-free, so a one-pose batch does not gain
-intra-pose parallelism. When several processes or data-loader workers score at
-once, divide the available cores between them to avoid oversubscription.
+TMol parallelizes independent poses and score terms and can shard the dominant
+pair traversal for a single pose. Small workloads may use fewer threads when
+additional shards would cost more than they save. When several processes or
+data-loader workers score at once, divide the available cores between them to
+avoid oversubscription. `OMP_NUM_THREADS` is the equivalent launch-time
+override.
 
 ## Ligand-aware Scoring
 

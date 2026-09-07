@@ -94,6 +94,7 @@ struct ElecPoseScoreDispatch {
       // LJ parameters
       TView<ElecGlobalParams<Real>, 1, D> global_params,
       Real max_dis,
+      TView<Int, 1, D> shared_compact_block_neighbors,
       bool output_block_pair_energies,
       bool compute_derivs) -> std::
       tuple<TPack<Real, 4, D>, TPack<Vec<Real, 3>, 2, D>, TPack<Int, 3, D> >;

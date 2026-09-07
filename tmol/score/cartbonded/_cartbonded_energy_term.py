@@ -14,6 +14,7 @@ from tmol.pose import (
     PoseStack,
 )
 from tmol.score.common import make_hashtable_keys_values, add_to_hashtable
+from tmol.score.common._hash_util import hash_fun
 
 debug = False
 
@@ -36,6 +37,7 @@ class CartBondedPackedBlockTypesAnnotations:
     cartbonded_subgraph_offsets: torch.Tensor
     cartbonded_subgraph_type_counts: torch.Tensor
     cartbonded_subgraph_type_offsets: torch.Tensor
+    cartbonded_subgraph_param_indices: torch.Tensor
     cartbonded_max_subgraphs_per_block: int
     cartbonded_atom_unique_id_index: dict
     cartbonded_params_hash_keys: torch.Tensor
@@ -337,14 +339,57 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             add_to_hashtable(hash_keys, hash_values, cur_val, key, value)
             cur_val += 1
 
+        # Intra-block topology and atom naming are fixed for a packed block
+        # type. Resolve the exact/reversed/wildcard parameter search once here
+        # instead of repeating four hash probes in every scoring invocation.
+        atom_unique_ids = packed_block_types.atom_unique_ids.cpu().numpy()
+        atom_wildcard_ids = packed_block_types.atom_wildcard_ids.cpu().numpy()
+        subgraph_param_indices = numpy.full(total_subgraphs, -1, dtype=numpy.int32)
+
+        def lookup_param_index(key):
+            hash_index = hash_fun(key, hash_keys.shape[0])
+            padded_key = numpy.full(4, -1, dtype=numpy.int32)
+            padded_key[: len(key)] = key
+            while hash_keys[hash_index, 0] != -1:
+                if numpy.array_equal(hash_keys[hash_index, :4], padded_key):
+                    return hash_keys[hash_index, 4]
+                hash_index = (hash_index + 1) % hash_keys.shape[0]
+            return -1
+
+        for block_type_index, block_type in enumerate(
+            packed_block_types.active_block_types
+        ):
+            block_params = block_type.cartbonded_annotations[self.hash]
+            block_offset = subgraph_offsets[block_type_index]
+            for local_index, subgraph in enumerate(block_params.cartbonded_subgraphs):
+                atoms = [int(atom) for atom in subgraph if atom != -1]
+                for atom_ids in (
+                    atom_unique_ids[block_type_index],
+                    atom_wildcard_ids[block_type_index],
+                ):
+                    for oriented_atoms in (atoms, atoms[::-1]):
+                        key = [int(atom_ids[atom]) for atom in oriented_atoms]
+                        param_index = lookup_param_index(key)
+                        if param_index != -1:
+                            subgraph_param_indices[block_offset + local_index] = (
+                                param_index
+                            )
+                            break
+                    if subgraph_param_indices[block_offset + local_index] != -1:
+                        break
+
         hash_keys_tensor = torch.from_numpy(hash_keys).to(device=self.device)
         hash_values_tensor = torch.from_numpy(hash_values).to(device=self.device)
+        subgraph_param_indices_tensor = torch.from_numpy(subgraph_param_indices).to(
+            device=self.device
+        )
 
         cb_pbt_ann = CartBondedPackedBlockTypesAnnotations(
             cartbonded_subgraphs=subgraphs,
             cartbonded_subgraph_offsets=subgraph_offsets,
             cartbonded_subgraph_type_counts=subgraph_type_counts,
             cartbonded_subgraph_type_offsets=subgraph_type_offsets,
+            cartbonded_subgraph_param_indices=subgraph_param_indices_tensor,
             cartbonded_max_subgraphs_per_block=max_subgraphs_per_block,
             cartbonded_atom_unique_id_index=cbet_atom_unique_id_index,
             cartbonded_params_hash_keys=hash_keys_tensor,
@@ -387,4 +432,5 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             pbt_cb_ann.cartbonded_subgraph_offsets,
             pbt_cb_ann.cartbonded_subgraph_type_counts,
             pbt_cb_ann.cartbonded_subgraph_type_offsets,
+            pbt_cb_ann.cartbonded_subgraph_param_indices,
         ]

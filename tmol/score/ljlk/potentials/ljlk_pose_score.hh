@@ -31,6 +31,17 @@ template <
     typename Real,
     typename Int>
 struct LJLKPoseScoreDispatch {
+  static auto build_compact_block_neighbors(
+      ContextManager& mgr,
+      TView<Vec<Real, 3>, 1, D> rot_coords,
+      TView<Int, 1, D> rot_coord_offset,
+      TView<Int, 2, D> first_rot_for_block,
+      TView<Int, 1, D> block_ind_for_rot,
+      TView<Int, 1, D> pose_ind_for_rot,
+      TView<Int, 1, D> block_type_ind_for_rot,
+      TView<Int, 1, D> block_type_n_atoms,
+      Real reach) -> TPack<Int, 1, D>;
+
   static auto forward(
       ContextManager& mgr,
       // common params
@@ -94,6 +105,10 @@ struct LJLKPoseScoreDispatch {
 
       // host-side copy of LJGlobalParams::max_dis
       Real max_dis,
+
+      // Optional shared compact superset. An empty tensor requests local
+      // construction, preserving standalone and block-pair scoring APIs.
+      TView<Int, 1, D> shared_compact_block_neighbors,
 
       // should the output be per-pose (npose x nterms x 1 x 1)
       //   or per block-pair (npose x nterms x len x len)

@@ -447,6 +447,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     // LJ parameters
     TView<ElecGlobalParams<Real>, 1, D> global_params,
     Real max_dis,
+    TView<Int, 1, D> shared_compact_block_neighbors,
     bool output_block_pair_energies,
     bool compute_derivs) -> std::
     tuple<TPack<Real, 4, D>, TPack<Vec<Real, 3>, 2, D>, TPack<Int, 3, D> > {
@@ -510,35 +511,42 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
                           : TPack<Vec<Real, 3>, 2, D>::empty({1, 0});
   auto dV_dcoords = dV_dcoords_t.view;
 
-  auto scratch_rot_spheres_t =
-      D == Device::CPU ? TPack<Real, 3, D>::zeros({n_poses, max_n_blocks, 4})
-                       : TPack<Real, 3, D>::empty({n_poses, max_n_blocks, 4});
-  auto scratch_rot_spheres = scratch_rot_spheres_t.view;
+  bool const use_shared_compact_block_neighbors =
+      shared_compact_block_neighbors.size(0) != 0;
+  TPack<Real, 3, D> scratch_rot_spheres_t;
+  TPack<Int, 3, D> scratch_rot_neighbors_t;
+  TView<Real, 3, D> scratch_rot_spheres;
+  TView<Int, 3, D> scratch_rot_neighbors;
+  if (!use_shared_compact_block_neighbors) {
+    scratch_rot_spheres_t =
+        D == Device::CPU ? TPack<Real, 3, D>::zeros({n_poses, max_n_blocks, 4})
+                         : TPack<Real, 3, D>::empty({n_poses, max_n_blocks, 4});
+    scratch_rot_neighbors_t =
+        D == Device::CPU
+            ? TPack<Int, 3, D>::zeros({n_poses, max_n_blocks, max_n_blocks})
+            : TPack<Int, 3, D>::empty({n_poses, max_n_blocks, max_n_blocks});
+    scratch_rot_spheres = scratch_rot_spheres_t.view;
+    scratch_rot_neighbors = scratch_rot_neighbors_t.view;
 
-  auto scratch_rot_neighbors_t =
-      D == Device::CPU
-          ? TPack<Int, 3, D>::zeros({n_poses, max_n_blocks, max_n_blocks})
-          : TPack<Int, 3, D>::empty({n_poses, max_n_blocks, max_n_blocks});
-  auto scratch_rot_neighbors = scratch_rot_neighbors_t.view;
+    score::common::sphere_overlap::
+        compute_block_spheres<DeviceDispatch, D, Real, Int>::f(
+            mgr,
+            rot_coords,
+            rot_coord_offset,
+            block_ind_for_rot,
+            pose_ind_for_rot,
+            block_type_ind_for_rot,
+            block_type_n_atoms,
+            scratch_rot_spheres);
 
-  score::common::sphere_overlap::
-      compute_block_spheres<DeviceDispatch, D, Real, Int>::f(
-          mgr,
-          rot_coords,
-          rot_coord_offset,
-          block_ind_for_rot,
-          pose_ind_for_rot,
-          block_type_ind_for_rot,
-          block_type_n_atoms,
-          scratch_rot_spheres);
-
-  score::common::sphere_overlap::
-      detect_block_neighbors<DeviceDispatch, D, Real, Int>::f(
-          mgr,
-          first_rot_block_type,
-          scratch_rot_spheres,
-          scratch_rot_neighbors,
-          max_dis);
+    score::common::sphere_overlap::
+        detect_block_neighbors<DeviceDispatch, D, Real, Int>::f(
+            mgr,
+            first_rot_block_type,
+            scratch_rot_spheres,
+            scratch_rot_neighbors,
+            max_dis);
+  }
 
   TPack<Real, 4, D> output_t;
   if (output_block_pair_energies) {
@@ -556,7 +564,8 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   CTA_REAL_REDUCE_T_TYPEDEF;
 
   // The total number of unique block pairs (including self-pairs)
-  int const max_n_upper_triangle_inds = (max_n_blocks * (max_n_blocks + 1)) / 2;
+  int const max_n_upper_triangle_inds =
+      static_cast<int>((int64_t(max_n_blocks) * (max_n_blocks + 1)) / 2);
 
   // We define two device lambdas, one for block-pair scoring and
   // one for full pose scoring. They are nearly identical, except
@@ -617,7 +626,8 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
     // But we still kill everything that involves non-neighboring blocks
     // and that can be a lot!
-    if (scratch_rot_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
+    if (!use_shared_compact_block_neighbors
+        && scratch_rot_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
       return;
     }
 
@@ -750,7 +760,8 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
     // But we still kill everything that involves non-neighboring blocks
     // and that can be a lot!
-    if (scratch_rot_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
+    if (!use_shared_compact_block_neighbors
+        && scratch_rot_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
       return;
     }
 
@@ -833,7 +844,18 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // Score neighboring block pairs. Sparse large CUDA poses use a
   // device-resident compact list to avoid launching dead scoring CTAs.
 #ifdef __NVCC__
-  if (!output_block_pair_energies
+  if (!output_block_pair_energies && use_shared_compact_block_neighbors) {
+    if (compute_derivs) {
+      score::common::sphere_overlap::
+          launch_precomputed_block_neighbors<DeviceDispatch, D, launch_t, Int>(
+              mgr, shared_compact_block_neighbors, eval_energies);
+    } else {
+      score::common::sphere_overlap::
+          launch_precomputed_block_neighbors<DeviceDispatch, D, launch_t, Int>(
+              mgr, shared_compact_block_neighbors, eval_energies_by_block);
+    }
+  } else if (
+      !output_block_pair_energies
       && score::common::sphere_overlap::should_compact_block_neighbors(
           n_poses, max_n_blocks, compute_derivs)) {
     if (compute_derivs) {
@@ -848,7 +870,21 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   } else
 #endif
   {
-    if (output_block_pair_energies || !compute_derivs) {
+    if (!output_block_pair_energies && use_shared_compact_block_neighbors) {
+      if (compute_derivs) {
+        score::common::sphere_overlap::launch_precomputed_block_neighbors<
+            DeviceDispatch,
+            D,
+            launch_t,
+            Int>(mgr, shared_compact_block_neighbors, eval_energies);
+      } else {
+        score::common::sphere_overlap::launch_precomputed_block_neighbors<
+            DeviceDispatch,
+            D,
+            launch_t,
+            Int>(mgr, shared_compact_block_neighbors, eval_energies_by_block);
+      }
+    } else if (output_block_pair_energies || !compute_derivs) {
       DeviceDispatch<D>::template foreach_pose_workgroup<launch_t>(
           mgr, n_poses, max_n_upper_triangle_inds, eval_energies_by_block);
     } else {
@@ -994,7 +1030,8 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
   CTA_REAL_REDUCE_T_TYPEDEF;
 
   // The total number of unique block pairs (including self-pairs)
-  int const max_n_upper_triangle_inds = (max_n_blocks * (max_n_blocks + 1)) / 2;
+  int const max_n_upper_triangle_inds =
+      static_cast<int>((int64_t(max_n_blocks) * (max_n_blocks + 1)) / 2);
 
   auto eval_derivs = ([=] TMOL_DEVICE_FUNC(int cta) {
     auto elec_atom_energy_and_derivs =

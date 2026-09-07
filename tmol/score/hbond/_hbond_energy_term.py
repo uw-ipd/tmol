@@ -69,9 +69,10 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             gen_hbond_bases,
         )
 
-        common_args = args[:-2]
-        pose_stack = args[-2]
-        block_pair_scoring = args[-1]
+        common_args = args[:-3]
+        pose_stack = args[-3]
+        block_pair_scoring = args[-2]
+        shared_block_neighbors = args[-1]
         coords_dtype = common_args[0].dtype
         pair_param_table, pair_poly_table, global_param_table = self._param_tables(
             coords_dtype
@@ -130,6 +131,7 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             derived_coords,
             derived_atom_inds,
             block_pair_scoring,
+            shared_block_neighbors,
         )
 
     def rotamer_score_hbond(self, *args):
@@ -203,6 +205,9 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
 
     def get_rotamer_score_term_function(self):
         return self.rotamer_score_hbond
+
+    def get_block_neighbor_cutoff(self):
+        return 5.5
 
     def get_score_term_attributes(self, pose_stack: PoseStack):
         return [pose_stack]

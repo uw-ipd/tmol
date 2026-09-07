@@ -69,6 +69,9 @@ struct lj_score {
       LJTypeParams<Real> i,
       LJTypeParams<Real> j,
       LJGlobalParams<Real> global) -> std::array<Real, 2> {
+    if (bonded_path_length < Real(4)) {
+      return {0.0, 0.0};
+    }
     Real cpoly_dmax = global.max_dis;
     Real spline_start = global.max_dis - Real(1.5);
 
@@ -116,6 +119,9 @@ struct lj_score {
       LJTypeParams<Real> i,
       LJTypeParams<Real> j,
       LJGlobalParams<Real> global) -> V_dV_t {
+    if (bonded_path_length < Real(4)) {
+      return {0.0, 0.0, 0.0, 0.0};
+    }
     if (dist >= global.max_dis) {
       return {0.0, 0.0, 0.0, 0.0};
     }

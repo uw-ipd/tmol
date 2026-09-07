@@ -112,6 +112,40 @@ def test_foreach_pose_workgroup(ext, torch_device):
 
 
 # ---------------------------------------------------------------------------
+# checked dispatch size (no allocation)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("count", [2**31 - 2, 2**31 - 1])
+def test_checked_dispatch_size_accepts_int32_boundary(ext, count):
+    assert ext.test_checked_dispatch_size(count) == count
+
+
+@pytest.mark.parametrize("count", [-1, 2**31])
+def test_checked_dispatch_size_rejects_out_of_range(ext, count):
+    with pytest.raises(OverflowError, match="signed 32-bit native dispatch limit"):
+        ext.test_checked_dispatch_size(count)
+
+
+@pytest.mark.parametrize(
+    "lhs,rhs,expected",
+    [(1, 2**31 - 1, 2**31 - 1), (46340, 46340, 2147395600)],
+)
+def test_checked_dispatch_product_accepts_int32_boundary(ext, lhs, rhs, expected):
+    assert ext.test_checked_dispatch_product(lhs, rhs) == expected
+
+
+@pytest.mark.parametrize("lhs,rhs", [(46341, 46341), (2**63 - 1, 2)])
+def test_checked_dispatch_product_rejects_overflow(ext, lhs, rhs):
+    with pytest.raises(OverflowError, match="(signed 32-bit|signed 64-bit)"):
+        ext.test_checked_dispatch_product(lhs, rhs)
+
+
+def test_dispatch_ceiling_division_does_not_overflow(ext):
+    assert ext.test_safe_div_up(2**31 - 1, 32) == 2**26
+
+
+# ---------------------------------------------------------------------------
 # scan inclusive: cumulative prefix sum (inclusive)
 # ---------------------------------------------------------------------------
 
