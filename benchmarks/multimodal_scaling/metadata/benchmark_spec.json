@@ -21,7 +21,7 @@
   },
   "tmol_score_function": "beta2016",
   "modalities": ["protein", "protein_ligand", "protein_nucleic"],
-  "protocols": ["score", "score_gradient", "fastrelax"],
+  "protocols": ["score_gradient", "fastrelax"],
   "tmol_gpu_batch_sizes": [1, 10, 100, 1000],
   "cpu_batch_sizes": [1],
   "warmup_iterations": 5,

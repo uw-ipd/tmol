@@ -93,10 +93,12 @@ def plot_panel(ax, data: pd.DataFrame, modality: str, workload: str, metric: str
         & (data.status == "ok")
         & data.selected_for_plot
     ]
+    plotted = False
     for series in SERIES_STYLES:
         engine_group = subset[subset.series == series]
         if series == "PyRosetta CPU · B1":
             plot_group(ax, engine_group, series, metric, historical=False)
+            plotted = plotted or not engine_group.empty
             continue
         for version, group in engine_group.groupby("engine_version"):
             plot_group(
@@ -106,6 +108,18 @@ def plot_panel(ax, data: pd.DataFrame, modality: str, workload: str, metric: str
                 metric,
                 historical=str(version) in HISTORICAL_VERSIONS,
             )
+            plotted = True
+    if not plotted:
+        ax.text(
+            0.5,
+            0.5,
+            "Measurements pending",
+            transform=ax.transAxes,
+            ha="center",
+            va="center",
+            color="#777777",
+            fontsize=8,
+        )
 
 
 def legend_handles():

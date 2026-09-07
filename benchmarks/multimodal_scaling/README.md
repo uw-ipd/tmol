@@ -77,6 +77,10 @@ After the merge job completes, submit score-gradient first. The submitter splits
 the task tables into arrays no larger than the site's 1,001-element limit:
 
 ```bash
+# Pin the container, source revisions, Python environments, manifest, and task
+# tables before collecting measurements.
+TMOL_BENCH_ROOT="$TMOL_BENCH_ROOT" sbatch slurm/capture_provenance.sh
+
 TMOL_BENCH_ROOT="$TMOL_BENCH_ROOT" \
 python3 src/submit_task_matrix.py --protocols score_gradient
 
