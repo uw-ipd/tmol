@@ -119,15 +119,18 @@ python3 src/submit_broad_candidate_cpu.py \
   --candidate-env /path/to/candidate/environment
 
 python3 src/summarize_broad_candidate_cpu.py \
-  --candidate-root "$TMOL_BROAD_CANDIDATE_ROOT" \
-  --reference-summary "$TMOL_BENCH_ROOT/results/summary/timing_summary.csv"
+  --candidate-root "$TMOL_BROAD_CANDIDATE_ROOT"
 ```
 
-The submitter hashes the container, frozen manifest, reference summary, exact
-task tables, source trees, compiled extensions, and Python environments before
-submitting. Each array task also refuses to run if the candidate revision moved
-or became dirty. Results therefore remain attributable even when a long
-FastRelax sweep is resumed later with `--start-offset`.
+The submitter copies the benchmark spec, dataset manifest, and reference timing
+summary into the output metadata directory once, builds tasks from that frozen
+manifest, and hashes those copies together with the exact task tables,
+container, source trees, compiled extensions, and Python environments before
+submitting. The summarizer uses the frozen reference by default and reports
+candidate-only, baseline-only, and shared failures. Each array task also
+refuses to run if the candidate revision moved or became dirty. Results
+therefore remain attributable even when a long FastRelax sweep is resumed
+later with `--start-offset`.
 
 To compare an optimization branch with the frozen 0.1.55 baseline on the same
 node, use `slurm/run_candidate_ab.sh`. It runs each representative multimodal

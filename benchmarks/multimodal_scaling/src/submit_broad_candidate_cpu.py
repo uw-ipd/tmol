@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import csv
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -19,6 +20,15 @@ def command(*parts: str) -> str:
 def task_count(path: Path) -> int:
     with path.open(newline="") as handle:
         return sum(1 for _ in csv.DictReader(handle, delimiter="\t"))
+
+
+def freeze_file(source: Path, destination: Path) -> Path:
+    """Copy a run input once; an existing frozen input is never overwritten."""
+    if not destination.exists():
+        temporary = destination.with_suffix(destination.suffix + ".tmp")
+        shutil.copy2(source, temporary)
+        temporary.replace(destination)
+    return destination
 
 
 def main() -> None:
@@ -63,12 +73,33 @@ def main() -> None:
     logs = output / "logs"
     metadata.mkdir(parents=True, exist_ok=True)
     logs.mkdir(parents=True, exist_ok=True)
+    manifest = ROOT / "metadata/dataset_manifest.csv"
+    frozen_references: list[Path] = []
+    if not args.dry_run:
+        frozen_references = [
+            freeze_file(
+                ROOT / "metadata/benchmark_spec.json",
+                metadata / "frozen_benchmark_spec.json",
+            ),
+            freeze_file(
+                manifest,
+                metadata / "frozen_dataset_manifest.csv",
+            ),
+            freeze_file(
+                ROOT / "results/summary/timing_summary.csv",
+                metadata / "frozen_reference_timing_summary.csv",
+            ),
+        ]
+        manifest = metadata / "frozen_dataset_manifest.csv"
+
     subprocess.run(
         [
             sys.executable,
             str(HARNESS_ROOT / "src/build_broad_candidate_cpu_tasks.py"),
             "--output",
             str(metadata),
+            "--manifest",
+            str(manifest),
         ],
         check=True,
         env={**os.environ, "TMOL_BENCH_ROOT": str(ROOT)},
@@ -79,9 +110,7 @@ def main() -> None:
     )
     if not args.dry_run:
         reference_files = [
-            ROOT / "metadata/benchmark_spec.json",
-            ROOT / "metadata/dataset_manifest.csv",
-            ROOT / "results/summary/timing_summary.csv",
+            *frozen_references,
             *(metadata / f"tasks-broad-candidate-{p}-cpu.tsv" for p in args.protocols),
         ]
         provenance = metadata / "broad_candidate_cpu_provenance.json"

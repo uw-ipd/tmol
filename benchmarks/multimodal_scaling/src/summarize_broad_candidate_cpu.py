@@ -28,8 +28,12 @@ def median_seconds(result: dict) -> float | None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--candidate-root", type=Path, required=True)
-    parser.add_argument("--reference-summary", type=Path, required=True)
+    parser.add_argument("--reference-summary", type=Path)
     args = parser.parse_args()
+
+    reference_summary = args.reference_summary or (
+        args.candidate_root / "metadata" / "frozen_reference_timing_summary.csv"
+    )
 
     provenance_path = (
         args.candidate_root / "metadata" / "broad_candidate_cpu_provenance.json"
@@ -37,9 +41,10 @@ def main() -> None:
     provenance = json.loads(provenance_path.read_text())
     candidate_commit = provenance["candidate"]["source"]["revision"]
 
+    all_reference_rows = read_csv(reference_summary)
     reference_rows = [
         row
-        for row in read_csv(args.reference_summary)
+        for row in all_reference_rows
         if row["status"] == "ok" and row["selected_for_plot"].lower() == "true"
     ]
     pyro = {
@@ -50,6 +55,14 @@ def main() -> None:
     baseline = {
         tuple(row[key] for key in KEYS): row
         for row in reference_rows
+        if row["engine"] == "tmol"
+        and row["engine_version"] == "0.1.55"
+        and row["device"] == "cpu"
+        and int(row["batch_size"]) == 1
+    }
+    baseline_records = {
+        tuple(row[key] for key in KEYS): row
+        for row in all_reference_rows
         if row["engine"] == "tmol"
         and row["engine_version"] == "0.1.55"
         and row["device"] == "cpu"
@@ -77,6 +90,7 @@ def main() -> None:
     failures = []
     observed_keys = []
     foreign_records = []
+    candidate_records = {}
     for path in sorted((args.candidate_root / "raw").glob("*.json")):
         result = json.loads(path.read_text())
         if result.get("engine_commit") != candidate_commit:
@@ -84,6 +98,7 @@ def main() -> None:
             continue
         key = tuple(result.get(field) for field in KEYS)
         observed_keys.append(key)
+        candidate_records[key] = result
         if result.get("status") != "ok":
             failures.append({"source_file": str(path), **result})
             continue
@@ -162,6 +177,44 @@ def main() -> None:
     duplicate_keys = len(observed_keys) - len(observed_set)
     missing_keys = sorted(expected_keys - observed_set)
     unexpected_keys = sorted(observed_set - expected_keys)
+    candidate_only_failures = []
+    baseline_only_failures = []
+    shared_failures = []
+    for key in sorted(expected_keys):
+        candidate_record = candidate_records.get(key)
+        baseline_record = baseline_records.get(key)
+        candidate_status = (
+            candidate_record.get("status", "missing")
+            if candidate_record is not None
+            else "missing"
+        )
+        baseline_status = (
+            baseline_record.get("status", "missing")
+            if baseline_record is not None
+            else "missing"
+        )
+        candidate_failed = candidate_status != "ok"
+        baseline_failed = baseline_status != "ok"
+        comparison = {
+            "protocol": key[0],
+            "modality": key[1],
+            "dataset_id": key[2],
+            "candidate_status": candidate_status,
+            "baseline_status": baseline_status,
+        }
+        if candidate_failed and baseline_failed:
+            shared_failures.append(comparison)
+        elif candidate_failed:
+            candidate_only_failures.append(comparison)
+        elif baseline_failed:
+            baseline_only_failures.append(comparison)
+
+    failure_comparison = {
+        "reference": "frozen tmol 0.1.55 CPU B1",
+        "candidate_only": candidate_only_failures,
+        "baseline_only": baseline_only_failures,
+        "shared": shared_failures,
+    }
     actual = {
         protocol: sum(row["protocol"] == protocol for row in detail)
         for protocol in expected_counts
@@ -171,6 +224,7 @@ def main() -> None:
         "expected_successful_or_failed_records": expected_counts,
         "successful_paired_records": actual,
         "failed_records": len(failures),
+        "failure_comparison": failure_comparison,
         "duplicate_measurement_keys": duplicate_keys,
         "missing_measurement_keys": missing_keys,
         "unexpected_measurement_keys": unexpected_keys,
@@ -195,6 +249,10 @@ def main() -> None:
         "Ratios are PyRosetta time divided by candidate TMol time for the same frozen input and protocol. Values above 1 mean the candidate is faster. Candidate and reference measurements are from separate scheduler allocations; use the matched A–B report for causal speedup claims.",
         "",
         f"Coverage: {sum(actual.values())}/{sum(expected_counts.values())} successful paired records; {len(failures)} explicit failures.",
+        "Failure delta versus frozen TMol 0.1.55: "
+        f"{len(candidate_only_failures)} candidate-only, "
+        f"{len(baseline_only_failures)} baseline-only, and "
+        f"{len(shared_failures)} shared failures.",
         "",
         "| Protocol | Modality | Residues | PyRosetta/candidate median (IQR) | Candidate wins | Candidate/0.1.55 median |",
         "|---|---|---:|---:|---:|---:|",

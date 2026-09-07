@@ -6,8 +6,6 @@ import argparse
 import csv
 from pathlib import Path
 
-from common import read_manifest
-
 
 FIELDS = ("protocol", "modality", "dataset_id", "batch_size", "cuda_execution")
 
@@ -15,9 +13,13 @@ FIELDS = ("protocol", "modality", "dataset_id", "batch_size", "cuda_execution")
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--manifest", type=Path, required=True)
     args = parser.parse_args()
 
-    datasets = [row for row in read_manifest() if row["status"] == "ok"]
+    with args.manifest.open(newline="") as handle:
+        datasets = [
+            row for row in csv.DictReader(handle) if row["status"] == "ok"
+        ]
     args.output.mkdir(parents=True, exist_ok=True)
     for protocol in ("score_gradient", "fastrelax"):
         rows = []
