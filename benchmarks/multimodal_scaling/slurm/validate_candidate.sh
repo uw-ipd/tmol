@@ -15,10 +15,13 @@ set -euo pipefail
 image=${TMOL_BENCH_IMAGE:-/mnt/home/kdidi/apptainer-artifacts/latent-dev-cuda13-26.06-tmol0.1.49-cueq0.10-full.sif}
 source_dir=${TMOL_CANDIDATE_SOURCE:-/mnt/home/kdidi/projects/tmol-pr468-shared-integration}
 environment=${TMOL_CANDIDATE_ENV:-/mnt/home/kdidi/tmol-shared-neighbor-bench/env}
+jit_cache=${TMOL_VALIDATION_JIT_CACHE:-/tmp/tmol-candidate-cuda-validation-${SLURM_JOB_ID:-manual}}
+
+mkdir -p "${jit_cache}"
 
 apptainer exec --nv --bind "${source_dir}:/work" --pwd /work "${image}" \
-    env TMOL_USE_JIT=0 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
-    OPENBLAS_NUM_THREADS=1 \
+    env TMOL_USE_JIT=1 TORCH_EXTENSIONS_DIR="${jit_cache}" MAX_JOBS=16 \
+    OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
     "${environment}/bin/python" -m pytest \
     tmol/tests/score/test_score_function.py \
     tmol/tests/score/cartbonded \
