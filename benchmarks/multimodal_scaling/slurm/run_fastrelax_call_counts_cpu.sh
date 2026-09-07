@@ -21,6 +21,15 @@ candidate_source=${TMOL_CANDIDATE_SOURCE:-/mnt/home/kdidi/projects/tmol-pr468-sh
 candidate_env=${TMOL_CANDIDATE_ENV:-/mnt/home/kdidi/tmol-shared-neighbor-bench/env}
 
 mkdir -p "${output}/call-counts"
+harness_git_root=$(git -C "${harness}" rev-parse --show-toplevel)
+provenance="${output}/metadata/fastrelax_modes_provenance-${SLURM_JOB_ID:-manual}.json"
+
+apptainer exec --bind "${harness}:/harness" "${image}" \
+    python3 /harness/src/capture_candidate_provenance.py \
+    --baseline-source "${baseline_source}" --baseline-env "${baseline_env}" \
+    --candidate-source "${candidate_source}" --candidate-env "${candidate_env}" \
+    --harness-root "${harness_git_root}" --image "${image}" \
+    --output "${provenance}"
 
 run_one() {
     local label=$1

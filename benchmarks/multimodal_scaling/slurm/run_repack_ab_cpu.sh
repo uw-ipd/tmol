@@ -12,6 +12,7 @@
 set -euo pipefail
 
 image=${TMOL_BENCH_IMAGE:-/mnt/home/kdidi/apptainer-artifacts/latent-dev-cuda13-26.06-tmol0.1.49-cueq0.10-full.sif}
+harness=${TMOL_BENCH_HARNESS:-/mnt/home/kdidi/projects/tmol-multimodal-benchmark/benchmarks/multimodal_scaling}
 output=${TMOL_CANDIDATE_AB_ROOT:-/mnt/data/kdidi/tmol-candidate-ab}
 baseline_source=${TMOL_BASELINE_SOURCE:-/mnt/home/kdidi/tmol-paper-sources/v0.1.55}
 baseline_env=${TMOL_BASELINE_ENV:-/mnt/home/kdidi/tmol-paper-benchmark/envs/tmol-0.1.55}
@@ -19,6 +20,15 @@ candidate_source=${TMOL_CANDIDATE_SOURCE:-/mnt/home/kdidi/projects/tmol-pr468-sh
 candidate_env=${TMOL_CANDIDATE_ENV:-/mnt/home/kdidi/tmol-shared-neighbor-bench/env}
 
 mkdir -p "${output}/repack"
+harness_git_root=$(git -C "${harness}" rev-parse --show-toplevel)
+provenance="${output}/metadata/repack_provenance-${SLURM_JOB_ID:-manual}.json"
+
+apptainer exec --bind "${harness}:/harness" "${image}" \
+    python3 /harness/src/capture_candidate_provenance.py \
+    --baseline-source "${baseline_source}" --baseline-env "${baseline_env}" \
+    --candidate-source "${candidate_source}" --candidate-env "${candidate_env}" \
+    --harness-root "${harness_git_root}" --image "${image}" \
+    --output "${provenance}"
 
 run_one() {
     local label=$1

@@ -28,7 +28,8 @@ candidate_commit=$(git -C "${candidate_source}" rev-parse HEAD)
 harness_git_root=$(git -C "${harness}" rev-parse --show-toplevel)
 provenance="${output}/metadata/candidate_ab_provenance-${SLURM_JOB_ID:-manual}.json"
 
-python3 "${harness}/src/capture_candidate_provenance.py" \
+apptainer exec --bind "${harness}:/harness" "${image}" \
+    python3 /harness/src/capture_candidate_provenance.py \
     --baseline-source "${baseline_source}" --baseline-env "${baseline_env}" \
     --candidate-source "${candidate_source}" --candidate-env "${candidate_env}" \
     --harness-root "${harness_git_root}" --image "${image}" \
