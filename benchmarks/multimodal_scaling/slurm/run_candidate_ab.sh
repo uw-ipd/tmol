@@ -87,9 +87,9 @@ configurations=(
     "fastrelax protein_ligand 1acd cpu 1"
     "fastrelax protein_ligand 1acd cuda 1"
     "fastrelax protein_ligand 1acd cuda 10"
-    "fastrelax protein_nucleic 3o7v cpu 1"
-    "fastrelax protein_nucleic 3o7v cuda 1"
-    "fastrelax protein_nucleic 3o7v cuda 10"
+    "fastrelax protein_nucleic 9j8g cpu 1"
+    "fastrelax protein_nucleic 9j8g cuda 1"
+    "fastrelax protein_nucleic 9j8g cuda 10"
 )
 
 for configuration in "${configurations[@]}"; do
