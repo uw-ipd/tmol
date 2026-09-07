@@ -57,3 +57,7 @@ for dataset in "${datasets[@]}"; do
     run_one candidate "${candidate_source}" "${candidate_env}" "${candidate_commit}" "${dataset}" 2
     run_one baseline "${baseline_source}" "${baseline_env}" "${baseline_commit}" "${dataset}" 2
 done
+
+python3 "${harness}/src/summarize_rotamer_terms.py" \
+    --input "${output}/rotamer-term-profile" \
+    --output "${output}/summary"

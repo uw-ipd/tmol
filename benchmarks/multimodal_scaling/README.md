@@ -133,7 +133,10 @@ If repacking regresses, `slurm/profile_rotamer_terms_cpu.sh` applies the same
 A–B–B–A design to every rotamer score term on included proteins near 31, 150,
 and 547 residues, identifying the term that accounts for the end-to-end
 change. Set `TMOL_ROTAMER_PROFILE_DATASETS` to a whitespace-separated list of
-dataset IDs to select different records from the active frozen manifest.
+dataset IDs to select different records from the active frozen manifest. It
+writes machine-readable `summary/rotamer_term_summary.csv` and the concise
+`summary/rotamer_term_report.md`; checksum agreement is reported alongside
+every timing so a faster but numerically changed term cannot be accepted.
 Build the candidate with `slurm/build_candidate_release.sh` before final timing.
 It enforces the same Release configuration and `TMOL_BUILD_TESTS=OFF` setting
 as the frozen 0.1.55 baseline; test-enabled developer binaries are validation
