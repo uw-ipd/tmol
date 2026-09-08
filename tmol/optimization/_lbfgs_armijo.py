@@ -771,7 +771,12 @@ class LBFGS_Armijo(Optimizer):
         )
         ctx.ls_evals = ls_evals
 
-        ctx.x.copy_(ctx.x_backup).add_(ctx.d * self._per_element(accepted))
+        torch.addcmul(
+            ctx.x_backup,
+            ctx.d,
+            self._per_element(accepted),
+            out=ctx.x,
+        )
         if not trial_is_accepted:
             self._closure_fn()
         ctx.loss_vec = self._last_loss_vec
@@ -865,7 +870,12 @@ class LBFGS_Armijo(Optimizer):
             """Evaluate every segment at its own step size."""
             self.ls_func_evals += 1
             # Direct parameter update - eliminates _set_x_from_flat overhead
-            x.copy_(x_backup).add_(d * self._per_element(alpha_vec))
+            torch.addcmul(
+                x_backup,
+                d,
+                self._per_element(alpha_vec),
+                out=x,
+            )
             closure()
             return self._last_loss_vec
 
