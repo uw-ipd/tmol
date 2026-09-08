@@ -42,6 +42,7 @@ struct SingleResData {
 template <typename Real>
 struct ScoringData {
   int pose_ind;
+  int output_ind;
   int block_ind1;
   int block_ind2;
   SingleResData<Real> r1;
@@ -242,6 +243,7 @@ TMOL_DEVICE_FUNC std::array<Real, 4> score_atom_pair(
 
 template <
     bool weighted,
+    bool rotamer_pairs,
     template <tmol::Device> class DeviceOperations,
     tmol::Device D,
     int nt,
@@ -256,7 +258,11 @@ TMOL_DEVICE_FUNC void store_score_totals(
     Real const total = DeviceOperations<D>::template reduce_in_workgroup<nt>(
         data.total_weighted, shared, mgpu::plus_t<Real>());
     if (tid == 0) {
-      accumulate<D, Real>::add(output[0][data.pose_ind][0][0], total);
+      if constexpr (rotamer_pairs) {
+        output[0][0][0][data.output_ind] = total;
+      } else {
+        accumulate<D, Real>::add(output[0][data.pose_ind][0][0], total);
+      }
     }
   } else {
     Real const totals[4] = {
@@ -282,6 +288,7 @@ TMOL_DEVICE_FUNC void store_score_totals(
 template <
     bool require_gradient,
     bool weighted,
+    bool rotamer_pairs,
     template <tmol::Device> class DeviceOperations,
     tmol::Device D,
     typename Real,
@@ -317,6 +324,7 @@ auto ljlk_elec_forward_impl(
     TView<tmol::score::elec::potentials::ElecGlobalParams<Real>, 1, D>
         elec_global_params,
     TView<Int, 1, D> shared_compact_block_neighbors,
+    TView<Int, 2, D> rotamer_dispatch_indices,
     TView<Real, 1, D> score_weights)
     -> std::tuple<TPack<Real, 4, D>, TPack<LJLKExternalVec<Real, 3>, 2, D>> {
   using namespace ljlk_elec_detail;
@@ -337,7 +345,12 @@ auto ljlk_elec_forward_impl(
   (void)max_n_rots_per_pose;
 
   int constexpr n_output_scores = weighted ? 1 : 4;
-  auto output_t = TPack<Real, 4, D>::zeros({n_output_scores, n_poses, 1, 1});
+  int const n_outputs =
+      rotamer_pairs ? rotamer_dispatch_indices.size(1) : n_poses;
+  auto output_t =
+      rotamer_pairs
+          ? TPack<Real, 4, D>::empty({n_output_scores, 1, 1, n_outputs})
+          : TPack<Real, 4, D>::zeros({n_output_scores, n_outputs, 1, 1});
   auto output = output_t.view;
   auto dV_dcoords_t =
       require_gradient ? TPack<Real3, 2, D>::zeros({n_output_scores, n_atoms})
@@ -348,17 +361,39 @@ auto ljlk_elec_forward_impl(
   CTA_REAL_REDUCE_T_TYPEDEF;
 
   auto eval_neighbor = ([=] TMOL_DEVICE_FUNC(int candidate) {
-    int const pose_ind = candidate / max_n_upper_triangle_inds;
-    auto const pair = common::upper_triangle_inds_from_linear_index(
-        candidate % max_n_upper_triangle_inds, max_n_blocks + 1);
-    int const block_ind1 = common::get<0>(pair);
-    int const block_ind2 = common::get<1>(pair) - 1;
-    int const rot_ind1 = rot_offset_for_block[pose_ind][block_ind1];
-    int const rot_ind2 = rot_offset_for_block[pose_ind][block_ind2];
-    if (rot_ind1 < 0 || rot_ind2 < 0) return;
+    int pose_ind;
+    int rot_ind1;
+    int rot_ind2;
+    int block_ind1;
+    int block_ind2;
+    // A normal branch is intentional here. NVCC rejects first capture of a
+    // view from an extended device lambda inside constexpr-if; rotamer_pairs
+    // is a template constant, so optimized code still contains one path.
+    if (rotamer_pairs) {
+      pose_ind = rotamer_dispatch_indices[0][candidate];
+      rot_ind1 = rotamer_dispatch_indices[1][candidate];
+      rot_ind2 = rotamer_dispatch_indices[2][candidate];
+      block_ind1 = block_ind_for_rot[rot_ind1];
+      block_ind2 = block_ind_for_rot[rot_ind2];
+    } else {
+      pose_ind = candidate / max_n_upper_triangle_inds;
+      auto const pair = common::upper_triangle_inds_from_linear_index(
+          candidate % max_n_upper_triangle_inds, max_n_blocks + 1);
+      block_ind1 = common::get<0>(pair);
+      block_ind2 = common::get<1>(pair) - 1;
+      rot_ind1 = rot_offset_for_block[pose_ind][block_ind1];
+      rot_ind2 = rot_offset_for_block[pose_ind][block_ind2];
+    }
+    if (rot_ind1 < 0 || rot_ind2 < 0) {
+      if (rotamer_pairs) output[0][0][0][candidate] = 0;
+      return;
+    }
     int const block_type1 = block_type_ind_for_rot[rot_ind1];
     int const block_type2 = block_type_ind_for_rot[rot_ind2];
-    if (block_type1 < 0 || block_type2 < 0) return;
+    if (block_type1 < 0 || block_type2 < 0) {
+      if (rotamer_pairs) output[0][0][0][candidate] = 0;
+      return;
+    }
     int const n_atoms1 = block_type_n_atoms[block_type1];
     int const n_atoms2 = block_type_n_atoms[block_type2];
 
@@ -381,6 +416,7 @@ auto ljlk_elec_forward_impl(
                                   ScoringData<Real>& data,
                                   shared_mem_union& sm) {
       data.pose_ind = p;
+      data.output_ind = candidate;
       data.block_ind1 = b1;
       data.block_ind2 = b2;
       data.r1.block_type = bt1;
@@ -685,14 +721,15 @@ auto ljlk_elec_forward_impl(
       eval_pairs(data, start1, start2, true);
     });
 
-    auto store_energies =
-        ([=] TMOL_DEVICE_FUNC(ScoringData<Real> & data, shared_mem_union & sm) {
-          auto reduce = ([&](int tid) {
-            store_score_totals<weighted, DeviceOperations, D, nt>(
-                tid, data, sm, output);
-          });
-          DeviceOperations<D>::template for_each_in_workgroup<nt>(reduce);
-        });
+    auto store_energies = ([=] TMOL_DEVICE_FUNC(
+                               ScoringData<Real> & data,
+                               shared_mem_union & sm) {
+      auto reduce = ([&](int tid) {
+        store_score_totals<weighted, rotamer_pairs, DeviceOperations, D, nt>(
+            tid, data, sm, output);
+      });
+      DeviceOperations<D>::template for_each_in_workgroup<nt>(reduce);
+    });
 
     common::tile_evaluate_rot_pair<
         DeviceOperations,
@@ -725,9 +762,14 @@ auto ljlk_elec_forward_impl(
         store_energies);
   });
 
-  common::sphere_overlap::
-      launch_precomputed_block_neighbors<DeviceOperations, D, launch_t, Int>(
-          mgr, shared_compact_block_neighbors, eval_neighbor);
+  if constexpr (rotamer_pairs) {
+    DeviceOperations<D>::template foreach_independent_workgroup<launch_t>(
+        mgr, n_outputs, eval_neighbor);
+  } else {
+    common::sphere_overlap::
+        launch_precomputed_block_neighbors<DeviceOperations, D, launch_t, Int>(
+            mgr, shared_compact_block_neighbors, eval_neighbor);
+  }
   return {output_t, dV_dcoords_t};
 }
 
@@ -783,12 +825,31 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
       block_type_elec_intra_repr_path_distance, elec_global_params,           \
       shared_compact_block_neighbors
   auto empty_weights = TPack<Real, 1, D>::empty({0});
+  auto empty_rotamer_dispatch = TPack<Int, 2, D>::empty({0, 0});
   if (require_gradient) {
-    return ljlk_elec_forward_impl<true, false, DeviceOperations, D, Real, Int>(
-        TMOL_LJLK_ELEC_FORWARD_ARGS, empty_weights.view);
+    return ljlk_elec_forward_impl<
+        true,
+        false,
+        false,
+        DeviceOperations,
+        D,
+        Real,
+        Int>(
+        TMOL_LJLK_ELEC_FORWARD_ARGS,
+        empty_rotamer_dispatch.view,
+        empty_weights.view);
   }
-  return ljlk_elec_forward_impl<false, false, DeviceOperations, D, Real, Int>(
-      TMOL_LJLK_ELEC_FORWARD_ARGS, empty_weights.view);
+  return ljlk_elec_forward_impl<
+      false,
+      false,
+      false,
+      DeviceOperations,
+      D,
+      Real,
+      Int>(
+      TMOL_LJLK_ELEC_FORWARD_ARGS,
+      empty_rotamer_dispatch.view,
+      empty_weights.view);
 #undef TMOL_LJLK_ELEC_FORWARD_ARGS
 }
 
@@ -844,14 +905,153 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
       ljlk_type_params, ljlk_global_params, block_type_partial_charge,        \
       block_type_elec_inter_repr_path_distance,                               \
       block_type_elec_intra_repr_path_distance, elec_global_params,           \
-      shared_compact_block_neighbors, score_weights
+      shared_compact_block_neighbors
+  auto empty_rotamer_dispatch = TPack<Int, 2, D>::empty({0, 0});
   if (require_gradient) {
-    return ljlk_elec_forward_impl<true, true, DeviceOperations, D, Real, Int>(
-        TMOL_LJLK_ELEC_WEIGHTED_FORWARD_ARGS);
+    return ljlk_elec_forward_impl<
+        true,
+        true,
+        false,
+        DeviceOperations,
+        D,
+        Real,
+        Int>(
+        TMOL_LJLK_ELEC_WEIGHTED_FORWARD_ARGS,
+        empty_rotamer_dispatch.view,
+        score_weights);
   }
-  return ljlk_elec_forward_impl<false, true, DeviceOperations, D, Real, Int>(
-      TMOL_LJLK_ELEC_WEIGHTED_FORWARD_ARGS);
+  return ljlk_elec_forward_impl<
+      false,
+      true,
+      false,
+      DeviceOperations,
+      D,
+      Real,
+      Int>(
+      TMOL_LJLK_ELEC_WEIGHTED_FORWARD_ARGS,
+      empty_rotamer_dispatch.view,
+      score_weights);
 #undef TMOL_LJLK_ELEC_WEIGHTED_FORWARD_ARGS
+}
+
+template <
+    template <tmol::Device> class DeviceOperations,
+    tmol::Device D,
+    typename Real,
+    typename Int>
+auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
+    forward_weighted_rotamers(
+        ContextManager& mgr,
+        TView<LJLKExternalVec<Real, 3>, 1, D> rot_coords,
+        TView<Int, 1, D> rot_coord_offset,
+        TView<Int, 1, D> pose_ind_for_atom,
+        TView<Int, 2, D> first_rot_for_block,
+        TView<Int, 2, D> first_rot_block_type,
+        TView<Int, 1, D> block_ind_for_rot,
+        TView<Int, 1, D> pose_ind_for_rot,
+        TView<Int, 1, D> block_type_ind_for_rot,
+        TView<Int, 1, D> n_rots_for_pose,
+        TView<Int, 1, D> rot_offset_for_pose,
+        TView<Int, 2, D> n_rots_for_block,
+        TView<Int, 2, D> rot_offset_for_block,
+        Int max_n_rots_per_pose,
+        TView<Int, 3, D> pose_stack_min_bond_separation,
+        TView<Int, 5, D> pose_stack_inter_block_bondsep,
+        TView<Int, 1, D> block_type_n_atoms,
+        TView<Int, 2, D> block_type_atom_types,
+        TView<Int, 1, D> block_type_n_interblock_bonds,
+        TView<Int, 2, D> block_type_atoms_forming_chemical_bonds,
+        TView<Int, 3, D> block_type_ljlk_path_distance,
+        TView<Int, 1, D> block_type_is_ligand_fragment,
+        TView<LJLKTypeParams<Real>, 1, D> ljlk_type_params,
+        TView<LJGlobalParams<Real>, 1, D> ljlk_global_params,
+        TView<Real, 2, D> block_type_partial_charge,
+        TView<Int, 3, D> block_type_elec_inter_repr_path_distance,
+        TView<Int, 3, D> block_type_elec_intra_repr_path_distance,
+        TView<tmol::score::elec::potentials::ElecGlobalParams<Real>, 1, D>
+            elec_global_params,
+        Real max_dis,
+        TView<Real, 1, D> score_weights)
+        -> std::tuple<
+            TPack<Real, 4, D>,
+            TPack<LJLKExternalVec<Real, 3>, 2, D>,
+            TPack<Int, 2, D>> {
+  int const n_rots = rot_coord_offset.size(0);
+  int const n_poses = first_rot_for_block.size(0);
+  int const max_n_blocks = first_rot_for_block.size(1);
+  auto scratch_rot_spheres_t = D == Device::CPU
+                                   ? TPack<Real, 2, D>::zeros({n_rots, 4})
+                                   : TPack<Real, 2, D>::empty({n_rots, 4});
+  auto scratch_block_spheres_t =
+      D == Device::CPU ? TPack<Real, 3, D>::zeros({n_poses, max_n_blocks, 4})
+                       : TPack<Real, 3, D>::empty({n_poses, max_n_blocks, 4});
+  auto scratch_block_neighbors_t =
+      D == Device::CPU
+          ? TPack<Int, 3, D>::zeros({n_poses, max_n_blocks, max_n_blocks})
+          : TPack<Int, 3, D>::empty({n_poses, max_n_blocks, max_n_blocks});
+  score::common::sphere_overlap::
+      compute_rot_spheres<DeviceOperations, D, Real, Int>::f(
+          mgr,
+          rot_coords,
+          rot_coord_offset,
+          block_type_ind_for_rot,
+          block_type_n_atoms,
+          scratch_rot_spheres_t.view);
+  score::common::sphere_overlap::
+      compute_block_spheres_from_rot_spheres<DeviceOperations, D, Real, Int>::f(
+          mgr,
+          scratch_rot_spheres_t.view,
+          n_rots_for_block,
+          rot_offset_for_block,
+          scratch_block_spheres_t.view);
+  score::common::sphere_overlap::
+      detect_block_neighbors<DeviceOperations, D, Real, Int>::f(
+          mgr,
+          first_rot_block_type,
+          scratch_block_spheres_t.view,
+          scratch_block_neighbors_t.view,
+          max_dis);
+  auto rotamer_dispatch_indices = score::common::sphere_overlap::
+      rot_neighbor_indices_from_block_neighbors<DeviceOperations, D, Int>::f(
+          mgr,
+          scratch_block_neighbors_t.view,
+          n_rots_for_block,
+          rot_offset_for_block);
+  auto empty_compact_block_neighbors = TPack<Int, 1, D>::empty({0});
+  auto result =
+      ljlk_elec_forward_impl<false, true, true, DeviceOperations, D, Real, Int>(
+          mgr,
+          rot_coords,
+          rot_coord_offset,
+          pose_ind_for_atom,
+          first_rot_for_block,
+          first_rot_block_type,
+          block_ind_for_rot,
+          pose_ind_for_rot,
+          block_type_ind_for_rot,
+          n_rots_for_pose,
+          rot_offset_for_pose,
+          n_rots_for_block,
+          rot_offset_for_block,
+          max_n_rots_per_pose,
+          pose_stack_min_bond_separation,
+          pose_stack_inter_block_bondsep,
+          block_type_n_atoms,
+          block_type_atom_types,
+          block_type_n_interblock_bonds,
+          block_type_atoms_forming_chemical_bonds,
+          block_type_ljlk_path_distance,
+          block_type_is_ligand_fragment,
+          ljlk_type_params,
+          ljlk_global_params,
+          block_type_partial_charge,
+          block_type_elec_inter_repr_path_distance,
+          block_type_elec_intra_repr_path_distance,
+          elec_global_params,
+          empty_compact_block_neighbors.view,
+          rotamer_dispatch_indices.view,
+          score_weights);
+  return {std::get<0>(result), std::get<1>(result), rotamer_dispatch_indices};
 }
 
 template <

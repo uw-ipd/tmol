@@ -1,5 +1,6 @@
 import os
 import pathlib
+import sys
 import warnings
 from functools import wraps
 
@@ -84,6 +85,27 @@ _required_cuda_flags = [
 ]
 
 
+def _jit_openmp_flags(platform, parallel_info):
+    """Return compiler and linker flags for Torch's OpenMP CPU backend.
+
+    Linux Torch wheels use OpenMP for ``at::parallel_for``. Unlike the CMake
+    build, ``torch.utils.cpp_extension`` does not propagate Torch's OpenMP
+    flags to extensions, so JIT-built CPU kernels would otherwise run serially.
+    Other Torch backends and platforms need no additional flags here.
+    """
+    if (
+        platform.startswith("linux")
+        and "ATen parallel backend: OpenMP" in parallel_info
+    ):
+        return ["-fopenmp"], ["-fopenmp"]
+    return [], []
+
+
+_openmp_cflags, _openmp_ldflags = _jit_openmp_flags(
+    sys.platform, torch.__config__.parallel_info()
+)
+
+
 def _select_cuda_architecture(arch_list, device_capability):
     """Choose the active device from a possibly multi-architecture setting."""
     current = ".".join(str(part) for part in device_capability)
@@ -150,7 +172,10 @@ _default_cuda_flags = ["-O3"]
 # commands to the terminal
 def _augment_kwargs(name, sources, **kwargs):
     kwargs["extra_cflags"] = (
-        _default_flags + list(kwargs.get("extra_cflags", [])) + _required_flags
+        _default_flags
+        + list(kwargs.get("extra_cflags", []))
+        + _required_flags
+        + _openmp_cflags
     )
     kwargs["extra_cuda_cflags"] = (
         _default_cuda_flags
@@ -160,6 +185,7 @@ def _augment_kwargs(name, sources, **kwargs):
     kwargs["extra_include_paths"] = (
         list(kwargs.get("extra_include_paths", [])) + _default_include_paths
     )
+    kwargs["extra_ldflags"] = list(kwargs.get("extra_ldflags", [])) + _openmp_ldflags
 
     if kwargs.get("with_cuda") is None:
         with_cuda = any(map(_is_cuda_file, sources))

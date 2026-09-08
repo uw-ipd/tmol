@@ -16,6 +16,17 @@ def test_active_torch_cxx_standard_flags_match():
     assert f"-std=c++{expected}" in _cpp_extension._required_cuda_flags
 
 
+def test_jit_openmp_flags_match_torch_backend():
+    select = _cpp_extension._jit_openmp_flags
+
+    assert select("linux", "ATen parallel backend: OpenMP") == (
+        ["-fopenmp"],
+        ["-fopenmp"],
+    )
+    assert select("linux", "ATen parallel backend: native thread pool") == ([], [])
+    assert select("darwin", "ATen parallel backend: OpenMP") == ([], [])
+
+
 def test_select_cuda_architecture_prefers_active_device():
     select = _cpp_extension._select_cuda_architecture
     assert select(None, (9, 0)) == "9.0"
@@ -37,6 +48,18 @@ def test_custom_extension_flags_preserve_release_optimization():
 
     assert kwargs["extra_cflags"][:2] == ["-O3", "-DCUSTOM_CXX"]
     assert kwargs["extra_cuda_cflags"][:2] == ["-O3", "-DCUSTOM_CUDA"]
+
+
+def test_custom_extension_linker_flags_are_preserved():
+    kwargs = _cpp_extension._augment_kwargs(
+        "test_extension",
+        ["test.cpp"],
+        extra_ldflags=["-Wl,--custom"],
+        with_cuda=False,
+    )
+
+    assert kwargs["extra_ldflags"][0] == "-Wl,--custom"
+    assert kwargs["extra_ldflags"][1:] == _cpp_extension._openmp_ldflags
 
 
 def test_custom_extension_include_paths_are_preserved():

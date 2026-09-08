@@ -137,12 +137,14 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
     def rotamer_score_hbond(self, *args):
         from tmol.score.hbond.potentials import (
             hbond_rotamer_scores,
+            hbond_rotamer_scores_shared,
             gen_hbond_bases,
         )
 
-        common_args = args[:-2]
-        pose_stack = args[-2]
-        block_pair_scoring = args[-1]
+        common_args = args[:-3]
+        pose_stack = args[-3]
+        block_pair_scoring = args[-2]
+        shared_dispatch_indices = args[-1]
         coords_dtype = common_args[0].dtype
         pair_param_table, pair_poly_table, global_param_table = self._param_tables(
             coords_dtype
@@ -172,7 +174,12 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
                 pose_stack.packed_block_types.hbpbt_params.is_hydrogen,
             )
 
-        return hbond_rotamer_scores(
+        score_op = (
+            hbond_rotamer_scores_shared
+            if shared_dispatch_indices.numel() != 0
+            else hbond_rotamer_scores
+        )
+        score_args = (
             *common_args,
             pose_stack.inter_residue_connections,
             pose_stack.min_block_bondsep,
@@ -199,6 +206,9 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             derived_atom_inds,
             block_pair_scoring,
         )
+        if shared_dispatch_indices.numel() != 0:
+            score_args += (shared_dispatch_indices,)
+        return score_op(*score_args)
 
     def get_pose_score_term_function(self):
         return self.pose_score_hbond
@@ -208,6 +218,12 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
 
     def get_block_neighbor_cutoff(self):
         return 5.5
+
+    def accepts_shared_rotamer_dispatch(self):
+        return True
+
+    def rotamer_dispatch_key(self):
+        return "sphere_overlap"
 
     def get_score_term_attributes(self, pose_stack: PoseStack):
         return [pose_stack]

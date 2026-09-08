@@ -33,10 +33,16 @@ from tmol.io import pose_stack_from_pdb
 from tmol.score.constraint import ConstraintEnergyTerm
 from tmol.pack._pack_rotamers import (
     _PACKER_TASK_POSE_TENSORS,
+    _interaction_graph_chunk_size,
     _max_poses_per_packing_chunk,
     _slice_packer_task,
     _slice_pose_stack_for_packing,
 )
+
+
+def test_interaction_graph_chunk_size_is_backend_specific(torch_device):
+    expected = 32 if torch_device.type == "cuda" else 16
+    assert _interaction_graph_chunk_size(torch_device) == expected
 
 
 def setup_pose_stack_and_task(poses, torch_device, dun_sampler):
@@ -384,6 +390,166 @@ def test_shared_rotamer_dispatch_matches_independent_lk_ball_layout(
         assert shared_error <= 2 * repeat_error + 1e-6
     else:
         torch.testing.assert_close(shared_grad, fallback_grad)
+
+
+def test_shared_rotamer_dispatch_matches_independent_hbond_layout(
+    default_database, ubq_pdb, dun_sampler, torch_device
+):
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=10)
+    pose_stack, task = setup_pose_stack_and_task([pose], torch_device, dun_sampler)
+    sfxn = get_packer_sfxn(default_database, torch_device)
+    pose_stack, rotamer_set = build_rotamers(
+        pose_stack,
+        SetPackerTask.from_packer_task(task),
+        pose_stack.packed_block_types.chem_db,
+    )
+    scorer = sfxn.render_rotamer_scoring_module(pose_stack, rotamer_set)
+    ljlk = next(term for term in scorer.term_modules if term.classname == "LJLK")
+    hbond = next(term for term in scorer.term_modules if term.classname == "HBond")
+
+    def dense_hbond(coords, shared_indices=None):
+        if shared_indices is None:
+            scores, indices = hbond.forward(coords)
+        else:
+            scores, indices = hbond.forward(coords, shared_indices)
+            assert indices.is_set_to(shared_indices)
+        sparse = torch.sparse_coo_tensor(
+            indices.to(torch.int64),
+            scores[0],
+            (hbond.n_poses, hbond.n_rots, hbond.n_rots),
+            check_invariants=False,
+        )
+        return sparse.coalesce().to_dense()
+
+    shared_coords = rotamer_set.coords.detach().clone().requires_grad_(True)
+    _, shared_indices = ljlk.forward(shared_coords)
+    shared = dense_hbond(shared_coords, shared_indices)
+    (shared_grad,) = torch.autograd.grad(shared.sum(), shared_coords)
+
+    independent_coords = rotamer_set.coords.detach().clone().requires_grad_(True)
+    independent = dense_hbond(independent_coords)
+    (independent_grad,) = torch.autograd.grad(independent.sum(), independent_coords)
+
+    torch.testing.assert_close(shared, independent)
+    if torch_device.type == "cuda":
+        repeat_coords = rotamer_set.coords.detach().clone().requires_grad_(True)
+        repeat = dense_hbond(repeat_coords)
+        (repeat_grad,) = torch.autograd.grad(repeat.sum(), repeat_coords)
+        torch.testing.assert_close(independent, repeat)
+        repeat_error = torch.max(torch.abs(independent_grad - repeat_grad))
+        shared_error = torch.max(torch.abs(shared_grad - independent_grad))
+        assert shared_error <= 2 * repeat_error + 1e-6
+    else:
+        torch.testing.assert_close(shared_grad, independent_grad)
+
+    if torch_device.type == "cuda":
+        dispatch_key = hbond.rotamer_dispatch_key
+        with torch.no_grad():
+            hbond.rotamer_dispatch_key = None
+            independent_indices, *_ = scorer._weighted_entries_by_layout(
+                rotamer_set.coords
+            )
+            hbond.rotamer_dispatch_key = dispatch_key
+            shared_indices, *_ = scorer._weighted_entries_by_layout(rotamer_set.coords)
+        assert sum(layout.shape[1] for layout in shared_indices) < sum(
+            layout.shape[1] for layout in independent_indices
+        )
+
+
+def test_weighted_fused_ljlk_elec_rotamer_scores_match_fallback(
+    default_database, ubq_pdb, dun_sampler, torch_device
+):
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=10)
+    pose_stack, task = setup_pose_stack_and_task([pose], torch_device, dun_sampler)
+    task = SetPackerTask.from_packer_task(task)
+    sfxn = get_packer_sfxn(default_database, torch_device)
+    pose_stack, rotamer_set = build_rotamers(
+        pose_stack, task, pose_stack.packed_block_types.chem_db
+    )
+    scorer = sfxn.render_rotamer_scoring_module(pose_stack, rotamer_set)
+    assert scorer._fused_ljlk_elec is not None
+    if torch_device.type == "cpu":
+        scorer._cpu_term_workers = 1
+
+    with torch.no_grad():
+        fused = scorer(rotamer_set.coords).coalesce()
+        fused_group = scorer._fused_ljlk_elec
+        scorer._fused_ljlk_elec = None
+        separate = scorer(rotamer_set.coords).coalesce()
+        scorer._fused_ljlk_elec = fused_group
+
+    assert torch.equal(fused.indices(), separate.indices())
+    torch.testing.assert_close(fused.values(), separate.values(), atol=2e-3, rtol=2e-5)
+
+    # Weights are read at every call instead of being specialized into the
+    # rendered module.
+    weight_begin = scorer._fused_ljlk_elec_weight_offset
+    with torch.no_grad():
+        scorer.weights[weight_begin : weight_begin + 4, 0, 0, 0] *= torch.tensor(
+            [0.5, 1.25, 0.75, 0.0], device=torch_device
+        )
+        reweighted_fused = scorer(rotamer_set.coords).coalesce()
+        scorer._fused_ljlk_elec = None
+        reweighted_separate = scorer(rotamer_set.coords).coalesce()
+        scorer._fused_ljlk_elec = fused_group
+    assert torch.equal(reweighted_fused.indices(), reweighted_separate.indices())
+    torch.testing.assert_close(
+        reweighted_fused.values(),
+        reweighted_separate.values(),
+        atol=2e-3,
+        rtol=2e-5,
+    )
+
+    # Fusion remains the measured fast path when the term pool has four CPU
+    # workers; each native operator can still use ATen's inner CPU parallelism.
+    if torch_device.type == "cpu":
+        original_forward = fused_group.forward
+        fused_calls = []
+
+        def record_fused_call(*args):
+            fused_calls.append(None)
+            return original_forward(*args)
+
+        fused_group.forward = record_fused_call
+        scorer._cpu_term_workers = 4
+        with torch.no_grad():
+            parallel_scores = scorer(rotamer_set.coords).coalesce()
+        assert len(fused_calls) == 1
+        assert torch.equal(parallel_scores.indices(), reweighted_fused.indices())
+        torch.testing.assert_close(
+            parallel_scores.values(), reweighted_fused.values(), atol=2e-3, rtol=2e-5
+        )
+        scorer._cpu_term_workers = 1
+        fused_group.forward = original_forward
+
+    # A caller that changes either dispatch cutoff must use the canonical
+    # operators, since the fused traversal assumes the default compatible pair.
+    original_cutoff = fused_group.ljlk_module.block_neighbor_cutoff
+    fused_group.ljlk_module.block_neighbor_cutoff = original_cutoff + 0.25
+    fused_group.forward = lambda *_: pytest.fail(
+        "fusion used after changing a live dispatch cutoff"
+    )
+    with torch.no_grad():
+        changed_cutoff = scorer(rotamer_set.coords).coalesce()
+    assert changed_cutoff._nnz() != 0
+    fused_group.ljlk_module.block_neighbor_cutoff = original_cutoff
+
+    # Differentiable callers must retain the canonical independent operators.
+    fused_group.forward = lambda *_: pytest.fail(
+        "packing-only fusion used for a differentiable call"
+    )
+    coords = rotamer_set.coords.detach().clone().requires_grad_(True)
+    differentiable = scorer(coords).coalesce()
+    differentiable.values().sum().backward()
+    assert coords.grad is not None
+    assert torch.isfinite(coords.grad).all()
+
+    scorer.weights.requires_grad_(True)
+    weight_differentiable = scorer(rotamer_set.coords.detach()).coalesce()
+    weight_differentiable.values().sum().backward()
+    assert scorer.weights.grad is not None
+    assert torch.isfinite(scorer.weights.grad).all()
+    assert torch.count_nonzero(scorer.weights.grad[:4]) != 0
 
 
 def test_pack_rotamers_optH(default_database, ubq_pdb, torch_device):

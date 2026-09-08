@@ -290,7 +290,8 @@ struct HBondRotamerScoreDispatch {
       TView<Int, 2, Dev> derived_atom_inds,
 
       bool output_block_pair_energies,
-      bool compute_derivs)
+      bool compute_derivs,
+      TPack<Int, 2, Dev> shared_dispatch_indices)
       -> std::tuple<
           TPack<Real, 2, Dev>,
           TPack<Vec<Real, 3>, 2, Dev>,
