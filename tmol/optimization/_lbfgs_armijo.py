@@ -734,9 +734,9 @@ class LBFGS_Armijo(Optimizer):
 
     def _freeze_converged(self, ctx):
         """Hold converged or retired segments still by zeroing their direction."""
-        inactive = self._inactive(ctx)
         if not ctx.any_inactive:
             return
+        inactive = self._inactive(ctx)
         ctx.d.mul_(self._per_element((~inactive).to(ctx.d.dtype)))
 
     def _directional_derivative(self, ctx, correct=True):
