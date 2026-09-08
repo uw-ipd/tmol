@@ -133,84 +133,10 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
         separation);                                                         \
   }
 
-// SCORE_INTER_LK_ATOM_PAIR
-// input argument:  a function with signature (
-//     int atom_tile_idx1
-//     int atom_tile_idx2
-//     int start_atom1
-//     int start_atom2
-//     LJLKScoringData<Real> const &score_dat
-//     int cp_separation)
-//   ->Real
-// captures:
-//    None
-#define SCORE_INTER_LK_ATOM_PAIR(atom_pair_func)                              \
-  TMOL_DEVICE_FUNC(                                                           \
-      int start_atom1,                                                        \
-      int start_atom2,                                                        \
-      int atom_heavy_tile_ind1,                                               \
-      int atom_heavy_tile_ind2,                                               \
-      LJLKScoringData<Real> const& inter_dat)                                 \
-      ->std::array<Real, 1> {                                                 \
-    int const atom_tile_ind1 = inter_dat.r1.heavy_inds[atom_heavy_tile_ind1]; \
-    int const atom_tile_ind2 = inter_dat.r2.heavy_inds[atom_heavy_tile_ind2]; \
-    int separation = interres_count_pair_separation<TILE_SIZE>(               \
-        inter_dat,                                                            \
-        atom_tile_ind1,                                                       \
-        atom_tile_ind2,                                                       \
-        block_type_is_ligand_fragment[inter_dat.r1.block_type]                \
-            && block_type_is_ligand_fragment[inter_dat.r2.block_type]);       \
-    Real lk = atom_pair_func(                                                 \
-        atom_tile_ind1,                                                       \
-        atom_tile_ind2,                                                       \
-        start_atom1,                                                          \
-        start_atom2,                                                          \
-        inter_dat,                                                            \
-        separation);                                                          \
-    return {lk};                                                              \
-  }
-
-// SCORE_INTRA_LK_ATOM_PAIR
-// input argument:  a function with signature (
-//     int atom_tile_idx1
-//     int atom_tile_idx2
-//     int start_atom1
-//     int start_atom2
-//     LJLKScoringData<Real> const &score_dat
-//     int cp_separation)
-//   ->Real
-// captures:
-//    block_type_path_distance
-#define SCORE_INTRA_LK_ATOM_PAIR(atom_pair_func)                              \
-  TMOL_DEVICE_FUNC(                                                           \
-      int start_atom1,                                                        \
-      int start_atom2,                                                        \
-      int atom_heavy_tile_ind1,                                               \
-      int atom_heavy_tile_ind2,                                               \
-      LJLKScoringData<Real> const& intra_dat)                                 \
-      ->std::array<Real, 1> {                                                 \
-    int const atom_tile_ind1 = intra_dat.r1.heavy_inds[atom_heavy_tile_ind1]; \
-    int const atom_tile_ind2 = intra_dat.r2.heavy_inds[atom_heavy_tile_ind2]; \
-    int const atom_ind1 = start_atom1 + atom_tile_ind1;                       \
-    int const atom_ind2 = start_atom2 + atom_tile_ind2;                       \
-    int const separation = block_type_path_distance[intra_dat.r1.block_type]  \
-                                                   [atom_ind1][atom_ind2];    \
-    Real lk = atom_pair_func(                                                 \
-        atom_tile_ind1,                                                       \
-        atom_tile_ind2,                                                       \
-        start_atom1,                                                          \
-        start_atom2,                                                          \
-        intra_dat,                                                            \
-        separation);                                                          \
-    return {lk};                                                              \
-  }
-
-// SCORE_INTRA_LK_ATOM_PAIR
 // captures:
 //    coords (TView<Vec<Real, 3>, 2, D>)
 //    block_type_atom_types (TView<Int, 2, D>)
 //    type_params (TView<LJLKTypeParams<Real>, 1, D>)
-//    block_type_heavy_atoms_in_tile (TView<Int, 2, D>)
 #define LOAD_BLOCK_COORDS_AND_PARAMS_INTO_SHARED                            \
   TMOL_DEVICE_FUNC(                                                         \
       int pose_ind,                                                         \
@@ -221,7 +147,6 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
         rot_coords,                                                         \
         block_type_atom_types,                                              \
         type_params,                                                        \
-        block_type_heavy_atoms_in_tile,                                     \
         pose_ind,                                                           \
         r_dat,                                                              \
         n_atoms_to_load,                                                    \
@@ -233,7 +158,6 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 //    coords (TView<Vec<Real, 3>, 2, D>)
 //    block_type_atom_types (TView<Int, 2, D>)
 //    type_params (TView<LJLKTypeParams<Real>, 1, D>)
-//    block_type_heavy_atoms_in_tile (TView<Int, 2, D>)
 //    block_type_path_distance (TView<Int, 3, D>)
 #define LOAD_BLOCK_INTO_SHARED                                       \
   TMOL_DEVICE_FUNC(                                                  \
@@ -247,7 +171,6 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
         rot_coords,                                                  \
         block_type_atom_types,                                       \
         type_params,                                                 \
-        block_type_heavy_atoms_in_tile,                              \
         block_type_path_distance,                                    \
         pose_ind,                                                    \
         r_dat,                                                       \
@@ -305,9 +228,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 //    coords (TView<Vec<Real, 3>, 2, D>)
 //    block_type_atom_types (TView<Int, 2, D>)
 //    type_params (TView<LJLKTypeParams<Real>, 1, D>)
-//    block_type_heavy_atoms_in_tile (TView<Int, 2, D>)
 //    block_type_path_distance (TView<Int, 3, D>)
-//    block_type_n_heavy_atoms_in_tile (TView<Int, 2, D>)
 #define LOAD_INTERRES1_TILE_DATA_TO_SHARED                            \
   TMOL_DEVICE_FUNC(                                                   \
       int tile_ind,                                                   \
@@ -319,9 +240,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
         rot_coords,                                                   \
         block_type_atom_types,                                        \
         type_params,                                                  \
-        block_type_heavy_atoms_in_tile,                               \
         block_type_path_distance,                                     \
-        block_type_n_heavy_atoms_in_tile,                             \
         tile_ind,                                                     \
         start_atom1,                                                  \
         n_atoms_to_load1,                                             \
@@ -335,9 +254,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 //    coords (TView<Vec<Real, 3>, 2, D>)
 //    block_type_atom_types (TView<Int, 2, D>)
 //    type_params (TView<LJLKTypeParams<Real>, 1, D>)
-//    block_type_heavy_atoms_in_tile (TView<Int, 2, D>)
 //    block_type_path_distance (TView<Int, 3, D>)
-//    block_type_n_heavy_atoms_in_tile (TView<Int, 2, D>)
 #define LOAD_INTERRES2_TILE_DATA_TO_SHARED                            \
   TMOL_DEVICE_FUNC(                                                   \
       int tile_ind,                                                   \
@@ -349,9 +266,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
         rot_coords,                                                   \
         block_type_atom_types,                                        \
         type_params,                                                  \
-        block_type_heavy_atoms_in_tile,                               \
         block_type_path_distance,                                     \
-        block_type_n_heavy_atoms_in_tile,                             \
         tile_ind,                                                     \
         start_atom2,                                                  \
         n_atoms_to_load2,                                             \
@@ -362,11 +277,8 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 // LOAD_INTERRES_DATA_FROM_SHARED
 // captures:
 //    nothing
-#define LOAD_INTERRES_DATA_FROM_SHARED                                        \
-  TMOL_DEVICE_FUNC(                                                           \
-      int, int, shared_mem_union& shared, LJLKScoringData<Real>& inter_dat) { \
-    ljlk_load_interres_data_from_shared(shared.m, inter_dat);                 \
-  }
+#define LOAD_INTERRES_DATA_FROM_SHARED \
+  TMOL_DEVICE_FUNC(int, int, shared_mem_union&, LJLKScoringData<Real>&) {}
 
 // Fused LJ/LK traversal: LJ is evaluated for every atom pair and LK for the
 // heavy subset inside the pair function, reusing geometry and count-pair work.
@@ -493,8 +405,6 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 //    coords (TView<Vec<Real, 3>, 2, D>)
 //    block_type_atom_types (TView<Int, 2, D>)
 //    type_params (TView<LJLKTypeParams<Real>, 1, D>)
-//    block_type_n_heavy_atoms_in_tile (TView<Int, 2, D>)
-//    block_type_heavy_atoms_in_tile (TView<Int, 2, D>)
 #define LOAD_INTRARES1_TILE_DATA_TO_SHARED                            \
   TMOL_DEVICE_FUNC(                                                   \
       int tile_ind,                                                   \
@@ -506,8 +416,6 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
         rot_coords,                                                   \
         block_type_atom_types,                                        \
         type_params,                                                  \
-        block_type_n_heavy_atoms_in_tile,                             \
-        block_type_heavy_atoms_in_tile,                               \
         tile_ind,                                                     \
         start_atom1,                                                  \
         n_atoms_to_load1,                                             \
@@ -521,8 +429,6 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 //    coords (TView<Vec<Real, 3>, 2, D>)
 //    block_type_atom_types (TView<Int, 2, D>)
 //    type_params (TView<LJLKTypeParams<Real>, 1, D>)
-//    block_type_n_heavy_atoms_in_tile (TView<Int, 2, D>)
-//    block_type_heavy_atoms_in_tile (TView<Int, 2, D>)
 #define LOAD_INTRARES2_TILE_DATA_TO_SHARED                            \
   TMOL_DEVICE_FUNC(                                                   \
       int tile_ind,                                                   \
@@ -534,8 +440,6 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
         rot_coords,                                                   \
         block_type_atom_types,                                        \
         type_params,                                                  \
-        block_type_n_heavy_atoms_in_tile,                             \
-        block_type_heavy_atoms_in_tile,                               \
         tile_ind,                                                     \
         start_atom2,                                                  \
         n_atoms_to_load2,                                             \
