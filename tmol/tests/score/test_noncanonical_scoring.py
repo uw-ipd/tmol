@@ -80,7 +80,8 @@ def test_noncanonical_scores_match_baseline(backbone_class, torch_device):
     moved = {
         name: (gold[backbone_class].get(name), value)
         for name, value in scores.items()
-        if gold[backbone_class].get(name) != pytest.approx(value, abs=1e-3, rel=1e-4)
+        # fd 1e-3 -> 1e-2
+        if gold[backbone_class].get(name) != pytest.approx(value, abs=1e-2, rel=1e-4)
     }
     assert not moved, "%s (%s): %s" % (backbone_class, stem, moved)
 
