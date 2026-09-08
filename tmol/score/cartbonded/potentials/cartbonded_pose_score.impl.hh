@@ -154,6 +154,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     TView<Vec<Int, 3>, 3, D> atom_paths_from_conn,
     TView<Int, 2, D> atom_unique_ids,
     TView<Int, 2, D> atom_wildcard_ids,
+    TView<Int, 2, D> atom_is_rosetta,
     TView<Int, 1, D> block_type_is_fragment,
     TView<Int, 2, D> atom_cross_ids,
     TView<Vec<Int, 5>, 1, D> hash_keys,
@@ -424,7 +425,10 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       // Use capture-by-reference here so that we can write to the length_score,
       // angle_score, and torsion_score variables
       auto eval_inter_res_subgraphs = ([&] TMOL_DEVICE_FUNC(int tid) {
-        int n_connection_spanning_subgraphs = common::NUM_INTER_RES_PATHS;
+        // no cross-residue torsion parameter exists; the two amide impropers
+        // are enumerated separately because they are not bonded paths
+        int n_connection_spanning_subgraphs =
+            common::NUM_INTER_RES_PATHS_THRU_ANGLE;
         for (int i = tid; i < 2 * n_connection_spanning_subgraphs; i += nt) {
           bool reverse = i % 2 == 1;
           // interleave the subgraphs from the two directions so we can have
@@ -523,6 +527,84 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       });
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
           eval_inter_res_subgraphs);
+
+      // The two amide impropers are not bonded paths: their centre is a
+      // connection atom whose three substituents are two local neighbours and
+      // the partner's connection atom. Enumerating the centre on side A only
+      // still covers both, because the A/B swap below runs each side once.
+      auto eval_inter_res_impropers = ([&] TMOL_DEVICE_FUNC(int tid) {
+        // the three substituents in every order, centre fixed at position 2,
+        // matching the atm3-is-the-centre convention the database rows use
+        int const ORDER[6][3] = {
+            {0, 1, 2}, {0, 2, 1}, {1, 0, 2}, {1, 2, 0}, {2, 0, 1}, {2, 1, 0}};
+        for (int i = tid; i < 2 * 6; i += nt) {
+          bool const reverse = i % 2 == 1;
+          int const ordering = i / 2;
+          int const block_typeA = reverse ? block_type2 : block_type1;
+          int const block_typeB = reverse ? block_type1 : block_type2;
+          int const rot_coord_offsetA =
+              reverse ? rot_coord_offset2 : rot_coord_offset1;
+          int const rot_coord_offsetB =
+              reverse ? rot_coord_offset1 : rot_coord_offset2;
+          int const conn_indA = reverse ? conn_ind2 : conn_ind1;
+          int const conn_indB = reverse ? conn_ind1 : conn_ind2;
+
+          Int const centre = atom_paths_from_conn[block_typeA][conn_indA][0][0];
+          Int const partner =
+              atom_paths_from_conn[block_typeB][conn_indB][0][0];
+          if (centre == -1 || partner == -1) continue;
+
+          // paths 1..3 are the connection atom plus one neighbour each
+          Int nbr[2] = {-1, -1};
+          int n_nbr = 0;
+          for (int p = 1; p <= 3; ++p) {
+            Int const cand = atom_paths_from_conn[block_typeA][conn_indA][p][1];
+            if (cand == -1) continue;
+            if (n_nbr < 2) nbr[n_nbr] = cand;
+            ++n_nbr;
+          }
+          // a planarity centre has exactly three substituents, one across
+          if (n_nbr != 2) continue;
+          // a centre the Rosetta terms do not type belongs to the generic
+          // term, which carries its own improper for it
+          if (!atom_is_rosetta[block_typeA][centre]) continue;
+
+          Int const item[3] = {nbr[0], nbr[1], partner};
+          bool const across[3] = {false, false, true};
+          int const* order = ORDER[ordering];
+
+          Vec<Int, 4> local, atom_indices;
+          bool is_b[4] = {false, false, false, false};
+          for (int slot = 0; slot < 4; ++slot) {
+            int const which = (slot == 2) ? -1 : order[slot < 2 ? slot : 2];
+            local[slot] = (which == -1) ? centre : item[which];
+            is_b[slot] = (which == -1) ? false : across[which];
+            atom_indices[slot] =
+                local[slot]
+                + (is_b[slot] ? rot_coord_offsetB : rot_coord_offsetA);
+          }
+
+          int param_index = -1;
+          for (int lookup_mode = 1; lookup_mode < 3; ++lookup_mode) {
+            Vec<Int, 4> ids;
+            for (int slot = 0; slot < 4; ++slot) {
+              ids[slot] =
+                  is_b[slot]
+                      ? atom_cross_ids[block_typeB][local[slot]]
+                      : (lookup_mode == 2
+                             ? atom_wildcard_ids[block_typeA][local[slot]]
+                             : atom_unique_ids[block_typeA][local[slot]]);
+            }
+            param_index = hash_lookup<Int, 4, D>(ids, hash_keys);
+            if (param_index != -1) break;
+          }
+          if (param_index != -1) {
+            score_subgraph(atom_indices, param_index);
+          }
+        }
+      });
+      DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+          eval_inter_res_impropers);
     }
 
     // Now let's accumulate the scores into main memory
@@ -628,6 +710,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     TView<Vec<Int, 3>, 3, D> atom_paths_from_conn,
     TView<Int, 2, D> atom_unique_ids,
     TView<Int, 2, D> atom_wildcard_ids,
+    TView<Int, 2, D> atom_is_rosetta,
     TView<Int, 1, D> block_type_is_fragment,
     TView<Int, 2, D> atom_cross_ids,
     TView<Vec<Int, 5>, 1, D> hash_keys,
@@ -863,7 +946,10 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
       // Use by-reference capture here so that we can write to the length,
       // angle, and torsion_score variables
       auto eval_inter_res_subgraphs = ([&] TMOL_DEVICE_FUNC(int tid) {
-        int n_connection_spanning_subgraphs = common::NUM_INTER_RES_PATHS;
+        // no cross-residue torsion parameter exists; the two amide impropers
+        // are enumerated separately because they are not bonded paths
+        int n_connection_spanning_subgraphs =
+            common::NUM_INTER_RES_PATHS_THRU_ANGLE;
         for (int i = tid; i < 2 * n_connection_spanning_subgraphs; i += nt) {
           bool reverse = i % 2 == 1;
           // interleave the subgraphs from the two directions so we can have
@@ -965,6 +1051,85 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
       });
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
           eval_inter_res_subgraphs);
+
+      // The two amide impropers are not bonded paths: their centre is a
+      // connection atom whose three substituents are two local neighbours and
+      // the partner's connection atom. Enumerating the centre on side A only
+      // still covers both, because the A/B swap below runs each side once.
+      auto eval_inter_res_impropers = ([&] TMOL_DEVICE_FUNC(int tid) {
+        // the three substituents in every order, centre fixed at position 2,
+        // matching the atm3-is-the-centre convention the database rows use
+        int const ORDER[6][3] = {
+            {0, 1, 2}, {0, 2, 1}, {1, 0, 2}, {1, 2, 0}, {2, 0, 1}, {2, 1, 0}};
+        for (int i = tid; i < 2 * 6; i += nt) {
+          bool const reverse = i % 2 == 1;
+          int const ordering = i / 2;
+          int const block_typeA = reverse ? block_type2 : block_type1;
+          int const block_typeB = reverse ? block_type1 : block_type2;
+          int const rot_coord_offsetA =
+              reverse ? rot_coord_offset2 : rot_coord_offset1;
+          int const rot_coord_offsetB =
+              reverse ? rot_coord_offset1 : rot_coord_offset2;
+          int const conn_indA = reverse ? conn_ind2 : conn_ind1;
+          int const conn_indB = reverse ? conn_ind1 : conn_ind2;
+
+          Int const centre = atom_paths_from_conn[block_typeA][conn_indA][0][0];
+          Int const partner =
+              atom_paths_from_conn[block_typeB][conn_indB][0][0];
+          if (centre == -1 || partner == -1) continue;
+
+          // paths 1..3 are the connection atom plus one neighbour each
+          Int nbr[2] = {-1, -1};
+          int n_nbr = 0;
+          for (int p = 1; p <= 3; ++p) {
+            Int const cand = atom_paths_from_conn[block_typeA][conn_indA][p][1];
+            if (cand == -1) continue;
+            if (n_nbr < 2) nbr[n_nbr] = cand;
+            ++n_nbr;
+          }
+          // a planarity centre has exactly three substituents, one across
+          if (n_nbr != 2) continue;
+          // a centre the Rosetta terms do not type belongs to the generic
+          // term, which carries its own improper for it
+          if (!atom_is_rosetta[block_typeA][centre]) continue;
+
+          Int const item[3] = {nbr[0], nbr[1], partner};
+          bool const across[3] = {false, false, true};
+          int const* order = ORDER[ordering];
+
+          Vec<Int, 4> local, atom_indices;
+          bool is_b[4] = {false, false, false, false};
+          for (int slot = 0; slot < 4; ++slot) {
+            int const which = (slot == 2) ? -1 : order[slot < 2 ? slot : 2];
+            local[slot] = (which == -1) ? centre : item[which];
+            is_b[slot] = (which == -1) ? false : across[which];
+            atom_indices[slot] =
+                local[slot]
+                + (is_b[slot] ? rot_coord_offsetB : rot_coord_offsetA);
+          }
+
+          int param_index = -1;
+          for (int lookup_mode = 1; lookup_mode < 3; ++lookup_mode) {
+            Vec<Int, 4> ids;
+            for (int slot = 0; slot < 4; ++slot) {
+              ids[slot] =
+                  is_b[slot]
+                      ? atom_cross_ids[block_typeB][local[slot]]
+                      : (lookup_mode == 2
+                             ? atom_wildcard_ids[block_typeA][local[slot]]
+                             : atom_unique_ids[block_typeA][local[slot]]);
+            }
+            param_index = hash_lookup<Int, 4, D>(ids, hash_keys);
+            if (param_index != -1) break;
+          }
+          if (param_index != -1) {
+            score_subgraph(
+                atom_indices, param_index, pose_ind, block_ind1, block_ind2);
+          }
+        }
+      });
+      DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+          eval_inter_res_impropers);
     }
 
     // We can skip the step where we accumulate into global memory because
@@ -1006,6 +1171,7 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     TView<Vec<Int, 3>, 3, D> atom_paths_from_conn,
     TView<Int, 2, D> atom_unique_ids,
     TView<Int, 2, D> atom_wildcard_ids,
+    TView<Int, 2, D> atom_is_rosetta,
     TView<Int, 1, D> block_type_is_fragment,
     TView<Int, 2, D> atom_cross_ids,
     TView<Vec<Int, 5>, 1, D> hash_keys,
@@ -1362,7 +1528,10 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       // Use by-reference capture here so that we can write to the length,
       // angle, and torsion_score variables
       auto eval_inter_res_subgraphs = ([&] TMOL_DEVICE_FUNC(int tid) {
-        int n_connection_spanning_subgraphs = common::NUM_INTER_RES_PATHS;
+        // no cross-residue torsion parameter exists; the two amide impropers
+        // are enumerated separately because they are not bonded paths
+        int n_connection_spanning_subgraphs =
+            common::NUM_INTER_RES_PATHS_THRU_ANGLE;
         for (int i = tid; i < 2 * n_connection_spanning_subgraphs; i += nt) {
           bool reverse = i % 2 == 1;
           // interleave the subgraphs from the two directions so we can have
@@ -1459,6 +1628,84 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       });
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
           eval_inter_res_subgraphs);
+
+      // The two amide impropers are not bonded paths: their centre is a
+      // connection atom whose three substituents are two local neighbours and
+      // the partner's connection atom. Enumerating the centre on side A only
+      // still covers both, because the A/B swap below runs each side once.
+      auto eval_inter_res_impropers = ([&] TMOL_DEVICE_FUNC(int tid) {
+        // the three substituents in every order, centre fixed at position 2,
+        // matching the atm3-is-the-centre convention the database rows use
+        int const ORDER[6][3] = {
+            {0, 1, 2}, {0, 2, 1}, {1, 0, 2}, {1, 2, 0}, {2, 0, 1}, {2, 1, 0}};
+        for (int i = tid; i < 2 * 6; i += nt) {
+          bool const reverse = i % 2 == 1;
+          int const ordering = i / 2;
+          int const block_typeA = reverse ? block_type2 : block_type1;
+          int const block_typeB = reverse ? block_type1 : block_type2;
+          int const rot_coord_offsetA =
+              reverse ? rot_coord_offset2 : rot_coord_offset1;
+          int const rot_coord_offsetB =
+              reverse ? rot_coord_offset1 : rot_coord_offset2;
+          int const conn_indA = reverse ? conn_ind2 : conn_ind1;
+          int const conn_indB = reverse ? conn_ind1 : conn_ind2;
+
+          Int const centre = atom_paths_from_conn[block_typeA][conn_indA][0][0];
+          Int const partner =
+              atom_paths_from_conn[block_typeB][conn_indB][0][0];
+          if (centre == -1 || partner == -1) continue;
+
+          // paths 1..3 are the connection atom plus one neighbour each
+          Int nbr[2] = {-1, -1};
+          int n_nbr = 0;
+          for (int p = 1; p <= 3; ++p) {
+            Int const cand = atom_paths_from_conn[block_typeA][conn_indA][p][1];
+            if (cand == -1) continue;
+            if (n_nbr < 2) nbr[n_nbr] = cand;
+            ++n_nbr;
+          }
+          // a planarity centre has exactly three substituents, one across
+          if (n_nbr != 2) continue;
+          // a centre the Rosetta terms do not type belongs to the generic
+          // term, which carries its own improper for it
+          if (!atom_is_rosetta[block_typeA][centre]) continue;
+
+          Int const item[3] = {nbr[0], nbr[1], partner};
+          bool const across[3] = {false, false, true};
+          int const* order = ORDER[ordering];
+
+          Vec<Int, 4> local, atom_indices;
+          bool is_b[4] = {false, false, false, false};
+          for (int slot = 0; slot < 4; ++slot) {
+            int const which = (slot == 2) ? -1 : order[slot < 2 ? slot : 2];
+            local[slot] = (which == -1) ? centre : item[which];
+            is_b[slot] = (which == -1) ? false : across[which];
+            atom_indices[slot] =
+                local[slot]
+                + (is_b[slot] ? rot_coord_offsetB : rot_coord_offsetA);
+          }
+
+          int param_index = -1;
+          for (int lookup_mode = 1; lookup_mode < 3; ++lookup_mode) {
+            Vec<Int, 4> ids;
+            for (int slot = 0; slot < 4; ++slot) {
+              ids[slot] =
+                  is_b[slot]
+                      ? atom_cross_ids[block_typeB][local[slot]]
+                      : (lookup_mode == 2
+                             ? atom_wildcard_ids[block_typeA][local[slot]]
+                             : atom_unique_ids[block_typeA][local[slot]]);
+            }
+            param_index = hash_lookup<Int, 4, D>(ids, hash_keys);
+            if (param_index != -1) break;
+          }
+          if (param_index != -1) {
+            score_subgraph(atom_indices, param_index);
+          }
+        }
+      });
+      DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+          eval_inter_res_impropers);
     }
 
     // Now let's accumulate the scores into main memory
@@ -1539,6 +1786,7 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     TView<Vec<Int, 3>, 3, D> atom_paths_from_conn,
     TView<Int, 2, D> atom_unique_ids,
     TView<Int, 2, D> atom_wildcard_ids,
+    TView<Int, 2, D> atom_is_rosetta,
     TView<Int, 1, D> block_type_is_fragment,
     TView<Int, 2, D> atom_cross_ids,
     TView<Vec<Int, 5>, 1, D> hash_keys,
@@ -1769,7 +2017,10 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
       // Use by-reference capture here so that we can write to the length,
       // angle, and torsion_score variables
       auto eval_inter_res_subgraphs = ([&] TMOL_DEVICE_FUNC(int tid) {
-        int n_connection_spanning_subgraphs = common::NUM_INTER_RES_PATHS;
+        // no cross-residue torsion parameter exists; the two amide impropers
+        // are enumerated separately because they are not bonded paths
+        int n_connection_spanning_subgraphs =
+            common::NUM_INTER_RES_PATHS_THRU_ANGLE;
         for (int i = tid; i < 2 * n_connection_spanning_subgraphs; i += nt) {
           bool reverse = i % 2 == 1;
           // interleave the subgraphs from the two directions so we can have
@@ -1866,6 +2117,84 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
       });
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
           eval_inter_res_subgraphs);
+
+      // The two amide impropers are not bonded paths: their centre is a
+      // connection atom whose three substituents are two local neighbours and
+      // the partner's connection atom. Enumerating the centre on side A only
+      // still covers both, because the A/B swap below runs each side once.
+      auto eval_inter_res_impropers = ([&] TMOL_DEVICE_FUNC(int tid) {
+        // the three substituents in every order, centre fixed at position 2,
+        // matching the atm3-is-the-centre convention the database rows use
+        int const ORDER[6][3] = {
+            {0, 1, 2}, {0, 2, 1}, {1, 0, 2}, {1, 2, 0}, {2, 0, 1}, {2, 1, 0}};
+        for (int i = tid; i < 2 * 6; i += nt) {
+          bool const reverse = i % 2 == 1;
+          int const ordering = i / 2;
+          int const block_typeA = reverse ? block_type2 : block_type1;
+          int const block_typeB = reverse ? block_type1 : block_type2;
+          int const rot_coord_offsetA =
+              reverse ? rot_coord_offset2 : rot_coord_offset1;
+          int const rot_coord_offsetB =
+              reverse ? rot_coord_offset1 : rot_coord_offset2;
+          int const conn_indA = reverse ? conn_ind2 : conn_ind1;
+          int const conn_indB = reverse ? conn_ind1 : conn_ind2;
+
+          Int const centre = atom_paths_from_conn[block_typeA][conn_indA][0][0];
+          Int const partner =
+              atom_paths_from_conn[block_typeB][conn_indB][0][0];
+          if (centre == -1 || partner == -1) continue;
+
+          // paths 1..3 are the connection atom plus one neighbour each
+          Int nbr[2] = {-1, -1};
+          int n_nbr = 0;
+          for (int p = 1; p <= 3; ++p) {
+            Int const cand = atom_paths_from_conn[block_typeA][conn_indA][p][1];
+            if (cand == -1) continue;
+            if (n_nbr < 2) nbr[n_nbr] = cand;
+            ++n_nbr;
+          }
+          // a planarity centre has exactly three substituents, one across
+          if (n_nbr != 2) continue;
+          // a centre the Rosetta terms do not type belongs to the generic
+          // term, which carries its own improper for it
+          if (!atom_is_rosetta[block_typeA][centre]) continue;
+
+          Int const item[3] = {nbr[0], nbr[1], partner};
+          bool const across[3] = {false, false, true};
+          int const* order = ORDER[ordering];
+
+          Vec<Int, 4> local, atom_indices;
+          bool is_b[4] = {false, false, false, false};
+          for (int slot = 0; slot < 4; ++slot) {
+            int const which = (slot == 2) ? -1 : order[slot < 2 ? slot : 2];
+            local[slot] = (which == -1) ? centre : item[which];
+            is_b[slot] = (which == -1) ? false : across[which];
+            atom_indices[slot] =
+                local[slot]
+                + (is_b[slot] ? rot_coord_offsetB : rot_coord_offsetA);
+          }
+
+          int param_index = -1;
+          for (int lookup_mode = 1; lookup_mode < 3; ++lookup_mode) {
+            Vec<Int, 4> ids;
+            for (int slot = 0; slot < 4; ++slot) {
+              ids[slot] =
+                  is_b[slot]
+                      ? atom_cross_ids[block_typeB][local[slot]]
+                      : (lookup_mode == 2
+                             ? atom_wildcard_ids[block_typeA][local[slot]]
+                             : atom_unique_ids[block_typeA][local[slot]]);
+            }
+            param_index = hash_lookup<Int, 4, D>(ids, hash_keys);
+            if (param_index != -1) break;
+          }
+          if (param_index != -1) {
+            score_subgraph(atom_indices, param_index);
+          }
+        }
+      });
+      DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+          eval_inter_res_impropers);
     }
   });
 

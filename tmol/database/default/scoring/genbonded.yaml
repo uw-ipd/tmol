@@ -62,6 +62,53 @@ atoms:
   FR: [FR, X]
   ClR: [ClR, X]
 
+# Rosetta-typed atoms: taken from Rosetta's hybrid gen pot w/ modifications
+rosetta_atoms:
+  # protein
+  CAbb: [CAbb, CS, C*, X]
+  CH0: [CH0, CR, C*, X]
+  CH1: [CH1, CS, C*, X]
+  CH2: [CH2, CS, C*, X]
+  CH3: [CH3, CS, C*, X]
+  Caro: [Caro, CR, C*, X]
+  CNH2: [CNH2, CD, C*, X]
+  COO: [COO, CD, C*, X]
+  CObb: [CObb, CD, C*, X]
+  Nbb: [Nbb, NG2, N*, X]
+  Npro: [Npro, NG2, N*, X]
+  Nlys: [Nlys, NG3, N*, X]
+  Ntrp: [Ntrp, NG2, N*, X]
+  NhisD: [NhisD, NG2, N*, X]
+  NhisDDepro: [NhisDDepro, NG2, N*, X]
+  NhisE: [NhisE, NG2, N*, X]
+  NhisEDepro: [NhisEDepro, NG2, N*, X]
+  Narg: [Narg, NG2, N*, X]
+  NtrR: [NtrR, NG2, N*, X]
+  NH2O: [NH2O, NG2, N*, X]
+  OCbb: [OCbb, Oad, O*, X]
+  OH: [OH, Ohx, O*, X]
+  OHphenol: [OHphenol, Ohx, O*, X]
+  ONH2: [ONH2, Oad, O*, X]
+  OOC: [OOC, Oat, O*, X]
+  S: [S, SG3, S*, X]
+  SH1: [SH1, Sth, S*, X]
+  # nucleic acid
+  Pdna: [Pdna, PG3, P*, X]
+  OOP: [OOP, Oat, O*, X]
+  Oet2: [Oet2, OG3, O*, X]
+  Oet3: [Oet3, OG3, O*, X]
+  Nglyc: [Nglyc, NG2, N*, X]
+  Nbacc: [Nbacc, NG2, N*, X]
+  Nbdon: [Nbdon, NG2, N*, X]
+  Nbamn: [Nbamn, NG2, N*, X]
+  Obacc: [Obacc, Oad, O*, X]
+  ObaccG: [ObaccG, Oad, O*, X]
+  # hydrogen
+  HNbb: [HNbb, HN, H*, X]
+  Hpol: [Hpol, H*, X]
+  Hapo: [Hapo, H*, X]
+  Haro: [Haro, H*, X]
+
 torsions:
   - atoms: [C*, CS, CS, OG3]
     bond: "@"

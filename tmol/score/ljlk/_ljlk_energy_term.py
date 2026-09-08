@@ -30,6 +30,7 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         self._max_dis = float(param_db.scoring.ljlk.global_parameters.max_dis)
         self.tile_size = LJLKEnergyTerm.tile_size
         self.soft_repulsive = False
+        self.rosetta_typed = param_db.scoring.genbonded.rosetta_typed
 
     @classmethod
     def class_name(cls):
@@ -64,7 +65,7 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         if hasattr(packed_block_types, "ljlk_heavy_atoms_in_tile"):
             assert hasattr(packed_block_types, "ljlk_n_heavy_atoms_in_tile")
             assert hasattr(packed_block_types, "ljlk_bond_separation")
-            assert hasattr(packed_block_types, "ljlk_is_ligand_fragment")
+            assert hasattr(packed_block_types, "ljlk_all_atoms_ligand_typed")
             return
         max_n_tiles = (packed_block_types.max_n_atoms - 1) // self.tile_size + 1
         heavy_atoms_in_tile = torch.full(
@@ -92,22 +93,33 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         setattr(packed_block_types, "ljlk_heavy_atoms_in_tile", heavy_atoms_in_tile)
         setattr(packed_block_types, "ljlk_n_heavy_atoms_in_tile", n_heavy_ats_in_tile)
 
-        # Ligands (non-polymer) use CP_CROSSOVER_3FULL: 1-4 pairs get full
-        # weight (1.0). Build a modified bond_separation where path_dist=4 is
-        # encoded as 5 for non-polymer block types so connectivity_weight
-        # returns 1.0. Keep bond_separation unchanged for hbond (binary excl.).
+        # A pair of ligand-typed atoms uses CP_CROSSOVER_3FULL: 1-4 pairs get
+        # full weight (1.0), encoded by rewriting path_dist 3 and 4 to 5 so
+        # connectivity_weight returns 1.0. The convention follows the atoms,
+        # not the residue: a noncanonical whose sidechain is ligand-typed is
+        # still a polymer. Keep bond_separation unchanged for hbond, which
+        # excludes on a binary rule.
+        rosetta_typed = self.rosetta_typed
         ljlk_bond_separation = packed_block_types.bond_separation.clone()
         for i, bt in enumerate(packed_block_types.active_block_types):
-            if not bt.properties.polymer.is_polymer:
-                n = packed_block_types.n_atoms[i]
-                slab = ljlk_bond_separation[i, :n, :n]
-                slab[(slab == 3) | (slab == 4)] = 5
+            n = packed_block_types.n_atoms[i]
+            ligand = torch.tensor(
+                [a.atom_type not in rosetta_typed for a in bt.atoms],
+                dtype=torch.bool,
+                device=ljlk_bond_separation.device,
+            )
+            both = ligand.unsqueeze(1) & ligand.unsqueeze(0)
+            slab = ljlk_bond_separation[i, :n, :n]
+            slab[both[:n, :n] & ((slab == 3) | (slab == 4))] = 5
         setattr(packed_block_types, "ljlk_bond_separation", ljlk_bond_separation)
         setattr(
             packed_block_types,
-            "ljlk_is_ligand_fragment",
+            "ljlk_all_atoms_ligand_typed",
             torch.tensor(
-                [bt.is_ligand_fragment for bt in packed_block_types.active_block_types],
+                [
+                    all(a.atom_type not in self.rosetta_typed for a in bt.atoms)
+                    for bt in packed_block_types.active_block_types
+                ],
                 dtype=torch.int32,
                 device=self.device,
             ),
@@ -173,7 +185,7 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
             pose_stack.packed_block_types.n_conn,
             pose_stack.packed_block_types.conn_atom,
             pose_stack.packed_block_types.ljlk_bond_separation,
-            pose_stack.packed_block_types.ljlk_is_ligand_fragment,
+            pose_stack.packed_block_types.ljlk_all_atoms_ligand_typed,
             type_params,
             global_params,
             # max_dis as host scalar for detect-neighbors call

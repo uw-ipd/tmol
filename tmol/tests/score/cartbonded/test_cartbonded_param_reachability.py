@@ -33,11 +33,20 @@ def _rows(cartbonded):
                 yield res, group, atoms
 
 
+# groups the kernel resolves by joining one residue's path to the partner's
+PATH_JOIN_GROUPS = {"length_parameters", "angle_parameters", "torsion_parameters"}
+
+
 def test_cross_marked_atoms_form_a_trailing_run():
-    """The kernel joins one residue's path to the partner's, so the atoms across a
-    connection are contiguous at one end."""
+    """A path-join row's atoms across a connection are contiguous at one end.
+
+    Impropers are exempt: their four atoms are not a bonded path, so the atom
+    across the connection sits wherever the geometry puts it.
+    """
     cartbonded = ParameterDatabase.get_default().scoring.cartbonded
     for res, group, atoms in _rows(cartbonded):
+        if group not in PATH_JOIN_GROUPS:
+            continue
         marked = [a.startswith(CROSS_RES_PREFIX) for a in atoms]
         if not any(marked):
             continue
@@ -45,15 +54,39 @@ def test_cross_marked_atoms_form_a_trailing_run():
         assert all(marked[first:]), f"{res} {group} {atoms}: cross atoms not trailing"
 
 
-def test_no_cross_marked_atoms_in_improper_params():
-    """Impropers are intra-residue; a cross marker there would never match."""
+def test_no_cross_marked_atoms_in_torsion_params():
+    """A connection-spanning torsion has nothing to match it.
+
+    The kernel joins one residue's path to the partner's only far enough to
+    reach a length or an angle, since no torsion row spans a connection. A row
+    added here would score zero in silence rather than fail.
+    """
     cartbonded = ParameterDatabase.get_default().scoring.cartbonded
     for res, group, atoms in _rows(cartbonded):
-        if group != "improper_parameters":
+        if group != "torsion_parameters":
             continue
         assert not any(
             a.startswith(CROSS_RES_PREFIX) for a in atoms
-        ), f"{res} {group} {atoms}"
+        ), f"{res} {group} {atoms}: no path join reaches four atoms"
+
+
+def test_cross_marked_impropers_name_their_centre_locally():
+    """A cross-marked improper is centred on one residue's connection atom.
+
+    The enumeration takes that atom and two local neighbours and reaches across
+    for the third, so the centre -- atm3, by the improper convention -- must be
+    the unmarked side and exactly one atom may carry the marker. Marking the
+    centre instead leaves the row unreachable, which scores zero in silence.
+    """
+    cartbonded = ParameterDatabase.get_default().scoring.cartbonded
+    for res, params in cartbonded.residue_params.items():
+        for row in params.improper_parameters:
+            atoms = [row.atm1, row.atm2, row.atm3, row.atm4]
+            marked = [a.startswith(CROSS_RES_PREFIX) for a in atoms]
+            if not any(marked):
+                continue
+            assert sum(marked) == 1, f"{res} improper {atoms}: expected one cross atom"
+            assert not marked[2], f"{res} improper {atoms}: centre must be local"
 
 
 def test_wildcard_intra_rows_are_realizable(default_database):

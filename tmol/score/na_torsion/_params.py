@@ -104,6 +104,24 @@ def block_type_params(block_type, element_for_atom_type):
     return dict(base=base, uaids=uaids, ring=ring, down=down)
 
 
+def scored_torsion_bonds(block_type, element_for_atom_type):
+    """Central bonds, as index pairs, of the torsions this term scores.
+
+    Empty for anything the term does not handle. Another term that would
+    otherwise constrain the same rotation reads this to stay off it.
+    """
+    params = block_type_params(block_type, element_for_atom_type)
+    if params["base"] < 0:
+        return frozenset()
+    bonds = set()
+    for torsion in params["uaids"]:
+        # a uaid names an atom of this block only when its atom index is set
+        second, third = int(torsion[1][0]), int(torsion[2][0])
+        if second >= 0 and third >= 0:
+            bonds.add(frozenset((second, third)))
+    return frozenset(bonds)
+
+
 def _circular_mean(degrees):
     """Mean of angles, over the leading axis, in degrees.
 

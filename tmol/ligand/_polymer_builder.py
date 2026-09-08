@@ -23,6 +23,10 @@ from tmol.database.chemical import (
 from tmol.ligand._polymer_profile import PolymerProfile
 from tmol.ligand._residue_builder import _angle, _dihedral, _distance
 
+# non-canonicals with no acceptible sidechain mapping fall back to this AA
+#   for backbone potential mapping
+RAMA_FALLBACK = "ALA"
+
 
 def _adjacency(bonds):
     adj = {}
@@ -868,6 +872,11 @@ def to_polymer_residue_type(
         virtual=(),
     )
 
+    # map backbone preference to mapped sidecahin or fallback (ALA)
+    rama_reference = None
+    if profile.backbone_type == "alpha_aa":
+        rama_reference = dunbrack_reference or RAMA_FALLBACK
+
     return RawResidueType(
         name=restype.name,
         base_name=restype.base_name,
@@ -881,11 +890,10 @@ def to_polymer_residue_type(
         icoors=icoors,
         properties=properties,
         chi_samples=tuple(chi_samples),
-        # the atom a jump anchors on: the second mainchain atom for a backbone
-        #    that has one, the only atom for a cap that does not
         default_jump_connection_atom=profile.mainchain_atoms[
             1 if len(profile.mainchain_atoms) > 1 else 0
         ],
         hydrogens_regenerated=restype.hydrogens_regenerated,
         dunbrack_reference=dunbrack_reference,
+        rama_reference=rama_reference,
     )

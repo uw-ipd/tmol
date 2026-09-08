@@ -60,6 +60,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         self.improper_roots = find_improper_roots(param_db.scoring.cartbonded)
 
         self.cart_database = param_db.scoring.cartbonded
+        self.rosetta_typed = param_db.scoring.genbonded.rosetta_typed
         self.hash = self.cart_database.hash
         self.device = device
 
@@ -231,6 +232,19 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
     ):  # noqa: C901
         super(CartBondedEnergyTerm, self).setup_packed_block_types(packed_block_types)
 
+        if not hasattr(packed_block_types, "cartbonded_atom_is_rosetta"):
+            # A planarity centre the Rosetta terms type is theirs; one they do
+            # not is the generic term's, which carries its own improper for it.
+            rosetta_typed = self.rosetta_typed
+            bts = packed_block_types.active_block_types
+            max_atoms = max((len(bt.atoms) for bt in bts), default=1)
+            mask = numpy.zeros((len(bts), max(max_atoms, 1)), dtype=numpy.int32)
+            for i, bt in enumerate(bts):
+                for j, atom in enumerate(bt.atoms):
+                    mask[i, j] = atom.atom_type in rosetta_typed
+            packed_block_types.cartbonded_atom_is_rosetta = torch.tensor(
+                mask, dtype=torch.int32, device=self.device
+            )
         if not hasattr(packed_block_types, "cartbonded_is_fragment"):
             packed_block_types.cartbonded_is_fragment = torch.tensor(
                 [
@@ -380,6 +394,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             pbt.atom_paths_from_conn,
             pbt.atom_unique_ids,
             pbt.atom_wildcard_ids,
+            pbt.cartbonded_atom_is_rosetta,
             pbt.cartbonded_is_fragment,
             pbt.atom_cross_ids,
             pbt_cb_ann.cartbonded_params_hash_keys,

@@ -43,6 +43,8 @@ from tmol.score.common import (
     make_hashtable_keys_values,
     add_to_hashtable,
 )
+from tmol.score.na_torsion import scored_torsion_bonds
+from tmol.score.backbone_torsion import omega_connection
 
 # Maximum hierarchy depth for any atom type (concrete -> class -> X).
 MAX_HIER_DEPTH = 4
@@ -82,6 +84,9 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
         # regardless of which block types are later loaded.
         self._type_to_idx = self.gen_database.make_type_to_idx()
         self._all_type_names = self.gen_database.all_type_names()
+        self._element_for_atom_type = {
+            at.name: at.element for at in param_db.chemical.atom_types
+        }
 
     @classmethod
     def class_name(cls):
@@ -185,18 +190,32 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
           params        : numpy float32 array of shape (N_kept, 5):
                           columns [k1, k2, k3, k4, offset]
 
+        A torsion whose two central atoms are both Rosetta-typed belongs to the
+        Rosetta terms (rama, omega, dunbrack, cartbonded) and is skipped here, so
+        that every movable torsion is constrained exactly once.  Atom types do
+        not settle every case: na_torsion claims its torsions by name, and the
+        glycosidic bond of a modified nucleotide is mixed-typed, so the bonds it
+        scores are skipped too.
+
         Torsions with no matching database entry are dropped from the output.
         The central bond (j,k) bond type is looked up from block_type.bond_to_type
         and passed to find_torsion_params for bond-aware matching.
         """
         kept = []
         rows = []
+        rosetta_typed = self.gen_database.rosetta_typed
+        na_bonds = scored_torsion_bonds(block_type, self._element_for_atom_type)
 
         for i, j, k, l in torsions:
             t1 = self.get_atom_chem_type(block_type, i)
             t2 = self.get_atom_chem_type(block_type, j)
             t3 = self.get_atom_chem_type(block_type, k)
             t4 = self.get_atom_chem_type(block_type, l)
+
+            if t2 in rosetta_typed and t3 in rosetta_typed:
+                continue
+            if frozenset((int(j), int(k))) in na_bonds:
+                continue
 
             # Look up bond type and ring membership for the central bond (j,k).
             bond_type_int = block_type.bond_to_type.get(
@@ -236,6 +255,10 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
           params         : numpy float32 array of shape (N_kept, 2): [k, delta]
 
         Impropers with no matching database entry are dropped.
+
+        No Rosetta/ligand partition is applied: every improper entry is centred
+        on a concrete generic type, which no Rosetta type's hierarchy reaches, so
+        a Rosetta-centred improper can never match.
         """
         kept = []
         rows = []
@@ -401,6 +424,17 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
             n = h.shape[0]
             atom_hier[bt_idx, :n, :] = h
 
+        # Which atoms the Rosetta terms score directly. A torsion whose two
+        # central atoms are both of this kind belongs to them, so the kernel
+        # applies the same rule the intra-block path does.
+        rosetta_typed = self.gen_database.rosetta_typed
+        atom_is_rosetta = numpy.zeros(
+            (n_block_types, max(max_atoms, 1)), dtype=numpy.int32
+        )
+        for bt_idx, bt in enumerate(block_types):
+            for atom_idx, atom in enumerate(bt.atoms):
+                atom_is_rosetta[bt_idx, atom_idx] = atom.atom_type in rosetta_typed
+
         # ------------------------------------------------------------------
         # 3. Connection bond-type tensor.
         #
@@ -416,10 +450,18 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
         conn_bond_types = numpy.zeros(
             (n_block_types, max(max_n_conns, 1)), dtype=numpy.int32
         )
+        # backbone_torsion claims the torsion across one connection by name, and
+        # that bond can be mixed-typed, which atom types alone cannot detect.
+        conn_scored_elsewhere = numpy.zeros(
+            (n_block_types, max(max_n_conns, 1)), dtype=numpy.int32
+        )
         for bt_idx, bt in enumerate(block_types):
             n_conns = len(bt.connections)
             if n_conns > 0:
                 conn_bond_types[bt_idx, :n_conns] = bt.connection_bond_types
+            omega_conn = omega_connection(bt)
+            if 0 <= omega_conn < n_conns:
+                conn_scored_elsewhere[bt_idx, omega_conn] = 1
 
         source_atom_index = numpy.full(
             (n_block_types, max(max_atoms, 1)), -1, dtype=numpy.int32
@@ -551,8 +593,18 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
         )
         setattr(
             packed_block_types,
+            "genbonded_atom_is_rosetta",
+            to_dev(atom_is_rosetta),
+        )
+        setattr(
+            packed_block_types,
             "genbonded_connection_bond_types",
             to_dev(conn_bond_types),
+        )
+        setattr(
+            packed_block_types,
+            "genbonded_conn_scored_elsewhere",
+            to_dev(conn_scored_elsewhere),
         )
         setattr(
             packed_block_types,
@@ -612,7 +664,9 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
             pbt.genbonded_intra_subgraph_offsets,
             pbt.genbonded_intra_params,
             pbt.genbonded_atom_type_hierarchy,
+            pbt.genbonded_atom_is_rosetta,
             pbt.genbonded_connection_bond_types,
+            pbt.genbonded_conn_scored_elsewhere,
             pbt.genbonded_source_atom_index,
             pbt.genbonded_source_block_type_index,
             pbt.genbonded_inter_torsion_hash_keys,

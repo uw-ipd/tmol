@@ -1911,14 +1911,12 @@ residue_params:
     - {atm1: O5', atm2: P, atm3: +O3', x0: 1.809906, K: 80}
     - {atm1: C3', atm2: O3', atm3: HO3', x0: 1.911485, K: 80}
     - {atm1: C5', atm2: O5', atm3: HO5', x0: 1.911485, K: 80}
-    torsion_parameters:
-    - {atm1: CA, atm2: C, atm3: +N, atm4: +H, k2: 10.458, phi2: 9.424777961589793}
-    - {atm1: CA, atm2: N, atm3: +C, atm4: +O, k2: 9.667, phi2: 3.141592653589793}
-    - {atm1: CD, atm2: C, atm3: +N, atm4: +CA, k2: 11.534, phi2: 3.141592653589793}
-    - {atm1: O, atm2: C, atm3: +N, atm4: +H, k2: 10.992, phi2: 9.424777961589793}
-    - {atm1: O, atm2: C, atm3: +N, atm4: +CN, k2: 20.0, phi2: 9.424777961589793}
-    - {atm1: CA, atm2: C, atm3: +N, atm4: +CN, k2: 20.0, phi2: 9.424777961589793}
-    improper_parameters: []
+    torsion_parameters: []
+    improper_parameters:
+    - {atm1: CA, atm2: +C, atm3: N, atm4: H, k2: 20.0, phi2: 3.141592653589793}
+    - {atm1: CD, atm2: +C, atm3: N, atm4: CA, k2: 20.0, phi2: 3.141592653589793}
+    - {atm1: CA, atm2: +C, atm3: N, atm4: CN, k2: 20.0, phi2: 3.141592653589793}
+    - {atm1: CA, atm2: +N, atm3: C, atm4: O, k2: 20.0, phi2: 3.141592653589793}
     hxltorsion_parameters: []
   RA:
     length_parameters:

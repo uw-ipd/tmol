@@ -53,7 +53,7 @@ class ElecPoseScoreOp
       Tensor block_type_inter_repr_path_distance,
 
       Tensor block_type_intra_repr_path_distance,
-      Tensor block_type_is_ligand_fragment,
+      Tensor block_type_all_atoms_ligand_typed,
       Tensor global_params,
       double max_dis,  // host scalar; needed by detect-neighbors call
       bool output_block_pair_energies) {
@@ -96,7 +96,7 @@ class ElecPoseScoreOp
                   TCAST(block_type_inter_repr_path_distance),
 
                   TCAST(block_type_intra_repr_path_distance),
-                  TCAST(block_type_is_ligand_fragment),
+                  TCAST(block_type_all_atoms_ligand_typed),
                   TCAST(global_params),
                   (Real)max_dis,
                   output_block_pair_energies,
@@ -136,7 +136,7 @@ class ElecPoseScoreOp
            block_type_inter_repr_path_distance,
 
            block_type_intra_repr_path_distance,
-           block_type_is_ligand_fragment,
+           block_type_all_atoms_ligand_typed,
            global_params,
            block_neighbors});
     } else {
@@ -201,7 +201,7 @@ class ElecPoseScoreOp
       auto block_type_inter_repr_path_distance = saved[i++];
 
       auto block_type_intra_repr_path_distance = saved[i++];
-      auto block_type_is_ligand_fragment = saved[i++];
+      auto block_type_all_atoms_ligand_typed = saved[i++];
       auto global_params = saved[i++];
       auto block_neighbors = saved[i++];
 
@@ -246,7 +246,7 @@ class ElecPoseScoreOp
                     TCAST(block_type_inter_repr_path_distance),
 
                     TCAST(block_type_intra_repr_path_distance),
-                    TCAST(block_type_is_ligand_fragment),
+                    TCAST(block_type_all_atoms_ligand_typed),
                     TCAST(global_params),
                     TCAST(block_neighbors),
                     TCAST(dTdV));
@@ -303,7 +303,7 @@ class ElecRotamerScoreOp
       Tensor block_type_inter_repr_path_distance,
 
       Tensor block_type_intra_repr_path_distance,
-      Tensor block_type_is_ligand_fragment,
+      Tensor block_type_all_atoms_ligand_typed,
       Tensor global_params,
       double max_dis,  // host scalar; needed by detect-neighbors call
       bool output_block_pair_energies) {
@@ -347,7 +347,7 @@ class ElecRotamerScoreOp
                   TCAST(block_type_inter_repr_path_distance),
 
                   TCAST(block_type_intra_repr_path_distance),
-                  TCAST(block_type_is_ligand_fragment),
+                  TCAST(block_type_all_atoms_ligand_typed),
                   TCAST(global_params),
                   (Real)max_dis,
                   output_block_pair_energies,
@@ -387,7 +387,7 @@ class ElecRotamerScoreOp
            block_type_inter_repr_path_distance,
 
            block_type_intra_repr_path_distance,
-           block_type_is_ligand_fragment,
+           block_type_all_atoms_ligand_typed,
            global_params,
            dispatch_inds});
     } else {
@@ -451,7 +451,7 @@ class ElecRotamerScoreOp
       auto block_type_inter_repr_path_distance = saved[i++];
 
       auto block_type_intra_repr_path_distance = saved[i++];
-      auto block_type_is_ligand_fragment = saved[i++];
+      auto block_type_all_atoms_ligand_typed = saved[i++];
       auto global_params = saved[i++];
       auto dispatch_inds = saved[i++];
 
@@ -496,7 +496,7 @@ class ElecRotamerScoreOp
                     TCAST(block_type_inter_repr_path_distance),
 
                     TCAST(block_type_intra_repr_path_distance),
-                    TCAST(block_type_is_ligand_fragment),
+                    TCAST(block_type_all_atoms_ligand_typed),
                     TCAST(global_params),
                     TCAST(dispatch_inds),
                     TCAST(dTdV));
@@ -549,7 +549,7 @@ std::vector<Tensor> elec_pose_scores_op(
     Tensor block_type_inter_repr_path_distance,
 
     Tensor block_type_intra_repr_path_distance,
-    Tensor block_type_is_ligand_fragment,
+    Tensor block_type_all_atoms_ligand_typed,
     Tensor global_params,
     double max_dis,
     bool output_block_pair_energies) {
@@ -578,7 +578,7 @@ std::vector<Tensor> elec_pose_scores_op(
       block_type_inter_repr_path_distance,
 
       block_type_intra_repr_path_distance,
-      block_type_is_ligand_fragment,
+      block_type_all_atoms_ligand_typed,
       global_params,
       max_dis,
       output_block_pair_energies);
@@ -611,7 +611,7 @@ std::vector<Tensor> elec_rotamer_scores_op(
     Tensor block_type_inter_repr_path_distance,
 
     Tensor block_type_intra_repr_path_distance,
-    Tensor block_type_is_ligand_fragment,
+    Tensor block_type_all_atoms_ligand_typed,
     Tensor global_params,
     double max_dis,
     bool output_block_pair_energies) {
@@ -640,7 +640,7 @@ std::vector<Tensor> elec_rotamer_scores_op(
       block_type_inter_repr_path_distance,
 
       block_type_intra_repr_path_distance,
-      block_type_is_ligand_fragment,
+      block_type_all_atoms_ligand_typed,
       global_params,
       max_dis,
       output_block_pair_energies);

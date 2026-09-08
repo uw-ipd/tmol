@@ -23,6 +23,7 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         super(ElecEnergyTerm, self).__init__(param_db=param_db, device=device)
         self.param_resolver = param_resolver
         self.global_params = self.param_resolver.global_params
+        self.rosetta_typed = param_db.scoring.genbonded.rosetta_typed
 
     @classmethod
     def class_name(cls):
@@ -89,7 +90,7 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         if hasattr(packed_block_types, "elec_inter_repr_path_distance"):
             assert hasattr(packed_block_types, "elec_intra_repr_path_distance")
             assert hasattr(packed_block_types, "elec_partial_charge")
-            assert hasattr(packed_block_types, "elec_is_ligand_fragment")
+            assert hasattr(packed_block_types, "elec_all_atoms_ligand_typed")
             return
 
         def _ti(arr):
@@ -125,9 +126,12 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         setattr(packed_block_types, "elec_partial_charge", elec_partial_charge)
         setattr(
             packed_block_types,
-            "elec_is_ligand_fragment",
+            "elec_all_atoms_ligand_typed",
             torch.tensor(
-                [bt.is_ligand_fragment for bt in packed_block_types.active_block_types],
+                [
+                    all(a.atom_type not in self.rosetta_typed for a in bt.atoms)
+                    for bt in packed_block_types.active_block_types
+                ],
                 dtype=torch.int32,
                 device=self.device,
             ),
@@ -181,7 +185,7 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
             pose_stack.packed_block_types.conn_atom,
             pose_stack.packed_block_types.elec_inter_repr_path_distance,
             pose_stack.packed_block_types.elec_intra_repr_path_distance,
-            pose_stack.packed_block_types.elec_is_ligand_fragment,
+            pose_stack.packed_block_types.elec_all_atoms_ligand_typed,
             global_params,
             # elec_max_dis as host scalar for detect-neighbors call
             float(self.global_params.elec_max_dis),

@@ -292,7 +292,9 @@ TMOL_DEVICE_FUNC int inter_block_torsion_parameter(
     Int coord_offset1,
     Int coord_offset2,
     Int bond_type,
+    bool conn_claimed,
     TView<Vec<Int, 4>, 2, D> atom_type_hierarchy,
+    TView<Int, 2, D> atom_is_rosetta,
     TView<Int, 2, D> source_atom_index,
     TView<Int, 1, D> source_block_type_index,
     TView<Vec<Int, 5>, 1, D> intra_subgraphs,
@@ -331,6 +333,19 @@ TMOL_DEVICE_FUNC int inter_block_torsion_parameter(
   }
   for (int pos = 0; pos < 4; ++pos) {
     local_block_types[pos] = pos < len_a ? block_type1 : block_type2;
+  }
+
+  // The Rosetta terms own a torsion whose two central atoms they both type.
+  // Positions 1 and 2 may be swapped below, but only with each other, so the
+  // test is the same before and after.
+  if (atom_is_rosetta[local_block_types[1]][local_indices[1]]
+      && atom_is_rosetta[local_block_types[2]][local_indices[2]]) {
+    return -1;
+  }
+  // Only the 2+2 split turns about the connection itself, which is the bond
+  // backbone_torsion claims by name where it scores an omega.
+  if (conn_claimed && len_a == 2 && len_b == 2) {
+    return -1;
   }
 
   bool const same_source_fragments = same_source_ligand_fragments<Int, D>(
@@ -417,7 +432,9 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::forward(
     TView<Int, 1, D> gen_intra_subgraph_offsets,
     TView<Vec<Real, 5>, 1, D> gen_intra_params,
     TView<Vec<Int, 4>, 2, D> gen_atom_type_hierarchy,
+    TView<Int, 2, D> gen_atom_is_rosetta,
     TView<Int, 2, D> gen_connection_bond_types,
+    TView<Int, 2, D> gen_conn_scored_elsewhere,
     TView<Int, 2, D> gen_source_atom_index,
     TView<Int, 1, D> gen_source_block_type_index,
     TView<Vec<Int, 6>, 1, D> gen_inter_torsion_hash_keys,
@@ -578,6 +595,9 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::forward(
       // Bond type of the central inter-block bond (from block1's connection).
       Int const bond_type_int =
           gen_connection_bond_types[block_type1][conn_ind1];
+      bool const conn_claimed =
+          gen_conn_scored_elsewhere[block_type1][conn_ind1]
+          || gen_conn_scored_elsewhere[block_type2][conn_ind2];
 
       auto eval_inter_block = ([&] TMOL_DEVICE_FUNC(int tid) {
         // atom_paths_from_conn convention (same as cartbonded):
@@ -614,7 +634,9 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::forward(
               rot_coord_offset1,
               rot_coord_offset2,
               bond_type_int,
+              conn_claimed,
               gen_atom_type_hierarchy,
+              gen_atom_is_rosetta,
               gen_source_atom_index,
               gen_source_block_type_index,
               gen_intra_subgraphs,
@@ -725,7 +747,9 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::backward(
     TView<Int, 1, D> gen_intra_subgraph_offsets,
     TView<Vec<Real, 5>, 1, D> gen_intra_params,
     TView<Vec<Int, 4>, 2, D> gen_atom_type_hierarchy,
+    TView<Int, 2, D> gen_atom_is_rosetta,
     TView<Int, 2, D> gen_connection_bond_types,
+    TView<Int, 2, D> gen_conn_scored_elsewhere,
     TView<Int, 2, D> gen_source_atom_index,
     TView<Int, 1, D> gen_source_block_type_index,
     TView<Vec<Int, 6>, 1, D> gen_inter_torsion_hash_keys,
@@ -857,6 +881,9 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::backward(
 
       Int const bond_type_int =
           gen_connection_bond_types[block_type1][conn_ind1];
+      bool const conn_claimed =
+          gen_conn_scored_elsewhere[block_type1][conn_ind1]
+          || gen_conn_scored_elsewhere[block_type2][conn_ind2];
 
       auto eval_inter_block = ([&] TMOL_DEVICE_FUNC(int tid) {
         // Mirrors forward eval_inter_block exactly (same path convention).
@@ -884,7 +911,9 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::backward(
               rot_coord_offset1,
               rot_coord_offset2,
               bond_type_int,
+              conn_claimed,
               gen_atom_type_hierarchy,
+              gen_atom_is_rosetta,
               gen_source_atom_index,
               gen_source_block_type_index,
               gen_intra_subgraphs,
@@ -983,7 +1012,9 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
     TView<Int, 1, D> gen_intra_subgraph_offsets,
     TView<Vec<Real, 5>, 1, D> gen_intra_params,
     TView<Vec<Int, 4>, 2, D> gen_atom_type_hierarchy,
+    TView<Int, 2, D> gen_atom_is_rosetta,
     TView<Int, 2, D> gen_connection_bond_types,
+    TView<Int, 2, D> gen_conn_scored_elsewhere,
     TView<Int, 2, D> gen_source_atom_index,
     TView<Int, 1, D> gen_source_block_type_index,
     TView<Vec<Int, 6>, 1, D> gen_inter_torsion_hash_keys,
@@ -1186,6 +1217,9 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
       int const rot_coord_offset2 = rot_coord_offset[rot_ind2];
       Int const bond_type_int =
           gen_connection_bond_types[block_type1][conn_ind1];
+      bool const conn_claimed =
+          gen_conn_scored_elsewhere[block_type1][conn_ind1]
+          || gen_conn_scored_elsewhere[block_type2][conn_ind2];
 
       auto eval_inter = ([&] TMOL_DEVICE_FUNC(int tid) {
         int const n_pairs = MAX_PATHS_FROM_CONN * MAX_PATHS_FROM_CONN;
@@ -1208,7 +1242,9 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
               rot_coord_offset1,
               rot_coord_offset2,
               bond_type_int,
+              conn_claimed,
               gen_atom_type_hierarchy,
+              gen_atom_is_rosetta,
               gen_source_atom_index,
               gen_source_block_type_index,
               gen_intra_subgraphs,
@@ -1311,7 +1347,9 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::backward(
     TView<Int, 1, D> gen_intra_subgraph_offsets,
     TView<Vec<Real, 5>, 1, D> gen_intra_params,
     TView<Vec<Int, 4>, 2, D> gen_atom_type_hierarchy,
+    TView<Int, 2, D> gen_atom_is_rosetta,
     TView<Int, 2, D> gen_connection_bond_types,
+    TView<Int, 2, D> gen_conn_scored_elsewhere,
     TView<Int, 2, D> gen_source_atom_index,
     TView<Int, 1, D> gen_source_block_type_index,
     TView<Vec<Int, 6>, 1, D> gen_inter_torsion_hash_keys,
@@ -1420,6 +1458,9 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::backward(
       int const rot_coord_offset2 = rot_coord_offset[rot_ind2];
       Int const bond_type_int =
           gen_connection_bond_types[block_type1][conn_ind1];
+      bool const conn_claimed =
+          gen_conn_scored_elsewhere[block_type1][conn_ind1]
+          || gen_conn_scored_elsewhere[block_type2][conn_ind2];
 
       auto eval_inter = ([&] TMOL_DEVICE_FUNC(int tid) {
         int const n_pairs = MAX_PATHS_FROM_CONN * MAX_PATHS_FROM_CONN;
@@ -1442,7 +1483,9 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::backward(
               rot_coord_offset1,
               rot_coord_offset2,
               bond_type_int,
+              conn_claimed,
               gen_atom_type_hierarchy,
+              gen_atom_is_rosetta,
               gen_source_atom_index,
               gen_source_block_type_index,
               gen_intra_subgraphs,

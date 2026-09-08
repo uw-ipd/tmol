@@ -2,7 +2,7 @@ import attr
 from tmol.database._yaml import safe_load
 
 from itertools import permutations
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, FrozenSet, List, Optional, Tuple
 
 # ---------------------------------------------------------------------------
 # Bond-type bin constants (mirror Rosetta's bin_from_bond)
@@ -94,6 +94,11 @@ class GenBondedDatabase:
                       types to try when looking up a parameter entry, from most
                       specific to most generic.  e.g. {"CS": ["CS", "C*", "X"]}
 
+    rosetta_typed  -- the atom types the Rosetta terms score directly.  Their
+                      hierarchies exist only so a dihedral that straddles the
+                      boundary can be looked up; a dihedral whose two central
+                      atoms are both of this kind is left to those terms.
+
     torsions       -- ordered list of torsion entries (most-specific first so
                       that a linear scan finds the best match quickly).
 
@@ -111,6 +116,7 @@ class GenBondedDatabase:
     """
 
     atom_hierarchy: Dict[str, List[str]]
+    rosetta_typed: FrozenSet[str]
     torsions: Tuple[GenBondedTorsionEntry, ...]
     impropers: Tuple[GenBondedImproperEntry, ...]
     coverage: Dict[str, int]
@@ -161,10 +167,12 @@ class GenBondedDatabase:
 
         # --- atom hierarchy -------------------------------------------
         atom_hierarchy: Dict[str, List[str]] = {}
-        for atom_type, fallbacks in raw.get("atoms", {}).items():
-            # BOND / ANGLE sentinel entries have empty lists; skip them
-            if fallbacks:
-                atom_hierarchy[atom_type] = list(fallbacks)
+        for section in ("atoms", "rosetta_atoms"):
+            for atom_type, fallbacks in raw.get(section, {}).items():
+                # BOND / ANGLE sentinel entries have empty lists; skip them
+                if fallbacks:
+                    atom_hierarchy[atom_type] = list(fallbacks)
+        rosetta_typed = frozenset(raw.get("rosetta_atoms", {}))
 
         # --- coverage map (Rosetta: indices_i.size() per atom type) ---
         # For each group/wildcard type string, count how many concrete types
@@ -216,6 +224,7 @@ class GenBondedDatabase:
 
         return cls(
             atom_hierarchy=atom_hierarchy,
+            rosetta_typed=rosetta_typed,
             torsions=tuple(torsion_list),
             impropers=tuple(impropers_list),
             coverage=coverage,
