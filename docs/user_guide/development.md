@@ -87,6 +87,10 @@ Environment variables:
 | `TMOL_JIT_FALLBACK=1` | Try AOT first, then JIT if AOT is unavailable. |
 
 Use JIT mode while editing kernels. Use AOT mode for normal installed packages.
+On Linux, the JIT loader detects PyTorch's OpenMP CPU backend and propagates
+the corresponding compiler and linker flags, so `at::parallel_for` has the
+same thread behavior as the CMake-built extension. `OMP_NUM_THREADS` and
+`torch.set_num_threads()` therefore apply consistently in both modes.
 
 ## Tests
 

@@ -137,6 +137,15 @@ def test_fused_ljlk_elec_preserves_term_lanes_weights_and_gradients(
     torch.testing.assert_close(weighted_lanes, fused_lanes.detach() * fused.weights)
     torch.testing.assert_close(fused(pose.coords), weighted_lanes.sum(dim=0))
 
+    # Compact weighted fusion intentionally has no weight backward. If callers
+    # make the score-function weights trainable, retain the canonical lanes so
+    # PyTorch can differentiate the ordinary elementwise weighting operation.
+    fused.weights.requires_grad_(True)
+    fused(pose.coords.detach()).sum().backward()
+    assert fused.weights.grad is not None
+    assert torch.isfinite(fused.weights.grad).all()
+    assert torch.count_nonzero(fused.weights.grad[:4]) != 0
+
 
 def test_fused_ljlk_elec_weighted_gradient_finite_difference(
     ubq_pdb, default_database, torch_device

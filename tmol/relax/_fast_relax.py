@@ -244,8 +244,10 @@ def fast_relax(  # noqa: C901
             move map, and verbosity. Defaults to Cartesian minimization.
         cuda_graph: Capture the default Cartesian minimizer's repeated CUDA
             scoring path. By default, enable it automatically for CUDA poses
-            containing DNA or RNA, where launch overhead dominates. Pass ``False``
-            to disable it. It cannot be combined with a custom ``min_fn``.
+            containing DNA or RNA, where replay savings exceed capture setup.
+            Pass ``True`` for repeated protein workloads where steady-state
+            throughput matters more than first-call latency, or ``False`` to
+            disable it. It cannot be combined with a custom ``min_fn``.
         verbose: Print timing information for each step.
 
     Returns:

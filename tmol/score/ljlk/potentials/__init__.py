@@ -7,4 +7,5 @@ from ._compiled import (  # noqa: F401
     weighted_fused_score_sum,
     ljlk_pose_scores,
     ljlk_rotamer_scores,
+    ljlk_elec_weighted_rotamer_scores,
 )

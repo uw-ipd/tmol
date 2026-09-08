@@ -449,7 +449,7 @@ template <tmol::Device D, class IG, int ChunkSize>
 struct Annealer {
   static auto run_simulated_annealing(
       ContextManager& mgr, IG ig, at::CUDAGeneratorImpl* gen)
-      -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D> > {
+      -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D>> {
     int const n_poses = ig.n_poses_cpu();
     int const max_n_res = ig.max_n_res_cpu();
     int const max_n_rotamers = ig.max_n_rotamers_per_pose_cpu();
@@ -919,7 +919,7 @@ auto AnnealerDispatch<D>::forward(
     TView<int64_t, 1, D> chunk_offsets,
     TView<float, 1, D> energy1b,
     TView<float, 1, D> energy2b)
-    -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D> > {
+    -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D>> {
   int const n_poses_cpu = pose_n_res.size(0);
   int const max_n_res_cpu = chunk_offset_offsets.size(1);
 
@@ -983,11 +983,20 @@ auto AnnealerDispatch<D>::forward(
   auto gen = at::get_generator_or_default<at::CUDAGeneratorImpl>(
       std::nullopt, at::cuda::detail::getDefaultCUDAGenerator());
 
-  auto result = chunk_size == 16
-                    ? Annealer<D, InteractionGraph<D, int, float>, 16>::
-                          run_simulated_annealing(mgr, ig, gen)
-                    : Annealer<D, InteractionGraph<D, int, float>, 0>::
-                          run_simulated_annealing(mgr, ig, gen);
+  std::tuple<TPack<float, 2, D>, TPack<int, 3, D>> result;
+  switch (chunk_size) {
+    case 16:
+      result = Annealer<D, InteractionGraph<D, int, float>, 16>::
+          run_simulated_annealing(mgr, ig, gen);
+      break;
+    case 32:
+      result = Annealer<D, InteractionGraph<D, int, float>, 32>::
+          run_simulated_annealing(mgr, ig, gen);
+      break;
+    default:
+      result = Annealer<D, InteractionGraph<D, int, float>, 0>::
+          run_simulated_annealing(mgr, ig, gen);
+  }
 
   return result;
 }

@@ -144,8 +144,14 @@ kinematic `min_fn`.
 
 On CUDA, `fast_relax()` automatically uses graph replay for poses containing
 DNA or RNA, where repeated kernel-launch overhead is significant. Protein-only
-and protein–ligand poses remain eager. Pass `cuda_graph=True` or
-`cuda_graph=False` to override that choice; custom minimizers manage their own
-execution mode and cannot be combined with `cuda_graph=True`. Graph capture has
-a one-time startup cost, so explicitly disable it for a single latency-sensitive
-nucleic-acid relaxation that will not be repeated in the same process.
+and protein–ligand poses remain eager by default because graph capture does
+not consistently recover its setup cost in a single relaxation. For repeated
+protein workloads, pass `cuda_graph=True` to favor steady-state throughput;
+pass `cuda_graph=False` to force eager execution.
+
+Graph replay lowers latency by replacing the repeated Python, autograd, and
+CUDA-driver launch sequence; it does not make an individual scoring kernel
+execute faster. Capture also retains its working tensors, so benchmark memory
+as well as runtime for unusually large workloads. Custom minimizers manage
+their own execution mode and cannot be combined with `cuda_graph=True`. CPU
+execution remains eager.

@@ -15,4 +15,5 @@ _ops = load_ops(
 
 hbond_pose_scores = _ops.hbond_pose_scores
 hbond_rotamer_scores = _ops.hbond_rotamer_scores
+hbond_rotamer_scores_shared = _ops.hbond_rotamer_scores_shared
 gen_hbond_bases = _ops.gen_hbond_bases

@@ -114,6 +114,17 @@ _SMALL_PACKING_POSE_CHUNK = 25
 _DEFAULT_PACKING_POSE_CHUNK = 10
 _ESTIMATED_PACKING_BYTES_PER_BLOCK = 2 * 1024 * 1024
 _PACKING_FREE_MEMORY_FRACTION = 0.25
+_CPU_INTERACTION_GRAPH_CHUNK_SIZE = 16
+_CUDA_INTERACTION_GRAPH_CHUNK_SIZE = 32
+
+
+def _interaction_graph_chunk_size(device: torch.device) -> int:
+    """Select the benchmarked backend-specific sparse-table chunk width."""
+    return (
+        _CUDA_INTERACTION_GRAPH_CHUNK_SIZE
+        if device.type == "cuda"
+        else _CPU_INTERACTION_GRAPH_CHUNK_SIZE
+    )
 
 
 def _max_poses_per_packing_chunk(pose_stack: PoseStack) -> int:
@@ -288,7 +299,7 @@ def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=Fals
         synchronize_device(pose_stack.device)
     end_time2 = time.perf_counter()
 
-    chunk_size = 16
+    chunk_size = _interaction_graph_chunk_size(pose_stack.device)
 
     (
         max_n_bump_checked_rotamers_per_pose_tensor,

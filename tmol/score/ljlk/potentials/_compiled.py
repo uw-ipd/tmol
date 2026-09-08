@@ -20,4 +20,5 @@ ljlk_elec_pose_scores = _ops.ljlk_elec_pose_scores
 ljlk_elec_weighted_pose_scores = _ops.ljlk_elec_weighted_pose_scores
 weighted_fused_score_sum = _ops.weighted_fused_score_sum
 ljlk_rotamer_scores = _ops.ljlk_rotamer_scores
+ljlk_elec_weighted_rotamer_scores = _ops.ljlk_elec_weighted_rotamer_scores
 build_compact_block_neighbors = _ops.build_compact_block_neighbors

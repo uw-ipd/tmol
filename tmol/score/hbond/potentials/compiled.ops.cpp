@@ -426,7 +426,8 @@ class HBondRotamerScoresOp
       Tensor derived_coords,
       Tensor derived_atom_inds,
 
-      bool output_block_pair_energies
+      bool output_block_pair_energies,
+      Tensor shared_dispatch_indices
 
   ) {
     at::Tensor score;
@@ -493,7 +494,8 @@ class HBondRotamerScoresOp
                       TCAST(derived_atom_inds),
 
                       output_block_pair_energies,
-                      rot_coords.requires_grad());
+                      rot_coords.requires_grad(),
+                      TCAST(shared_dispatch_indices));
 
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;
@@ -714,7 +716,7 @@ class HBondRotamerScoresOp
             torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
             torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
             torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor()};
+            torch::Tensor(),  torch::Tensor()};
   }
 };
 
@@ -874,6 +876,8 @@ std::vector<Tensor> hbond_rotamer_scores_op(
     Tensor derived_atom_inds,
 
     bool output_block_pair_energies) {
+  Tensor empty_dispatch_indices = torch::empty(
+      {0, 0}, rot_coords.options().dtype(torch::kInt32).requires_grad(false));
   return HBondRotamerScoresOp<DispatchMethod>::apply(
       // common params
       rot_coords,
@@ -923,7 +927,99 @@ std::vector<Tensor> hbond_rotamer_scores_op(
       derived_coords,
       derived_atom_inds,
 
-      output_block_pair_energies);
+      output_block_pair_energies,
+      empty_dispatch_indices);
+}
+
+template <template <tmol::Device> class DispatchMethod>
+std::vector<Tensor> hbond_rotamer_scores_shared_op(
+    Tensor rot_coords,
+    Tensor rot_coord_offset,
+    Tensor pose_ind_for_atom,
+    Tensor first_rot_for_block,
+    Tensor first_rot_block_type,
+    Tensor block_ind_for_rot,
+    Tensor pose_ind_for_rot,
+    Tensor block_type_ind_for_rot,
+    Tensor n_rots_for_pose,
+    Tensor rot_offset_for_pose,
+    Tensor n_rots_for_block,
+    Tensor rot_offset_for_block,
+    int64_t max_n_rots_per_pose,
+    Tensor pose_stack_inter_residue_connections,
+    Tensor pose_stack_min_bond_separation,
+    Tensor pose_stack_inter_block_bondsep,
+    Tensor block_type_n_atoms,
+    Tensor block_type_n_interblock_bonds,
+    Tensor block_type_atoms_forming_chemical_bonds,
+    Tensor block_type_n_all_bonds,
+    Tensor block_type_all_bonds,
+    Tensor block_type_atom_all_bond_ranges,
+    Tensor block_type_path_distance,
+    Tensor block_type_tile_n_donH,
+    Tensor block_type_tile_n_acc,
+    Tensor block_type_tile_donH_inds,
+    Tensor block_type_tile_acc_inds,
+    Tensor block_type_tile_donor_type,
+    Tensor block_type_tile_acceptor_type,
+    Tensor block_type_tile_hybridization,
+    Tensor block_type_atom_is_hydrogen,
+    Tensor pair_params,
+    Tensor pair_polynomials,
+    Tensor global_params,
+    Tensor derived_coords,
+    Tensor derived_atom_inds,
+    bool output_block_pair_energies,
+    Tensor shared_dispatch_indices) {
+  TORCH_CHECK(
+      shared_dispatch_indices.dim() == 2
+          && shared_dispatch_indices.size(0) == 3,
+      "shared hydrogen-bond rotamer dispatch must have shape [3, nnz]");
+  TORCH_CHECK(
+      shared_dispatch_indices.scalar_type() == torch::kInt32,
+      "shared hydrogen-bond rotamer dispatch must have dtype int32");
+  TORCH_CHECK(
+      shared_dispatch_indices.device() == rot_coords.device(),
+      "shared hydrogen-bond rotamer dispatch must be on the coordinate device");
+  return HBondRotamerScoresOp<DispatchMethod>::apply(
+      rot_coords,
+      rot_coord_offset,
+      pose_ind_for_atom,
+      first_rot_for_block,
+      first_rot_block_type,
+      block_ind_for_rot,
+      pose_ind_for_rot,
+      block_type_ind_for_rot,
+      n_rots_for_pose,
+      rot_offset_for_pose,
+      n_rots_for_block,
+      rot_offset_for_block,
+      max_n_rots_per_pose,
+      pose_stack_inter_residue_connections,
+      pose_stack_min_bond_separation,
+      pose_stack_inter_block_bondsep,
+      block_type_n_atoms,
+      block_type_n_interblock_bonds,
+      block_type_atoms_forming_chemical_bonds,
+      block_type_n_all_bonds,
+      block_type_all_bonds,
+      block_type_atom_all_bond_ranges,
+      block_type_path_distance,
+      block_type_tile_n_donH,
+      block_type_tile_n_acc,
+      block_type_tile_donH_inds,
+      block_type_tile_acc_inds,
+      block_type_tile_donor_type,
+      block_type_tile_acceptor_type,
+      block_type_tile_hybridization,
+      block_type_atom_is_hydrogen,
+      pair_params,
+      pair_polynomials,
+      global_params,
+      derived_coords,
+      derived_atom_inds,
+      output_block_pair_energies,
+      shared_dispatch_indices);
 }
 
 // Plain (non-autograd) op that runs the hbond derived-atom (D / B / B0)
@@ -1000,6 +1096,9 @@ TORCH_LIBRARY(tmol_hbond, m) {
   m.def(
       "hbond_rotamer_scores",
       &hbond_rotamer_scores_op<common::DeviceOperations>);
+  m.def(
+      "hbond_rotamer_scores_shared",
+      &hbond_rotamer_scores_shared_op<common::DeviceOperations>);
   m.def("gen_hbond_bases", &gen_hbond_bases_op);
 }
 

@@ -1053,6 +1053,94 @@ std::vector<Tensor> ljlk_rotamer_scores_op(
       output_block_pair_energies);
 }
 
+template <template <tmol::Device> class DispatchMethod>
+std::vector<Tensor> ljlk_elec_weighted_rotamer_scores_op(
+    Tensor rot_coords,
+    Tensor rot_coord_offset,
+    Tensor pose_ind_for_atom,
+    Tensor first_rot_for_block,
+    Tensor first_rot_block_type,
+    Tensor block_ind_for_rot,
+    Tensor pose_ind_for_rot,
+    Tensor block_type_ind_for_rot,
+    Tensor n_rots_for_pose,
+    Tensor rot_offset_for_pose,
+    Tensor n_rots_for_block,
+    Tensor rot_offset_for_block,
+    int64_t max_n_rots_per_pose,
+    Tensor pose_stack_min_bond_separation,
+    Tensor pose_stack_inter_block_bondsep,
+    Tensor block_type_n_atoms,
+    Tensor block_type_atom_types,
+    Tensor block_type_n_interblock_bonds,
+    Tensor block_type_atoms_forming_chemical_bonds,
+    Tensor block_type_ljlk_path_distance,
+    Tensor block_type_is_ligand_fragment,
+    Tensor ljlk_type_params,
+    Tensor ljlk_global_params,
+    Tensor block_type_partial_charge,
+    Tensor block_type_elec_inter_repr_path_distance,
+    Tensor block_type_elec_intra_repr_path_distance,
+    Tensor elec_global_params,
+    double max_dis,
+    Tensor score_weights) {
+  TORCH_CHECK(
+      !torch::GradMode::is_enabled()
+          || (!rot_coords.requires_grad() && !score_weights.requires_grad()),
+      "weighted fused rotamer scoring is a packing-only forward path");
+  TORCH_CHECK(
+      score_weights.dim() == 1 && score_weights.size(0) == 4,
+      "weighted fused rotamer scoring requires four score weights");
+  TORCH_CHECK(
+      score_weights.scalar_type() == rot_coords.scalar_type()
+          && score_weights.device() == rot_coords.device(),
+      "fused rotamer weights must match coordinate dtype and device");
+
+  Tensor score, dispatch_indices;
+  using Int = int32_t;
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      rot_coords.options(), "ljlk_elec_weighted_rotamer_scores", ([&] {
+        using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
+        auto result =
+            LJLKAndElecPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::
+                forward_weighted_rotamers(
+                    mgr,
+                    TCAST(rot_coords),
+                    TCAST(rot_coord_offset),
+                    TCAST(pose_ind_for_atom),
+                    TCAST(first_rot_for_block),
+                    TCAST(first_rot_block_type),
+                    TCAST(block_ind_for_rot),
+                    TCAST(pose_ind_for_rot),
+                    TCAST(block_type_ind_for_rot),
+                    TCAST(n_rots_for_pose),
+                    TCAST(rot_offset_for_pose),
+                    TCAST(n_rots_for_block),
+                    TCAST(rot_offset_for_block),
+                    max_n_rots_per_pose,
+                    TCAST(pose_stack_min_bond_separation),
+                    TCAST(pose_stack_inter_block_bondsep),
+                    TCAST(block_type_n_atoms),
+                    TCAST(block_type_atom_types),
+                    TCAST(block_type_n_interblock_bonds),
+                    TCAST(block_type_atoms_forming_chemical_bonds),
+                    TCAST(block_type_ljlk_path_distance),
+                    TCAST(block_type_is_ligand_fragment),
+                    TCAST(ljlk_type_params),
+                    TCAST(ljlk_global_params),
+                    TCAST(block_type_partial_charge),
+                    TCAST(block_type_elec_inter_repr_path_distance),
+                    TCAST(block_type_elec_intra_repr_path_distance),
+                    TCAST(elec_global_params),
+                    (Real)max_dis,
+                    TCAST(score_weights));
+        score = std::get<0>(result).tensor.squeeze(1).squeeze(1);
+        dispatch_indices = std::get<2>(result).tensor;
+      }));
+  return {score, dispatch_indices};
+}
+
 // See https://stackoverflow.com/a/3221914
 TORCH_LIBRARY(tmol_ljlk, m) {
   m.def("ljlk_pose_scores", &ljlk_pose_scores_op<DeviceOperations>);
@@ -1064,6 +1152,9 @@ TORCH_LIBRARY(tmol_ljlk, m) {
       "weighted_fused_score_sum",
       &weighted_fused_score_sum_op<DeviceOperations>);
   m.def("ljlk_rotamer_scores", &ljlk_rotamer_scores_op<DeviceOperations>);
+  m.def(
+      "ljlk_elec_weighted_rotamer_scores",
+      &ljlk_elec_weighted_rotamer_scores_op<DeviceOperations>);
   m.def("build_compact_block_neighbors", &build_compact_block_neighbors_op);
 }
 
