@@ -591,11 +591,13 @@ TMOL_DEVICE_FUNC void lj_atom_derivs(
 
   Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
   Real3 coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
-
-  auto dist_r = distance<Real>::V_dV(coord1, coord2);
-  auto& dist = dist_r.V;
-  auto& ddist_dat1 = dist_r.dV_dA;
-  auto& ddist_dat2 = dist_r.dV_dB;
+  Real3 const delta = coord1 - coord2;
+  Real const dist2 = delta.squaredNorm();
+  Real const max_dis = score_dat.global_params.max_dis;
+  if (dist2 >= max_dis * max_dis) return;
+  Real const dist = std::sqrt(dist2);
+  Real3 ddist_dat1({0.0, 0.0, 0.0});
+  if (dist != 0) ddist_dat1 = delta / dist;
 
   auto lj = lj_score<Real>::V_dV(
       dist,
@@ -620,7 +622,7 @@ TMOL_DEVICE_FUNC void lj_atom_derivs(
     }
   }
 
-  Vec<Real, 3> dxyz_at2 = weighted_dV_ddist * ddist_dat2;
+  Vec<Real, 3> dxyz_at2 = -dxyz_at1;
   for (int j = 0; j < 3; ++j) {
     if (dxyz_at2[j] != 0) {
       accumulate<D, Real>::add(
@@ -736,11 +738,13 @@ TMOL_DEVICE_FUNC void lk_atom_derivs(
 
   Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
   Real3 coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
-
-  auto dist_r = distance<Real>::V_dV(coord1, coord2);
-  auto& dist = dist_r.V;
-  auto& ddist_dat1 = dist_r.dV_dA;
-  auto& ddist_dat2 = dist_r.dV_dB;
+  Real3 const delta = coord1 - coord2;
+  Real const dist2 = delta.squaredNorm();
+  Real const max_dis = score_dat.global_params.max_dis;
+  if (dist2 >= max_dis * max_dis) return;
+  Real const dist = std::sqrt(dist2);
+  Real3 ddist_dat1({0.0, 0.0, 0.0});
+  if (dist != 0) ddist_dat1 = delta / dist;
 
   auto lk = lk_isotropic_score<Real>::V_dV(
       dist,
@@ -763,7 +767,7 @@ TMOL_DEVICE_FUNC void lk_atom_derivs(
   }
 
   // all threads accumulate derivatives for atom 2 to global memory
-  Vec<Real, 3> lj_dxyz_at2 = dTdV_block * lk.dV_ddist * ddist_dat2;
+  Vec<Real, 3> lj_dxyz_at2 = -lj_dxyz_at1;
   for (int j = 0; j < 3; ++j) {
     if (lj_dxyz_at2[j] != 0) {
       accumulate<D, Real>::add(
