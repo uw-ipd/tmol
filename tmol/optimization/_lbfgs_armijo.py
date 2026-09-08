@@ -362,6 +362,7 @@ class LBFGS_Armijo(Optimizer):
             if state.get(name) is not None:
                 state[name].zero_()
         state["any_needs_reset"] = False
+        state["any_was_reset"] = False
         state["any_inactive"] = False
         self._last_loss_vec = None
         self._closure_fn = None
@@ -581,6 +582,7 @@ class LBFGS_Armijo(Optimizer):
             state["stalled"] = torch.zeros(self._n_segments, **flags)
             state["needs_reset"] = torch.zeros(self._n_segments, **flags)
             state["was_reset"] = torch.zeros(self._n_segments, **flags)
+            state["any_was_reset"] = False
 
         return SimpleNamespace(
             # config
@@ -617,6 +619,9 @@ class LBFGS_Armijo(Optimizer):
             # iteration. Reusing them avoids repeating identical device-to-host
             # checks at the start of the next iteration.
             any_needs_reset=state.get("any_needs_reset", False),
+            # Old state dictionaries lack this host mirror. Clear their mask
+            # once conservatively instead of trusting its contents.
+            any_was_reset=state.get("any_was_reset", "was_reset" in state),
             any_inactive=state.get("any_inactive", False),
             gtd_seg=None,
             # current eval
@@ -708,16 +713,19 @@ class LBFGS_Armijo(Optimizer):
         restarted, so a second failure retires it instead of searching again.
         """
         if not ctx.any_needs_reset:
-            ctx.was_reset = torch.zeros_like(ctx.needs_reset)
+            if ctx.any_was_reset:
+                ctx.was_reset.zero_()
+                ctx.any_was_reset = False
             return
-        ctx.was_reset = ctx.needs_reset.clone()
+        ctx.was_reset.copy_(ctx.needs_reset)
+        ctx.any_was_reset = True
         reset = ctx.needs_reset.nonzero(as_tuple=False).squeeze(-1)
         ctx.old_dirs_mat[:, reset, :] = 0.0
         ctx.old_stps_mat[:, reset, :] = 0.0
         reset_elem = self._per_element(ctx.needs_reset)
         ctx.d.copy_(torch.where(reset_elem, -ctx.flat_grad, ctx.d))
         ctx.x_ref = torch.where(reset_elem, ctx.x, ctx.x_ref)
-        ctx.needs_reset = torch.zeros_like(ctx.needs_reset)
+        ctx.needs_reset.zero_()
         ctx.any_needs_reset = False
 
     def _inactive(self, ctx):
@@ -943,6 +951,7 @@ class LBFGS_Armijo(Optimizer):
         ctx.state["needs_reset"] = ctx.needs_reset
         ctx.state["was_reset"] = ctx.was_reset
         ctx.state["any_needs_reset"] = ctx.any_needs_reset
+        ctx.state["any_was_reset"] = ctx.any_was_reset
         ctx.state["any_inactive"] = ctx.any_inactive
 
         return ctx.orig_loss
