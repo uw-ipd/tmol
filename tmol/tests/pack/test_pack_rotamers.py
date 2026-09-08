@@ -379,15 +379,20 @@ def test_shared_rotamer_dispatch_matches_independent_lk_ball_layout(
     torch.testing.assert_close(shared.to_dense(), fallback.to_dense())
     if torch_device.type == "cuda":
         # Rotamer gradients use atomics, so even two independent evaluations
-        # need not be elementwise deterministic. Require the shared-layout
-        # error to remain inside the measured independent-repeat envelope.
+        # need not be elementwise deterministic. Fused and independent layouts
+        # also sum terms in different orders; retain the repeat envelope with a
+        # small, scale-aware rounding floor for that expected reassociation.
         repeat_coords = rotamer_set.coords.detach().clone().requires_grad_(True)
         repeat = scorer(repeat_coords).coalesce()
         (repeat_grad,) = torch.autograd.grad(repeat.values().sum(), repeat_coords)
         torch.testing.assert_close(fallback.to_dense(), repeat.to_dense())
         repeat_error = torch.max(torch.abs(fallback_grad - repeat_grad))
         shared_error = torch.max(torch.abs(shared_grad - fallback_grad))
-        assert shared_error <= 2 * repeat_error + 1e-6
+        gradient_scale = torch.maximum(
+            torch.max(torch.abs(shared_grad)), torch.max(torch.abs(fallback_grad))
+        )
+        roundoff_error = 8 * torch.finfo(shared_grad.dtype).eps * gradient_scale
+        assert shared_error <= torch.maximum(2 * repeat_error + 1e-6, roundoff_error)
     else:
         torch.testing.assert_close(shared_grad, fallback_grad)
 

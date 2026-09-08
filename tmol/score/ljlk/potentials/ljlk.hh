@@ -507,27 +507,6 @@ void TMOL_DEVICE_FUNC ljlk_load_intrares_data_from_shared(
       (same_tile ? shared_m.heavy_inds1 : shared_m.heavy_inds2);
 }
 
-// LJ energy only
-template <typename Real>
-TMOL_DEVICE_FUNC std::array<Real, 2> lj_atom_energy(
-    int atom_tile_ind1,
-    int atom_tile_ind2,
-    LJLKScoringData<Real> const& score_dat,
-    int cp_separation) {
-  using Real3 = Eigen::Matrix<Real, 3, 1>;
-
-  Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
-  Real3 coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
-
-  Real const dist = distance<Real>::V(coord1, coord2);
-  return lj_score<Real>::V(
-      dist,
-      cp_separation,
-      score_dat.r1.params[atom_tile_ind1].lj_params(),
-      score_dat.r2.params[atom_tile_ind2].lj_params(),
-      score_dat.global_params);
-}
-
 // Fused LJ/LK energy for pose scoring. Heavy-atom pairs reuse the coordinate
 // loads, distance, and count-pair separation for both potentials.
 template <typename Real, tmol::Device D>
@@ -571,9 +550,10 @@ TMOL_DEVICE_FUNC std::array<Real, 3> ljlk_atom_energy(
   return {lj[0], lj[1], lk};
 }
 
-// LJ deriv only
+// Weighted LJ/LK derivatives. Heavy-atom pairs reuse the LJ traversal,
+// coordinate loads, distance, and count-pair separation for LK.
 template <typename Real, tmol::Device D>
-TMOL_DEVICE_FUNC void lj_atom_derivs(
+TMOL_DEVICE_FUNC void ljlk_atom_derivs(
     int atom_tile_ind1,
     int atom_tile_ind2,
     int start_atom1,
@@ -582,6 +562,7 @@ TMOL_DEVICE_FUNC void lj_atom_derivs(
     int cp_separation,
     Real dTdV_atr,
     Real dTdV_rep,
+    Real dTdV_lk,
     TView<Eigen::Matrix<Real, 3, 1>, 1, D> dV_dcoords) {
   if constexpr (D == Device::CUDA) {
     if (cp_separation < 4) return;
@@ -589,241 +570,50 @@ TMOL_DEVICE_FUNC void lj_atom_derivs(
 
   using Real3 = Eigen::Matrix<Real, 3, 1>;
 
-  Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
-  Real3 coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
+  Real3 const coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
+  Real3 const coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
   Real3 const delta = coord1 - coord2;
   Real const dist2 = delta.squaredNorm();
   Real const max_dis = score_dat.global_params.max_dis;
   if (dist2 >= max_dis * max_dis) return;
   Real const dist = std::sqrt(dist2);
-  Real3 ddist_dat1({0.0, 0.0, 0.0});
-  if (dist != 0) ddist_dat1 = delta / dist;
+  Real3 unit_delta({0.0, 0.0, 0.0});
+  if (dist != 0) unit_delta = delta / dist;
 
-  auto lj = lj_score<Real>::V_dV(
+  auto const& p1 = score_dat.r1.params[atom_tile_ind1];
+  auto const& p2 = score_dat.r2.params[atom_tile_ind2];
+  auto const lj = lj_score<Real>::V_dV(
       dist,
       cp_separation,
-      score_dat.r1.params[atom_tile_ind1].lj_params(),
-      score_dat.r2.params[atom_tile_ind2].lj_params(),
+      p1.lj_params(),
+      p2.lj_params(),
       score_dat.global_params);
 
-  Real const weighted_dV_ddist =
+  Real weighted_dV_ddist =
       dTdV_atr * lj.dVatr_ddist + dTdV_rep * lj.dVrep_ddist;
+  if (!p1.is_hydrogen && !p2.is_hydrogen) {
+    auto const lk = lk_isotropic_score<Real>::V_dV(
+        dist,
+        cp_separation,
+        p1.lk_params(),
+        p2.lk_params(),
+        score_dat.global_params);
+    weighted_dV_ddist += dTdV_lk * lk.dV_ddist;
+  }
 
-  // Combine attractive and repulsive derivatives before the global update so
-  // each coordinate needs only one atomic addition.
-  Vec<Real, 3> dxyz_at1 = weighted_dV_ddist * ddist_dat1;
-
+  Real3 const dxyz_at1 = weighted_dV_ddist * unit_delta;
+#pragma unroll
   for (int j = 0; j < 3; ++j) {
-    if (dxyz_at1[j] != 0) {
-      accumulate<D, Real>::add(
-          dV_dcoords
-              [score_dat.r1.rot_coord_offset + atom_tile_ind1 + start_atom1][j],
-          dxyz_at1[j]);
-    }
+    if (dxyz_at1[j] == 0) continue;
+    accumulate<D, Real>::add(
+        dV_dcoords[score_dat.r1.rot_coord_offset + atom_tile_ind1 + start_atom1]
+                  [j],
+        dxyz_at1[j]);
+    accumulate<D, Real>::add(
+        dV_dcoords[score_dat.r2.rot_coord_offset + atom_tile_ind2 + start_atom2]
+                  [j],
+        -dxyz_at1[j]);
   }
-
-  Vec<Real, 3> dxyz_at2 = -dxyz_at1;
-  for (int j = 0; j < 3; ++j) {
-    if (dxyz_at2[j] != 0) {
-      accumulate<D, Real>::add(
-          dV_dcoords
-              [score_dat.r2.rot_coord_offset + atom_tile_ind2 + start_atom2][j],
-          dxyz_at2[j]);
-    }
-  }
-}
-
-// LJ energy+deriv
-template <typename Real, tmol::Device D>
-TMOL_DEVICE_FUNC std::array<Real, 2> lj_atom_energy_and_derivs_full(
-    int atom_tile_ind1,
-    int atom_tile_ind2,
-    int start_atom1,
-    int start_atom2,
-    LJLKScoringData<Real> const& score_dat,
-    int cp_separation,
-    TView<Eigen::Matrix<Real, 3, 1>, 2, D> dV_dcoords) {
-  using Real3 = Eigen::Matrix<Real, 3, 1>;
-
-  Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
-  Real3 coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
-
-  auto dist_r = distance<Real>::V_dV(coord1, coord2);
-  auto& dist = dist_r.V;
-  auto& ddist_dat1 = dist_r.dV_dA;
-  auto& ddist_dat2 = dist_r.dV_dB;
-  auto lj = lj_score<Real>::V_dV(
-      dist,
-      cp_separation,
-      score_dat.r1.params[atom_tile_ind1].lj_params(),
-      score_dat.r2.params[atom_tile_ind2].lj_params(),
-      score_dat.global_params);
-
-  // all threads accumulate derivatives for atom 1 to global memory
-  Vec<Real, 3> ljatr_dxyz_at1 = lj.dVatr_ddist * ddist_dat1;
-  Vec<Real, 3> ljrep_dxyz_at1 = lj.dVrep_ddist * ddist_dat1;
-  for (int j = 0; j < 3; ++j) {
-    if (ljatr_dxyz_at1[j] != 0) {
-      accumulate<D, Real>::add(
-          dV_dcoords[0]
-                    [score_dat.r1.rot_coord_offset + atom_tile_ind1
-                     + start_atom1][j],
-          ljatr_dxyz_at1[j]);
-    }
-    if (ljrep_dxyz_at1[j] != 0) {
-      accumulate<D, Real>::add(
-          dV_dcoords[1]
-                    [score_dat.r1.rot_coord_offset + atom_tile_ind1
-                     + start_atom1][j],
-          ljrep_dxyz_at1[j]);
-    }
-  }
-
-  // all threads accumulate derivatives for atom 2 to global memory
-  Vec<Real, 3> ljatr_dxyz_at2 = lj.dVatr_ddist * ddist_dat2;
-  Vec<Real, 3> ljrep_dxyz_at2 = lj.dVrep_ddist * ddist_dat2;
-  for (int j = 0; j < 3; ++j) {
-    if (ljatr_dxyz_at2[j] != 0) {
-      accumulate<D, Real>::add(
-          dV_dcoords[0]
-                    [score_dat.r2.rot_coord_offset + atom_tile_ind2
-                     + start_atom2][j],
-          ljatr_dxyz_at2[j]);
-    }
-    if (ljrep_dxyz_at2[j] != 0) {
-      accumulate<D, Real>::add(
-          dV_dcoords[1]
-                    [score_dat.r2.rot_coord_offset + atom_tile_ind2
-                     + start_atom2][j],
-          ljrep_dxyz_at2[j]);
-    }
-  }
-  return {lj.Vatr, lj.Vrep};
-}
-
-template <typename Real>
-TMOL_DEVICE_FUNC Real lk_atom_energy(
-    int atom_tile_ind1,
-    int atom_tile_ind2,
-    LJLKScoringData<Real> const& score_dat,
-    int cp_separation) {
-  using Real3 = Eigen::Matrix<Real, 3, 1>;
-  Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
-  Real3 coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
-
-  Real const dist = distance<Real>::V(coord1, coord2);
-  return lk_isotropic_score<Real>::V(
-      dist,
-      cp_separation,
-      score_dat.r1.params[atom_tile_ind1].lk_params(),
-      score_dat.r2.params[atom_tile_ind2].lk_params(),
-      score_dat.global_params);
-}
-
-template <typename Real, tmol::Device D>
-TMOL_DEVICE_FUNC void lk_atom_derivs(
-    int atom_tile_ind1,
-    int atom_tile_ind2,
-    int start_atom1,
-    int start_atom2,
-    LJLKScoringData<Real> const& score_dat,
-    int cp_separation,
-    Real dTdV,
-    TView<Eigen::Matrix<Real, 3, 1>, 1, D> dV_dcoords) {
-  if constexpr (D == Device::CUDA) {
-    if (cp_separation < 4) return;
-  }
-
-  using Real3 = Eigen::Matrix<Real, 3, 1>;
-
-  Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
-  Real3 coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
-  Real3 const delta = coord1 - coord2;
-  Real const dist2 = delta.squaredNorm();
-  Real const max_dis = score_dat.global_params.max_dis;
-  if (dist2 >= max_dis * max_dis) return;
-  Real const dist = std::sqrt(dist2);
-  Real3 ddist_dat1({0.0, 0.0, 0.0});
-  if (dist != 0) ddist_dat1 = delta / dist;
-
-  auto lk = lk_isotropic_score<Real>::V_dV(
-      dist,
-      cp_separation,
-      score_dat.r1.params[atom_tile_ind1].lk_params(),
-      score_dat.r2.params[atom_tile_ind2].lk_params(),
-      score_dat.global_params);
-
-  // all threads accumulate derivatives for atom 1 to global memory
-  Real dTdV_block = (dTdV);
-  Vec<Real, 3> lj_dxyz_at1 = dTdV_block * lk.dV_ddist * ddist_dat1;
-
-  for (int j = 0; j < 3; ++j) {
-    if (lj_dxyz_at1[j] != 0) {
-      accumulate<D, Real>::add(
-          dV_dcoords
-              [score_dat.r1.rot_coord_offset + atom_tile_ind1 + start_atom1][j],
-          lj_dxyz_at1[j]);
-    }
-  }
-
-  // all threads accumulate derivatives for atom 2 to global memory
-  Vec<Real, 3> lj_dxyz_at2 = -lj_dxyz_at1;
-  for (int j = 0; j < 3; ++j) {
-    if (lj_dxyz_at2[j] != 0) {
-      accumulate<D, Real>::add(
-          dV_dcoords
-              [score_dat.r2.rot_coord_offset + atom_tile_ind2 + start_atom2][j],
-          lj_dxyz_at2[j]);
-    }
-  }
-}
-
-template <typename Real, tmol::Device D>
-TMOL_DEVICE_FUNC Real lk_atom_energy_and_derivs_full(
-    int atom_tile_ind1,
-    int atom_tile_ind2,
-    int start_atom1,
-    int start_atom2,
-    LJLKScoringData<Real> const& score_dat,
-    int cp_separation,
-    TView<Eigen::Matrix<Real, 3, 1>, 2, D> dV_dcoords) {
-  using Real3 = Eigen::Matrix<Real, 3, 1>;
-  Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
-  Real3 coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
-
-  auto dist_r = distance<Real>::V_dV(coord1, coord2);
-  auto& dist = dist_r.V;
-  auto& ddist_dat1 = dist_r.dV_dA;
-  auto& ddist_dat2 = dist_r.dV_dB;
-  auto lk = lk_isotropic_score<Real>::V_dV(
-      dist,
-      cp_separation,
-      score_dat.r1.params[atom_tile_ind1].lk_params(),
-      score_dat.r2.params[atom_tile_ind2].lk_params(),
-      score_dat.global_params);
-
-  Vec<Real, 3> lk_dxyz_at1 = lk.dV_ddist * ddist_dat1;
-  for (int j = 0; j < 3; ++j) {
-    if (lk_dxyz_at1[j] != 0) {
-      accumulate<D, Real>::add(
-          dV_dcoords[2]
-                    [score_dat.r1.rot_coord_offset + atom_tile_ind1
-                     + start_atom1][j],
-          lk_dxyz_at1[j]);
-    }
-  }
-
-  Vec<Real, 3> lk_dxyz_at2 = lk.dV_ddist * ddist_dat2;
-  for (int j = 0; j < 3; ++j) {
-    if (lk_dxyz_at2[j] != 0) {
-      accumulate<D, Real>::add(
-          dV_dcoords[2]
-                    [score_dat.r2.rot_coord_offset + atom_tile_ind2
-                     + start_atom2][j],
-          lk_dxyz_at2[j]);
-    }
-  }
-  return lk.V;
 }
 
 template <typename Real, tmol::Device D>
