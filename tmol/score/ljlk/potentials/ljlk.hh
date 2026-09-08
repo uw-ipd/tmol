@@ -530,12 +530,16 @@ TMOL_DEVICE_FUNC std::array<Real, 2> lj_atom_energy(
 
 // Fused LJ/LK energy for pose scoring. Heavy-atom pairs reuse the coordinate
 // loads, distance, and count-pair separation for both potentials.
-template <typename Real>
+template <typename Real, tmol::Device D>
 TMOL_DEVICE_FUNC std::array<Real, 3> ljlk_atom_energy(
     int atom_tile_ind1,
     int atom_tile_ind2,
     LJLKScoringData<Real> const& score_dat,
     int cp_separation) {
+  if constexpr (D == Device::CUDA) {
+    if (cp_separation < 4) return {0.0, 0.0, 0.0};
+  }
+
   using Real3 = Eigen::Matrix<Real, 3, 1>;
 
   Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
@@ -579,6 +583,10 @@ TMOL_DEVICE_FUNC void lj_atom_derivs(
     Real dTdV_atr,
     Real dTdV_rep,
     TView<Eigen::Matrix<Real, 3, 1>, 1, D> dV_dcoords) {
+  if constexpr (D == Device::CUDA) {
+    if (cp_separation < 4) return;
+  }
+
   using Real3 = Eigen::Matrix<Real, 3, 1>;
 
   Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
@@ -720,6 +728,10 @@ TMOL_DEVICE_FUNC void lk_atom_derivs(
     int cp_separation,
     Real dTdV,
     TView<Eigen::Matrix<Real, 3, 1>, 1, D> dV_dcoords) {
+  if constexpr (D == Device::CUDA) {
+    if (cp_separation < 4) return;
+  }
+
   using Real3 = Eigen::Matrix<Real, 3, 1>;
 
   Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
@@ -819,6 +831,10 @@ TMOL_DEVICE_FUNC std::array<Real, 3> ljlk_atom_energy_and_derivs_full(
     LJLKScoringData<Real> const& score_dat,
     int cp_separation,
     TView<Eigen::Matrix<Real, 3, 1>, 2, D> dV_dcoords) {
+  if constexpr (D == Device::CUDA) {
+    if (cp_separation < 4) return {0.0, 0.0, 0.0};
+  }
+
   using Real3 = Eigen::Matrix<Real, 3, 1>;
 
   Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);

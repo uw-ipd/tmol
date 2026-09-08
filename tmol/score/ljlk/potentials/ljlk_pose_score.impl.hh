@@ -974,7 +974,7 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
                                   int,
                                   LJLKScoringData<Real> const& score_dat,
                                   int cp_separation) {
-      return ljlk_atom_energy(
+      return ljlk_atom_energy<Real, D>(
           atom_tile_ind1, atom_tile_ind2, score_dat, cp_separation);
     });
 
@@ -1846,7 +1846,7 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
                                   int,
                                   LJLKScoringData<Real> const& score_dat,
                                   int cp_separation) {
-      return ljlk_atom_energy(
+      return ljlk_atom_energy<Real, D>(
           atom_tile_ind1, atom_tile_ind2, score_dat, cp_separation);
     });
 
