@@ -16,7 +16,6 @@ from rdkit import Chem
 
 from tmol.database import ParameterDatabase
 from tmol.database.chemical import AtomAlias
-from tmol.database.scoring._cartbonded import AngleGroup
 from tmol.io import CanonicalOrdering
 from tmol.ligand._atom_typing import AtomTypeAssignment, assign_tmol_atom_types
 from tmol.ligand._detect import (
@@ -332,7 +331,7 @@ def prepare_polymer_residue(
         cap_backbone_substitution,
         cap_residue,
         profile_for_atom_array,
-        ring_nitrogen_angle,
+        _CANONICAL_RING_ATOM,
         ring_nitrogen_angle_atom,
         substituted_wildcard_rows,
     )
@@ -495,55 +494,44 @@ def prepare_polymer_residue(
         if name in kept
     }
     cartbonded_params = _build_cartbonded_params(residue_type, coords=kept_coords)
-    # the angle at a ring nitrogen is only matched when the ring atom is called
-    #    CD, so a residue that calls it otherwise carries its own copy of the
-    #    row. The value is proline's: it is fitted, not derivable from geometry
-    ring_atom = ring_nitrogen_angle_atom(atom_array, connection_atoms)
-    fitted = ring_nitrogen_angle(param_db.scoring.cartbonded)
-    if ring_atom is not None and ring_atom in kept and fitted is not None:
-        x0, k = fitted
-        cartbonded_params = attr.evolve(
-            cartbonded_params,
-            angle_parameters=cartbonded_params.angle_parameters
-            + (
-                AngleGroup(
-                    atm1=ring_atom,
-                    atm2="N",
-                    atm3="+C",
-                    x0=x0,
-                    K=k,
-                    type=1,
-                ),
-            ),
-        )
-
-    # a cap does not use a backbone's atom names, so the terms reaching across
-    #    its peptide bond are passed over; it carries its own copies instead
+    # cartbonded reaches across the peptide bond by atom name, so a residue
+    #    calling one of those atoms something else is passed over. Both the
+    #    caps and a ring nitrogen whose ring atom is not called CD carry their
+    #    own copies of the rows, values and all.
+    substitution = None
     if profile.name == "cap":
         substitution = cap_backbone_substitution(
             atom_array, profile.mainchain_atoms[0], param_db.chemical
         )
-        if substitution is not None:
-            rows = substituted_wildcard_rows(
-                param_db.scoring.cartbonded, *substitution, kept
-            )
-            cartbonded_params = attr.evolve(
-                cartbonded_params,
-                length_parameters=cartbonded_params.length_parameters
-                + tuple(
-                    attr.evolve(p, atm1=a[0], atm2=a[1]) for a, p in rows["length"]
-                ),
-                angle_parameters=cartbonded_params.angle_parameters
-                + tuple(
-                    attr.evolve(p, atm1=a[0], atm2=a[1], atm3=a[2])
-                    for a, p in rows["angle"]
-                ),
-                torsion_parameters=cartbonded_params.torsion_parameters
-                + tuple(
-                    attr.evolve(p, atm1=a[0], atm2=a[1], atm3=a[2], atm4=a[3])
-                    for a, p in rows["torsion"]
-                ),
-            )
+    else:
+        ring_atom = ring_nitrogen_angle_atom(atom_array, connection_atoms)
+        if ring_atom is not None and ring_atom in kept:
+            substitution = ((_CANONICAL_RING_ATOM,), ring_atom)
+
+    if substitution is not None:
+        rows = substituted_wildcard_rows(
+            param_db.scoring.cartbonded, *substitution, kept
+        )
+        cartbonded_params = attr.evolve(
+            cartbonded_params,
+            length_parameters=cartbonded_params.length_parameters
+            + tuple(attr.evolve(p, atm1=a[0], atm2=a[1]) for a, p in rows["length"]),
+            angle_parameters=cartbonded_params.angle_parameters
+            + tuple(
+                attr.evolve(p, atm1=a[0], atm2=a[1], atm3=a[2])
+                for a, p in rows["angle"]
+            ),
+            torsion_parameters=cartbonded_params.torsion_parameters
+            + tuple(
+                attr.evolve(p, atm1=a[0], atm2=a[1], atm3=a[2], atm4=a[3])
+                for a, p in rows["torsion"]
+            ),
+            improper_parameters=cartbonded_params.improper_parameters
+            + tuple(
+                attr.evolve(p, atm1=a[0], atm2=a[1], atm3=a[2], atm4=a[3])
+                for a, p in rows["improper"]
+            ),
+        )
 
     # the database's termini patches are written for an alpha backbone; any
     #    other one brings its own, named around the atoms it already has

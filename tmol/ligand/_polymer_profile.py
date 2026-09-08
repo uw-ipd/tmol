@@ -826,24 +826,6 @@ def canonical_alpha_renames(atom_array, connection_atoms=None) -> dict:
     return renames
 
 
-def ring_nitrogen_angle(cartbonded_db):
-    """``(x0, K)`` cartbonded fits at a proline ring nitrogen, or None.
-
-    Taken from the wildcard rows rather than measured: the ideal-coordinate
-    placement of the down connection gives 91 degrees even for proline itself,
-    because the icoor that places it is shared with every alpha residue.
-    """
-    wildcard = cartbonded_db.residue_params.get("wildcard")
-    if wildcard is None:
-        return None
-    target = (_CANONICAL_RING_ATOM, "N", "+C")
-    for params in wildcard.angle_parameters:
-        atoms = (str(params.atm1), str(params.atm2), str(params.atm3))
-        if atoms in (target, target[::-1]):
-            return params.x0, params.K
-    return None
-
-
 # the name the wildcard row uses; a ring atom called this already matches
 _CANONICAL_N_SUBSTITUENT = "CN"
 _CANONICAL_RING_ATOM = "CD"
@@ -870,21 +852,26 @@ def ring_nitrogen_angle_atom(atom_array, connection_atoms=None) -> Optional[str]
 
 
 def cap_backbone_substitution(atom_array, connection_atom: str, chemdb):
-    """``(canonical name, the cap's name for it)`` the wildcard rows will miss.
+    """``(canonical names, the cap's name for them)`` the wildcard rows will miss.
 
     Cartbonded reaches across the peptide bond by atom name, and a cap does not
     use a backbone's names: an acetyl's alpha-equivalent is its methyl, and a
-    methylamide's is the carbon those rows call CN. It is the atom one bond
+    methylamide's is the carbon on its nitrogen. It is the atom one bond
     further out than the one the peptide bond is made through.
+
+    A carbon on the nitrogen answers to two names: the rows that reach across
+    to a neighbour's N-methyl call it CN, while those centred on the nitrogen
+    itself call it CA. Both are offered and whichever a row uses is replaced.
 
     None where there is nothing to stand in: a formyl cap has only its carbonyl
     oxygen there, and an amide cap has nothing at all.
     """
     adj, double, element = _heavy_adjacency(atom_array)
+    alpha = alpha_profile(chemdb).sidechain_root_atoms[0]
     canonical = (
-        _CANONICAL_N_SUBSTITUENT
+        (_CANONICAL_N_SUBSTITUENT, alpha)
         if element.get(connection_atom) == "N"
-        else alpha_profile(chemdb).sidechain_root_atoms[0]
+        else (alpha,)
     )
     neighbour = next(
         (
@@ -894,13 +881,26 @@ def cap_backbone_substitution(atom_array, connection_atom: str, chemdb):
         ),
         None,
     )
-    if neighbour is None or neighbour == canonical:
+    if neighbour is None or neighbour in canonical:
         return None
     return canonical, neighbour
 
 
+# wildcard row groups a cap can carry: attribute, atom count, and whether the
+#    row may be read from the partner's side. An improper names its centre at
+#    atm3 and reversing the atoms would move it, so it is never flipped.
+_WILDCARD_GROUPS = (
+    ("length", "length_parameters", 2, True),
+    ("angle", "angle_parameters", 3, True),
+    ("torsion", "torsion_parameters", 4, True),
+    ("improper", "improper_parameters", 4, False),
+)
+
+
 def substituted_wildcard_rows(cartbonded_db, canonical, replacement, present):
     """Wildcard rows naming ``canonical`` on this residue, under its own name.
+
+    ``canonical`` is one name or several; a row using any of them is copied.
 
     The rows spanning a peptide bond are matched by name, so a residue that
     calls the atom something else is passed over. Copying them with the name it
@@ -916,18 +916,25 @@ def substituted_wildcard_rows(cartbonded_db, canonical, replacement, present):
             atom[1:] if atom.startswith("+") else "+" + atom for atom in reversed(atoms)
         )
 
-    def rename(atoms):
+    names = (canonical,) if isinstance(canonical, str) else tuple(canonical)
+
+    def rename(atoms, may_flip):
         # a row naming the atom on the partner's side describes this residue
         #    when read the other way round, which is how the kernel matches it
-        if f"+{canonical}" in atoms:
+        if may_flip and any(f"+{name}" in atoms for name in names):
             atoms = flip(atoms)
-        if canonical not in atoms:
+        matched = [name for name in names if name in atoms]
+        if not matched:
+            return None
+        # the cap has one atom there, so a row naming two of the atoms it
+        #    stands in for describes a residue it is not
+        if len(matched) > 1:
             return None
         out = []
         for atom in atoms:
             if atom.startswith("+"):
                 out.append(atom)
-            elif atom == canonical:
+            elif atom in names:
                 out.append(replacement)
             elif atom not in present:
                 return None
@@ -935,19 +942,15 @@ def substituted_wildcard_rows(cartbonded_db, canonical, replacement, present):
                 out.append(atom)
         return tuple(out)
 
-    rows: dict = {"length": [], "angle": [], "torsion": []}
-    for params in wildcard.length_parameters:
-        atoms = rename((params.atm1, params.atm2))
-        if atoms:
-            rows["length"].append((atoms, params))
-    for params in wildcard.angle_parameters:
-        atoms = rename((params.atm1, params.atm2, params.atm3))
-        if atoms:
-            rows["angle"].append((atoms, params))
-    for params in wildcard.torsion_parameters:
-        atoms = rename((params.atm1, params.atm2, params.atm3, params.atm4))
-        if atoms:
-            rows["torsion"].append((atoms, params))
+    rows: dict = {group: [] for group, _attr, _n, _flip in _WILDCARD_GROUPS}
+    for group, attribute, n_atoms, may_flip in _WILDCARD_GROUPS:
+        for params in getattr(wildcard, attribute):
+            atoms = rename(
+                tuple(getattr(params, "atm%d" % (i + 1)) for i in range(n_atoms)),
+                may_flip,
+            )
+            if atoms:
+                rows[group].append((atoms, params))
     return rows
 
 

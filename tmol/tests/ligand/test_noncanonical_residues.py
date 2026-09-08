@@ -514,10 +514,15 @@ def test_a_cap_carries_the_peptide_bond_terms_its_names_would_miss() -> None:
     expected = {
         "ACE": {
             ("CH3", "C", "+N"),
-            ("CH3", "C", "+N", "+H"),
-            ("CH3", "C", "+N", "+CN"),
+            # planarity at the carbonyl carbon, centred on the atom it keeps
+            ("CH3", "+N", "C", "O"),
         },
-        "NME": {("C", "N", "+C", "+O"), ("C", "N", "+C", "+CA")},
+        "NME": {
+            ("C", "C", "+N"),
+            ("C", "N", "+C"),
+            # planarity at the amide nitrogen
+            ("C", "+C", "N", "H"),
+        },
     }
     for res_name, (_conn_name, conn_atom, _types) in _CAPS.items():
         _residue_arr, prep = _prepare(CAP_FIXTURE, res_name, frozenset({conn_atom}))
@@ -528,6 +533,7 @@ def test_a_cap_carries_the_peptide_bond_terms_its_names_would_miss() -> None:
                 *((p.atm1, p.atm2) for p in params.length_parameters),
                 *((p.atm1, p.atm2, p.atm3) for p in params.angle_parameters),
                 *((p.atm1, p.atm2, p.atm3, p.atm4) for p in params.torsion_parameters),
+                *((p.atm1, p.atm2, p.atm3, p.atm4) for p in params.improper_parameters),
             )
             if any(str(a).startswith("+") for a in atoms)
         }
