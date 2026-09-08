@@ -1,5 +1,7 @@
 """Per-segment L-BFGS: minimizing blocks together must match minimizing them alone."""
 
+from types import SimpleNamespace
+
 import torch
 
 from tmol.optimization import LBFGS_Armijo, lbfgs_two_loop
@@ -58,6 +60,30 @@ def test_equal_interleaved_segments_use_indexed_padding(torch_device):
     torch.testing.assert_close(
         optimizer._seg_sum(values), torch.tensor([6.0, 9.0], device=torch_device)
     )
+
+
+def test_idle_reset_mask_retains_storage(torch_device):
+    """The ordinary no-failure path does not allocate replacement masks."""
+    x = torch.nn.Parameter(torch.zeros(4, device=torch_device))
+    optimizer = LBFGS_Armijo([x])
+    was_reset = torch.zeros(1, dtype=torch.bool, device=torch_device)
+    ctx = SimpleNamespace(
+        any_needs_reset=False,
+        any_was_reset=False,
+        needs_reset=torch.zeros_like(was_reset),
+        was_reset=was_reset,
+    )
+    storage = was_reset.data_ptr()
+
+    optimizer._restart_failed_segments(ctx)
+    assert ctx.was_reset.data_ptr() == storage
+
+    ctx.was_reset.fill_(True)
+    ctx.any_was_reset = True
+    optimizer._restart_failed_segments(ctx)
+    assert ctx.was_reset.data_ptr() == storage
+    assert not ctx.was_reset.any()
+    assert not ctx.any_was_reset
 
 
 def test_batched_two_loop_matches_one_problem_at_a_time(torch_device):
