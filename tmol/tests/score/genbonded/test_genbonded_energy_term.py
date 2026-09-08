@@ -6,6 +6,9 @@ from tmol.score.genbonded import GenBondedEnergyTerm
 
 # one fixture per way a noncanonical residue reaches the scoring path; ubq and
 #    friends score no gen_torsions at all, so they pin nothing here
+# generate with fixed seed
+_CONFORMER_SEED = 20250828
+
 NCAA_FIXTURES = {
     "alpha_aa": "collagen_hyp_1bkv",
     "nonstandard_aa": "beta_peptide_3c3g",
@@ -80,7 +83,9 @@ def test_gradcheck_on_noncanonical_backbones(backbone_class, torch_device):
     stem = NCAA_FIXTURES[backbone_class]
     param_db = ParameterDatabase.get_default()
     structure = atom_array_from_cif(data_path("ncaa_fixtures") / (stem + ".cif"))
-    prepared, _ordering = prepare_ligands(structure, param_db=param_db)
+    prepared, _ordering = prepare_ligands(
+        structure, param_db=param_db, seed=_CONFORMER_SEED
+    )
     pose_stack = pose_stack_from_biotite(structure, torch_device, param_db=prepared)
 
     sfxn = ScoreFunction(prepared, torch_device)

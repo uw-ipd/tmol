@@ -1,45 +1,45 @@
 alpha_aa:
-  cart_angles: 69.6386
+  cart_angles: 67.8914
   cart_hxltorsions: 2.3009
   cart_impropers: 0.5458
-  cart_lengths: 3.9525
+  cart_lengths: 5.1244
   cart_torsions: 0.3117
   disulfide: 0.0
   dunbrack_rot: 9.1879
   dunbrack_rotdev: 19.2463
   dunbrack_semirot: 0.0
-  fa_elec: 1.6446
-  fa_ljatr: -39.007
-  fa_ljrep: 25.3806
+  fa_elec: 1.5479
+  fa_ljatr: -38.9914
+  fa_ljrep: 25.744
   fa_lk: 32.7035
-  gen_torsions: -1.4787
+  gen_torsions: -1.4791
   hbond: 0.0
-  lk_ball: 10.7079
+  lk_ball: 10.6941
   lk_ball_iso: 40.4749
-  lk_bridge: 0.0166
-  lk_bridge_uncpl: 0.3119
+  lk_bridge: 0.0092
+  lk_bridge_uncpl: 0.1902
   na_torsion: 0.0
   na_torsion_well: 0.0
   omega: -2.3485
   rama: -17.3025
   ref: -14.8958
 dna:
-  cart_angles: 116.6258
+  cart_angles: 113.4795
   cart_hxltorsions: 0.0
   cart_impropers: 0.0
-  cart_lengths: 253.2356
+  cart_lengths: 253.5861
   cart_torsions: 12.2191
   disulfide: 0.0
   dunbrack_rot: 0.0
   dunbrack_rotdev: 0.0
   dunbrack_semirot: 0.0
-  fa_elec: -1.2894
-  fa_ljatr: -49.4019
-  fa_ljrep: 49.4726
+  fa_elec: -1.2902
+  fa_ljatr: -49.4028
+  fa_ljrep: 49.5898
   fa_lk: 10.7716
-  gen_torsions: 4.525
+  gen_torsions: 4.521
   hbond: 0.0
-  lk_ball: -0.5011
+  lk_ball: -0.5012
   lk_ball_iso: 11.6253
   lk_bridge: 0.028
   lk_bridge_uncpl: 0.695
@@ -49,45 +49,45 @@ dna:
   rama: 0.0
   ref: 0.0
 nonstandard_aa:
-  cart_angles: 52.0345
+  cart_angles: 49.2788
   cart_hxltorsions: 0.717
   cart_impropers: 6.9254
-  cart_lengths: 248.0453
+  cart_lengths: 247.5734
   cart_torsions: 3.4131
   disulfide: 0.0
   dunbrack_rot: 22.7186
   dunbrack_rotdev: 24.3825
   dunbrack_semirot: 19.4504
-  fa_elec: -39.2262
-  fa_ljatr: -198.7227
-  fa_ljrep: 654.1342
-  fa_lk: 167.4926
-  gen_torsions: 44.8563
-  hbond: -26.0284
-  lk_ball: 80.8384
-  lk_ball_iso: 193.7178
-  lk_bridge: 0.1482
-  lk_bridge_uncpl: 1.5651
+  fa_elec: -38.9941
+  fa_ljatr: -200.2097
+  fa_ljrep: 660.8489
+  fa_lk: 168.421
+  gen_torsions: 48.7593
+  hbond: -28.1222
+  lk_ball: 81.1354
+  lk_ball_iso: 194.812
+  lk_bridge: 0.1518
+  lk_bridge_uncpl: 1.6022
   na_torsion: 0.0
   na_torsion_well: 0.0
   omega: 4.5022
   rama: 5.8143
   ref: -5.8041
 nonstandard_na:
-  cart_angles: 100.4997
+  cart_angles: 102.8237
   cart_hxltorsions: 0.0
   cart_impropers: 0.0
-  cart_lengths: 43.978
+  cart_lengths: 43.1817
   cart_torsions: 12.911
   disulfide: 0.0
   dunbrack_rot: 0.0
   dunbrack_rotdev: 0.0
   dunbrack_semirot: 0.0
-  fa_elec: -7.3816
-  fa_ljatr: -129.561
-  fa_ljrep: 122.8009
+  fa_elec: -7.3828
+  fa_ljatr: -129.5737
+  fa_ljrep: 123.8579
   fa_lk: 50.6253
-  gen_torsions: 40.2096
+  gen_torsions: 40.2124
   hbond: 0.0
   lk_ball: 0.5203
   lk_ball_iso: 55.4366

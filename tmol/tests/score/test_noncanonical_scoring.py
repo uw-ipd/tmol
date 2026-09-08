@@ -28,6 +28,9 @@ FIXTURES = {
     "nonstandard_na": "na_dna_ttd_1ttd",  # TTD: all ligand
 }
 
+# generate with fixed seed
+_CONFORMER_SEED = 20250828
+
 BASELINE = data_path("noncanonical_scores.yaml")
 
 # set to regenerate; the values are only as correct as the code that wrote them,
@@ -38,7 +41,9 @@ UPDATE_BASELINE = False
 def _score_by_term(stem, torch_device):
     param_db = ParameterDatabase.get_default()
     structure = atom_array_from_cif(data_path("ncaa_fixtures") / (stem + ".cif"))
-    prepared, _ordering = prepare_ligands(structure, param_db=param_db)
+    prepared, _ordering = prepare_ligands(
+        structure, param_db=param_db, seed=_CONFORMER_SEED
+    )
     pose_stack = pose_stack_from_biotite(structure, torch_device, param_db=prepared)
 
     sfxn = beta2016_score_function(torch_device, param_db=prepared)
