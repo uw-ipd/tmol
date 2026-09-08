@@ -44,6 +44,28 @@ inline int checked_dispatch_product(
       checked_count_product(lhs, rhs, operation), operation);
 }
 
+inline int checked_triangular_size(
+    int64_t count, bool include_diagonal, char const* operation) {
+  if (count < 0) {
+    throw std::overflow_error(
+        std::string(operation) + " received a negative dimension");
+  }
+  if (!include_diagonal && count < 2) {
+    return 0;
+  }
+  if (include_diagonal && count == std::numeric_limits<int64_t>::max()) {
+    return checked_dispatch_size(count, operation);
+  }
+  int64_t lhs = count;
+  int64_t rhs = count + (include_diagonal ? 1 : -1);
+  if (lhs % 2 == 0) {
+    lhs /= 2;
+  } else {
+    rhs /= 2;
+  }
+  return checked_dispatch_product(lhs, rhs, operation);
+}
+
 }  // namespace common
 }  // namespace score
 }  // namespace tmol

@@ -141,6 +141,59 @@ def test_checked_dispatch_product_rejects_overflow(ext, lhs, rhs):
         ext.test_checked_dispatch_product(lhs, rhs)
 
 
+@pytest.mark.parametrize(
+    "count,include_diagonal,expected",
+    [
+        (0, True, 0),
+        (0, False, 0),
+        (1, True, 1),
+        (1, False, 0),
+        (2, True, 3),
+        (2, False, 1),
+        (65535, True, 2147450880),
+        (65536, False, 2147450880),
+    ],
+)
+def test_checked_triangular_size_accepts_int32_boundary(
+    ext, count, include_diagonal, expected
+):
+    assert ext.test_checked_triangular_size(count, include_diagonal) == expected
+
+
+@pytest.mark.parametrize(
+    "count,include_diagonal",
+    [
+        (-1, True),
+        (65536, True),
+        (65537, False),
+        (2**63 - 1, True),
+        (2**63 - 1, False),
+    ],
+)
+def test_checked_triangular_size_rejects_overflow(ext, count, include_diagonal):
+    with pytest.raises(OverflowError, match="(negative|signed (32|64)-bit)"):
+        ext.test_checked_triangular_size(count, include_diagonal)
+
+
+@pytest.mark.parametrize(
+    "linear_index,dimension,expected",
+    [
+        (0, 4, (0, 1)),
+        (2, 4, (0, 3)),
+        (3, 4, (1, 2)),
+        (5, 4, (2, 3)),
+        (0, 65536, (0, 1)),
+        (65534, 65536, (0, 65535)),
+        (65535, 65536, (1, 2)),
+        (2147450879, 65536, (65534, 65535)),
+    ],
+)
+def test_upper_triangle_indices_avoid_intermediate_overflow(
+    ext, linear_index, dimension, expected
+):
+    assert ext.test_upper_triangle_indices(linear_index, dimension) == expected
+
+
 def test_dispatch_ceiling_division_does_not_overflow(ext):
     assert ext.test_safe_div_up(2**31 - 1, 32) == 2**26
 
