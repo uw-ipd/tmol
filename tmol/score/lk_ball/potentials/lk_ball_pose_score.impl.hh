@@ -12,6 +12,7 @@
 
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/count_pair.hh>
+#include <tmol/score/common/counting.hh>
 #include <tmol/score/common/data_loading.hh>
 #include <tmol/score/common/diamond_macros.hh>
 #include <tmol/score/common/geom.hh>
@@ -358,10 +359,9 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 
 template <common::TilePairMode Mode>
 inline TMOL_DEVICE_FUNC common::tuple<int, int, int> lk_ball_pose_pair_indices(
-    int cta, int max_n_blocks) {
+    int cta, int max_n_blocks, int n_pairs_with_diagonal) {
   if constexpr (Mode == common::TilePairMode::Inter) {
-    int const n_pairs =
-        static_cast<int>((int64_t(max_n_blocks) * (max_n_blocks - 1)) / 2);
+    int const n_pairs = n_pairs_with_diagonal - max_n_blocks;
     auto pair = common::upper_triangle_inds_from_linear_index(
         cta % n_pairs, max_n_blocks);
     return common::make_tuple(
@@ -370,8 +370,7 @@ inline TMOL_DEVICE_FUNC common::tuple<int, int, int> lk_ball_pose_pair_indices(
     int const block = cta % max_n_blocks;
     return common::make_tuple(cta / max_n_blocks, block, block);
   } else {
-    int const n_pairs =
-        static_cast<int>((int64_t(max_n_blocks) * (max_n_blocks + 1)) / 2);
+    int const n_pairs = n_pairs_with_diagonal;
     auto pair = common::upper_triangle_inds_from_linear_index(
         cta % n_pairs, max_n_blocks + 1);
     return common::make_tuple(
@@ -386,8 +385,10 @@ template <
     typename Eval>
 void launch_lk_ball_pose_pair_workgroups(
     ContextManager& mgr, int n_poses, int max_n_blocks, Eval eval) {
-  int const n_pairs =
-      static_cast<int>((int64_t(max_n_blocks) * (max_n_blocks + 1)) / 2);
+  int const n_pairs = score::common::checked_triangular_size(
+      max_n_blocks, true, "LK-ball block-pair dispatch");
+  int const n_candidate_pairs = score::common::checked_dispatch_product(
+      n_poses, n_pairs, "LK-ball block-pair dispatch");
 #ifdef __NVCC__
   auto eval_all = ([=] TMOL_DEVICE_FUNC(int cta) {
     eval(cta, TilePairModeTag<common::TilePairMode::InterAndIntra>{});
@@ -395,7 +396,7 @@ void launch_lk_ball_pose_pair_workgroups(
   // The specialized kernels remove the cold intra/inter instruction path.
   // Use them only once their throughput gain exceeds the extra launch cost.
   constexpr int min_split_workgroups = 1 << 15;
-  if (max_n_blocks > 1 && n_poses * n_pairs >= min_split_workgroups) {
+  if (max_n_blocks > 1 && n_candidate_pairs >= min_split_workgroups) {
     auto eval_interres = ([=] TMOL_DEVICE_FUNC(int cta) {
       eval(cta, TilePairModeTag<common::TilePairMode::Inter>{});
     });
@@ -504,6 +505,8 @@ class LKBallPoseScoreDispatch {
     int const max_n_interblock_bonds =
         block_type_atoms_forming_chemical_bonds.size(1);
     int const max_n_tiles = block_type_tile_pol_occ_inds.size(1);
+    int const n_block_pairs = score::common::checked_triangular_size(
+        max_n_blocks, true, "LK-ball block-pair dispatch");
 
     bool const use_shared_compact_block_neighbors =
         shared_compact_block_neighbors.size(0) != 0;
@@ -626,8 +629,8 @@ class LKBallPoseScoreDispatch {
 
       int const max_important_bond_separation = 4;
 
-      auto pair_indices =
-          lk_ball_pose_pair_indices<pair_mode>(cta, max_n_blocks);
+      auto pair_indices = lk_ball_pose_pair_indices<pair_mode>(
+          cta, max_n_blocks, n_block_pairs);
       int const pose_ind = common::get<0>(pair_indices);
       int const block_ind1 = common::get<1>(pair_indices);
       int const block_ind2 = common::get<2>(pair_indices);
@@ -862,6 +865,8 @@ class LKBallPoseScoreDispatch {
     int const max_n_interblock_bonds =
         block_type_atoms_forming_chemical_bonds.size(1);
     int const max_n_tiles = block_type_tile_pol_occ_inds.size(1);
+    int const n_block_pairs = score::common::checked_triangular_size(
+        max_n_blocks, true, "LK-ball derivative block-pair dispatch");
     bool const use_compact_block_neighbors =
         compact_block_neighbors.size(0) != 0;
 
@@ -886,8 +891,8 @@ class LKBallPoseScoreDispatch {
                             int cta) {
       constexpr auto pair_mode = common::TilePairMode::InterAndIntra;
 #endif
-      auto pair_indices =
-          lk_ball_pose_pair_indices<pair_mode>(cta, max_n_blocks);
+      auto pair_indices = lk_ball_pose_pair_indices<pair_mode>(
+          cta, max_n_blocks, n_block_pairs);
       int const pose_ind = common::get<0>(pair_indices);
       int const block_ind1 = common::get<1>(pair_indices);
       int const block_ind2 = common::get<2>(pair_indices);
@@ -1106,9 +1111,10 @@ class LKBallPoseScoreDispatch {
           Int>(mgr, compact_block_neighbors, eval_compact);
       return {dV_d_pose_coords_t, dV_d_water_coords_t};
     }
-    int const n_pairs =
-        static_cast<int>((int64_t(max_n_blocks) * (max_n_blocks + 1)) / 2);
-    int const n_candidate_pairs = n_poses * n_pairs;
+    int const n_pairs = score::common::checked_triangular_size(
+        max_n_blocks, true, "LK-ball derivative block-pair dispatch");
+    int const n_candidate_pairs = score::common::checked_dispatch_product(
+        n_poses, n_pairs, "LK-ball derivative block-pair dispatch");
     constexpr int max_persistent_workgroups = 1 << 14;
     int const n_workgroups = n_candidate_pairs < max_persistent_workgroups
                                  ? n_candidate_pairs

@@ -11,6 +11,7 @@
 
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/count_pair.hh>
+#include <tmol/score/common/counting.hh>
 #include <tmol/score/common/data_loading.hh>
 #include <tmol/score/common/diamond_macros.hh>
 #include <tmol/score/common/geom.hh>
@@ -564,8 +565,8 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   CTA_REAL_REDUCE_T_TYPEDEF;
 
   // The total number of unique block pairs (including self-pairs)
-  int const max_n_upper_triangle_inds =
-      static_cast<int>((int64_t(max_n_blocks) * (max_n_blocks + 1)) / 2);
+  int const max_n_upper_triangle_inds = score::common::checked_triangular_size(
+      max_n_blocks, true, "electrostatics block-pair dispatch");
 
   // We define two device lambdas, one for block-pair scoring and
   // one for full pose scoring. They are nearly identical, except
@@ -1030,8 +1031,8 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
   CTA_REAL_REDUCE_T_TYPEDEF;
 
   // The total number of unique block pairs (including self-pairs)
-  int const max_n_upper_triangle_inds =
-      static_cast<int>((int64_t(max_n_blocks) * (max_n_blocks + 1)) / 2);
+  int const max_n_upper_triangle_inds = score::common::checked_triangular_size(
+      max_n_blocks, true, "electrostatics derivative block-pair dispatch");
 
   auto eval_derivs = ([=] TMOL_DEVICE_FUNC(int cta) {
     auto elec_atom_energy_and_derivs =

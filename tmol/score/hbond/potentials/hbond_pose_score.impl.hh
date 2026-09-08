@@ -11,6 +11,7 @@
 
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/count_pair.hh>
+#include <tmol/score/common/counting.hh>
 #include <tmol/score/common/data_loading.hh>
 #include <tmol/score/common/diamond_macros.hh>
 #include <tmol/score/common/geom.hh>
@@ -653,8 +654,8 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   CTA_REAL_REDUCE_T_TYPEDEF;
 
   // The total number of unique block pairs (including self-pairs)
-  int const max_n_upper_triangle_inds =
-      static_cast<int>((int64_t(max_n_blocks) * (max_n_blocks + 1)) / 2);
+  int const max_n_upper_triangle_inds = score::common::checked_triangular_size(
+      max_n_blocks, true, "hydrogen-bond block-pair dispatch");
 
   auto eval_energies = ([=] TMOL_DEVICE_FUNC(int cta) {
     auto hbond_atom_energy = ([=] HBOND_ATOM_ENERGY);
@@ -910,8 +911,8 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
   // Define nt and reduce_t
   CTA_REAL_REDUCE_T_TYPEDEF;
   // The total number of unique block pairs (including self-pairs)
-  int const max_n_upper_triangle_inds =
-      static_cast<int>((int64_t(max_n_blocks) * (max_n_blocks + 1)) / 2);
+  int const max_n_upper_triangle_inds = score::common::checked_triangular_size(
+      max_n_blocks, true, "hydrogen-bond derivative block-pair dispatch");
 
   auto eval_derivs = ([=] TMOL_DEVICE_FUNC(int cta) {
     int const max_important_bond_separation = 4;

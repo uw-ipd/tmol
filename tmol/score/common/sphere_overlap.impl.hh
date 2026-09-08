@@ -37,10 +37,13 @@ inline bool should_compact_block_neighbors(
   constexpr int min_inference_candidates = 1 << 16;
   constexpr int min_batched_blocks_for_derivatives = 1000;
   int64_t const pairs_per_pose =
-      (int64_t(max_n_blocks) * (max_n_blocks + 1)) / 2;
+      (int64_t(max_n_blocks) * (int64_t(max_n_blocks) + 1)) / 2;
+  bool const enough_inference_candidates =
+      n_poses > 0
+      && pairs_per_pose
+             >= (min_inference_candidates + int64_t(n_poses) - 1) / n_poses;
   bool const large_inference_workload =
-      max_n_blocks >= min_blocks_per_pose
-      || int64_t(n_poses) * pairs_per_pose >= min_inference_candidates;
+      max_n_blocks >= min_blocks_per_pose || enough_inference_candidates;
   if (!large_inference_workload) return false;
   return !computes_derivatives
          || (max_n_blocks >= min_blocks_per_pose
@@ -516,7 +519,8 @@ bool try_cpu_spatial_compact_block_neighbors(
     suffix_max_radius[position] = suffix_radius;
   }
 
-  int64_t const n_pairs = (int64_t(max_n_blocks) * (max_n_blocks + 1)) / 2;
+  int64_t const n_pairs =
+      (int64_t(max_n_blocks) * (int64_t(max_n_blocks) + 1)) / 2;
   retained.reserve(
       std::min<int64_t>(
           n_pairs, std::max<int64_t>(16, int64_t(n_valid_blocks) * 32)));

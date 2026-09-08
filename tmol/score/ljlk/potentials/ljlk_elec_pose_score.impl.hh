@@ -6,6 +6,7 @@
 
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/count_pair.hh>
+#include <tmol/score/common/counting.hh>
 #include <tmol/score/common/device_operations.hh>
 #include <tmol/score/common/launch_box_macros.hh>
 #include <tmol/score/common/sphere_overlap.impl.hh>
@@ -333,8 +334,8 @@ auto ljlk_elec_forward_impl(
   int const n_atoms = rot_coords.size(0);
   int const n_poses = first_rot_for_block.size(0);
   int const max_n_blocks = first_rot_for_block.size(1);
-  int const max_n_upper_triangle_inds =
-      static_cast<int>((int64_t(max_n_blocks) * (max_n_blocks + 1)) / 2);
+  int const max_n_upper_triangle_inds = score::common::checked_triangular_size(
+      max_n_blocks, true, "fused LJ/LK-electrostatics block-pair dispatch");
   (void)pose_ind_for_atom;
   (void)first_rot_block_type;
   (void)block_ind_for_rot;

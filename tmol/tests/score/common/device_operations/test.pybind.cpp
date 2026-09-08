@@ -1,5 +1,6 @@
 #include <tmol/utility/tensor/pybind.h>
 #include <tmol/score/common/counting.hh>
+#include <tmol/score/common/upper_triangle_indices.hh>
 #include <tmol/tests/score/common/device_operations/test.hh>
 #include <moderngpu/meta.hxx>
 
@@ -25,6 +26,26 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
       },
       "lhs"_a,
       "rhs"_a);
+  m.def(
+      "test_checked_triangular_size",
+      [](int64_t count, bool include_diagonal) {
+        return tmol::score::common::checked_triangular_size(
+            count, include_diagonal, "test triangular dispatch");
+      },
+      "count"_a,
+      "include_diagonal"_a);
+  m.def(
+      "test_upper_triangle_indices",
+      [](int linear_index, int dimension) {
+        auto result =
+            tmol::score::common::upper_triangle_inds_from_linear_index(
+                linear_index, dimension);
+        return std::make_pair(
+            tmol::score::common::get<0>(result),
+            tmol::score::common::get<1>(result));
+      },
+      "linear_index"_a,
+      "dimension"_a);
   m.def(
       "test_safe_div_up",
       [](int value, int divisor) { return mgpu::div_up(value, divisor); },

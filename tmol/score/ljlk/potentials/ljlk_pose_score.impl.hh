@@ -11,6 +11,7 @@
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/count_pair.hh>
+#include <tmol/score/common/counting.hh>
 #include <tmol/score/common/data_loading.hh>
 #include <tmol/score/common/diamond_macros.hh>
 #include <tmol/score/common/geom.hh>
@@ -699,16 +700,18 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::
         Real reach) -> TPack<Int, 1, D> {
   int const n_poses = first_rot_for_block.size(0);
   int const max_n_blocks = first_rot_for_block.size(1);
-  int const n_pairs =
-      static_cast<int>((int64_t(max_n_blocks) * (max_n_blocks + 1)) / 2);
+  int const n_pairs = score::common::checked_triangular_size(
+      max_n_blocks, true, "LJ/LK compact block-neighbor dispatch");
+  int const n_candidates = score::common::checked_dispatch_product(
+      n_poses, n_pairs, "LJ/LK compact block-neighbor dispatch");
   auto block_spheres_t =
       D == Device::CPU ? TPack<Real, 3, D>::zeros({n_poses, max_n_blocks, 4})
                        : TPack<Real, 3, D>::empty({n_poses, max_n_blocks, 4});
   if constexpr (D == Device::CUDA) {
     auto neighbor_indices_t =
         rot_coord_offset.size(0) == 0
-            ? TPack<Int, 1, D>::zeros({n_poses * n_pairs + 1})
-            : TPack<Int, 1, D>::empty({n_poses * n_pairs + 1});
+            ? TPack<Int, 1, D>::zeros({int64_t(n_candidates) + 1})
+            : TPack<Int, 1, D>::empty({int64_t(n_candidates) + 1});
     score::common::sphere_overlap::
         compute_block_spheres<DeviceOperations, D, Real, Int, true>::f(
             mgr,
@@ -754,7 +757,7 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::
       return neighbor_indices_t;
     }
     auto neighbor_indices_t =
-        TPack<Int, 1, D>::zeros({int64_t(n_poses) * n_pairs + 1});
+        TPack<Int, 1, D>::zeros({int64_t(n_candidates) + 1});
     score::common::sphere_overlap::
         detect_compact_block_neighbors<DeviceOperations, D, Real, Int>::f(
             mgr,
@@ -945,8 +948,8 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
   // Define nt and reduce_t
   CTA_REAL_REDUCE_T_TYPEDEF;
   // The total number of unique block pairs (including self-pairs)
-  int const max_n_upper_triangle_inds =
-      static_cast<int>((int64_t(max_n_blocks) * (max_n_blocks + 1)) / 2);
+  int const max_n_upper_triangle_inds = score::common::checked_triangular_size(
+      max_n_blocks, true, "LJ/LK block-pair dispatch");
 
   // There are two versions of scoring:
   // Block-pair scoring, where the output is written to an n-pose x n-blocks x
@@ -1275,7 +1278,8 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
     DeviceOperations<D>::template foreach_pose_workgroup<launch_t>(
         mgr, n_poses, max_n_upper_triangle_inds, eval_energies_by_block);
   } else {
-    int const n_workgroups = n_poses * max_n_upper_triangle_inds;
+    int const n_workgroups = score::common::checked_dispatch_product(
+        n_poses, max_n_upper_triangle_inds, "LJ/LK block-pair dispatch");
 #ifdef __NVCC__
     if (score::common::sphere_overlap::should_compact_block_neighbors(
             n_poses, max_n_blocks, require_gradient)) {
@@ -1454,8 +1458,8 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::backward(
   // Define nt and reduce_t
   CTA_REAL_REDUCE_T_TYPEDEF;
   // The total number of unique block pairs (including self-pairs)
-  int const max_n_upper_triangle_inds =
-      static_cast<int>((int64_t(max_n_blocks) * (max_n_blocks + 1)) / 2);
+  int const max_n_upper_triangle_inds = score::common::checked_triangular_size(
+      max_n_blocks, true, "LJ/LK derivative block-pair dispatch");
 
   auto eval_derivs = ([=] TMOL_DEVICE_FUNC(int cta) {
     auto atom_pair_lj_fn =
