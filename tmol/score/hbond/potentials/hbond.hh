@@ -654,8 +654,8 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_full(
   Real3 Hxyz = coord_from_shared(don_dat.coords, don_h_atom_tile_ind);
   Real3 Axyz = coord_from_shared(acc_dat.coords, acc_atom_tile_ind);
 
-  Real const dist = distance<Real>::V(Hxyz, Axyz);
-  if (dist < respair_dat.global_params.max_ha_dis) {
+  Real const max_ha_dis = respair_dat.global_params.max_ha_dis;
+  if ((Hxyz - Axyz).squaredNorm() < max_ha_dis * max_ha_dis) {
     int const H_pose_atom_ind =
         don_dat.rot_coord_offset + don_start + don_h_atom_tile_ind;
     int const A_pose_atom_ind =
@@ -701,8 +701,8 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs(
   Real3 Hxyz = coord_from_shared(don_dat.coords, don_h_atom_tile_ind);
   Real3 Axyz = coord_from_shared(acc_dat.coords, acc_atom_tile_ind);
 
-  auto const dist_r = distance<Real>::V_dV(Hxyz, Axyz);
-  if (dist_r.V < respair_dat.global_params.max_ha_dis) {
+  Real const max_ha_dis = respair_dat.global_params.max_ha_dis;
+  if ((Hxyz - Axyz).squaredNorm() < max_ha_dis * max_ha_dis) {
     int const H_pose_atom_ind =
         don_dat.rot_coord_offset + don_start + don_h_atom_tile_ind;
     int const A_pose_atom_ind =
@@ -773,8 +773,8 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
   Real3 Hxyz = coord_from_shared(don_dat.coords, don_h_atom_tile_ind);
   Real3 Axyz = coord_from_shared(acc_dat.coords, acc_atom_tile_ind);
 
-  auto const dist_r = distance<Real>::V_dV(Hxyz, Axyz);
-  if (dist_r.V < respair_dat.global_params.max_ha_dis) {
+  Real const max_ha_dis = respair_dat.global_params.max_ha_dis;
+  if ((Hxyz - Axyz).squaredNorm() < max_ha_dis * max_ha_dis) {
     int const H_pose_atom_ind =
         don_dat.rot_coord_offset + don_start + don_h_atom_tile_ind;
     int const A_pose_atom_ind =

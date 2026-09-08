@@ -433,6 +433,10 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::forward(
   int const n_poses = first_rot_for_block.size(0);
   int const max_n_blocks = first_rot_for_block.size(1);
   int const max_n_conns = pose_stack_inter_block_connections.size(2);
+  int const workgroups_per_pose = score::common::checked_dispatch_product(
+      max_n_blocks,
+      int64_t(max_n_conns) + 1,
+      "generic bonded per-pose dispatch");
   int const n_block_types = gen_intra_subgraph_offsets.size(0);
   int const n_total_intra = gen_intra_subgraphs.size(0);
 
@@ -458,8 +462,8 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::forward(
     } shared;
 
     // Decode CTA index: (pose, block, connection).
-    int const pose_ind = cta / (max_n_blocks * (max_n_conns + 1));
-    int const block_conn = cta % (max_n_blocks * (max_n_conns + 1));
+    int const pose_ind = cta / workgroups_per_pose;
+    int const block_conn = cta % workgroups_per_pose;
     int const block_ind1 = block_conn / (max_n_conns + 1);
     int const conn_ind1 = block_conn % (max_n_conns + 1);
     int const block_type1 = first_rot_block_type[pose_ind][block_ind1];
@@ -687,10 +691,7 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::forward(
   });
 
   DeviceOps<D>::template foreach_pose_workgroup<launch_t>(
-      mgr,
-      n_poses,
-      max_n_blocks * (max_n_conns + 1),
-      eval_torsions_for_interaction);
+      mgr, n_poses, workgroups_per_pose, eval_torsions_for_interaction);
 
   return {V_t, dV_dx_t};
 }
@@ -738,6 +739,10 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::backward(
   int const n_poses = first_rot_for_block.size(0);
   int const max_n_blocks = first_rot_for_block.size(1);
   int const max_n_conns = pose_stack_inter_block_connections.size(2);
+  int const workgroups_per_pose = score::common::checked_dispatch_product(
+      max_n_blocks,
+      int64_t(max_n_conns) + 1,
+      "generic bonded derivative per-pose dispatch");
   int const n_block_types = gen_intra_subgraph_offsets.size(0);
   int const n_total_intra = gen_intra_subgraphs.size(0);
 
@@ -748,8 +753,8 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::backward(
   CTA_REAL_REDUCE_T_TYPEDEF;
 
   auto eval_torsions_for_interaction = ([=] TMOL_DEVICE_FUNC(int cta) {
-    int const pose_ind = cta / (max_n_blocks * (max_n_conns + 1));
-    int const block_conn = cta % (max_n_blocks * (max_n_conns + 1));
+    int const pose_ind = cta / workgroups_per_pose;
+    int const block_conn = cta % workgroups_per_pose;
     int const block_ind1 = block_conn / (max_n_conns + 1);
     int const conn_ind1 = block_conn % (max_n_conns + 1);
     int const block_type1 = first_rot_block_type[pose_ind][block_ind1];
@@ -944,10 +949,7 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::backward(
   });
 
   DeviceOps<D>::template foreach_pose_workgroup<launch_t>(
-      mgr,
-      n_poses,
-      max_n_blocks * (max_n_conns + 1),
-      eval_torsions_for_interaction);
+      mgr, n_poses, workgroups_per_pose, eval_torsions_for_interaction);
 
   return dV_dx_t;
 }
