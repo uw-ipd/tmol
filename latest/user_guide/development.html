@@ -572,7 +572,11 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
 </tbody>
 </table>
 </div>
-<p>Use JIT mode while editing kernels. Use AOT mode for normal installed packages.</p>
+<p>Use JIT mode while editing kernels. Use AOT mode for normal installed packages.
+On Linux, the JIT loader detects PyTorch’s OpenMP CPU backend and propagates
+the corresponding compiler and linker flags, so <code class="docutils literal notranslate"><span class="pre">at::parallel_for</span></code> has the
+same thread behavior as the CMake-built extension. <code class="docutils literal notranslate"><span class="pre">OMP_NUM_THREADS</span></code> and
+<code class="docutils literal notranslate"><span class="pre">torch.set_num_threads()</span></code> therefore apply consistently in both modes.</p>
 </section>
 <section id="tests">
 <h2>Tests<a class="headerlink" href="#tests" title="Link to this heading">#</a></h2>

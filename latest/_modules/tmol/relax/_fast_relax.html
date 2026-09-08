@@ -662,8 +662,10 @@
 <span class="sd">            move map, and verbosity. Defaults to Cartesian minimization.</span>
 <span class="sd">        cuda_graph: Capture the default Cartesian minimizer's repeated CUDA</span>
 <span class="sd">            scoring path. By default, enable it automatically for CUDA poses</span>
-<span class="sd">            containing DNA or RNA, where launch overhead dominates. Pass ``False``</span>
-<span class="sd">            to disable it. It cannot be combined with a custom ``min_fn``.</span>
+<span class="sd">            containing DNA or RNA, where replay savings exceed capture setup.</span>
+<span class="sd">            Pass ``True`` for repeated protein workloads where steady-state</span>
+<span class="sd">            throughput matters more than first-call latency, or ``False`` to</span>
+<span class="sd">            disable it. It cannot be combined with a custom ``min_fn``.</span>
 <span class="sd">        verbose: Print timing information for each step.</span>
 
 <span class="sd">    Returns:</span>

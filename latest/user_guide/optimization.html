@@ -587,11 +587,16 @@ freedom, pass a configured <code class="docutils literal notranslate"><span clas
 kinematic <code class="docutils literal notranslate"><span class="pre">min_fn</span></code>.</p>
 <p>On CUDA, <code class="docutils literal notranslate"><span class="pre">fast_relax()</span></code> automatically uses graph replay for poses containing
 DNA or RNA, where repeated kernel-launch overhead is significant. Protein-only
-and protein–ligand poses remain eager. Pass <code class="docutils literal notranslate"><span class="pre">cuda_graph=True</span></code> or
-<code class="docutils literal notranslate"><span class="pre">cuda_graph=False</span></code> to override that choice; custom minimizers manage their own
-execution mode and cannot be combined with <code class="docutils literal notranslate"><span class="pre">cuda_graph=True</span></code>. Graph capture has
-a one-time startup cost, so explicitly disable it for a single latency-sensitive
-nucleic-acid relaxation that will not be repeated in the same process.</p>
+and protein–ligand poses remain eager by default because graph capture does
+not consistently recover its setup cost in a single relaxation. For repeated
+protein workloads, pass <code class="docutils literal notranslate"><span class="pre">cuda_graph=True</span></code> to favor steady-state throughput;
+pass <code class="docutils literal notranslate"><span class="pre">cuda_graph=False</span></code> to force eager execution.</p>
+<p>Graph replay lowers latency by replacing the repeated Python, autograd, and
+CUDA-driver launch sequence; it does not make an individual scoring kernel
+execute faster. Capture also retains its working tensors, so benchmark memory
+as well as runtime for unusually large workloads. Custom minimizers manage
+their own execution mode and cannot be combined with <code class="docutils literal notranslate"><span class="pre">cuda_graph=True</span></code>. CPU
+execution remains eager.</p>
 </section>
 </section>
 

@@ -558,12 +558,14 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">rotamer_score_hbond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.hbond.potentials</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
             <span class="n">hbond_rotamer_scores</span><span class="p">,</span>
+            <span class="n">hbond_rotamer_scores_shared</span><span class="p">,</span>
             <span class="n">gen_hbond_bases</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="n">common_args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
-        <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
-        <span class="n">block_pair_scoring</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">common_args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">block_pair_scoring</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">shared_dispatch_indices</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">coords_dtype</span> <span class="o">=</span> <span class="n">common_args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span>
         <span class="n">pair_param_table</span><span class="p">,</span> <span class="n">pair_poly_table</span><span class="p">,</span> <span class="n">global_param_table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_param_tables</span><span class="p">(</span>
             <span class="n">coords_dtype</span>
@@ -593,7 +595,12 @@
                 <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">hbpbt_params</span><span class="o">.</span><span class="n">is_hydrogen</span><span class="p">,</span>
             <span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">hbond_rotamer_scores</span><span class="p">(</span>
+        <span class="n">score_op</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">hbond_rotamer_scores_shared</span>
+            <span class="k">if</span> <span class="n">shared_dispatch_indices</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">0</span>
+            <span class="k">else</span> <span class="n">hbond_rotamer_scores</span>
+        <span class="p">)</span>
+        <span class="n">score_args</span> <span class="o">=</span> <span class="p">(</span>
             <span class="o">*</span><span class="n">common_args</span><span class="p">,</span>
             <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections</span><span class="p">,</span>
             <span class="n">pose_stack</span><span class="o">.</span><span class="n">min_block_bondsep</span><span class="p">,</span>
@@ -620,6 +627,9 @@
             <span class="n">derived_atom_inds</span><span class="p">,</span>
             <span class="n">block_pair_scoring</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="n">shared_dispatch_indices</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">score_args</span> <span class="o">+=</span> <span class="p">(</span><span class="n">shared_dispatch_indices</span><span class="p">,)</span>
+        <span class="k">return</span> <span class="n">score_op</span><span class="p">(</span><span class="o">*</span><span class="n">score_args</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_pose_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose_score_hbond</span>
@@ -629,6 +639,12 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_block_neighbor_cutoff</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="mf">5.5</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">accepts_shared_rotamer_dispatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">rotamer_dispatch_key</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">"sphere_overlap"</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_score_term_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">pose_stack</span><span class="p">]</span></div>

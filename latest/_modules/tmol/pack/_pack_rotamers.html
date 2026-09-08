@@ -533,6 +533,17 @@
 <span class="n">_DEFAULT_PACKING_POSE_CHUNK</span> <span class="o">=</span> <span class="mi">10</span>
 <span class="n">_ESTIMATED_PACKING_BYTES_PER_BLOCK</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span>
 <span class="n">_PACKING_FREE_MEMORY_FRACTION</span> <span class="o">=</span> <span class="mf">0.25</span>
+<span class="n">_CPU_INTERACTION_GRAPH_CHUNK_SIZE</span> <span class="o">=</span> <span class="mi">16</span>
+<span class="n">_CUDA_INTERACTION_GRAPH_CHUNK_SIZE</span> <span class="o">=</span> <span class="mi">32</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_interaction_graph_chunk_size</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Select the benchmarked backend-specific sparse-table chunk width."""</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">_CUDA_INTERACTION_GRAPH_CHUNK_SIZE</span>
+        <span class="k">if</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"cuda"</span>
+        <span class="k">else</span> <span class="n">_CPU_INTERACTION_GRAPH_CHUNK_SIZE</span>
+    <span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_max_poses_per_packing_chunk</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
@@ -707,7 +718,7 @@
         <span class="n">synchronize_device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="n">end_time2</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
 
-    <span class="n">chunk_size</span> <span class="o">=</span> <span class="mi">16</span>
+    <span class="n">chunk_size</span> <span class="o">=</span> <span class="n">_interaction_graph_chunk_size</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
 
     <span class="p">(</span>
         <span class="n">max_n_bump_checked_rotamers_per_pose_tensor</span><span class="p">,</span>

@@ -511,8 +511,10 @@ minimize, and optional constraint fractions. Defaults to
 move map, and verbosity. Defaults to Cartesian minimization.</p></li>
 <li><p><strong>cuda_graph</strong> – Capture the default Cartesian minimizer’s repeated CUDA
 scoring path. By default, enable it automatically for CUDA poses
-containing DNA or RNA, where launch overhead dominates. Pass <code class="docutils literal notranslate"><span class="pre">False</span></code>
-to disable it. It cannot be combined with a custom <code class="docutils literal notranslate"><span class="pre">min_fn</span></code>.</p></li>
+containing DNA or RNA, where replay savings exceed capture setup.
+Pass <code class="docutils literal notranslate"><span class="pre">True</span></code> for repeated protein workloads where steady-state
+throughput matters more than first-call latency, or <code class="docutils literal notranslate"><span class="pre">False</span></code> to
+disable it. It cannot be combined with a custom <code class="docutils literal notranslate"><span class="pre">min_fn</span></code>.</p></li>
 <li><p><strong>verbose</strong> – Print timing information for each step.</p></li>
 </ul>
 </dd>
