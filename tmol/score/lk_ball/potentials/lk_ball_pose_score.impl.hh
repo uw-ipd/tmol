@@ -309,7 +309,7 @@
       int tile_ind2,                                \
       shared_mem_union& shared,                     \
       LKBallScoringData<Real>& intra_dat) {         \
-    lk_ball_load_intrares_data_from_shared(         \
+    lk_ball_load_intrares_data_from_shared<Dev>(    \
         tile_ind1, tile_ind2, shared.m, intra_dat); \
   }
 
