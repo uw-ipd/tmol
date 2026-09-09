@@ -1347,11 +1347,17 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
             max_dis);
 
     dispatch_indices_t = score::common::sphere_overlap::
-        rot_neighbor_indices_from_block_neighbors<DeviceDispatch, D, Int>::f(
-            mgr,
-            scratch_block_neighbors,
-            n_rots_for_block,
-            rot_offset_for_block);
+        rot_neighbor_indices_from_block_neighbors<
+            DeviceDispatch,
+            D,
+            Real,
+            Int>::
+            f(mgr,
+              scratch_block_neighbors,
+              n_rots_for_block,
+              rot_offset_for_block,
+              scratch_rot_spheres,
+              max_dis);
   }
 
   auto dispatch_indices = dispatch_indices_t.view;
