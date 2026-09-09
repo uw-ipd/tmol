@@ -1012,12 +1012,18 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
           scratch_block_spheres_t.view,
           scratch_block_neighbors_t.view,
           max_dis);
-  auto rotamer_dispatch_indices = score::common::sphere_overlap::
-      rot_neighbor_indices_from_block_neighbors<DeviceOperations, D, Int>::f(
-          mgr,
-          scratch_block_neighbors_t.view,
-          n_rots_for_block,
-          rot_offset_for_block);
+  auto rotamer_dispatch_indices =
+      score::common::sphere_overlap::rot_neighbor_indices_from_block_neighbors<
+          DeviceOperations,
+          D,
+          Real,
+          Int>::
+          f(mgr,
+            scratch_block_neighbors_t.view,
+            n_rots_for_block,
+            rot_offset_for_block,
+            scratch_rot_spheres_t.view,
+            max_dis);
   auto empty_compact_block_neighbors = TPack<Int, 1, D>::empty({0});
   auto result =
       ljlk_elec_forward_impl<false, true, true, DeviceOperations, D, Real, Int>(

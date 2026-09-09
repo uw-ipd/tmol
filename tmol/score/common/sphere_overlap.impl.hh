@@ -1004,21 +1004,35 @@ struct compute_block_spheres_from_rot_spheres {
   }
 };
 
+template <tmol::Device D, typename Real>
+inline TMOL_DEVICE_FUNC bool rot_spheres_overlap(
+    TView<Real, 2, D> rot_spheres, int rot1, int rot2, Real reach) {
+  Real const dx = rot_spheres[rot1][0] - rot_spheres[rot2][0];
+  Real const dy = rot_spheres[rot1][1] - rot_spheres[rot2][1];
+  Real const dz = rot_spheres[rot1][2] - rot_spheres[rot2][2];
+  Real const threshold = rot_spheres[rot1][3] + rot_spheres[rot2][3] + reach;
+  return dx * dx + dy * dy + dz * dz < threshold * threshold;
+}
+
 // Convert a block-level neighbor matrix into rotamer-pair dispatch indices
-// (the same [3, n_pairs] format as rot_neighbor_indices), expanding each
-// neighboring block pair (b1, b2) into all n_rots[b1]*n_rots[b2] pairs.
-// This avoids the O(max_n_rots^2) dense matrix used by rot_neighbor_indices.
+// (the same [3, n_pairs] format as rot_neighbor_indices). The block spheres
+// cheaply reject whole block pairs; the rotamer spheres then omit individual
+// pairs that cannot interact. This avoids the O(max_n_rots^2) dense matrix
+// used by rot_neighbor_indices without retaining guaranteed-zero score-table
+// entries.
 template <
     template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
+    typename Real,
     typename Int>
 struct rot_neighbor_indices_from_block_neighbors {
   static auto
   f(ContextManager& mgr,
     TView<Int, 3, D> block_neighbors,   // [n_poses, max_n_blocks, max_n_blocks]
     TView<Int, 2, D> n_rots_for_block,  // [n_poses, max_n_blocks]
-    TView<Int, 2, D> rot_offset_for_block  // [n_poses, max_n_blocks] global
-    ) -> TPack<Int, 2, D> {
+    TView<Int, 2, D> rot_offset_for_block,  // [n_poses, max_n_blocks] global
+    TView<Real, 2, D> rot_spheres,          // [n_rots_global, 4]
+    Real reach) -> TPack<Int, 2, D> {
     LAUNCH_BOX_32;
 
     int const n_poses = block_neighbors.size(0);
@@ -1032,7 +1046,7 @@ struct rot_neighbor_indices_from_block_neighbors {
 
     // Step 1: per-block-pair rotamer pair counts.
     // For diagonal (b1==b2): only self-pairs (r,r), count = n_rots[b1].
-    // For off-diagonal (b1<b2): all pairs, count = n_rots[b1]*n_rots[b2].
+    // For off-diagonal (b1<b2): count the overlapping rotamer spheres.
     auto pair_counts_t =
         TPack<int64_t, 3, D>::zeros({n_poses, max_n_blocks, max_n_blocks});
     auto pair_counts = pair_counts_t.view;
@@ -1043,11 +1057,22 @@ struct rot_neighbor_indices_from_block_neighbors {
       int const b1 = bp / max_n_blocks;
       int const b2 = bp % max_n_blocks;
       if (block_neighbors[pose][b1][b2]) {
+        int const nr1 = n_rots_for_block[pose][b1];
+        int const nr2 = n_rots_for_block[pose][b2];
+        int const off1 = rot_offset_for_block[pose][b1];
+        int const off2 = rot_offset_for_block[pose][b2];
+        if (nr1 <= 0 || nr2 <= 0 || off1 < 0 || off2 < 0) return;
         if (b1 == b2) {
-          pair_counts[pose][b1][b2] = n_rots_for_block[pose][b1];
+          pair_counts[pose][b1][b2] = nr1;
         } else {
-          pair_counts[pose][b1][b2] =
-              int64_t(n_rots_for_block[pose][b1]) * n_rots_for_block[pose][b2];
+          int64_t count = 0;
+          for (int i = 0; i < nr1; ++i) {
+            for (int j = 0; j < nr2; ++j) {
+              count += rot_spheres_overlap<D>(
+                  rot_spheres, off1 + i, off2 + j, reach);
+            }
+          }
+          pair_counts[pose][b1][b2] = count;
         }
       }
     });
@@ -1075,7 +1100,7 @@ struct rot_neighbor_indices_from_block_neighbors {
 
     // Step 4: fill — one thread per block pair, serial loop over rot pairs.
     // Diagonal (b1==b2): only (r,r) self-pairs (intrares scoring).
-    // Off-diagonal (b1<b2): all nr1*nr2 pairs.
+    // Off-diagonal (b1<b2): only overlapping rotamer spheres.
     auto fill = ([=] TMOL_DEVICE_FUNC(int ind) {
       int const pose = ind / block_pair_cells;
       int const bp = ind % block_pair_cells;
@@ -1100,6 +1125,10 @@ struct rot_neighbor_indices_from_block_neighbors {
       } else {
         for (int i = 0; i < nr1; ++i) {
           for (int j = 0; j < nr2; ++j) {
+            if (!rot_spheres_overlap<D>(
+                    rot_spheres, off1 + i, off2 + j, reach)) {
+              continue;
+            }
             indices[0][offset] = pose;
             indices[1][offset] = off1 + i;
             indices[2][offset] = off2 + j;

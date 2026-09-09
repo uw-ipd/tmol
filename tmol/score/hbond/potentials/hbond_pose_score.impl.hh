@@ -1285,11 +1285,17 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
             Real(5.5));  // 5.5A hard coded here. Please fix! TEMP!
 
     dispatch_indices_t = score::common::sphere_overlap::
-        rot_neighbor_indices_from_block_neighbors<DeviceDispatch, Dev, Int>::f(
-            mgr,
-            scratch_block_neighbors,
-            n_rots_for_block,
-            rot_offset_for_block);
+        rot_neighbor_indices_from_block_neighbors<
+            DeviceDispatch,
+            Dev,
+            Real,
+            Int>::
+            f(mgr,
+              scratch_block_neighbors,
+              n_rots_for_block,
+              rot_offset_for_block,
+              scratch_rot_spheres,
+              Real(5.5));
   }
 
   auto dispatch_indices = dispatch_indices_t.view;
