@@ -360,6 +360,8 @@ auto ljlk_elec_forward_impl(
 
   LAUNCH_BOX_32_OCC_AS(launch_t, 32);
   CTA_REAL_REDUCE_T_TYPEDEF;
+  // CPU workgroup lanes run serially; one lane traverses each tile directly.
+  constexpr int score_nt = D == tmol::Device::CPU ? 1 : nt;
 
   auto eval_neighbor = ([=] TMOL_DEVICE_FUNC(int candidate) {
     int pose_ind;
@@ -467,7 +469,7 @@ auto ljlk_elec_forward_impl(
               &rot_coords[residue.rot_coord_offset + start]),
           count * 3);
       auto load_atom_data = ([=](int tid) {
-        for (int atom = tid; atom < count; atom += nt) {
+        for (int atom = tid; atom < count; atom += score_nt) {
           int const atid = start + atom;
           int const atom_type = block_type_atom_types[residue.block_type][atid];
           if (atom_type >= 0) params_dst[atom] = ljlk_type_params[atom_type];
@@ -485,7 +487,8 @@ auto ljlk_elec_forward_impl(
           }
         }
       });
-      DeviceOperations<D>::template for_each_in_workgroup<nt>(load_atom_data);
+      DeviceOperations<D>::template for_each_in_workgroup<score_nt>(
+          load_atom_data);
     });
 
     auto load_tile_invariant_inter = ([=] TMOL_DEVICE_FUNC(
@@ -506,7 +509,7 @@ auto ljlk_elec_forward_impl(
         int const n1 = data.r1.n_conn;
         int const n2 = data.r2.n_conn;
         int const total = n1 + n2 + n1 * n2;
-        for (int index = tid; index < total; index += nt) {
+        for (int index = tid; index < total; index += score_nt) {
           if (index < n1) {
             sm.m.conn_ats1[index] =
                 block_type_atoms_forming_chemical_bonds[bt1][index];
@@ -521,7 +524,8 @@ auto ljlk_elec_forward_impl(
           }
         }
       });
-      DeviceOperations<D>::template for_each_in_workgroup<nt>(load_connections);
+      DeviceOperations<D>::template for_each_in_workgroup<score_nt>(
+          load_connections);
     });
 
     auto load_inter1 = ([=] TMOL_DEVICE_FUNC(
@@ -614,7 +618,7 @@ auto ljlk_elec_forward_impl(
               common::AllAtomPairSelector,
               D,
               tile_size,
-              nt,
+              score_nt,
               4,
               Real,
               Int>::
@@ -625,7 +629,7 @@ auto ljlk_elec_forward_impl(
               common::AllAtomPairSelector,
               D,
               tile_size,
-              nt,
+              score_nt,
               4,
               Real,
               Int>::
@@ -645,7 +649,7 @@ auto ljlk_elec_forward_impl(
           data.total_elec += scores[3];
         }
       });
-      DeviceOperations<D>::template for_each_in_workgroup<nt>(evaluate);
+      DeviceOperations<D>::template for_each_in_workgroup<score_nt>(evaluate);
     });
     auto eval_inter = ([=] TMOL_DEVICE_FUNC(
                            ScoringData<Real> & data, int start1, int start2) {
@@ -722,15 +726,18 @@ auto ljlk_elec_forward_impl(
       eval_pairs(data, start1, start2, true);
     });
 
-    auto store_energies = ([=] TMOL_DEVICE_FUNC(
-                               ScoringData<Real> & data,
-                               shared_mem_union & sm) {
-      auto reduce = ([&](int tid) {
-        store_score_totals<weighted, rotamer_pairs, DeviceOperations, D, nt>(
-            tid, data, sm, output);
-      });
-      DeviceOperations<D>::template for_each_in_workgroup<nt>(reduce);
-    });
+    auto store_energies =
+        ([=] TMOL_DEVICE_FUNC(ScoringData<Real> & data, shared_mem_union & sm) {
+          auto reduce = ([&](int tid) {
+            store_score_totals<
+                weighted,
+                rotamer_pairs,
+                DeviceOperations,
+                D,
+                score_nt>(tid, data, sm, output);
+          });
+          DeviceOperations<D>::template for_each_in_workgroup<score_nt>(reduce);
+        });
 
     common::tile_evaluate_rot_pair<
         DeviceOperations,
