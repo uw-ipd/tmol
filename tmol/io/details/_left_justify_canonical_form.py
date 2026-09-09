@@ -17,6 +17,7 @@ def left_justify_canonical_form(
     coords: Tensor[torch.float32][:, :, :, 3],
     atom_is_present: Optional[Tensor[torch.bool][:, :, :]] = None,
     disulfides: Optional[Tensor[torch.int64][:, 3]] = None,
+    cyclic_bonds: Optional[Tensor[torch.int64][:, 3]] = None,
     res_not_connected: Optional[Tensor[torch.bool][:, :, 2]] = None,
     res_labels: Optional[NDArray[int][:, :]] = None,
     res_ins_codes: Optional[NDArray[str][:, :]] = None,
@@ -64,22 +65,26 @@ def left_justify_canonical_form(
     if atom_is_present is not None:
         atom_is_present = lj(atom_is_present, 0)
 
-    if disulfides is not None:
+    def lj_res_pair_list(pairs):
+        """Rewrite the residue indices of a [pose, res, res] list."""
         old_2_new = torch.full(
             res_types.shape, -1, dtype=torch.int64, device=res_types.device
         )
         old_2_new[old_res_types_real] = torch.nonzero(res_types != -1)[:, 1]
-        dslf_pose_ind = disulfides[:, 0]
-        dslf_res1_ind = disulfides[:, 1]
-        dslf_res2_ind = disulfides[:, 2]
-        disulfides = torch.cat(
+        pose_ind = pairs[:, 0]
+        return torch.cat(
             [
-                dslf_pose_ind.unsqueeze(1),
-                old_2_new[dslf_pose_ind, dslf_res1_ind].unsqueeze(1),
-                old_2_new[dslf_pose_ind, dslf_res2_ind].unsqueeze(1),
+                pose_ind.unsqueeze(1),
+                old_2_new[pose_ind, pairs[:, 1]].unsqueeze(1),
+                old_2_new[pose_ind, pairs[:, 2]].unsqueeze(1),
             ],
             dim=1,
         )
+
+    if disulfides is not None:
+        disulfides = lj_res_pair_list(disulfides)
+    if cyclic_bonds is not None:
+        cyclic_bonds = lj_res_pair_list(cyclic_bonds)
     if res_not_connected is not None:
         res_not_connected = lj(res_not_connected, False)
 
@@ -103,6 +108,7 @@ def left_justify_canonical_form(
         coords,
         atom_is_present,
         disulfides,
+        cyclic_bonds,
         res_not_connected,
         res_labels,
         res_ins_codes,

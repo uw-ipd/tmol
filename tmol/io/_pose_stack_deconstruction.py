@@ -135,6 +135,30 @@ def canonical_form_from_pose_stack(
     )
     disulfides = redundant_dslf_tuples[is_non_redundant_dslf_tuple, :]
 
+    # a closing bond is an up connection whose partner is not the next residue;
+    # the sequential builder never makes one, so it can only be a cycle
+    up_conn_ind = torch.full((n_poses, max_n_res), -1, dtype=torch.int64, device=device)
+    up_conn_ind[is_real_block] = pbt.up_conn_inds[real_bt_inds64].to(torch.int64)
+    has_up_conn = up_conn_ind != -1
+    nz_pose_ind_for_up, nz_res_ind_for_up = torch.nonzero(has_up_conn, as_tuple=True)
+    up_partner = pose_stack.inter_residue_connections[
+        nz_pose_ind_for_up,
+        nz_res_ind_for_up,
+        up_conn_ind[has_up_conn],
+        0,
+    ].to(torch.int64)
+    is_closure = torch.logical_and(
+        up_partner != -1, up_partner != nz_res_ind_for_up + 1
+    )
+    cyclic_bonds = torch.cat(
+        (
+            _u1(nz_pose_ind_for_up[is_closure]),
+            _u1(nz_res_ind_for_up[is_closure]),
+            _u1(up_partner[is_closure]),
+        ),
+        dim=1,
+    )
+
     if chain_id is None:
         chain_id = torch.tensor(
             chain_inds_for_pose_stack(pose_stack), dtype=torch.int32, device=device
@@ -157,6 +181,7 @@ def canonical_form_from_pose_stack(
         atom_b_factor=expanded_b_factor,
         res_not_connected=res_not_connected,
         disulfides=disulfides,
+        cyclic_bonds=cyclic_bonds,
     )
 
 

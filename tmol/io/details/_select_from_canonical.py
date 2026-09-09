@@ -30,6 +30,7 @@ def assign_block_types(
     res_type_variants: Tensor[torch.int32][:, :],
     found_disulfides64: Tensor[torch.int64][:, 3],
     res_not_connected: Optional[Tensor[torch.bool][:, :, 2]] = None,
+    cyclic_closures64: Optional[Tensor[torch.int64][:, 3]] = None,
 ) -> Tuple[
     Tensor[torch.int64][:, :],
     Tensor[torch.int64][:, :, :, 2],
@@ -62,7 +63,7 @@ def assign_block_types(
         is_actual_last_chain_res,
         is_polymeric,
     ) = determine_chain_ending_status(
-        pbt, chain_id, res_types64, res_not_connected, is_real_res
+        pbt, chain_id, res_types64, res_not_connected, is_real_res, cyclic_closures64
     )
 
     block_type_ind64 = select_best_block_type_candidate(
@@ -186,6 +187,32 @@ def assign_block_types(
             found_disulfides64[:, 0], found_disulfides64[:, 2], cyd2_dslf_conn64, 1
         ] = cyd1_dslf_conn64
 
+    # a cyclic chain's closing bond joins two residues the sequential logic
+    # above deliberately skipped, so write it from the explicit pair list
+    if cyclic_closures64 is not None and cyclic_closures64.shape[0] != 0:
+        cyc_pose = cyclic_closures64[:, 0]
+        cyc_up_res = cyclic_closures64[:, 1]
+        cyc_down_res = cyclic_closures64[:, 2]
+        cyc_up_conn64 = pbt.up_conn_inds[block_type_ind64[cyc_pose, cyc_up_res]].to(
+            torch.int64
+        )
+        cyc_down_conn64 = pbt.down_conn_inds[
+            block_type_ind64[cyc_pose, cyc_down_res]
+        ].to(torch.int64)
+
+        inter_residue_connections64[cyc_pose, cyc_up_res, cyc_up_conn64, 0] = (
+            cyc_down_res
+        )
+        inter_residue_connections64[cyc_pose, cyc_up_res, cyc_up_conn64, 1] = (
+            cyc_down_conn64
+        )
+        inter_residue_connections64[cyc_pose, cyc_down_res, cyc_down_conn64, 0] = (
+            cyc_up_res
+        )
+        inter_residue_connections64[cyc_pose, cyc_down_res, cyc_down_conn64, 1] = (
+            cyc_up_conn64
+        )
+
     # now that we have the inter-residue connections established,
     _assert_connections_are_well_formed(
         pbt, block_type_ind64, inter_residue_connections64
@@ -257,6 +284,7 @@ def determine_chain_ending_status(
     res_types64: Tensor[torch.int64][:, :],
     res_not_connected: Optional[Tensor[torch.bool][:, :, 2]],
     is_real_res: Tensor[torch.bool][:, :],
+    cyclic_closures64: Optional[Tensor[torch.int64][:, 3]] = None,
 ):
     n_poses = chain_id.shape[0]
     device = pbt.device
@@ -370,6 +398,14 @@ def determine_chain_ending_status(
         is_actual_last_chain_res,
         torch.logical_not(res_not_connected[:, :, 1]),
     )
+
+    # A residue whose backbone continues around a cycle is not a terminus, even
+    # though it does sit at the end of the residue-index range for its chain.
+    # The chain-boundary flags keep their meaning: they still bar the pair from
+    # the sequential connection logic below, which pairs residue i with i+1.
+    if cyclic_closures64 is not None and cyclic_closures64.shape[0] != 0:
+        is_up_term_res[cyclic_closures64[:, 0], cyclic_closures64[:, 1]] = False
+        is_down_term_res[cyclic_closures64[:, 0], cyclic_closures64[:, 2]] = False
     is_down_and_not_up_term_res = torch.logical_and(
         is_down_term_res, torch.logical_not(is_up_term_res)
     )

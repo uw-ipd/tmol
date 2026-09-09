@@ -177,8 +177,11 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 
     int const rot_offset1 = rot_coord_offset[rot_ind1];
 
-    int const V_ind1 = output_block_pair_energies ? block_ind1 : 0;
-    int const V_ind2 = output_block_pair_energies ? block_ind2 : 0;
+    // correction for cyclic peptides
+    int const V_ind1 =
+        output_block_pair_energies ? min(block_ind1, block_ind2) : 0;
+    int const V_ind2 =
+        output_block_pair_energies ? max(block_ind1, block_ind2) : 0;
 
     bool valid_phipsi = true;
     Vec<Int, 4> phi_ats;
@@ -844,8 +847,9 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
             first_rot_for_block[pose_ind][upper_nbr_block_ind] + local_rot2_ind;
 
         dispatch_indices[0][sparse_index] = pose_ind;
-        dispatch_indices[1][sparse_index] = rot1_ind;
-        dispatch_indices[2][sparse_index] = rot2_ind;
+        // correction for cyclic peptides
+        dispatch_indices[1][sparse_index] = min(rot1_ind, rot2_ind);
+        dispatch_indices[2][sparse_index] = max(rot1_ind, rot2_ind);
       }
     }
   });
@@ -857,14 +861,31 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
   auto rama_omega_func = ([=] TMOL_DEVICE_FUNC(int ind) {
     int const pose_ind = dispatch_indices[0][ind];
 
-    int const rot_ind1 = dispatch_indices[1][ind];
-    int const rot_ind2 = dispatch_indices[2][ind];
+    int rot_ind1 = dispatch_indices[1][ind];
+    int rot_ind2 = dispatch_indices[2][ind];
 
-    int const block_ind1 = block_ind_for_rot[rot_ind1];
-    int const block_ind2 = block_ind_for_rot[rot_ind2];
+    int block_ind1 = block_ind_for_rot[rot_ind1];
+    int block_ind2 = block_ind_for_rot[rot_ind2];
 
-    int const block_type1 = block_type_ind_for_rot[rot_ind1];
-    int const block_type2 = block_type_ind_for_rot[rot_ind2];
+    int block_type1 = block_type_ind_for_rot[rot_ind1];
+    int block_type2 = block_type_ind_for_rot[rot_ind2];
+
+    // correction for cyclic peptides
+    int const stored_upper_conn = block_type_upper_conn_ind[block_type1];
+    if (stored_upper_conn < 0
+        || pose_stack_inter_block_connections[pose_ind][block_ind1]
+                                             [stored_upper_conn][0]
+               != block_ind2) {
+      int const swap_rot = rot_ind1;
+      int const swap_block = block_ind1;
+      int const swap_block_type = block_type1;
+      rot_ind1 = rot_ind2;
+      block_ind1 = block_ind2;
+      block_type1 = block_type2;
+      rot_ind2 = swap_rot;
+      block_ind2 = swap_block;
+      block_type2 = swap_block_type;
+    }
 
     // Where will we write the output?
     // In block-pair-scoring mode, we store one energy per rotamer;
@@ -1129,14 +1150,31 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
   auto rama_omega_func = ([=] TMOL_DEVICE_FUNC(int ind) {
     int const pose_ind = dispatch_indices[0][ind];
 
-    int const rot_ind1 = dispatch_indices[1][ind];
-    int const rot_ind2 = dispatch_indices[2][ind];
+    int rot_ind1 = dispatch_indices[1][ind];
+    int rot_ind2 = dispatch_indices[2][ind];
 
-    int const block_ind1 = block_ind_for_rot[rot_ind1];
-    int const block_ind2 = block_ind_for_rot[rot_ind2];
+    int block_ind1 = block_ind_for_rot[rot_ind1];
+    int block_ind2 = block_ind_for_rot[rot_ind2];
 
-    int const block_type1 = block_type_ind_for_rot[rot_ind1];
-    int const block_type2 = block_type_ind_for_rot[rot_ind2];
+    int block_type1 = block_type_ind_for_rot[rot_ind1];
+    int block_type2 = block_type_ind_for_rot[rot_ind2];
+
+    // correction for cyclic peptides
+    int const stored_upper_conn = block_type_upper_conn_ind[block_type1];
+    if (stored_upper_conn < 0
+        || pose_stack_inter_block_connections[pose_ind][block_ind1]
+                                             [stored_upper_conn][0]
+               != block_ind2) {
+      int const swap_rot = rot_ind1;
+      int const swap_block = block_ind1;
+      int const swap_block_type = block_type1;
+      rot_ind1 = rot_ind2;
+      block_ind1 = block_ind2;
+      block_type1 = block_type2;
+      rot_ind2 = swap_rot;
+      block_ind2 = swap_block;
+      block_type2 = swap_block_type;
+    }
 
     // Where did we write the output?
     // In block-pair-scoring mode, we store one energy per rotamer;

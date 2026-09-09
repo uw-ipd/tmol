@@ -31,8 +31,10 @@ def pose_stack_from_canonical_form(  # noqa: C901
     atom_b_factor: Optional[NDArray[numpy.float32][:, :, :]] = None,
     disulfides: Optional[Tensor[torch.int64][:, 3]] = None,
     res_not_connected: Optional[Tensor[torch.bool][:, :, 2]] = None,
+    cyclic_bonds: Optional[Tensor[torch.int64][:, 3]] = None,
     *,
     find_additional_disulfides: Optional[bool] = True,
+    find_additional_cyclic_closures: Optional[bool] = True,
     return_chain_ind: bool = False,
     return_atom_mapping: bool = False,
     return_block_has_missing_atoms: bool = False,
@@ -96,6 +98,19 @@ def pose_stack_from_canonical_form(  # noqa: C901
         unpaired CYS from being locked into disulfides, then set this flag
         to False
 
+    cyclic_bonds: an optional n-total-closures x 3 tensor naming the chains
+        whose last residue is chemically bonded back onto their first:
+        [ [pose_ind, up_res_ind, down_res_ind], ...], where up_res_ind
+        supplies the bond's "up" connection and down_res_ind its "down". If
+        this argument is not provided, a chain is taken as cyclic when its
+        last residue's up-connection atom lies within 2A of its first
+        residue's down-connection atom. Neither residue of a closed chain is
+        given a termini-variant type.
+
+    find_additional_cyclic_closures: an optional boolean argument to control
+        whether to look for closures on chains not listed in the
+        "cyclic_bonds" argument. By default this is True.
+
     res_not_connected: an optional input used to indicate that a given (polymeric)
         residue is not connected to either its previous or next residue; for
         termini residues, they will not be built with their termini-variant
@@ -149,7 +164,7 @@ def pose_stack_from_canonical_form(  # noqa: C901
     """
 
     from tmol.io.details import left_justify_canonical_form
-    from tmol.io.details import find_disulfides
+    from tmol.io.details import find_cyclic_closures, find_disulfides
     from tmol.io.details import resolve_his_tautomerization
     from tmol.io.details import (
         assign_block_types,
@@ -182,7 +197,7 @@ def pose_stack_from_canonical_form(  # noqa: C901
     #         in the input coordinate tensor.
     # step 2: remove any "virtual residues," marked with a res-type ind of -1
     #         by shifting all of the residues in each Pose "to the left"
-    # step 3: resolve disulfides
+    # step 3: resolve disulfides and cyclic-chain closures
     # step 4: resolve his tautomer
     # step 5: resolve termini variants, assign block-types to each input
     #         residue, and populate the inter-block connectivity tensors
@@ -209,6 +224,7 @@ def pose_stack_from_canonical_form(  # noqa: C901
         coords,
         atom_is_present,
         disulfides,
+        cyclic_bonds,
         res_not_connected,
         res_labels,
         res_ins_codes,
@@ -221,6 +237,7 @@ def pose_stack_from_canonical_form(  # noqa: C901
         coords,
         atom_is_present,
         disulfides,
+        cyclic_bonds,
         res_not_connected,
         res_labels,
         res_ins_codes,
@@ -240,6 +257,16 @@ def pose_stack_from_canonical_form(  # noqa: C901
     # 3
     found_disulfides, res_type_variants = find_disulfides(
         canonical_ordering, res_types, coords, disulfides, find_additional_disulfides
+    )
+
+    # 3b
+    cyclic_closures = find_cyclic_closures(
+        canonical_ordering,
+        chain_id,
+        res_types,
+        coords,
+        cyclic_bonds,
+        find_additional_cyclic_closures,
     )
 
     # 4
@@ -266,6 +293,7 @@ def pose_stack_from_canonical_form(  # noqa: C901
         res_type_variants,
         found_disulfides,
         res_not_connected,
+        cyclic_closures,
     )
 
     # 6

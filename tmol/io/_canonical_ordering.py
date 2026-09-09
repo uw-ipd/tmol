@@ -36,6 +36,19 @@ class ordered_set:
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
+class PolymerConnectionIndices:
+    """The canonical atom index of each equivalence class's down and up connection.
+
+    Entries are -1 where the class has no such connection, either because it is
+    not polymeric or because it connects in only one direction, as a cap does.
+    """
+
+    # n-equivalence-class
+    down_atom_for_co_restype: Tuple[int, ...]
+    up_atom_for_co_restype: Tuple[int, ...]
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
 class CysSpecialCaseIndices:
     # every equivalence class that forms disulfides, l and d alike
     cys_co_aa_inds: Tuple[int, ...]
@@ -182,6 +195,7 @@ class CanonicalOrdering:
     termini_patch_added_atoms: Mapping[str, Tuple[str, ...]]
     cys_inds: CysSpecialCaseIndices
     his_inds: HisSpecialCaseIndices
+    polymer_conn_inds: PolymerConnectionIndices
 
     # input residue names read as another residue's, from the chemical database
     name3_aliases: Mapping[str, str] = attr.ib(factory=dict)
@@ -310,6 +324,47 @@ class CanonicalOrdering:
             his_inds=cls._init_his_special_case_indices(
                 chemdb, ordered_restypes, restypes_ordered_atom_names
             ),
+            polymer_conn_inds=cls._init_polymer_connection_indices(
+                chemdb, ordered_restypes, restypes_atom_index_mapping
+            ),
+        )
+
+    @classmethod
+    def _init_polymer_connection_indices(
+        cls,
+        chemdb: PatchedChemicalDatabase,
+        restype_name3s,
+        restypes_atom_index_mapping,
+    ):
+        """Where each equivalence class's down and up connections attach.
+
+        Read off the residue types' own connections, so a nucleic acid's P and
+        O3' are found by the same rule that finds a protein's N and C.
+        """
+        down = [-1] * len(restype_name3s)
+        up = [-1] * len(restype_name3s)
+        for restype in chemdb.residues:
+            equiv = restype.io_equiv_class
+            if equiv not in restype_name3s:
+                continue
+            equiv_ind = restype_name3s.index(equiv)
+            atom_inds = restypes_atom_index_mapping[equiv]
+            for conn in restype.connections:
+                target = (
+                    down if conn.name == "down" else up if conn.name == "up" else None
+                )
+                if target is None or conn.atom not in atom_inds:
+                    continue
+                atom_ind = atom_inds[conn.atom]
+                if target[equiv_ind] not in (-1, atom_ind):
+                    raise ValueError(
+                        f"equivalence class {equiv} disagrees on where its "
+                        f"{conn.name} connection attaches"
+                    )
+                target[equiv_ind] = atom_ind
+        return PolymerConnectionIndices(
+            down_atom_for_co_restype=tuple(down),
+            up_atom_for_co_restype=tuple(up),
         )
 
     @classmethod

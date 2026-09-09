@@ -7,6 +7,7 @@ from ._build_missing_leaf_atoms import (  # noqa: F401
     PackedBlockTypesHCompletionAnnotation,
     _annotate_packed_block_types_atom_is_leaf_atom,
 )
+from ._cyclic_search import find_cyclic_closures  # noqa: F401
 from ._disulfide_search import find_disulfides, find_disulf_numba  # noqa: F401
 from ._his_taut_resolution import (  # noqa: F401
     his_taut_variant_NE2_protonated,
