@@ -417,7 +417,8 @@
                 <article class="bd-article">
                   
   <h1>Source code for tmol.score.ljlk._ljlk_energy_term</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.._atom_type_dependent_term</span><span class="w"> </span><span class="kn">import</span> <span class="n">AtomTypeDependentTerm</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.._bond_dependent_term</span><span class="w"> </span><span class="kn">import</span> <span class="n">BondDependentTerm</span>
@@ -488,30 +489,33 @@
             <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"ljlk_is_ligand_fragment"</span><span class="p">)</span>
             <span class="k">return</span>
         <span class="n">max_n_tiles</span> <span class="o">=</span> <span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">max_n_atoms</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">tile_size</span> <span class="o">+</span> <span class="mi">1</span>
-        <span class="n">heavy_atoms_in_tile</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+        <span class="n">heavy_atoms_in_tile</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
             <span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="n">max_n_tiles</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">tile_size</span><span class="p">),</span>
             <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
-            <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">n_heavy_ats_in_tile</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+        <span class="n">n_heavy_ats_in_tile</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
             <span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="n">max_n_tiles</span><span class="p">),</span>
             <span class="mi">0</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
-            <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
         <span class="p">)</span>
-
-        <span class="k">def</span><span class="w"> </span><span class="nf">_t</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">rt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">):</span>
             <span class="n">i_n_tiles</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">ljlk_n_heavy_atoms_in_tile</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="n">i_n_tile_ats</span> <span class="o">=</span> <span class="n">i_n_tiles</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">tile_size</span>
-            <span class="n">heavy_atoms_in_tile</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">i_n_tile_ats</span><span class="p">]</span> <span class="o">=</span> <span class="n">_t</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">ljlk_heavy_atoms_in_tile</span><span class="p">)</span>
-            <span class="n">n_heavy_ats_in_tile</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">i_n_tiles</span><span class="p">]</span> <span class="o">=</span> <span class="n">_t</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">ljlk_n_heavy_atoms_in_tile</span><span class="p">)</span>
+            <span class="n">heavy_atoms_in_tile</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">i_n_tile_ats</span><span class="p">]</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">ljlk_heavy_atoms_in_tile</span>
+            <span class="n">n_heavy_ats_in_tile</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">i_n_tiles</span><span class="p">]</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">ljlk_n_heavy_atoms_in_tile</span>
 
-        <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"ljlk_heavy_atoms_in_tile"</span><span class="p">,</span> <span class="n">heavy_atoms_in_tile</span><span class="p">)</span>
-        <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"ljlk_n_heavy_atoms_in_tile"</span><span class="p">,</span> <span class="n">n_heavy_ats_in_tile</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span>
+            <span class="n">packed_block_types</span><span class="p">,</span>
+            <span class="s2">"ljlk_heavy_atoms_in_tile"</span><span class="p">,</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">heavy_atoms_in_tile</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span>
+            <span class="n">packed_block_types</span><span class="p">,</span>
+            <span class="s2">"ljlk_n_heavy_atoms_in_tile"</span><span class="p">,</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">n_heavy_ats_in_tile</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+        <span class="p">)</span>
 
         <span class="c1"># Ligands (non-polymer) use CP_CROSSOVER_3FULL: 1-4 pairs get full</span>
         <span class="c1"># weight (1.0). Build a modified bond_separation where path_dist=4 is</span>
@@ -520,16 +524,21 @@
         <span class="n">ljlk_bond_separation</span> <span class="o">=</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">bond_separation</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">):</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">is_polymer</span><span class="p">:</span>
-                <span class="n">n</span> <span class="o">=</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">n</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span>
                 <span class="n">slab</span> <span class="o">=</span> <span class="n">ljlk_bond_separation</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">n</span><span class="p">,</span> <span class="p">:</span><span class="n">n</span><span class="p">]</span>
                 <span class="n">slab</span><span class="p">[(</span><span class="n">slab</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">slab</span> <span class="o">==</span> <span class="mi">4</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">5</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"ljlk_bond_separation"</span><span class="p">,</span> <span class="n">ljlk_bond_separation</span><span class="p">)</span>
         <span class="nb">setattr</span><span class="p">(</span>
             <span class="n">packed_block_types</span><span class="p">,</span>
             <span class="s2">"ljlk_is_ligand_fragment"</span><span class="p">,</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
-                <span class="p">[</span><span class="n">bt</span><span class="o">.</span><span class="n">is_ligand_fragment</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">],</span>
-                <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
+                <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="n">bt</span><span class="o">.</span><span class="n">is_ligand_fragment</span>
+                        <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+                    <span class="p">],</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+                <span class="p">),</span>
                 <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
             <span class="p">),</span>
         <span class="p">)</span>

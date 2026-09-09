@@ -419,6 +419,7 @@
   <h1>Source code for tmol.score.elec._elec_energy_term</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.._atom_type_dependent_term</span><span class="w"> </span><span class="kn">import</span> <span class="n">AtomTypeDependentTerm</span>
@@ -520,55 +521,57 @@
             <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"elec_is_ligand_fragment"</span><span class="p">)</span>
             <span class="k">return</span>
 
-        <span class="k">def</span><span class="w"> </span><span class="nf">_ti</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-
-        <span class="k">def</span><span class="w"> </span><span class="nf">_tf</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-
         <span class="n">pbt</span> <span class="o">=</span> <span class="n">packed_block_types</span>
-        <span class="n">elec_partial_charge</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span>
+        <span class="n">elec_partial_charge</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span>
         <span class="p">)</span>
-        <span class="n">elec_inter_repr_path_distance</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+        <span class="n">elec_inter_repr_path_distance</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
             <span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">),</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
-            <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">elec_intra_repr_path_distance</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+        <span class="n">elec_intra_repr_path_distance</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
             <span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">),</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
-            <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">):</span>
-            <span class="n">elec_partial_charge</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span> <span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">]</span> <span class="o">=</span> <span class="n">_tf</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">elec_partial_charge</span><span class="p">)</span>
-            <span class="n">elec_inter_repr_path_distance</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span> <span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,</span> <span class="p">:</span> <span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">]</span> <span class="o">=</span> <span class="n">_ti</span><span class="p">(</span>
+            <span class="n">n_atoms</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span>
+            <span class="n">elec_partial_charge</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">n_atoms</span><span class="p">]</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">elec_partial_charge</span>
+            <span class="n">elec_inter_repr_path_distance</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">n_atoms</span><span class="p">,</span> <span class="p">:</span><span class="n">n_atoms</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="n">bt</span><span class="o">.</span><span class="n">elec_inter_repr_path_distance</span>
             <span class="p">)</span>
-            <span class="n">elec_intra_repr_path_distance</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span> <span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,</span> <span class="p">:</span> <span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">]</span> <span class="o">=</span> <span class="n">_ti</span><span class="p">(</span>
+            <span class="n">elec_intra_repr_path_distance</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">n_atoms</span><span class="p">,</span> <span class="p">:</span><span class="n">n_atoms</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="n">bt</span><span class="o">.</span><span class="n">elec_intra_repr_path_distance</span>
             <span class="p">)</span>
 
-        <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"elec_partial_charge"</span><span class="p">,</span> <span class="n">elec_partial_charge</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span>
+            <span class="n">packed_block_types</span><span class="p">,</span>
+            <span class="s2">"elec_partial_charge"</span><span class="p">,</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">elec_partial_charge</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+        <span class="p">)</span>
         <span class="nb">setattr</span><span class="p">(</span>
             <span class="n">packed_block_types</span><span class="p">,</span>
             <span class="s2">"elec_is_ligand_fragment"</span><span class="p">,</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
-                <span class="p">[</span><span class="n">bt</span><span class="o">.</span><span class="n">is_ligand_fragment</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">],</span>
-                <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
+                <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="n">bt</span><span class="o">.</span><span class="n">is_ligand_fragment</span>
+                        <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+                    <span class="p">],</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+                <span class="p">),</span>
                 <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
             <span class="p">),</span>
         <span class="p">)</span>
         <span class="nb">setattr</span><span class="p">(</span>
             <span class="n">packed_block_types</span><span class="p">,</span>
             <span class="s2">"elec_inter_repr_path_distance"</span><span class="p">,</span>
-            <span class="n">elec_inter_repr_path_distance</span><span class="p">,</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">elec_inter_repr_path_distance</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
         <span class="p">)</span>
         <span class="nb">setattr</span><span class="p">(</span>
             <span class="n">packed_block_types</span><span class="p">,</span>
             <span class="s2">"elec_intra_repr_path_distance"</span><span class="p">,</span>
-            <span class="n">elec_intra_repr_path_distance</span><span class="p">,</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">elec_intra_repr_path_distance</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_poses</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">poses</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">):</span>

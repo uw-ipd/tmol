@@ -780,6 +780,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_options_version</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_prepared_packed_block_types</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_prepared_versions</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prepared_block_type_ids</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prepared_packed_annotation_names</span> <span class="o">=</span> <span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_setup_token</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">term_options</span> <span class="o">=</span> <span class="p">{}</span>
@@ -1048,7 +1050,9 @@
 <span class="w">        </span><span class="sd">"""Prepare active energy terms for a pose topology.</span>
 
 <span class="sd">        Repeated calls reuse topology-dependent setup when neither the terms,</span>
-<span class="sd">        their options, nor the packed block types have changed.</span>
+<span class="sd">        their options, nor the packed block types have changed. A newly built</span>
+<span class="sd">        PackedBlockTypes with the same ordered residue-type objects can reuse</span>
+<span class="sd">        the previous packed annotations.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            pose_stack: Poses whose topology will be scored.</span>
@@ -1061,17 +1065,46 @@
 
         <span class="n">packed_block_types</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
         <span class="n">versions</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_terms_version</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_options_version</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
+        <span class="n">same_object</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">packed_block_types</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepared_packed_block_types</span>
             <span class="ow">and</span> <span class="n">versions</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepared_versions</span>
             <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"_score_setup_token"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">_setup_token</span>
-        <span class="p">):</span>
-            <span class="k">for</span> <span class="n">block_type</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">:</span>
-                <span class="k">for</span> <span class="n">energy_term</span> <span class="ow">in</span> <span class="n">terms</span><span class="p">:</span>
-                    <span class="n">energy_term</span><span class="o">.</span><span class="n">setup_block_type</span><span class="p">(</span><span class="n">block_type</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">same_object</span><span class="p">:</span>
+            <span class="n">block_type_ids</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+                <span class="nb">id</span><span class="p">(</span><span class="n">block_type</span><span class="p">)</span> <span class="k">for</span> <span class="n">block_type</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+            <span class="p">)</span>
+            <span class="n">previous</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepared_packed_block_types</span>
+            <span class="n">same_block_types</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">previous</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="ow">and</span> <span class="n">versions</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepared_versions</span>
+                <span class="ow">and</span> <span class="n">block_type_ids</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepared_block_type_ids</span>
+                <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">previous</span><span class="p">,</span> <span class="s2">"_score_setup_token"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">_setup_token</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">same_block_types</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepared_packed_annotation_names</span><span class="p">:</span>
+                    <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">previous</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">block_type</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">energy_term</span> <span class="ow">in</span> <span class="n">terms</span><span class="p">:</span>
+                        <span class="n">energy_term</span><span class="o">.</span><span class="n">setup_block_type</span><span class="p">(</span><span class="n">block_type</span><span class="p">)</span>
+
+            <span class="n">attributes_before</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">vars</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">))</span>
             <span class="k">for</span> <span class="n">energy_term</span> <span class="ow">in</span> <span class="n">terms</span><span class="p">:</span>
                 <span class="n">energy_term</span><span class="o">.</span><span class="n">setup_packed_block_types</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">)</span>
+            <span class="n">annotations</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">name</span>
+                <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">vars</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">attributes_before</span> <span class="ow">or</span> <span class="n">attributes_before</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">value</span>
+            <span class="p">}</span>
+            <span class="n">annotations</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                <span class="n">name</span>
+                <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepared_packed_annotation_names</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_prepared_packed_annotation_names</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">annotations</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_prepared_block_type_ids</span> <span class="o">=</span> <span class="n">block_type_ids</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_prepared_packed_block_types</span> <span class="o">=</span> <span class="n">packed_block_types</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_prepared_versions</span> <span class="o">=</span> <span class="n">versions</span>
             <span class="c1"># Packed-block annotations can be score-function-specific (for</span>

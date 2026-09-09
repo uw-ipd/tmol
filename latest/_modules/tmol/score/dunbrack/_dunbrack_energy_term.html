@@ -639,7 +639,6 @@
         <span class="bp">self</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">,</span> <span class="n">field_getter</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">default_fill</span><span class="o">=-</span><span class="mi">1</span>
     <span class="p">):</span>
         <span class="n">max_size</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="n">dtype</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">active_block_types</span><span class="p">:</span>
             <span class="n">bt_data</span> <span class="o">=</span> <span class="n">field_getter</span><span class="p">(</span><span class="n">bt</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">bt_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -647,41 +646,25 @@
             <span class="n">cur</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">bt_data</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">max_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">max_size</span> <span class="o">=</span> <span class="n">cur</span>
-                <span class="n">dtype</span> <span class="o">=</span> <span class="n">bt_data</span><span class="o">.</span><span class="n">dtype</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bt_data</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="k">else</span> <span class="nb">int</span>
             <span class="n">max_size</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">max_size</span><span class="p">,</span> <span class="n">cur</span><span class="p">)</span>
 
         <span class="n">n_block_types</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">active_block_types</span><span class="p">),)</span>
         <span class="n">size</span> <span class="o">=</span> <span class="n">n_block_types</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">max_size</span><span class="p">)</span>
 
-        <span class="n">dtype_conversion</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">):</span> <span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
-            <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">):</span> <span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
-            <span class="nb">int</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
-        <span class="p">}</span>
-
-        <span class="n">tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
-            <span class="n">size</span><span class="p">,</span> <span class="n">default_fill</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype_conversion</span><span class="p">[</span><span class="n">dtype</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
-        <span class="p">)</span>
-
-        <span class="k">def</span><span class="w"> </span><span class="nf">dim_slices</span><span class="p">(</span><span class="n">dim</span><span class="p">):</span>
-            <span class="k">return</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dim</span><span class="p">)</span>
-
+        <span class="n">packed</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">default_fill</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">active_block_types</span><span class="p">):</span>
             <span class="n">bt_data</span> <span class="o">=</span> <span class="n">field_getter</span><span class="p">(</span><span class="n">bt</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">bt_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">continue</span>
-            <span class="n">slices</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span>
-                <span class="p">[</span><span class="o">*</span><span class="nb">map</span><span class="p">(</span><span class="n">dim_slices</span><span class="p">,</span> <span class="n">bt_data</span><span class="o">.</span><span class="n">shape</span><span class="p">)]</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bt_data</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
-                <span class="k">else</span> <span class="p">[]</span>
-            <span class="p">)</span>
-            <span class="n">tensor</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">slices</span><span class="p">)]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
-                <span class="n">bt_data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype_conversion</span><span class="p">[</span><span class="n">dtype</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
-            <span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bt_data</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">integer</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span>
+                <span class="nb">isinstance</span><span class="p">(</span><span class="n">bt_data</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">and</span> <span class="n">bt_data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="p">):</span>
+                <span class="n">packed</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">bt_data</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">slices</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span><span class="p">,)</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dim</span><span class="p">)</span> <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="n">numpy</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">bt_data</span><span class="p">))</span>
+                <span class="n">packed</span><span class="p">[</span><span class="n">slices</span><span class="p">]</span> <span class="o">=</span> <span class="n">bt_data</span>
 
-        <span class="k">return</span> <span class="n">tensor</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">packed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_poses</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">poses</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">DunbrackEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_poses</span><span class="p">(</span><span class="n">poses</span><span class="p">)</span>
