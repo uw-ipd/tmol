@@ -54,45 +54,50 @@ class BondDependentTerm(EnergyTerm):
             dtype=numpy.int32,
         )
         for i, rt in enumerate(packed_block_types.active_block_types):
-            i_nats = packed_block_types.n_atoms[i]
+            i_nats = rt.n_atoms
             bond_separation[i, :i_nats, :i_nats] = rt.path_distance
-        bond_separation = torch.tensor(bond_separation, device=self.device)
 
-        n_all_bonds = torch.full(
-            (packed_block_types.n_types,),
-            -1,
-            dtype=torch.int32,
-            device=packed_block_types.device,
-        )
         max_n_all_bonds = max(
             bt.all_bonds.shape[0] for bt in packed_block_types.active_block_types
         )
-        all_bonds = torch.full(
+        n_all_bonds = numpy.full((packed_block_types.n_types,), -1, dtype=numpy.int32)
+        all_bonds = numpy.full(
             (packed_block_types.n_types, max_n_all_bonds, 3),
             -1,
-            dtype=torch.int32,
-            device=packed_block_types.device,
+            dtype=numpy.int32,
         )
-        atom_all_bond_ranges = torch.full(
+        atom_all_bond_ranges = numpy.full(
             (packed_block_types.n_types, packed_block_types.max_n_atoms, 2),
             -1,
-            dtype=torch.int32,
-            device=packed_block_types.device,
+            dtype=numpy.int32,
         )
-
-        def _t(arr):
-            return torch.tensor(arr, dtype=torch.int32, device=self.device)
 
         for i, bt in enumerate(packed_block_types.active_block_types):
             i_n_bonds = bt.all_bonds.shape[0]
             n_all_bonds[i] = i_n_bonds
-            all_bonds[i, :i_n_bonds, :] = _t(bt.all_bonds)
-            atom_all_bond_ranges[i, : bt.n_atoms] = _t(bt.atom_all_bond_ranges)
+            all_bonds[i, :i_n_bonds, :] = bt.all_bonds
+            atom_all_bond_ranges[i, : bt.n_atoms] = bt.atom_all_bond_ranges
 
-        setattr(packed_block_types, "bond_separation", bond_separation)
-        setattr(packed_block_types, "n_all_bonds", n_all_bonds)
-        setattr(packed_block_types, "all_bonds", all_bonds)
-        setattr(packed_block_types, "atom_all_bond_ranges", atom_all_bond_ranges)
+        setattr(
+            packed_block_types,
+            "bond_separation",
+            torch.as_tensor(bond_separation, device=self.device),
+        )
+        setattr(
+            packed_block_types,
+            "n_all_bonds",
+            torch.as_tensor(n_all_bonds, device=self.device),
+        )
+        setattr(
+            packed_block_types,
+            "all_bonds",
+            torch.as_tensor(all_bonds, device=self.device),
+        )
+        setattr(
+            packed_block_types,
+            "atom_all_bond_ranges",
+            torch.as_tensor(atom_all_bond_ranges, device=self.device),
+        )
 
     def setup_poses(self, pose_stack: PoseStack):
         super(BondDependentTerm, self).setup_poses(pose_stack)

@@ -138,42 +138,28 @@ class AtomTypeDependentTerm(EnergyTerm):
                 atom_cross_ids[i, j] = atom_unique_id_index[atom_name]
 
         for i, restype in enumerate(packed_block_types.active_block_types):
-            atom_types[i, : packed_block_types.n_atoms[i]] = (
-                self.atom_type_index.get_indexer([x.atom_type for x in restype.atoms])
-            )
+            atom_types[i, : restype.n_atoms] = restype.atom_types
 
-        heavy_atom_inds = []
-        for restype in packed_block_types.active_block_types:
-            rt_heavy = [
-                j
-                for j, atype_ind in enumerate(
-                    self.atom_type_resolver.index.get_indexer(
-                        [restype.atoms[j].atom_type for j in range(len(restype.atoms))]
-                    )
-                )
-                if not self.atom_type_resolver.params.is_hydrogen[atype_ind]
-            ]
-            heavy_atom_inds.append(rt_heavy)
+        heavy_atom_inds = [
+            restype.heavy_atom_inds for restype in packed_block_types.active_block_types
+        ]
 
         n_heavy_atoms = numpy.array(
             [len(heavy_inds) for heavy_inds in heavy_atom_inds], dtype=numpy.int32
         )
-        max_n_heavy = numpy.max(n_heavy_atoms)
-
-        heavy_atom_inds_t = torch.full(
-            (packed_block_types.n_types, max_n_heavy), -1, dtype=torch.int32
+        max_n_heavy = int(numpy.max(n_heavy_atoms)) if n_heavy_atoms.size else 0
+        heavy_atom_inds_array = numpy.full(
+            (packed_block_types.n_types, max_n_heavy), -1, dtype=numpy.int32
         )
         for i, inds in enumerate(heavy_atom_inds):
-            heavy_atom_inds_t[i, : len(inds)] = torch.tensor(inds, dtype=torch.int32)
+            heavy_atom_inds_array[i, : len(inds)] = inds
 
-        atom_types = torch.tensor(atom_types, device=self.device)
-        heavy_atom_inds_t = heavy_atom_inds_t.to(self.device)
-        n_heavy_atoms = torch.tensor(
-            n_heavy_atoms, dtype=torch.int32, device=self.device
-        )
-        atom_unique_ids = torch.tensor(atom_unique_ids, device=self.device)
-        atom_wildcard_ids = torch.tensor(atom_wildcard_ids, device=self.device)
-        atom_cross_ids = torch.tensor(atom_cross_ids, device=self.device)
+        atom_types = torch.as_tensor(atom_types, device=self.device)
+        heavy_atom_inds_t = torch.as_tensor(heavy_atom_inds_array, device=self.device)
+        n_heavy_atoms = torch.as_tensor(n_heavy_atoms, device=self.device)
+        atom_unique_ids = torch.as_tensor(atom_unique_ids, device=self.device)
+        atom_wildcard_ids = torch.as_tensor(atom_wildcard_ids, device=self.device)
+        atom_cross_ids = torch.as_tensor(atom_cross_ids, device=self.device)
 
         setattr(packed_block_types, "atom_types", atom_types)
         setattr(packed_block_types, "n_heavy_atoms", n_heavy_atoms)

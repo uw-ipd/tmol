@@ -1,3 +1,4 @@
+import numpy
 import torch
 
 from .._atom_type_dependent_term import AtomTypeDependentTerm
@@ -67,30 +68,33 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
             assert hasattr(packed_block_types, "ljlk_is_ligand_fragment")
             return
         max_n_tiles = (packed_block_types.max_n_atoms - 1) // self.tile_size + 1
-        heavy_atoms_in_tile = torch.full(
+        heavy_atoms_in_tile = numpy.full(
             (packed_block_types.n_types, max_n_tiles * self.tile_size),
             -1,
-            dtype=torch.int32,
-            device=self.device,
+            dtype=numpy.int32,
         )
-        n_heavy_ats_in_tile = torch.full(
+        n_heavy_ats_in_tile = numpy.full(
             (packed_block_types.n_types, max_n_tiles),
             0,
-            dtype=torch.int32,
-            device=self.device,
+            dtype=numpy.int32,
         )
-
-        def _t(arr):
-            return torch.tensor(arr, dtype=torch.int32, device=self.device)
 
         for i, rt in enumerate(packed_block_types.active_block_types):
             i_n_tiles = rt.ljlk_n_heavy_atoms_in_tile.shape[0]
             i_n_tile_ats = i_n_tiles * self.tile_size
-            heavy_atoms_in_tile[i, :i_n_tile_ats] = _t(rt.ljlk_heavy_atoms_in_tile)
-            n_heavy_ats_in_tile[i, :i_n_tiles] = _t(rt.ljlk_n_heavy_atoms_in_tile)
+            heavy_atoms_in_tile[i, :i_n_tile_ats] = rt.ljlk_heavy_atoms_in_tile
+            n_heavy_ats_in_tile[i, :i_n_tiles] = rt.ljlk_n_heavy_atoms_in_tile
 
-        setattr(packed_block_types, "ljlk_heavy_atoms_in_tile", heavy_atoms_in_tile)
-        setattr(packed_block_types, "ljlk_n_heavy_atoms_in_tile", n_heavy_ats_in_tile)
+        setattr(
+            packed_block_types,
+            "ljlk_heavy_atoms_in_tile",
+            torch.as_tensor(heavy_atoms_in_tile, device=self.device),
+        )
+        setattr(
+            packed_block_types,
+            "ljlk_n_heavy_atoms_in_tile",
+            torch.as_tensor(n_heavy_ats_in_tile, device=self.device),
+        )
 
         # Ligands (non-polymer) use CP_CROSSOVER_3FULL: 1-4 pairs get full
         # weight (1.0). Build a modified bond_separation where path_dist=4 is
@@ -99,16 +103,21 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         ljlk_bond_separation = packed_block_types.bond_separation.clone()
         for i, bt in enumerate(packed_block_types.active_block_types):
             if not bt.properties.polymer.is_polymer:
-                n = packed_block_types.n_atoms[i]
+                n = bt.n_atoms
                 slab = ljlk_bond_separation[i, :n, :n]
                 slab[(slab == 3) | (slab == 4)] = 5
         setattr(packed_block_types, "ljlk_bond_separation", ljlk_bond_separation)
         setattr(
             packed_block_types,
             "ljlk_is_ligand_fragment",
-            torch.tensor(
-                [bt.is_ligand_fragment for bt in packed_block_types.active_block_types],
-                dtype=torch.int32,
+            torch.as_tensor(
+                numpy.asarray(
+                    [
+                        bt.is_ligand_fragment
+                        for bt in packed_block_types.active_block_types
+                    ],
+                    dtype=numpy.int32,
+                ),
                 device=self.device,
             ),
         )

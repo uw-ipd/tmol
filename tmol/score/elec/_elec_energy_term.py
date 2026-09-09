@@ -1,5 +1,6 @@
 import math
 
+import numpy
 import torch
 
 from .._atom_type_dependent_term import AtomTypeDependentTerm
@@ -99,55 +100,57 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
             assert hasattr(packed_block_types, "elec_is_ligand_fragment")
             return
 
-        def _ti(arr):
-            return torch.tensor(arr, dtype=torch.int32, device=self.device)
-
-        def _tf(arr):
-            return torch.tensor(arr, dtype=torch.float32, device=self.device)
-
         pbt = packed_block_types
-        elec_partial_charge = torch.zeros(
-            (pbt.n_types, pbt.max_n_atoms), dtype=torch.float32, device=self.device
+        elec_partial_charge = numpy.zeros(
+            (pbt.n_types, pbt.max_n_atoms), dtype=numpy.float32
         )
-        elec_inter_repr_path_distance = torch.zeros(
+        elec_inter_repr_path_distance = numpy.zeros(
             (pbt.n_types, pbt.max_n_atoms, pbt.max_n_atoms),
-            dtype=torch.int32,
-            device=self.device,
+            dtype=numpy.int32,
         )
-        elec_intra_repr_path_distance = torch.zeros(
+        elec_intra_repr_path_distance = numpy.zeros(
             (pbt.n_types, pbt.max_n_atoms, pbt.max_n_atoms),
-            dtype=torch.int32,
-            device=self.device,
+            dtype=numpy.int32,
         )
 
         for i, bt in enumerate(packed_block_types.active_block_types):
-            elec_partial_charge[i, : bt.n_atoms] = _tf(bt.elec_partial_charge)
-            elec_inter_repr_path_distance[i, : bt.n_atoms, : bt.n_atoms] = _ti(
+            n_atoms = bt.n_atoms
+            elec_partial_charge[i, :n_atoms] = bt.elec_partial_charge
+            elec_inter_repr_path_distance[i, :n_atoms, :n_atoms] = (
                 bt.elec_inter_repr_path_distance
             )
-            elec_intra_repr_path_distance[i, : bt.n_atoms, : bt.n_atoms] = _ti(
+            elec_intra_repr_path_distance[i, :n_atoms, :n_atoms] = (
                 bt.elec_intra_repr_path_distance
             )
 
-        setattr(packed_block_types, "elec_partial_charge", elec_partial_charge)
+        setattr(
+            packed_block_types,
+            "elec_partial_charge",
+            torch.as_tensor(elec_partial_charge, device=self.device),
+        )
         setattr(
             packed_block_types,
             "elec_is_ligand_fragment",
-            torch.tensor(
-                [bt.is_ligand_fragment for bt in packed_block_types.active_block_types],
-                dtype=torch.int32,
+            torch.as_tensor(
+                numpy.asarray(
+                    [
+                        bt.is_ligand_fragment
+                        for bt in packed_block_types.active_block_types
+                    ],
+                    dtype=numpy.int32,
+                ),
                 device=self.device,
             ),
         )
         setattr(
             packed_block_types,
             "elec_inter_repr_path_distance",
-            elec_inter_repr_path_distance,
+            torch.as_tensor(elec_inter_repr_path_distance, device=self.device),
         )
         setattr(
             packed_block_types,
             "elec_intra_repr_path_distance",
-            elec_intra_repr_path_distance,
+            torch.as_tensor(elec_intra_repr_path_distance, device=self.device),
         )
 
     def setup_poses(self, poses: PoseStack):
