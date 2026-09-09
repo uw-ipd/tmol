@@ -1678,11 +1678,15 @@ class _FusedLJLKAndElecRotamerFunction(torch.autograd.Function):
     def forward(ctx, *args):
         from tmol.score.ljlk.potentials import ljlk_elec_weighted_rotamer_scores
 
-        tensor_args = args[:-2]
-        max_dis, score_weights = args[-2:]
+        tensor_args = args[:-3]
+        max_dis, score_weights, empty_dispatch = args[-3:]
         empty_gradients = score_weights.new_empty(0)
         scores, indices, _ = ljlk_elec_weighted_rotamer_scores(
-            *tensor_args, max_dis, score_weights, empty_gradients
+            *tensor_args,
+            max_dis,
+            score_weights,
+            empty_gradients,
+            empty_dispatch,
         )
         saved_tensors = []
         ctx.scalar_args = {}
@@ -1691,7 +1695,7 @@ class _FusedLJLKAndElecRotamerFunction(torch.autograd.Function):
                 saved_tensors.append(arg)
             else:
                 ctx.scalar_args[index] = arg
-        ctx.save_for_backward(*saved_tensors)
+        ctx.save_for_backward(*saved_tensors, indices)
         ctx.n_inputs = len(args)
         ctx.mark_non_differentiable(indices)
         return scores, indices
@@ -1700,13 +1704,14 @@ class _FusedLJLKAndElecRotamerFunction(torch.autograd.Function):
     def backward(ctx, score_gradients, _):
         from tmol.score.ljlk.potentials import ljlk_elec_weighted_rotamer_scores
 
-        saved_tensors = iter(ctx.saved_tensors)
+        saved_tensors = iter(ctx.saved_tensors[:-1])
+        dispatch_indices = ctx.saved_tensors[-1]
         args = [
             ctx.scalar_args[index] if index in ctx.scalar_args else next(saved_tensors)
             for index in range(ctx.n_inputs)
         ]
         _, _, coord_gradients = ljlk_elec_weighted_rotamer_scores(
-            *args, score_gradients.reshape(-1)
+            *args[:-1], score_gradients.reshape(-1), dispatch_indices
         )
         return (coord_gradients,) + (None,) * (ctx.n_inputs - 1)
 
@@ -1752,11 +1757,15 @@ class _FusedLJLKAndElecRotamerModule(torch.nn.Module):
 
         if score_weights.dtype != coords.dtype:
             score_weights = score_weights.to(dtype=coords.dtype)
-        args = (*self._native_arguments(coords), score_weights)
+        args = (
+            *self._native_arguments(coords),
+            score_weights,
+            self.ljlk_module._empty_dispatch_indices,
+        )
         if torch.is_grad_enabled() and coords.requires_grad:
             return _FusedLJLKAndElecRotamerFunction.apply(*args)
         scores, indices, _ = ljlk_elec_weighted_rotamer_scores(
-            *args, score_weights.new_empty(0)
+            *args[:-1], score_weights.new_empty(0), args[-1]
         )
         return scores, indices
 

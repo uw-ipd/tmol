@@ -1084,7 +1084,8 @@ std::vector<Tensor> ljlk_elec_weighted_rotamer_scores_op(
     Tensor elec_global_params,
     double max_dis,
     Tensor score_weights,
-    Tensor output_gradients) {
+    Tensor output_gradients,
+    Tensor shared_dispatch_indices) {
   TORCH_CHECK(
       !torch::GradMode::is_enabled()
           || (!rot_coords.requires_grad() && !score_weights.requires_grad()),
@@ -1102,6 +1103,23 @@ std::vector<Tensor> ljlk_elec_weighted_rotamer_scores_op(
               && output_gradients.scalar_type() == rot_coords.scalar_type()
               && output_gradients.device() == rot_coords.device()),
       "fused rotamer output gradients must be an empty or matching vector");
+  TORCH_CHECK(
+      shared_dispatch_indices.dim() == 2
+          && (shared_dispatch_indices.size(0) == 3
+              || (shared_dispatch_indices.size(0) == 0
+                  && shared_dispatch_indices.size(1) == 0)),
+      "shared rotamer dispatch indices must have shape [3, nnz] or [0, 0]");
+  TORCH_CHECK(
+      shared_dispatch_indices.scalar_type() == torch::kInt32,
+      "shared rotamer dispatch indices must have dtype int32");
+  TORCH_CHECK(
+      shared_dispatch_indices.device() == rot_coords.device(),
+      "shared rotamer dispatch indices must be on the coordinate device");
+  TORCH_CHECK(
+      (shared_dispatch_indices.size(0) == 0 && output_gradients.numel() == 0)
+          || (shared_dispatch_indices.size(0) == 3
+              && output_gradients.numel() == shared_dispatch_indices.size(1)),
+      "fused rotamer output gradients require the matching forward dispatch");
 
   Tensor score, dscore_dcoords, dispatch_indices;
   using Int = int32_t;
@@ -1142,7 +1160,8 @@ std::vector<Tensor> ljlk_elec_weighted_rotamer_scores_op(
                     TCAST(elec_global_params),
                     (Real)max_dis,
                     TCAST(score_weights),
-                    TCAST(output_gradients));
+                    TCAST(output_gradients),
+                    TCAST(shared_dispatch_indices));
         score = std::get<0>(result).tensor.squeeze(1).squeeze(1);
         dscore_dcoords = std::get<1>(result).tensor.squeeze(0);
         dispatch_indices = std::get<2>(result).tensor;
