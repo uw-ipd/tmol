@@ -2,6 +2,7 @@ import torch
 import numpy
 import os
 import threading
+import attr
 import pytest
 
 from tmol.score import _score_function as score_function_module
@@ -21,6 +22,7 @@ from tmol.score.ljlk.potentials import build_compact_block_neighbors
 from tmol.pose import (
     DEFAULT_ATOM_B_FACTOR,
     DEFAULT_ATOM_OCCUPANCY,
+    PackedBlockTypes,
     PoseStackBuilder,
 )
 from tmol import (
@@ -470,6 +472,77 @@ def test_packed_block_setup_is_reused_and_cross_score_function_safe(
     other.pre_work_initialization(pose)
     sfxn.pre_work_initialization(pose)
     assert calls == 2 * first_calls
+
+
+def test_packed_block_setup_reuses_annotations_for_identical_types(
+    ubq_pdb, default_database, torch_device
+):
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    original_pbt = pose.packed_block_types
+    packed_block_types = [
+        PackedBlockTypes.from_restype_list(
+            original_pbt.chem_db,
+            original_pbt.restype_set,
+            list(original_pbt.active_block_types),
+            torch_device,
+        )
+        for _ in range(2)
+    ]
+    packed_block_types[0].unrelated_annotation = object()
+    poses = [attr.evolve(pose, packed_block_types=pbt) for pbt in packed_block_types]
+    score_function = ScoreFunction(default_database, torch_device)
+    score_function.set_weight(ScoreType.ref, 1.0)
+
+    score_function.pre_work_initialization(poses[0])
+    first_weights = packed_block_types[0].ref_weights
+    score_function.pre_work_initialization(poses[1])
+
+    assert packed_block_types[1].ref_weights is first_weights
+    assert (
+        packed_block_types[1]._ref_weights_src is packed_block_types[0]._ref_weights_src
+    )
+    assert not hasattr(packed_block_types[1], "unrelated_annotation")
+
+    reversed_pbt = PackedBlockTypes.from_restype_list(
+        original_pbt.chem_db,
+        original_pbt.restype_set,
+        list(reversed(original_pbt.active_block_types)),
+        torch_device,
+    )
+    reversed_pose = attr.evolve(pose, packed_block_types=reversed_pbt)
+    score_function.pre_work_initialization(reversed_pose)
+    assert reversed_pbt.ref_weights is not first_weights
+
+
+def test_packed_block_annotation_reuse_survives_option_changes(
+    ubq_pdb, default_database, torch_device
+):
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    original_pbt = pose.packed_block_types
+
+    def equivalent_pose():
+        pbt = PackedBlockTypes.from_restype_list(
+            original_pbt.chem_db,
+            original_pbt.restype_set,
+            list(original_pbt.active_block_types),
+            torch_device,
+        )
+        return attr.evolve(pose, packed_block_types=pbt)
+
+    score_function = ScoreFunction(default_database, torch_device)
+    score_function.set_weight(ScoreType.ref, 1.0)
+    first_pose = equivalent_pose()
+    score_function.pre_work_initialization(first_pose)
+
+    override = dict(default_database.scoring.ref.weights)
+    override[original_pbt.active_block_types[0].base_name] = 123.0
+    score_function.set_option("ref_weights", override)
+    score_function.pre_work_initialization(first_pose)
+    overridden_weights = first_pose.packed_block_types.ref_weights
+
+    second_pose = equivalent_pose()
+    score_function.pre_work_initialization(second_pose)
+    assert second_pose.packed_block_types.ref_weights is overridden_weights
 
 
 def test_no_grad_scoring_detaches_coordinates():

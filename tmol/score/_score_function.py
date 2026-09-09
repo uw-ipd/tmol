@@ -359,6 +359,8 @@ class ScoreFunction:
         self._options_version = 0
         self._prepared_packed_block_types = None
         self._prepared_versions = None
+        self._prepared_block_type_ids = None
+        self._prepared_packed_annotation_names = ()
         self._setup_token = object()
 
         self.term_options = {}
@@ -589,7 +591,9 @@ class ScoreFunction:
         """Prepare active energy terms for a pose topology.
 
         Repeated calls reuse topology-dependent setup when neither the terms,
-        their options, nor the packed block types have changed.
+        their options, nor the packed block types have changed. A newly built
+        PackedBlockTypes with the same ordered residue-type objects can reuse
+        the previous packed annotations.
 
         Args:
             pose_stack: Poses whose topology will be scored.
@@ -602,17 +606,46 @@ class ScoreFunction:
 
         packed_block_types = pose_stack.packed_block_types
         versions = (self._terms_version, self._options_version)
-        if not (
+        same_object = (
             packed_block_types is self._prepared_packed_block_types
             and versions == self._prepared_versions
             and getattr(packed_block_types, "_score_setup_token", None)
             is self._setup_token
-        ):
-            for block_type in packed_block_types.active_block_types:
-                for energy_term in terms:
-                    energy_term.setup_block_type(block_type)
+        )
+        if not same_object:
+            block_type_ids = tuple(
+                id(block_type) for block_type in packed_block_types.active_block_types
+            )
+            previous = self._prepared_packed_block_types
+            same_block_types = (
+                previous is not None
+                and versions == self._prepared_versions
+                and block_type_ids == self._prepared_block_type_ids
+                and getattr(previous, "_score_setup_token", None) is self._setup_token
+            )
+            if same_block_types:
+                for name in self._prepared_packed_annotation_names:
+                    setattr(packed_block_types, name, getattr(previous, name))
+            else:
+                for block_type in packed_block_types.active_block_types:
+                    for energy_term in terms:
+                        energy_term.setup_block_type(block_type)
+
+            attributes_before = dict(vars(packed_block_types))
             for energy_term in terms:
                 energy_term.setup_packed_block_types(packed_block_types)
+            annotations = {
+                name
+                for name, value in vars(packed_block_types).items()
+                if name not in attributes_before or attributes_before[name] is not value
+            }
+            annotations.update(
+                name
+                for name in self._prepared_packed_annotation_names
+                if hasattr(packed_block_types, name)
+            )
+            self._prepared_packed_annotation_names = tuple(sorted(annotations))
+            self._prepared_block_type_ids = block_type_ids
             self._prepared_packed_block_types = packed_block_types
             self._prepared_versions = versions
             # Packed-block annotations can be score-function-specific (for

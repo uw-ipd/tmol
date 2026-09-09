@@ -14,7 +14,6 @@ from tmol.pose import (
     PoseStack,
 )
 from tmol.score.common import make_hashtable_keys_values, add_to_hashtable
-from tmol.score.common._hash_util import hash_fun
 
 debug = False
 
@@ -64,6 +63,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         self.cart_database = param_db.scoring.cartbonded
         self.hash = self.cart_database.hash
         self.device = device
+        self._params_for_res_cache = {}
 
     @classmethod
     def class_name(cls):
@@ -156,6 +156,10 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         return atoms, params
 
     def get_params_for_res(self, res: str):
+        cached = self._params_for_res_cache.get(res)
+        if cached is not None:
+            return cached
+
         params_by_atom_unique_id = {}
 
         # Fetch the raw params from the DB
@@ -183,6 +187,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
 
             params_by_atom_unique_id[key] = params
 
+        self._params_for_res_cache[res] = params_by_atom_unique_id
         return params_by_atom_unique_id
 
     def setup_block_type(self, block_type: RefinedResidueType):
@@ -228,18 +233,21 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         block_type.cartbonded_annotations[self.hash] = cb_block_ann
 
     @staticmethod
-    def _lookup_param_index(key, hash_keys):
-        hash_index = hash_fun(key, hash_keys.shape[0])
-        padded_key = numpy.full(4, -1, dtype=numpy.int32)
-        padded_key[: len(key)] = key
-        while hash_keys[hash_index, 0] != -1:
-            if numpy.array_equal(hash_keys[hash_index, :4], padded_key):
-                return hash_keys[hash_index, 4]
-            hash_index = (hash_index + 1) % hash_keys.shape[0]
-        return -1
+    def _padded_param_key(key):
+        padded = [-1, -1, -1, -1]
+        padded[: len(key)] = key
+        return tuple(padded)
+
+    @staticmethod
+    def _lookup_param_index(key, param_key_to_index):
+        return param_key_to_index.get(CartBondedEnergyTerm._padded_param_key(key), -1)
 
     def _precompute_subgraph_param_indices(
-        self, packed_block_types, subgraph_offsets, total_subgraphs, hash_keys
+        self,
+        packed_block_types,
+        subgraph_offsets,
+        total_subgraphs,
+        param_key_to_index,
     ):
         """Resolve invariant intra-block parameter searches once during setup."""
         atom_unique_ids = packed_block_types.atom_unique_ids.cpu().numpy()
@@ -251,20 +259,35 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         ):
             block_params = block_type.cartbonded_annotations[self.hash]
             block_offset = subgraph_offsets[block_type_index]
-            for local_index, subgraph in enumerate(block_params.cartbonded_subgraphs):
-                atoms = [int(atom) for atom in subgraph if atom != -1]
-                for atom_ids in (
-                    atom_unique_ids[block_type_index],
-                    atom_wildcard_ids[block_type_index],
-                ):
-                    for oriented_atoms in (atoms, atoms[::-1]):
-                        key = [int(atom_ids[atom]) for atom in oriented_atoms]
-                        param_index = self._lookup_param_index(key, hash_keys)
-                        if param_index != -1:
-                            param_indices[block_offset + local_index] = param_index
-                            break
-                    if param_indices[block_offset + local_index] != -1:
+            unique_ids = atom_unique_ids[block_type_index]
+            wildcard_ids = atom_wildcard_ids[block_type_index]
+            subgraphs = numpy.asarray(
+                block_params.cartbonded_subgraphs, dtype=numpy.int32
+            )
+            for local_index, subgraph in enumerate(subgraphs):
+                n_atoms = 4
+                while n_atoms > 0 and subgraph[n_atoms - 1] == -1:
+                    n_atoms -= 1
+                if n_atoms == 0:
+                    continue
+                found = -1
+                for atom_ids in (unique_ids, wildcard_ids):
+                    found = self._lookup_param_index(
+                        [int(atom_ids[subgraph[i]]) for i in range(n_atoms)],
+                        param_key_to_index,
+                    )
+                    if found != -1:
                         break
+                    found = self._lookup_param_index(
+                        [
+                            int(atom_ids[subgraph[n_atoms - 1 - i]])
+                            for i in range(n_atoms)
+                        ],
+                        param_key_to_index,
+                    )
+                    if found != -1:
+                        break
+                param_indices[block_offset + local_index] = found
         return param_indices
 
     def setup_packed_block_types(
@@ -273,12 +296,14 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         super(CartBondedEnergyTerm, self).setup_packed_block_types(packed_block_types)
 
         if not hasattr(packed_block_types, "cartbonded_is_fragment"):
-            packed_block_types.cartbonded_is_fragment = torch.tensor(
-                [
-                    block_type.is_ligand_fragment
-                    for block_type in packed_block_types.active_block_types
-                ],
-                dtype=torch.int32,
+            packed_block_types.cartbonded_is_fragment = torch.as_tensor(
+                numpy.asarray(
+                    [
+                        block_type.is_ligand_fragment
+                        for block_type in packed_block_types.active_block_types
+                    ],
+                    dtype=numpy.int32,
+                ),
                 device=self.device,
             )
         if (
@@ -356,26 +381,34 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         # Construct the params hash with the given scaling factor
         hash_keys, hash_values = make_hashtable_keys_values(n_total_params, 2, 5, 7)
 
-        # Fill the hash table
+        # Fill the native hash table and a Python lookup with the same
+        # first-insert-wins behavior for setup-time subgraph resolution.
+        param_key_to_index = {}
         cur_val = 0
+        padded_key = self._padded_param_key
         for bt in packed_block_types.active_block_types:
 
             bt_params = bt.cartbonded_annotations[self.hash]
             for key_w_str, value in bt_params.cartbonded_params.items():
                 key = tuple(cbet_atom_unique_id_index[at] for at in key_w_str)
                 add_to_hashtable(hash_keys, hash_values, cur_val, key, value)
+                param_key_to_index.setdefault(padded_key(key), cur_val)
                 cur_val += 1
 
         for key_w_str, value in wildcard_params:
             key = tuple(cbet_atom_unique_id_index[at] for at in key_w_str)
             add_to_hashtable(hash_keys, hash_values, cur_val, key, value)
+            param_key_to_index.setdefault(padded_key(key), cur_val)
             cur_val += 1
 
         # Intra-block topology and atom naming are fixed for a packed block
         # type. Resolve the exact/reversed/wildcard parameter search once here
         # instead of repeating four hash probes in every scoring invocation.
         subgraph_param_indices = self._precompute_subgraph_param_indices(
-            packed_block_types, subgraph_offsets, total_subgraphs, hash_keys
+            packed_block_types,
+            subgraph_offsets,
+            total_subgraphs,
+            param_key_to_index,
         )
 
         subgraphs = torch.from_numpy(subgraphs).to(device=self.device)

@@ -218,7 +218,6 @@ class DunbrackEnergyTerm(EnergyTerm):
         self, active_block_types, field_getter, device, default_fill=-1
     ):
         max_size = None
-        dtype = None
         for bt in active_block_types:
             bt_data = field_getter(bt)
             if bt_data is None:
@@ -226,41 +225,25 @@ class DunbrackEnergyTerm(EnergyTerm):
             cur = numpy.shape(bt_data)
             if max_size is None:
                 max_size = cur
-                dtype = bt_data.dtype if not isinstance(bt_data, int) else int
             max_size = numpy.maximum(max_size, cur)
 
         n_block_types = (len(active_block_types),)
         size = n_block_types + tuple(max_size)
 
-        dtype_conversion = {
-            numpy.dtype(numpy.int32): torch.int32,
-            numpy.dtype(numpy.int64): torch.int32,
-            int: torch.int32,
-            torch.int32: torch.int32,
-            torch.int64: torch.int32,
-        }
-
-        tensor = torch.full(
-            size, default_fill, dtype=dtype_conversion[dtype], device=device
-        )
-
-        def dim_slices(dim):
-            return slice(0, dim)
-
+        packed = numpy.full(size, default_fill, dtype=numpy.int32)
         for i, bt in enumerate(active_block_types):
             bt_data = field_getter(bt)
             if bt_data is None:
                 continue
-            slices = [i] + (
-                [*map(dim_slices, bt_data.shape)]
-                if not isinstance(bt_data, int)
-                else []
-            )
-            tensor[tuple(slices)] = torch.tensor(
-                bt_data, dtype=dtype_conversion[dtype], device=device
-            )
+            if isinstance(bt_data, (int, numpy.integer)) or (
+                isinstance(bt_data, numpy.ndarray) and bt_data.ndim == 0
+            ):
+                packed[i] = int(bt_data)
+            else:
+                slices = (i,) + tuple(slice(0, dim) for dim in numpy.shape(bt_data))
+                packed[slices] = bt_data
 
-        return tensor
+        return torch.as_tensor(packed, dtype=torch.int32, device=device)
 
     def setup_poses(self, poses: PoseStack):
         super(DunbrackEnergyTerm, self).setup_poses(poses)
