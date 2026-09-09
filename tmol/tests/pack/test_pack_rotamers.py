@@ -592,6 +592,38 @@ def test_weighted_fused_ljlk_elec_rotamer_scores_match_fallback(
     assert torch.count_nonzero(scorer.weights.grad[:4]) != 0
 
 
+def test_fused_ljlk_elec_empty_table_gradient(monkeypatch):
+    from tmol.score import _score_function
+    from tmol.score.ljlk import potentials
+
+    calls = []
+
+    def empty_scores(coords, _max_dis, _weights, output_gradients, dispatch):
+        calls.append((output_gradients.shape, dispatch.shape))
+        indices = torch.empty((3, 0), dtype=torch.int32, device=coords.device)
+        coord_gradients = (
+            torch.zeros_like(coords)
+            if dispatch.shape[0] == 3
+            else coords.new_empty((0, 3))
+        )
+        return coords.new_empty((1, 0)), indices, coord_gradients
+
+    monkeypatch.setattr(potentials, "ljlk_elec_weighted_rotamer_scores", empty_scores)
+    coords = torch.empty((0, 3), requires_grad=True)
+    weights = torch.ones(4)
+    empty_dispatch = torch.empty((0, 0), dtype=torch.int32)
+    scores, _ = _score_function._FusedLJLKAndElecRotamerFunction.apply(
+        coords, 6.0, weights, empty_dispatch
+    )
+    scores.sum().backward()
+
+    assert coords.grad.shape == coords.shape
+    assert calls == [
+        (torch.Size([0]), torch.Size([0, 0])),
+        (torch.Size([0]), torch.Size([3, 0])),
+    ]
+
+
 def test_pack_rotamers_optH(default_database, ubq_pdb, torch_device):
     n_poses = 4
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
