@@ -489,6 +489,9 @@ def test_weighted_fused_ljlk_elec_rotamer_scores_match_fallback(
     # Weights are read at every call instead of being specialized into the
     # rendered module.
     weight_begin = scorer._fused_ljlk_elec_weight_offset
+    original_fused_weights = scorer.weights[
+        weight_begin : weight_begin + 4, 0, 0, 0
+    ].clone()
     with torch.no_grad():
         scorer.weights[weight_begin : weight_begin + 4, 0, 0, 0] *= torch.tensor(
             [0.5, 1.25, 0.75, 0.0], device=torch_device
@@ -507,8 +510,8 @@ def test_weighted_fused_ljlk_elec_rotamer_scores_match_fallback(
 
     # Fusion remains the measured fast path when the term pool has four CPU
     # workers; each native operator can still use ATen's inner CPU parallelism.
+    original_forward = fused_group.forward
     if torch_device.type == "cpu":
-        original_forward = fused_group.forward
         fused_calls = []
 
         def record_fused_call(*args):
@@ -527,6 +530,11 @@ def test_weighted_fused_ljlk_elec_rotamer_scores_match_fallback(
         scorer._cpu_term_workers = 1
         fused_group.forward = original_forward
 
+    with torch.no_grad():
+        scorer.weights[weight_begin : weight_begin + 4, 0, 0, 0].copy_(
+            original_fused_weights
+        )
+
     # A caller that changes either dispatch cutoff must use the canonical
     # operators, since the fused traversal assumes the default compatible pair.
     original_cutoff = fused_group.ljlk_module.block_neighbor_cutoff
@@ -539,16 +547,43 @@ def test_weighted_fused_ljlk_elec_rotamer_scores_match_fallback(
     assert changed_cutoff._nnz() != 0
     fused_group.ljlk_module.block_neighbor_cutoff = original_cutoff
 
-    # Differentiable callers must retain the canonical independent operators.
-    fused_group.forward = lambda *_: pytest.fail(
-        "packing-only fusion used for a differentiable call"
+    # Coordinate derivatives use one fused recomputation with the live output
+    # gradient for every sparse entry.
+    fused_group.forward = original_forward
+    fused_coords = rotamer_set.coords.detach().clone().requires_grad_(True)
+    fused_differentiable = scorer(fused_coords).coalesce()
+    upstream = torch.linspace(
+        0.25,
+        1.25,
+        fused_differentiable.values().numel(),
+        device=torch_device,
     )
-    coords = rotamer_set.coords.detach().clone().requires_grad_(True)
-    differentiable = scorer(coords).coalesce()
-    differentiable.values().sum().backward()
-    assert coords.grad is not None
-    assert torch.isfinite(coords.grad).all()
+    (fused_gradient,) = torch.autograd.grad(
+        (fused_differentiable.values() * upstream).sum(), fused_coords
+    )
+    scorer._fused_ljlk_elec = None
+    separate_coords = rotamer_set.coords.detach().clone().requires_grad_(True)
+    separate_differentiable = scorer(separate_coords).coalesce()
+    (separate_gradient,) = torch.autograd.grad(
+        (separate_differentiable.values() * upstream).sum(), separate_coords
+    )
+    scorer._fused_ljlk_elec = fused_group
+    assert torch.equal(
+        fused_differentiable.indices(), separate_differentiable.indices()
+    )
+    torch.testing.assert_close(
+        fused_differentiable.values(),
+        separate_differentiable.values(),
+        atol=2e-3,
+        rtol=2e-5,
+    )
+    torch.testing.assert_close(fused_gradient, separate_gradient, atol=2e-3, rtol=5e-5)
 
+    # Trainable score weights retain the canonical operators so their four
+    # independent parameter gradients remain available.
+    fused_group.forward = lambda *_: pytest.fail(
+        "weighted fusion used with trainable score weights"
+    )
     scorer.weights.requires_grad_(True)
     weight_differentiable = scorer(rotamer_set.coords.detach()).coalesce()
     weight_differentiable.values().sum().backward()

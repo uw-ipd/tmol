@@ -1083,11 +1083,12 @@ std::vector<Tensor> ljlk_elec_weighted_rotamer_scores_op(
     Tensor block_type_elec_intra_repr_path_distance,
     Tensor elec_global_params,
     double max_dis,
-    Tensor score_weights) {
+    Tensor score_weights,
+    Tensor output_gradients) {
   TORCH_CHECK(
       !torch::GradMode::is_enabled()
           || (!rot_coords.requires_grad() && !score_weights.requires_grad()),
-      "weighted fused rotamer scoring is a packing-only forward path");
+      "weighted fused rotamer scoring requires the autograd module wrapper");
   TORCH_CHECK(
       score_weights.dim() == 1 && score_weights.size(0) == 4,
       "weighted fused rotamer scoring requires four score weights");
@@ -1095,8 +1096,14 @@ std::vector<Tensor> ljlk_elec_weighted_rotamer_scores_op(
       score_weights.scalar_type() == rot_coords.scalar_type()
           && score_weights.device() == rot_coords.device(),
       "fused rotamer weights must match coordinate dtype and device");
+  TORCH_CHECK(
+      output_gradients.numel() == 0
+          || (output_gradients.dim() == 1
+              && output_gradients.scalar_type() == rot_coords.scalar_type()
+              && output_gradients.device() == rot_coords.device()),
+      "fused rotamer output gradients must be an empty or matching vector");
 
-  Tensor score, dispatch_indices;
+  Tensor score, dscore_dcoords, dispatch_indices;
   using Int = int32_t;
   TMOL_DISPATCH_FLOATING_DEVICE(
       rot_coords.options(), "ljlk_elec_weighted_rotamer_scores", ([&] {
@@ -1134,11 +1141,17 @@ std::vector<Tensor> ljlk_elec_weighted_rotamer_scores_op(
                     TCAST(block_type_elec_intra_repr_path_distance),
                     TCAST(elec_global_params),
                     (Real)max_dis,
-                    TCAST(score_weights));
+                    TCAST(score_weights),
+                    TCAST(output_gradients));
         score = std::get<0>(result).tensor.squeeze(1).squeeze(1);
+        dscore_dcoords = std::get<1>(result).tensor.squeeze(0);
         dispatch_indices = std::get<2>(result).tensor;
       }));
-  return {score, dispatch_indices};
+  TORCH_CHECK(
+      output_gradients.numel() == 0
+          || output_gradients.numel() == score.numel(),
+      "fused rotamer output gradients must match the score table");
+  return {score, dispatch_indices, dscore_dcoords};
 }
 
 // See https://stackoverflow.com/a/3221914

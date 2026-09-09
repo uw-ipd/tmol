@@ -99,9 +99,9 @@ struct LJLKAndElecPoseScoreDispatch {
       -> std::tuple<TPack<Real, 4, D>, TPack<LJLKExternalVec<Real, 3>, 2, D>>;
 
   /// Evaluate weighted LJ/LK + electrostatics for a prepared sparse rotamer
-  /// pair dispatch. Packing does not differentiate the energy table, so this
-  /// compact path emits one live-weighted value per dispatch entry without
-  /// allocating canonical score lanes or derivative scratch.
+  /// pair dispatch. An empty output-gradient vector selects the compact
+  /// packing path; a populated vector recomputes fused coordinate derivatives
+  /// without allocating canonical score lanes.
   static auto forward_weighted_rotamers(
       ContextManager& mgr,
       TView<LJLKExternalVec<Real, 3>, 1, D> rot_coords,
@@ -133,7 +133,8 @@ struct LJLKAndElecPoseScoreDispatch {
       TView<tmol::score::elec::potentials::ElecGlobalParams<Real>, 1, D>
           elec_global_params,
       Real max_dis,
-      TView<Real, 1, D> score_weights)
+      TView<Real, 1, D> score_weights,
+      TView<Real, 1, D> output_gradients)
       -> std::tuple<
           TPack<Real, 4, D>,
           TPack<LJLKExternalVec<Real, 3>, 2, D>,
