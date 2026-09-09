@@ -611,33 +611,49 @@ auto ljlk_elec_forward_impl(
             score_weights);
       });
       auto evaluate = ([&](int tid) {
-        std::array<Real, 4> scores;
-        if (intra) {
-          scores = common::IntraResBlockEvaluation<
-              ScoringData,
-              common::AllAtomPairSelector,
-              D,
-              tile_size,
-              score_nt,
-              4,
-              Real,
-              Int>::
-              eval_intrares_atom_pairs(tid, start1, start2, pair_score, data);
+        std::array<Real, 4> scores = {};
+        if constexpr (D == tmol::Device::CPU) {
+          // The CPU workgroup has one lane. Traverse directly so GCC keeps
+          // score_atom_pair inline and avoids flattened-index division.
+          int const n_atoms1 =
+              min(int(tile_size), int(data.r1.n_atoms - start1));
+          int const n_atoms2 =
+              min(int(tile_size), int(data.r2.n_atoms - start2));
+          bool const same_tile = intra && start1 == start2;
+          for (int atom1 = 0; atom1 < n_atoms1; ++atom1) {
+            int const first_atom2 = same_tile ? atom1 + 1 : 0;
+            for (int atom2 = first_atom2; atom2 < n_atoms2; ++atom2) {
+              auto pair_scores = pair_score(start1, start2, atom1, atom2, data);
+              common::for_<4>([&](auto term) {
+                scores[term.value] += pair_scores[term.value];
+              });
+            }
+          }
         } else {
-          scores = common::InterResBlockEvaluation<
-              ScoringData,
-              common::AllAtomPairSelector,
-              D,
-              tile_size,
-              score_nt,
-              4,
-              Real,
-              Int>::
-              eval_interres_atom_pair(tid, start1, start2, pair_score, data);
+          if (intra) {
+            scores = common::IntraResBlockEvaluation<
+                ScoringData,
+                common::AllAtomPairSelector,
+                D,
+                tile_size,
+                score_nt,
+                4,
+                Real,
+                Int>::
+                eval_intrares_atom_pairs(tid, start1, start2, pair_score, data);
+          } else {
+            scores = common::InterResBlockEvaluation<
+                ScoringData,
+                common::AllAtomPairSelector,
+                D,
+                tile_size,
+                score_nt,
+                4,
+                Real,
+                Int>::
+                eval_interres_atom_pair(tid, start1, start2, pair_score, data);
+          }
         }
-        // Keep the per-pair accumulation in this hot lambda. In particular,
-        // GCC did not reliably inline the earlier helper through the CPU
-        // workgroup abstraction, erasing the compact path's CPU gain.
         if constexpr (weighted) {
           data.total_weighted +=
               score_weights[0] * scores[0] + score_weights[1] * scores[1]

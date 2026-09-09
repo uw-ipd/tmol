@@ -1357,6 +1357,22 @@ void TMOL_DEVICE_FUNC eval_interres_pol_occ_pair_energies(
     int start_atom1,
     int start_atom2,
     Func f) {
+  if constexpr (Dev == tmol::Device::CPU) {
+    // CPU workgroup lanes run serially; direct loops avoid flattened-index
+    // division and modulo for every polar/occluder pair.
+    for (int pol_ind = 0; pol_ind < inter_dat.r1.n_polars; ++pol_ind) {
+      for (int occ_ind = 0; occ_ind < inter_dat.r2.n_occluders; ++occ_ind) {
+        f(start_atom1, start_atom2, pol_ind, occ_ind, inter_dat, true);
+      }
+    }
+    for (int pol_ind = 0; pol_ind < inter_dat.r2.n_polars; ++pol_ind) {
+      for (int occ_ind = 0; occ_ind < inter_dat.r1.n_occluders; ++occ_ind) {
+        f(start_atom2, start_atom1, pol_ind, occ_ind, inter_dat, false);
+      }
+    }
+    return;
+  }
+
   auto eval_scores_for_pol_occ_pairs = ([&](int tid) {
     int const n_pol_occ_pairs =
         inter_dat.r1.n_polars * inter_dat.r2.n_occluders
@@ -1394,6 +1410,29 @@ void TMOL_DEVICE_FUNC eval_intrares_pol_occ_pair_energies(
     int start_atom1,
     int start_atom2,
     Func f) {
+  if constexpr (Dev == tmol::Device::CPU) {
+    if (start_atom1 == start_atom2) {
+      for (int pol_ind = 0; pol_ind < intra_dat.r1.n_polars; ++pol_ind) {
+        for (int occ_ind = 0; occ_ind < intra_dat.r1.n_occluders; ++occ_ind) {
+          if (pol_ind == occ_ind) continue;
+          f(start_atom1, start_atom1, pol_ind, occ_ind, intra_dat, true);
+        }
+      }
+    } else {
+      for (int pol_ind = 0; pol_ind < intra_dat.r1.n_polars; ++pol_ind) {
+        for (int occ_ind = 0; occ_ind < intra_dat.r2.n_occluders; ++occ_ind) {
+          f(start_atom1, start_atom2, pol_ind, occ_ind, intra_dat, true);
+        }
+      }
+      for (int pol_ind = 0; pol_ind < intra_dat.r2.n_polars; ++pol_ind) {
+        for (int occ_ind = 0; occ_ind < intra_dat.r1.n_occluders; ++occ_ind) {
+          f(start_atom2, start_atom1, pol_ind, occ_ind, intra_dat, false);
+        }
+      }
+    }
+    return;
+  }
+
   auto eval_scores_for_pol_occ_pairs = ([&](int tid) {
     if (start_atom1 == start_atom2) {
       int const n_pol_occ_pairs =
