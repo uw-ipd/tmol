@@ -105,8 +105,13 @@ TMOL_DEVICE_FUNC int inter_separation(
   return separation;
 }
 
-template <bool require_gradient, bool weighted, typename Real, tmol::Device D>
-TMOL_DEVICE_FUNC std::array<Real, 4> score_atom_pair(
+template <
+    bool require_gradient,
+    bool weighted,
+    bool compute_scores,
+    typename Real,
+    tmol::Device D>
+TMOL_DEVICE_FUNC std::array<Real, compute_scores ? 4 : 0> score_atom_pair(
     int atom1,
     int atom2,
     int start1,
@@ -118,7 +123,7 @@ TMOL_DEVICE_FUNC std::array<Real, 4> score_atom_pair(
     TView<Real, 1, D> score_weights,
     Real derivative_scale) {
   if (ljlk_separation < 4 && elec_separation < 4) {
-    return {0, 0, 0, 0};
+    return {};
   }
   using Real3 = Eigen::Matrix<Real, 3, 1>;
   Real3 const coord1 = coord_from_shared(data.r1.coords, atom1);
@@ -127,7 +132,7 @@ TMOL_DEVICE_FUNC std::array<Real, 4> score_atom_pair(
   Real const dist2 = delta.squaredNorm();
   Real const max_dis =
       max(data.ljlk_global_params.max_dis, data.elec_global_params.max_dis);
-  if (dist2 >= max_dis * max_dis) return {0, 0, 0, 0};
+  if (dist2 >= max_dis * max_dis) return {};
 
   Real const dist = std::sqrt(dist2);
   auto const& p1 = data.r1.ljlk_params[atom1];
@@ -241,7 +246,11 @@ TMOL_DEVICE_FUNC std::array<Real, 4> score_atom_pair(
       }
     }
   }
-  return {ljatr, ljrep, lk_value, elec_value};
+  if constexpr (compute_scores) {
+    return {ljatr, ljrep, lk_value, elec_value};
+  } else {
+    return {};
+  }
 }
 
 template <
@@ -334,6 +343,10 @@ auto ljlk_elec_forward_impl(
   using namespace ljlk_elec_detail;
   using Real3 = Eigen::Matrix<Real, 3, 1>;
   static_assert(!require_gradient || !rotamer_pairs || weighted);
+  // Rotamer backward only needs coordinate derivatives; its score table is
+  // discarded by autograd.
+  constexpr bool compute_scores = !require_gradient || !rotamer_pairs;
+  using PairScores = std::array<Real, compute_scores ? 4 : 0>;
 
   int const n_atoms = rot_coords.size(0);
   int const n_poses = first_rot_for_block.size(0);
@@ -354,7 +367,8 @@ auto ljlk_elec_forward_impl(
       rotamer_pairs ? rotamer_dispatch_indices.size(1) : n_poses;
   auto output_t =
       rotamer_pairs
-          ? TPack<Real, 4, D>::empty({n_output_scores, 1, 1, n_outputs})
+          ? TPack<Real, 4, D>::empty(
+                {n_output_scores, 1, 1, compute_scores ? n_outputs : 0})
           : TPack<Real, 4, D>::zeros({n_output_scores, n_outputs, 1, 1});
   auto output = output_t.view;
   auto dV_dcoords_t =
@@ -453,11 +467,13 @@ auto ljlk_elec_forward_impl(
       data.conn_seps = sm.m.conn_seps;
       data.ljlk_global_params = ljlk_global_params[0];
       data.elec_global_params = elec_global_params[0];
-      data.total_ljatr = 0;
-      data.total_ljrep = 0;
-      data.total_lk = 0;
-      data.total_elec = 0;
-      data.total_weighted = 0;
+      if constexpr (!require_gradient || !rotamer_pairs) {
+        data.total_ljatr = 0;
+        data.total_ljrep = 0;
+        data.total_lk = 0;
+        data.total_elec = 0;
+        data.total_weighted = 0;
+      }
     });
 
     auto load_tile = ([=] TMOL_DEVICE_FUNC(
@@ -607,7 +623,12 @@ auto ljlk_elec_forward_impl(
           elec_sep =
               inter_separation(pair_data, atom1, atom2, true, crossover_3full);
         }
-        return score_atom_pair<require_gradient, weighted, Real, D>(
+        return score_atom_pair<
+            require_gradient,
+            weighted,
+            compute_scores,
+            Real,
+            D>(
             atom1,
             atom2,
             pair_start1,
@@ -620,7 +641,7 @@ auto ljlk_elec_forward_impl(
             derivative_scale);
       });
       auto evaluate = ([&](int tid) {
-        std::array<Real, 4> scores = {};
+        PairScores scores = {};
         if constexpr (D == tmol::Device::CPU) {
           // The CPU workgroup has one lane. Traverse directly so GCC keeps
           // score_atom_pair inline and avoids flattened-index division.
@@ -633,7 +654,7 @@ auto ljlk_elec_forward_impl(
             int const first_atom2 = same_tile ? atom1 + 1 : 0;
             for (int atom2 = first_atom2; atom2 < n_atoms2; ++atom2) {
               auto pair_scores = pair_score(start1, start2, atom1, atom2, data);
-              common::for_<4>([&](auto term) {
+              common::for_<std::tuple_size_v<PairScores>>([&](auto term) {
                 scores[term.value] += pair_scores[term.value];
               });
             }
@@ -646,7 +667,7 @@ auto ljlk_elec_forward_impl(
                 D,
                 tile_size,
                 score_nt,
-                4,
+                std::tuple_size_v<PairScores>,
                 Real,
                 Int>::
                 eval_intrares_atom_pairs(tid, start1, start2, pair_score, data);
@@ -657,21 +678,23 @@ auto ljlk_elec_forward_impl(
                 D,
                 tile_size,
                 score_nt,
-                4,
+                std::tuple_size_v<PairScores>,
                 Real,
                 Int>::
                 eval_interres_atom_pair(tid, start1, start2, pair_score, data);
           }
         }
-        if constexpr (weighted) {
-          data.total_weighted +=
-              score_weights[0] * scores[0] + score_weights[1] * scores[1]
-              + score_weights[2] * scores[2] + score_weights[3] * scores[3];
-        } else {
-          data.total_ljatr += scores[0];
-          data.total_ljrep += scores[1];
-          data.total_lk += scores[2];
-          data.total_elec += scores[3];
+        if constexpr (!require_gradient || !rotamer_pairs) {
+          if constexpr (weighted) {
+            data.total_weighted +=
+                score_weights[0] * scores[0] + score_weights[1] * scores[1]
+                + score_weights[2] * scores[2] + score_weights[3] * scores[3];
+          } else {
+            data.total_ljatr += scores[0];
+            data.total_ljrep += scores[1];
+            data.total_lk += scores[2];
+            data.total_elec += scores[3];
+          }
         }
       });
       DeviceOperations<D>::template for_each_in_workgroup<score_nt>(evaluate);
@@ -753,15 +776,18 @@ auto ljlk_elec_forward_impl(
 
     auto store_energies =
         ([=] TMOL_DEVICE_FUNC(ScoringData<Real> & data, shared_mem_union & sm) {
-          auto reduce = ([&](int tid) {
-            store_score_totals<
-                weighted,
-                rotamer_pairs,
-                DeviceOperations,
-                D,
-                score_nt>(tid, data, sm, output);
-          });
-          DeviceOperations<D>::template for_each_in_workgroup<score_nt>(reduce);
+          if constexpr (!require_gradient || !rotamer_pairs) {
+            auto reduce = ([&](int tid) {
+              store_score_totals<
+                  weighted,
+                  rotamer_pairs,
+                  DeviceOperations,
+                  D,
+                  score_nt>(tid, data, sm, output);
+            });
+            DeviceOperations<D>::template for_each_in_workgroup<score_nt>(
+                reduce);
+          }
         });
 
     common::tile_evaluate_rot_pair<

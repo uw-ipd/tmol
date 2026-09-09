@@ -1167,9 +1167,8 @@ std::vector<Tensor> ljlk_elec_weighted_rotamer_scores_op(
         dispatch_indices = std::get<2>(result).tensor;
       }));
   TORCH_CHECK(
-      output_gradients.numel() == 0
-          || output_gradients.numel() == score.numel(),
-      "fused rotamer output gradients must match the score table");
+      output_gradients.numel() == 0 || score.numel() == 0,
+      "fused rotamer backward must not produce a score table");
   return {score, dispatch_indices, dscore_dcoords};
 }
 
