@@ -1671,8 +1671,48 @@ class BlockPairScoringModule:
         )
 
 
+class _FusedLJLKAndElecRotamerFunction(torch.autograd.Function):
+    """Differentiate the compact fused table by one fused recomputation."""
+
+    @staticmethod
+    def forward(ctx, *args):
+        from tmol.score.ljlk.potentials import ljlk_elec_weighted_rotamer_scores
+
+        tensor_args = args[:-2]
+        max_dis, score_weights = args[-2:]
+        empty_gradients = score_weights.new_empty(0)
+        scores, indices, _ = ljlk_elec_weighted_rotamer_scores(
+            *tensor_args, max_dis, score_weights, empty_gradients
+        )
+        saved_tensors = []
+        ctx.scalar_args = {}
+        for index, arg in enumerate(args):
+            if isinstance(arg, torch.Tensor):
+                saved_tensors.append(arg)
+            else:
+                ctx.scalar_args[index] = arg
+        ctx.save_for_backward(*saved_tensors)
+        ctx.n_inputs = len(args)
+        ctx.mark_non_differentiable(indices)
+        return scores, indices
+
+    @staticmethod
+    def backward(ctx, score_gradients, _):
+        from tmol.score.ljlk.potentials import ljlk_elec_weighted_rotamer_scores
+
+        saved_tensors = iter(ctx.saved_tensors)
+        args = [
+            ctx.scalar_args[index] if index in ctx.scalar_args else next(saved_tensors)
+            for index in range(ctx.n_inputs)
+        ]
+        _, _, coord_gradients = ljlk_elec_weighted_rotamer_scores(
+            *args, score_gradients.reshape(-1)
+        )
+        return (coord_gradients,) + (None,) * (ctx.n_inputs - 1)
+
+
 class _FusedLJLKAndElecRotamerModule(torch.nn.Module):
-    """Internal packing-only group that emits one live-weighted sparse lane."""
+    """Internal group that emits one live-weighted sparse lane."""
 
     def __init__(self, ljlk_module, elec_module):
         super().__init__()
@@ -1712,9 +1752,13 @@ class _FusedLJLKAndElecRotamerModule(torch.nn.Module):
 
         if score_weights.dtype != coords.dtype:
             score_weights = score_weights.to(dtype=coords.dtype)
-        return ljlk_elec_weighted_rotamer_scores(
-            *self._native_arguments(coords), score_weights
+        args = (*self._native_arguments(coords), score_weights)
+        if torch.is_grad_enabled() and coords.requires_grad:
+            return _FusedLJLKAndElecRotamerFunction.apply(*args)
+        scores, indices, _ = ljlk_elec_weighted_rotamer_scores(
+            *args, score_weights.new_empty(0)
         )
+        return scores, indices
 
 
 def _fused_ljlk_elec_rotamer_module(term_modules):
@@ -1907,7 +1951,7 @@ class RotamerScoringModule:
         use_fused = (
             self._fused_ljlk_elec is not None
             and self._fused_ljlk_elec.is_compatible()
-            and not differentiable
+            and not self.weights.requires_grad
         )
         execution_terms = self._execution_terms(use_fused)
         parallel = self._cpu_term_workers >= 2 and not differentiable

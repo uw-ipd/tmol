@@ -115,7 +115,8 @@ TMOL_DEVICE_FUNC std::array<Real, 4> score_atom_pair(
     int ljlk_separation,
     int elec_separation,
     TView<Eigen::Matrix<Real, 3, 1>, 2, D> dV_dcoords,
-    TView<Real, 1, D> score_weights) {
+    TView<Real, 1, D> score_weights,
+    Real derivative_scale) {
   if (ljlk_separation < 4 && elec_separation < 4) {
     return {0, 0, 0, 0};
   }
@@ -205,10 +206,11 @@ TMOL_DEVICE_FUNC std::array<Real, 4> score_atom_pair(
     Real const radial_derivs[4] = {
         ljatr_deriv, ljrep_deriv, lk_deriv, elec_deriv};
     if constexpr (weighted) {
-      Real const weighted_deriv = score_weights[0] * radial_derivs[0]
-                                  + score_weights[1] * radial_derivs[1]
-                                  + score_weights[2] * radial_derivs[2]
-                                  + score_weights[3] * radial_derivs[3];
+      Real const weighted_deriv = derivative_scale
+                                  * (score_weights[0] * radial_derivs[0]
+                                     + score_weights[1] * radial_derivs[1]
+                                     + score_weights[2] * radial_derivs[2]
+                                     + score_weights[3] * radial_derivs[3]);
       Real3 const dxyz1 = weighted_deriv * unit_delta;
 #pragma unroll
       for (int axis = 0; axis < 3; ++axis) {
@@ -326,10 +328,12 @@ auto ljlk_elec_forward_impl(
         elec_global_params,
     TView<Int, 1, D> shared_compact_block_neighbors,
     TView<Int, 2, D> rotamer_dispatch_indices,
-    TView<Real, 1, D> score_weights)
+    TView<Real, 1, D> score_weights,
+    TView<Real, 1, D> output_gradients)
     -> std::tuple<TPack<Real, 4, D>, TPack<LJLKExternalVec<Real, 3>, 2, D>> {
   using namespace ljlk_elec_detail;
   using Real3 = Eigen::Matrix<Real, 3, 1>;
+  static_assert(!require_gradient || !rotamer_pairs || weighted);
 
   int const n_atoms = rot_coords.size(0);
   int const n_poses = first_rot_for_block.size(0);
@@ -364,6 +368,10 @@ auto ljlk_elec_forward_impl(
   constexpr int score_nt = D == tmol::Device::CPU ? 1 : nt;
 
   auto eval_neighbor = ([=] TMOL_DEVICE_FUNC(int candidate) {
+    Real derivative_scale = 1;
+    if (require_gradient && rotamer_pairs) {
+      derivative_scale = output_gradients[candidate];
+    }
     int pose_ind;
     int rot_ind1;
     int rot_ind2;
@@ -608,7 +616,8 @@ auto ljlk_elec_forward_impl(
             lj_sep,
             elec_sep,
             dV_dcoords,
-            score_weights);
+            score_weights,
+            derivative_scale);
       });
       auto evaluate = ([&](int tid) {
         std::array<Real, 4> scores = {};
@@ -787,8 +796,15 @@ auto ljlk_elec_forward_impl(
   });
 
   if constexpr (rotamer_pairs) {
-    DeviceOperations<D>::template foreach_independent_workgroup<launch_t>(
-        mgr, n_outputs, eval_neighbor);
+    if constexpr (require_gradient) {
+      // Rotamer pairs share coordinate outputs. Keep CPU workgroups serial;
+      // CUDA accumulation is atomic, so its workgroups remain concurrent.
+      DeviceOperations<D>::template foreach_workgroup<launch_t>(
+          mgr, n_outputs, eval_neighbor);
+    } else {
+      DeviceOperations<D>::template foreach_independent_workgroup<launch_t>(
+          mgr, n_outputs, eval_neighbor);
+    }
   } else {
     common::sphere_overlap::
         launch_precomputed_block_neighbors<DeviceOperations, D, launch_t, Int>(
@@ -861,6 +877,7 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
         Int>(
         TMOL_LJLK_ELEC_FORWARD_ARGS,
         empty_rotamer_dispatch.view,
+        empty_weights.view,
         empty_weights.view);
   }
   return ljlk_elec_forward_impl<
@@ -873,6 +890,7 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
       Int>(
       TMOL_LJLK_ELEC_FORWARD_ARGS,
       empty_rotamer_dispatch.view,
+      empty_weights.view,
       empty_weights.view);
 #undef TMOL_LJLK_ELEC_FORWARD_ARGS
 }
@@ -931,6 +949,7 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
       block_type_elec_intra_repr_path_distance, elec_global_params,           \
       shared_compact_block_neighbors
   auto empty_rotamer_dispatch = TPack<Int, 2, D>::empty({0, 0});
+  auto empty_output_gradients = TPack<Real, 1, D>::empty({0});
   if (require_gradient) {
     return ljlk_elec_forward_impl<
         true,
@@ -942,7 +961,8 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
         Int>(
         TMOL_LJLK_ELEC_WEIGHTED_FORWARD_ARGS,
         empty_rotamer_dispatch.view,
-        score_weights);
+        score_weights,
+        empty_output_gradients.view);
   }
   return ljlk_elec_forward_impl<
       false,
@@ -954,7 +974,8 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
       Int>(
       TMOL_LJLK_ELEC_WEIGHTED_FORWARD_ARGS,
       empty_rotamer_dispatch.view,
-      score_weights);
+      score_weights,
+      empty_output_gradients.view);
 #undef TMOL_LJLK_ELEC_WEIGHTED_FORWARD_ARGS
 }
 
@@ -995,7 +1016,8 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
         TView<tmol::score::elec::potentials::ElecGlobalParams<Real>, 1, D>
             elec_global_params,
         Real max_dis,
-        TView<Real, 1, D> score_weights)
+        TView<Real, 1, D> score_weights,
+        TView<Real, 1, D> output_gradients)
         -> std::tuple<
             TPack<Real, 4, D>,
             TPack<LJLKExternalVec<Real, 3>, 2, D>,
@@ -1047,40 +1069,39 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
             rot_offset_for_block,
             scratch_rot_spheres_t.view,
             max_dis);
+  assert(
+      output_gradients.size(0) == 0
+      || output_gradients.size(0) == rotamer_dispatch_indices.view.size(1));
   auto empty_compact_block_neighbors = TPack<Int, 1, D>::empty({0});
+#define TMOL_LJLK_ELEC_WEIGHTED_ROTAMER_ARGS                                  \
+  mgr, rot_coords, rot_coord_offset, pose_ind_for_atom, first_rot_for_block,  \
+      first_rot_block_type, block_ind_for_rot, pose_ind_for_rot,              \
+      block_type_ind_for_rot, n_rots_for_pose, rot_offset_for_pose,           \
+      n_rots_for_block, rot_offset_for_block, max_n_rots_per_pose,            \
+      pose_stack_min_bond_separation, pose_stack_inter_block_bondsep,         \
+      block_type_n_atoms, block_type_atom_types,                              \
+      block_type_n_interblock_bonds, block_type_atoms_forming_chemical_bonds, \
+      block_type_ljlk_path_distance, block_type_is_ligand_fragment,           \
+      ljlk_type_params, ljlk_global_params, block_type_partial_charge,        \
+      block_type_elec_inter_repr_path_distance,                               \
+      block_type_elec_intra_repr_path_distance, elec_global_params,           \
+      empty_compact_block_neighbors.view, rotamer_dispatch_indices.view,      \
+      score_weights, output_gradients
+  if (output_gradients.size(0) != 0) {
+    auto result = ljlk_elec_forward_impl<
+        true,
+        true,
+        true,
+        DeviceOperations,
+        D,
+        Real,
+        Int>(TMOL_LJLK_ELEC_WEIGHTED_ROTAMER_ARGS);
+    return {std::get<0>(result), std::get<1>(result), rotamer_dispatch_indices};
+  }
   auto result =
       ljlk_elec_forward_impl<false, true, true, DeviceOperations, D, Real, Int>(
-          mgr,
-          rot_coords,
-          rot_coord_offset,
-          pose_ind_for_atom,
-          first_rot_for_block,
-          first_rot_block_type,
-          block_ind_for_rot,
-          pose_ind_for_rot,
-          block_type_ind_for_rot,
-          n_rots_for_pose,
-          rot_offset_for_pose,
-          n_rots_for_block,
-          rot_offset_for_block,
-          max_n_rots_per_pose,
-          pose_stack_min_bond_separation,
-          pose_stack_inter_block_bondsep,
-          block_type_n_atoms,
-          block_type_atom_types,
-          block_type_n_interblock_bonds,
-          block_type_atoms_forming_chemical_bonds,
-          block_type_ljlk_path_distance,
-          block_type_is_ligand_fragment,
-          ljlk_type_params,
-          ljlk_global_params,
-          block_type_partial_charge,
-          block_type_elec_inter_repr_path_distance,
-          block_type_elec_intra_repr_path_distance,
-          elec_global_params,
-          empty_compact_block_neighbors.view,
-          rotamer_dispatch_indices.view,
-          score_weights);
+          TMOL_LJLK_ELEC_WEIGHTED_ROTAMER_ARGS);
+#undef TMOL_LJLK_ELEC_WEIGHTED_ROTAMER_ARGS
   return {std::get<0>(result), std::get<1>(result), rotamer_dispatch_indices};
 }
 
