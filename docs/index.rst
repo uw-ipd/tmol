@@ -25,7 +25,7 @@ interactive :doc:`examples <examples_index>`, use a concise
      <a class="docs-card" href="examples_index.html">
        <span class="docs-card-kicker">Explore</span>
        <span class="docs-card-title">Run an interactive example</span>
-       <span class="docs-card-description">Learn the core APIs, then apply them in executable protein-interface and ligand-pose case studies with molecular viewers, tables, plots, and exercises.</span>
+       <span class="docs-card-description">Learn the core APIs, apply them in scientific case studies, and extend chemistry, kinematics, and packing with molecular viewers, tables, plots, and exercises.</span>
      </a>
      <a class="docs-card" href="workflows/index.html">
        <span class="docs-card-kicker">Do</span>

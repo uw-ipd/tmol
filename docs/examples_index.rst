@@ -1,14 +1,15 @@
 Examples
 ========
 
-These ten executable notebooks are in-depth demonstrations with live molecular
+These thirteen executable notebooks are in-depth demonstrations with live molecular
 viewers, selectable structures and atom subsets, result tables, plots, and
 exercises. For shorter, reusable recipes, see :doc:`Workflows <workflows/index>`.
 Start with Tutorials 01–03. From scoring, branch to packing (04) or
 minimization (05), then combine both in FastRelax (06). Tutorials 07 and 08
 cover specialized ligand and nucleic-acid workflows. Case Studies 09 and 10
 bring those primitives together around protein-interface mutation and ligand
-pose-sensitivity questions.
+pose-sensitivity questions. Tutorials 11–13 are advanced extension recipes for
+custom chemistry and scoring contexts, explicit kinematics, and packer internals.
 
 Use the :doc:`task index <tutorial/recipe_index>` to find a maintained
 tutorial, workflow recipe, or API page for a specific operation.
@@ -35,6 +36,13 @@ that TMol does not currently implement.
 
    tutorial/09_protein_interface_hotspot_scan
    tutorial/10_ligand_pose_sensitivity
+
+.. nbgallery::
+   :caption: Advanced extension recipes
+
+   tutorial/11_extending_chemistry_and_scoring
+   tutorial/12_explicit_foldforests_and_torsions
+   tutorial/13_extending_the_packer
 
 .. toctree::
    :hidden:

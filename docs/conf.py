@@ -110,6 +110,9 @@ nbsphinx_thumbnails = {
     "tutorial/08_nucleic_acids": "_static/tutorials/08_nucleic_acids.png",
     "tutorial/09_protein_interface_hotspot_scan": "_static/tutorials/09_protein_interface_hotspot_scan.png",
     "tutorial/10_ligand_pose_sensitivity": "_static/tutorials/10_ligand_pose_sensitivity.png",
+    "tutorial/11_extending_chemistry_and_scoring": "_static/tutorials/11_extending_chemistry_and_scoring.png",
+    "tutorial/12_explicit_foldforests_and_torsions": "_static/tutorials/12_explicit_foldforests_and_torsions.png",
+    "tutorial/13_extending_the_packer": "_static/tutorials/13_extending_the_packer.png",
 }
 nbsphinx_epilog = r"""
 ----
