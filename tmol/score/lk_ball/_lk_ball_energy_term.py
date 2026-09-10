@@ -30,8 +30,22 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         self.ljlk_param_resolver = LJLKParamResolver.from_database(
             param_db.chemical, param_db.scoring.ljlk, device=device
         )
-        self._ljlk_type_params_cpu = self.ljlk_param_resolver.type_params.to(
-            torch.device("cpu")
+        type_params = self.ljlk_param_resolver.type_params.to(torch.device("cpu"))
+        lk_dgfree = type_params.lk_dgfree.numpy()
+        lk_lambda = type_params.lk_lambda.numpy()
+        self._lk_ball_type_params = numpy.stack(
+            (
+                type_params.lj_radius.numpy(),
+                -lk_dgfree / (2 * 5.56832799683 * lk_lambda),
+                1 / (lk_lambda * lk_lambda),
+                type_params.lk_volume.numpy(),
+                type_params.is_donor.numpy(),
+                type_params.is_hydroxyl.numpy(),
+                type_params.is_polarh.numpy(),
+                type_params.is_acceptor.numpy(),
+                type_params.is_carbon_lk.numpy(),
+            ),
+            axis=1,
         )
         self.tile_size = LKBallEnergyTerm.tile_size
 
@@ -151,34 +165,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         # ok, now let's collect the properties of the atoms in this block
         # needed for LKBallTypeParams (see properties/params.hh)
         assert hasattr(block_type, "atom_types")
-        at = block_type.atom_types
-        type_params = self._ljlk_type_params_cpu
-        bt_lj_radius = type_params.lj_radius[at].numpy()
-        bt_lk_dgfree = type_params.lk_dgfree[at].numpy()
-        bt_lk_lambda = type_params.lk_lambda[at].numpy()
-        bt_lk_coeff = -bt_lk_dgfree / (2 * 5.56832799683 * bt_lk_lambda)
-        bt_lk_inv_lambda2 = 1 / (bt_lk_lambda * bt_lk_lambda)
-        bt_lk_volume = type_params.lk_volume[at].numpy()
-        bt_is_donor = type_params.is_donor[at].numpy()
-        bt_is_hydroxyl = type_params.is_hydroxyl[at].numpy()
-        bt_is_polarh = type_params.is_polarh[at].numpy()
-        bt_is_acceptor = type_params.is_acceptor[at].numpy()
-        bt_is_carbon_lk = type_params.is_carbon_lk[at].numpy()
-
-        bt_lk_ball_at_params = numpy.stack(
-            (
-                bt_lj_radius,
-                bt_lk_coeff,
-                bt_lk_inv_lambda2,
-                bt_lk_volume,
-                bt_is_donor,
-                bt_is_hydroxyl,
-                bt_is_polarh,
-                bt_is_acceptor,
-                bt_is_carbon_lk,
-            ),
-            axis=1,
-        )
+        bt_lk_ball_at_params = self._lk_ball_type_params[block_type.atom_types]
         tiled_bt_lk_ball_at_params = numpy.zeros(
             (n_tiles, tile_size, 9), dtype=numpy.float32
         )
