@@ -80,14 +80,8 @@ struct lk_fraction {
     if (wted_d2_delta <= std::exp(-ramp_width_A2)) return Real(0);
     wted_d2_delta = -std::log(wted_d2_delta);
 
-    Real frac = 0;
-    if (wted_d2_delta < 0) {
-      frac = 1;
-    } else if (wted_d2_delta < ramp_width_A2) {
-      frac = square(1 - square(wted_d2_delta / ramp_width_A2));
-    }
-
-    return frac;
+    // The clamps above imply 0 < wted_d2_delta < ramp_width_A2.
+    return square(1 - square(wted_d2_delta / ramp_width_A2));
   }
 
   static def V_dV(WatersMat WI, Real3 J, Real lj_radius_j) -> V_dV_t {
@@ -118,21 +112,12 @@ struct lk_fraction {
     }
     wted_d2_delta = -std::log(wted_d2_delta);
 
-    Real frac = 0;
-    Real dfrac_dwted_d2 = 0;
-    if (wted_d2_delta < 0) {
-      frac = 1;
-    } else if (wted_d2_delta < ramp_width_A2) {
-      frac = square(1 - square(wted_d2_delta / ramp_width_A2));
-      if (wted_d2_delta > 0) {
-        dfrac_dwted_d2 = Real(-4) * wted_d2_delta
-                         * (square(ramp_width_A2) - square(wted_d2_delta))
-                         / square(square(ramp_width_A2));
-      }
-    }
-
-    Real const derivative_scale =
-        exp_sum != 0 ? 2 * dfrac_dwted_d2 / exp_sum : Real(0);
+    // The clamps above imply 0 < wted_d2_delta < ramp_width_A2.
+    Real frac = square(1 - square(wted_d2_delta / ramp_width_A2));
+    Real dfrac_dwted_d2 = Real(-4) * wted_d2_delta
+                          * (square(ramp_width_A2) - square(wted_d2_delta))
+                          / square(square(ramp_width_A2));
+    Real const derivative_scale = 2 * dfrac_dwted_d2 / exp_sum;
     return V_dV_t{
         frac,
         dV_t{
