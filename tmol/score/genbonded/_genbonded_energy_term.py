@@ -82,6 +82,8 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
         # regardless of which block types are later loaded.
         self._type_to_idx = self.gen_database.make_type_to_idx()
         self._all_type_names = self.gen_database.all_type_names()
+        self._torsion_params_cache = {}
+        self._improper_params_cache = {}
 
     @classmethod
     def class_name(cls):
@@ -191,6 +193,7 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
         """
         kept = []
         rows = []
+        cache = self._torsion_params_cache
 
         for i, j, k, l in torsions:
             t1 = self.get_atom_chem_type(block_type, i)
@@ -206,9 +209,12 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
 
             # find_torsion_params tries both forward and reversed directions
             # internally and returns the most specific match.
-            entry = self.gen_database.find_torsion_params(
-                t1, t2, t3, t4, bond_type_int, is_ring
-            )
+            key = (t1, t2, t3, t4, bond_type_int, is_ring)
+            try:
+                entry = cache[key]
+            except KeyError:
+                entry = self.gen_database.find_torsion_params(*key)
+                cache[key] = entry
             if entry is not None:
                 kept.append((i, j, k, l))
                 # Rosetta's calculate_offset() zeros the minimum when the
@@ -239,6 +245,7 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
         """
         kept = []
         rows = []
+        cache = self._improper_params_cache
 
         for quad in impropers:
             center, n1, n2, n3 = quad
@@ -247,7 +254,12 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
             t2 = self.get_atom_chem_type(block_type, n2)
             t3 = self.get_atom_chem_type(block_type, n3)
 
-            entry = self.gen_database.find_improper_params(tc, t1, t2, t3)
+            key = (tc, t1, t2, t3)
+            try:
+                entry = cache[key]
+            except KeyError:
+                entry = self.gen_database.find_improper_params(*key)
+                cache[key] = entry
             if entry is not None:
                 kept.append(quad)
                 rows.append([entry.k, entry.delta])
