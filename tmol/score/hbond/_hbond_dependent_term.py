@@ -114,6 +114,26 @@ class HBondDependentTerm(BondDependentTerm):
         self.hbond_resolver = HBondParamResolver.from_database(
             param_db.chemical, self.hbond_database, device
         )
+        atom_type_names = self.atom_type_resolver.index
+
+        def map_names(mapper, column, type_index):
+            try:
+                names = mapper.reindex(atom_type_names)[column]
+                names = names.where(pandas.notnull(names), None)
+                return type_index.get_indexer(names).astype(numpy.int32)
+            except KeyError:
+                return numpy.full(len(atom_type_names), -1, dtype=numpy.int32)
+
+        self._acceptor_type_for_atom_type = map_names(
+            self.hbond_database.acceptor_type_mapper,
+            "acc_type",
+            self.hbond_resolver.acceptor_type_index,
+        )
+        self._donor_type_for_atom_type = map_names(
+            self.hbond_database.donor_type_mapper,
+            "don_type",
+            self.hbond_resolver.donor_type_index,
+        )
         self.device = device
 
     def setup_block_type(self, block_type: RefinedResidueType):
@@ -123,44 +143,19 @@ class HBondDependentTerm(BondDependentTerm):
             return
 
         atom_types = [x.atom_type for x in block_type.atoms]
-        atom_type_idx = self.atom_type_resolver.type_idx(atom_types)
-        atom_type_params = self.atom_type_resolver.params[atom_type_idx]
-        ahnp = atom_type_params.acceptor_hybridization.cpu().numpy()
-        atom_acceptor_hybridization = ahnp.astype(numpy.int32)[None, :]
-
-        def map_names(mapper, col_name, type_index):
-            # step 1: map atom type names to hbtype names
-            # step 2: map hbtype names to hbtype indices
-            is_hbtype = numpy.full(len(atom_types), 0, dtype=numpy.int32)
-            hbtype_ind = numpy.full(len(atom_types), 0, dtype=numpy.int32)
-            hbtype_names = numpy.full(len(atom_types), None, dtype=object)
-            try:
-                # if there are no atoms that register as acceptors/donors,
-                # pandas will throw a KeyError (annoying!)
-                hbtype_df = mapper.reindex(atom_types)[col_name]
-                hbtype_df = hbtype_df.where((pandas.notnull(hbtype_df)), None)
-                hbtype_names[:] = numpy.array(hbtype_df)
-            except KeyError:
-                pass
-            hbtype_ind = type_index.get_indexer(hbtype_names)
-            is_hbtype = hbtype_ind != -1
-
-            return is_hbtype, hbtype_ind
-
-        is_acc, acc_type = map_names(
-            self.hbond_database.acceptor_type_mapper,
-            "acc_type",
-            self.hbond_resolver.acceptor_type_index,
-        )
-        is_don, don_type = map_names(
-            self.hbond_database.donor_type_mapper,
-            "don_type",
-            self.hbond_resolver.donor_type_index,
-        )
+        atom_type_idx = self.atom_type_resolver.index.get_indexer(atom_types)
+        acc_type = self._acceptor_type_for_atom_type[atom_type_idx]
+        don_type = self._donor_type_for_atom_type[atom_type_idx]
+        is_acc = acc_type != -1
+        is_don = don_type != -1
+        atom_type_params = self.atom_type_resolver.params
+        atom_acceptor_hybridization = atom_type_params.acceptor_hybridization.numpy()[
+            atom_type_idx
+        ][None, :]
 
         A_idx = numpy.nonzero(is_acc)[0].astype(dtype=numpy.int32)
-        is_hydrogen = (
-            atom_type_params.is_hydrogen.cpu().numpy().astype(dtype=numpy.int32)
+        is_hydrogen = atom_type_params.is_hydrogen.numpy()[atom_type_idx].astype(
+            dtype=numpy.int32
         )
 
         tile_size = HBondDependentTerm.tile_size
