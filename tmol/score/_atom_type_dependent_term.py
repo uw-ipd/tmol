@@ -30,6 +30,9 @@ class AtomTypeDependentTerm(EnergyTerm):
         super(AtomTypeDependentTerm, self).__init__(param_db=param_db, device=device)
         self.atom_type_resolver = atom_type_resolver
         self.atom_type_index = atom_type_resolver.index
+        self._atom_type_indices = {
+            name: index for index, name in enumerate(self.atom_type_index)
+        }
         self.np_is_hydrogen = atom_type_resolver.params.is_hydrogen.cpu().numpy()
         self.np_is_heavyatom = numpy.logical_not(self.np_is_hydrogen)
 
@@ -71,8 +74,9 @@ class AtomTypeDependentTerm(EnergyTerm):
             self._create_uniq_and_wildcard_names_for_bt(block_type)
         )
 
-        atom_types = self.atom_type_index.get_indexer(
-            [x.atom_type for x in block_type.atoms]
+        atom_types = numpy.asarray(
+            [self._atom_type_indices.get(x.atom_type, -1) for x in block_type.atoms],
+            dtype=numpy.intp,
         )
         heavy_inds = numpy.nonzero(self.np_is_heavyatom[atom_types])[0]
 
