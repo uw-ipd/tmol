@@ -343,7 +343,7 @@ endfunction()
 # Common compile options for CUDA extensions
 function(tmol_set_cuda_flags TARGET)
   target_compile_options(${TARGET} PRIVATE
-    $<$<COMPILE_LANGUAGE:CXX>:-O3 -w -DWITH_CUDA -DWITH_NVTX>
+    $<$<COMPILE_LANGUAGE:CXX>:-O3 -w -fno-math-errno -DWITH_CUDA -DWITH_NVTX>
     $<$<COMPILE_LANGUAGE:CUDA>:
       -O3 -w
       --expt-extended-lambda
@@ -362,7 +362,7 @@ endfunction()
 # Common compile options for CPU-only extensions
 function(tmol_set_cpp_flags TARGET)
   target_compile_options(${TARGET} PRIVATE
-    $<$<COMPILE_LANGUAGE:CXX>:-O3 -w -DWITH_NVTX>
+    $<$<COMPILE_LANGUAGE:CXX>:-O3 -w -fno-math-errno -DWITH_NVTX>
   )
   target_include_directories(${TARGET} PRIVATE ${TMOL_INCLUDE_DIRS})
   tmol_set_portable_link_flags(${TARGET})

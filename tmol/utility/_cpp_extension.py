@@ -72,7 +72,12 @@ def _required_cxx_standard(torch_major, torch_minor):
 
 
 _cxx_standard = _required_cxx_standard(torch_major, torch_minor)
-_required_flags = [f"--std=c++{_cxx_standard}", "-DWITH_NVTX", "-w"]
+_required_flags = [
+    f"--std=c++{_cxx_standard}",
+    "-fno-math-errno",
+    "-DWITH_NVTX",
+    "-w",
+]
 
 _required_cuda_flags = [
     f"-std=c++{_cxx_standard}",
