@@ -1,0 +1,1775 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Tutorial 12 — Explicit FoldForests and Coordinate Control &#8212; TMol</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=0a30a683" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../_static/scripts/fontawesome.js?digest=cb8930eaaf36d9849b67"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
+
+    <script src="../_static/documentation_options.js?v=9d458db5"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script>let toggleHintShow = 'show code';</script>
+    <script>let toggleHintHide = 'hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'tutorial/12_explicit_foldforests_and_torsions';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/tutorial/12_explicit_foldforests_and_torsions.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Tutorial 13 — Extending the Packer and Inspecting Rotamers" href="13_extending_the_packer.html" />
+    <link rel="prev" title="Tutorial 11 — Extending Chemistry and Scoring Contexts" href="11_extending_chemistry_and_scoring.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.56" />
+  
+    
+    <script src="../_static/searchtools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script src="../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TMol</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../agent_skills.html">
+    Agent skills
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../api_reference.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../agent_skills.html">
+    Agent skills
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../api_reference.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Core interactive tutorials</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="01_working_with_tmol.html">Tutorial 01 — Working with TMol</a></li>
+<li class="toctree-l1"><a class="reference internal" href="02_gpu_batching.html">Tutorial 02 — GPU Batching with TMol</a></li>
+<li class="toctree-l1"><a class="reference internal" href="03_scoring_and_analysis.html">Tutorial 03 — Scoring and Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="04_packing_and_mutation_scan.html">Tutorial 04 — Packing and a Small Mutation Scan</a></li>
+<li class="toctree-l1"><a class="reference internal" href="05_minimization_constraints_kinematics.html">Tutorial 05 — Minimization, Constraints, and Kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="06_fast_relax.html">Tutorial 06 — FastRelax</a></li>
+<li class="toctree-l1"><a class="reference internal" href="07_ligand_and_params.html">Tutorial 07 — Ligands and Parameter Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="08_nucleic_acids.html">Tutorial 08 — Working with DNA and RNA</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Integrated case studies</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="09_protein_interface_hotspot_scan.html">Case Study 09 — Map and Test a Protein Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="10_ligand_pose_sensitivity.html">Case Study 10 — Ligand Pose Sensitivity and Local Rescue</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Advanced extension recipes</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="11_extending_chemistry_and_scoring.html">Tutorial 11 — Extending Chemistry and Scoring Contexts</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Tutorial 12 — Explicit FoldForests and Coordinate Control</a></li>
+<li class="toctree-l1"><a class="reference internal" href="13_extending_the_packer.html">Tutorial 13 — Extending the Packer and Inspecting Rotamers</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="recipe_index.html">Task index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rosetta_crosswalk.html">Rosetta-to-TMol crosswalk</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../examples_index.html" class="nav-link">Examples</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Tutorial 12 — Explicit FoldForests and Coordinate Control</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="Tutorial-12-—-Explicit-FoldForests-and-Coordinate-Control">
+<h1>Tutorial 12 — Explicit FoldForests and Coordinate Control<a class="headerlink" href="#Tutorial-12-—-Explicit-FoldForests-and-Coordinate-Control" title="Link to this heading">#</a></h1>
+<p><a class="reference external" href="https://colab.research.google.com/github/uw-ipd/tmol/blob/master/docs/tutorial/12_explicit_foldforests_and_torsions.ipynb"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a></p>
+<p>This advanced tutorial constructs coupled and per-residue-root FoldForests, changes an inter-chain rigid-body jump, and assigns named backbone torsions in a batched kinematic operation. Every transformation is checked numerically and visualized as both a topology and a three-dimensional structure.</p>
+<section id="Learning-objectives">
+<h2>Learning objectives<a class="headerlink" href="#Learning-objectives" title="Link to this heading">#</a></h2>
+<p>By the end, you will be able to:</p>
+<ul class="simple">
+<li><p>encode root-jump, polymer, and ordinary-jump edges explicitly;</p></li>
+<li><p>recognize when separate chains are independent or coupled by a jump;</p></li>
+<li><p>construct a dandelion forest and understand what it does not idealize;</p></li>
+<li><p>extract, modify, and forward-fold rigid-body degrees of freedom;</p></li>
+<li><p>set named torsions and confirm the result in a Ramachandran plot.</p></li>
+</ul>
+</section>
+<section id="Before-you-begin">
+<h2>Before you begin<a class="headerlink" href="#Before-you-begin" title="Link to this heading">#</a></h2>
+<p>Complete <a class="reference internal" href="05_minimization_constraints_kinematics.html"><span class="doc">Minimization, Constraints, and Kinematics</span></a>. FoldForest topology decides which atoms move together; it does not add chemical bonds, repair geometry, choose a scoring function, or establish that a conformation is physically favorable.</p>
+</section>
+<section id="Setup">
+<h2>Setup<a class="headerlink" href="#Setup" title="Link to this heading">#</a></h2>
+<p>The notebook builds short idealized sequences, so it needs no downloaded structures. The examples are intentionally small enough for CPU documentation execution while using the same public kinematics operations on CUDA.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">google.colab</span>  <span class="c1"># noqa: F401</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">IN_COLAB</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">IN_COLAB</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="k">if</span> <span class="n">IN_COLAB</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">urllib.request</span><span class="w"> </span><span class="kn">import</span> <span class="n">urlopen</span>
+
+    <span class="n">exec</span><span class="p">(</span>
+        <span class="n">urlopen</span><span class="p">(</span>
+            <span class="s2">"https://raw.githubusercontent.com/uw-ipd/tmol/"</span>
+            <span class="s2">"master/docs/tutorial/colab_setup.py"</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span>
+        <span class="nb">globals</span><span class="p">(),</span>
+    <span class="p">)</span>
+    <span class="n">setup_colab</span><span class="p">([])</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nbinput collapse-code docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">attrs</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">networkx</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nx</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">IPython.display</span><span class="w"> </span><span class="kn">import</span> <span class="n">display</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">tmol</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">EdgeType</span><span class="p">,</span>
+    <span class="n">FoldForest</span><span class="p">,</span>
+    <span class="n">JumpDOFTypes</span><span class="p">,</span>
+    <span class="n">NodeType</span><span class="p">,</span>
+    <span class="n">PoseStackKinematicsModule</span><span class="p">,</span>
+    <span class="n">inverseKin</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">SEED</span> <span class="o">=</span> <span class="mi">20260910</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">SEED</span><span class="p">)</span>
+<span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="n">SEED</span><span class="p">)</span>
+<span class="n">device</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cuda"</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">current_device</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span>
+    <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">)</span>
+<span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">show_table</span><span class="p">(</span><span class="n">frame</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">itables</span><span class="w"> </span><span class="kn">import</span> <span class="n">show</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">display</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">show</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span>
+
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"TMol </span><span class="si">{</span><span class="n">tmol</span><span class="o">.</span><span class="n">__version__</span><span class="si">}</span><span class="s2">; PyTorch </span><span class="si">{</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="si">}</span><span class="s2">; device=</span><span class="si">{</span><span class="n">device</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+TMol 0.1.56; PyTorch 2.14.0+cpu; device=cpu
+</pre></div></div>
+</div>
+</section>
+<section id="Compare-automatic,-coupled,-and-dandelion-topologies">
+<h2>Compare automatic, coupled, and dandelion topologies<a class="headerlink" href="#Compare-automatic,-coupled,-and-dandelion-topologies" title="Link to this heading">#</a></h2>
+<p>The sequence grammar uses <code class="docutils literal notranslate"><span class="pre">:</span></code> for a chain break. <code class="docutils literal notranslate"><span class="pre">reasonable_fold_forest()</span></code> roots the two chains independently. The custom coupled forest instead attaches chain B to chain A with ordinary jump 0, making six rigid-body degrees of freedom control their relative placement. The dandelion forest independently attaches every block to TMol’s virtual root.</p>
+<p>Each stored edge is <code class="docutils literal notranslate"><span class="pre">(edge</span> <span class="pre">type,</span> <span class="pre">start</span> <span class="pre">block,</span> <span class="pre">end</span> <span class="pre">block,</span> <span class="pre">jump</span> <span class="pre">index)</span></code>. Root jumps always start at <code class="docutils literal notranslate"><span class="pre">-1</span></code>; root-jump and polymer edges use jump index <code class="docutils literal notranslate"><span class="pre">-1</span></code>; ordinary jumps use contiguous indices beginning at zero. Unused padded rows also contain <code class="docutils literal notranslate"><span class="pre">-1</span></code>.</p>
+<div class="nbinput collapse-code docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">two_chain_pose</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">extended_pose_stack_from_sequences</span><span class="p">(</span>
+    <span class="s2">"ACDE:FGHI"</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+<span class="p">)</span>
+<span class="n">n_blocks</span> <span class="o">=</span> <span class="n">two_chain_pose</span><span class="o">.</span><span class="n">max_n_blocks</span>
+<span class="n">chain_b_start</span> <span class="o">=</span> <span class="mi">4</span>
+
+<span class="n">automatic_forest</span> <span class="o">=</span> <span class="n">FoldForest</span><span class="o">.</span><span class="n">reasonable_fold_forest</span><span class="p">(</span><span class="n">two_chain_pose</span><span class="p">)</span>
+
+<span class="n">coupled_edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+<span class="n">coupled_edges</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">EdgeType</span><span class="o">.</span><span class="n">root_jump</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">coupled_edges</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">EdgeType</span><span class="o">.</span><span class="n">polymer</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">chain_b_start</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">coupled_edges</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">EdgeType</span><span class="o">.</span><span class="n">jump</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">chain_b_start</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+<span class="n">coupled_edges</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">EdgeType</span><span class="o">.</span><span class="n">polymer</span><span class="p">,</span> <span class="n">chain_b_start</span><span class="p">,</span> <span class="n">n_blocks</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">coupled_forest</span> <span class="o">=</span> <span class="n">FoldForest</span><span class="o">.</span><span class="n">from_edges</span><span class="p">(</span><span class="n">coupled_edges</span><span class="p">)</span>
+
+<span class="n">dandelion_edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_blocks</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+<span class="n">dandelion_edges</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">EdgeType</span><span class="o">.</span><span class="n">root_jump</span>
+<span class="n">dandelion_edges</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+<span class="n">dandelion_edges</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_blocks</span><span class="p">)</span>
+<span class="n">dandelion_edges</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+<span class="n">dandelion_forest</span> <span class="o">=</span> <span class="n">FoldForest</span><span class="o">.</span><span class="n">from_edges</span><span class="p">(</span><span class="n">dandelion_edges</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">edge_rows</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">forest</span><span class="p">):</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">edge_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">forest</span><span class="o">.</span><span class="n">n_edges</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+        <span class="n">edge_type</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">jump</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">forest</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">edge_index</span><span class="p">]</span>
+        <span class="p">]</span>
+        <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">"forest"</span><span class="p">:</span> <span class="n">label</span><span class="p">,</span>
+                <span class="s2">"edge"</span><span class="p">:</span> <span class="n">edge_index</span><span class="p">,</span>
+                <span class="s2">"type"</span><span class="p">:</span> <span class="n">EdgeType</span><span class="p">(</span><span class="n">edge_type</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="s2">"start"</span><span class="p">:</span> <span class="n">start</span><span class="p">,</span>
+                <span class="s2">"end"</span><span class="p">:</span> <span class="n">end</span><span class="p">,</span>
+                <span class="s2">"jump_index"</span><span class="p">:</span> <span class="n">jump</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">rows</span>
+
+
+<span class="n">edge_frame</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+    <span class="n">edge_rows</span><span class="p">(</span><span class="s2">"automatic"</span><span class="p">,</span> <span class="n">automatic_forest</span><span class="p">)</span>
+    <span class="o">+</span> <span class="n">edge_rows</span><span class="p">(</span><span class="s2">"coupled"</span><span class="p">,</span> <span class="n">coupled_forest</span><span class="p">)</span>
+    <span class="o">+</span> <span class="n">edge_rows</span><span class="p">(</span><span class="s2">"dandelion"</span><span class="p">,</span> <span class="n">dandelion_forest</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">show_table</span><span class="p">(</span><span class="n">edge_frame</span><span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<!--| quarto-html-table-processing: none -->
+<table id="itables_1e6abce2_660a_4cef_a5f9_f605e402b487" hidden="hidden">
+  <tbody>
+    <tr>
+      <td style="vertical-align:middle; text-align:left"><a href=https://itables.org/><svg class="main-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+width="64" viewBox="0 0 500 400" style="font-family: 'Droid Sans', sans-serif;">
+    <g style="fill:var(--itables-logo-paper,#d9d7fc)">
+        <path d="M100,400H500V357H100Z" />
+        <path d="M100,300H400V257H100Z" />
+        <path d="M0,200H400V157H0Z" />
+        <path d="M100,100H500V57H100Z" />
+        <path d="M100,350H500V307H100Z" />
+        <path d="M100,250H400V207H100Z" />
+        <path d="M0,150H400V107H0Z" />
+        <path d="M100,50H500V7H100Z" />
+    </g>
+    <g style="fill:var(--itables-logo-ink,#1a1366);stroke:var(--itables-logo-ink,#1a1366);">
+   <rect x="100" y="7" width="400" height="43">
+    <animate
+      attributeName="width"
+      values="0;400;0"
+      dur="5s"
+      repeatCount="indefinite" />
+      <animate
+      attributeName="x"
+      values="100;100;500"
+      dur="5s"
+      repeatCount="indefinite" />
+  </rect>
+        <rect x="0" y="107" width="400" height="43">
+    <animate
+      attributeName="width"
+      values="0;400;0"
+      dur="3.5s"
+      repeatCount="indefinite" />
+    <animate
+      attributeName="x"
+      values="0;0;400"
+      dur="3.5s"
+      repeatCount="indefinite" />
+  </rect>
+        <rect x="100" y="207" width="300" height="43">
+    <animate
+      attributeName="width"
+      values="0;300;0"
+      dur="3s"
+      repeatCount="indefinite" />
+    <animate
+      attributeName="x"
+      values="100;100;400"
+      dur="3s"
+      repeatCount="indefinite" />
+  </rect>
+        <rect x="100" y="307" width="400" height="43">
+    <animate
+      attributeName="width"
+      values="0;400;0"
+      dur="4s"
+      repeatCount="indefinite" />
+      <animate
+      attributeName="x"
+      values="100;100;500"
+      dur="4s"
+      repeatCount="indefinite" />
+  </rect>
+        <g style="fill:transparent;stroke-width:8; stroke-linejoin:round" rx="5">
+            <g transform="translate(45 50) rotate(-45)">
+                <circle r="33" cx="0" cy="0" />
+                <rect x="-8" y="32" width="16" height="30" />
+            </g>
+
+            <g transform="translate(450 152)">
+                <polyline points="-15,-20 -35,-20 -35,40 25,40 25,20" />
+                <rect x="-15" y="-40" width="60" height="60" />
+            </g>
+
+            <g transform="translate(50 352)">
+                <polygon points="-35,-5 0,-40 35,-5" />
+                <polygon points="-35,10 0,45 35,10" />
+            </g>
+
+            <g transform="translate(75 250)">
+                <polyline points="-30,30 -60,0 -30,-30" />
+                <polyline points="0,30 -30,0 0,-30" />
+            </g>
+
+            <g transform="translate(425 250) rotate(180)">
+                <polyline points="-30,30 -60,0 -30,-30" />
+                <polyline points="0,30 -30,0 0,-30" />
+            </g>
+        </g>
+    </g>
+</svg>
+</a>
+        Loading ITables v2.9.1 from the internet...
+        (need <a href=https://itables.org/troubleshooting.html>help</a>?)
+      </td>
+    </tr>
+  </tbody>
+</table>
+<div id="itables_1e6abce2_660a_4cef_a5f9_f605e402b487_fallback"><table style="border-collapse:collapse"><thead>    <tr style="text-align: right;">
+      <th style="border:1px solid #ddd;padding:8px"><sup><noscript><span title="JavaScript not allowed. Please trust this notebook to get interactive tables.">🔒</span></noscript><a href=https://itables.org/fallbacks/static_preview.html title="ITables v2.9.1 static preview">ⓘ</a></sup>forest</th>
+      <th style="border:1px solid #ddd;padding:8px">edge</th>
+      <th style="border:1px solid #ddd;padding:8px">type</th>
+      <th style="border:1px solid #ddd;padding:8px">start</th>
+      <th style="border:1px solid #ddd;padding:8px">end</th>
+      <th style="border:1px solid #ddd;padding:8px">jump_index</th>
+    </tr></thead><tbody>
+<tr><td style="border:1px solid #ddd;padding:8px">automatic</td><td style="border:1px solid #ddd;padding:8px">0</td><td style="border:1px solid #ddd;padding:8px">root_jump</td><td style="border:1px solid #ddd;padding:8px">-1</td><td style="border:1px solid #ddd;padding:8px">0</td><td style="border:1px solid #ddd;padding:8px">-1</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">automatic</td><td style="border:1px solid #ddd;padding:8px">1</td><td style="border:1px solid #ddd;padding:8px">polymer</td><td style="border:1px solid #ddd;padding:8px">0</td><td style="border:1px solid #ddd;padding:8px">3</td><td style="border:1px solid #ddd;padding:8px">-1</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">automatic</td><td style="border:1px solid #ddd;padding:8px">2</td><td style="border:1px solid #ddd;padding:8px">root_jump</td><td style="border:1px solid #ddd;padding:8px">-1</td><td style="border:1px solid #ddd;padding:8px">4</td><td style="border:1px solid #ddd;padding:8px">-1</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">automatic</td><td style="border:1px solid #ddd;padding:8px">3</td><td style="border:1px solid #ddd;padding:8px">polymer</td><td style="border:1px solid #ddd;padding:8px">4</td><td style="border:1px solid #ddd;padding:8px">7</td><td style="border:1px solid #ddd;padding:8px">-1</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">coupled</td><td style="border:1px solid #ddd;padding:8px">0</td><td style="border:1px solid #ddd;padding:8px">root_jump</td><td style="border:1px solid #ddd;padding:8px">-1</td><td style="border:1px solid #ddd;padding:8px">0</td><td style="border:1px solid #ddd;padding:8px">-1</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">coupled</td><td style="border:1px solid #ddd;padding:8px">1</td><td style="border:1px solid #ddd;padding:8px">polymer</td><td style="border:1px solid #ddd;padding:8px">0</td><td style="border:1px solid #ddd;padding:8px">3</td><td style="border:1px solid #ddd;padding:8px">-1</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">coupled</td><td style="border:1px solid #ddd;padding:8px">2</td><td style="border:1px solid #ddd;padding:8px">jump</td><td style="border:1px solid #ddd;padding:8px">0</td><td style="border:1px solid #ddd;padding:8px">4</td><td style="border:1px solid #ddd;padding:8px">0</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">coupled</td><td style="border:1px solid #ddd;padding:8px">3</td><td style="border:1px solid #ddd;padding:8px">polymer</td><td style="border:1px solid #ddd;padding:8px">4</td><td style="border:1px solid #ddd;padding:8px">7</td><td style="border:1px solid #ddd;padding:8px">-1</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">dandelion</td><td style="border:1px solid #ddd;padding:8px">0</td><td style="border:1px solid #ddd;padding:8px">root_jump</td><td style="border:1px solid #ddd;padding:8px">-1</td><td style="border:1px solid #ddd;padding:8px">0</td><td style="border:1px solid #ddd;padding:8px">-1</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">dandelion</td><td style="border:1px solid #ddd;padding:8px">1</td><td style="border:1px solid #ddd;padding:8px">root_jump</td><td style="border:1px solid #ddd;padding:8px">-1</td><td style="border:1px solid #ddd;padding:8px">1</td><td style="border:1px solid #ddd;padding:8px">-1</td></tr>
+</tbody><tfoot><tr><td colspan="6" style="border:none;padding:8px;text-align:center">(6 more rows not shown)</td></tr></tfoot></table></div><script>document.getElementById("itables_1e6abce2_660a_4cef_a5f9_f605e402b487")?.removeAttribute("hidden");document.getElementById("itables_1e6abce2_660a_4cef_a5f9_f605e402b487_fallback")?.setAttribute("hidden", "hidden");</script>
+<link href="https://www.unpkg.com/dt_for_itables@2.5.8/dt_bundle.css" rel="stylesheet">
+<script type="module">
+    import { ITable, jQuery as $ } from 'https://www.unpkg.com/dt_for_itables@2.5.8/dt_bundle.js';
+
+    document.querySelectorAll("#itables_1e6abce2_660a_4cef_a5f9_f605e402b487:not(.dataTable)").forEach(table => {
+        if (!(table instanceof HTMLTableElement))
+            return;
+
+        let dt_args = {
+          "classes": ["display", "nowrap", "compact"],
+          "data_json": "[[\"automatic\", 0, \"root_jump\", -1, 0, -1], [\"automatic\", 1, \"polymer\", 0, 3, -1], [\"automatic\", 2, \"root_jump\", -1, 4, -1], [\"automatic\", 3, \"polymer\", 4, 7, -1], [\"coupled\", 0, \"root_jump\", -1, 0, -1], [\"coupled\", 1, \"polymer\", 0, 3, -1], [\"coupled\", 2, \"jump\", 0, 4, 0], [\"coupled\", 3, \"polymer\", 4, 7, -1], [\"dandelion\", 0, \"root_jump\", -1, 0, -1], [\"dandelion\", 1, \"root_jump\", -1, 1, -1], [\"dandelion\", 2, \"root_jump\", -1, 2, -1], [\"dandelion\", 3, \"root_jump\", -1, 3, -1], [\"dandelion\", 4, \"root_jump\", -1, 4, -1], [\"dandelion\", 5, \"root_jump\", -1, 5, -1], [\"dandelion\", 6, \"root_jump\", -1, 6, -1], [\"dandelion\", 7, \"root_jump\", -1, 7, -1]]",
+          "layout": {"bottomEnd": "paging", "bottomStart": "info", "topEnd": "search", "topStart": "pageLength"},
+          "order": [],
+          "style": {"caption-side": "bottom", "margin": "auto", "table-layout": "auto", "width": "auto"},
+          "table_html": "<table><thead>\n    <tr style=\"text-align: right;\">\n      \n      <th>forest</th>\n      <th>edge</th>\n      <th>type</th>\n      <th>start</th>\n      <th>end</th>\n      <th>jump_index</th>\n    </tr>\n  </thead></table>",
+          "text_in_header_can_be_selected": true
+        };
+        new ITable(table, dt_args);
+    });
+</script></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">expanded_graph</span><span class="p">(</span><span class="n">forest</span><span class="p">):</span>
+    <span class="n">graph</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">DiGraph</span><span class="p">()</span>
+    <span class="n">graph</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_blocks</span><span class="p">):</span>
+        <span class="n">graph</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">edge_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">forest</span><span class="o">.</span><span class="n">n_edges</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+        <span class="n">edge_type</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">forest</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">edge_index</span><span class="p">]</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="n">edge_type</span> <span class="o">==</span> <span class="nb">int</span><span class="p">(</span><span class="n">EdgeType</span><span class="o">.</span><span class="n">polymer</span><span class="p">):</span>
+            <span class="n">step</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">end</span> <span class="o">&gt;=</span> <span class="n">start</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="k">for</span> <span class="n">parent</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span>
+                <span class="n">graph</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">parent</span><span class="p">,</span> <span class="n">parent</span> <span class="o">+</span> <span class="n">step</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"polymer"</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">edge_type</span> <span class="o">==</span> <span class="nb">int</span><span class="p">(</span><span class="n">EdgeType</span><span class="o">.</span><span class="n">root_jump</span><span class="p">):</span>
+            <span class="n">graph</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"root jump"</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">graph</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"ordinary jump"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">graph</span>
+
+
+<span class="n">positions</span> <span class="o">=</span> <span class="p">{</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.15</span><span class="p">)}</span>
+<span class="n">positions</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">block</span><span class="p">:</span> <span class="p">(</span><span class="n">block</span> <span class="o">%</span> <span class="mi">4</span><span class="p">,</span> <span class="mf">0.55</span> <span class="o">-</span> <span class="mf">0.55</span> <span class="o">*</span> <span class="p">(</span><span class="n">block</span> <span class="o">//</span> <span class="mi">4</span><span class="p">))</span> <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_blocks</span><span class="p">)})</span>
+<span class="n">forest_map</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"automatic: independent chains"</span><span class="p">:</span> <span class="n">automatic_forest</span><span class="p">,</span>
+    <span class="s2">"coupled by ordinary jump"</span><span class="p">:</span> <span class="n">coupled_forest</span><span class="p">,</span>
+    <span class="s2">"dandelion: one root jump per block"</span><span class="p">:</span> <span class="n">dandelion_forest</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes_grid</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">11.5</span><span class="p">,</span> <span class="mf">7.5</span><span class="p">))</span>
+<span class="n">axes</span> <span class="o">=</span> <span class="n">axes_grid</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">axis</span><span class="p">,</span> <span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="n">forest</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">axes</span><span class="p">[:</span><span class="mi">3</span><span class="p">],</span> <span class="n">forest_map</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+    <span class="n">graph</span> <span class="o">=</span> <span class="n">expanded_graph</span><span class="p">(</span><span class="n">forest</span><span class="p">)</span>
+    <span class="n">node_colors</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">"#555555"</span> <span class="k">if</span> <span class="n">node</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="k">else</span> <span class="s2">"#4c78a8"</span> <span class="k">if</span> <span class="n">node</span> <span class="o">&lt;</span> <span class="n">chain_b_start</span> <span class="k">else</span> <span class="s2">"#f58518"</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span>
+    <span class="p">]</span>
+    <span class="n">nx</span><span class="o">.</span><span class="n">draw_networkx_nodes</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">positions</span><span class="p">,</span> <span class="n">node_color</span><span class="o">=</span><span class="n">node_colors</span><span class="p">,</span> <span class="n">node_size</span><span class="o">=</span><span class="mi">700</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+    <span class="n">nx</span><span class="o">.</span><span class="n">draw_networkx_labels</span><span class="p">(</span>
+        <span class="n">graph</span><span class="p">,</span>
+        <span class="n">positions</span><span class="p">,</span>
+        <span class="n">labels</span><span class="o">=</span><span class="p">{</span><span class="n">node</span><span class="p">:</span> <span class="s2">"root"</span> <span class="k">if</span> <span class="n">node</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">node</span><span class="p">)</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">},</span>
+        <span class="n">font_color</span><span class="o">=</span><span class="s2">"white"</span><span class="p">,</span>
+        <span class="n">ax</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">kind</span><span class="p">,</span> <span class="n">style</span><span class="p">,</span> <span class="n">color</span> <span class="ow">in</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s2">"polymer"</span><span class="p">,</span> <span class="s2">"solid"</span><span class="p">,</span> <span class="s2">"#333333"</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"root jump"</span><span class="p">,</span> <span class="s2">"dotted"</span><span class="p">,</span> <span class="s2">"#777777"</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"ordinary jump"</span><span class="p">,</span> <span class="s2">"dashed"</span><span class="p">,</span> <span class="s2">"#b22222"</span><span class="p">),</span>
+    <span class="p">]:</span>
+        <span class="n">selected</span> <span class="o">=</span> <span class="p">[(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">edges</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">if</span> <span class="n">data</span><span class="p">[</span><span class="s2">"kind"</span><span class="p">]</span> <span class="o">==</span> <span class="n">kind</span><span class="p">]</span>
+        <span class="n">nx</span><span class="o">.</span><span class="n">draw_networkx_edges</span><span class="p">(</span>
+            <span class="n">graph</span><span class="p">,</span>
+            <span class="n">positions</span><span class="p">,</span>
+            <span class="n">edgelist</span><span class="o">=</span><span class="n">selected</span><span class="p">,</span>
+            <span class="n">style</span><span class="o">=</span><span class="n">style</span><span class="p">,</span>
+            <span class="n">edge_color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+            <span class="n">width</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
+            <span class="n">arrows</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">arrowsize</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+            <span class="n">ax</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="n">axis</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+    <span class="n">axis</span><span class="o">.</span><span class="n">set_axis_off</span><span class="p">()</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">set_axis_off</span><span class="p">()</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
+    <span class="mf">0.02</span><span class="p">,</span>
+    <span class="mf">0.78</span><span class="p">,</span>
+    <span class="s2">"blue: chain A</span><span class="se">\n</span><span class="s2">orange: chain B</span><span class="se">\n</span><span class="s2">solid: polymer</span><span class="se">\n</span><span class="s2">dotted: root jump</span><span class="se">\n</span><span class="s2">dashed red: ordinary jump"</span><span class="p">,</span>
+    <span class="n">transform</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
+    <span class="n">va</span><span class="o">=</span><span class="s2">"top"</span><span class="p">,</span>
+    <span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+    <span class="n">bbox</span><span class="o">=</span><span class="p">{</span><span class="s2">"boxstyle"</span><span class="p">:</span> <span class="s2">"round,pad=0.6"</span><span class="p">,</span> <span class="s2">"fc"</span><span class="p">:</span> <span class="s2">"#f7f7f7"</span><span class="p">,</span> <span class="s2">"ec"</span><span class="p">:</span> <span class="s2">"#777777"</span><span class="p">},</span>
+<span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">"The same eight blocks under three FoldForest topologies"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorial_12_explicit_foldforests_and_torsions_6_0.png" src="../_images/tutorial_12_explicit_foldforests_and_torsions_6_0.png" />
+</div>
+</div>
+<p><strong>Expected observations.</strong> The automatic forest has two root jumps, so neither chain’s placement depends on the other. The coupled forest has one virtual-root jump plus one red ordinary jump from block 0 to block 4. The dandelion forest has eight root jumps and no polymer traversal. It preserves each block’s internal geometry while exposing per-block rigid frames; it does not change chemical connectivity or rebuild the input at ideal bond lengths and angles.</p>
+</section>
+<section id="Perturb-the-inter-chain-rigid-body-jump">
+<h2>Perturb the inter-chain rigid-body jump<a class="headerlink" href="#Perturb-the-inter-chain-rigid-body-jump" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">PoseStackKinematicsModule</span></code> maps kinematic degrees of freedom back to coordinates. <code class="docutils literal notranslate"><span class="pre">inverseKin()</span></code> initializes those degrees of freedom from the current coordinates. We locate the ordinary jump node, translate its downstream chain by 3 Å along the jump frame, and tilt it by 12 degrees.</p>
+<p>The correctness test is relational: chain A should remain fixed, while every block in chain B should move. The displacement plot makes that dependency visible and catches accidentally selecting the virtual-root jump instead.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">kinematics_module</span> <span class="o">=</span> <span class="n">PoseStackKinematicsModule</span><span class="p">(</span><span class="n">two_chain_pose</span><span class="p">,</span> <span class="n">coupled_forest</span><span class="p">)</span>
+<span class="n">kmd</span> <span class="o">=</span> <span class="n">kinematics_module</span><span class="o">.</span><span class="n">kmd</span>
+<span class="n">flat_atom_ids</span> <span class="o">=</span> <span class="n">kmd</span><span class="o">.</span><span class="n">forest</span><span class="o">.</span><span class="n">id</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+<span class="n">kincoords</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+    <span class="p">(</span><span class="n">kmd</span><span class="o">.</span><span class="n">forest</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+<span class="p">)</span>
+<span class="n">kincoords</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">two_chain_pose</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)[</span><span class="n">flat_atom_ids</span><span class="p">]</span><span class="o">.</span><span class="n">double</span><span class="p">()</span>
+<span class="n">dofs</span> <span class="o">=</span> <span class="n">inverseKin</span><span class="p">(</span><span class="n">kmd</span><span class="o">.</span><span class="n">forest</span><span class="p">,</span> <span class="n">kincoords</span><span class="p">)</span>
+
+<span class="n">jump_nodes</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span>
+    <span class="n">kmd</span><span class="o">.</span><span class="n">forest</span><span class="o">.</span><span class="n">doftype</span> <span class="o">==</span> <span class="n">NodeType</span><span class="o">.</span><span class="n">jump</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">False</span>
+<span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+<span class="n">inter_chain_jump_node</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">jump_nodes</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">moved_dofs</span> <span class="o">=</span> <span class="n">dofs</span><span class="o">.</span><span class="n">raw</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+<span class="n">moved_dofs</span><span class="p">[</span><span class="n">inter_chain_jump_node</span><span class="p">,</span> <span class="n">JumpDOFTypes</span><span class="o">.</span><span class="n">RBx</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">3.0</span>
+<span class="n">moved_dofs</span><span class="p">[</span><span class="n">inter_chain_jump_node</span><span class="p">,</span> <span class="n">JumpDOFTypes</span><span class="o">.</span><span class="n">RBdel_alpha</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="mf">12.0</span><span class="p">)</span>
+
+<span class="n">moved_kincoords</span> <span class="o">=</span> <span class="n">kinematics_module</span><span class="p">(</span><span class="n">moved_dofs</span><span class="p">)</span>
+<span class="n">moved_flat</span> <span class="o">=</span> <span class="n">two_chain_pose</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+<span class="n">moved_flat</span><span class="p">[</span><span class="n">flat_atom_ids</span><span class="p">]</span> <span class="o">=</span> <span class="n">moved_kincoords</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">moved_flat</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+<span class="n">jump_moved_pose</span> <span class="o">=</span> <span class="n">attrs</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+    <span class="n">two_chain_pose</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">moved_flat</span><span class="o">.</span><span class="n">view_as</span><span class="p">(</span><span class="n">two_chain_pose</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
+<span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">mean_block_displacement</span><span class="p">(</span><span class="n">reference</span><span class="p">,</span> <span class="n">mobile</span><span class="p">,</span> <span class="n">block</span><span class="p">):</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">reference</span><span class="o">.</span><span class="n">block_coord_offset64</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">block</span><span class="p">])</span>
+    <span class="n">block_type_index</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">reference</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">block</span><span class="p">])</span>
+    <span class="n">n_atoms</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">reference</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">[</span><span class="n">block_type_index</span><span class="p">])</span>
+    <span class="n">delta</span> <span class="o">=</span> <span class="n">mobile</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">start</span> <span class="p">:</span> <span class="n">start</span> <span class="o">+</span> <span class="n">n_atoms</span><span class="p">]</span> <span class="o">-</span> <span class="n">reference</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">start</span> <span class="p">:</span> <span class="n">start</span> <span class="o">+</span> <span class="n">n_atoms</span><span class="p">]</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">vector_norm</span><span class="p">(</span><span class="n">delta</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span>
+
+
+<span class="n">displacement_frame</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s2">"block"</span><span class="p">:</span> <span class="n">block</span><span class="p">,</span>
+            <span class="s2">"chain"</span><span class="p">:</span> <span class="s2">"A"</span> <span class="k">if</span> <span class="n">block</span> <span class="o">&lt;</span> <span class="n">chain_b_start</span> <span class="k">else</span> <span class="s2">"B"</span><span class="p">,</span>
+            <span class="s2">"mean_displacement_A"</span><span class="p">:</span> <span class="n">mean_block_displacement</span><span class="p">(</span><span class="n">two_chain_pose</span><span class="p">,</span> <span class="n">jump_moved_pose</span><span class="p">,</span> <span class="n">block</span><span class="p">),</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_blocks</span><span class="p">)</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+<span class="n">show_table</span><span class="p">(</span><span class="n">displacement_frame</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mf">4.2</span><span class="p">))</span>
+<span class="n">colors</span> <span class="o">=</span> <span class="n">displacement_frame</span><span class="p">[</span><span class="s2">"chain"</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">({</span><span class="s2">"A"</span><span class="p">:</span> <span class="s2">"#4c78a8"</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">:</span> <span class="s2">"#f58518"</span><span class="p">})</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span><span class="n">displacement_frame</span><span class="p">[</span><span class="s2">"block"</span><span class="p">],</span> <span class="n">displacement_frame</span><span class="p">[</span><span class="s2">"mean_displacement_A"</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">colors</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
+    <span class="n">xlabel</span><span class="o">=</span><span class="s2">"block index"</span><span class="p">,</span>
+    <span class="n">ylabel</span><span class="o">=</span><span class="s2">"mean atom displacement (Å)"</span><span class="p">,</span>
+    <span class="n">title</span><span class="o">=</span><span class="s2">"Only the downstream chain moves under jump 0"</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">n_blocks</span><span class="p">))</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s2">"y"</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.25</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+<span class="k">assert</span> <span class="n">displacement_frame</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">displacement_frame</span><span class="o">.</span><span class="n">chain</span> <span class="o">==</span> <span class="s2">"A"</span><span class="p">,</span> <span class="s2">"mean_displacement_A"</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mf">1e-3</span>
+<span class="k">assert</span> <span class="n">displacement_frame</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">displacement_frame</span><span class="o">.</span><span class="n">chain</span> <span class="o">==</span> <span class="s2">"B"</span><span class="p">,</span> <span class="s2">"mean_displacement_A"</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mf">1.0</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<!--| quarto-html-table-processing: none -->
+<table id="itables_e247e508_bb92_4a15_af1a_5d53c1221780" hidden="hidden">
+  <tbody>
+    <tr>
+      <td style="vertical-align:middle; text-align:left"><a href=https://itables.org/><svg class="main-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+width="64" viewBox="0 0 500 400" style="font-family: 'Droid Sans', sans-serif;">
+    <g style="fill:var(--itables-logo-paper,#d9d7fc)">
+        <path d="M100,400H500V357H100Z" />
+        <path d="M100,300H400V257H100Z" />
+        <path d="M0,200H400V157H0Z" />
+        <path d="M100,100H500V57H100Z" />
+        <path d="M100,350H500V307H100Z" />
+        <path d="M100,250H400V207H100Z" />
+        <path d="M0,150H400V107H0Z" />
+        <path d="M100,50H500V7H100Z" />
+    </g>
+    <g style="fill:var(--itables-logo-ink,#1a1366);stroke:var(--itables-logo-ink,#1a1366);">
+   <rect x="100" y="7" width="400" height="43">
+    <animate
+      attributeName="width"
+      values="0;400;0"
+      dur="5s"
+      repeatCount="indefinite" />
+      <animate
+      attributeName="x"
+      values="100;100;500"
+      dur="5s"
+      repeatCount="indefinite" />
+  </rect>
+        <rect x="0" y="107" width="400" height="43">
+    <animate
+      attributeName="width"
+      values="0;400;0"
+      dur="3.5s"
+      repeatCount="indefinite" />
+    <animate
+      attributeName="x"
+      values="0;0;400"
+      dur="3.5s"
+      repeatCount="indefinite" />
+  </rect>
+        <rect x="100" y="207" width="300" height="43">
+    <animate
+      attributeName="width"
+      values="0;300;0"
+      dur="3s"
+      repeatCount="indefinite" />
+    <animate
+      attributeName="x"
+      values="100;100;400"
+      dur="3s"
+      repeatCount="indefinite" />
+  </rect>
+        <rect x="100" y="307" width="400" height="43">
+    <animate
+      attributeName="width"
+      values="0;400;0"
+      dur="4s"
+      repeatCount="indefinite" />
+      <animate
+      attributeName="x"
+      values="100;100;500"
+      dur="4s"
+      repeatCount="indefinite" />
+  </rect>
+        <g style="fill:transparent;stroke-width:8; stroke-linejoin:round" rx="5">
+            <g transform="translate(45 50) rotate(-45)">
+                <circle r="33" cx="0" cy="0" />
+                <rect x="-8" y="32" width="16" height="30" />
+            </g>
+
+            <g transform="translate(450 152)">
+                <polyline points="-15,-20 -35,-20 -35,40 25,40 25,20" />
+                <rect x="-15" y="-40" width="60" height="60" />
+            </g>
+
+            <g transform="translate(50 352)">
+                <polygon points="-35,-5 0,-40 35,-5" />
+                <polygon points="-35,10 0,45 35,10" />
+            </g>
+
+            <g transform="translate(75 250)">
+                <polyline points="-30,30 -60,0 -30,-30" />
+                <polyline points="0,30 -30,0 0,-30" />
+            </g>
+
+            <g transform="translate(425 250) rotate(180)">
+                <polyline points="-30,30 -60,0 -30,-30" />
+                <polyline points="0,30 -30,0 0,-30" />
+            </g>
+        </g>
+    </g>
+</svg>
+</a>
+        Loading ITables v2.9.1 from the internet...
+        (need <a href=https://itables.org/troubleshooting.html>help</a>?)
+      </td>
+    </tr>
+  </tbody>
+</table>
+<div id="itables_e247e508_bb92_4a15_af1a_5d53c1221780_fallback"><table style="border-collapse:collapse"><thead>    <tr style="text-align: right;">
+      <th style="border:1px solid #ddd;padding:8px"><sup><noscript><span title="JavaScript not allowed. Please trust this notebook to get interactive tables.">🔒</span></noscript><a href=https://itables.org/fallbacks/static_preview.html title="ITables v2.9.1 static preview">ⓘ</a></sup>block</th>
+      <th style="border:1px solid #ddd;padding:8px">chain</th>
+      <th style="border:1px solid #ddd;padding:8px">mean_displacement_A</th>
+    </tr></thead><tbody>
+<tr><td style="border:1px solid #ddd;padding:8px">0</td><td style="border:1px solid #ddd;padding:8px">A</td><td style="border:1px solid #ddd;padding:8px">1.850372e-17</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">1</td><td style="border:1px solid #ddd;padding:8px">A</td><td style="border:1px solid #ddd;padding:8px">0.000000e+00</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">2</td><td style="border:1px solid #ddd;padding:8px">A</td><td style="border:1px solid #ddd;padding:8px">0.000000e+00</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">3</td><td style="border:1px solid #ddd;padding:8px">A</td><td style="border:1px solid #ddd;padding:8px">0.000000e+00</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">4</td><td style="border:1px solid #ddd;padding:8px">B</td><td style="border:1px solid #ddd;padding:8px">3.059723e+00</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">5</td><td style="border:1px solid #ddd;padding:8px">B</td><td style="border:1px solid #ddd;padding:8px">3.062418e+00</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">6</td><td style="border:1px solid #ddd;padding:8px">B</td><td style="border:1px solid #ddd;padding:8px">3.111503e+00</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">7</td><td style="border:1px solid #ddd;padding:8px">B</td><td style="border:1px solid #ddd;padding:8px">3.353451e+00</td></tr>
+</tbody></table></div><script>document.getElementById("itables_e247e508_bb92_4a15_af1a_5d53c1221780")?.removeAttribute("hidden");document.getElementById("itables_e247e508_bb92_4a15_af1a_5d53c1221780_fallback")?.setAttribute("hidden", "hidden");</script>
+<link href="https://www.unpkg.com/dt_for_itables@2.5.8/dt_bundle.css" rel="stylesheet">
+<script type="module">
+    import { ITable, jQuery as $ } from 'https://www.unpkg.com/dt_for_itables@2.5.8/dt_bundle.js';
+
+    document.querySelectorAll("#itables_e247e508_bb92_4a15_af1a_5d53c1221780:not(.dataTable)").forEach(table => {
+        if (!(table instanceof HTMLTableElement))
+            return;
+
+        let dt_args = {
+          "classes": ["display", "nowrap", "compact"],
+          "columnDefs": [{"render": "function (data, type, row, meta) { return type === 'sort' || type === 'type' ? data[1] : data[0]; }", "targets": [2]}],
+          "data_json": "[[0, \"A\", [\"1.850372e-17\", 1.8503717628539684e-17]], [1, \"A\", [\"0.000000e+00\", 0.0]], [2, \"A\", [\"0.000000e+00\", 0.0]], [3, \"A\", [\"0.000000e+00\", 0.0]], [4, \"B\", [\"3.059723e+00\", 3.059723138809204]], [5, \"B\", [\"3.062418e+00\", 3.062418222427368]], [6, \"B\", [\"3.111503e+00\", 3.1115031242370605]], [7, \"B\", [\"3.353451e+00\", 3.3534512519836426]]]",
+          "keys_to_be_evaluated": [["columnDefs", 0, "render"]],
+          "layout": {"bottomEnd": null, "bottomStart": null, "topEnd": null, "topStart": null},
+          "order": [],
+          "style": {"caption-side": "bottom", "margin": "auto", "table-layout": "auto", "width": "auto"},
+          "table_html": "<table><thead>\n    <tr style=\"text-align: right;\">\n      \n      <th>block</th>\n      <th>chain</th>\n      <th>mean_displacement_A</th>\n    </tr>\n  </thead></table>",
+          "text_in_header_can_be_selected": true
+        };
+        new ITable(table, dt_args);
+    });
+</script></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorial_12_explicit_foldforests_and_torsions_9_1.png" src="../_images/tutorial_12_explicit_foldforests_and_torsions_9_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">try</span><span class="p">:</span>
+    <span class="n">display</span><span class="p">(</span>
+        <span class="n">tmol</span><span class="o">.</span><span class="n">switchable_view</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">"input two-chain pose"</span><span class="p">:</span> <span class="n">two_chain_pose</span><span class="p">,</span>
+                <span class="s2">"jump-translated and tilted chain B"</span><span class="p">:</span> <span class="n">jump_moved_pose</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="n">notes</span><span class="o">=</span><span class="p">{</span>
+                <span class="s2">"input two-chain pose"</span><span class="p">:</span> <span class="s2">"Chains A and B in their sequence-built placements"</span><span class="p">,</span>
+                <span class="s2">"jump-translated and tilted chain B"</span><span class="p">:</span> <span class="s2">"Chain A is fixed; chain B follows ordinary jump 0"</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="n">width</span><span class="o">=</span><span class="mi">720</span><span class="p">,</span>
+            <span class="n">height</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+<span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"Interactive jump comparison unavailable:"</span><span class="p">,</span> <span class="n">exc</span><span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div class="tmol-switchable-view" id="tmol-switch-d7fed314468a49cb9ccb89a6d8147149" style="max-width:720px">
+  <label>Structure: <select id="tmol-switch-d7fed314468a49cb9ccb89a6d8147149-select"><option value="0">input two-chain pose</option><option value="1">jump-translated and tilted chain B</option></select></label>
+  <div style="position:relative;width:100%;height:432px">
+
+<section id="tmol-switch-d7fed314468a49cb9ccb89a6d8147149-panel-0" class="tmol-switch-panel"
+         style="position:absolute;inset:0;visibility:visible">
+  <div class="tmol-viewer-note">Chains A and B in their sequence-built placements</div>
+  <div id="3dmolviewer_1789080020666407"  style="position: relative; width: 720px; height: 400px;">
+        <p id="3dmolwarning_1789080020666407" style="background-color:#ffcccc;color:black">3Dmol.js failed to load for some reason.  Please check your browser console for error messages.<br></p>
+        </div>
+<script>
+
+var loadScriptAsync = function(uri){
+  return new Promise((resolve, reject) => {
+    //this is to ignore the existence of requirejs amd
+    var savedexports, savedmodule;
+    if (typeof exports !== 'undefined') savedexports = exports;
+    else exports = {}
+    if (typeof module !== 'undefined') savedmodule = module;
+    else module = {}
+
+    var tag = document.createElement('script');
+    tag.src = uri;
+    tag.async = true;
+    tag.onload = () => {
+        exports = savedexports;
+        module = savedmodule;
+        resolve();
+    };
+  var firstScriptTag = document.getElementsByTagName('script')[0];
+  firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+});
+};
+
+if(typeof $3Dmolpromise === 'undefined') {
+$3Dmolpromise = null;
+  $3Dmolpromise = loadScriptAsync('https://cdn.jsdelivr.net/npm/3dmol@2.5.5/build/3Dmol-min.js');
+}
+
+var viewer_1789080020666407 = null;
+var warn = document.getElementById("3dmolwarning_1789080020666407");
+if(warn) {
+    warn.parentNode.removeChild(warn);
+}
+$3Dmolpromise.then(function() {
+viewer_1789080020666407 = $3Dmol.createViewer(document.getElementById("3dmolviewer_1789080020666407"),{backgroundColor:"white"});
+viewer_1789080020666407.zoomTo();
+    viewer_1789080020666407.addModel("MODEL 1\nATOM      1  N   ALA A   1       0.334  -0.000   0.000  1.00 30.00\nATOM      2  CA  ALA A   1       1.792   0.000   0.000  1.00 30.00\nATOM      3  C   ALA A   1       2.343   1.420   0.000  1.00 30.00\nATOM      4  O   ALA A   1       1.874   2.278  -0.748  1.00 30.00\nATOM      5  CB  ALA A   1       2.322  -0.773  -1.199  1.00 30.00\nATOM      6  HA  ALA A   1       2.130  -0.490   0.913  1.00 30.00\nATOM      7  HB1 ALA A   1       3.412  -0.764  -1.185  1.00 30.00\nATOM      8  HB2 ALA A   1       1.967  -1.802  -1.154  1.00 30.00\nATOM      9  HB3 ALA A   1       1.967  -0.307  -2.117  1.00 30.00\nATOM     10  H1  ALA A   1       0.000  -0.943  -0.000  1.00 30.00\nATOM     11  H2  ALA A   1       0.000   0.471   0.816  1.00 30.00\nATOM     12  H3  ALA A   1       0.000   0.471  -0.816  1.00 30.00\nATOM     13  N   CYS A   2       3.341   1.662   0.843  1.00 30.00\nATOM     14  CA  CYS A   2       3.958   2.980   0.942  1.00 30.00\nATOM     15  C   CYS A   2       5.477   2.875   0.976  1.00 30.00\nATOM     16  O   CYS A   2       6.036   2.041   1.688  1.00 30.00\nATOM     17  CB  CYS A   2       3.474   3.708   2.196  1.00 30.00\nATOM     18  SG  CYS A   2       2.297   2.761   3.192  1.00 30.00\nATOM     19  H   CYS A   2       3.681   0.914   1.431  1.00 30.00\nATOM     20  HA  CYS A   2       3.668   3.563   0.068  1.00 30.00\nATOM     21  HB2 CYS A   2       4.328   3.953   2.827  1.00 30.00\nATOM     22  HB3 CYS A   2       2.997   4.645   1.911  1.00 30.00\nATOM     23  HG  CYS A   2       2.133   3.687   4.131  1.00 30.00\nATOM     24  N   ASP A   3       6.141   3.727   0.202  1.00 30.00\nATOM     25  CA  ASP A   3       7.598   3.732   0.142  1.00 30.00\nATOM     26  C   ASP A   3       8.147   5.151   0.211  1.00 30.00\nATOM     27  O   ASP A   3       7.647   6.054  -0.459  1.00 30.00\nATOM     28  CB  ASP A   3       8.084   3.052  -1.140  1.00 30.00\nATOM     29  CG  ASP A   3       6.943   2.550  -2.015  1.00 30.00\nATOM     30  OD1 ASP A   3       5.809   2.726  -1.636  1.00 30.00\nATOM     31  OD2 ASP A   3       7.217   1.997  -3.053  1.00 30.00\nATOM     32  H   ASP A   3       5.623   4.388  -0.359  1.00 30.00\nATOM     33  HA  ASP A   3       7.981   3.176   0.998  1.00 30.00\nATOM     34  HB2 ASP A   3       8.685   3.754  -1.719  1.00 30.00\nATOM     35  HB3 ASP A   3       8.725   2.207  -0.884  1.00 30.00\nATOM     36  N   GLU A   4       9.179   5.342   1.027  1.00 30.00\nATOM     37  CA  GLU A   4       9.798   6.652   1.185  1.00 30.00\nATOM     38  C   GLU A   4      11.318   6.551   1.150  1.00 30.00\nATOM     39  CB  GLU A   4       9.351   7.298   2.498  1.00 30.00\nATOM     40  CG  GLU A   4       8.388   6.453   3.319  1.00 30.00\nATOM     41  CD  GLU A   4       8.065   5.136   2.669  1.00 30.00\nATOM     42  OE1 GLU A   4       8.574   4.880   1.604  1.00 30.00\nATOM     43  OE2 GLU A   4       7.308   4.385   3.237  1.00 30.00\nATOM     44  H   GLU A   4       9.543   4.559   1.550  1.00 30.00\nATOM     45  HA  GLU A   4       9.481   7.287   0.357  1.00 30.00\nATOM     46  HB2 GLU A   4      10.223   7.507   3.117  1.00 30.00\nATOM     47  HB3 GLU A   4       8.863   8.251   2.287  1.00 30.00\nATOM     48  HG2 GLU A   4       8.830   6.263   4.297  1.00 30.00\nATOM     49  HG3 GLU A   4       7.466   7.013   3.470  1.00 30.00\nATOM     50  O   GLU A   4      11.889   6.462   0.098  1.00 30.00\nATOM     51  OXT GLU A   4      11.943   6.560   2.174  1.00 30.00\nATOM     52  N   PHE B   5      20.406  -0.000   0.000  1.00 30.00\nATOM     53  CA  PHE B   5      21.864   0.000   0.000  1.00 30.00\nATOM     54  C   PHE B   5      22.415   1.420   0.000  1.00 30.00\nATOM     55  O   PHE B   5      21.946   2.278  -0.748  1.00 30.00\nATOM     56  CB  PHE B   5      22.398  -0.760  -1.216  1.00 30.00\nATOM     57  CG  PHE B   5      21.322  -1.315  -2.104  1.00 30.00\nATOM     58  CD1 PHE B   5      19.983  -1.124  -1.798  1.00 30.00\nATOM     59  CD2 PHE B   5      21.646  -2.030  -3.247  1.00 30.00\nATOM     60  CE1 PHE B   5      18.992  -1.634  -2.615  1.00 30.00\nATOM     61  CE2 PHE B   5      20.658  -2.540  -4.066  1.00 30.00\nATOM     62  CZ  PHE B   5      19.329  -2.342  -3.749  1.00 30.00\nATOM     63  HA  PHE B   5      22.210  -0.502   0.905  1.00 30.00\nATOM     64  HB2 PHE B   5      23.024  -0.097  -1.812  1.00 30.00\nATOM     65  HB3 PHE B   5      23.024  -1.586  -0.882  1.00 30.00\nATOM     66  HD1 PHE B   5      19.716  -0.563  -0.902  1.00 30.00\nATOM     67  HD2 PHE B   5      22.696  -2.187  -3.497  1.00 30.00\nATOM     68  HE1 PHE B   5      17.943  -1.477  -2.363  1.00 30.00\nATOM     69  HE2 PHE B   5      20.926  -3.100  -4.962  1.00 30.00\nATOM     70  HZ  PHE B   5      18.549  -2.746  -4.393  1.00 30.00\nATOM     71  H1  PHE B   5      20.072  -0.943  -0.000  1.00 30.00\nATOM     72  H2  PHE B   5      20.072   0.471   0.816  1.00 30.00\nATOM     73  H3  PHE B   5      20.072   0.471  -0.816  1.00 30.00\nATOM     74  N   GLY B   6      23.413   1.662   0.843  1.00 30.00\nATOM     75  CA  GLY B   6      24.030   2.980   0.942  1.00 30.00\nATOM     76  C   GLY B   6      25.549   2.875   0.976  1.00 30.00\nATOM     77  O   GLY B   6      26.108   2.041   1.688  1.00 30.00\nATOM     78  H   GLY B   6      23.753   0.914   1.431  1.00 30.00\nATOM     79  HA2 GLY B   6      23.722   3.590   0.093  1.00 30.00\nATOM     80  HA3 GLY B   6      23.676   3.480   1.842  1.00 30.00\nATOM     81  N   HIS B   7      26.213   3.727   0.202  1.00 30.00\nATOM     82  CA  HIS B   7      27.670   3.732   0.142  1.00 30.00\nATOM     83  C   HIS B   7      28.219   5.151   0.211  1.00 30.00\nATOM     84  O   HIS B   7      27.719   6.054  -0.459  1.00 30.00\nATOM     85  CB  HIS B   7      28.161   3.050  -1.139  1.00 30.00\nATOM     86  CG  HIS B   7      27.056   2.547  -2.014  1.00 30.00\nATOM     87  ND1 HIS B   7      25.724   2.690  -1.687  1.00 30.00\nATOM     88  CD2 HIS B   7      27.085   1.901  -3.204  1.00 30.00\nATOM     89  CE1 HIS B   7      24.981   2.154  -2.640  1.00 30.00\nATOM     90  NE2 HIS B   7      25.782   1.669  -3.570  1.00 30.00\nATOM     91  H   HIS B   7      25.695   4.388  -0.359  1.00 30.00\nATOM     92  HA  HIS B   7      28.071   3.181   0.993  1.00 30.00\nATOM     93  HB2 HIS B   7      28.763   3.752  -1.717  1.00 30.00\nATOM     94  HB3 HIS B   7      28.802   2.207  -0.879  1.00 30.00\nATOM     95  HE1 HIS B   7      23.891   2.119  -2.654  1.00 30.00\nATOM     96  HD2 HIS B   7      27.975   1.618  -3.766  1.00 30.00\nATOM     97  HE2 HIS B   7      25.489   1.202  -4.417  1.00 30.00\nATOM     98  N   ILE B   8      29.251   5.342   1.027  1.00 30.00\nATOM     99  CA  ILE B   8      29.870   6.652   1.185  1.00 30.00\nATOM    100  C   ILE B   8      31.390   6.551   1.150  1.00 30.00\nATOM    101  CB  ILE B   8      29.429   7.312   2.504  1.00 30.00\nATOM    102  CG1 ILE B   8      28.467   6.396   3.264  1.00 30.00\nATOM    103  CG2 ILE B   8      28.782   8.662   2.233  1.00 30.00\nATOM    104  CD1 ILE B   8      28.182   5.089   2.559  1.00 30.00\nATOM    105  H   ILE B   8      29.615   4.559   1.550  1.00 30.00\nATOM    106  HA  ILE B   8      29.552   7.287   0.359  1.00 30.00\nATOM    107  HB  ILE B   8      30.298   7.458   3.146  1.00 30.00\nATOM    108 HG12 ILE B   8      28.880   6.170   4.247  1.00 30.00\nATOM    109 HG13 ILE B   8      27.519   6.912   3.420  1.00 30.00\nATOM    110 HG21 ILE B   8      28.476   9.114   3.176  1.00 30.00\nATOM    111 HG22 ILE B   8      29.497   9.314   1.734  1.00 30.00\nATOM    112 HG23 ILE B   8      27.908   8.525   1.596  1.00 30.00\nATOM    113 HD11 ILE B   8      27.493   4.495   3.158  1.00 30.00\nATOM    114 HD12 ILE B   8      27.735   5.292   1.585  1.00 30.00\nATOM    115 HD13 ILE B   8      29.112   4.539   2.424  1.00 30.00\nATOM    116  O   ILE B   8      31.961   6.462   0.098  1.00 30.00\nATOM    117  OXT ILE B   8      32.016   6.560   2.174  1.00 30.00\nTER\nENDMDL\n","pdb");
+    viewer_1789080020666407.setBackgroundColor("white");
+    viewer_1789080020666407.setStyle({},{"cartoon": {"color": "spectrum"}});
+    viewer_1789080020666407.addStyle({"not": {"hetflag": true}},{"stick": {"radius": 0.08, "opacity": 0.55}});
+    viewer_1789080020666407.setStyle({"hetflag": true},{"stick": {"colorscheme": "orangeCarbon", "radius": 0.22}});
+    viewer_1789080020666407.setHoverable({},true,"function(atom,viewer) {\n        if(!atom.label) {\n            atom.label = viewer.addLabel(\n                atom.chain + ':' + atom.resn + '(' + atom.resi + '):' +\n                atom.atom + '(idx' + atom.serial + ')',\n                {position: atom, backgroundColor:\"white\", fontColor:\"black\"}\n            );\n        }\n    }","function(atom,viewer) {\n        if(atom.label) {\n            viewer.removeLabel(atom.label);\n            delete atom.label;\n        }\n    }");
+    viewer_1789080020666407.zoomTo();
+viewer_1789080020666407.render();
+});
+</script>
+</section>
+<section id="tmol-switch-d7fed314468a49cb9ccb89a6d8147149-panel-1" class="tmol-switch-panel"
+         style="position:absolute;inset:0;visibility:hidden">
+  <div class="tmol-viewer-note">Chain A is fixed; chain B follows ordinary jump 0</div>
+  <div id="3dmolviewer_17890800206765091"  style="position: relative; width: 720px; height: 400px;">
+        <p id="3dmolwarning_17890800206765091" style="background-color:#ffcccc;color:black">3Dmol.js failed to load for some reason.  Please check your browser console for error messages.<br></p>
+        </div>
+<script>
+
+var loadScriptAsync = function(uri){
+  return new Promise((resolve, reject) => {
+    //this is to ignore the existence of requirejs amd
+    var savedexports, savedmodule;
+    if (typeof exports !== 'undefined') savedexports = exports;
+    else exports = {}
+    if (typeof module !== 'undefined') savedmodule = module;
+    else module = {}
+
+    var tag = document.createElement('script');
+    tag.src = uri;
+    tag.async = true;
+    tag.onload = () => {
+        exports = savedexports;
+        module = savedmodule;
+        resolve();
+    };
+  var firstScriptTag = document.getElementsByTagName('script')[0];
+  firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+});
+};
+
+if(typeof $3Dmolpromise === 'undefined') {
+$3Dmolpromise = null;
+  $3Dmolpromise = loadScriptAsync('https://cdn.jsdelivr.net/npm/3dmol@2.5.5/build/3Dmol-min.js');
+}
+
+var viewer_17890800206765091 = null;
+var warn = document.getElementById("3dmolwarning_17890800206765091");
+if(warn) {
+    warn.parentNode.removeChild(warn);
+}
+$3Dmolpromise.then(function() {
+viewer_17890800206765091 = $3Dmol.createViewer(document.getElementById("3dmolviewer_17890800206765091"),{backgroundColor:"white"});
+viewer_17890800206765091.zoomTo();
+    viewer_17890800206765091.addModel("MODEL 1\nATOM      1  N   ALA A   1       0.334  -0.000   0.000  1.00 30.00\nATOM      2  CA  ALA A   1       1.792   0.000   0.000  1.00 30.00\nATOM      3  C   ALA A   1       2.343   1.420   0.000  1.00 30.00\nATOM      4  O   ALA A   1       1.874   2.278  -0.748  1.00 30.00\nATOM      5  CB  ALA A   1       2.322  -0.773  -1.199  1.00 30.00\nATOM      6  HA  ALA A   1       2.130  -0.490   0.913  1.00 30.00\nATOM      7  HB1 ALA A   1       3.412  -0.764  -1.185  1.00 30.00\nATOM      8  HB2 ALA A   1       1.967  -1.802  -1.154  1.00 30.00\nATOM      9  HB3 ALA A   1       1.967  -0.307  -2.117  1.00 30.00\nATOM     10  H1  ALA A   1       0.000  -0.943  -0.000  1.00 30.00\nATOM     11  H2  ALA A   1      -0.000   0.471   0.816  1.00 30.00\nATOM     12  H3  ALA A   1      -0.000   0.471  -0.816  1.00 30.00\nATOM     13  N   CYS A   2       3.341   1.662   0.843  1.00 30.00\nATOM     14  CA  CYS A   2       3.958   2.980   0.942  1.00 30.00\nATOM     15  C   CYS A   2       5.477   2.875   0.976  1.00 30.00\nATOM     16  O   CYS A   2       6.036   2.041   1.688  1.00 30.00\nATOM     17  CB  CYS A   2       3.474   3.708   2.196  1.00 30.00\nATOM     18  SG  CYS A   2       2.297   2.761   3.192  1.00 30.00\nATOM     19  H   CYS A   2       3.681   0.914   1.431  1.00 30.00\nATOM     20  HA  CYS A   2       3.668   3.563   0.068  1.00 30.00\nATOM     21  HB2 CYS A   2       4.328   3.953   2.827  1.00 30.00\nATOM     22  HB3 CYS A   2       2.997   4.645   1.911  1.00 30.00\nATOM     23  HG  CYS A   2       2.133   3.687   4.131  1.00 30.00\nATOM     24  N   ASP A   3       6.141   3.727   0.202  1.00 30.00\nATOM     25  CA  ASP A   3       7.598   3.732   0.142  1.00 30.00\nATOM     26  C   ASP A   3       8.147   5.151   0.211  1.00 30.00\nATOM     27  O   ASP A   3       7.647   6.054  -0.459  1.00 30.00\nATOM     28  CB  ASP A   3       8.084   3.052  -1.140  1.00 30.00\nATOM     29  CG  ASP A   3       6.943   2.550  -2.015  1.00 30.00\nATOM     30  OD1 ASP A   3       5.809   2.726  -1.636  1.00 30.00\nATOM     31  OD2 ASP A   3       7.217   1.997  -3.053  1.00 30.00\nATOM     32  H   ASP A   3       5.623   4.388  -0.359  1.00 30.00\nATOM     33  HA  ASP A   3       7.981   3.176   0.998  1.00 30.00\nATOM     34  HB2 ASP A   3       8.685   3.754  -1.719  1.00 30.00\nATOM     35  HB3 ASP A   3       8.725   2.207  -0.884  1.00 30.00\nATOM     36  N   GLU A   4       9.179   5.342   1.027  1.00 30.00\nATOM     37  CA  GLU A   4       9.798   6.652   1.185  1.00 30.00\nATOM     38  C   GLU A   4      11.318   6.551   1.150  1.00 30.00\nATOM     39  CB  GLU A   4       9.351   7.298   2.498  1.00 30.00\nATOM     40  CG  GLU A   4       8.388   6.453   3.319  1.00 30.00\nATOM     41  CD  GLU A   4       8.065   5.136   2.669  1.00 30.00\nATOM     42  OE1 GLU A   4       8.574   4.880   1.604  1.00 30.00\nATOM     43  OE2 GLU A   4       7.308   4.385   3.237  1.00 30.00\nATOM     44  H   GLU A   4       9.543   4.559   1.550  1.00 30.00\nATOM     45  HA  GLU A   4       9.481   7.287   0.357  1.00 30.00\nATOM     46  HB2 GLU A   4      10.223   7.507   3.117  1.00 30.00\nATOM     47  HB3 GLU A   4       8.863   8.251   2.287  1.00 30.00\nATOM     48  HG2 GLU A   4       8.830   6.263   4.297  1.00 30.00\nATOM     49  HG3 GLU A   4       7.466   7.013   3.470  1.00 30.00\nATOM     50  O   GLU A   4      11.889   6.462   0.098  1.00 30.00\nATOM     51  OXT GLU A   4      11.943   6.560   2.174  1.00 30.00\nATOM     52  N   PHE B   5      17.406  -0.000   0.000  1.00 30.00\nATOM     53  CA  PHE B   5      18.864  -0.000  -0.000  1.00 30.00\nATOM     54  C   PHE B   5      19.415   1.389  -0.295  1.00 30.00\nATOM     55  O   PHE B   5      18.946   2.073  -1.205  1.00 30.00\nATOM     56  CB  PHE B   5      19.398  -0.996  -1.031  1.00 30.00\nATOM     57  CG  PHE B   5      18.322  -1.724  -1.785  1.00 30.00\nATOM     58  CD1 PHE B   5      16.983  -1.473  -1.525  1.00 30.00\nATOM     59  CD2 PHE B   5      18.646  -2.661  -2.754  1.00 30.00\nATOM     60  CE1 PHE B   5      15.992  -2.142  -2.218  1.00 30.00\nATOM     61  CE2 PHE B   5      17.658  -3.330  -3.449  1.00 30.00\nATOM     62  CZ  PHE B   5      16.329  -3.071  -3.180  1.00 30.00\nATOM     63  HA  PHE B   5      19.210  -0.302   0.989  1.00 30.00\nATOM     64  HB2 PHE B   5      20.024  -0.472  -1.753  1.00 30.00\nATOM     65  HB3 PHE B   5      20.024  -1.735  -0.532  1.00 30.00\nATOM     66  HD1 PHE B   5      16.716  -0.738  -0.766  1.00 30.00\nATOM     67  HD2 PHE B   5      19.696  -2.866  -2.966  1.00 30.00\nATOM     68  HE1 PHE B   5      14.943  -1.936  -2.004  1.00 30.00\nATOM     69  HE2 PHE B   5      17.926  -4.064  -4.209  1.00 30.00\nATOM     70  HZ  PHE B   5      15.549  -3.599  -3.726  1.00 30.00\nATOM     71  H1  PHE B   5      17.072  -0.922   0.196  1.00 30.00\nATOM     72  H2  PHE B   5      17.072   0.631   0.701  1.00 30.00\nATOM     73  H3  PHE B   5      17.072   0.291  -0.897  1.00 30.00\nATOM     74  N   GLY B   6      20.413   1.801   0.479  1.00 30.00\nATOM     75  CA  GLY B   6      21.030   3.110   0.302  1.00 30.00\nATOM     76  C   GLY B   6      22.549   3.015   0.357  1.00 30.00\nATOM     77  O   GLY B   6      23.108   2.347   1.227  1.00 30.00\nATOM     78  H   GLY B   6      20.753   1.192   1.209  1.00 30.00\nATOM     79  HA2 GLY B   6      20.722   3.531  -0.656  1.00 30.00\nATOM     80  HA3 GLY B   6      20.676   3.787   1.078  1.00 30.00\nATOM     81  N   HIS B   7      23.213   3.687  -0.577  1.00 30.00\nATOM     82  CA  HIS B   7      24.670   3.680  -0.637  1.00 30.00\nATOM     83  C   HIS B   7      25.219   5.082  -0.864  1.00 30.00\nATOM     84  O   HIS B   7      24.719   5.826  -1.708  1.00 30.00\nATOM     85  CB  HIS B   7      25.161   2.747  -1.748  1.00 30.00\nATOM     86  CG  HIS B   7      24.056   2.072  -2.500  1.00 30.00\nATOM     87  ND1 HIS B   7      22.724   2.280  -2.209  1.00 30.00\nATOM     88  CD2 HIS B   7      24.085   1.194  -3.529  1.00 30.00\nATOM     89  CE1 HIS B   7      21.981   1.558  -3.030  1.00 30.00\nATOM     90  NE2 HIS B   7      22.782   0.890  -3.839  1.00 30.00\nATOM     91  H   HIS B   7      22.695   4.217  -1.264  1.00 30.00\nATOM     92  HA  HIS B   7      25.071   3.318   0.309  1.00 30.00\nATOM     93  HB2 HIS B   7      25.763   3.313  -2.460  1.00 30.00\nATOM     94  HB3 HIS B   7      25.802   1.976  -1.319  1.00 30.00\nATOM     95  HE1 HIS B   7      20.891   1.521  -3.037  1.00 30.00\nATOM     96  HD2 HIS B   7      24.975   0.800  -4.020  1.00 30.00\nATOM     97  HE2 HIS B   7      22.489   0.257  -4.570  1.00 30.00\nATOM     98  N   ILE B   8      26.251   5.438  -0.106  1.00 30.00\nATOM     99  CA  ILE B   8      26.870   6.753  -0.224  1.00 30.00\nATOM    100  C   ILE B   8      28.390   6.647  -0.237  1.00 30.00\nATOM    101  CB  ILE B   8      26.429   7.673   0.929  1.00 30.00\nATOM    102  CG1 ILE B   8      25.467   6.934   1.863  1.00 30.00\nATOM    103  CG2 ILE B   8      25.782   8.937   0.384  1.00 30.00\nATOM    104  CD1 ILE B   8      25.182   5.510   1.445  1.00 30.00\nATOM    105  H   ILE B   8      26.615   4.781   0.568  1.00 30.00\nATOM    106  HA  ILE B   8      26.552   7.202  -1.164  1.00 30.00\nATOM    107  HB  ILE B   8      27.298   7.949   1.526  1.00 30.00\nATOM    108 HG12 ILE B   8      25.880   6.918   2.871  1.00 30.00\nATOM    109 HG13 ILE B   8      24.519   7.472   1.908  1.00 30.00\nATOM    110 HG21 ILE B   8      25.476   9.575   1.212  1.00 30.00\nATOM    111 HG22 ILE B   8      26.497   9.471  -0.241  1.00 30.00\nATOM    112 HG23 ILE B   8      24.908   8.670  -0.211  1.00 30.00\nATOM    113 HD11 ILE B   8      24.493   5.053   2.155  1.00 30.00\nATOM    114 HD12 ILE B   8      24.735   5.506   0.450  1.00 30.00\nATOM    115 HD13 ILE B   8      26.112   4.944   1.427  1.00 30.00\nATOM    116  O   ILE B   8      28.961   6.341  -1.247  1.00 30.00\nATOM    117  OXT ILE B   8      29.016   6.869   0.762  1.00 30.00\nTER\nENDMDL\n","pdb");
+    viewer_17890800206765091.setBackgroundColor("white");
+    viewer_17890800206765091.setStyle({},{"cartoon": {"color": "spectrum"}});
+    viewer_17890800206765091.addStyle({"not": {"hetflag": true}},{"stick": {"radius": 0.08, "opacity": 0.55}});
+    viewer_17890800206765091.setStyle({"hetflag": true},{"stick": {"colorscheme": "orangeCarbon", "radius": 0.22}});
+    viewer_17890800206765091.setHoverable({},true,"function(atom,viewer) {\n        if(!atom.label) {\n            atom.label = viewer.addLabel(\n                atom.chain + ':' + atom.resn + '(' + atom.resi + '):' +\n                atom.atom + '(idx' + atom.serial + ')',\n                {position: atom, backgroundColor:\"white\", fontColor:\"black\"}\n            );\n        }\n    }","function(atom,viewer) {\n        if(atom.label) {\n            viewer.removeLabel(atom.label);\n            delete atom.label;\n        }\n    }");
+    viewer_17890800206765091.zoomTo();
+viewer_17890800206765091.render();
+});
+</script>
+</section>
+  </div>
+</div>
+<script>
+(() => {
+  const root = document.getElementById("tmol-switch-d7fed314468a49cb9ccb89a6d8147149");
+  const select = document.getElementById("tmol-switch-d7fed314468a49cb9ccb89a6d8147149-select");
+  const panels = root.querySelectorAll('.tmol-switch-panel');
+  select.addEventListener('change', () => {
+    panels.forEach((panel, index) => {
+      panel.style.visibility = index === Number(select.value) ? 'visible' : 'hidden';
+    });
+    window.dispatchEvent(new Event('resize'));
+  });
+})();
+</script></div>
+</div>
+<p><strong>Expected observations.</strong> Blocks 0–3 remain numerically fixed, while blocks 4–7 move together. In the switcher, the internal geometry of chain B is unchanged because the operation modifies one rigid-body jump. This is coordinate manipulation, not docking: no search or score chose the new placement.</p>
+</section>
+<section id="Assign-named-torsions-in-one-kinematic-pass">
+<h2>Assign named torsions in one kinematic pass<a class="headerlink" href="#Assign-named-torsions-in-one-kinematic-pass" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">set_named_torsions()</span></code> accepts parallel pose, block, name, and value lists. The example sends the five internal alanines of an extended peptide toward an α-helical region (<code class="docutils literal notranslate"><span class="pre">φ=-60°</span></code>, <code class="docutils literal notranslate"><span class="pre">ψ=-45°</span></code>) in one forward-fold. Terminal torsions are deliberately excluded because a named torsion reaching a missing neighboring residue is undefined.</p>
+<p>The before/after Ramachandran plot checks the requested internal coordinates directly. Arrows show assignments, not an optimization trajectory.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">torsion_pose</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">extended_pose_stack_from_sequences</span><span class="p">(</span>
+    <span class="s2">"AAAAAAA"</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+<span class="p">)</span>
+<span class="n">internal_blocks</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+<span class="n">before_torsions</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s2">"block"</span><span class="p">:</span> <span class="n">block</span><span class="p">,</span>
+            <span class="s2">"phi"</span><span class="p">:</span> <span class="n">tmol</span><span class="o">.</span><span class="n">get_named_torsions</span><span class="p">(</span><span class="n">torsion_pose</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="s2">"phi"</span><span class="p">),</span>
+            <span class="s2">"psi"</span><span class="p">:</span> <span class="n">tmol</span><span class="o">.</span><span class="n">get_named_torsions</span><span class="p">(</span><span class="n">torsion_pose</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="s2">"psi"</span><span class="p">),</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">internal_blocks</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+
+<span class="n">request_blocks</span> <span class="o">=</span> <span class="p">[</span><span class="n">block</span> <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">internal_blocks</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"phi"</span><span class="p">,</span> <span class="s2">"psi"</span><span class="p">)]</span>
+<span class="n">request_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">internal_blocks</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"phi"</span><span class="p">,</span> <span class="s2">"psi"</span><span class="p">)]</span>
+<span class="n">request_values</span> <span class="o">=</span> <span class="p">[</span><span class="n">value</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">internal_blocks</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">(</span><span class="o">-</span><span class="mf">60.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">45.0</span><span class="p">)]</span>
+<span class="n">helical_pose</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">set_named_torsions</span><span class="p">(</span>
+    <span class="n">torsion_pose</span><span class="p">,</span>
+    <span class="n">poses</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">request_blocks</span><span class="p">),</span>
+    <span class="n">blocks</span><span class="o">=</span><span class="n">request_blocks</span><span class="p">,</span>
+    <span class="n">names</span><span class="o">=</span><span class="n">request_names</span><span class="p">,</span>
+    <span class="n">values</span><span class="o">=</span><span class="n">request_values</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">after_torsions</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s2">"block"</span><span class="p">:</span> <span class="n">block</span><span class="p">,</span>
+            <span class="s2">"phi"</span><span class="p">:</span> <span class="n">tmol</span><span class="o">.</span><span class="n">get_named_torsions</span><span class="p">(</span><span class="n">helical_pose</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="s2">"phi"</span><span class="p">),</span>
+            <span class="s2">"psi"</span><span class="p">:</span> <span class="n">tmol</span><span class="o">.</span><span class="n">get_named_torsions</span><span class="p">(</span><span class="n">helical_pose</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="s2">"psi"</span><span class="p">),</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">internal_blocks</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+<span class="n">torsion_frame</span> <span class="o">=</span> <span class="n">before_torsions</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+    <span class="n">after_torsions</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">"block"</span><span class="p">,</span> <span class="n">suffixes</span><span class="o">=</span><span class="p">(</span><span class="s2">"_before"</span><span class="p">,</span> <span class="s2">"_after"</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">show_table</span><span class="p">(</span><span class="n">torsion_frame</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">6.2</span><span class="p">,</span> <span class="mf">5.8</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">torsion_frame</span><span class="o">.</span><span class="n">itertuples</span><span class="p">():</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+        <span class="s2">""</span><span class="p">,</span>
+        <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">phi_after</span><span class="p">,</span> <span class="n">row</span><span class="o">.</span><span class="n">psi_after</span><span class="p">),</span>
+        <span class="n">xytext</span><span class="o">=</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">phi_before</span><span class="p">,</span> <span class="n">row</span><span class="o">.</span><span class="n">psi_before</span><span class="p">),</span>
+        <span class="n">arrowprops</span><span class="o">=</span><span class="p">{</span><span class="s2">"arrowstyle"</span><span class="p">:</span> <span class="s2">"-&gt;"</span><span class="p">,</span> <span class="s2">"color"</span><span class="p">:</span> <span class="s2">"0.55"</span><span class="p">,</span> <span class="s2">"lw"</span><span class="p">:</span> <span class="mf">1.5</span><span class="p">},</span>
+    <span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">torsion_frame</span><span class="o">.</span><span class="n">phi_before</span><span class="p">,</span> <span class="n">torsion_frame</span><span class="o">.</span><span class="n">psi_before</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"before"</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"#4c78a8"</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">torsion_frame</span><span class="o">.</span><span class="n">phi_after</span><span class="p">,</span> <span class="n">torsion_frame</span><span class="o">.</span><span class="n">psi_after</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"assigned"</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">75</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"#e45756"</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s2">"D"</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">torsion_frame</span><span class="o">.</span><span class="n">itertuples</span><span class="p">():</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">phi_after</span> <span class="o">+</span> <span class="mi">3</span><span class="p">,</span> <span class="n">row</span><span class="o">.</span><span class="n">psi_after</span> <span class="o">+</span> <span class="mi">3</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">block</span><span class="p">),</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
+    <span class="n">xlim</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">180</span><span class="p">,</span> <span class="mi">180</span><span class="p">),</span>
+    <span class="n">ylim</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">180</span><span class="p">,</span> <span class="mi">180</span><span class="p">),</span>
+    <span class="n">xlabel</span><span class="o">=</span><span class="s2">"φ (degrees)"</span><span class="p">,</span>
+    <span class="n">ylabel</span><span class="o">=</span><span class="s2">"ψ (degrees)"</span><span class="p">,</span>
+    <span class="n">title</span><span class="o">=</span><span class="s2">"Named-torsion assignment for five internal residues"</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"0.85"</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"0.85"</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+<span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">torsion_frame</span><span class="o">.</span><span class="n">phi_after</span><span class="p">,</span> <span class="o">-</span><span class="mf">60.0</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+<span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">torsion_frame</span><span class="o">.</span><span class="n">psi_after</span><span class="p">,</span> <span class="o">-</span><span class="mf">45.0</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<!--| quarto-html-table-processing: none -->
+<table id="itables_aee90cdf_8758_4e2f_b651_5d467faa8142" hidden="hidden">
+  <tbody>
+    <tr>
+      <td style="vertical-align:middle; text-align:left"><a href=https://itables.org/><svg class="main-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+width="64" viewBox="0 0 500 400" style="font-family: 'Droid Sans', sans-serif;">
+    <g style="fill:var(--itables-logo-paper,#d9d7fc)">
+        <path d="M100,400H500V357H100Z" />
+        <path d="M100,300H400V257H100Z" />
+        <path d="M0,200H400V157H0Z" />
+        <path d="M100,100H500V57H100Z" />
+        <path d="M100,350H500V307H100Z" />
+        <path d="M100,250H400V207H100Z" />
+        <path d="M0,150H400V107H0Z" />
+        <path d="M100,50H500V7H100Z" />
+    </g>
+    <g style="fill:var(--itables-logo-ink,#1a1366);stroke:var(--itables-logo-ink,#1a1366);">
+   <rect x="100" y="7" width="400" height="43">
+    <animate
+      attributeName="width"
+      values="0;400;0"
+      dur="5s"
+      repeatCount="indefinite" />
+      <animate
+      attributeName="x"
+      values="100;100;500"
+      dur="5s"
+      repeatCount="indefinite" />
+  </rect>
+        <rect x="0" y="107" width="400" height="43">
+    <animate
+      attributeName="width"
+      values="0;400;0"
+      dur="3.5s"
+      repeatCount="indefinite" />
+    <animate
+      attributeName="x"
+      values="0;0;400"
+      dur="3.5s"
+      repeatCount="indefinite" />
+  </rect>
+        <rect x="100" y="207" width="300" height="43">
+    <animate
+      attributeName="width"
+      values="0;300;0"
+      dur="3s"
+      repeatCount="indefinite" />
+    <animate
+      attributeName="x"
+      values="100;100;400"
+      dur="3s"
+      repeatCount="indefinite" />
+  </rect>
+        <rect x="100" y="307" width="400" height="43">
+    <animate
+      attributeName="width"
+      values="0;400;0"
+      dur="4s"
+      repeatCount="indefinite" />
+      <animate
+      attributeName="x"
+      values="100;100;500"
+      dur="4s"
+      repeatCount="indefinite" />
+  </rect>
+        <g style="fill:transparent;stroke-width:8; stroke-linejoin:round" rx="5">
+            <g transform="translate(45 50) rotate(-45)">
+                <circle r="33" cx="0" cy="0" />
+                <rect x="-8" y="32" width="16" height="30" />
+            </g>
+
+            <g transform="translate(450 152)">
+                <polyline points="-15,-20 -35,-20 -35,40 25,40 25,20" />
+                <rect x="-15" y="-40" width="60" height="60" />
+            </g>
+
+            <g transform="translate(50 352)">
+                <polygon points="-35,-5 0,-40 35,-5" />
+                <polygon points="-35,10 0,45 35,10" />
+            </g>
+
+            <g transform="translate(75 250)">
+                <polyline points="-30,30 -60,0 -30,-30" />
+                <polyline points="0,30 -30,0 0,-30" />
+            </g>
+
+            <g transform="translate(425 250) rotate(180)">
+                <polyline points="-30,30 -60,0 -30,-30" />
+                <polyline points="0,30 -30,0 0,-30" />
+            </g>
+        </g>
+    </g>
+</svg>
+</a>
+        Loading ITables v2.9.1 from the internet...
+        (need <a href=https://itables.org/troubleshooting.html>help</a>?)
+      </td>
+    </tr>
+  </tbody>
+</table>
+<div id="itables_aee90cdf_8758_4e2f_b651_5d467faa8142_fallback"><table style="border-collapse:collapse"><thead>    <tr style="text-align: right;">
+      <th style="border:1px solid #ddd;padding:8px"><sup><noscript><span title="JavaScript not allowed. Please trust this notebook to get interactive tables.">🔒</span></noscript><a href=https://itables.org/fallbacks/static_preview.html title="ITables v2.9.1 static preview">ⓘ</a></sup>block</th>
+      <th style="border:1px solid #ddd;padding:8px">phi_before</th>
+      <th style="border:1px solid #ddd;padding:8px">psi_before</th>
+      <th style="border:1px solid #ddd;padding:8px">phi_after</th>
+      <th style="border:1px solid #ddd;padding:8px">psi_after</th>
+    </tr></thead><tbody>
+<tr><td style="border:1px solid #ddd;padding:8px">1</td><td style="border:1px solid #ddd;padding:8px">-135.000028</td><td style="border:1px solid #ddd;padding:8px">135.000000</td><td style="border:1px solid #ddd;padding:8px">-60.000002</td><td style="border:1px solid #ddd;padding:8px">-45.000005</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">2</td><td style="border:1px solid #ddd;padding:8px">-134.999987</td><td style="border:1px solid #ddd;padding:8px">135.000000</td><td style="border:1px solid #ddd;padding:8px">-60.000002</td><td style="border:1px solid #ddd;padding:8px">-44.999998</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">3</td><td style="border:1px solid #ddd;padding:8px">-134.999987</td><td style="border:1px solid #ddd;padding:8px">134.999973</td><td style="border:1px solid #ddd;padding:8px">-59.999995</td><td style="border:1px solid #ddd;padding:8px">-45.000008</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">4</td><td style="border:1px solid #ddd;padding:8px">-135.000000</td><td style="border:1px solid #ddd;padding:8px">135.000014</td><td style="border:1px solid #ddd;padding:8px">-60.000002</td><td style="border:1px solid #ddd;padding:8px">-45.000011</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">5</td><td style="border:1px solid #ddd;padding:8px">-134.999987</td><td style="border:1px solid #ddd;padding:8px">134.999987</td><td style="border:1px solid #ddd;padding:8px">-60.000008</td><td style="border:1px solid #ddd;padding:8px">-44.999984</td></tr>
+</tbody></table></div><script>document.getElementById("itables_aee90cdf_8758_4e2f_b651_5d467faa8142")?.removeAttribute("hidden");document.getElementById("itables_aee90cdf_8758_4e2f_b651_5d467faa8142_fallback")?.setAttribute("hidden", "hidden");</script>
+<link href="https://www.unpkg.com/dt_for_itables@2.5.8/dt_bundle.css" rel="stylesheet">
+<script type="module">
+    import { ITable, jQuery as $ } from 'https://www.unpkg.com/dt_for_itables@2.5.8/dt_bundle.js';
+
+    document.querySelectorAll("#itables_aee90cdf_8758_4e2f_b651_5d467faa8142:not(.dataTable)").forEach(table => {
+        if (!(table instanceof HTMLTableElement))
+            return;
+
+        let dt_args = {
+          "classes": ["display", "nowrap", "compact"],
+          "columnDefs": [{"render": "function (data, type, row, meta) { return type === 'sort' || type === 'type' ? data[1] : data[0]; }", "targets": [1, 2, 3, 4]}],
+          "data_json": "[[1, [\"-135.000028\", -135.00002766237935], [\"135.000000\", 135.00000034162267], [\"-60.000002\", -60.000001669652114], [\"-45.000005\", -45.00000466733367]], [2, [\"-134.999987\", -134.99998668124434], [\"135.000000\", 135.00000034162267], [\"-60.000002\", -60.000001669652114], [\"-44.999998\", -44.9999978371445]], [3, [\"-134.999987\", -134.99998668124434], [\"134.999973\", 134.99997302086598], [\"-59.999995\", -59.99999483946294], [\"-45.000008\", -45.00000808242825]], [4, [\"-135.000000\", -135.00000034162267], [\"135.000014\", 135.000014002001], [\"-60.000002\", -60.000001669652114], [\"-45.000011\", -45.00001149752284]], [5, [\"-134.999987\", -134.99998668124434], [\"134.999987\", 134.99998668124434], [\"-60.000008\", -60.00000849984128], [\"-44.999984\", -44.999984176766155]]]",
+          "keys_to_be_evaluated": [["columnDefs", 0, "render"]],
+          "layout": {"bottomEnd": null, "bottomStart": null, "topEnd": null, "topStart": null},
+          "order": [],
+          "style": {"caption-side": "bottom", "margin": "auto", "table-layout": "auto", "width": "auto"},
+          "table_html": "<table><thead>\n    <tr style=\"text-align: right;\">\n      \n      <th>block</th>\n      <th>phi_before</th>\n      <th>psi_before</th>\n      <th>phi_after</th>\n      <th>psi_after</th>\n    </tr>\n  </thead></table>",
+          "text_in_header_can_be_selected": true
+        };
+        new ITable(table, dt_args);
+    });
+</script></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorial_12_explicit_foldforests_and_torsions_13_1.png" src="../_images/tutorial_12_explicit_foldforests_and_torsions_13_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">try</span><span class="p">:</span>
+    <span class="n">display</span><span class="p">(</span>
+        <span class="n">tmol</span><span class="o">.</span><span class="n">switchable_view</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">"extended backbone"</span><span class="p">:</span> <span class="n">torsion_pose</span><span class="p">,</span>
+                <span class="s2">"assigned helical φ/ψ"</span><span class="p">:</span> <span class="n">helical_pose</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="n">notes</span><span class="o">=</span><span class="p">{</span>
+                <span class="s2">"extended backbone"</span><span class="p">:</span> <span class="s2">"Sequence-built extended torsions"</span><span class="p">,</span>
+                <span class="s2">"assigned helical φ/ψ"</span><span class="p">:</span> <span class="s2">"Internal blocks 1–5 set to φ=-60°, ψ=-45°"</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="n">width</span><span class="o">=</span><span class="mi">720</span><span class="p">,</span>
+            <span class="n">height</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+<span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"Interactive torsion comparison unavailable:"</span><span class="p">,</span> <span class="n">exc</span><span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div class="tmol-switchable-view" id="tmol-switch-a27a14c810a24c69aa56109dcc1ddd9f" style="max-width:720px">
+  <label>Structure: <select id="tmol-switch-a27a14c810a24c69aa56109dcc1ddd9f-select"><option value="0">extended backbone</option><option value="1">assigned helical φ/ψ</option></select></label>
+  <div style="position:relative;width:100%;height:432px">
+
+<section id="tmol-switch-a27a14c810a24c69aa56109dcc1ddd9f-panel-0" class="tmol-switch-panel"
+         style="position:absolute;inset:0;visibility:visible">
+  <div class="tmol-viewer-note">Sequence-built extended torsions</div>
+  <div id="3dmolviewer_17890800209422114"  style="position: relative; width: 720px; height: 400px;">
+        <p id="3dmolwarning_17890800209422114" style="background-color:#ffcccc;color:black">3Dmol.js failed to load for some reason.  Please check your browser console for error messages.<br></p>
+        </div>
+<script>
+
+var loadScriptAsync = function(uri){
+  return new Promise((resolve, reject) => {
+    //this is to ignore the existence of requirejs amd
+    var savedexports, savedmodule;
+    if (typeof exports !== 'undefined') savedexports = exports;
+    else exports = {}
+    if (typeof module !== 'undefined') savedmodule = module;
+    else module = {}
+
+    var tag = document.createElement('script');
+    tag.src = uri;
+    tag.async = true;
+    tag.onload = () => {
+        exports = savedexports;
+        module = savedmodule;
+        resolve();
+    };
+  var firstScriptTag = document.getElementsByTagName('script')[0];
+  firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+});
+};
+
+if(typeof $3Dmolpromise === 'undefined') {
+$3Dmolpromise = null;
+  $3Dmolpromise = loadScriptAsync('https://cdn.jsdelivr.net/npm/3dmol@2.5.5/build/3Dmol-min.js');
+}
+
+var viewer_17890800209422114 = null;
+var warn = document.getElementById("3dmolwarning_17890800209422114");
+if(warn) {
+    warn.parentNode.removeChild(warn);
+}
+$3Dmolpromise.then(function() {
+viewer_17890800209422114 = $3Dmol.createViewer(document.getElementById("3dmolviewer_17890800209422114"),{backgroundColor:"white"});
+viewer_17890800209422114.zoomTo();
+    viewer_17890800209422114.addModel("MODEL 1\nATOM      1  N   ALA A   1       0.000  -0.000   0.000  1.00 30.00\nATOM      2  CA  ALA A   1       1.458   0.000   0.000  1.00 30.00\nATOM      3  C   ALA A   1       2.009   1.420   0.000  1.00 30.00\nATOM      4  O   ALA A   1       1.540   2.278  -0.748  1.00 30.00\nATOM      5  CB  ALA A   1       1.988  -0.773  -1.199  1.00 30.00\nATOM      6  HA  ALA A   1       1.797  -0.490   0.913  1.00 30.00\nATOM      7  HB1 ALA A   1       3.078  -0.764  -1.185  1.00 30.00\nATOM      8  HB2 ALA A   1       1.633  -1.802  -1.154  1.00 30.00\nATOM      9  HB3 ALA A   1       1.633  -0.307  -2.117  1.00 30.00\nATOM     10  H1  ALA A   1      -0.334  -0.943  -0.000  1.00 30.00\nATOM     11  H2  ALA A   1      -0.334   0.471   0.816  1.00 30.00\nATOM     12  H3  ALA A   1      -0.334   0.471  -0.816  1.00 30.00\nATOM     13  N   ALA A   2       3.007   1.662   0.843  1.00 30.00\nATOM     14  CA  ALA A   2       3.624   2.980   0.942  1.00 30.00\nATOM     15  C   ALA A   2       5.143   2.875   0.976  1.00 30.00\nATOM     16  O   ALA A   2       5.702   2.041   1.688  1.00 30.00\nATOM     17  CB  ALA A   2       3.116   3.711   2.176  1.00 30.00\nATOM     18  H   ALA A   2       3.347   0.914   1.431  1.00 30.00\nATOM     19  HA  ALA A   2       3.348   3.550   0.055  1.00 30.00\nATOM     20  HB1 ALA A   2       3.586   4.693   2.236  1.00 30.00\nATOM     21  HB2 ALA A   2       2.035   3.830   2.109  1.00 30.00\nATOM     22  HB3 ALA A   2       3.364   3.136   3.067  1.00 30.00\nATOM     23  N   ALA A   3       5.807   3.727   0.202  1.00 30.00\nATOM     24  CA  ALA A   3       7.264   3.732   0.142  1.00 30.00\nATOM     25  C   ALA A   3       7.813   5.151   0.211  1.00 30.00\nATOM     26  O   ALA A   3       7.313   6.054  -0.459  1.00 30.00\nATOM     27  CB  ALA A   3       7.745   3.040  -1.125  1.00 30.00\nATOM     28  H   ALA A   3       5.289   4.388  -0.359  1.00 30.00\nATOM     29  HA  ALA A   3       7.640   3.186   1.007  1.00 30.00\nATOM     30  HB1 ALA A   3       8.834   3.052  -1.155  1.00 30.00\nATOM     31  HB2 ALA A   3       7.393   2.008  -1.132  1.00 30.00\nATOM     32  HB3 ALA A   3       7.352   3.563  -1.996  1.00 30.00\nATOM     33  N   ALA A   4       8.845   5.342   1.027  1.00 30.00\nATOM     34  CA  ALA A   4       9.464   6.652   1.185  1.00 30.00\nATOM     35  C   ALA A   4      10.984   6.551   1.150  1.00 30.00\nATOM     36  O   ALA A   4      11.572   5.674   1.783  1.00 30.00\nATOM     37  CB  ALA A   4       9.007   7.301   2.483  1.00 30.00\nATOM     38  H   ALA A   4       9.210   4.559   1.550  1.00 30.00\nATOM     39  HA  ALA A   4       9.152   7.278   0.349  1.00 30.00\nATOM     40  HB1 ALA A   4       9.478   8.278   2.587  1.00 30.00\nATOM     41  HB2 ALA A   4       7.924   7.420   2.469  1.00 30.00\nATOM     42  HB3 ALA A   4       9.292   6.670   3.324  1.00 30.00\nATOM     43  N   ALA A   5      11.615   7.453   0.406  1.00 30.00\nATOM     44  CA  ALA A   5      13.068   7.467   0.287  1.00 30.00\nATOM     45  C   ALA A   5      13.618   8.881   0.425  1.00 30.00\nATOM     46  O   ALA A   5      13.090   9.823  -0.165  1.00 30.00\nATOM     47  CB  ALA A   5      13.496   6.860  -1.041  1.00 30.00\nATOM     48  H   ALA A   5      11.074   8.147  -0.090  1.00 30.00\nATOM     49  HA  ALA A   5      13.480   6.867   1.099  1.00 30.00\nATOM     50  HB1 ALA A   5      14.584   6.878  -1.115  1.00 30.00\nATOM     51  HB2 ALA A   5      13.145   5.830  -1.100  1.00 30.00\nATOM     52  HB3 ALA A   5      13.068   7.437  -1.859  1.00 30.00\nATOM     53  N   ALA A   6      14.683   9.022   1.208  1.00 30.00\nATOM     54  CA  ALA A   6      15.307  10.321   1.425  1.00 30.00\nATOM     55  C   ALA A   6      16.824  10.228   1.321  1.00 30.00\nATOM     56  O   ALA A   6      17.438   9.314   1.872  1.00 30.00\nATOM     57  CB  ALA A   6      14.903  10.883   2.781  1.00 30.00\nATOM     58  H   ALA A   6      15.069   8.208   1.664  1.00 30.00\nATOM     59  HA  ALA A   6      14.960  10.999   0.645  1.00 30.00\nATOM     60  HB1 ALA A   6      15.377  11.854   2.928  1.00 30.00\nATOM     61  HB2 ALA A   6      13.820  10.999   2.818  1.00 30.00\nATOM     62  HB3 ALA A   6      15.222  10.201   3.567  1.00 30.00\nATOM     63  N   ALA A   7      17.423  11.179   0.612  1.00 30.00\nATOM     64  CA  ALA A   7      18.870  11.205   0.435  1.00 30.00\nATOM     65  C   ALA A   7      19.424  12.609   0.641  1.00 30.00\nATOM     66  CB  ALA A   7      19.244  10.687  -0.946  1.00 30.00\nATOM     67  H   ALA A   7      16.861  11.901   0.185  1.00 30.00\nATOM     68  HA  ALA A   7      19.315  10.556   1.188  1.00 30.00\nATOM     69  HB1 ALA A   7      20.327  10.713  -1.063  1.00 30.00\nATOM     70  HB2 ALA A   7      18.891   9.661  -1.058  1.00 30.00\nATOM     71  HB3 ALA A   7      18.782  11.314  -1.707  1.00 30.00\nATOM     72  O   ALA A   7      19.602  13.026   1.752  1.00 30.00\nATOM     73  OXT ALA A   7      19.683  13.297  -0.307  1.00 30.00\nTER\nENDMDL\n","pdb");
+    viewer_17890800209422114.setBackgroundColor("white");
+    viewer_17890800209422114.setStyle({},{"cartoon": {"color": "spectrum"}});
+    viewer_17890800209422114.addStyle({"not": {"hetflag": true}},{"stick": {"radius": 0.08, "opacity": 0.55}});
+    viewer_17890800209422114.setStyle({"hetflag": true},{"stick": {"colorscheme": "orangeCarbon", "radius": 0.22}});
+    viewer_17890800209422114.setHoverable({},true,"function(atom,viewer) {\n        if(!atom.label) {\n            atom.label = viewer.addLabel(\n                atom.chain + ':' + atom.resn + '(' + atom.resi + '):' +\n                atom.atom + '(idx' + atom.serial + ')',\n                {position: atom, backgroundColor:\"white\", fontColor:\"black\"}\n            );\n        }\n    }","function(atom,viewer) {\n        if(atom.label) {\n            viewer.removeLabel(atom.label);\n            delete atom.label;\n        }\n    }");
+    viewer_17890800209422114.zoomTo();
+viewer_17890800209422114.render();
+});
+</script>
+</section>
+<section id="tmol-switch-a27a14c810a24c69aa56109dcc1ddd9f-panel-1" class="tmol-switch-panel"
+         style="position:absolute;inset:0;visibility:hidden">
+  <div class="tmol-viewer-note">Internal blocks 1–5 set to φ=-60°, ψ=-45°</div>
+  <div id="3dmolviewer_17890800209493177"  style="position: relative; width: 720px; height: 400px;">
+        <p id="3dmolwarning_17890800209493177" style="background-color:#ffcccc;color:black">3Dmol.js failed to load for some reason.  Please check your browser console for error messages.<br></p>
+        </div>
+<script>
+
+var loadScriptAsync = function(uri){
+  return new Promise((resolve, reject) => {
+    //this is to ignore the existence of requirejs amd
+    var savedexports, savedmodule;
+    if (typeof exports !== 'undefined') savedexports = exports;
+    else exports = {}
+    if (typeof module !== 'undefined') savedmodule = module;
+    else module = {}
+
+    var tag = document.createElement('script');
+    tag.src = uri;
+    tag.async = true;
+    tag.onload = () => {
+        exports = savedexports;
+        module = savedmodule;
+        resolve();
+    };
+  var firstScriptTag = document.getElementsByTagName('script')[0];
+  firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+});
+};
+
+if(typeof $3Dmolpromise === 'undefined') {
+$3Dmolpromise = null;
+  $3Dmolpromise = loadScriptAsync('https://cdn.jsdelivr.net/npm/3dmol@2.5.5/build/3Dmol-min.js');
+}
+
+var viewer_17890800209493177 = null;
+var warn = document.getElementById("3dmolwarning_17890800209493177");
+if(warn) {
+    warn.parentNode.removeChild(warn);
+}
+$3Dmolpromise.then(function() {
+viewer_17890800209493177 = $3Dmol.createViewer(document.getElementById("3dmolviewer_17890800209493177"),{backgroundColor:"white"});
+viewer_17890800209493177.zoomTo();
+    viewer_17890800209493177.addModel("MODEL 1\nATOM      1  N   ALA A   1       0.000  -0.000   0.000  1.00 30.00\nATOM      2  CA  ALA A   1       1.458   0.000   0.000  1.00 30.00\nATOM      3  C   ALA A   1       2.009   1.420   0.000  1.00 30.00\nATOM      4  O   ALA A   1       1.540   2.278  -0.748  1.00 30.00\nATOM      5  CB  ALA A   1       1.988  -0.773  -1.199  1.00 30.00\nATOM      6  HA  ALA A   1       1.797  -0.490   0.913  1.00 30.00\nATOM      7  HB1 ALA A   1       3.078  -0.764  -1.185  1.00 30.00\nATOM      8  HB2 ALA A   1       1.633  -1.802  -1.154  1.00 30.00\nATOM      9  HB3 ALA A   1       1.633  -0.307  -2.117  1.00 30.00\nATOM     10  H1  ALA A   1      -0.334  -0.943  -0.000  1.00 30.00\nATOM     11  H2  ALA A   1      -0.334   0.471   0.816  1.00 30.00\nATOM     12  H3  ALA A   1      -0.334   0.471  -0.816  1.00 30.00\nATOM     13  N   ALA A   2       3.007   1.662   0.843  1.00 30.00\nATOM     14  CA  ALA A   2       3.624   2.980   0.942  1.00 30.00\nATOM     15  C   ALA A   2       4.226   3.407  -0.390  1.00 30.00\nATOM     16  O   ALA A   2       4.051   4.545  -0.825  1.00 30.00\nATOM     17  CB  ALA A   2       4.688   2.986   2.030  1.00 30.00\nATOM     18  H   ALA A   2       3.347   0.914   1.431  1.00 30.00\nATOM     19  HA  ALA A   2       2.847   3.699   1.203  1.00 30.00\nATOM     20  HB1 ALA A   2       5.139   3.976   2.091  1.00 30.00\nATOM     21  HB2 ALA A   2       4.231   2.736   2.987  1.00 30.00\nATOM     22  HB3 ALA A   2       5.456   2.252   1.792  1.00 30.00\nATOM     23  N   ALA A   3       4.937   2.488  -1.035  1.00 30.00\nATOM     24  CA  ALA A   3       5.567   2.768  -2.319  1.00 30.00\nATOM     25  C   ALA A   3       4.532   3.157  -3.367  1.00 30.00\nATOM     26  O   ALA A   3       4.723   4.117  -4.115  1.00 30.00\nATOM     27  CB  ALA A   3       6.369   1.563  -2.790  1.00 30.00\nATOM     28  H   ALA A   3       5.043   1.571  -0.624  1.00 30.00\nATOM     29  HA  ALA A   3       6.243   3.612  -2.188  1.00 30.00\nATOM     30  HB1 ALA A   3       6.833   1.788  -3.750  1.00 30.00\nATOM     31  HB2 ALA A   3       7.143   1.332  -2.058  1.00 30.00\nATOM     32  HB3 ALA A   3       5.706   0.706  -2.900  1.00 30.00\nATOM     33  N   ALA A   4       3.437   2.407  -3.417  1.00 30.00\nATOM     34  CA  ALA A   4       2.369   2.673  -4.374  1.00 30.00\nATOM     35  C   ALA A   4       1.788   4.067  -4.177  1.00 30.00\nATOM     36  O   ALA A   4       1.571   4.802  -5.141  1.00 30.00\nATOM     37  CB  ALA A   4       1.275   1.622  -4.253  1.00 30.00\nATOM     38  H   ALA A   4       3.341   1.633  -2.775  1.00 30.00\nATOM     39  HA  ALA A   4       2.794   2.627  -5.377  1.00 30.00\nATOM     40  HB1 ALA A   4       0.486   1.834  -4.974  1.00 30.00\nATOM     41  HB2 ALA A   4       1.695   0.636  -4.454  1.00 30.00\nATOM     42  HB3 ALA A   4       0.862   1.642  -3.246  1.00 30.00\nATOM     43  N   ALA A   5       1.536   4.427  -2.923  1.00 30.00\nATOM     44  CA  ALA A   5       0.979   5.734  -2.597  1.00 30.00\nATOM     45  C   ALA A   5       1.895   6.856  -3.069  1.00 30.00\nATOM     46  O   ALA A   5       1.439   7.839  -3.653  1.00 30.00\nATOM     47  CB  ALA A   5       0.732   5.847  -1.100  1.00 30.00\nATOM     48  H   ALA A   5       1.737   3.777  -2.176  1.00 30.00\nATOM     49  HA  ALA A   5       0.029   5.837  -3.121  1.00 30.00\nATOM     50  HB1 ALA A   5       0.316   6.828  -0.873  1.00 30.00\nATOM     51  HB2 ALA A   5       0.030   5.074  -0.788  1.00 30.00\nATOM     52  HB3 ALA A   5       1.672   5.719  -0.566  1.00 30.00\nATOM     53  N   ALA A   6       3.190   6.704  -2.811  1.00 30.00\nATOM     54  CA  ALA A   6       4.173   7.704  -3.209  1.00 30.00\nATOM     55  C   ALA A   6       4.174   7.906  -4.719  1.00 30.00\nATOM     56  O   ALA A   6       4.198   9.037  -5.204  1.00 30.00\nATOM     57  CB  ALA A   6       5.560   7.305  -2.728  1.00 30.00\nATOM     58  H   ALA A   6       3.501   5.873  -2.327  1.00 30.00\nATOM     59  HA  ALA A   6       3.898   8.652  -2.746  1.00 30.00\nATOM     60  HB1 ALA A   6       6.283   8.061  -3.032  1.00 30.00\nATOM     61  HB2 ALA A   6       5.558   7.221  -1.641  1.00 30.00\nATOM     62  HB3 ALA A   6       5.834   6.345  -3.164  1.00 30.00\nATOM     63  N   ALA A   7       4.147   6.802  -5.458  1.00 30.00\nATOM     64  CA  ALA A   7       4.145   6.856  -6.915  1.00 30.00\nATOM     65  C   ALA A   7       3.118   5.895  -7.500  1.00 30.00\nATOM     66  CB  ALA A   7       5.531   6.542  -7.459  1.00 30.00\nATOM     67  H   ALA A   7       4.128   5.903  -4.999  1.00 30.00\nATOM     68  HA  ALA A   7       3.868   7.866  -7.216  1.00 30.00\nATOM     69  HB1 ALA A   7       5.514   6.586  -8.548  1.00 30.00\nATOM     70  HB2 ALA A   7       6.245   7.273  -7.078  1.00 30.00\nATOM     71  HB3 ALA A   7       5.830   5.545  -7.141  1.00 30.00\nATOM     72  O   ALA A   7       1.959   6.205  -7.536  1.00 30.00\nATOM     73  OXT ALA A   7       3.467   4.829  -7.925  1.00 30.00\nTER\nENDMDL\n","pdb");
+    viewer_17890800209493177.setBackgroundColor("white");
+    viewer_17890800209493177.setStyle({},{"cartoon": {"color": "spectrum"}});
+    viewer_17890800209493177.addStyle({"not": {"hetflag": true}},{"stick": {"radius": 0.08, "opacity": 0.55}});
+    viewer_17890800209493177.setStyle({"hetflag": true},{"stick": {"colorscheme": "orangeCarbon", "radius": 0.22}});
+    viewer_17890800209493177.setHoverable({},true,"function(atom,viewer) {\n        if(!atom.label) {\n            atom.label = viewer.addLabel(\n                atom.chain + ':' + atom.resn + '(' + atom.resi + '):' +\n                atom.atom + '(idx' + atom.serial + ')',\n                {position: atom, backgroundColor:\"white\", fontColor:\"black\"}\n            );\n        }\n    }","function(atom,viewer) {\n        if(atom.label) {\n            viewer.removeLabel(atom.label);\n            delete atom.label;\n        }\n    }");
+    viewer_17890800209493177.zoomTo();
+viewer_17890800209493177.render();
+});
+</script>
+</section>
+  </div>
+</div>
+<script>
+(() => {
+  const root = document.getElementById("tmol-switch-a27a14c810a24c69aa56109dcc1ddd9f");
+  const select = document.getElementById("tmol-switch-a27a14c810a24c69aa56109dcc1ddd9f-select");
+  const panels = root.querySelectorAll('.tmol-switch-panel');
+  select.addEventListener('change', () => {
+    panels.forEach((panel, index) => {
+      panel.style.visibility = index === Number(select.value) ? 'visible' : 'hidden';
+    });
+    window.dispatchEvent(new Event('resize'));
+  });
+})();
+</script></div>
+</div>
+<p><strong>Expected observations.</strong> All measured internal torsions reach the requested values within numerical tolerance, and the peptide becomes compact and helical-looking. No score was minimized, so clashes or unfavorable side-chain interactions may remain. <code class="docutils literal notranslate"><span class="pre">set_named_torsions()</span></code> preserves the internal lengths and angles carried by the input kinematics; it is not an idealization protocol.</p>
+</section>
+<section id="Choosing-a-topology">
+<h2>Choosing a topology<a class="headerlink" href="#Choosing-a-topology" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">reasonable_fold_forest()</span></code> for ordinary connected chains and gap-aware defaults.</p></li>
+<li><p>Use an ordinary jump when one component’s placement must be controlled relative to another.</p></li>
+<li><p>Use a dandelion forest when a method genuinely operates on independent residue frames.</p></li>
+<li><p>Validate edge coverage and jump numbering before minimization or differentiation.</p></li>
+<li><p>Treat a FoldForest as a coordinate dependency graph, never as a replacement for chemical connectivity.</p></li>
+</ul>
+</section>
+<section id="Exercises">
+<h2>Exercises<a class="headerlink" href="#Exercises" title="Link to this heading">#</a></h2>
+<ol class="arabic simple">
+<li><p>Reverse the polymer edge for chain A and observe which end remains stationary when changing an internal torsion.</p></li>
+<li><p>Add a second ordinary jump and verify that jump indices are contiguous.</p></li>
+<li><p>Differentiate a coordinate-based objective through the inter-chain jump and inspect the six rigid-body gradients.</p></li>
+</ol>
+</section>
+<section id="References">
+<h2>References<a class="headerlink" href="#References" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="05_minimization_constraints_kinematics.html"><span class="doc">Tutorial 05 — Minimization, Constraints, and Kinematics</span></a></p></li>
+<li><p><a class="reference internal" href="06_fast_relax.html"><span class="doc">Tutorial 06 — FastRelax</span></a></p></li>
+<li><p><a class="reference internal" href="../api/kinematics.html"><span class="doc">Kinematics API</span></a></p></li>
+<li><p><a class="reference internal" href="../api/optimization.html"><span class="doc">Optimization API</span></a></p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<p><a class="reference download internal" download="" href="../_downloads/fd5775a2a76e9124c9356a452cdac33c/12_explicit_foldforests_and_torsions.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">this</span> <span class="pre">notebook</span></code></a></p>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="11_extending_chemistry_and_scoring.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Tutorial 11 — Extending Chemistry and Scoring Contexts</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="13_extending_the_packer.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Tutorial 13 — Extending the Packer and Inspecting Rotamers</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Learning-objectives">Learning objectives</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Before-you-begin">Before you begin</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Setup">Setup</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Compare-automatic,-coupled,-and-dandelion-topologies">Compare automatic, coupled, and dandelion topologies</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Perturb-the-inter-chain-rigid-body-jump">Perturb the inter-chain rigid-body jump</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Assign-named-torsions-in-one-kinematic-pass">Assign named torsions in one kinematic pass</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Choosing-a-topology">Choosing a topology</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Exercises">Exercises</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#References">References</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="../_sources/tutorial/12_explicit_foldforests_and_torsions.ipynb.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.21.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
