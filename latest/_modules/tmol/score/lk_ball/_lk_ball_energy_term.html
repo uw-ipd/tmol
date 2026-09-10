@@ -451,6 +451,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">ljlk_param_resolver</span> <span class="o">=</span> <span class="n">LJLKParamResolver</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span>
             <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">,</span> <span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">ljlk</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
         <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ljlk_type_params_cpu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ljlk_param_resolver</span><span class="o">.</span><span class="n">type_params</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">)</span>
+        <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tile_size</span> <span class="o">=</span> <span class="n">LKBallEnergyTerm</span><span class="o">.</span><span class="n">tile_size</span>
 
         <span class="c1"># Precompute the stacked lk-ball global-parameter tensors</span>
@@ -570,7 +573,7 @@
         <span class="c1"># needed for LKBallTypeParams (see properties/params.hh)</span>
         <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"atom_types"</span><span class="p">)</span>
         <span class="n">at</span> <span class="o">=</span> <span class="n">block_type</span><span class="o">.</span><span class="n">atom_types</span>
-        <span class="n">type_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ljlk_param_resolver</span><span class="o">.</span><span class="n">type_params</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">))</span>
+        <span class="n">type_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ljlk_type_params_cpu</span>
         <span class="n">bt_lj_radius</span> <span class="o">=</span> <span class="n">type_params</span><span class="o">.</span><span class="n">lj_radius</span><span class="p">[</span><span class="n">at</span><span class="p">]</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
         <span class="n">bt_lk_dgfree</span> <span class="o">=</span> <span class="n">type_params</span><span class="o">.</span><span class="n">lk_dgfree</span><span class="p">[</span><span class="n">at</span><span class="p">]</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
         <span class="n">bt_lk_lambda</span> <span class="o">=</span> <span class="n">type_params</span><span class="o">.</span><span class="n">lk_lambda</span><span class="p">[</span><span class="n">at</span><span class="p">]</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
