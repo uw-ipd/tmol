@@ -74,21 +74,27 @@ class BSplineInterpolation:
         This code handles splines of 2-4 dimensions
         """
 
-        # we only implement the python interface for CPU
+        coeffs = cls._coefficients_from_coordinates(coords)
+        return cls(coeffs=coeffs, n_interp_dims=coords.ndim)
+
+    @staticmethod
+    def _coefficients_from_coordinates(
+        coords: Tensor[torch.float],
+    ) -> Tensor[torch.float]:
+        """Compute coefficients for already-validated CPU coordinates."""
+
         assert coords.device == torch.device("cpu")
         coeffs = coords.clone()
-
-        input_shape = coords.shape
-        if len(input_shape) == 2:
+        if coords.ndim == 2:
             compiled.computeCoeffs2(coeffs)
-        elif len(input_shape) == 3:
+        elif coords.ndim == 3:
             compiled.computeCoeffs3(coeffs)
-        elif len(input_shape) == 4:
+        elif coords.ndim == 4:
             compiled.computeCoeffs4(coeffs)
         else:
             raise ValueError("Unsupported dimensionality in BSplineInterpolation!")
 
-        return cls(coeffs=coeffs, n_interp_dims=len(input_shape))
+        return coeffs
 
     @validate_args
     def interpolate(self, X: Tensor[torch.float][...]) -> Tensor[torch.float]:

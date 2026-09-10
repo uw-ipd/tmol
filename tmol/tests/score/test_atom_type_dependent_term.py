@@ -2,6 +2,15 @@ import torch
 
 from tmol.pose import PackedBlockTypes
 from tmol.score import AtomTypeDependentTerm
+from tmol.score._chemical_database import AtomTypeParamResolver
+
+
+def test_atom_type_parameters_are_cached(default_database, torch_device):
+    first = AtomTypeParamResolver.from_database(default_database.chemical, torch_device)
+    second = AtomTypeParamResolver.from_database(
+        default_database.chemical, torch_device
+    )
+    assert first is second
 
 
 def test_setup_block_type(fresh_default_restype_set, default_database, torch_device):

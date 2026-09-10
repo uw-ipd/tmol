@@ -146,11 +146,13 @@ def nplus1d_tensor_from_list(
     newdimsizes = [len(tensors)] + max_sizes
 
     newt = torch.zeros(newdimsizes, dtype=first.dtype, device=first.device)
-    sizes = torch.zeros(
-        (len(tensors), first.dim()), dtype=torch.int64, device=first.device
+    sizes = torch.tensor(
+        [tensor.shape for tensor in tensors], dtype=torch.int64, device=first.device
     )
-    strides = torch.zeros(
-        (len(tensors), first.dim()), dtype=torch.int64, device=first.device
+    strides = torch.tensor(
+        [newt.stride()[1:]] * len(tensors),
+        dtype=torch.int64,
+        device=first.device,
     )
 
     for i, t in enumerate(tensors):
@@ -158,8 +160,6 @@ def nplus1d_tensor_from_list(
         for j in range(t.dim()):
             ti = ti.narrow(j, 0, t.shape[j])
         ti[:] = t
-        sizes[i, :] = torch.tensor(t.shape, dtype=torch.int64, device=t.device)
-        strides[i, :] = torch.tensor(ti.stride(), dtype=torch.int64, device=t.device)
     return newt, sizes, strides
 
 

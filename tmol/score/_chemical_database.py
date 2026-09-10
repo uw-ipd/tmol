@@ -1,3 +1,4 @@
+import functools
 import typing
 
 import attr
@@ -9,6 +10,7 @@ import torch
 import numpy
 
 from tmol.database.chemical import ChemicalDatabase
+from tmol.utility._device import resolve_device
 
 from tmol.types import (
     Tensor,
@@ -82,20 +84,26 @@ class AtomTypeParamResolver(ValidateAttrs):
     @classmethod
     def from_database(cls, chemical_database: ChemicalDatabase, device: torch.device):
         """Initialize param resolver for all atom types in database."""
+        return cls._from_atom_types(
+            chemical_database.atom_types, resolve_device(device)
+        )
+
+    @classmethod
+    @functools.lru_cache(maxsize=32)
+    def _from_atom_types(cls, atom_types, device):
+        """Initialize and cache parameters for an immutable atom-type tuple."""
 
         # Generate a full atom type index, appending a "None" value at index -1
         # to generate nan parameter entries if an atom type is not present in
         # the index.
-        atom_type_names = [p.name for p in chemical_database.atom_types]
+        atom_type_names = [p.name for p in atom_types]
         atom_type_index = pandas.Index(atom_type_names + [None])
 
         # Pack the tuple of type parameters into a dataframe and reindex via
         # the param resolver type index. This appends a "nan" row at the end of
         # the frame for the invalid/None entry added above.
         param_records = (
-            pandas.DataFrame.from_records(
-                cattr.unstructure(chemical_database.atom_types)
-            )
+            pandas.DataFrame.from_records(cattr.unstructure(atom_types))
             .set_index("name")
             .reindex(index=atom_type_index)
         )

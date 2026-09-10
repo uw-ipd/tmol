@@ -153,6 +153,22 @@ def test_nplus1d_tensor_from_list():
         assert tuple(sizes[i, :]) == ti.shape
 
 
+def test_nplus1d_metadata(torch_device):
+    tensors = [
+        torch.zeros((2, 3), device=torch_device),
+        torch.zeros((4, 1), device=torch_device),
+    ]
+    joined, sizes, strides = nplus1d_tensor_from_list(tensors)
+
+    torch.testing.assert_close(
+        sizes, torch.tensor([[2, 3], [4, 1]], device=torch_device)
+    )
+    torch.testing.assert_close(
+        strides,
+        torch.tensor([joined.stride()[1:]] * 2, device=torch_device),
+    )
+
+
 def test_cat_diff_sized_tensors_w_same_sizes():
     t1 = torch.full((2, 3, 4), 1, dtype=torch.long)
     t2 = torch.full((3, 3, 4), 2, dtype=torch.long)

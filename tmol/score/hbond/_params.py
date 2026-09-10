@@ -102,10 +102,12 @@ class HBondParamResolver(ValidateAttrs):
         device: torch.device,
     ):
         donors = {g.name: g for g in hbond_database.donor_type_params}
-        donor_type_index = pandas.Index(list(donors))
+        donor_type_to_index = {name: i for i, name in enumerate(donors)}
+        donor_type_index = pandas.Index(donor_type_to_index)
 
         acceptors = {g.name: g for g in hbond_database.acceptor_type_params}
-        acceptor_type_index = pandas.Index(list(acceptors))
+        acceptor_type_to_index = {name: i for i, name in enumerate(acceptors)}
+        acceptor_type_index = pandas.Index(acceptor_type_to_index)
 
         atom_type_hybridization = {
             a.name: a.acceptor_hybridization for a in chemical_database.atom_types
@@ -118,12 +120,10 @@ class HBondParamResolver(ValidateAttrs):
         pair_params = HBondPairParams.full((len(donors), len(acceptors)), numpy.nan)
 
         # Denormalize donor/acceptor weight and class into pair parameter table
-        for name, g in donors.items():
-            (i,) = donor_type_index.get_indexer([name])
+        for i, g in enumerate(donors.values()):
             pair_params.donor_weight[i, :] = g.weight
 
-        for name, g in acceptors.items():
-            (i,) = acceptor_type_index.get_indexer([name])
+        for i, (name, g) in enumerate(acceptors.items()):
             pair_params.acceptor_weight[:, i] = g.weight
             pair_params.acceptor_hybridization[:, i] = int(
                 AcceptorHybridization._index.get_indexer_for(
@@ -147,22 +147,25 @@ class HBondParamResolver(ValidateAttrs):
             )
         )
 
-        poly_params = {
-            p.name: poly_params[i]
-            for i, p in enumerate(hbond_database.polynomial_parameters)
+        poly_param_index = {
+            p.name: i for i, p in enumerate(hbond_database.polynomial_parameters)
         }
+
+        def assign_polynomial(destination, pair_index, name):
+            source_index = poly_param_index[name]
+            destination.range[pair_index] = poly_params.range[source_index]
+            destination.bound[pair_index] = poly_params.bound[source_index]
+            destination.coeffs[pair_index] = poly_params.coeffs[source_index]
 
         # Denormalize polynomial parameters into pair parameter table
         for pp in hbond_database.pair_parameters:
-            (di,) = donor_type_index.get_indexer([pp.donor_type])
-            assert di >= 0
+            di = donor_type_to_index[pp.donor_type]
+            ai = acceptor_type_to_index[pp.acceptor_type]
 
-            (ai,) = acceptor_type_index.get_indexer([pp.acceptor_type])
-            assert ai >= 0
-
-            pair_params[di, ai].AHdist[:] = poly_params[pp.AHdist]
-            pair_params[di, ai].cosBAH[:] = poly_params[pp.cosBAH]
-            pair_params[di, ai].cosAHD[:] = poly_params[pp.cosAHD]
+            pair_index = (di, ai)
+            assign_polynomial(pair_params.AHdist, pair_index, pp.AHdist)
+            assign_polynomial(pair_params.cosBAH, pair_index, pp.cosBAH)
+            assign_polynomial(pair_params.cosAHD, pair_index, pp.cosAHD)
 
         return cls(
             donor_type_index=donor_type_index,
