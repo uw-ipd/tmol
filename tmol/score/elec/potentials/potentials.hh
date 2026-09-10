@@ -54,6 +54,16 @@ def deps_ddist(Real dist, Real D, Real D0, Real S) -> Real {
   return Real(0.5) * (D - D0) * dist * dist * S * S * S * std::exp(-dist * S);
 }
 
+def eps_deps_ddist(Real dist, Real D, Real D0, Real S) -> tuple<Real, Real> {
+  Real const exp_term = std::exp(-dist * S);
+  return {
+      D
+          - Real(0.5) * (D - D0)
+                * (Real(2) + Real(2) * dist * S + dist * dist * S * S)
+                * exp_term,
+      Real(0.5) * (D - D0) * dist * dist * S * S * S * exp_term};
+}
+
 def elec_delec_ddist(
     Real dist,
     Real e_i,
@@ -98,8 +108,10 @@ def elec_delec_ddist(
 
   } else if (dist < hi_poly_start) {
     // Coulombic part
-    Real eps_elec = eps(dist, params.D, params.D0, params.S);
-    Real deps_elec_d_dist = deps_ddist(dist, params.D, params.D0, params.S);
+    Real eps_elec;
+    Real deps_elec_d_dist;
+    tie(eps_elec, deps_elec_d_dist) =
+        eps_deps_ddist(dist, params.D, params.D0, params.S);
 
     elecE = eiej * (Real(322.0637) / (dist * eps_elec) - params.cutoff_offset);
     delec_ddist = -Real(322.0637) * eiej * (eps_elec + dist * deps_elec_d_dist)
@@ -161,7 +173,6 @@ def elec(
   } else if (dist < hi_poly_start) {
     // Coulombic part
     Real eps_elec = eps(dist, params.D, params.D0, params.S);
-    Real deps_elec_d_dist = deps_ddist(dist, params.D, params.D0, params.S);
 
     elecE = eiej * (Real(322.0637) / (dist * eps_elec) - params.cutoff_offset);
 
