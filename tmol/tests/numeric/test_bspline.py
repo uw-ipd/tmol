@@ -4,6 +4,22 @@ import pytest
 from tmol.numeric import BSplineInterpolation
 
 
+@pytest.mark.parametrize("shape", [(5, 7), (3, 5, 7), (2, 3, 5, 7)])
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+def test_batched_bspline_coefficients(shape, dtype):
+    coordinates = [
+        torch.rand(shape, dtype=dtype),
+        torch.rand(tuple(size + 1 for size in shape), dtype=dtype),
+    ]
+    expected = [
+        BSplineInterpolation._coefficients_from_coordinates(table)
+        for table in coordinates
+    ]
+    actual = BSplineInterpolation._coefficients_from_coordinate_tables(coordinates)
+    for actual_table, expected_table in zip(actual, expected):
+        torch.testing.assert_close(actual_table, expected_table, rtol=0, atol=0)
+
+
 @pytest.mark.parametrize("input", [torch.tensor([2.0, 5.0]), torch.tensor([3.0, 4.0])])
 def test_2d_bspline(input):
     x = torch.arange(-5, 6, dtype=torch.float).unsqueeze(1)

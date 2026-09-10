@@ -31,10 +31,7 @@ from tmol.utility._device import resolve_device
 
 def _pack_bspline_coefficients(coordinate_tables, device):
     packed = nplus1d_tensor_from_list(
-        [
-            BSplineInterpolation._coefficients_from_coordinates(t)
-            for t in coordinate_tables
-        ]
+        BSplineInterpolation._coefficients_from_coordinate_tables(coordinate_tables)
     )
     return tuple(t.to(device) for t in packed)
 
