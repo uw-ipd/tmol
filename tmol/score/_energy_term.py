@@ -107,7 +107,9 @@ class EnergyTerm:
 
         Subclasses may override this method to extract configuration values
         that affect scoring behavior, such as boolean flags, numeric
-        parameters, or other settings. The base implementation is a no-op.
+        parameters, or other settings. This dictionary replaces the previous
+        options; omitted keys must restore their defaults. The base
+        implementation is a no-op.
         """
         pass
 

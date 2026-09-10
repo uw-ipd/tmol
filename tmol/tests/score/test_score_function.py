@@ -2,6 +2,7 @@ import torch
 import numpy
 import os
 import threading
+import weakref
 import attr
 import pytest
 
@@ -112,7 +113,9 @@ def test_fused_ljlk_elec_preserves_term_lanes_weights_and_gradients(
 ):
     pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
 
-    fused = beta2016_score_function(torch_device).render_whole_pose_scoring_module(pose)
+    # This test edits the rendered weight buffer, which shares storage with
+    # its score function. Keep those edits out of the memoized beta2016 object.
+    fused = _non_memoized_beta2016(torch_device).render_whole_pose_scoring_module(pose)
 
     assert [term.classname for term in fused.term_modules][:2] == ["LJLK", "Elec"]
     assert fused._execution_modules[0].classname == "LJLK+Elec"
@@ -545,6 +548,33 @@ def test_packed_block_annotation_reuse_survives_option_changes(
     assert second_pose.packed_block_types.ref_weights is overridden_weights
 
 
+@pytest.mark.parametrize("score_type", [ScoreType.ref, ScoreType.fa_ljrep])
+def test_replacing_options_restores_default_scores(
+    ubq_pdb, default_database, torch_device, score_type
+):
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    score_function = ScoreFunction(default_database, torch_device)
+    score_function.set_weight(score_type, 1.0)
+
+    def score():
+        scorer = score_function.render_whole_pose_scoring_module(pose)
+        return scorer(pose.coords).detach().clone()
+
+    original = score()
+    override = {
+        name: weight + 123.0
+        for name, weight in default_database.scoring.ref.weights.items()
+    }
+    score_function.set_options({"ref_weights": override, "soft_rep": True})
+    assert not torch.allclose(score(), original)
+
+    # set_options replaces the entire dictionary, including options already
+    # applied to constructed terms and cached packed-block annotations.
+    score_function.set_options({})
+    torch.testing.assert_close(score(), original)
+    torch.testing.assert_close(score(), original)
+
+
 def test_no_grad_scoring_detaches_coordinates():
     class RecordingTerm(torch.nn.Module):
         def forward(self, coords):
@@ -783,6 +813,37 @@ def test_rotamer_scorer_combines_identical_sparse_layouts(
     torch.testing.assert_close(coords.grad, torch.tensor(61.0, device=torch_device))
 
 
+def test_sequential_rotamer_scoring_releases_consumed_scores(torch_device, monkeypatch):
+    monkeypatch.setattr(torch, "get_num_threads", lambda: 1)
+    score_refs = []
+    indices = torch.tensor(
+        [[0, 0], [0, 1], [1, 0]], device=torch_device, dtype=torch.int32
+    )
+
+    class SparseTerm(torch.nn.Module):
+        n_poses = 1
+        n_rots = 2
+
+        def __init__(self, n_score_types):
+            super().__init__()
+            self.n_score_types = n_score_types
+
+        def forward(self, coords):
+            # A raw multi-lane table must be released before allocating the
+            # next one; only its weighted values and indices remain live.
+            assert all(ref() is None for ref in score_refs)
+            scores = coords.new_ones((self.n_score_types, 2))
+            score_refs.append(weakref.ref(scores))
+            return scores, indices
+
+    scorer = RotamerScoringModule(
+        torch.ones(8, device=torch_device), [SparseTerm(n) for n in (3, 1, 4)]
+    )
+    _, values = scorer.forward_sparse_entries(torch.ones((), device=torch_device))
+    assert all(ref() is None for ref in score_refs)
+    torch.testing.assert_close(values, torch.full_like(values, 8.0))
+
+
 def test_rotamer_scorer_raw_entries_keep_int32_and_uncoalesced_duplicates() -> None:
     class SparseTerm(torch.nn.Module):
         n_poses = 1
@@ -929,7 +990,8 @@ def test_cuda_graphed_protein_score_matches_eager(ubq_pdb, torch_device):
         pytest.skip("CUDA graph test")
 
     pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
-    sfxn = beta2016_score_function(torch_device)
+    # Reweighting the graph below must not alter later tests' beta2016 scores.
+    sfxn = _non_memoized_beta2016(torch_device)
     eager = sfxn.render_whole_pose_scoring_module(pose_stack)
 
     eager_coords = pose_stack.coords.detach().clone().requires_grad_(True)

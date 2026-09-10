@@ -1902,6 +1902,9 @@ class RotamerScoringModule:
             if dispatch_key is not None and cutoff is not None:
                 dispatch_by_key.setdefault(dispatch_key, []).append((cutoff, result[1]))
             yield term, result, already_weighted
+            # The consumer has retained the weighted values. Release the raw
+            # lanes before the next native call allocates another score table.
+            del result
 
     @staticmethod
     def _matching_layout(indices, all_indices, layouts_by_nnz):
@@ -2046,6 +2049,11 @@ class RotamerScoringModule:
             if n_poses is None:
                 n_poses = term.n_poses
                 n_rots = term.n_rots
+            # Loop locals otherwise keep the previous raw table (and, after
+            # merging layouts, its temporary weighted values) alive during
+            # the next call to the result generator. Autograd retains any
+            # tensors it still needs for differentiable scoring.
+            del scores, weighted_values
 
         return all_indices, all_values, n_poses, n_rots
 

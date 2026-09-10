@@ -37,8 +37,7 @@ class RefEnergyTerm(EnergyTerm):
         return 1
 
     def set_options(self, options: dict):
-        if "ref_weights" in options:
-            self.weights_override = options["ref_weights"]
+        self.weights_override = options.get("ref_weights")
 
     def _resolved_weights(self) -> dict:
         """The ref-weight map this term scores with (override beats the db default)."""
