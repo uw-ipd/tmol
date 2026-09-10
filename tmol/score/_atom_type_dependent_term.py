@@ -25,7 +25,7 @@ class AtomTypeDependentTerm(EnergyTerm):
 
     def __init__(self, param_db: ParameterDatabase, device: torch.device):
         atom_type_resolver = AtomTypeParamResolver.from_database(
-            param_db.chemical, device=device
+            param_db.chemical, device=torch.device("cpu")
         )
         super(AtomTypeDependentTerm, self).__init__(param_db=param_db, device=device)
         self.atom_type_resolver = atom_type_resolver
