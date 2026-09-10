@@ -147,10 +147,15 @@ class HBondParamResolver(ValidateAttrs):
             )
         )
 
-        poly_params = {
-            p.name: poly_params[i]
-            for i, p in enumerate(hbond_database.polynomial_parameters)
+        poly_param_index = {
+            p.name: i for i, p in enumerate(hbond_database.polynomial_parameters)
         }
+
+        def assign_polynomial(destination, pair_index, name):
+            source_index = poly_param_index[name]
+            destination.range[pair_index] = poly_params.range[source_index]
+            destination.bound[pair_index] = poly_params.bound[source_index]
+            destination.coeffs[pair_index] = poly_params.coeffs[source_index]
 
         # Denormalize polynomial parameters into pair parameter table
         for pp in hbond_database.pair_parameters:
@@ -160,9 +165,10 @@ class HBondParamResolver(ValidateAttrs):
             (ai,) = acceptor_type_index.get_indexer([pp.acceptor_type])
             assert ai >= 0
 
-            pair_params[di, ai].AHdist[:] = poly_params[pp.AHdist]
-            pair_params[di, ai].cosBAH[:] = poly_params[pp.cosBAH]
-            pair_params[di, ai].cosAHD[:] = poly_params[pp.cosAHD]
+            pair_index = (di, ai)
+            assign_polynomial(pair_params.AHdist, pair_index, pp.AHdist)
+            assign_polynomial(pair_params.cosBAH, pair_index, pp.cosBAH)
+            assign_polynomial(pair_params.cosAHD, pair_index, pp.cosAHD)
 
         return cls(
             donor_type_index=donor_type_index,
