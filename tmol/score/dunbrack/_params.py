@@ -29,6 +29,13 @@ from tmol.utility.tensor import (
 from tmol.utility._device import resolve_device
 
 
+def _pack_bspline_coefficients(coordinate_tables, device):
+    packed = nplus1d_tensor_from_list(
+        [BSplineInterpolation.from_coordinates(t).coeffs for t in coordinate_tables]
+    )
+    return tuple(t.to(device) for t in packed)
+
+
 def _dunbrack_database_cache_key(
     args: tuple[Any, ...], kwargs: dict[str, Any]
 ) -> tuple[DunbrackRotamerLibrary, str, int | None]:
@@ -356,19 +363,13 @@ class DunbrackParamResolver(ValidateAttrs):
             -1 * torch.log(table) for table in rotameric_prob_tables
         ]
 
-        prob_coeffs = [
-            BSplineInterpolation.from_coordinates(t).coeffs.to(device)
-            for t in rotameric_prob_tables
-        ]
-        prob_coeffs, prob_coeffs_sizes, prob_coeffs_strides = nplus1d_tensor_from_list(
-            prob_coeffs
+        prob_coeffs, prob_coeffs_sizes, prob_coeffs_strides = (
+            _pack_bspline_coefficients(rotameric_prob_tables, device)
         )
 
-        neglnprob_coeffs = [
-            BSplineInterpolation.from_coordinates(t).coeffs.to(device)
-            for t in rotameric_neglnprob_tables
-        ]
-        neglnprob_coeffs, _, _2 = nplus1d_tensor_from_list(neglnprob_coeffs)
+        neglnprob_coeffs, _, _2 = _pack_bspline_coefficients(
+            rotameric_neglnprob_tables, device
+        )
         return prob_coeffs, prob_coeffs_sizes, prob_coeffs_strides, neglnprob_coeffs
 
     @classmethod
@@ -396,12 +397,8 @@ class DunbrackParamResolver(ValidateAttrs):
             x[x < -120] = x[x < -120] + 360
             x *= numpy.pi / 180
 
-        mean_coeffs = [
-            BSplineInterpolation.from_coordinates(t).coeffs.to(device)
-            for t in rotameric_mean_tables
-        ]
-        mean_coeffs, mean_coeffs_sizes, mean_coeffs_strides = nplus1d_tensor_from_list(
-            mean_coeffs
+        mean_coeffs, mean_coeffs_sizes, mean_coeffs_strides = (
+            _pack_bspline_coefficients(rotameric_mean_tables, device)
         )
 
         return mean_coeffs, mean_coeffs_sizes, mean_coeffs_strides
@@ -417,11 +414,7 @@ class DunbrackParamResolver(ValidateAttrs):
             for j in range(rotlib.rotameric_data.rotamer_stdvs.shape[3])
         ]
 
-        sdev_coeffs = [
-            BSplineInterpolation.from_coordinates(t).coeffs.to(device)
-            for t in rotameric_sdev_tables
-        ]
-        sdev_coeffs, _, _2 = nplus1d_tensor_from_list(sdev_coeffs)
+        sdev_coeffs, _, _2 = _pack_bspline_coefficients(rotameric_sdev_tables, device)
         return sdev_coeffs
 
     @classmethod
@@ -610,11 +603,7 @@ class DunbrackParamResolver(ValidateAttrs):
             table[table == 0] = 1e-6
             table[:] = -1 * torch.log(table)
 
-        semirot_coeffs = [
-            BSplineInterpolation.from_coordinates(t).coeffs.to(device)
-            for t in semirotameric_prob_tables
-        ]
-        return nplus1d_tensor_from_list(semirot_coeffs)
+        return _pack_bspline_coefficients(semirotameric_prob_tables, device)
 
     @classmethod
     def _create_semirot_periodicity(cls, dun_database, device):
