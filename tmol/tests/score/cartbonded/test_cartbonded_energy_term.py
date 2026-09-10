@@ -75,6 +75,12 @@ def test_annotate_restypes(
     assert cb_pbt_ann.cartbonded_params_hash_keys.device == torch_device
     assert cb_pbt_ann.cartbonded_params_hash_values.device == torch_device
 
+    hash_keys = cb_pbt_ann.cartbonded_params_hash_keys
+    parameter_keys = hash_keys[hash_keys[:, 0] != -1, :-1]
+    n_parameters = cb_pbt_ann.cartbonded_params_hash_values.shape[0]
+    assert parameter_keys.shape[0] == n_parameters
+    assert torch.unique(parameter_keys, dim=0).shape[0] == parameter_keys.shape[0]
+
     cartbonded_subgraphs = cb_pbt_ann.cartbonded_subgraphs
     cartbonded_energy.setup_packed_block_types(pbt)
     assert (

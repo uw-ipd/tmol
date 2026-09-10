@@ -362,44 +362,35 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
                 if at not in cbet_atom_unique_id_index:
                     cbet_atom_unique_id_index[at] = len(cbet_atom_unique_id_index)
 
-        for bt in packed_block_types.active_block_types:
-            bt_params = bt.cartbonded_annotations[self.hash]
-
-            for key in bt_params.cartbonded_params:
+        block_param_sets = {
+            bt.base_name: bt.cartbonded_annotations[self.hash].cartbonded_params
+            for bt in packed_block_types.active_block_types
+        }
+        for params in block_param_sets.values():
+            for key in params:
                 for at in key:
                     if at not in cbet_atom_unique_id_index:
                         cbet_atom_unique_id_index[at] = len(cbet_atom_unique_id_index)
 
-        # Calculate the total number of params
-        n_total_params = sum(
-            [
-                len(bt.cartbonded_annotations[self.hash].cartbonded_params)
-                for bt in packed_block_types.active_block_types
-            ]
-        ) + len(wildcard_params)
-
-        # Construct the params hash with the given scaling factor
-        hash_keys, hash_values = make_hashtable_keys_values(n_total_params, 2, 5, 7)
-
-        # Fill the native hash table and a Python lookup with the same
-        # first-insert-wins behavior for setup-time subgraph resolution.
-        param_key_to_index = {}
-        cur_val = 0
+        # Collect each parameter key once. Residue variants with the same base
+        # name share parameter dictionaries, and hash lookup uses the first
+        # inserted value for duplicate keys.
         padded_key = self._padded_param_key
-        for bt in packed_block_types.active_block_types:
-
-            bt_params = bt.cartbonded_annotations[self.hash]
-            for key_w_str, value in bt_params.cartbonded_params.items():
+        unique_params = {}
+        for params in block_param_sets.values():
+            for key_w_str, value in params.items():
                 key = tuple(cbet_atom_unique_id_index[at] for at in key_w_str)
-                add_to_hashtable(hash_keys, hash_values, cur_val, key, value)
-                param_key_to_index.setdefault(padded_key(key), cur_val)
-                cur_val += 1
+                unique_params.setdefault(padded_key(key), (key, value))
 
         for key_w_str, value in wildcard_params:
             key = tuple(cbet_atom_unique_id_index[at] for at in key_w_str)
+            unique_params.setdefault(padded_key(key), (key, value))
+
+        hash_keys, hash_values = make_hashtable_keys_values(len(unique_params), 2, 5, 7)
+        param_key_to_index = {}
+        for cur_val, (padded, (key, value)) in enumerate(unique_params.items()):
             add_to_hashtable(hash_keys, hash_values, cur_val, key, value)
-            param_key_to_index.setdefault(padded_key(key), cur_val)
-            cur_val += 1
+            param_key_to_index[padded] = cur_val
 
         # Intra-block topology and atom naming are fixed for a packed block
         # type. Resolve the exact/reversed/wildcard parameter search once here
