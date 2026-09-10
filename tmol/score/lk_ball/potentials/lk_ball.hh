@@ -682,26 +682,38 @@ void TMOL_DEVICE_FUNC lk_ball_load_block_coords_and_params_into_shared(
   // Note that TILE_SIZE is not explicitly passed in, but is "present"
   // in r_dat.coords allocation
 
-  DeviceDispatch<Dev>::template copy_contiguous_data<nt, 3>(
-      r_dat.pose_coords,
-      reinterpret_cast<Real*>(
-          &pose_coords[r_dat.rot_coord_offset + start_atom]),
-      n_atoms_to_load * 3);
-  DeviceDispatch<Dev>::template copy_contiguous_data<nt, MAX_N_WATER * 3>(
-      r_dat.water_coords,
-      reinterpret_cast<Real*>(
-          &water_coords[r_dat.rot_coord_offset + start_atom][0]),
-      n_atoms_to_load * MAX_N_WATER * 3);
+  if constexpr (Dev == tmol::Device::CPU) {
+    // CPU has no workgroup-shared memory to populate. Read immutable,
+    // contiguous coordinates and parameters in place instead of copying each
+    // rotamer pair through the CUDA-oriented staging arrays.
+    r_dat.pose_coords = reinterpret_cast<Real*>(
+        &pose_coords[r_dat.rot_coord_offset + start_atom]);
+    r_dat.water_coords = reinterpret_cast<Real*>(
+        &water_coords[r_dat.rot_coord_offset + start_atom][0]);
+    r_dat.lk_ball_params =
+        &block_type_tile_lk_ball_params[r_dat.block_type][tile_ind][0];
+  } else {
+    DeviceDispatch<Dev>::template copy_contiguous_data<nt, 3>(
+        r_dat.pose_coords,
+        reinterpret_cast<Real*>(
+            &pose_coords[r_dat.rot_coord_offset + start_atom]),
+        n_atoms_to_load * 3);
+    DeviceDispatch<Dev>::template copy_contiguous_data<nt, MAX_N_WATER * 3>(
+        r_dat.water_coords,
+        reinterpret_cast<Real*>(
+            &water_coords[r_dat.rot_coord_offset + start_atom][0]),
+        n_atoms_to_load * MAX_N_WATER * 3);
+    int const N_PARAMS = sizeof(LKBallTypeParams<Real>) / sizeof(Real);
+    DeviceDispatch<Dev>::template copy_contiguous_data<nt, N_PARAMS>(
+        reinterpret_cast<Real*>(r_dat.lk_ball_params),
+        reinterpret_cast<Real*>(
+            &block_type_tile_lk_ball_params[r_dat.block_type][tile_ind][0]),
+        r_dat.n_occluders * N_PARAMS);
+  }
   DeviceDispatch<Dev>::template copy_contiguous_data_and_cast<nt, 1>(
       r_dat.pol_occ_tile_inds,
       &block_type_tile_pol_occ_inds[r_dat.block_type][tile_ind][0],
       r_dat.n_occluders);
-  int const N_PARAMS = sizeof(LKBallTypeParams<Real>) / sizeof(Real);
-  DeviceDispatch<Dev>::template copy_contiguous_data<nt, N_PARAMS>(
-      reinterpret_cast<Real*>(r_dat.lk_ball_params),
-      reinterpret_cast<Real*>(
-          &block_type_tile_lk_ball_params[r_dat.block_type][tile_ind][0]),
-      r_dat.n_occluders * N_PARAMS);
 }
 
 template <
@@ -1155,7 +1167,12 @@ void TMOL_DEVICE_FUNC lk_ball_load_intrares2_tile_data_to_shared(
       start_atom2);
 }
 
-template <int TILE_SIZE, int MAX_N_WATER, int MAX_N_CONN, typename Real>
+template <
+    tmol::Device Dev,
+    int TILE_SIZE,
+    int MAX_N_WATER,
+    int MAX_N_CONN,
+    typename Real>
 void TMOL_DEVICE_FUNC lk_ball_load_intrares_data_from_shared(
     int tile_ind1,
     int tile_ind2,
@@ -1167,18 +1184,26 @@ void TMOL_DEVICE_FUNC lk_ball_load_intrares_data_from_shared(
   // then only the "1" shared-memory arrays will be loaded with data;
   // we will point the "2" memory pointers at the "1" arrays
   bool same_tile = tile_ind1 == tile_ind2;
-  intra_dat.r1.pose_coords = shared_m.pose_coords1;
-  intra_dat.r2.pose_coords =
-      (same_tile ? shared_m.pose_coords1 : shared_m.pose_coords2);
-  intra_dat.r1.water_coords = shared_m.water_coords1;
-  intra_dat.r2.water_coords =
-      (same_tile ? shared_m.water_coords1 : shared_m.water_coords2);
+  if constexpr (Dev == tmol::Device::CPU) {
+    if (same_tile) {
+      intra_dat.r2.pose_coords = intra_dat.r1.pose_coords;
+      intra_dat.r2.water_coords = intra_dat.r1.water_coords;
+      intra_dat.r2.lk_ball_params = intra_dat.r1.lk_ball_params;
+    }
+  } else {
+    intra_dat.r1.pose_coords = shared_m.pose_coords1;
+    intra_dat.r2.pose_coords =
+        (same_tile ? shared_m.pose_coords1 : shared_m.pose_coords2);
+    intra_dat.r1.water_coords = shared_m.water_coords1;
+    intra_dat.r2.water_coords =
+        (same_tile ? shared_m.water_coords1 : shared_m.water_coords2);
+    intra_dat.r1.lk_ball_params = shared_m.lk_ball_params1;
+    intra_dat.r2.lk_ball_params =
+        (same_tile ? shared_m.lk_ball_params1 : shared_m.lk_ball_params2);
+  }
   intra_dat.r1.pol_occ_tile_inds = shared_m.pol_occ_tile_inds1;
   intra_dat.r2.pol_occ_tile_inds =
       (same_tile ? shared_m.pol_occ_tile_inds1 : shared_m.pol_occ_tile_inds2);
-  intra_dat.r1.lk_ball_params = shared_m.lk_ball_params1;
-  intra_dat.r2.lk_ball_params =
-      (same_tile ? shared_m.lk_ball_params1 : shared_m.lk_ball_params2);
   if (same_tile) {
     intra_dat.r2.n_polars = intra_dat.r1.n_polars;
     intra_dat.r2.n_occluders = intra_dat.r1.n_occluders;
