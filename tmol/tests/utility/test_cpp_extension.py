@@ -13,6 +13,7 @@ def test_active_torch_cxx_standard_flags_match():
     )
 
     assert f"--std=c++{expected}" in _cpp_extension._required_flags
+    assert "-fno-math-errno" in _cpp_extension._required_flags
     assert f"-std=c++{expected}" in _cpp_extension._required_cuda_flags
 
 
