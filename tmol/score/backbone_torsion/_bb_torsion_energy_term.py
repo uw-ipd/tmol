@@ -73,6 +73,13 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
             dim=1,
         )
 
+        def table_ids(lookup):
+            ids = lookup["table_id"]
+            return ids.to_dict(), int(ids.iloc[-1])
+
+        self._rama_table_ids = table_ids(self.param_resolver.rama_lookup)
+        self._omega_table_ids = table_ids(self.param_resolver.omega_lookup)
+
     @classmethod
     def class_name(cls):
         return "BackboneTorsion"
@@ -100,15 +107,16 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
             return
 
         rname = block_type.name
-        lookups = numpy.array([[rname, "_"], [rname, "PRO"]], dtype=object)
-        rama_table_inds = self.param_resolver.rama_lookup.index.get_indexer(lookups)
-        rama_table_inds = self.param_resolver.rama_lookup.iloc[rama_table_inds, :][
-            "table_id"
-        ].values
-        omega_table_inds = self.param_resolver.omega_lookup.index.get_indexer(lookups)
-        omega_table_inds = self.param_resolver.omega_lookup.iloc[omega_table_inds, :][
-            "table_id"
-        ].values
+
+        def table_ids_for_residue(table_ids):
+            ids, default = table_ids
+            return numpy.array(
+                [ids.get((rname, following), default) for following in ("_", "PRO")],
+                dtype=numpy.int32,
+            )
+
+        rama_table_inds = table_ids_for_residue(self._rama_table_ids)
+        omega_table_inds = table_ids_for_residue(self._omega_table_ids)
 
         backbone_torsion_atoms = numpy.full((3, 4), -1, dtype=uaid_t)
         if rama_table_inds[0] != -1 or rama_table_inds[1] != -1:
