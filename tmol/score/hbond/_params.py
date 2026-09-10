@@ -102,10 +102,12 @@ class HBondParamResolver(ValidateAttrs):
         device: torch.device,
     ):
         donors = {g.name: g for g in hbond_database.donor_type_params}
-        donor_type_index = pandas.Index(list(donors))
+        donor_type_to_index = {name: i for i, name in enumerate(donors)}
+        donor_type_index = pandas.Index(donor_type_to_index)
 
         acceptors = {g.name: g for g in hbond_database.acceptor_type_params}
-        acceptor_type_index = pandas.Index(list(acceptors))
+        acceptor_type_to_index = {name: i for i, name in enumerate(acceptors)}
+        acceptor_type_index = pandas.Index(acceptor_type_to_index)
 
         atom_type_hybridization = {
             a.name: a.acceptor_hybridization for a in chemical_database.atom_types
@@ -118,12 +120,10 @@ class HBondParamResolver(ValidateAttrs):
         pair_params = HBondPairParams.full((len(donors), len(acceptors)), numpy.nan)
 
         # Denormalize donor/acceptor weight and class into pair parameter table
-        for name, g in donors.items():
-            (i,) = donor_type_index.get_indexer([name])
+        for i, g in enumerate(donors.values()):
             pair_params.donor_weight[i, :] = g.weight
 
-        for name, g in acceptors.items():
-            (i,) = acceptor_type_index.get_indexer([name])
+        for i, (name, g) in enumerate(acceptors.items()):
             pair_params.acceptor_weight[:, i] = g.weight
             pair_params.acceptor_hybridization[:, i] = int(
                 AcceptorHybridization._index.get_indexer_for(
@@ -159,11 +159,8 @@ class HBondParamResolver(ValidateAttrs):
 
         # Denormalize polynomial parameters into pair parameter table
         for pp in hbond_database.pair_parameters:
-            (di,) = donor_type_index.get_indexer([pp.donor_type])
-            assert di >= 0
-
-            (ai,) = acceptor_type_index.get_indexer([pp.acceptor_type])
-            assert ai >= 0
+            di = donor_type_to_index[pp.donor_type]
+            ai = acceptor_type_to_index[pp.acceptor_type]
 
             pair_index = (di, ai)
             assign_polynomial(pair_params.AHdist, pair_index, pp.AHdist)
