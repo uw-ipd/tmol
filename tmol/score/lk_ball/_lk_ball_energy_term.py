@@ -30,6 +30,9 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         self.ljlk_param_resolver = LJLKParamResolver.from_database(
             param_db.chemical, param_db.scoring.ljlk, device=device
         )
+        self._ljlk_type_params_cpu = self.ljlk_param_resolver.type_params.to(
+            torch.device("cpu")
+        )
         self.tile_size = LKBallEnergyTerm.tile_size
 
         # Precompute the stacked lk-ball global-parameter tensors
@@ -149,7 +152,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         # needed for LKBallTypeParams (see properties/params.hh)
         assert hasattr(block_type, "atom_types")
         at = block_type.atom_types
-        type_params = self.ljlk_param_resolver.type_params.to(torch.device("cpu"))
+        type_params = self._ljlk_type_params_cpu
         bt_lj_radius = type_params.lj_radius[at].numpy()
         bt_lk_dgfree = type_params.lk_dgfree[at].numpy()
         bt_lk_lambda = type_params.lk_lambda[at].numpy()
