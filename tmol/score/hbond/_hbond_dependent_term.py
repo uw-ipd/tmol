@@ -110,6 +110,9 @@ class HBondDependentTerm(BondDependentTerm):
         self.atom_type_resolver = AtomTypeParamResolver.from_database(
             param_db.chemical, torch.device("cpu")
         )
+        self._atom_type_indices = {
+            name: index for index, name in enumerate(self.atom_type_resolver.index)
+        }
         self.hbond_database = param_db.scoring.hbond
         self.hbond_resolver = HBondParamResolver.from_database(
             param_db.chemical, self.hbond_database, device
@@ -142,8 +145,10 @@ class HBondDependentTerm(BondDependentTerm):
         if hasattr(block_type, "hbbt_params"):
             return
 
-        atom_types = [x.atom_type for x in block_type.atoms]
-        atom_type_idx = self.atom_type_resolver.index.get_indexer(atom_types)
+        atom_type_idx = numpy.asarray(
+            [self._atom_type_indices.get(x.atom_type, -1) for x in block_type.atoms],
+            dtype=numpy.intp,
+        )
         acc_type = self._acceptor_type_for_atom_type[atom_type_idx]
         don_type = self._donor_type_for_atom_type[atom_type_idx]
         is_acc = acc_type != -1
