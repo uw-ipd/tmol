@@ -65,6 +65,19 @@ class DunbrackEnergyTerm(EnergyTerm):
             getattr(self.global_params.scoring_db, field.name)
             for field in attr.fields(ScoringDunbrackDatabaseView)
         ]
+        self._table_indices = tuple(
+            table["dun_table_name"].to_dict()
+            for table in (
+                self.global_params.all_table_indices,
+                self.global_params.rotameric_table_indices,
+                self.global_params.semirotameric_table_indices,
+            )
+        )
+        aux = self.global_params.scoring_db_aux
+        self._host_aux = {
+            field.name: getattr(aux, field.name).cpu().numpy()
+            for field in attr.fields(type(aux))
+        }
         self.device = device
 
     @classmethod
@@ -98,39 +111,17 @@ class DunbrackEnergyTerm(EnergyTerm):
             setattr(block_type, "dunbrack_attrs", _empty_dunbrack_attrs())
             return
 
-        inds = self.global_params.all_table_indices.index.get_indexer(
-            [block_type.base_name]
+        rotamer_table_set, rotameric_index, semirotameric_index = (
+            table.get(block_type.base_name, -1) for table in self._table_indices
         )
-        r_inds = self.global_params.rotameric_table_indices.index.get_indexer(
-            [block_type.base_name]
-        )
-        s_inds = self.global_params.semirotameric_table_indices.index.get_indexer(
-            [block_type.base_name]
-        )
-
-        inds[inds != -1] = self.global_params.all_table_indices.iloc[inds[inds != -1]][
-            "dun_table_name"
-        ].values
-        r_inds[r_inds != -1] = self.global_params.rotameric_table_indices.iloc[
-            r_inds[r_inds != -1]
-        ]["dun_table_name"].values
-        s_inds[s_inds != -1] = self.global_params.semirotameric_table_indices.iloc[
-            s_inds[s_inds != -1]
-        ]["dun_table_name"].values
-
-        rotamer_table_set = inds[0]
-        rotameric_index = r_inds[0]
-        semirotameric_index = s_inds[0]
         semirotameric = semirotameric_index != -1
 
         semirotameric_tableset_offset = (
             numpy.array(-1)
             if not semirotameric
-            else self.global_params.scoring_db_aux.semirotameric_tableset_offsets[
-                s_inds[s_inds != -1]
-            ][0]
-            .cpu()
-            .numpy()
+            else numpy.array(
+                self._host_aux["semirotameric_tableset_offsets"][semirotameric_index]
+            )
         )
 
         empty_tor = numpy.full((4, 3), -1, dtype=numpy.int32)
@@ -150,27 +141,19 @@ class DunbrackEnergyTerm(EnergyTerm):
 
         dih_uaids = numpy.array([phi_uaids] + [psi_uaids] + chis)
 
-        n_chi = self.global_params.scoring_db_aux.nchi_for_table_set[
-            rotamer_table_set
-        ].item()
+        n_chi = int(self._host_aux["nchi_for_table_set"][rotamer_table_set])
         n_rotameric_chi = n_chi - (1 if semirotameric else 0)
         n_dihedrals = n_chi + 2
 
         probability_table_offset = int(
-            self.global_params.scoring_db_aux.rotameric_prob_tableset_offsets[
-                rotameric_index
-            ].item()
+            self._host_aux["rotameric_prob_tableset_offsets"][rotameric_index]
         )
 
         mean_table_offset = int(
-            self.global_params.scoring_db_aux.rotameric_meansdev_tableset_offsets[
-                rotamer_table_set
-            ].item()
+            self._host_aux["rotameric_meansdev_tableset_offsets"][rotamer_table_set]
         )
         rotamer_index_to_table_index_offset = int(
-            self.global_params.scoring_db_aux.rotameric_chi_ri2ti_offsets[
-                rotamer_table_set
-            ].item()
+            self._host_aux["rotameric_chi_ri2ti_offsets"][rotamer_table_set]
         )
 
         dunbrack_attrs = DunbrackBlockAttrs(
