@@ -96,6 +96,26 @@ class BSplineInterpolation:
 
         return coeffs
 
+    @staticmethod
+    def _coefficients_from_coordinate_tables(coordinates):
+        """Compute coefficients for a same-rank sequence of CPU tables."""
+
+        coeffs = [table.clone() for table in coordinates]
+        if not coeffs:
+            return coeffs
+        ndim = coeffs[0].ndim
+        if any(table.ndim != ndim for table in coeffs):
+            raise ValueError("B-spline coordinate tables must have the same rank")
+        if ndim == 2:
+            compiled.computeCoeffs2Batch(coeffs)
+        elif ndim == 3:
+            compiled.computeCoeffs3Batch(coeffs)
+        elif ndim == 4:
+            compiled.computeCoeffs4Batch(coeffs)
+        else:
+            raise ValueError("Unsupported dimensionality in BSplineInterpolation!")
+        return coeffs
+
     @validate_args
     def interpolate(self, X: Tensor[torch.float][...]) -> Tensor[torch.float]:
         """B-spline interpolation function
