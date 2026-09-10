@@ -486,6 +486,19 @@
             <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">scoring_db</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">attr</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span><span class="n">ScoringDunbrackDatabaseView</span><span class="p">)</span>
         <span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_table_indices</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+            <span class="n">table</span><span class="p">[</span><span class="s2">"dun_table_name"</span><span class="p">]</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">all_table_indices</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">rotameric_table_indices</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">semirotameric_table_indices</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">aux</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">scoring_db_aux</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_host_aux</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">aux</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">attr</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">aux</span><span class="p">))</span>
+        <span class="p">}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
 
     <span class="nd">@classmethod</span>
@@ -519,39 +532,17 @@
             <span class="nb">setattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"dunbrack_attrs"</span><span class="p">,</span> <span class="n">_empty_dunbrack_attrs</span><span class="p">())</span>
             <span class="k">return</span>
 
-        <span class="n">inds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">all_table_indices</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">block_type</span><span class="o">.</span><span class="n">base_name</span><span class="p">]</span>
+        <span class="n">rotamer_table_set</span><span class="p">,</span> <span class="n">rotameric_index</span><span class="p">,</span> <span class="n">semirotameric_index</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">block_type</span><span class="o">.</span><span class="n">base_name</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_table_indices</span>
         <span class="p">)</span>
-        <span class="n">r_inds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">rotameric_table_indices</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">block_type</span><span class="o">.</span><span class="n">base_name</span><span class="p">]</span>
-        <span class="p">)</span>
-        <span class="n">s_inds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">semirotameric_table_indices</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">block_type</span><span class="o">.</span><span class="n">base_name</span><span class="p">]</span>
-        <span class="p">)</span>
-
-        <span class="n">inds</span><span class="p">[</span><span class="n">inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">all_table_indices</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">inds</span><span class="p">[</span><span class="n">inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]][</span>
-            <span class="s2">"dun_table_name"</span>
-        <span class="p">]</span><span class="o">.</span><span class="n">values</span>
-        <span class="n">r_inds</span><span class="p">[</span><span class="n">r_inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">rotameric_table_indices</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span>
-            <span class="n">r_inds</span><span class="p">[</span><span class="n">r_inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-        <span class="p">][</span><span class="s2">"dun_table_name"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
-        <span class="n">s_inds</span><span class="p">[</span><span class="n">s_inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">semirotameric_table_indices</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span>
-            <span class="n">s_inds</span><span class="p">[</span><span class="n">s_inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-        <span class="p">][</span><span class="s2">"dun_table_name"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
-
-        <span class="n">rotamer_table_set</span> <span class="o">=</span> <span class="n">inds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">rotameric_index</span> <span class="o">=</span> <span class="n">r_inds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">semirotameric_index</span> <span class="o">=</span> <span class="n">s_inds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">semirotameric</span> <span class="o">=</span> <span class="n">semirotameric_index</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
 
         <span class="n">semirotameric_tableset_offset</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">semirotameric</span>
-            <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">scoring_db_aux</span><span class="o">.</span><span class="n">semirotameric_tableset_offsets</span><span class="p">[</span>
-                <span class="n">s_inds</span><span class="p">[</span><span class="n">s_inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-            <span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-            <span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
-            <span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="k">else</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_host_aux</span><span class="p">[</span><span class="s2">"semirotameric_tableset_offsets"</span><span class="p">][</span><span class="n">semirotameric_index</span><span class="p">]</span>
+            <span class="p">)</span>
         <span class="p">)</span>
 
         <span class="n">empty_tor</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
@@ -571,27 +562,19 @@
 
         <span class="n">dih_uaids</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">phi_uaids</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">psi_uaids</span><span class="p">]</span> <span class="o">+</span> <span class="n">chis</span><span class="p">)</span>
 
-        <span class="n">n_chi</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">scoring_db_aux</span><span class="o">.</span><span class="n">nchi_for_table_set</span><span class="p">[</span>
-            <span class="n">rotamer_table_set</span>
-        <span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="n">n_chi</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_host_aux</span><span class="p">[</span><span class="s2">"nchi_for_table_set"</span><span class="p">][</span><span class="n">rotamer_table_set</span><span class="p">])</span>
         <span class="n">n_rotameric_chi</span> <span class="o">=</span> <span class="n">n_chi</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span> <span class="k">if</span> <span class="n">semirotameric</span> <span class="k">else</span> <span class="mi">0</span><span class="p">)</span>
         <span class="n">n_dihedrals</span> <span class="o">=</span> <span class="n">n_chi</span> <span class="o">+</span> <span class="mi">2</span>
 
         <span class="n">probability_table_offset</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">scoring_db_aux</span><span class="o">.</span><span class="n">rotameric_prob_tableset_offsets</span><span class="p">[</span>
-                <span class="n">rotameric_index</span>
-            <span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_host_aux</span><span class="p">[</span><span class="s2">"rotameric_prob_tableset_offsets"</span><span class="p">][</span><span class="n">rotameric_index</span><span class="p">]</span>
         <span class="p">)</span>
 
         <span class="n">mean_table_offset</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">scoring_db_aux</span><span class="o">.</span><span class="n">rotameric_meansdev_tableset_offsets</span><span class="p">[</span>
-                <span class="n">rotamer_table_set</span>
-            <span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_host_aux</span><span class="p">[</span><span class="s2">"rotameric_meansdev_tableset_offsets"</span><span class="p">][</span><span class="n">rotamer_table_set</span><span class="p">]</span>
         <span class="p">)</span>
         <span class="n">rotamer_index_to_table_index_offset</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">scoring_db_aux</span><span class="o">.</span><span class="n">rotameric_chi_ri2ti_offsets</span><span class="p">[</span>
-                <span class="n">rotamer_table_set</span>
-            <span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_host_aux</span><span class="p">[</span><span class="s2">"rotameric_chi_ri2ti_offsets"</span><span class="p">][</span><span class="n">rotamer_table_set</span><span class="p">]</span>
         <span class="p">)</span>
 
         <span class="n">dunbrack_attrs</span> <span class="o">=</span> <span class="n">DunbrackBlockAttrs</span><span class="p">(</span>

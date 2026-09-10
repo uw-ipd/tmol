@@ -494,22 +494,48 @@
 <span class="sd">        This code handles splines of 2-4 dimensions</span>
 <span class="sd">        """</span>
 
-        <span class="c1"># we only implement the python interface for CPU</span>
+        <span class="n">coeffs</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_coefficients_from_coordinates</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">coeffs</span><span class="o">=</span><span class="n">coeffs</span><span class="p">,</span> <span class="n">n_interp_dims</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">ndim</span><span class="p">)</span></div>
+
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_coefficients_from_coordinates</span><span class="p">(</span>
+        <span class="n">coords</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Compute coefficients for already-validated CPU coordinates."""</span>
+
         <span class="k">assert</span> <span class="n">coords</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">)</span>
         <span class="n">coeffs</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
-
-        <span class="n">input_shape</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">shape</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">coords</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
             <span class="n">compiled</span><span class="o">.</span><span class="n">computeCoeffs2</span><span class="p">(</span><span class="n">coeffs</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">coords</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
             <span class="n">compiled</span><span class="o">.</span><span class="n">computeCoeffs3</span><span class="p">(</span><span class="n">coeffs</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">coords</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
             <span class="n">compiled</span><span class="o">.</span><span class="n">computeCoeffs4</span><span class="p">(</span><span class="n">coeffs</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Unsupported dimensionality in BSplineInterpolation!"</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">coeffs</span><span class="o">=</span><span class="n">coeffs</span><span class="p">,</span> <span class="n">n_interp_dims</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">input_shape</span><span class="p">))</span></div>
+        <span class="k">return</span> <span class="n">coeffs</span>
 
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_coefficients_from_coordinate_tables</span><span class="p">(</span><span class="n">coordinates</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Compute coefficients for a same-rank sequence of CPU tables."""</span>
+
+        <span class="n">coeffs</span> <span class="o">=</span> <span class="p">[</span><span class="n">table</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">coordinates</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">coeffs</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">coeffs</span>
+        <span class="n">ndim</span> <span class="o">=</span> <span class="n">coeffs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">ndim</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="n">ndim</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">coeffs</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"B-spline coordinate tables must have the same rank"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">compiled</span><span class="o">.</span><span class="n">computeCoeffs2Batch</span><span class="p">(</span><span class="n">coeffs</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">compiled</span><span class="o">.</span><span class="n">computeCoeffs3Batch</span><span class="p">(</span><span class="n">coeffs</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">ndim</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="n">compiled</span><span class="o">.</span><span class="n">computeCoeffs4Batch</span><span class="p">(</span><span class="n">coeffs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Unsupported dimensionality in BSplineInterpolation!"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">coeffs</span>
 
 <div class="viewcode-block" id="BSplineInterpolation.interpolate">
 <a class="viewcode-back" href="../../../api/numeric.html#tmol.numeric.BSplineInterpolation.interpolate">[docs]</a>

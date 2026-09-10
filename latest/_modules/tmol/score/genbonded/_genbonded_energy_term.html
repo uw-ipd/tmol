@@ -503,6 +503,8 @@
         <span class="c1"># regardless of which block types are later loaded.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_type_to_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_database</span><span class="o">.</span><span class="n">make_type_to_idx</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_all_type_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_database</span><span class="o">.</span><span class="n">all_type_names</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_torsion_params_cache</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_improper_params_cache</span> <span class="o">=</span> <span class="p">{}</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">class_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
@@ -612,6 +614,7 @@
 <span class="sd">        """</span>
         <span class="n">kept</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_torsion_params_cache</span>
 
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">torsions</span><span class="p">:</span>
             <span class="n">t1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_atom_chem_type</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
@@ -627,9 +630,12 @@
 
             <span class="c1"># find_torsion_params tries both forward and reversed directions</span>
             <span class="c1"># internally and returns the most specific match.</span>
-            <span class="n">entry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_database</span><span class="o">.</span><span class="n">find_torsion_params</span><span class="p">(</span>
-                <span class="n">t1</span><span class="p">,</span> <span class="n">t2</span><span class="p">,</span> <span class="n">t3</span><span class="p">,</span> <span class="n">t4</span><span class="p">,</span> <span class="n">bond_type_int</span><span class="p">,</span> <span class="n">is_ring</span>
-            <span class="p">)</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="n">t1</span><span class="p">,</span> <span class="n">t2</span><span class="p">,</span> <span class="n">t3</span><span class="p">,</span> <span class="n">t4</span><span class="p">,</span> <span class="n">bond_type_int</span><span class="p">,</span> <span class="n">is_ring</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">entry</span> <span class="o">=</span> <span class="n">cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="n">entry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_database</span><span class="o">.</span><span class="n">find_torsion_params</span><span class="p">(</span><span class="o">*</span><span class="n">key</span><span class="p">)</span>
+                <span class="n">cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">entry</span>
             <span class="k">if</span> <span class="n">entry</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">kept</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">))</span>
                 <span class="c1"># Rosetta's calculate_offset() zeros the minimum when the</span>
@@ -660,6 +666,7 @@
 <span class="sd">        """</span>
         <span class="n">kept</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_improper_params_cache</span>
 
         <span class="k">for</span> <span class="n">quad</span> <span class="ow">in</span> <span class="n">impropers</span><span class="p">:</span>
             <span class="n">center</span><span class="p">,</span> <span class="n">n1</span><span class="p">,</span> <span class="n">n2</span><span class="p">,</span> <span class="n">n3</span> <span class="o">=</span> <span class="n">quad</span>
@@ -668,7 +675,12 @@
             <span class="n">t2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_atom_chem_type</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="n">n2</span><span class="p">)</span>
             <span class="n">t3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_atom_chem_type</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="n">n3</span><span class="p">)</span>
 
-            <span class="n">entry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_database</span><span class="o">.</span><span class="n">find_improper_params</span><span class="p">(</span><span class="n">tc</span><span class="p">,</span> <span class="n">t1</span><span class="p">,</span> <span class="n">t2</span><span class="p">,</span> <span class="n">t3</span><span class="p">)</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="n">tc</span><span class="p">,</span> <span class="n">t1</span><span class="p">,</span> <span class="n">t2</span><span class="p">,</span> <span class="n">t3</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">entry</span> <span class="o">=</span> <span class="n">cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="n">entry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_database</span><span class="o">.</span><span class="n">find_improper_params</span><span class="p">(</span><span class="o">*</span><span class="n">key</span><span class="p">)</span>
+                <span class="n">cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">entry</span>
             <span class="k">if</span> <span class="n">entry</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">kept</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">quad</span><span class="p">)</span>
                 <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">entry</span><span class="o">.</span><span class="n">k</span><span class="p">,</span> <span class="n">entry</span><span class="o">.</span><span class="n">delta</span><span class="p">])</span>

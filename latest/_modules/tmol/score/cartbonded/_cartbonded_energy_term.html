@@ -783,44 +783,35 @@
                 <span class="k">if</span> <span class="n">at</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cbet_atom_unique_id_index</span><span class="p">:</span>
                     <span class="n">cbet_atom_unique_id_index</span><span class="p">[</span><span class="n">at</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cbet_atom_unique_id_index</span><span class="p">)</span>
 
-        <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">:</span>
-            <span class="n">bt_params</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">cartbonded_annotations</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hash</span><span class="p">]</span>
-
-            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">bt_params</span><span class="o">.</span><span class="n">cartbonded_params</span><span class="p">:</span>
+        <span class="n">block_param_sets</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">bt</span><span class="o">.</span><span class="n">base_name</span><span class="p">:</span> <span class="n">bt</span><span class="o">.</span><span class="n">cartbonded_annotations</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hash</span><span class="p">]</span><span class="o">.</span><span class="n">cartbonded_params</span>
+            <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">block_param_sets</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
                 <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">key</span><span class="p">:</span>
                     <span class="k">if</span> <span class="n">at</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cbet_atom_unique_id_index</span><span class="p">:</span>
                         <span class="n">cbet_atom_unique_id_index</span><span class="p">[</span><span class="n">at</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cbet_atom_unique_id_index</span><span class="p">)</span>
 
-        <span class="c1"># Calculate the total number of params</span>
-        <span class="n">n_total_params</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
-            <span class="p">[</span>
-                <span class="nb">len</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">cartbonded_annotations</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hash</span><span class="p">]</span><span class="o">.</span><span class="n">cartbonded_params</span><span class="p">)</span>
-                <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
-            <span class="p">]</span>
-        <span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">wildcard_params</span><span class="p">)</span>
-
-        <span class="c1"># Construct the params hash with the given scaling factor</span>
-        <span class="n">hash_keys</span><span class="p">,</span> <span class="n">hash_values</span> <span class="o">=</span> <span class="n">make_hashtable_keys_values</span><span class="p">(</span><span class="n">n_total_params</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span>
-
-        <span class="c1"># Fill the native hash table and a Python lookup with the same</span>
-        <span class="c1"># first-insert-wins behavior for setup-time subgraph resolution.</span>
-        <span class="n">param_key_to_index</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="n">cur_val</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="c1"># Collect each parameter key once. Residue variants with the same base</span>
+        <span class="c1"># name share parameter dictionaries, and hash lookup uses the first</span>
+        <span class="c1"># inserted value for duplicate keys.</span>
         <span class="n">padded_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_padded_param_key</span>
-        <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">:</span>
-
-            <span class="n">bt_params</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">cartbonded_annotations</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hash</span><span class="p">]</span>
-            <span class="k">for</span> <span class="n">key_w_str</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">bt_params</span><span class="o">.</span><span class="n">cartbonded_params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">unique_params</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">block_param_sets</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">key_w_str</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                 <span class="n">key</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">cbet_atom_unique_id_index</span><span class="p">[</span><span class="n">at</span><span class="p">]</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">key_w_str</span><span class="p">)</span>
-                <span class="n">add_to_hashtable</span><span class="p">(</span><span class="n">hash_keys</span><span class="p">,</span> <span class="n">hash_values</span><span class="p">,</span> <span class="n">cur_val</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
-                <span class="n">param_key_to_index</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">padded_key</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="n">cur_val</span><span class="p">)</span>
-                <span class="n">cur_val</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">unique_params</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">padded_key</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
 
         <span class="k">for</span> <span class="n">key_w_str</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">wildcard_params</span><span class="p">:</span>
             <span class="n">key</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">cbet_atom_unique_id_index</span><span class="p">[</span><span class="n">at</span><span class="p">]</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">key_w_str</span><span class="p">)</span>
+            <span class="n">unique_params</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">padded_key</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
+
+        <span class="n">hash_keys</span><span class="p">,</span> <span class="n">hash_values</span> <span class="o">=</span> <span class="n">make_hashtable_keys_values</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">unique_params</span><span class="p">),</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span>
+        <span class="n">param_key_to_index</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">cur_val</span><span class="p">,</span> <span class="p">(</span><span class="n">padded</span><span class="p">,</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">unique_params</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
             <span class="n">add_to_hashtable</span><span class="p">(</span><span class="n">hash_keys</span><span class="p">,</span> <span class="n">hash_values</span><span class="p">,</span> <span class="n">cur_val</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
-            <span class="n">param_key_to_index</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">padded_key</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="n">cur_val</span><span class="p">)</span>
-            <span class="n">cur_val</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">param_key_to_index</span><span class="p">[</span><span class="n">padded</span><span class="p">]</span> <span class="o">=</span> <span class="n">cur_val</span>
 
         <span class="c1"># Intra-block topology and atom naming are fixed for a packed block</span>
         <span class="c1"># type. Resolve the exact/reversed/wildcard parameter search once here</span>

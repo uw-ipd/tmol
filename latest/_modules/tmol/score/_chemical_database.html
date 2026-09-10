@@ -417,7 +417,8 @@
                 <article class="bd-article">
                   
   <h1>Source code for tmol.score._chemical_database</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">typing</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">functools</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">typing</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">cattr</span>
@@ -428,6 +429,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChemicalDatabase</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility._device</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_device</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Tensor</span><span class="p">,</span>
@@ -514,20 +516,27 @@
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_database</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">chemical_database</span><span class="p">:</span> <span class="n">ChemicalDatabase</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Initialize param resolver for all atom types in database."""</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_from_atom_types</span><span class="p">(</span>
+            <span class="n">chemical_database</span><span class="o">.</span><span class="n">atom_types</span><span class="p">,</span> <span class="n">resolve_device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+
+    <span class="nd">@classmethod</span>
+    <span class="nd">@functools</span><span class="o">.</span><span class="n">lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">32</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_from_atom_types</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">atom_types</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Initialize and cache parameters for an immutable atom-type tuple."""</span>
 
         <span class="c1"># Generate a full atom type index, appending a "None" value at index -1</span>
         <span class="c1"># to generate nan parameter entries if an atom type is not present in</span>
         <span class="c1"># the index.</span>
-        <span class="n">atom_type_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">chemical_database</span><span class="o">.</span><span class="n">atom_types</span><span class="p">]</span>
+        <span class="n">atom_type_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">atom_types</span><span class="p">]</span>
         <span class="n">atom_type_index</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">atom_type_names</span> <span class="o">+</span> <span class="p">[</span><span class="kc">None</span><span class="p">])</span>
 
         <span class="c1"># Pack the tuple of type parameters into a dataframe and reindex via</span>
         <span class="c1"># the param resolver type index. This appends a "nan" row at the end of</span>
         <span class="c1"># the frame for the invalid/None entry added above.</span>
         <span class="n">param_records</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_records</span><span class="p">(</span>
-                <span class="n">cattr</span><span class="o">.</span><span class="n">unstructure</span><span class="p">(</span><span class="n">chemical_database</span><span class="o">.</span><span class="n">atom_types</span><span class="p">)</span>
-            <span class="p">)</span>
+            <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_records</span><span class="p">(</span><span class="n">cattr</span><span class="o">.</span><span class="n">unstructure</span><span class="p">(</span><span class="n">atom_types</span><span class="p">))</span>
             <span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"name"</span><span class="p">)</span>
             <span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">atom_type_index</span><span class="p">)</span>
         <span class="p">)</span>
@@ -564,7 +573,6 @@
         <span class="p">)</span>
 
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">atom_type_index</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">atom_type_params</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span></div>
-</div>
 
 </pre></div>
 
