@@ -1,0 +1,75 @@
+{
+  "baseline": "d0d19b405e0aaeedd4c5ad68c7948850ede87f3b",
+  "source_sha256": "f3782e31c6c778b4aee01356c77a1f4dc71130624ab1a29470e105ed8db6e5d5",
+  "device": "cpu",
+  "torch": "2.8.0+cpu",
+  "rows": [
+    {
+      "reuse_common_annotations": false,
+      "n_types": 230,
+      "seconds": {
+        "before": [
+          0.023000531550496816,
+          0.02202635435387492,
+          0.022065117303282023,
+          0.022161540668457748,
+          0.021868737973272802,
+          0.022091531287878753,
+          0.022657298389822243
+        ],
+        "after": [
+          0.02283945493400097,
+          0.020598972029983998,
+          0.020220447331666946,
+          0.020251977257430553,
+          0.02032245313748717,
+          0.0207067696377635,
+          0.020898186415433884
+        ]
+      },
+      "medians": {
+        "before": 0.022091531287878753,
+        "after": 0.020598972029983998
+      },
+      "retained_tensor_bytes_for_10_packed_sets": {
+        "after": 2097152,
+        "before": 2420720
+      },
+      "all_annotation_tensors_exact_match": true
+    },
+    {
+      "reuse_common_annotations": true,
+      "n_types": 230,
+      "seconds": {
+        "before": [
+          0.002976862248033285,
+          0.0028835153207182884,
+          0.003004577197134495,
+          0.0029166506603360174,
+          0.003007904253900051,
+          0.0029378099367022513,
+          0.0029783233068883417
+        ],
+        "after": [
+          0.0013093873858451843,
+          0.0012149136513471604,
+          0.0012869931757450103,
+          0.0012116697616875172,
+          0.0012818372808396817,
+          0.0011863313615322114,
+          0.0013054081238806248
+        ]
+      },
+      "medians": {
+        "before": 0.002976862248033285,
+        "after": 0.0012818372808396817
+      },
+      "retained_tensor_bytes_for_10_packed_sets": {
+        "after": 2097152,
+        "before": 2420720
+      },
+      "all_annotation_tensors_exact_match": true
+    }
+  ],
+  "scope": "warm packed-set setup, shared immutable block types/database; excludes pose creation and scorer rendering; tensor storage excludes float64 scoring copies and allocator overhead"
+}

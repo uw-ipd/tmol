@@ -9,7 +9,7 @@ Improvement branch: `review/pr503-chemistry-efficiency`
 Review date: 2026-09-11
 
 The six-file update has been reviewed separately. Comments 1–46 retain their
-original `c03c1e745` anchors; comments 47–52 address the updated head. The
+original `c03c1e745` anchors; comments 47–53 address the updated head. The
 fold-forest expectations and HYP count are now corrected upstream. See
 [FOLLOWUP.md](FOLLOWUP.md) for reconciliation and validation details.
 
@@ -504,6 +504,14 @@ Controlled replay of the pre-fix branch marks independent 3/3 samples as correla
 > Can NHQ flips use their actual amide/ring axis and check which atoms it moves? Conjugation appends chi torsions, so the lexicographically last chi can be a cross-block linkage rather than ASN chi2. A terminal amide flip also cannot independently move an atom bonded to a glycan. Eligibility, sidechain roots and sample counts need the same annotation so disabling a flip allows the fallback sampler to supply the current conformation.
 
 The attached ASN fixture fails the controlled pre-fix annotation check. The branch preserves the canonical ASN/GLN/HIS axes and disables a flip when its downstream atoms include a declared connection. During development, inconsistent eligibility after disabling the flip suppressed fallback and exposed a native bounds exit in backbone scoring; that intermediate failure is retained in the validation log and is not counted as a passing test. Eligibility and sidechain roots now use the same annotation.
+
+### 53. P1 — generic bonded annotations retain another database's parameters
+
+[tmol/score/genbonded/_genbonded_energy_term.py:307](https://github.com/uw-ipd/tmol/blob/0f4c3bc426bca78e8681f0b730fa23c3e26ef261/tmol/score/genbonded/_genbonded_energy_term.py#L307)
+
+> Could both block and packed-block annotations be scoped to the generic database and chemical element mapping? Reusing the same pose with another database currently skips setup because the attributes already exist. Changed Fourier coefficients, improper strengths, type hierarchies or Rosetta ownership can therefore retain the first term's data. Rendering an older term again after another setup also needs to recover its own parameters, while existing modules keep their original tensors.
+
+Four CPU reproductions reuse a jagged KK/KKK pose with synthetic generic ownership and two parameter databases whose strengths differ by exactly two. Both setup orders fail in whole-pose and block-pair scoring before the fix. This is a controlled scaling test of cache identity, not a proposed physical model. The follow-up keeps one latest annotation per owner, weakly identifies its database, and captures the returned tensors when rendering. Rotamer energies/weighted gradients, ownership changes, invalid element mappings and database collection are covered. The database-wide inter-block tables are now shared through a bounded weak cache instead of rebuilt for each packed set. Slurm 249000 passes 119 CPU/CUDA cases with four fixture-specific skips; exact-tensor setup profiles and limits are recorded in [FOLLOWUP.md](FOLLOWUP.md).
 
 ## Validation record
 

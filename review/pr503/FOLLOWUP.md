@@ -1419,3 +1419,55 @@ context-specific terminal corrections, H-adding reactions, three-block terms,
 fragment projection, normal bundle/default-preparation integration and the other
 completion requirements above. A passing finite-score/gradient check is not a
 scientific validation of the fitted parameters. The goal remains active.
+
+### Generic parameter identity and shared setup tables
+
+The remaining generic scorer `hasattr` guards reused the first database's
+annotations. Four CPU regressions now reproduce this on a reused, jagged KK/KKK
+pose, in both setup orders and both whole-pose/block-pair modes. The test gives
+canonical atoms synthetic generic ownership and doubles every potential strength;
+the resulting energies and full weighted gradients must double. This tests cache
+identity independently of a new chemistry fit. The analogous rotamer test uses
+multiple actual Dunbrack conformers on both residues.
+
+Block and packed-block annotations now record a weak database identity and their
+chemical element mapping; packed annotations also record the device. Only the
+latest annotation is retained on each owner. Packed setup consumes returned
+block snapshots, and rendering obtains the requesting term's packed snapshot,
+so later setup cannot change an existing module's parameters. Changing ownership
+rebuilds block terms; changing the element mapping reruns generic-reference
+validation rather than bypassing it. As with the other identity caches, source
+databases are treated as immutable: changes publish a new database object.
+
+Inter-block torsion/improper hash tables depend on the generic database and
+device, not the packed set. They are now shared through the existing 32-entry
+weak-owner LRU. Values contain no database references. Tests with a two-entry
+cache verify shared tensors across packed sets, bounded live entries, removal
+when all three test databases die, and continued scoring by modules holding the
+old tensors. The duplicate, unused type-name inventory in term initialization
+was removed. No native potential, parameter value or ownership rule changed.
+
+Slurm 249000 completed 0:0 in 2:17: **119 CPU/CUDA passes / 4 fixture-specific
+skips**, including the complete generic suite, coupled conjugate parameters and
+ligand entry paths. The focused CPU identity suite passes seven cases with six
+CUDA skips. Earlier CPU validation has 23 passes / 14 skips across identity and
+generic-reference tests; these counts overlap.
+
+[Paired setup profiles](profile_generic_setup.py), with identical shared block
+types/database and exact comparisons of every annotation tensor, separate
+generic setup from common parent annotations. For 230 default block types,
+generic-only setup falls **2.977→1.282 ms CPU** and **3.353→1.486 ms CUDA**
+(2.32× and 2.26×). Including fresh common parent annotations gives the smaller
+improvements **22.092→20.599 ms CPU** and **74.672→73.391 ms CUDA** (6.8% and
+1.7% lower latency). Seven alternating-order sets contain ten new packed sets
+per method; CUDA is synchronized. Existing block annotations and the shared
+database tables are warm; pose creation and scorer rendering are excluded.
+
+Across ten simultaneous packed sets, retained generic tensor storage falls
+**2,420,720→2,097,152 bytes** on either device. This excludes allocator/native
+process overhead, other score terms and float64 copies made when rendering;
+it is not an end-to-end GPU-memory claim. Slurm 249001 completed the CUDA profile
+0:0 in 28 seconds. Raw timings, exact source hashes and case inventories are in
+`results/generic-setup-{cpu,cuda}.json` and `results/generic-identity-validation.json`.
+Cartbonded's per-database annotation dictionaries and shared parent atom-type
+cache identity remain further audit targets. The full goal remains active.
