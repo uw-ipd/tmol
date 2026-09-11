@@ -16,6 +16,8 @@
 #include <moderngpu/transform.hxx>
 #include <cooperative_groups.h>
 
+#include <type_traits>
+
 #include <curand.h>
 #include <curand_kernel.h>
 #include <curand_philox4x32_x.h>
@@ -210,6 +212,7 @@ template <
     bool ReturnFinalScore,
     bool EntryAssignmentIsBest,
     bool TrackBestAssignment,
+    bool CacheAssignments = false,
     tmol::Device D,
     uint n_threads,
     typename Int,
@@ -235,6 +238,27 @@ MGPU_DEVICE float warp_wide_sim_annealing(
   int const n_res = ig.n_res(pose);
   int const n_rotamers = ig.n_rotamers(pose);
   int const pose_rotamer_offset = ig.pose_rotamer_offset_[pose];
+
+  auto original_current = current_rotamer_assignment;
+  auto original_best = best_rotamer_assignment;
+  int64_t const assignment_size = n_res;
+  int64_t const assignment_stride = 1;
+  // Each warp owns one trajectory; cache its frequently read assignments.
+  // The host enables this only when all residues fit and the CTA has 4 warps.
+  if constexpr (CacheAssignments) {
+    __shared__ Int current_cache[4][128];
+    __shared__ Int best_cache[4][128];
+    int const warp = threadIdx.x / 32;
+    for (int k = g.thread_rank(); k < n_res; k += 32) {
+      current_cache[warp][k] = current_rotamer_assignment[k];
+      best_cache[warp][k] = best_rotamer_assignment[k];
+    }
+    g.sync();
+    current_rotamer_assignment = TensorAccessor<Int, 1, D>(
+        current_cache[warp], &assignment_size, &assignment_stride);
+    best_rotamer_assignment = TensorAccessor<Int, 1, D>(
+        best_cache[warp], &assignment_size, &assignment_stride);
+  }
 
   float temperature = hi_temp;
   float best_energy = 0.0f;
@@ -402,8 +426,17 @@ MGPU_DEVICE float warp_wide_sim_annealing(
       accept = g.shfl(accept, 0);
 
       if (accept) {
+        if constexpr (CacheAssignments) {
+          // Shuffles do not order shared-memory accesses. Complete reads from
+          // this proposal and the preceding best-assignment copy before
+          // writing.
+          g.sync();
+        }
         if (g.thread_rank() == 0) {
           current_rotamer_assignment[ran_res] = local_new_rot;
+        }
+        if constexpr (CacheAssignments) {
+          g.sync();
         }
         if constexpr (TrackBestAssignment) {
           if (g.thread_rank() == 0) {
@@ -435,6 +468,17 @@ MGPU_DEVICE float warp_wide_sim_annealing(
     temperature = cooling_factor * (temperature - lo_temp) + lo_temp;
 
   }  // end outer loop
+
+  if constexpr (CacheAssignments) {
+    g.sync();
+    for (int k = g.thread_rank(); k < n_res; k += 32) {
+      original_current[k] = current_rotamer_assignment[k];
+      if constexpr (TrackBestAssignment) {
+        original_best[k] = best_rotamer_assignment[k];
+      }
+    }
+    g.sync();
+  }
 
   // Transition phases consume only the assignments; avoid their otherwise
   // unused exact rescore while retaining it for ranking phases.
@@ -601,7 +645,8 @@ struct Annealer {
     }
 
     // Phase 1: run full SA, then score via quench-lite.
-    auto hitemp_simulated_annealing = [=] MGPU_DEVICE(int thread_id) {
+    auto hitemp_simulated_annealing = [=] MGPU_DEVICE(
+                                          int thread_id, auto cache_tag) {
       auto seeds = at::cuda::philox::unpack(hitemp_philox_state);
       curandStatePhilox4_32_10_t state;
       curand_init(std::get<0>(seeds), thread_id, std::get<1>(seeds), &state);
@@ -643,7 +688,12 @@ struct Annealer {
       // Match the CPU annealer's per-pose work: a large neighbor in a jagged
       // batch must not inflate this pose's trajectory length.
       int const pose_inner_iterations = n_rotamers + n_rotamers / 2;
-      warp_wide_sim_annealing<ChunkSize, false, false, true>(
+      warp_wide_sim_annealing<
+          ChunkSize,
+          false,
+          false,
+          true,
+          decltype(cache_tag)::value>(
           pose,
           &state,
           g,
@@ -691,7 +741,8 @@ struct Annealer {
 
     // Phase 2: low-temp SA seeded from top hitemp trajectories (each seeds
     // n_lotemp_expansions independent lotemp runs).
-    auto lotemp_simulated_annealing = [=] MGPU_DEVICE(int thread_id) {
+    auto lotemp_simulated_annealing = [=] MGPU_DEVICE(
+                                          int thread_id, auto cache_tag) {
       cooperative_groups::thread_block_tile<32> g =
           cooperative_groups::tiled_partition<32>(
               cooperative_groups::this_thread_block());
@@ -729,7 +780,12 @@ struct Annealer {
 
       // Low-temperature cooling trajectory
       int const pose_inner_iterations = n_rotamers / 2;
-      warp_wide_sim_annealing<ChunkSize, false, false, true>(
+      warp_wide_sim_annealing<
+          ChunkSize,
+          false,
+          false,
+          true,
+          decltype(cache_tag)::value>(
           pose,
           &state,
           g,
@@ -856,12 +912,27 @@ struct Annealer {
     // traffic and benefit from extra latency hiding. Short and older-GPU
     // workloads retain the unconstrained kernel.
     using HitempLaunch = mgpu::launch_params_t<annealer_cta_threads, 1, 1, 6>;
-    if (max_n_rotamers >= 128 && context->ptx_version() >= 80) {
-      mgpu::transform<HitempLaunch>(
-          hitemp_simulated_annealing, n_hitemp_simA_threads, *context);
+    auto launch_hitemp = [&](auto cache_tag) {
+      if (max_n_rotamers >= 128 && context->ptx_version() >= 80) {
+        mgpu::transform<HitempLaunch>(
+            hitemp_simulated_annealing,
+            n_hitemp_simA_threads,
+            *context,
+            cache_tag);
+      } else {
+        mgpu::transform<annealer_cta_threads, 1>(
+            hitemp_simulated_annealing,
+            n_hitemp_simA_threads,
+            *context,
+            cache_tag);
+      }
+    };
+    bool const cache_assignments =
+        max_n_res <= 128 && context->ptx_version() == 90;
+    if (cache_assignments) {
+      launch_hitemp(std::true_type{});
     } else {
-      mgpu::transform<annealer_cta_threads, 1>(
-          hitemp_simulated_annealing, n_hitemp_simA_threads, *context);
+      launch_hitemp(std::false_type{});
     }
 
     mgpu::segmented_sort(
@@ -873,8 +944,19 @@ struct Annealer {
         mgpu::less_t<float>(),
         *context);
 
-    mgpu::transform<annealer_cta_threads, 1>(
-        lotemp_simulated_annealing, n_lotemp_simA_threads, *context);
+    if (cache_assignments) {
+      mgpu::transform<annealer_cta_threads, 1>(
+          lotemp_simulated_annealing,
+          n_lotemp_simA_threads,
+          *context,
+          std::true_type{});
+    } else {
+      mgpu::transform<annealer_cta_threads, 1>(
+          lotemp_simulated_annealing,
+          n_lotemp_simA_threads,
+          *context,
+          std::false_type{});
+    }
 
     mgpu::segmented_sort(
         scores_lotemp.data(),
