@@ -14,9 +14,20 @@ available budget raises a diagnostic instead of silently discarding its states.
 
 For a conjugated group, limits count the conformer rows across **all members**,
 including the offered input conformation. Thus eight members and 66 anchor rows
-need at least 536 member rotamers with `include_current=True`. Child chi may
-freeze; this does not drop the group's required library rows. The count is
-checked before allocating the Cartesian product.
+need at least 536 member rotamers with `include_current=True`, when all library
+axes remain movable and those rows are distinct. Cyclic/external constraints
+project the library onto the remaining movable axes, retaining the first of
+each identical projected row. All distinct projected states remain required;
+child chi may freeze. An empty set of axes produces one input conformer, not
+two identical empty rows. The count is checked before allocating the Cartesian
+product.
+
+Fully constrained anchors skip the source-library pass. A partially constrained
+anchor can need more temporary source-library rows than its final projected
+budget. That private pass does not apply the final group limit to its raw rows;
+the group enforces it after projection. Thus this is not a bound on temporary
+library workspace. Bounding/adapting that workspace remains part of the broader
+library-expansion work.
 
 NA and OptH use private sampler/task views for explicit task settings and
 configuration-aware RT/PBT caches. Their final count check covers runtime

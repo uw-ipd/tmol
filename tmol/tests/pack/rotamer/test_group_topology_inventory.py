@@ -31,6 +31,14 @@ def _pose_graph(n_blocks, conjugations, other_bonds, polymers, device):
         connections[:, b, bc] = torch.tensor([a, ac], device=device)
         conjugated[a, ac] = conjugated[b, bc] = is_conjugated
     pbt = SimpleNamespace(
+        active_block_types=[
+            SimpleNamespace(
+                properties=SimpleNamespace(
+                    polymer=SimpleNamespace(is_polymer=b in polymers)
+                )
+            )
+            for b in range(n_blocks)
+        ],
         conjugation_conn=conjugated,
         n_conn=torch.tensor(n_conn, device=device),
         up_conn_inds=torch.tensor(

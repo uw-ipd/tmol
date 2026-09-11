@@ -184,7 +184,11 @@ def test_the_packers_energy_matches_what_the_pose_scores(fixture, torch_device):
     number the packer works from stops describing the structure it picks.
     """
     pose_stack, ctx = _pose(FIXTURES[fixture], torch_device)
-    param_db = ctx.parameter_database
+    _pack_and_check_score(pose_stack, ctx.parameter_database, torch_device)
+
+
+def _pack_and_check_score(pose_stack, param_db, torch_device):
+    """Return the imposed pose after checking the annealer's complete energy."""
     sfxn = beta2016_score_function(torch_device, param_db=param_db)
     task, _ = _task(pose_stack, param_db, torch_device)
     set_task = SetPackerTask.from_packer_task(task)
@@ -235,3 +239,4 @@ def test_the_packers_energy_matches_what_the_pose_scores(fixture, torch_device):
     torch.testing.assert_close(
         scores[:, 0], wpsm(new_pose_stack.coords), atol=1e-3, rtol=1e-5
     )
+    return new_pose_stack

@@ -83,7 +83,7 @@ Reproduced on the exact head. Branch supplies a separately tested implementation
 
 > Could the S–S potential use an explicitly defined pair-chirality model? It currently reads only `params1.dss_*`. Reversing the same mixed D/L pair changes the first parameter row but not the physical structure. In a two-cysteine reproduction using 6DMZ coordinates, reordering blocks changes the disulfide-only score from −0.0337973 to 0.5349466. Please add permutation and mixed-chirality gradient tests; whole-L versus whole-D mirror tests do not detect this.
 
-Reproduced. [reproduce_disulfide_order.py](reproduce_disulfide_order.py) included. The geometry is deliberately held fixed while only block order changes; it is an invariance test, not a claim that the relabeled pair is a relaxed D/L structure. Scientific fix left open.
+Reproduced. [reproduce_disulfide_order.py](reproduce_disulfide_order.py) holds geometry fixed while changing block order; it is an invariance test, not a relaxed D/L structure. The follow-up implements Rosetta's mixed-chirality distribution and shared derivatives, with independent LL/DD/LD/DL energy/gradient, permutation and reflection checks on CPU/CUDA. Broader whole-pose and packing parity remains open; see [FOLLOWUP.md](FOLLOWUP.md).
 
 ### 3. P1 — group anchors collide across poses
 
@@ -243,7 +243,7 @@ Fixed in the branch's group-packing tests; the final group run uses the actual p
 
 > Could this test build and score both capped-peptide fixtures, beyond checking the generated residue names? `pose_stack_from_cif(..., prepare_ligands=True)` fails for ACE–ALA–NME and ACE–ALA–NH2. With cyclic inference disabled, ACE and NME still have no block-type candidates: they intrinsically lack one polymer connection, but candidate classification only marks termini through patch names. Their base types are consequently absent from the requested terminal slots.
 
-Reproduced on CPU and H200; baseline also fails, including with cyclic inference disabled. Left open: the cap representation and intrinsic-terminus classification need to agree. The example runner retains both failures.
+Reproduced on CPU and H200; baseline also fails, including with cyclic inference disabled. Follow-up corrections align cap representation and terminal classification, and preserve amide geometry. ACE/NH2/NME construction, bonds, scoring/gradients, rotamer construction and actual packing pass on CPU/CUDA (237089). The initial failed example logs remain historical evidence.
 
 ### 23. P1 — reference score assertions do not reproduce
 
@@ -259,7 +259,7 @@ Recorded without updating goldens. Environment and baseline/candidate comparison
 
 > Could `_chirality()` also check the signed tetrahedral volume around stereocentres using the output coordinates? Reading `properties.polymer.sidechain_chirality` verifies that the type label stays D, but a D-labeled block built with inverted geometry would still pass. The current test also would not establish that the mirrored library was actually used.
 
-Coverage suggestion; no unvalidated stereochemistry convention added to the branch.
+Follow-up tests measure signed alpha-centre volumes in every offered D rotamer and in actual packed coordinates, and check that the mirrored library supplies samples on CPU/CUDA (237089). Broader sidechain stereocentre and full mixed-pose mirror coverage remains open.
 
 ### 25. P2 — fold-tree tests contradict branch-point splitting
 
@@ -324,6 +324,46 @@ Fixed by selecting a bonded heavy central neighbor and a bonded reference on its
 > Can both distance and angle checks require finite, nondegenerate geometry? With a NaN carbon, oxygen or third neighbor, these comparisons can both be false and the code rewrites two single C–O bonds to C(=O)[O-] despite having no geometric evidence. This matters especially now that CIF completion intentionally retains unresolved atoms. Please also check a mixed molecule with one unresolved site and one valid correction site.
 
 Seven regression cases fail when replaying the prior helper methods and pass after the finite-geometry correction. All 18 new geometry and 25 existing ligand-unit tests pass. AtomWorks contains the same copied rule and received the same fix, plus consistent resetting of both oxygen charges. The 19-fixture AtomWorks-to-tmol preparation/scoring/gradient/rotamer matrix passes again on CPU. Geometry checks remain a heuristic for correcting known input encodings, not a replacement for explicit chemical authority.
+
+### 33. P1 — capped polymer residues disappear from conjugated groups
+
+[tmol/pose/_conjugated_groups.py:69](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/pose/_conjugated_groups.py#L69)
+
+> Could anchor selection use the residue's declared polymer property instead of whether an up/down port survived patching? Two terminal patches remove both ports from a free lysine, but it remains an amino acid whose sidechain can carry a conjugate. A synthetic lysine–linker–lysine molecule currently forms no packing group even though both NZ attachments are present.
+
+Reproduced and fixed using `properties.polymer.is_polymer`. The fully terminal crosslink now forms one three-member group, preserves geometry in all offered conformers, and packs with matching annealer/whole-pose energy on CPU/CUDA.
+
+### 34. P1 — generic conjugated ligands have unsampled internal heavy torsions
+
+[tmol/ligand/_preparation.py:1218](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/ligand/_preparation.py#L1218), and [the chi-sample consumer](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/pack/rotamer/_conjugated_groups.py#L58)
+
+> Could conjugated ligand preparation request heavy-chi samples? This call leaves `generate_heavy_chi_samples=False`, so internal torsion definitions alone never reach the group sampler. A movable propyl branch on a two-ended linker remains frozen even when its torsions fit the budget. Please distinguish holding a cyclic core rigid from dropping the sampling records for its movable branches.
+
+The preparation call now enables existing non-ring heavy-chi generation for conjugated ligands. Constrained propylsuccinyl crosslinks retain two independently sampled pendant torsions (nine combinations plus current), while their cyclic core or external attachments stay fixed. These are generic grids, not independently fitted linkage distributions.
+
+### 35. P1 — a spanning tree does not enforce cyclic or external constraints
+
+[tmol/pose/_conjugated_groups.py:97](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/pose/_conjugated_groups.py#L97), and [group chi selection](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/pack/rotamer/_conjugated_groups.py#L58)
+
+> Can group discovery retain every internal bond and external attachment, and sampling check those constraints before turning an axis? A cycle-closing bond disappears from this tree, while a second polymer member can remain attached to an external backbone. Sampling a tree edge can then break a different bond. Independent axes should preserve rigid cycles and fixed boundaries; alternate cyclic conformations require correlated closure-aware sampling.
+
+Implemented complete edge inventories and bridge/subtree checks, projection of constrained library axes, stable deduplication and a single input conformer when no axes remain. Synthetic free, cyclic and externally anchored crosslinks pass full geometry, target-angle and packing/energy checks on CPU/CUDA. Removing only these restrictions in a controlled ablation produces maximum bond errors of 13.82 Å (cycle) and 26.29 Å (external); constrained results stay below 0.000003 Å. This ablation uses current preparation and kernels, not a pristine upstream checkout. Alternate ring puckers and task-imposed partial freezing remain separate open work.
+
+### 36. P1 — independent samplers remain enabled on secondary polymer members
+
+[tmol/pack/rotamer/_conjugated_groups.py:177](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/pack/rotamer/_conjugated_groups.py#L177)
+
+> Could this mask cover every member owned by the group sampler? A second lysine reached through a crosslink is a child here, but still has its own Dunbrack sampler. Disabling only the first anchor can mix independent rotamers into that member's correlated sequence. IncludeCurrent/Fallback should likewise remain independent only for a primary anchor that the group intentionally does not emit.
+
+The helper now disables independent samplers across owned members, retaining the library-free primary-anchor exception. Full three-member crosslink construction and packing/energy tests pass on both devices. Subsequent user changes to individual group masks still need a separate task-constraint policy and integration coverage.
+
+### 37. P1 — group sampling ignores subsequent task masks
+
+[tmol/pack/rotamer/_conjugated_chi_sampler.py:323](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/pack/rotamer/_conjugated_chi_sampler.py#L323)
+
+> Can sampling consume both the group's sampler mask and each member's packing state before it enumerates or emits rows? Presence in `cons_bt_*` is not proof that this sampler is enabled. Disabling it for a complete synthetic crosslink still emits its 235 conformers plus fallback; disabling packing for just one member produces 235/235/236 counts. Fixed members must constrain the group's permitted motion, and a disabled group sampler must emit no rows.
+
+Reproduced in the current follow-up branch; unresolved. The later lockstep-count guard can reject mismatches, but does not implement the requested task semantics. See [the reproduction](reproduce_group_task_masks.py) and the next implementation gate in [FOLLOWUP.md](FOLLOWUP.md).
 
 ## Validation record
 

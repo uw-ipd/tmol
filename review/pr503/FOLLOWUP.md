@@ -11,11 +11,11 @@ historical evidence, not a claim that the follow-up is complete.
 |---|---|---|
 | Import/closure inference (1) | Fresh checkout collection; explicit/inferred closure, padding, breaks and caps on both devices | Existing replacement; extend audit |
 | Mixed chirality (2) | Published reference parameters/formula; LL/DD/LD/DL permutation and reflection energies/gradients; whole-pose and packing parity | Rosetta mixed distribution and shared derivatives implemented; independent LL/LD/DL/DD energy/gradient, permutation and reflection checks pass on CPU/CUDA; additional packing parity pending |
-| Group identity and safety (3–7,9,30,31) | Real multi-pose/multi-database groups, repeated chi names, jagged/empty counts, early rejection; native parity | Two-pose reuse, internal geometry and torsion targets checked CPU/CUDA; complete edge inventory added; cyclic/multiple-anchor sampling constraints remain open |
+| Group identity and safety (3–7,9,30,31,33–37) | Real multi-pose/multi-database groups, repeated chi names, jagged/empty counts, early rejection; native parity | Capped anchors, rigid cyclic cores, external attachments and sampled pendant branches tested CPU/CUDA, including packing and two-pose reuse; later task-mask changes still violate sampling ownership |
 | Sampling budgets/caches (8,14,27) | Explicit budget semantics; task propagation; immutable sampler reuse; actual library/extra/proton counts; reproducible HYP count | Explicit task overrides and actual group/library bounds implemented/tested CPU/CUDA; aggregate/default budget policy and adaptive library expansion remain open |
 | Residue identity/completion (10–12,16,32) | Insertion codes, chain identity, explicit/CCD authority, missing atoms, custom names; realistic scaling | Reader annotation reuse and finite-geometry repair checks pass; AtomWorks parser/converter profiles recorded; broader identity/authority contracts remain open |
 | Content/profile caches (13,20,29) | No serialization aliases; safe object lifetimes, bounded memory; repeated preparation | Content framing and shared bounded weak caches fixed for rotamer/alpha/NA profiles; identity/lifetime/LRU/concurrency tests pass; remaining caches still need audit |
-| Group kinematics/performance (15,17) | Profile CPU/GPU; batch invariant work; retain all covalent constraints for tree/cyclic/multiple-anchor topologies | Bounded conformer batches verified/profiled on CPU/CUDA; cyclic/multiple-anchor topology support remains open |
+| Group kinematics/performance (15,17,35) | Profile CPU/GPU; batch invariant work; retain all covalent constraints for tree/cyclic/multiple-anchor topologies | Bounded conformer batches and 32-entry shape caches verified/profiled; independent axes preserve rigid cycles/external boundaries; correlated ring-pucker sampling and task-imposed constraints remain open |
 | Native maintainability (18) | Shared improper enumeration with unchanged canonical scores and independent analytic/numeric derivatives | Shared helper in all four paths; canonical references, numerical gradients, independent Cartesian reference and group packing pass CPU/CUDA (238323, 238529) |
 | Duplicate work (19) | Removal covered by chemistry regression suite | Existing fix; final suite pending |
 | Correct test parameters (21) | Prepared database used throughout examples and packing; generated parameter coverage | Existing correction; final audit pending |
@@ -288,3 +288,69 @@ Exact molecule inventories match in all 11 paired comparisons. See
 input/converter contracts; reader replacement is still an open gate.
 AtomWorks changes are committed locally at `cdda3c07` on
 `review/tmol-pr503-shared-chemistry`; they have not been pushed to its upstream.
+
+### Cyclic and externally constrained group sampling
+
+Group identity now follows the declared polymer property, so fully terminal
+amino acids still anchor their conjugates after both up/down ports are removed.
+Generic conjugated ligands request the existing non-ring heavy-chi records;
+their internal torsion definitions alone previously supplied no samples.
+Independent samplers are disabled across owned group members, including a
+second polymer member, rather than just the primary anchor.
+
+The complete atom graph determines which axes can turn independently: a cycle
+edge cannot, and a tree subtree containing fixed external connection atoms,
+their neighbors or externally attached polymer mainchains cannot move. Cyclic
+cores retain their input geometry, while movable pendant branches still sample.
+The primary library is projected onto movable axes, keeping the first distinct
+projected rows. Duplicate axes are owned once, and budget depth follows the
+actual tree child even when the torsion names its axis in reverse order.
+An empty axis set yields one input conformer. Fully constrained anchors skip
+library generation; partially constrained libraries can require temporary raw
+rows beyond their final group budget, as now explicit in [BUDGETS.md](BUDGETS.md).
+
+Synthetic propylsuccinyl-linked lysines cover a free three-member group, a
+peptide bond closing its cycle, and two external ALA–LYS backbone attachments.
+The constrained cases retain two pendant chi, nine grid combinations plus
+current, and can reduce to exactly one current conformer at a three-member
+budget. Every offered conformer preserves all bonds, bond angles, tetrahedral
+signs and requested chi. Full packing compares the annealer's energy with the
+imposed pose score and preserves every group/internal/boundary bond and angle.
+Unrelated ordinary ALA CA–CB idealization is outside that invariant; the first
+packing diagnostic exposed a 0.000885 Å change there, not a broken group bond.
+
+Validation: **101 broad CPU/CUDA cases pass** (242362), **six additional full
+packing cases pass** (242551), and **eight two-pose sampler-reuse cases pass**
+(243134, including the original biotin case). The latter compares batch results
+with independent builds after an anchor-geometry perturbation. AtomWorks input
+passes all three original fixture geometry checks on CPU/CUDA and six full GPU
+packing checks (242741). Separate test runs overlap; these counts are not a sum
+of unique tests. Results are in `results/group-constraints-tests.json` and
+`results/group-constraints-atomworks-{cpu,cuda}.json`.
+
+A controlled ablation removes only the new axis constraints from the current
+implementation. It produces bond errors up to 13.82 Å for the cyclic example
+and 26.29 Å for the external example; the valid outputs stay below 0.000003 Å.
+Those invalid ablation conformers are not an accuracy-matched performance
+baseline and were not used as packing inputs. This is not a pristine upstream
+reproduction or independent force-field fitting.
+
+Topology and rotamer trees each use a 32-entry LRU on their owning PBT; external
+constraint ports are part of topology identity. The raw spanning tree is reused
+when constructing its rotamer tree. Seven alternating-order warm pairs compare
+rebuilding these shapes with reusing them, with identical valid conformers and
+coordinates. Cache reuse makes the measured library/enumeration/group-coordinate
+stage **1.25–2.04× faster on CPU**, **1.17–1.57× on CUDA** across six cases. These
+are not full-pack speedups or process/GPU-memory reductions. Persistent caches
+trade bounded retained data for avoided work; eviction and configuration tests
+verify the bounds. See `profile_group_constraints.py` and
+`results/group-constraints-{cpu,cuda}.json` (CUDA 243133).
+
+Still open: subsequent task masks and disabled members, multiple member
+libraries, completely rigid member types, free groups without a polymer anchor,
+coupled ring conformers, and remaining design/multi-database cases. A current
+task-mask diagnostic confirms that disabling the group sampler still emits its
+235 conformers plus fallback (236 per member); disabling one member gives
+235/235/236 counts. The sampler must consume those task constraints before
+enumeration. This is the next correctness gate, not covered by the passing
+unrestricted packing cases above.

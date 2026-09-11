@@ -1212,7 +1212,12 @@ def prepare_ligands(  # noqa: C901
                     seed=seed,
                 )
             else:
-                prep = _prepare_ligand_via_smiles(lig, ph=ph, seed=seed)
+                prep = _prepare_ligand_via_smiles(
+                    lig,
+                    ph=ph,
+                    seed=seed,
+                    generate_heavy_chi_samples=bool(conjugations),
+                )
         except LigandPreparationError:
             if not is_polymer:
                 raise

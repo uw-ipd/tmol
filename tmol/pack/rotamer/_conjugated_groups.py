@@ -12,6 +12,8 @@ bonded to a sidechain at all, forms no group and is left alone.
 """
 
 import attr
+from collections import OrderedDict
+import networkx
 import numpy
 import torch
 
@@ -26,10 +28,8 @@ from tmol.pose._conjugated_groups import (  # noqa: F401
 def group_atom_context(group, pose_stack):
     """Local residue types, group atom offsets and connection partners."""
     pbt = pose_stack.packed_block_types
-    types = [
-        pbt.active_block_types[int(pose_stack.block_type_ind[group.pose, b])]
-        for b in group.blocks
-    ]
+    indices = pose_stack.block_type_ind[group.pose, list(group.blocks)].tolist()
+    types = [pbt.active_block_types[index] for index in indices]
     offsets = numpy.cumsum([0] + [bt.n_atoms for bt in types])
     partners = {}
     for a, ac, b, bc in group.links:
@@ -53,8 +53,95 @@ def resolve_group_atom(uaid, owner, block_types, offsets, partners):
     return int(offsets[owner]) + atom if atom >= 0 else -1
 
 
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class GroupSamplingTopology:
+    block_types: list
+    offsets: numpy.ndarray
+    partners: dict
+    kinforest: object
+    # Unordered axis -> its child in the rooted tree, for budget depth.
+    movable_axes: dict
+
+
+def group_sampling_topology(group, pose_stack):
+    """Independent axes that preserve cycles and fixed external attachments.
+
+    Cycle edges cannot turn independently. A bridge can turn only if its
+    moving subtree contains no fixed atom. External connection atoms and their
+    neighbors stay fixed to preserve the boundary's bonds and bond angles.
+    Polymer backbones with external attachments stay fixed; a freely attached
+    polymer member can move with the group.
+    """
+    pbt = pose_stack.packed_block_types
+    indices = tuple(pose_stack.block_type_ind[group.pose, list(group.blocks)].tolist())
+    key = (
+        indices,
+        group.links,
+        tuple((a, c) for a, c, _b, _bc in group.external_links),
+    )
+    cache = getattr(pbt, "conjugated_sampling_topology_cache", None)
+    if cache is None:
+        cache = OrderedDict()
+        pbt.conjugated_sampling_topology_cache = cache
+    if key not in cache:
+        cache[key] = _group_sampling_topology(group, pose_stack)
+        if len(cache) > 32:
+            cache.popitem(last=False)
+    cache.move_to_end(key)
+    return cache[key]
+
+
+def _group_sampling_topology(group, pose_stack):
+    from tmol.kinematics import block_group_kinforest_data
+
+    types, offsets, partners = group_atom_context(group, pose_stack)
+    rkd, offsets = block_group_kinforest_data(types, group.links, anchor=0)
+    graph = networkx.Graph()
+    graph.add_nodes_from(range(int(offsets[-1])))
+    for i, bt in enumerate(types):
+        graph.add_edges_from(numpy.asarray(bt.bond_indices) + offsets[i])
+    for a, ac, b, bc in group.links:
+        graph.add_edge(
+            int(offsets[a]) + int(types[a].ordered_connection_atoms[ac]),
+            int(offsets[b]) + int(types[b].ordered_connection_atoms[bc]),
+        )
+    fixed = numpy.zeros(int(offsets[-1]), dtype=bool)
+    fixed[rkd.jump_atom] = True
+    backbone_owners = {0}
+    for owner, conn, _partner, _partner_conn in group.external_links:
+        atom = int(offsets[owner]) + int(types[owner].ordered_connection_atoms[conn])
+        fixed[atom] = True
+        fixed[list(graph[atom])] = True
+        backbone_owners.add(owner)
+    for owner in backbone_owners:
+        bt = types[owner]
+        polymer = getattr(getattr(bt, "properties", None), "polymer", None)
+        mainchain = set(getattr(polymer, "mainchain_atoms", None) or ())
+        for atom, definition in enumerate(bt.atoms):
+            if definition.name in mainchain:
+                fixed[int(offsets[owner]) + atom] = True
+    for child in reversed(rkd.bfto_2_orig):
+        parent = rkd.preds[child]
+        if parent >= 0:
+            fixed[parent] |= fixed[child]
+    axes = {}
+    for a, b in networkx.bridges(graph):
+        child = a if rkd.preds[a] == b else b
+        if not fixed[child]:
+            axes[frozenset((a, b))] = int(child)
+    return GroupSamplingTopology(types, offsets, partners, rkd, axes)
+
+
 def group_sampled_chi(
-    group, pose_stack, expanded_limit, limit, library_size=1, reserve_current=False
+    group,
+    pose_stack,
+    expanded_limit,
+    limit,
+    library_size=1,
+    reserve_current=False,
+    topology=None,
+    exclude_axes=(),
+    include_anchor=False,
 ):
     """Which chi of a group's attached blocks survive the budget.
 
@@ -62,8 +149,8 @@ def group_sampled_chi(
     rather than to each block: seven sugars of six chi each would otherwise
     multiply out. Chi freeze from the tip of the group inward, using depth in
     the kinforest that builds the group, so the linkage torsions nearest the
-    anchor -- the ones that move the most atoms -- are the last to go. The
-    anchor's own chi are not here; they come from its rotamer library.
+    anchor -- the ones that move the most atoms -- are the last to go. Library
+    axes are excluded. Additional anchor axes may be included explicitly.
 
     The budget counts rotamers, not conformers. A group conformer places every
     one of its blocks, so it costs one rotamer per block, and what scoring and
@@ -73,34 +160,51 @@ def group_sampled_chi(
 
     Returns a list of (index within the group, ChiSamples) for the survivors.
     """
-    from tmol.kinematics import block_group_kinforest_data
     from tmol.pack.rotamer._chi_budget import _budgeted_chi_samples, chi_depths
 
-    block_types, offsets, partners = group_atom_context(group, pose_stack)
-    rkd, offsets = block_group_kinforest_data(block_types, group.links, anchor=0)
+    topology = topology or group_sampling_topology(group, pose_stack)
+    block_types, offsets, partners = (
+        topology.block_types,
+        topology.offsets,
+        topology.partners,
+    )
 
-    entries, depths_in, owners = [], [], []
-    for i, bt in enumerate(block_types):
-        if i == 0:
-            continue  # the anchor samples from its library, not from chi_samples
-        for cs in bt.chi_samples:
+    selected = []
+    seen = set(exclude_axes)
+    # Prefer the downstream owner's definition when both sides name one axis.
+    for i, bt in reversed(list(enumerate(block_types))):
+        if i == 0 and not include_anchor:
+            continue
+        for j, cs in enumerate(bt.chi_samples):
             if cs.is_proton:
                 continue
-            entries.append(cs)
-            owners.append(i)
-            depths_in.append(
-                resolve_group_atom(
-                    bt.torsion_to_uaids[cs.chi_dihedral][2],
-                    i,
-                    block_types,
-                    offsets,
-                    partners,
-                )
-            )
-
-    depths = chi_depths(rkd, depths_in)
+            atoms = [
+                resolve_group_atom(u, i, block_types, offsets, partners)
+                for u in bt.torsion_to_uaids[cs.chi_dihedral][1:3]
+            ]
+            if min(atoms) < 0:
+                raise ValueError(f"Cannot resolve group torsion {cs.chi_dihedral}")
+            axis = frozenset(atoms)
+            if axis in seen or axis not in topology.movable_axes:
+                continue
+            seen.add(axis)
+            selected.append((i, j, cs, topology.movable_axes[axis]))
+    selected.sort(key=lambda item: item[:2])
+    entries = [item[2] for item in selected]
+    owners = [item[0] for item in selected]
+    depths = chi_depths(topology.kinforest, [item[3] for item in selected])
     # every block of the group carries a copy of each conformer
     n_blocks = max(len(group.blocks), 1)
+    # With no library axes, a one-state budget keeps the input itself. There
+    # is no need to reserve a second identical empty-product conformer.
+    if (
+        reserve_current
+        and library_size == 1
+        and not exclude_axes
+        and (max(expanded_limit, limit) // n_blocks == 1)
+    ):
+        return []
+    reserve_current = reserve_current and bool(entries or exclude_axes)
     kept = _budgeted_chi_samples(
         entries,
         depths,
@@ -138,7 +242,7 @@ def protect_conjugated_anchors(task, pose_stack, exclude=()):
 
 
 def add_conjugated_group_sampler(task, pose_stack, sampler=None, exclude=()):
-    """Attach the group sampler and keep other samplers off the anchors.
+    """Attach the group sampler and keep independent samplers off its members.
 
     A group is sampled as one unit. When a rotamer library is available the
     anchor is sampled along with it, its library chi multiplying the tree's
@@ -167,9 +271,9 @@ def add_conjugated_group_sampler(task, pose_stack, sampler=None, exclude=()):
     with_anchor = sampler.library_sampler is not None
 
     sampled = numpy.zeros((pose_stack.n_poses, pose_stack.max_n_blocks), dtype=bool)
-    anchors = numpy.zeros_like(sampled)
+    members = numpy.zeros_like(sampled)
     for group in groups:
-        anchors[group.pose, group.anchor] = True
+        members[group.pose, list(group.blocks)] = True
         for block in group.blocks if with_anchor else group.blocks[1:]:
             sampled[group.pose, block] = True
 
@@ -181,11 +285,15 @@ def add_conjugated_group_sampler(task, pose_stack, sampler=None, exclude=()):
     # a sampler that hands back the pose's own conformation is only harmless on
     #    an anchor the group does not sample: once the group samples it, that
     #    extra rotamer would put the anchor out of step with its members
-    keep = () if with_anchor else (FallbackSampler, IncludeCurrentSampler)
     for other in list(task.conformer_samplers):
-        if other is sampler or other in exclude or isinstance(other, keep):
+        if other is sampler or other in exclude:
             continue
-        task.disable_sampler_by_block_mask(other, _mask(anchors))
+        mask = (
+            sampled
+            if isinstance(other, (FallbackSampler, IncludeCurrentSampler))
+            else members
+        )
+        task.disable_sampler_by_block_mask(other, _mask(mask))
     return sampler
 
 

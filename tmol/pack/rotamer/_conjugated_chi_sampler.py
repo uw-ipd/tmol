@@ -7,12 +7,13 @@ anchor plus everything bonded to it -- is enumerated as one unit instead, with
 the anchor's own chi coming from its rotamer library and the attached blocks'
 chi from their chi_samples.
 
-This sampler owns only the latter. It never claims a block that Dunbrack or the
-nucleic-acid sampler covers, and it never claims a free ligand: a residue has to
-be bonded to a sidechain to be here at all.
+The group owns its members' coupled choices, including the anchor's library
+states. Independent torsions preserve cyclic cores and external attachments;
+this does not supply alternate ring puckers or a ring-closure solver.
 """
 
 import attr
+from collections import OrderedDict
 from copy import copy
 import itertools
 import math
@@ -30,7 +31,7 @@ from tmol.pack.rotamer._conformer_sampler import sc_roots_for_chis
 from tmol.pack.rotamer._conjugated_groups import (
     find_conjugated_groups,
     group_sampled_chi,
-    group_atom_context,
+    group_sampling_topology,
     resolve_group_atom,
 )
 from tmol.pack._packer_task import (
@@ -179,8 +180,9 @@ class ConjugatedChiSampler(ChiSampler):
         """Enumerate each group's product using actual library cardinality.
 
         Limits count all member rotamers, including the offered input state.
-        Library states are retained; an impossible limit fails before allocating
-        the Cartesian product. Frozen child chi retain their input geometry.
+        Distinct library states projected onto movable axes are retained; an
+        impossible limit fails before allocating the Cartesian product.
+        Constrained/frozen chi retain their input geometry.
         """
         expanded_limit, limit = budget or (
             self.chi_sample_expanded_limit,
@@ -189,7 +191,12 @@ class ConjugatedChiSampler(ChiSampler):
         out = []
         pbt = pose_stack.packed_block_types
         for group in find_conjugated_groups(pose_stack):
-            block_types, offsets, partners = group_atom_context(group, pose_stack)
+            topology = group_sampling_topology(group, pose_stack)
+            block_types, offsets, partners = (
+                topology.block_types,
+                topology.offsets,
+                topology.partners,
+            )
             anchor_cols = []
             lib = numpy.empty((1, 0), dtype=numpy.float32)
             entry = (anchor_chi or {}).get((group.pose, group.anchor))
@@ -201,7 +208,7 @@ class ConjugatedChiSampler(ChiSampler):
                 atom_to_chi = {
                     int(uaids[2][0]): (name, uaids[1][0], uaids[2][0])
                     for name, uaids in anchor_bt.torsion_to_uaids.items()
-                    if name.startswith("chi")
+                    if name.startswith("chi") and uaids[1][0] >= 0 and uaids[2][0] >= 0
                 }
                 keep_cols = []
                 for j in range(anchor_atoms.shape[1]):
@@ -209,10 +216,20 @@ class ConjugatedChiSampler(ChiSampler):
                     if atom < 0 or atom not in atom_to_chi:
                         continue
                     name, ab, ac = atom_to_chi[atom]
+                    axis = frozenset((int(ab), int(ac)))
+                    if axis not in topology.movable_axes or any(
+                        axis == frozenset(c[2:]) for c in anchor_cols
+                    ):
+                        continue
                     anchor_cols.append((0, name, ab, ac))
                     keep_cols.append(j)
                 if anchor_cols:
                     lib = anchor_values[:, keep_cols]
+                    if len(keep_cols) < anchor_values.shape[1]:
+                        # Projecting away constrained angles can make library
+                        # rows identical. Preserve the first occurrence order.
+                        _, first = numpy.unique(lib, axis=0, return_index=True)
+                        lib = lib[numpy.sort(first)]
 
             kept = group_sampled_chi(
                 group,
@@ -221,6 +238,9 @@ class ConjugatedChiSampler(ChiSampler):
                 limit,
                 library_size=lib.shape[0],
                 reserve_current=self.include_current,
+                topology=topology,
+                exclude_axes={frozenset(c[2:]) for c in anchor_cols},
+                include_anchor=self.library_sampler is not None,
             )
             columns, per_chi = [], []
             for owner, cs in kept:
@@ -266,7 +286,7 @@ class ConjugatedChiSampler(ChiSampler):
         to repacking; a group has to do the same or the structure it started
         from is not among the choices, and packing can only move it away.
         """
-        if not self.include_current:
+        if not self.include_current or not columns:
             return conformers
         current = numpy.empty((1, len(columns)), dtype=numpy.float32)
         for j, (owner, name, _b, _c) in enumerate(columns):
@@ -290,17 +310,24 @@ class ConjugatedChiSampler(ChiSampler):
 
         pbt = pose_stack.packed_block_types
         types = tuple(
-            int(pose_stack.block_type_ind[group.pose, b]) for b in group.blocks
+            pose_stack.block_type_ind[group.pose, list(group.blocks)].tolist()
         )
         key = (types, group.links)
         cache = getattr(pbt, "conjugated_kinforest_cache", None)
         if cache is None:
-            cache = {}
+            cache = OrderedDict()
             setattr(pbt, "conjugated_kinforest_cache", cache)
         if key not in cache:
+            topology = group_sampling_topology(group, pose_stack)
             cache[key] = construct_block_group_kinforest(
-                [pbt.active_block_types[t] for t in types], group.links, anchor=0
+                topology.block_types,
+                group.links,
+                anchor=0,
+                kinforest_data=(topology.kinforest, topology.offsets),
             )
+            if len(cache) > 32:
+                cache.popitem(last=False)
+        cache.move_to_end(key)
         return cache[key]
 
     def group_coords(self, pose_stack: PoseStack, group, columns, conformers):
@@ -421,7 +448,7 @@ class ConjugatedChiSampler(ChiSampler):
             n_conf = int(conformers.shape[0])
             # the anchor is emitted too when its own chi are part of the
             #    product; otherwise it keeps the conformation it came in with
-            first_owner = 0 if any(c[0] == 0 for c in columns) else 1
+            first_owner = 0 if self.library_sampler is not None else 1
             for owner in range(first_owner, len(group)):
                 block = group.blocks[owner]
                 bt = int(pose_stack.block_type_ind[group.pose, block])
@@ -528,10 +555,22 @@ class ConjugatedChiSampler(ChiSampler):
         # Only anchors need this extra library pass. Keep the caller's task
         # immutable, including while the library is executing or raises.
         library_task = copy(task)
+        # The group's budget applies after projecting out constrained angles.
+        # It is not a cap on the temporary source-library rows used to obtain
+        # those distinct projected states.
+        library_task.chi_sample_budget = None
         allowed = torch.zeros_like(task.per_block_conformer_sampler_allowed)
         library_task.per_block_conformer_sampler_allowed = allowed
         for group in groups:
-            allowed[group.pose, group.anchor, index] = True
+            topology = group_sampling_topology(group, pose_stack)
+            if any(
+                name.startswith("chi")
+                and frozenset((int(u[1][0]), int(u[2][0]))) in topology.movable_axes
+                for name, u in topology.block_types[0].torsion_to_uaids.items()
+            ):
+                allowed[group.pose, group.anchor, index] = True
+        if not bool(allowed.any()):
+            return {}
         _n, gbt_for_rot, chi_atoms, chi = self.library_sampler.sample_chi_for_poses(
             pose_stack, library_task
         )

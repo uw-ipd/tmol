@@ -65,14 +65,17 @@ def find_conjugated_groups(pose_stack: PoseStack) -> List[ConjugatedGroup]:
 
     conj = pbt.conjugation_conn.cpu().numpy()
     n_conn = pbt.n_conn.cpu().numpy()
-    up = pbt.up_conn_inds.cpu().numpy()
-    down = pbt.down_conn_inds.cpu().numpy()
     bti = pose_stack.block_type_ind.cpu().numpy()
     irc = pose_stack.inter_residue_connections.cpu().numpy()
 
     # an anchor is a polymer residue carrying a conjugation; find the candidates
     #    with a gather rather than a scan over every block
-    is_polymer = (up >= 0) | (down >= 0)
+    # Terminal patches can remove both ordinary polymer ports. Chemical
+    # identity, rather than surviving connection names, defines an anchor.
+    is_polymer = numpy.array(
+        [bt.properties.polymer.is_polymer for bt in pbt.active_block_types],
+        dtype=bool,
+    )
     has_conj = conj.any(axis=1)
     candidate_bt = is_polymer & has_conj
     real = bti >= 0

@@ -103,7 +103,8 @@ def test_group_and_member_batches_match_scalar_calls(fixture, dtype, torch_devic
                 )
 
 
-def test_reused_sampler_keeps_real_pose_groups_independent(torch_device):
+@pytest.mark.parametrize("fixture", ["biotin", "free", "cycle", "external"])
+def test_reused_sampler_keeps_real_pose_groups_independent(torch_device, fixture):
     from tmol.pack import PackerPalette, PackerTask, SetPackerTask
     from tmol.pack.rotamer import FixedAAChiSampler, build_rotamers
     from tmol.pack.rotamer._conjugated_groups import add_conjugated_group_sampler
@@ -114,7 +115,20 @@ def test_reused_sampler_keeps_real_pose_groups_independent(torch_device):
         lockstep_group_for_block,
     )
 
-    first, context = _pose(FIXTURES["biotin"], torch_device)
+    if fixture == "biotin":
+        first, context = _pose(FIXTURES["biotin"], torch_device)
+    else:
+        from tmol.io import pose_stack_from_biotite
+        from tmol.tests.pack.rotamer.test_group_constraints import crosslinked_lysines
+
+        first, context = pose_stack_from_biotite(
+            crosslinked_lysines(fixture),
+            torch_device,
+            prepare_ligands=True,
+            no_optH=True,
+            ligand_seed=503,
+            return_context=True,
+        )
     second = first.clone()
     group = find_conjugated_groups(first)[0]
     bt = first.packed_block_types.active_block_types[

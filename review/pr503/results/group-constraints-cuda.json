@@ -1,0 +1,284 @@
+{
+  "device": "cuda:0",
+  "torch": "2.13.0+cu132",
+  "seed": 503,
+  "method": "Seven alternating-order warm pairs with topology/tree cache reuse versus explicit eviction; same conformers. Separate constraint ablation.",
+  "rows": [
+    {
+      "fixture": "biotin",
+      "timings": {
+        "cold_shapes": {
+          "seconds": [
+            0.012267911806702614,
+            0.0121443928219378,
+            0.012057887855917215,
+            0.011994321830570698,
+            0.012066935189068317,
+            0.012090111616998911,
+            0.012059683911502361
+          ],
+          "median_seconds": 0.012066935189068317
+        },
+        "cached_shapes": {
+          "seconds": [
+            0.010384304914623499,
+            0.010540229268372059,
+            0.010345751885324717,
+            0.010278616100549698,
+            0.010244577191770077,
+            0.010260949842631817,
+            0.010264934040606022
+          ],
+          "median_seconds": 0.010278616100549698
+        }
+      },
+      "groups": [
+        {
+          "blocks": 2,
+          "internal_links": 1,
+          "external_links": 2,
+          "columns": 6,
+          "conformers": 181,
+          "coordinate_bytes": 108600,
+          "max_bond_error": 7.128104841935823e-06
+        }
+      ],
+      "unconstrained_axis_ablation": [
+        {
+          "conformers": 181,
+          "max_bond_error": 7.128104841935823e-06
+        }
+      ]
+    },
+    {
+      "fixture": "nglycan",
+      "timings": {
+        "cold_shapes": {
+          "seconds": [
+            0.01228312961757183,
+            0.012344688177108765,
+            0.012556543108075857,
+            0.012290647719055414,
+            0.012222900986671448,
+            0.012222472112625837,
+            0.012295988854020834
+          ],
+          "median_seconds": 0.012290647719055414
+        },
+        "cached_shapes": {
+          "seconds": [
+            0.009226799011230469,
+            0.009213415905833244,
+            0.009263787884265184,
+            0.009294712916016579,
+            0.009273163042962551,
+            0.009194779209792614,
+            0.009214682038873434
+          ],
+          "median_seconds": 0.009226799011230469
+        }
+      },
+      "groups": [
+        {
+          "blocks": 8,
+          "internal_links": 7,
+          "external_links": 2,
+          "columns": 3,
+          "conformers": 67,
+          "coordinate_bytes": 135072,
+          "max_bond_error": 5.09550469618425e-06
+        }
+      ],
+      "unconstrained_axis_ablation": [
+        {
+          "conformers": 67,
+          "max_bond_error": 5.09550469618425e-06
+        }
+      ]
+    },
+    {
+      "fixture": "oglycan",
+      "timings": {
+        "cold_shapes": {
+          "seconds": [
+            0.013498273212462664,
+            0.013456287793815136,
+            0.014071363024413586,
+            0.013281638268381357,
+            0.013324173167347908,
+            0.013292497023940086,
+            0.013379395008087158
+          ],
+          "median_seconds": 0.013379395008087158
+        },
+        "cached_shapes": {
+          "seconds": [
+            0.010291912592947483,
+            0.010325928218662739,
+            0.01034074416384101,
+            0.010262143798172474,
+            0.01027768012136221,
+            0.01031911326572299,
+            0.010317668784409761
+          ],
+          "median_seconds": 0.010317668784409761
+        }
+      },
+      "groups": [
+        {
+          "blocks": 7,
+          "internal_links": 6,
+          "external_links": 2,
+          "columns": 5,
+          "conformers": 82,
+          "coordinate_bytes": 163344,
+          "max_bond_error": 3.118058290985104e-05
+        }
+      ],
+      "unconstrained_axis_ablation": [
+        {
+          "conformers": 82,
+          "max_bond_error": 3.118058290985104e-05
+        }
+      ]
+    },
+    {
+      "fixture": "free",
+      "timings": {
+        "cold_shapes": {
+          "seconds": [
+            0.012175725307315588,
+            0.01216893969103694,
+            0.012075251899659634,
+            0.013079933822154999,
+            0.012247935868799686,
+            0.01224096305668354,
+            0.01203406136482954
+          ],
+          "median_seconds": 0.012175725307315588
+        },
+        "cached_shapes": {
+          "seconds": [
+            0.010187881998717785,
+            0.01022231811657548,
+            0.010164292063564062,
+            0.010415585245937109,
+            0.010210861917585135,
+            0.010219642892479897,
+            0.010219551157206297
+          ],
+          "median_seconds": 0.010219551157206297
+        }
+      },
+      "groups": [
+        {
+          "blocks": 3,
+          "internal_links": 2,
+          "external_links": 0,
+          "columns": 6,
+          "conformers": 235,
+          "coordinate_bytes": 183300,
+          "max_bond_error": 2.5599243038687547e-06
+        }
+      ],
+      "unconstrained_axis_ablation": [
+        {
+          "conformers": 235,
+          "max_bond_error": 2.5599243038687547e-06
+        }
+      ]
+    },
+    {
+      "fixture": "cycle",
+      "timings": {
+        "cold_shapes": {
+          "seconds": [
+            0.00520538492128253,
+            0.005226448643952608,
+            0.005238667130470276,
+            0.005168020259588957,
+            0.005189375951886177,
+            0.005523995961993933,
+            0.00515401316806674
+          ],
+          "median_seconds": 0.00520538492128253
+        },
+        "cached_shapes": {
+          "seconds": [
+            0.0033172988332808018,
+            0.003316679038107395,
+            0.0033170171082019806,
+            0.003309094812721014,
+            0.0033168713562190533,
+            0.0032941652461886406,
+            0.0033206501975655556
+          ],
+          "median_seconds": 0.0033168713562190533
+        }
+      },
+      "groups": [
+        {
+          "blocks": 3,
+          "internal_links": 3,
+          "external_links": 0,
+          "columns": 2,
+          "conformers": 10,
+          "coordinate_bytes": 7440,
+          "max_bond_error": 2.639117230529564e-06
+        }
+      ],
+      "unconstrained_axis_ablation": [
+        {
+          "conformers": 154,
+          "max_bond_error": 13.82044630251701
+        }
+      ]
+    },
+    {
+      "fixture": "external",
+      "timings": {
+        "cold_shapes": {
+          "seconds": [
+            0.005162923131138086,
+            0.005176679231226444,
+            0.00519722793251276,
+            0.005139891058206558,
+            0.00548015208914876,
+            0.23336122184991837,
+            0.005375476088374853
+          ],
+          "median_seconds": 0.00519722793251276
+        },
+        "cached_shapes": {
+          "seconds": [
+            0.0033330311998724937,
+            0.0032914280891418457,
+            0.0032883919775485992,
+            0.003339522983878851,
+            0.003292794805020094,
+            0.0034865643829107285,
+            0.003382745198905468
+          ],
+          "median_seconds": 0.0033330311998724937
+        }
+      },
+      "groups": [
+        {
+          "blocks": 3,
+          "internal_links": 2,
+          "external_links": 2,
+          "columns": 2,
+          "conformers": 10,
+          "coordinate_bytes": 7320,
+          "max_bond_error": 1.12918627981351e-06
+        }
+      ],
+      "unconstrained_axis_ablation": [
+        {
+          "conformers": 298,
+          "max_bond_error": 26.293649910971943
+        }
+      ]
+    }
+  ]
+}
