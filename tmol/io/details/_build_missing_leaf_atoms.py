@@ -288,7 +288,7 @@ def _annotate_block_type_atom_is_leaf_atom(
 
     # special case: we cannot build missing atoms if there are not enough
     # atoms to define a coordinate frame
-    if block_type.n_atoms == 3:
+    if block_type.n_atoms == 3 and not block_type.connections:
         is_leaf[:] = False
 
     leaf_annotation = BlockTypeLeafAtomsAnnotation(is_leaf)
@@ -402,7 +402,7 @@ def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):  # noqa: C
     # because there isn't a (meaningful) coordinate frame we can create
     # from only a single xyz coordinate. So, for now, we will skip
     # water.
-    if bt.n_atoms <= 3:
+    if bt.n_atoms <= 3 and not bt.connections:
         ann = BlockTypeLeafAtomICoorAnnotation(
             geom=icoor_geom,
             anc_uaids=icoor_uaids,
@@ -455,6 +455,13 @@ def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):  # noqa: C
             # 260 off N (and some unknown offset of O).
             pass
         ggp_uaid = _uaid_for_at(bt, j_icoor.great_grand_parent)
+
+        # A one-heavy-atom polymer cap (e.g. NH2) has no local third
+        # reference for its hydrogen plane. Continue one bond into the
+        # connected residue rather than reusing the cap's nitrogen. Its
+        # hydrogens' phi offsets still distinguish the two sides of the plane.
+        if gp_uaid[1] >= 0 and ggp_uaid == p_uaid:
+            ggp_uaid = (-1, gp_uaid[1], 1)
 
         ggp_ind_backup = None
         phi_backup = phi

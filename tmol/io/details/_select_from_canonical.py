@@ -906,8 +906,12 @@ def _term_and_spcase_var_candidate_lists(max_n_term, max_n_spcase):
 
 def _assign_var_inds_for_bt(co, bt):
     bt_vars = bt.name.split(":")
-    bt_is_down_term = False
-    bt_is_up_term = False
+    # Caps are intrinsically terminal: their base type has only one polymer
+    # connection and needs no terminal patch. Connection topology also agrees
+    # with the terminal status of ordinary patched polymer types.
+    is_polymer = bt.properties.polymer.is_polymer
+    bt_is_down_term = is_polymer and bt.down_connection_ind < 0
+    bt_is_up_term = is_polymer and bt.up_connection_ind < 0
     bt_is_non_default_term = False
     # a d-amino acid shares its l form's sidechain states
     bt_base = l_base_name(bt)

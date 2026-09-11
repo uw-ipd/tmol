@@ -1186,6 +1186,29 @@ def cap_residue(atom_array, profile: PolymerProfile):
     cap_names = resolve_cap_names(profile, names)
 
     keep = numpy.array([str(e) != "H" for e in atom_array.element])
+    # A complete free terminus can carry a hydroxyl that polymerization
+    # displaces. Replace that group when adding the connection's cap; retaining
+    # it would give a carbonyl carbon five bonds. Sidechain acids are untouched.
+    adj, double, elements = _heavy_adjacency(atom_array)
+    displaced = set()
+    for _connection, anchor in profile.connections:
+        if elements.get(anchor) != "C" or not any(
+            elements.get(n) == "O" for n in double.get(anchor, ())
+        ):
+            continue
+        leaving = [
+            n
+            for n in adj.get(anchor, ())
+            if elements.get(n) == "O"
+            and len(adj[n]) == 1
+            and n not in double.get(anchor, ())
+        ]
+        if len(leaving) > 1:
+            raise ValueError(
+                f"Ambiguous leaving atoms at polymer connection {anchor}: {leaving}"
+            )
+        displaced.update(leaving)
+    keep &= ~numpy.isin(atom_array.atom_name, list(displaced))
     kept_indices = numpy.nonzero(keep)[0]
     residue = atom_array[kept_indices]
 
@@ -1641,14 +1664,24 @@ def complete_backbone_from_reference(atom_array, profile, param_db):
     if atom_array.bonds is not None:
         for i, j, order in atom_array.bonds.as_array():
             bonds.add_bond(int(i), int(j), int(order))
-    for a, b, bond_order, *_ in _localized_bonds(donor_type):
+    existing_orders = (
+        {
+            frozenset(
+                (str(atom_array.atom_name[i]), str(atom_array.atom_name[j]))
+            ): int(order)
+            for i, j, order in atom_array.bonds.as_array()
+        }
+        if atom_array.bonds is not None
+        else {}
+    )
+    for a, b, bond_order, *_ in _localized_bonds(donor_type, existing_orders):
         if a in index and b in index and (a in wanted or b in wanted):
             bonds.add_bond(index[a], index[b], bond_order)
     combined.bonds = bonds
     return combined
 
 
-def _localized_bonds(residue_type):
+def _localized_bonds(residue_type, existing_orders=None):
     """The residue's bonds as a structure writes them, not as tmol stores them.
 
     A delocalized group -- a phosphate's two free oxygens, a carboxylate's --
@@ -1656,6 +1689,7 @@ def _localized_bonds(residue_type):
     molecule can be built from. One of each such group becomes the double bond
     and the rest single, which is how a structure file carries it.
     """
+    existing_orders = existing_orders or {}
     delocalized = defaultdict(list)
     localized = []
     for a, b, bond_order, *_ in residue_type.bonds:
@@ -1671,7 +1705,11 @@ def _localized_bonds(residue_type):
         #    only a group all on one centre is a resonance pair to localize
         if len(group) < 2 or any(len(delocalized[b]) > 2 for _a, b in group):
             continue
-        doubled.add(group[0])
+        # Complete a partially observed resonance group without adding a
+        # second double bond beside one the input already supplied.
+        already_double = [b for b in group if existing_orders.get(frozenset(b)) == 2]
+        unassigned = [b for b in group if frozenset(b) not in existing_orders]
+        doubled.add((already_double or unassigned or group)[0])
     seen = set()
     for centre_bonds in delocalized.values():
         for bond in centre_bonds:
