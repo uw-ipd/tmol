@@ -33,18 +33,14 @@ class PackedBlockTypes:
     (specifically, RefinedResidueTypes); once constructed, this order will not
     change, so residue types may be referred to by index within this object.
 
-    The PackedBlockTypes object is the bag in which scoring terms cache their
-    tensors holding the chemical/scoring properties of the block types in use.
-    Each term needs several tensors in order to map from block-type index to
-    the data required to score that block type, and the construction of these
-    tensors and moving these tensors can be slowThe idiom we follow to ensure
-    that these tensors are preserved between score evaluations is to cache
-    them in this object. The term will annotate the PackedBlockTypes object,
-    pbt, using setattr(pbt, "tensor_name", tensor) and then will later decide
-    if the annotation has already been made using hasattr(pbt, "tensor_name").
-    Thus, it is more efficient to use a single PackedBlockTypes object between
-    multiple PoseStack objects so that the expense of creating the annotations
-    can be amortized of many score evaluations.
+    Score terms cache derived tensors on this object to share annotation work
+    across poses with the same ordered residue types. Topology annotations can
+    be reused for the object's lifetime. Parameter-dependent annotations must
+    also identify their chemical/scoring sources, settings and tensor device;
+    the presence of an attribute alone does not establish a valid cache hit.
+    Keep historical configurations bounded, and let rendered scoring modules
+    capture their requested annotation tensors instead of reading whichever
+    configuration happens to be stored here during a later forward call.
 
     Annotation process:
     There are three steps to the annotation process. 1) Terms

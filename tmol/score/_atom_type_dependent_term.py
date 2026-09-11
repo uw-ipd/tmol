@@ -2,6 +2,8 @@ import numpy
 import torch
 import pandas
 
+from ._annotation_cache import AnnotationKey, cached_annotation, store_annotation
+
 from tmol.database import ParameterDatabase
 from ._chemical_database import AtomTypeParamResolver
 from tmol.chemical import RefinedResidueType
@@ -34,6 +36,10 @@ class AtomTypeDependentTerm(EnergyTerm):
         self.np_is_heavyatom = numpy.logical_not(self.np_is_hydrogen)
 
         self.device = device
+        self._atom_type_key = AnnotationKey.from_sources(param_db.chemical)
+        self._packed_atom_type_key = AnnotationKey.from_sources(
+            param_db.chemical, settings=(atom_type_resolver.params.is_hydrogen.device,)
+        )
 
     def get_atom_unique_id_name(self, block_name, atom_name):
         return "UNIQUE_ID:" + block_name + ":" + atom_name
@@ -60,16 +66,19 @@ class AtomTypeDependentTerm(EnergyTerm):
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(AtomTypeDependentTerm, self).setup_block_type(block_type)
-        if hasattr(block_type, "atom_types"):
-            assert hasattr(block_type, "heavy_atom_inds")
-            assert hasattr(block_type, "atom_unique_ids")
-            assert hasattr(block_type, "atom_wildcard_ids")
-            assert hasattr(block_type, "atom_cross_ids")
-            return
-
-        unique_ids, wildcard_ids, cross_ids = (
-            self._create_uniq_and_wildcard_names_for_bt(block_type)
+        cached = cached_annotation(
+            block_type, "_atom_type_annotation", self._atom_type_key
         )
+        if cached is not None:
+            return cached
+
+        if not hasattr(block_type, "atom_unique_ids"):
+            unique, wildcard, cross = self._create_uniq_and_wildcard_names_for_bt(
+                block_type
+            )
+            block_type.atom_unique_ids = unique
+            block_type.atom_wildcard_ids = wildcard
+            block_type.atom_cross_ids = cross
 
         atom_types = self.atom_type_index.get_indexer(
             [x.atom_type for x in block_type.atoms]
@@ -78,23 +87,23 @@ class AtomTypeDependentTerm(EnergyTerm):
 
         setattr(block_type, "atom_types", atom_types)
         setattr(block_type, "heavy_atom_inds", heavy_inds)
-        setattr(block_type, "atom_unique_ids", unique_ids)
-        setattr(block_type, "atom_wildcard_ids", wildcard_ids)
-        setattr(block_type, "atom_cross_ids", cross_ids)
+        return store_annotation(
+            block_type,
+            "_atom_type_annotation",
+            self._atom_type_key,
+            (atom_types, heavy_inds),
+        )
 
     def setup_packed_block_types(
         self, packed_block_types: PackedBlockTypes
     ):  # noqa: C901
         super(AtomTypeDependentTerm, self).setup_packed_block_types(packed_block_types)
 
-        if hasattr(packed_block_types, "atom_types"):
-            assert hasattr(packed_block_types, "n_heavy_atoms")
-            assert hasattr(packed_block_types, "heavy_atom_inds")
-            assert hasattr(packed_block_types, "atom_unique_ids")
-            assert hasattr(packed_block_types, "atom_wildcard_ids")
-            assert hasattr(packed_block_types, "atom_cross_ids")
-            assert hasattr(packed_block_types, "atom_unique_id_index")
-            return
+        cached = cached_annotation(
+            packed_block_types, "_atom_type_annotation", self._packed_atom_type_key
+        )
+        if cached is not None:
+            return cached
 
         # TO DO: Figure out why this add was necessary
         for bt in packed_block_types.active_block_types:
@@ -178,6 +187,12 @@ class AtomTypeDependentTerm(EnergyTerm):
         setattr(packed_block_types, "atom_wildcard_ids", atom_wildcard_ids)
         setattr(packed_block_types, "atom_cross_ids", atom_cross_ids)
         setattr(packed_block_types, "atom_unique_id_index", atom_unique_id_index)
+        return store_annotation(
+            packed_block_types,
+            "_atom_type_annotation",
+            self._packed_atom_type_key,
+            (atom_types, n_heavy_atoms, heavy_atom_inds_t),
+        )
 
     def setup_poses(self, pose_stack: PoseStack):
         super(AtomTypeDependentTerm, self).setup_poses(pose_stack)

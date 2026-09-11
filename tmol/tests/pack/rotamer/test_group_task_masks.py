@@ -73,7 +73,7 @@ def test_masks_preserve_frozen_members_and_group_geometry(
         counts, mapping, samples = sampler.create_samples_for_poses(pose, concrete)
         assert not counts.any()
         assert mapping.numel() == 0
-        assert samples == dict(groups=[], plan=[])
+        assert samples == dict(groups=[], plan=[], correlated_gbts=())
 
 
 @pytest.mark.parametrize("fixed_owners", [(2,), (0, 2)])

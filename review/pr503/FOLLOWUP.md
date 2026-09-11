@@ -1596,3 +1596,79 @@ The AtomWorks matrix runs use one timing sample per stage and are compatibility
 checks, not new performance comparisons. Their finite energies/gradients and
 rotamer coordinates do not independently validate the force-field model or
 full packing for all 19 chemistries. Black, Flake8 and whitespace checks pass.
+
+## Nonbonded parameter identity, annotation cost and cache lifetime
+
+The common atom-type, LJ/LK, hydrogen-bond and LK-ball annotations now track
+source identity and relevant immutable settings. Each object retains one current
+annotation; a renderer captures the returned records so preparing another force
+field cannot change its parameters. The shared identity helper uses weak
+references and does not retain a history of fitted databases. Topology-only
+annotations remain reusable. This fixes reused atom-type orderings, donor
+inventories, LK solvation tables and Rosetta/generic pair exclusions. The
+corrected baseline reproducer gives **20 failures / four passes / 24 CPU-only
+skips**, all failures in energy/gradient comparisons; an earlier invalid test
+removed acceptor classes needed by the database itself and is retained only as
+diagnostic evidence.
+
+Tests cover both configuration orders, fresh-annotation controls, previously
+rendered modules, re-rendering, whole-pose and weighted block-pair derivatives,
+and jagged two-pose rotamer scoring. Identical chemical definitions in a different
+order must give the same result; disabling donors must give zero hydrogen-bond
+energy and gradient. Separate annotation tests change both index order and
+heavy-atom classification on the same block and packed objects.
+
+Hydrogen-bond annotation now resolves donor/acceptor names once per chemical
+catalog and gathers host arrays per residue. LK-ball retains one host type table
+instead of transferring it for every residue. Five alternating baseline/candidate
+process pairs, each with warmup and three measured samples, check all public
+annotation arrays for exact equality over **230 block types / 4,738 atoms**.
+The table includes constructor and annotation time; imports, input construction,
+native compilation and result verification are outside the timed region.
+
+| Standalone term | CPU old → new | CUDA old → new |
+| --- | ---: | ---: |
+| LJ/LK | 79.74 → 79.46 ms | 127.75 → 120.05 ms |
+| Hydrogen bonds | 262.27 → 117.76 ms (2.23×) | 388.17 → 151.62 ms (2.56×) |
+| LK-ball | 331.99 → 178.49 ms (1.86×) | 508.93 → 223.46 ms (2.28×) |
+
+These are standalone setup measurements including inherited annotations, not
+whole-score-function or kernel speedups; shared hydrogen-bond work means the
+ratios cannot be added. Warm annotation hits remain about 0.6–0.9 microseconds.
+Persistent host arrays grow by 2,520 bytes for hydrogen bonds on either device
+and LK-ball on CPU, and 5,670 bytes for LK-ball on CUDA. Device tensor storage is
+unchanged. Those counts exclude Python metadata and allocator reservations.
+
+Both hydrogen-bond resolver caches now use a bounded multi-owner weak-identity
+LRU. Chemical and scoring databases independently determine validity; collecting
+either source removes the entry. Equivalent CPU/CUDA device spellings share a
+resolved-device entry. Across 128 separately fitted databases, CPU cached tensor
+storage decreases from **16,518,144 to 4,129,536 bytes**, then to **zero** after
+sources expire. All 128 parameter fingerprints match the original implementation.
+This measures cache-reachable tensor storage, excluding caller-held outputs,
+Python metadata and allocator reservations.
+
+The expanded group check also exposed an outdated empty-result assertion from
+the earlier explicit-correlation change: frozen groups correctly return
+`correlated_gbts=()` alongside their empty groups and plan. The assertion now
+checks that complete contract; no geometry or energy tolerance changed.
+
+The CUDA cache stress check reproduces the same byte counts and exact parameter
+fingerprints. Final Slurm **249402** completed **0:0** in **5:18**, with **300
+passes** across nonbonded reuse, atom types, hydrogen-bond cache lifetime, the
+complete LJ/LK and LK-ball directories, reference caches and group regressions.
+Naming both a hydrogen-bond test file and its parent directory made pytest
+collect only that file: this run does not cover the remaining HBond directory.
+The final CPU annotation/cache run gives **55 passes / 48 CUDA skips**. Earlier
+Slurm **249300** gives **251 passes / one skip / two existing expected failures**
+across the complete nonbonded directories and related caches, before catalog
+lookup optimization. The two expected failures are obsolete native point-test
+adapters and are being repaired separately. Runs overlap and must not be summed.
+
+The first expanded final run, **249354**, recorded 232 passes and the 12 stale
+empty-result assertions described above; its five-round CUDA profile completed
+successfully before those test failures. Source hashes, exact case inventories,
+paired profiles, cache stress results and terminal Slurm accounting are in
+[results/nonbonded-validation.json](results/nonbonded-validation.json).
+Black, Flake8 and whitespace checks pass. The upstream head remains
+`0593a93b07d80b0302383163d2d98c78e315ab98`; review comments 60–63 cover these findings.

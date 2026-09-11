@@ -79,7 +79,7 @@ def test_cache_checks_referent_identity_even_when_integer_key_matches():
     first, old_owner = Database("first"), Database("old")
     stale = object()
     # Simulate an id reused after collection without relying on allocator luck.
-    cache._entries[(id(first), "profile")] = (weakref.ref(old_owner), stale)
+    cache._entries[((id(first),), "profile")] = ((weakref.ref(old_owner),), stale)
     actual = cache.get_or_create(first, "profile", object)
     assert actual is not stale
     assert cache.get_or_create(first, "profile", object) is actual

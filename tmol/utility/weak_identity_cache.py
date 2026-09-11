@@ -25,10 +25,23 @@ class WeakIdentityLRU:
             return len(self._entries)
 
     def get_or_create(self, owner, configuration, factory):
-        key = (id(owner), configuration)
+        return self.get_or_create_many((owner,), configuration, factory)
+
+    def get_or_create_many(self, owners, configuration, factory):
+        """Cache a value derived from several independently owned databases."""
+        owners = tuple(owners)
+        if not owners:
+            raise ValueError("at least one cache owner is required")
+        key = (tuple(id(owner) for owner in owners), configuration)
+
+        def matches(entry):
+            return entry is not None and all(
+                ref() is owner for ref, owner in zip(entry[0], owners)
+            )
+
         with self._lock:
             entry = self._entries.get(key)
-            if entry is not None and entry[0]() is owner:
+            if matches(entry):
                 self._entries.move_to_end(key)
                 return entry[1]
 
@@ -37,16 +50,19 @@ class WeakIdentityLRU:
         def discard(ref):
             with self._lock:
                 current = self._entries.get(key)
-                if current is not None and current[0] is ref:
+                if current is not None and any(stored is ref for stored in current[0]):
                     del self._entries[key]
 
         with self._lock:
             # Another caller may have completed the same miss meanwhile.
             current = self._entries.get(key)
-            if current is not None and current[0]() is owner:
+            if matches(current):
                 self._entries.move_to_end(key)
                 return current[1]
-            self._entries[key] = (weakref.ref(owner, discard), value)
+            self._entries[key] = (
+                tuple(weakref.ref(owner, discard) for owner in owners),
+                value,
+            )
             self._entries.move_to_end(key)
             while len(self._entries) > self.capacity:
                 self._entries.popitem(last=False)

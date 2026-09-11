@@ -11,7 +11,7 @@ Review date: 2026-09-11
 
 Both subsequent six-file updates have been reviewed separately. Comments 1–46
 retain their original `c03c1e745` anchors; comments 47–56 address `0f4c3bc42`,
-and comments 57–59 address `0593a93b0`. The
+and comments 57–63 address `0593a93b0`. The
 fold-forest expectations and HYP count are now corrected upstream. See
 [FOLLOWUP.md](FOLLOWUP.md) for reconciliation and validation details.
 
@@ -564,6 +564,38 @@ Reproduced for independently renamed upper and lower neighbors. The branch maps 
 > Could the cap's third reference use the existing native unresolved-atom connection representation? This branch adds four packed fields (24 bytes per padded atom), then resolves each hydrogen's connection and frame through Python scalar reads. The existing native builder can follow one bond into the partner, which supplies the required plane without another coordinate-placement pass. Please retain the cap geometry and packing tests when consolidating these paths.
 
 The improvement branch uses the native connection ancestor and preserves relative generated hydrogen dihedrals, setting the first cap hydrogen trans to the partner reference. Before reconciliation, construction and packing passed but the two equivalent NH2 hydrogen names were reversed relative to the new upstream convention. After alignment, all new upstream cap checks pass on CPU and CUDA. The omitted dense fields avoid the stated storage by construction; no end-to-end latency claim is made from this source-level comparison. CPU/CUDA evidence is recorded in the follow-up validation artifact.
+
+### 60. P1 — nonbonded indices and pair exclusions retain a different configuration
+
+[tmol/score/_atom_type_dependent_term.py:90](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/score/_atom_type_dependent_term.py#L90), with LJ/LK's corresponding guard at [line 65](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/score/ljlk/_ljlk_energy_term.py#L65).
+
+> Could these annotations identify the chemical catalog and scoring ownership that produced them? Reordering identical atom-type definitions leaves the force field unchanged, but a reused packed set keeps the previous integer indices and indexes different LJ/LK parameters. Changing `rosetta_typed` similarly retains the previous pair exclusions. Please test both configuration orders, re-rendering an earlier term, and old modules after another configuration is prepared.
+
+Reproduced with fixed coordinates and fresh-annotation controls, for whole-pose and weighted block-pair energies/gradients. The branch uses one current annotation per object, weak source identities and immutable configuration settings; renderers take returned snapshots. A separate test checks reordered catalogs and changed element flags on reused blocks and packed sets. Atom identity strings remain independent of the chemical catalog.
+
+### 61. P1 — hydrogen-bond and LK-ball scorers read mutable shared annotations
+
+[tmol/score/hbond/_hbond_energy_term.py:208](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/score/hbond/_hbond_energy_term.py#L208), and [LK-ball's block cache at line 81](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/score/lk_ball/_lk_ball_energy_term.py#L81).
+
+> Could the donor/acceptor and LK-ball annotations follow their source databases and be captured when rendering? Disabling donor mappings on a reused pose leaves the first donor inventory active; changing LK solvation coefficients retains the first tiled parameters. Updating cache guards alone is insufficient: these wrappers read tables through `pose_stack.packed_block_types` on every forward, so updating that object would also change an older rendered scorer's parameters.
+
+Reproduced in both configuration orders. The branch snapshots the relevant annotation records alongside the existing pose reference, without copying the pose or all its unrelated caches. Tests compare fresh versus reused whole-pose, block-pair and jagged rotamer scoring, including gradients and a new render after another configuration. Removing donors supplies an independent zero-energy/zero-gradient check for hydrogen bonds.
+
+### 62. P2 — hydrogen-bond resolver caches are unbounded and cannot verify their owners
+
+[tmol/score/hbond/_params.py:79](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/score/hbond/_params.py#L79), with a second cache at line 179.
+
+> Could both resolver caches be bounded and retain weak references to both input databases? Their keys contain integer IDs only. Tables remain cached after sources disappear, and an eventual ID reuse cannot be distinguished from a valid hit. Both the chemical catalog and hydrogen-bond database determine the result; expiring either should remove the entry.
+
+The shared weak-identity LRU now supports multiple owners. Each resolver retains at most 32 entries, validates both referents, and expires an entry when either source is collected. Tests exercise independent source changes, LRU eviction, retained output tensors after collection, and equivalent indexed/unindexed device spellings. Removing the memoizer also exposed an obsolete type annotation hidden from argument validation; both raw and patched chemical databases remain accepted.
+
+### 63. P2 — residue annotation repeats catalog lookups and full parameter transfers
+
+[tmol/score/hbond/_hbond_dependent_term.py:134](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/score/hbond/_hbond_dependent_term.py#L134), and [tmol/score/lk_ball/_lk_ball_energy_term.py:152](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/score/lk_ball/_lk_ball_energy_term.py#L152).
+
+> Could donor/acceptor names be mapped once for the chemical catalog, then gathered for each residue? The two pandas lookups repeat across every block type. LK-ball also transfers its full type table to CPU once per residue. A host catalog prepared once per term would remove this repeated work while retaining configuration-specific tables.
+
+The branch prepares the donor/acceptor catalog once, retains a name-based fallback for unregistered types, and gathers host arrays during annotation. LK-ball transfers its host type table once per term. The paired profiler checks every public annotation array for exact equality against the preceding implementation and reports constructor, annotation and warm-hit costs separately. These standalone-term timings include inherited setup and must not be added together to estimate whole-score-function performance; see the follow-up artifact for measurements and retained-array tradeoffs.
 
 ## Validation record
 

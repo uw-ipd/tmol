@@ -96,3 +96,42 @@ def test_new_packed_set_uses_current_resolver_for_shared_blocks(
         assert counts[i] == len(expected)
         numpy.testing.assert_array_equal(heavy[i, : counts[i]], expected)
         assert numpy.all(heavy[i, counts[i] :] == -1)
+
+
+def test_reused_blocks_and_packed_set_follow_order_and_element_changes(
+    default_database, fresh_default_restype_set, torch_device
+):
+    altered = attr.evolve(
+        default_database,
+        chemical=attr.evolve(
+            default_database.chemical,
+            atom_types=tuple(
+                attr.evolve(a, element="H") if a.name == "CH2" else a
+                for a in reversed(default_database.chemical.atom_types)
+            ),
+        ),
+    )
+    pbt = PackedBlockTypes.from_restype_list(
+        default_database.chemical,
+        fresh_default_restype_set,
+        fresh_default_restype_set.residue_types,
+        torch_device,
+    )
+    terms = [
+        AtomTypeDependentTerm(db, torch_device) for db in (default_database, altered)
+    ]
+    for state in (0, 1, 0, 1):
+        term = terms[state]
+        term.setup_packed_block_types(pbt)
+        for i, rt in enumerate(pbt.active_block_types):
+            expected = term.atom_type_index.get_indexer([a.atom_type for a in rt.atoms])
+            heavy = numpy.flatnonzero(term.np_is_heavyatom[expected])
+            numpy.testing.assert_array_equal(rt.atom_types, expected)
+            numpy.testing.assert_array_equal(rt.heavy_atom_inds, heavy)
+            numpy.testing.assert_array_equal(
+                pbt.atom_types[i, : rt.n_atoms].cpu(), expected
+            )
+            numpy.testing.assert_array_equal(
+                pbt.heavy_atom_inds[i, : len(heavy)].cpu(), heavy
+            )
+            assert int(pbt.n_heavy_atoms[i]) == len(heavy)

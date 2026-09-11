@@ -1,4 +1,5 @@
 import attr
+from typing import Union
 
 import numpy
 import pandas
@@ -15,8 +16,16 @@ from tmol.types import (
 )
 from tmol.database.scoring import HBondDatabase
 from tmol.database.chemical import ChemicalDatabase
+from tmol.database import PatchedChemicalDatabase
 
 from .._chemical_database import AcceptorHybridization
+from tmol.utility.weak_identity_cache import WeakIdentityLRU
+
+
+def _resolved_device(device):
+    if device.type == "cuda" and device.index is None:
+        return torch.device("cuda", torch.cuda.current_device())
+    return torch.device("cpu") if device.type == "cpu" else device
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -76,7 +85,7 @@ class HBondPairParams(TensorGroup, ValidateAttrs):
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class HBondParamResolver(ValidateAttrs):
-    _from_db_cache = {}
+    _from_db_cache = WeakIdentityLRU()
 
     donor_type_index: pandas.Index = attr.ib()
     acceptor_type_index: pandas.Index = attr.ib()
@@ -86,21 +95,21 @@ class HBondParamResolver(ValidateAttrs):
 
     @classmethod
     @validate_args
-    @toolz.functoolz.memoize(
-        cache=_from_db_cache,
-        key=lambda args, kwargs: (
-            id(args[1]),
-            id(args[2]),
-            args[3].type,
-            args[3].index,
-        ),
-    )
     def from_database(
         cls,
-        chemical_database: ChemicalDatabase,
+        chemical_database: Union[ChemicalDatabase, PatchedChemicalDatabase],
         hbond_database: HBondDatabase,
         device: torch.device,
     ):
+        device = _resolved_device(device)
+        return cls._from_db_cache.get_or_create_many(
+            (chemical_database, hbond_database),
+            device,
+            lambda: cls._from_database(chemical_database, hbond_database, device),
+        )
+
+    @classmethod
+    def _from_database(cls, chemical_database, hbond_database, device):
         donors = {g.name: g for g in hbond_database.donor_type_params}
         donor_type_index = pandas.Index(list(donors))
 
@@ -176,7 +185,7 @@ class HBondParamResolver(ValidateAttrs):
 class CompactedHBondDatabase(ValidateAttrs):
     """Store the hbond evaluation parameters in a compact form"""
 
-    _from_db_cache = {}
+    _from_db_cache = WeakIdentityLRU()
 
     global_param_table: Tensor[torch.float32][:, :]
     pair_param_table: Tensor[torch.float32][:, :, :]
@@ -184,22 +193,21 @@ class CompactedHBondDatabase(ValidateAttrs):
 
     @classmethod
     @validate_args
-    @toolz.functoolz.memoize(
-        cache=_from_db_cache,
-        key=lambda args, kwargs: (
-            id(args[1]),
-            id(args[2]),
-            args[3].type,
-            args[3].index,
-        ),
-    )
     def from_database(
         cls,
-        chemical_database: ChemicalDatabase,
+        chemical_database: Union[ChemicalDatabase, PatchedChemicalDatabase],
         hbond_database: HBondDatabase,
         device: torch.device,
-        /,  # force positional arguments prior to the / so that we can properly form a cache key
     ):
+        device = _resolved_device(device)
+        return cls._from_db_cache.get_or_create_many(
+            (chemical_database, hbond_database),
+            device,
+            lambda: cls._from_database(chemical_database, hbond_database, device),
+        )
+
+    @classmethod
+    def _from_database(cls, chemical_database, hbond_database, device):
         def _p(t):
             return torch.nn.Parameter(t, requires_grad=False)
 
