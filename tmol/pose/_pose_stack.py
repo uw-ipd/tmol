@@ -83,12 +83,10 @@ class PoseStack:
             device=self.block_coord_offset.device,
         ).repeat(n_poses)
 
-        pose_inds = (
-            torch.arange(0, n_poses, dtype=torch.int32, device=self.device)
-            .unsqueeze(1)
-            .expand((n_poses, n_blocks))
+        pose_inds = torch.arange(n_poses, dtype=torch.int32, device=self.device)
+        self.pose_ind_for_rot = (
+            pose_inds.unsqueeze(1).expand(n_poses, n_blocks).flatten()
         )
-        self.pose_ind_for_rot = pose_inds.flatten()
 
         self.block_type_ind_for_rot = self.block_type_ind.flatten()
 
@@ -101,12 +99,8 @@ class PoseStack:
         self.n_rots_for_pose = torch.tensor(
             [n_blocks], dtype=torch.int32, device=self.device
         ).expand(n_poses)
-        self.rot_offset_for_pose = self.n_rots_for_pose * torch.arange(
-            0, n_poses, dtype=torch.int32, device=self.device
-        )
-        coord_offset_for_pose = self.coords.size(1) * torch.arange(
-            0, n_poses, dtype=torch.int32, device=self.device
-        )
+        self.rot_offset_for_pose = self.n_rots_for_pose * pose_inds
+        coord_offset_for_pose = self.coords.size(1) * pose_inds
         self.n_rots_for_block = torch.full_like(self.block_coord_offset, 1)
 
         self.rot_coord_offset = (
