@@ -688,12 +688,20 @@ class LBFGS_Armijo(Optimizer):
                 else:
                     keep_elem = self._per_element(keep)
                     zero = torch.zeros((), dtype=y.dtype, device=y.device)
-                    self._pad(
-                        torch.where(keep_elem, y, zero), out=ctx.old_dirs_mat[idx]
-                    )
-                    self._pad(
-                        torch.where(keep_elem, s, zero), out=ctx.old_stps_mat[idx]
-                    )
+                    if self._segments_are_dense:
+                        torch.where(
+                            keep_elem, y, zero, out=ctx.old_dirs_mat[idx].view(-1)
+                        )
+                        torch.where(
+                            keep_elem, s, zero, out=ctx.old_stps_mat[idx].view(-1)
+                        )
+                    else:
+                        self._pad(
+                            torch.where(keep_elem, y, zero), out=ctx.old_dirs_mat[idx]
+                        )
+                        self._pad(
+                            torch.where(keep_elem, s, zero), out=ctx.old_stps_mat[idx]
+                        )
                     ctx.x_ref = torch.where(keep_elem, x, ctx.x_ref)
 
             # compute the approximate (L-BFGS) inverse Hessian

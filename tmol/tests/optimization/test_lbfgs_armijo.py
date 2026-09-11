@@ -196,12 +196,15 @@ def test_lbfgs_armijo_short_history():
     assert score_start > score_stop
 
 
-def test_lbfgs_armijo_wrapped_segment_histories(torch_device):
-    # Unequal segments exercise padded history rows after a short ring wraps.
+@pytest.mark.parametrize("first_segment_size", [6, 7])
+def test_lbfgs_armijo_wrapped_segment_histories(torch_device, first_segment_size):
+    # Equal and unequal segments exercise dense and padded history writes.
     x = torch.nn.Parameter(
         torch.linspace(-2, 2, 12, dtype=torch.float64, device=torch_device)
     )
-    segment_ids = torch.tensor([0] * 7 + [1] * 5, device=torch_device)
+    segment_ids = torch.tensor(
+        [0] * first_segment_size + [1] * (12 - first_segment_size), device=torch_device
+    )
     curvature = torch.tensor(
         [1, 2, 4, 8, 1, 2, 4, 8, 4, 2, 1, 8],
         dtype=x.dtype,
@@ -220,7 +223,9 @@ def test_lbfgs_armijo_wrapped_segment_histories(torch_device):
     def closure():
         optimizer.zero_grad()
         terms = curvature * (x - 1).square()
-        energies = torch.stack((terms[:7].sum(), terms[7:].sum()))
+        energies = torch.stack(
+            (terms[:first_segment_size].sum(), terms[first_segment_size:].sum())
+        )
         energies.sum().backward()
         return energies
 
