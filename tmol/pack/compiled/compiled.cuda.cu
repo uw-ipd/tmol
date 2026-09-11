@@ -275,7 +275,6 @@ MGPU_DEVICE float warp_wide_sim_annealing(
 
   for (int i = 0; i < n_outer_iterations; ++i) {
     bool quench = false;
-    int quench_period = n_rotamers;
     int i_n_inner_iterations = n_inner_iterations;
 
     if (i == n_outer_iterations - 1 && quench_on_last_iteration) {
@@ -302,26 +301,26 @@ MGPU_DEVICE float warp_wide_sim_annealing(
 
       if (quench) {
         if (g.thread_rank() == 0) {
-          if (j % quench_period == 0) {
+          // A quench visits its shuffled order once.
+          if (j == 0) {
             if (quench_lite) {
-              quench_period = set_quench_32_order(
+              i_n_inner_iterations = set_quench_32_order(
                   n_res,
                   ig.n_rotamers_for_res_[pose],
                   ig.oneb_offsets_[pose],
                   quench_order,
                   state);
-              i_n_inner_iterations = quench_period;
             } else {
               set_quench_order(
                   quench_order, n_rotamers, pose_rotamer_offset, state);
             }
           }
-          int global_ran_rot = quench_order[j % quench_period];
+          int global_ran_rot = quench_order[j];
           ran_res = ig.res_for_rot()[global_ran_rot];
           global_new_rot = global_ran_rot;
           local_new_rot = global_ran_rot - ig.oneb_offsets_[pose][ran_res];
         }
-        if (j % quench_period == 0 && quench_lite) {
+        if (j == 0 && quench_lite) {
           i_n_inner_iterations = g.shfl(i_n_inner_iterations, 0);
         }
       } else {
