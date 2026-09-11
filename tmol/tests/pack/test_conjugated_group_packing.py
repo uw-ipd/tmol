@@ -13,7 +13,6 @@ import torch
 
 from tmol.io import pose_stack_from_biotite
 from tmol.io._cif import atom_array_from_cif
-from tmol.database import ParameterDatabase
 from tmol.pack import PackerTask, PackerPalette, pack_rotamers
 from tmol.pack._impose_rotamers import (
     chosen_rotamer_for_block,
@@ -89,7 +88,7 @@ def test_every_member_of_a_group_gets_the_same_rotamers(fixture, torch_device):
     pair one member's conformer with another's.
     """
     pose_stack, ctx = _pose(FIXTURES[fixture], torch_device)
-    param_db = getattr(ctx, "param_db", None) or ParameterDatabase.get_default()
+    param_db = ctx.parameter_database
     task, sampler = _task(pose_stack, param_db, torch_device)
 
     pose_stack, rotamer_set = build_rotamers(
@@ -112,7 +111,7 @@ def test_every_member_of_a_group_gets_the_same_rotamers(fixture, torch_device):
 def test_a_group_is_sampled_as_the_product_of_its_parts(torch_device):
     """The count is the anchor's library rotamers times the tree's conformers."""
     pose_stack, ctx = _pose(FIXTURES["biotin"], torch_device)
-    param_db = getattr(ctx, "param_db", None) or ParameterDatabase.get_default()
+    param_db = ctx.parameter_database
     task, sampler = _task(pose_stack, param_db, torch_device)
     set_task = SetPackerTask.from_packer_task(task)
 
@@ -151,7 +150,7 @@ def test_the_bond_survives_packing(fixture, torch_device):
     if fixture in BIG and torch_device.type == "cpu":
         pytest.skip(f"{fixture}'s group is too big to pack on cpu; cuda covers it")
     pose_stack, ctx = _pose(FIXTURES[fixture], torch_device)
-    param_db = getattr(ctx, "param_db", None) or ParameterDatabase.get_default()
+    param_db = ctx.parameter_database
     sfxn = beta2016_score_function(torch_device, param_db=param_db)
 
     groups = find_conjugated_groups(pose_stack)
@@ -179,7 +178,7 @@ def test_the_packers_energy_matches_what_the_pose_scores(fixture, torch_device):
     if fixture in BIG and torch_device.type == "cpu":
         pytest.skip(f"{fixture}'s group is too big to pack on cpu; cuda covers it")
     pose_stack, ctx = _pose(FIXTURES[fixture], torch_device)
-    param_db = getattr(ctx, "param_db", None) or ParameterDatabase.get_default()
+    param_db = ctx.parameter_database
     sfxn = beta2016_score_function(torch_device, param_db=param_db)
     task, _ = _task(pose_stack, param_db, torch_device)
     set_task = SetPackerTask.from_packer_task(task)

@@ -113,7 +113,7 @@ class ConjugatedChiSampler(ChiSampler):
             # the anchor's library rotamers multiply the tree's conformers: a
             #    group conformer names a chi value for every sampled torsion in
             #    the group at once, which is what holds the members together
-            entry = (anchor_chi or {}).get(group.anchor)
+            entry = (anchor_chi or {}).get((group.pose, group.anchor))
             if entry is not None:
                 anchor_atoms, anchor_values = entry
                 anchor_bt = pbt.active_block_types[
@@ -190,10 +190,10 @@ class ConjugatedChiSampler(ChiSampler):
             int(pose_stack.block_type_ind[group.pose, b]) for b in group.blocks
         )
         key = (types, group.links)
-        cache = getattr(self, "_kinforest_cache", None)
+        cache = getattr(pbt, "conjugated_kinforest_cache", None)
         if cache is None:
             cache = {}
-            setattr(self, "_kinforest_cache", cache)
+            setattr(pbt, "conjugated_kinforest_cache", cache)
         if key not in cache:
             cache[key] = construct_block_group_kinforest(
                 [pbt.active_block_types[t] for t in types], group.links, anchor=0
@@ -399,19 +399,23 @@ class ConjugatedChiSampler(ChiSampler):
                 )
             )
             n_group_atoms = int(offsets[-1])
+            nodes = _p(_t(rot_kf.nodes))
+            scans = _p(_t(rot_kf.scans))
+            gens = _p(_t(rot_kf.gens, torch.device("cpu")))
+            atom_order = kinforest.id[1:].to(torch.int64)
             folded = []
             for i in range(dofs.shape[0]):
                 kco = forward_only_op(
                     dofs[i],
-                    _p(_t(rot_kf.nodes)),
-                    _p(_t(rot_kf.scans)),
-                    _p(_t(rot_kf.gens, torch.device("cpu"))),
+                    nodes,
+                    scans,
+                    gens,
                     stack,
                 )
                 rto = torch.zeros(
                     (n_group_atoms, 3), dtype=torch.float32, device=device
                 )
-                rto[kinforest.id[1:].to(torch.int64)] = kco[1:]
+                rto[atom_order] = kco[1:]
                 folded.append(rto)
 
             for pgi, owner, gbt, first in sample_dict["plan"]:
@@ -501,7 +505,7 @@ class ConjugatedChiSampler(ChiSampler):
             rows = numpy.nonzero(numpy.isin(gbt_np, wanted))[0]
             if rows.size == 0:
                 continue
-            out[group.anchor] = (
+            out[(group.pose, group.anchor)] = (
                 chi_atoms[rows].cpu().numpy(),
                 chi[rows].cpu().numpy(),
             )

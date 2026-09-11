@@ -38,17 +38,34 @@ def apply_chi_sample_budget(
     chi is never frozen: its hydrogen has no other source of placement, and
     optH reads the same samples.
     """
-    # a chi the borrowed library defines is read from the library, not sampled
+    return tuple(
+        cs
+        for _, cs in _budgeted_chi_samples(
+            samples, depths, expanded_limit, limit, n_library_chi=n_library_chi
+        )
+    )
+
+
+def _budgeted_chi_samples(
+    samples, depths, expanded_limit, limit, n_library_chi=0, library_size=None
+):
+    """Return (input index, sample) pairs, preserving ownership across blocks.
+
+    ``n_library_chi`` excludes chi already supplied by the same block's library.
+    ``library_size`` accounts for an independent library in a group product
+    without excluding identically named chi on its attached blocks.
+    """
     kept = [
-        (cs, d)
-        for cs, d in zip(samples, depths)
+        (i, cs, d)
+        for i, (cs, d) in enumerate(zip(samples, depths, strict=True))
         if cs.is_proton or int(cs.chi_dihedral[3:]) > n_library_chi
     ]
-    samples = [cs for cs, _ in kept]
-    depths = [d for _, d in kept]
-    library = 3**n_library_chi
+    indices = [i for i, _, _ in kept]
+    samples = [cs for _, cs, _ in kept]
+    depths = [d for _, _, d in kept]
+    library = 3**n_library_chi if library_size is None else library_size
     if library * n_conformers(samples, True) <= expanded_limit:
-        return tuple(samples)
+        return tuple(zip(indices, samples))
 
     samples = [attr.evolve(cs, expansions=()) for cs in samples]
     order = sorted(
@@ -56,11 +73,13 @@ def apply_chi_sample_budget(
         key=lambda i: (depths[i], int(samples[i].chi_dihedral[3:])),
         reverse=True,
     )
+    total = library * n_conformers(samples, False)
     for index in order:
-        if library * n_conformers(samples, False) <= limit:
+        if total <= limit:
             break
+        total //= len(samples[index].samples)
         samples[index] = None
-    return tuple(cs for cs in samples if cs is not None)
+    return tuple((i, cs) for i, cs in zip(indices, samples) if cs is not None)
 
 
 def chi_depths(rkd, chi_atoms):

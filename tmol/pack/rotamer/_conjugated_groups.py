@@ -42,7 +42,7 @@ def group_sampled_chi(group, pose_stack, expanded_limit, limit):
     Returns a list of (index within the group, ChiSamples) for the survivors.
     """
     from tmol.kinematics import block_group_kinforest_data
-    from tmol.pack.rotamer._chi_budget import apply_chi_sample_budget, chi_depths
+    from tmol.pack.rotamer._chi_budget import _budgeted_chi_samples, chi_depths
 
     pbt = pose_stack.packed_block_types
     block_types = [
@@ -81,24 +81,15 @@ def group_sampled_chi(group, pose_stack, expanded_limit, limit):
     depths = chi_depths(rkd, depths_in)
     # every block of the group carries a copy of each conformer
     n_blocks = max(len(group.blocks), 1)
-    kept = apply_chi_sample_budget(
+    kept = _budgeted_chi_samples(
         entries,
         depths,
         max(expanded_limit // n_blocks, 1),
         max(limit // n_blocks, 1),
-        n_library_chi=max(n_anchor_chi, 0),
+        library_size=3 ** max(n_anchor_chi, 0),
     )
 
-    # the budget returns copies, in order, with the frozen chi dropped; walk
-    #    the two lists together to recover which block each survivor belongs to
-    result = []
-    i = 0
-    for owner, cs in zip(owners, entries):
-        if i < len(kept) and kept[i].chi_dihedral == cs.chi_dihedral:
-            result.append((owner, kept[i]))
-            i += 1
-    assert i == len(kept), "budgeted chi did not line up with the group's chi"
-    return result
+    return [(owners[index], cs) for index, cs in kept]
 
 
 def protect_conjugated_anchors(task, pose_stack, exclude=()):
@@ -274,10 +265,18 @@ def collapse_group_rotamers(pose_stack, rotamer_set, groups):
     #    range: the interaction graph recovers a block's rotamer count by
     #    differencing consecutive blocks' offsets, so a rotamer left sitting in
     #    a gap is silently charged to whichever block precedes it.
-    orig_to_compact = torch.cumsum(keep.to(torch.int64), 0) - keep.to(torch.int64)
+    # Include the exclusive end: trailing zero-rotamer blocks and empty poses
+    # can have an offset equal to n_rots.
+    orig_to_compact = torch.cat(
+        (torch.zeros(1, dtype=torch.int64, device=device), keep.cumsum(0))
+    )
     compact_to_orig = torch.nonzero(keep).view(-1)
 
-    compact_rot_offset_for_block = orig_to_compact[rot_offset.to(torch.int64)]
+    compact_rot_offset_for_block = torch.where(
+        rot_offset >= 0,
+        orig_to_compact[rot_offset.clamp_min(0).to(torch.int64)],
+        rot_offset,
+    )
     compact_rot_offset_for_pose = orig_to_compact[
         rotamer_set.rot_offset_for_pose.to(torch.int64)
     ]
