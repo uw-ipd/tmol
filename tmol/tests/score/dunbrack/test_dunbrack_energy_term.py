@@ -1,5 +1,8 @@
+import pytest
 import torch
 
+from tmol import pose_stack_from_pdb
+from tmol.pose import PoseStackBuilder
 from tmol.score.dunbrack import DunbrackEnergyTerm
 
 from tmol.tests.score.common import EnergyTermTestBase
@@ -30,6 +33,36 @@ def test_annotate_block_types(
     assert first_tensor.device == torch_device
     dunbrack_energy.setup_packed_block_types(pbt)
     assert first_tensor is pbt.dunbrack_packed_block_data[0]
+
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+@pytest.mark.parametrize("inference", [False, True])
+def test_score_only_matches_derivative_scoring(
+    ubq_pdb, default_database, torch_device, dtype, inference
+):
+    poses = [
+        pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=n) for n in (10, 15)
+    ]
+    pose = PoseStackBuilder.from_poses(poses, torch_device)
+    scorer = TestDunbrackEnergyTerm.get_whole_pose_scorer(
+        pose, default_database, torch_device
+    )
+    coords = pose.coords.to(dtype).detach().requires_grad_(True)
+    expected = scorer(coords)
+    (expected_grad,) = torch.autograd.grad(expected.sum(), coords)
+
+    # Score-only calls must tolerate absent derivative scratch, including
+    # padded blocks and residues whose backbone dihedrals are unresolved.
+    with torch.inference_mode() if inference else torch.no_grad():
+        actual = scorer(coords)
+    assert not actual.requires_grad
+    torch.testing.assert_close(actual, expected)
+
+    # Switching modes must leave the derivative-enabled path usable.
+    after = scorer(coords)
+    (after_grad,) = torch.autograd.grad(after.sum(), coords)
+    torch.testing.assert_close(after, expected)
+    torch.testing.assert_close(after_grad, expected_grad)
 
 
 class TestDunbrackEnergyTerm(EnergyTermTestBase):
