@@ -16,7 +16,7 @@ from tmol.score._annotation_cache import (
     store_annotation,
 )
 
-from tmol.pack.rotamer import ChiSampler  # noqa F401
+from tmol.pack.rotamer import ChiSampler, sc_roots_for_chis
 
 from tmol.database import ParameterDatabase
 
@@ -387,6 +387,10 @@ class DunbrackChiSampler(ChiSampler):
         rotamers correctly. Empty for a residue with no chi to rotate.
         """
         assert self.defines_rotamers_for_rt(rt)
+        # Explicit chi can start after an unsampled axis. Copy upstream input
+        # geometry instead of treating the entire chi1 branch as rebuilt.
+        if self._library_for_rt(rt) < 0:
+            return sc_roots_for_chis(rt, (cs.chi_dihedral for cs in rt.chi_samples))
         return tuple(t.c.atom for t in rt.torsions if t.name == "chi1")
 
     @validate_args
@@ -457,8 +461,11 @@ class DunbrackChiSampler(ChiSampler):
             -1, 4
         )
 
-        # what is the subset of dun-allowed block types that are buildable by the Dunbrack library?
-        is_dun_allowed_bt_bbt = rottable_set_for_dun_allowed_bts != -1
+        # Types may use a library or explicitly sample their own heavy chi.
+        # The native sampler uses one base state when the library index is -1.
+        is_dun_allowed_bt_bbt = pbt.dun_sampler_cache.defines_rotamers_for_bts[
+            dun_allowed_bt
+        ]
 
         dun_allowed_bt_that_are_bbt = torch.nonzero(
             is_dun_allowed_bt_bbt, as_tuple=True
@@ -547,19 +554,15 @@ class DunbrackChiSampler(ChiSampler):
         # choice (more rotamers).
         sc = pbt.dun_sampler_cache
 
-        # Use total chi count per residue type (Dunbrack chis + proton chis)
-        # rather than only the Dunbrack library's nchi. The C++ kernel loops
-        # over indices [n_dun_chi .. n_chi) to sample non-Dunbrack (proton)
-        # chis; if n_chi == n_dun_chi that loop never runs.
-        n_chi_for_bbt = (
-            (sc.chi_defining_atom[block_type_ind_for_bbt] >= 0)
-            .sum(dim=1)
-            .to(torch.int32)
-        )
-
         non_dunbrack_expansion_counts_for_bbt = sc.non_dunbrack_sample_counts[
             block_type_ind_for_bbt, :, 1  # dim2: burial state (0=exposed, 1=buried)
         ]
+        # Include frozen gaps before the last chi slot. Real slots have a
+        # nonnegative count (zero for library/frozen chi); padding is -1.
+        # Counting only defining atoms would truncate chi2 when chi1 is frozen.
+        n_chi_for_bbt = (non_dunbrack_expansion_counts_for_bbt >= 0).sum(
+            dim=1, dtype=torch.int32
+        )
 
         # treat all residues as buried (index 1)
         non_dunbrack_expansion_for_bbt = sc.non_dunbrack_samples[

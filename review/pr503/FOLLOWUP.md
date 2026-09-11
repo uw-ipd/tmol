@@ -1916,3 +1916,56 @@ Source hashes, test inventories, terminal accounting, exact paired profiles and
 the two follow-up probes are in
 [results/dun-sampler-identity-validation.json](results/dun-sampler-identity-validation.json).
 Black, Flake8 and whitespace checks pass. The upstream head remains `0593a93b0`.
+
+## Sample explicit polymer chi without a library
+
+The Python Dunbrack wrapper now selects buildable types using its existing
+buildability predicate. That predicate accepts amino-acid polymers with explicit
+heavy-chi samples even when no library/reference resolves; the previous filter
+required a library index and silently removed those types before native sampling.
+The native no-library path already provides one base state for their products.
+
+Two further fixes make partial explicit sampling work. The native chi width now
+comes from nonnegative slots in the already gathered count table, including
+zero-count gaps before later chi. Counting only defined atoms truncated chi2
+when chi1 was absent. For no-library types, sidechain roots now come from the
+chi actually sampled through the existing shared helper. Thus sampling only
+chi2 copies upstream input geometry instead of rebuilding the chi1 branch.
+The slot check reuses an existing tensor and reduces directly to int32; it adds
+no packed annotation fields. Library-backed root policy and parameter values
+are unchanged.
+
+Private ILE topologies with explicit chi definitions provide independent
+Cartesian-product and coordinate checks. Tests cover three chi1 means, 54
+expanded two-axis states, two-pose masks, an explicit budget smaller than the
+required product, requested coordinate torsions, and preserving the input chi1
+when chi2 alone varies. These are kinematic/enumeration fixtures, not newly
+fitted chemistry. Six regressions fail before the filter fix. Adding the gap
+case reveals the separate slot and root assumptions; both intermediate failures
+are retained. The final complete Dunbrack CPU suite passes **47 tests / 45 CUDA
+skips**.
+
+Slurm **249696** passes **308 tests with no skips** across native sampling,
+noncanonical rotamers, budgets, covalent groups and packing on CPU/CUDA. It
+completed **0:0** in **6:48**, with **5,589,660 KiB** batch peak host RSS. Earlier
+job 249694 was cancelled after 17 seconds when the completed CPU result exposed
+changed upstream chi1 geometry; it is not counted as completed validation. The
+root fix passed the CPU suite before the final job was submitted.
+
+An additional real-coordinate probe confirms a remaining mainchain-fingerprint
+cache problem. A library sampler followed by an explicit-chi2 sampler on shared
+types returns the correct two-state count but retains a six-atom copy fingerprint
+instead of the fresh thirteen-atom fingerprint. Frozen chi1 becomes −0.08948
+instead of 1.05183 radians. Review comment 68 records this separate identity
+failure and the need to represent different configurations of one sampler class
+within a task. The probe's first output attempt failed JSON serialization of
+NumPy indices; conversion to Python integers fixes the report, and the successful
+rerun preserves the numeric evidence.
+
+Comment 67 describes the corrected no-library path. General question 4 also
+asks for an explicit input-versus-ideal policy for frozen downstream chi; the
+upstream-chi regression here does not establish that broader contract. Source
+hashes, exact test inventories, intermediate failures, scheduler accounting and
+the fingerprint probe are in
+[results/libraryless-validation.json](results/libraryless-validation.json).
+Black, Flake8 and whitespace checks pass. No performance ratio is claimed.

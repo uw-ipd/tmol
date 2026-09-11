@@ -38,7 +38,8 @@ configuration-aware RT/PBT caches. Their final count check covers runtime
 library/proton products before sample-array allocation. Dunbrack checks its
 native per-restype library/extra-chi count against the larger explicit limit
 before allocating rotamer mappings and chi tensors. Required oversized products
-currently raise; Dunbrack extra-chi settings and NA glycosidic/proton products
+currently raise, including explicit heavy-chi products on polymers without a
+Dunbrack library; Dunbrack extra-chi settings and NA glycosidic/proton products
 are not yet adaptively reduced together.
 
 With an explicit task budget, the combined count at each physical residue must

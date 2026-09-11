@@ -11,7 +11,7 @@ Review date: 2026-09-11
 
 Both subsequent six-file updates have been reviewed separately. Comments 1–46
 retain their original `c03c1e745` anchors; comments 47–56 address `0f4c3bc42`,
-and comments 57–67 address `0593a93b0`. The
+and comments 57–68 address `0593a93b0`. The
 fold-forest expectations and HYP count are now corrected upstream. See
 [FOLLOWUP.md](FOLLOWUP.md) for reconciliation and validation details.
 
@@ -64,7 +64,7 @@ This measures CIF missing-atom insertion, **not end-to-end packing/scoring accel
 1. **Delivery and validation:** Can you add the missing cyclic-search file and enable CI on a fresh checkout? No GitHub checks were reported for the pinned head when reviewed. Which Python/PyTorch/Biotite/RDKit/OpenBabel versions generated the baselines?
 2. **Scientific partitioning:** What independent Rosetta/Hahnbeom reference validates the cartbonded correction and generic/Rosetta boundary, beyond regenerated tmol goldens? Can we separate these global score changes from adding new residue classes, so canonical score shifts are auditable?
 3. **Mixed chirality:** What should the S–S torsion distribution be for L–D versus D–L? It must be invariant to input residue ordering, and full mirror tests should cover LL↔DD and LD↔DL, including gradients.
-4. **Budget semantics:** Is `set_chi_sample_budget()` meant to bound library rotamers, sampled heavy chi, proton combinations, group conformers, total block rotamers, or pairwise memory? What happens when the anchor library alone exceeds the limit, when all child chi freeze, or when required proton samples exceed it?
+4. **Budget semantics:** Is `set_chi_sample_budget()` meant to bound library rotamers, sampled heavy chi, proton combinations, group conformers, total block rotamers, or pairwise memory? What happens when the anchor library alone exceeds the limit, when all child chi freeze, or when required proton samples exceed it? Does a frozen chi retain its input angle or use ideal residue geometry, and is that policy consistent for upstream and downstream axes?
 5. **Group constraints:** What is the contract for a partially disabled group, multiple polymer anchors joined by a conjugate, free oligosaccharides, and groups with cycles? Should unsupported topologies fail clearly or remain frozen? Which bond closes a non-tree cycle during sampling/minimization?
 6. **Chemical authority:** How should custom residue names with declared bonds/stereochemistry but missing coordinates work under `use_ccd=False`? Currently coordinate completion can still require a CCD component. What explicit input describes ambiguous polymer ends instead of selecting the conventional backbone heuristically?
 7. **Sampling versus scoring:** The graph matcher borrows sidechain references for sampling, while scoring ownership is independently inferred. Which tests guarantee that changing a sampling reference cannot silently change the scored potential or leave a rotatable bond unconstrained? How were graph-match thresholds and unknown-base averages chosen?
@@ -629,7 +629,17 @@ Location: [`tmol/pack/rotamer/dunbrack/_dunbrack_chi_sampler.py:447`](https://gi
 
 > Could this selection use the sampler's buildability predicate instead of requiring a library index? `defines_rotamers_for_rt` explicitly accepts amino-acid polymers with their own heavy-chi samples and no Dunbrack library, and the native code has a no-library path. This filter removes those types before the native sampler can enumerate their samples.
 
-A small probe gives an allowed polymer type three explicit chi1 means, clears its library reference, and verifies that the sampler advertises it as buildable. It receives zero rotamers while ten other allowed types receive samples. The concrete task's target mask is checked explicitly. This remains a separate follow-up to the resolver-identity fix; the probe uses a private copy of ILE's valid topology, not a newly fitted chemical parameter set.
+A small probe gives an allowed polymer type three explicit chi1 means, clears its library reference, and verifies that the sampler advertises it as buildable. It receives zero rotamers while ten other allowed types receive samples. The concrete task's target mask is checked explicitly. The branch now uses its buildability predicate, retains gaps before later chi slots, and derives no-library sidechain roots from the chi actually sampled. Tests check explicit Cartesian products, expansion offsets, two-pose masks, budget failure, requested coordinate torsions and an unchanged input chi1 when only chi2 is sampled. The fixtures use private copies of ILE's valid topology, not newly fitted chemical parameters. The slot-count issue is at [line 540](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/pack/rotamer/dunbrack/_dunbrack_chi_sampler.py#L540); counting defined atoms cannot represent a hole before a later chi.
+
+## 68. Refresh mainchain-copy fingerprints when sampler ownership changes — P1
+
+Location: [`tmol/pack/rotamer/_mainchain_fingerprint.py:359`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/pack/rotamer/_mainchain_fingerprint.py#L359).
+
+> Could fingerprint reuse check the sampler's actual sidechain roots and chemical element definitions, rather than only its class name? Changing which chi a sampler owns changes which input degrees of freedom must be copied. A cached fingerprint can therefore corrupt an unsampled torsion even after the rotamer counts and library lookup are correct.
+
+An independent probe first builds a private polymer type through a library, then reuses the same pose with a resolver that supplies only explicit chi2 samples. Both shared and fresh runs return two states, but their supposedly frozen chi1 is −0.08948 versus 1.05183 radians. The shared type retains the earlier six-atom mainchain fingerprint; the fresh one has thirteen copied atoms. This remains a separate cache fix after enabling no-library sampling. Multiple differently configured instances of the same sampler class in one task also need an explicit representation, since the current fingerprint mapping is keyed by class name.
+
+The PBT early-return check at [line 410](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/pack/rotamer/_mainchain_fingerprint.py#L410) looks for `mc_atom_mapping`, while this function stores `mc_fingerprints`. A corrected cache must validate the underlying fingerprints as well as avoiding redundant reconstruction.
 
 ## Validation record
 
