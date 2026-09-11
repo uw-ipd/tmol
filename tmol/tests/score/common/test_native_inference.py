@@ -1,5 +1,7 @@
 """Direct native term inference preserves values without discarded derivatives."""
 
+import gc
+
 import pytest
 import torch
 
@@ -79,11 +81,20 @@ def test_tracked_inference_allocates_no_derivative_scratch(
         torch.cuda.synchronize(torch_device)
         return result, torch.cuda.max_memory_allocated(torch_device) - before
 
-    with torch.inference_mode() if inference else torch.no_grad():
-        scorer(detached)
-        scorer(tracked)
-        expected, detached_peak = allocation(detached)
-        actual, tracked_peak = allocation(tracked)
+    # Unrelated cyclic garbage can release CUDA tensors between reading the
+    # baseline allocation and resetting the peak, yielding a negative delta.
+    gc.collect()
+    gc_enabled = gc.isenabled()
+    gc.disable()
+    try:
+        with torch.inference_mode() if inference else torch.no_grad():
+            scorer(detached)
+            scorer(tracked)
+            expected, detached_peak = allocation(detached)
+            actual, tracked_peak = allocation(tracked)
+    finally:
+        if gc_enabled:
+            gc.enable()
     torch.testing.assert_close(actual, expected)
     assert tracked_peak <= detached_peak
     assert tracked.requires_grad

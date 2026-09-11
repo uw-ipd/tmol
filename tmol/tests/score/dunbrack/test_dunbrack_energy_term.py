@@ -1,3 +1,5 @@
+import gc
+
 import pytest
 import torch
 
@@ -88,12 +90,20 @@ def test_score_only_tracked_input_uses_no_derivative_scratch(
         peak = torch.cuda.max_memory_allocated(torch_device) - before
         return result, peak
 
-    with torch.inference_mode() if inference else torch.no_grad():
-        # Warm both paths before measuring only the scoring allocations.
-        scorer(detached)
-        scorer(tracked)
-        expected, detached_peak = peak_allocation(detached)
-        actual, tracked_peak = peak_allocation(tracked)
+    # Isolate these allocations from cyclic garbage left by earlier tests.
+    gc.collect()
+    gc_enabled = gc.isenabled()
+    gc.disable()
+    try:
+        with torch.inference_mode() if inference else torch.no_grad():
+            # Warm both paths before measuring only the scoring allocations.
+            scorer(detached)
+            scorer(tracked)
+            expected, detached_peak = peak_allocation(detached)
+            actual, tracked_peak = peak_allocation(tracked)
+    finally:
+        if gc_enabled:
+            gc.enable()
     torch.testing.assert_close(actual, expected)
     assert tracked.requires_grad
     assert not actual.requires_grad
