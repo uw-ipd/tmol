@@ -377,6 +377,8 @@ The follow-up branch `026475f0e` still reproduces this omission for all **14** a
 
 CUDA reproduces the full minimization failure: the same three starts finish at **1.658, 2.120 and 2.558 Å** (Slurm 244924). Unresolved. [diagnose_connection_stiffness.py](diagnose_connection_stiffness.py) records energies and analytic force projections, with a finite-difference stiffness from those forces. The required fix must give connection geometry explicit parameter ownership, preserve canonical/fragment parameters, avoid counting bonds twice, and cover score/gradient/packing/Cartesian-minimization paths. Repeated components with different partners cannot share parameters merely because their atom names match.
 
+The follow-up now implements an explicit connection-record backend with validated topology/ownership, sparse pair lookup and one shared native evaluator. CPU/CUDA energy/gradient, packing, minimization and serialization tests pass with explicit synthetic records; canonical and existing fragment checks also pass. Automatic chemical parameter generation and ligand `.tmol` persistence are still pending, so this is **not yet a fix for the default conjugation preparation**. See the final connection section of [FOLLOWUP.md](FOLLOWUP.md).
+
 ### 39. P2 — protonation cache grows with every pH and exposes mutable rules
 
 [tmol/ligand/_dimorphite_dl.py:625](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/ligand/_dimorphite_dl.py#L625)

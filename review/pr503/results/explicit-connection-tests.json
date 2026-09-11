@@ -1,0 +1,417 @@
+{
+  "parent_commit": "caaa27b6a",
+  "source_sha256": {
+    "tmol/database/scoring/_cartbonded.py": "d055ecb1ff9d6c7369d4dc87a60418b6e220288fbe6f37edf29b78d1903694dc",
+    "tmol/score/cartbonded/_connection_parameters.py": "256be28564c00a6f5ad8a2b9031e0d6193a350cbb711fd652acf9a2ba0fe06e8",
+    "tmol/score/cartbonded/_cartbonded_energy_term.py": "af95eb356c59403d48693daf3c99409fb6e5abf3696608e2a0974673fca8bde1",
+    "tmol/score/cartbonded/potentials/cartbonded_pose_score.impl.hh": "9c6cebbd62a6b6ee43b3e69052992804fafe5c3336d01c14d8957296e6135955",
+    "tmol/score/cartbonded/potentials/compiled.ops.cpp": "33a975c258a49a4bdfa2f33628ff3c3c8258b4dbe14aa867020355cb58df23ab",
+    "tmol/tests/score/cartbonded/test_explicit_connection_parameters.py": "6e43ce467d916f432a304636b6c6055c5e07d2454ac9ca7c9283c4d92b27c092",
+    "tmol/tests/ligand/test_fragmented_ligand_scoring.py": "1104d11febd9f85a7df7c654e616fcf62f801cb6d1e661720bb08a2a0e4031e9"
+  },
+  "runs": [
+    {
+      "job": 245896,
+      "tests": 70,
+      "failures": 0,
+      "cases": [
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_connection_energy_gradient_and_single_ownership[cpu-False-False-False]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_connection_energy_gradient_and_single_ownership[cpu-False-False-True]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_connection_energy_gradient_and_single_ownership[cpu-False-True-False]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_connection_energy_gradient_and_single_ownership[cpu-False-True-True]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_connection_energy_gradient_and_single_ownership[cpu-True-False-False]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_connection_energy_gradient_and_single_ownership[cpu-True-False-True]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_connection_energy_gradient_and_single_ownership[cpu-True-True-False]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_connection_energy_gradient_and_single_ownership[cpu-True-True-True]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_connection_energy_gradient_and_single_ownership[cuda-False-False-False]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_connection_energy_gradient_and_single_ownership[cuda-False-False-True]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_connection_energy_gradient_and_single_ownership[cuda-False-True-False]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_connection_energy_gradient_and_single_ownership[cuda-False-True-True]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_connection_energy_gradient_and_single_ownership[cuda-True-False-False]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_connection_energy_gradient_and_single_ownership[cuda-True-False-True]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_connection_energy_gradient_and_single_ownership[cuda-True-True-False]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_connection_energy_gradient_and_single_ownership[cuda-True-True-True]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_invalid_connection_records_raise_before_native_scoring[cpu-missing]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_invalid_connection_records_raise_before_native_scoring[cpu-duplicate]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_invalid_connection_records_raise_before_native_scoring[cpu-extraneous]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_invalid_connection_records_raise_before_native_scoring[cpu-conflict]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_invalid_connection_records_raise_before_native_scoring[cpu-nan]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_invalid_connection_records_raise_before_native_scoring[cpu-wrong_type]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_invalid_connection_records_raise_before_native_scoring[cpu-unknown_connection]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_invalid_connection_records_raise_before_native_scoring[cuda-missing]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_invalid_connection_records_raise_before_native_scoring[cuda-duplicate]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_invalid_connection_records_raise_before_native_scoring[cuda-extraneous]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_invalid_connection_records_raise_before_native_scoring[cuda-conflict]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_invalid_connection_records_raise_before_native_scoring[cuda-nan]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_invalid_connection_records_raise_before_native_scoring[cuda-wrong_type]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_invalid_connection_records_raise_before_native_scoring[cuda-unknown_connection]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_connection_records_survive_database_serialization[cpu]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_connection_records_survive_database_serialization[cuda]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_rotamer_connection_pairs_and_gradients[cpu]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_rotamer_connection_pairs_and_gradients[cuda]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_packing_uses_explicit_connection_parameters[cpu]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_packing_uses_explicit_connection_parameters[cuda]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_injected_parameter_cache",
+          "name": "test_injected_parameters_have_independent_scoring_annotations[cpu-False-False]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_injected_parameter_cache",
+          "name": "test_injected_parameters_have_independent_scoring_annotations[cpu-False-True]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_injected_parameter_cache",
+          "name": "test_injected_parameters_have_independent_scoring_annotations[cpu-True-False]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_injected_parameter_cache",
+          "name": "test_injected_parameters_have_independent_scoring_annotations[cpu-True-True]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_injected_parameter_cache",
+          "name": "test_injected_parameters_have_independent_scoring_annotations[cuda-False-False]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_injected_parameter_cache",
+          "name": "test_injected_parameters_have_independent_scoring_annotations[cuda-False-True]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_injected_parameter_cache",
+          "name": "test_injected_parameters_have_independent_scoring_annotations[cuda-True-False]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_injected_parameter_cache",
+          "name": "test_injected_parameters_have_independent_scoring_annotations[cuda-True-True]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_connection_improper_reference",
+          "name": "test_connection_improper_energy_and_gradient[cpu-resnums0]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_connection_improper_reference",
+          "name": "test_connection_improper_energy_and_gradient[cpu-resnums1]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_connection_improper_reference",
+          "name": "test_connection_improper_energy_and_gradient[cuda-resnums0]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_connection_improper_reference",
+          "name": "test_connection_improper_energy_and_gradient[cuda-resnums1]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_cartbonded_energy_term",
+          "name": "test_smoke[cpu]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_cartbonded_energy_term",
+          "name": "test_smoke[cuda]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_cartbonded_energy_term",
+          "name": "test_annotate_twice[cpu]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_cartbonded_energy_term",
+          "name": "test_annotate_twice[cuda]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_cartbonded_energy_term",
+          "name": "test_annotate_restypes[cpu]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_cartbonded_energy_term",
+          "name": "test_annotate_restypes[cuda]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_cartbonded_energy_term",
+          "name": "test_hack_cartbonded_params[cpu]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_cartbonded_energy_term",
+          "name": "test_hack_cartbonded_params[cuda]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_cartbonded_energy_term.TestCartBondedEnergyTerm",
+          "name": "test_whole_pose_scoring_10[cpu]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_cartbonded_energy_term.TestCartBondedEnergyTerm",
+          "name": "test_whole_pose_scoring_10[cuda]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_cartbonded_energy_term.TestCartBondedEnergyTerm",
+          "name": "test_whole_pose_scoring_jagged[cpu]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_cartbonded_energy_term.TestCartBondedEnergyTerm",
+          "name": "test_whole_pose_scoring_jagged[cuda]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_cartbonded_energy_term.TestCartBondedEnergyTerm",
+          "name": "test_whole_pose_scoring_gradcheck[cpu]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_cartbonded_energy_term.TestCartBondedEnergyTerm",
+          "name": "test_whole_pose_scoring_gradcheck[cuda]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_cartbonded_energy_term.TestCartBondedEnergyTerm",
+          "name": "test_block_scoring_matches_whole_pose_scoring[cpu]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_cartbonded_energy_term.TestCartBondedEnergyTerm",
+          "name": "test_block_scoring_matches_whole_pose_scoring[cuda]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_cartbonded_energy_term.TestCartBondedEnergyTerm",
+          "name": "test_block_scoring[cpu]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_cartbonded_energy_term.TestCartBondedEnergyTerm",
+          "name": "test_block_scoring[cuda]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_cartbonded_energy_term.TestCartBondedEnergyTerm",
+          "name": "test_disulfide_scoring[cpu]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_cartbonded_energy_term.TestCartBondedEnergyTerm",
+          "name": "test_disulfide_scoring[cuda]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_cartbonded_energy_term.TestCartBondedEnergyTerm",
+          "name": "test_block_scoring_reweighted_gradcheck[cpu]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_cartbonded_energy_term.TestCartBondedEnergyTerm",
+          "name": "test_block_scoring_reweighted_gradcheck[cuda]"
+        }
+      ]
+    },
+    {
+      "job": 246259,
+      "tests": 6,
+      "failures": 0,
+      "cases": [
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_identical_connection_types_require_exchange_symmetry[cpu-False]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_identical_connection_types_require_exchange_symmetry[cpu-True]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_identical_connection_types_require_exchange_symmetry[cuda-False]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_identical_connection_types_require_exchange_symmetry[cuda-True]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_connection_records_are_scoped_in_a_mixed_pose_batch[cpu]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_connection_records_are_scoped_in_a_mixed_pose_batch[cuda]"
+        }
+      ]
+    },
+    {
+      "job": 246520,
+      "tests": 9,
+      "failures": 0,
+      "cases": [
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_connection_records_survive_database_serialization[cpu]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_connection_records_survive_database_serialization[cuda]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_cartesian_minimization_restores_explicit_connection_length[cpu]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_cartesian_minimization_restores_explicit_connection_length[cuda]"
+        },
+        {
+          "class": "tmol.tests.ligand.test_fragmented_ligand_scoring",
+          "name": "test_fragmented_ligand_minimize_and_pack_e2e"
+        },
+        {
+          "class": "tmol.tests.ligand.test_fragmented_ligand_scoring",
+          "name": "test_fragmented_ligand_ddg_and_total_pose_parity[ace-bridge]"
+        },
+        {
+          "class": "tmol.tests.ligand.test_fragmented_ligand_scoring",
+          "name": "test_fragmented_ligand_ddg_and_total_pose_parity[cox1-bridge]"
+        },
+        {
+          "class": "tmol.tests.ligand.test_fragmented_ligand_scoring",
+          "name": "test_fragmented_ligand_ddg_and_total_pose_parity[hsp90-bridge]"
+        },
+        {
+          "class": "tmol.tests.ligand.test_fragmented_ligand_scoring",
+          "name": "test_fragmented_ligand_ddg_and_total_pose_parity[ace-multi]"
+        }
+      ]
+    },
+    {
+      "job": 246982,
+      "tests": 7,
+      "failures": 0,
+      "cases": [
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_public_injection_retains_connection_records_when_residue_rows_change[cpu]"
+        },
+        {
+          "class": "tmol.tests.score.cartbonded.test_explicit_connection_parameters",
+          "name": "test_public_injection_retains_connection_records_when_residue_rows_change[cuda]"
+        },
+        {
+          "class": "tmol.tests.ligand.test_fragmented_ligand_scoring",
+          "name": "test_fragmented_ligand_minimize_and_pack_e2e[cuda]"
+        },
+        {
+          "class": "tmol.tests.ligand.test_fragmented_ligand_scoring",
+          "name": "test_fragmented_ligand_ddg_and_total_pose_parity[cuda-ace-bridge]"
+        },
+        {
+          "class": "tmol.tests.ligand.test_fragmented_ligand_scoring",
+          "name": "test_fragmented_ligand_ddg_and_total_pose_parity[cuda-cox1-bridge]"
+        },
+        {
+          "class": "tmol.tests.ligand.test_fragmented_ligand_scoring",
+          "name": "test_fragmented_ligand_ddg_and_total_pose_parity[cuda-hsp90-bridge]"
+        },
+        {
+          "class": "tmol.tests.ligand.test_fragmented_ligand_scoring",
+          "name": "test_fragmented_ligand_ddg_and_total_pose_parity[cuda-ace-multi]"
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Synthetic connection constants validate numerical ownership; not a fitted force field",
+    "No automatic conjugation parameter generation yet",
+    "Cartbonded YAML roundtrip is covered; ligand .tmol export integration remains open",
+    "Native whole-pose, block-pair, rotamer and Cartesian-minimization tests run on CPU and CUDA",
+    "Job 246520 fragment cases used CPU internally; job 246982 validates the five cases on CUDA after device parameterization"
+  ]
+}

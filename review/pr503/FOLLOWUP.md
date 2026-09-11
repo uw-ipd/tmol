@@ -24,7 +24,7 @@ historical evidence, not a claim that the follow-up is complete.
 | D geometry (24) | Signed stereocentre volumes and actual library sampling after repacking; reject mislabeled geometry | Every offered D rotamer and packed result retains signed alpha-centre volume on CPU/CUDA (237089); broader stereocentre coverage remains |
 | Fold trees/fragments (25,26) | Branch-point invariant, fragment restoration/minimize/pack/DDG and multi-pose checks | Existing fixes; final suite pending |
 | Scientific ownership (general 2,7) | Independent potential checks and canonical change audit; sampling/scoring reference separation | Pending |
-| Connection bonded potentials (38) | Every declared attachment has explicit length/angle energy ownership; independent stretching/bending forces; parameter persistence; no double counting; packing and Cartesian minimization | New failure: all 14 glycan/biotin attachments have zero cartbonded stiffness on CPU/CUDA; ordinary peptide controls pass; full minimization stretches the biotin bond |
+| Connection bonded potentials (38) | Every declared attachment has explicit length/angle energy ownership; independent stretching/bending forces; parameter persistence; no double counting; packing and Cartesian minimization | Explicit connection-record backend implemented and validated CPU/CUDA; automatic parameter generation/persistence still pending, so default preparation retains the 14 missing attachment potentials |
 | API/authority/reproducibility (general 1,6,8,9) | Executable input-route examples, settings/seed provenance, documented migration and fresh-checkout CI | Pending |
 | Workload scale/release (general 4,5,10) | Explicit matrix of chemistry/topology/input/batch/stage/backend coverage; paired profiles/timings/memory, no masked regressions | Paired baseline/candidate 19-fixture CPU/CUDA matrices recorded; larger-scale and full-stage matrix pending |
 
@@ -541,3 +541,78 @@ whole-pose/block-pair energies and independent coordinate gradients, plus the
 existing manual-parameter replacement and connection-improper reference checks.
 The source database remains unchanged. This fixes parameter invalidation; it
 does not yet supply the missing attachment potential records.
+
+### Explicit connection-owned bonded records
+
+A new `ConnectionCartRes` describes the complete bond and two-block angle set
+for a pair of exact patched block types and named connections. Leading `+`
+atom names refer to the second block. Compilation validates topology coverage,
+duplicate/extraneous paths, finite nonnegative force constants, valid targets,
+conflicting records and exchange symmetry when both endpoint types/connections
+are identical. Matching records replace the legacy cartbonded length/angle
+lookup once per connection. Existing proper/improper ownership remains separate.
+Missing records retain the existing fallback behavior; they do not become new
+physical parameters merely by installing this backend.
+
+A sparse hash identifies the connection pair in either orientation. Both keys
+share one compact path/parameter span; the reversed key switches the local
+atom sides without duplicating parameter values. Storage follows the number of
+explicit records, not the square of the block-type count. An ordinary five-term
+heterotypic record needs 336 additional bytes of packed integer/float data,
+excluding allocator overhead and Python metadata. Canonical databases with no
+records have empty additional tables. Empty tensor strides and an empty legacy
+parameter database are handled explicitly.
+
+One shared native evaluator replaces four duplicated connection-path loops.
+It serves pose/rotamer forward/backward kernels. The independent synthetic
+harmonic tests cover whole-pose/block-pair energies and arbitrary weighted
+coordinate gradients; opposite record orientations; exact single ownership with
+legacy rows present; connection-only databases; mixed pose batches; exchange
+symmetry; rotamer pair enumeration/gradients; actual packing; and Cartesian
+minimization of a bond displaced by 1 Å. The minimizer restores the declared
+length within 0.005 Å while keeping the first block unchanged.
+
+Slurm **245896: 70 passes** for the initial backend and complete existing
+cartbonded suite on CPU/CUDA. **246259: six passes** for added identity/batch
+checks on both devices. **246520: nine passes** for Cartesian minimization,
+extended serialization and existing fragment score/DDG/minimize/pack checks.
+The fragment integration cases select CPU internally; they are not represented
+as CUDA fragment validation. Some tests overlap across runs, so these counts
+must not be added as a unique-test total. See `results/explicit-connection-tests.json`.
+Cartbonded YAML roundtrips preserve records, including companion generated
+files and files containing the derived hash. Public parameter injection retains
+existing connection records when other residue rows are updated.
+
+The native comparison compiles `caaa27b6a`'s kernel under a distinct namespace
+and passes both versions identical current coordinate/parameter tensors. Seven
+alternating-order warm pairs use 1, 16 and 64 ubiquitin poses. CPU scores and
+gradients match bit for bit; forward/backward timing is within about 1.1%.
+H200 CUDA improves approximately 1% for one pose, 20% for 16 and 25–26% for 64.
+Maximum CUDA score/gradient differences are 0.0000458/0.00000382, within the
+comparison tolerance. This measures only cartbonded native scoring and its
+wrapper, not full application setup or total-score/packing speed. Scripts and
+raw timings are `profile_cartbonded_connections.py` and
+`results/connection-backend-profile-{cpu,cuda}.json` (GPU 246259).
+
+**Still required before closing comment 38:** generate and persist parameters
+for the actual conjugated chemistry. The topology-only MMFF coverage probe is
+an input to this work, not a drop-in energy model: its force constants, units
+and anharmonic form differ from tmol's harmonic representation. Validate local
+bonded geometry changed by conjugation, atom typing/charge state and proper/
+improper ownership as well as the new cross-bond rows. In particular, replacing
+an amine hydrogen by an acyl group changes more than the attachment distance.
+The `.tmol` export/reload path must retain canonical partner patches, charges,
+connection records and parameter provenance. Repeated names in distinct chemical
+contexts must not silently share incompatible records. Angles spanning two
+connections and three blocks need separate ownership beyond this two-block
+backend. Automatic generation must not claim such cases are covered by the
+passing two-block tests. The original default biotin/glycan stiffness failure
+remains open until the real prepared fixtures pass force, packing and Cartesian
+minimization checks with generated records.
+
+The fragment integration tests now accept the device fixture instead of forcing
+CPU. **246982: seven passes** adds all five fragment score/DDG/minimize/pack
+cases on CUDA and verifies on CPU/CUDA that public residue-parameter updates
+retain the already-installed connection records and their actual energies.
+The earlier 246520 statement describes that historical run; CUDA fragment
+coverage is now explicit. All four backend/extension Slurm jobs completed 0:0.

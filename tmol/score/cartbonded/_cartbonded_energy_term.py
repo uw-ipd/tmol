@@ -40,6 +40,9 @@ class CartBondedPackedBlockTypesAnnotations:
     cartbonded_atom_unique_id_index: dict
     cartbonded_params_hash_keys: torch.Tensor
     cartbonded_params_hash_values: torch.Tensor
+    connection_hash_keys: torch.Tensor
+    connection_spans: torch.Tensor
+    connection_paths: torch.Tensor
 
 
 class CartBondedEnergyTerm(AtomTypeDependentTerm):
@@ -335,7 +338,9 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         ) + len(wildcard_params)
 
         # Construct the params hash with the given scaling factor
-        hash_keys, hash_values = make_hashtable_keys_values(n_total_params, 2, 5, 7)
+        hash_keys, hash_values = make_hashtable_keys_values(
+            max(n_total_params, 1), 2, 5, 7
+        )
 
         # Fill the hash table
         cur_val = 0
@@ -352,6 +357,21 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             add_to_hashtable(hash_keys, hash_values, cur_val, key, value)
             cur_val += 1
 
+        from ._connection_parameters import compile_connection_parameters
+
+        connection_keys, connection_spans, connection_paths, connection_values = (
+            compile_connection_parameters(
+                self.cart_database.connection_params,
+                packed_block_types,
+                len(hash_values),
+            )
+        )
+        hash_values = (
+            numpy.concatenate((hash_values, connection_values), axis=0)
+            if len(connection_values)
+            else hash_values
+        )
+
         hash_keys_tensor = torch.from_numpy(hash_keys).to(device=self.device)
         hash_values_tensor = torch.from_numpy(hash_values).to(device=self.device)
 
@@ -364,6 +384,9 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             cartbonded_atom_unique_id_index=cbet_atom_unique_id_index,
             cartbonded_params_hash_keys=hash_keys_tensor,
             cartbonded_params_hash_values=hash_values_tensor,
+            connection_hash_keys=torch.from_numpy(connection_keys).to(self.device),
+            connection_spans=torch.from_numpy(connection_spans).to(self.device),
+            connection_paths=torch.from_numpy(connection_paths).to(self.device),
         )
         if not hasattr(packed_block_types, "cartbonded_annotations"):
             setattr(packed_block_types, "cartbonded_annotations", {})
@@ -397,6 +420,9 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             pbt.cartbonded_atom_is_rosetta,
             pbt.cartbonded_is_fragment,
             pbt.atom_cross_ids,
+            pbt_cb_ann.connection_hash_keys,
+            pbt_cb_ann.connection_spans,
+            pbt_cb_ann.connection_paths,
             pbt_cb_ann.cartbonded_params_hash_keys,
             pbt_cb_ann.cartbonded_params_hash_values,
             pbt_cb_ann.cartbonded_subgraphs,

@@ -63,9 +63,30 @@ class CartRes:
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
+class ConnectionCartRes:
+    """Complete length/angle parameters for one pair of named connections.
+
+    Block names identify exact patched residue types. Atom names prefixed by
+    '+' belong to block_type2; other names belong to block_type1. The record
+    replaces legacy length/angle lookup for this pair, in either orientation.
+    It must cover the bond and every two-block angle through it exactly once. Proper
+    and improper torsions retain their existing independent ownership.
+    """
+
+    block_type1: str
+    connection1: str
+    block_type2: str
+    connection2: str
+    length_parameters: Tuple[LengthGroup, ...]
+    angle_parameters: Tuple[AngleGroup, ...]
+    provenance: str = ""
+
+
+@attr.s(auto_attribs=True, slots=True, frozen=True)
 class CartBondedDatabase:
     residue_params: dict[str, CartRes]
     hash: str
+    connection_params: Tuple[ConnectionCartRes, ...] = ()
 
     @classmethod
     def from_file(cls, path, generated=()):
@@ -75,18 +96,34 @@ class CartBondedDatabase:
             if not os.path.exists(extra):
                 continue
             with open(extra, "r") as infile:
+                extension = safe_load(infile)
                 resparam_dict["residue_params"].update(
-                    safe_load(infile)["residue_params"]
+                    extension.get("residue_params", {})
                 )
+                if extension.get("connection_params"):
+                    resparam_dict.setdefault("connection_params", []).extend(
+                        extension["connection_params"]
+                    )
+        # A serialized cache key is derived data, not part of its own input.
+        resparam_dict.pop("hash", None)
         resparam_dict["hash"] = cls._generate_hash(resparam_dict)
 
         return cattr.structure(resparam_dict, cls)
 
     @classmethod
-    def from_cartres_dict(cls, cartres_dict: dict[str, CartRes]):
+    def from_cartres_dict(cls, cartres_dict: dict[str, CartRes], connection_params=()):
         resparam_dict = cattr.unstructure(cartres_dict)
+        if connection_params:
+            resparam_dict = {
+                "residue_params": resparam_dict,
+                "connection_params": cattr.unstructure(connection_params),
+            }
         hash = cls._generate_hash(resparam_dict)
-        return cls(residue_params=cartres_dict, hash=hash)
+        return cls(
+            residue_params=cartres_dict,
+            hash=hash,
+            connection_params=tuple(connection_params),
+        )
 
     @classmethod
     def _generate_hash(cls, resparam_dict):

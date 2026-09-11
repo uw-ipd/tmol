@@ -1,6 +1,7 @@
 from ._cartbonded import (  # noqa: F401
     AngleGroup,
     CartRes,
+    ConnectionCartRes,
     HxlTorsionGroup,
     ImproperGroup,
     LengthGroup,

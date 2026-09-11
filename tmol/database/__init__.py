@@ -13,7 +13,7 @@ from .chemical import (  # noqa: F401
 from ._patched_chemdb import PatchedChemicalDatabase  # noqa: F401
 from .scoring import ScoringDatabase  # noqa: F401
 from .scoring._elec import PartialCharges  # noqa: F401
-from .scoring._cartbonded import CartRes  # noqa: F401
+from .scoring._cartbonded import CartRes, ConnectionCartRes  # noqa: F401
 from .scoring._mirrored_dunbrack import with_mirrored_libraries
 
 
@@ -161,6 +161,7 @@ def inject_residue_params(
     partial_charges: Optional[Mapping[str, dict[str, float]]] = None,
     cartbonded_params: Optional[Mapping[str, CartRes]] = None,
     variants: Optional[list] = None,
+    connection_params: Optional[tuple[ConnectionCartRes, ...]] = None,
 ) -> ParameterDatabase:
     """Return a new ParameterDatabase with additional residue type data.
 
@@ -173,6 +174,7 @@ def inject_residue_params(
         atom_types: Optional new AtomType entries (deduplicated by name).
         partial_charges: Per-residue charge dicts ``{res_name: {atom: charge}}``.
         cartbonded_params: Per-residue CartRes ``{res_name: CartRes}``.
+        connection_params: Complete length/angle records for named connection pairs.
         variants: Optional patches the new residues bring with them, applied
             alongside the database's own.
 
@@ -205,12 +207,15 @@ def inject_residue_params(
         )
 
     new_cart = param_db.scoring.cartbonded
-    if cartbonded_params:
-        new_res_params = {**new_cart.residue_params, **cartbonded_params}
+    if cartbonded_params or connection_params:
+        new_res_params = {**new_cart.residue_params, **(cartbonded_params or {})}
+        new_connections = tuple(
+            dict.fromkeys((*new_cart.connection_params, *(connection_params or ())))
+        )
         # Scoring annotations are keyed by this content hash. Carrying the
         # old hash into an extended database can reuse another database's
         # bonded parameters on an already annotated block type or pose.
-        new_cart = type(new_cart).from_cartres_dict(new_res_params)
+        new_cart = type(new_cart).from_cartres_dict(new_res_params, new_connections)
 
     new_scoring = attr.evolve(
         param_db.scoring,

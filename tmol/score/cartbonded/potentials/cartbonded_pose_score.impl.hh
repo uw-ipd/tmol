@@ -215,6 +215,148 @@ TMOL_DEVICE_FUNC void evaluate_connection_impropers(
   }
 }
 
+// Complete explicit connection records override only lengths and angles.
+// Share dispatch/ownership and the legacy fallback across all four kernels.
+template <typename Int, tmol::Device D, int nt, typename ScoreSubgraph>
+TMOL_DEVICE_FUNC void evaluate_connection_paths(
+    int tid,
+    int block_type1, int block_type2,
+    int rot_coord_offset1, int rot_coord_offset2,
+    int conn_ind1, int conn_ind2,
+    TView<Vec<Int, 3>, 3, D> atom_paths_from_conn,
+    TView<Int, 1, D> block_type_is_fragment,
+    TView<Int, 2, D> atom_unique_ids,
+    TView<Int, 2, D> atom_wildcard_ids,
+    TView<Int, 2, D> atom_cross_ids,
+    TView<Vec<Int, 5>, 1, D> hash_keys,
+    TView<Vec<Int, 5>, 1, D> connection_hash_keys,
+    TView<Vec<Int, 2>, 1, D> connection_spans,
+    TView<Vec<Int, 5>, 1, D> connection_paths,
+    ScoreSubgraph const& score_subgraph) {
+  if (connection_spans.size(0) != 0) {
+    Vec<Int, 4> key = {block_type1, conn_ind1, block_type2, conn_ind2};
+    int const found = hash_lookup<Int, 4, D>(key, connection_hash_keys);
+    if (found != -1) {
+      int const start = connection_spans[found][0];
+      int const signed_count = connection_spans[found][1];
+      int const sign = signed_count < 0 ? -1 : 1;
+      int const count = sign * signed_count;
+      for (int i = tid; i < count; i += nt) {
+        auto const path = connection_paths[start + i];
+        Vec<Int, 4> atoms = {-1, -1, -1, -1};
+        for (int j = 0; j < 4; ++j) {
+          int const encoded = sign * path[j];
+          if (encoded != 0) {
+            atoms[j] = encoded > 0 ? rot_coord_offset1 + encoded - 1
+                                   : rot_coord_offset2 - encoded - 1;
+          }
+        }
+        score_subgraph(atoms, path[4]);
+      }
+      return;
+    }
+  }
+  // no cross-residue torsion parameter exists; the two amide impropers
+  // are enumerated separately because they are not bonded paths
+  int n_connection_spanning_subgraphs =
+      common::NUM_INTER_RES_PATHS_THRU_ANGLE;
+  for (int i = tid; i < 2 * n_connection_spanning_subgraphs; i += nt) {
+    bool reverse = i % 2 == 1;
+    // interleave the subgraphs from the two directions so we can have
+    // better warp coherence.
+    int const subgraph_index = i / 2;
+    int const block_typeA = reverse ? block_type2 : block_type1;
+    int const block_typeB = reverse ? block_type1 : block_type2;
+    int const rot_coord_offsetA =
+        reverse ? rot_coord_offset2 : rot_coord_offset1;
+    int const rot_coord_offsetB =
+        reverse ? rot_coord_offset1 : rot_coord_offset2;
+    int const conn_indA = reverse ? conn_ind2 : conn_ind1;
+    int const conn_indB = reverse ? conn_ind1 : conn_ind2;
+
+    int param_index = -1;
+    Vec<Int, 4> subgraph_atom_indices = {-1, -1, -1, -1};
+
+    tuple<int, int, int> spanning_subgraphs =
+        get_connection_spanning_subgraph_indices(subgraph_index);
+    int resA_path_ind = common::get<1>(spanning_subgraphs);
+    int resB_path_ind = common::get<2>(spanning_subgraphs);
+    // Grab the paths from each block
+    Vec<Int, 3> resA_path =
+        atom_paths_from_conn[block_typeA][conn_indA][resA_path_ind];
+    Vec<Int, 3> resB_path =
+        atom_paths_from_conn[block_typeB][conn_indB][resB_path_ind];
+
+    // Make sure these are valid paths
+    if (resA_path[0] == -1 || resB_path[0] == -1) continue;
+    // Reverse the first path so that we can join them head-to-head
+    resA_path.reverseInPlace();
+    // Get a new Vec containing the global indices of the atoms
+    Vec<Int, 3> resA_atom_indices =
+        atom_local_to_global_indices(resA_path, rot_coord_offsetA);
+    Vec<Int, 3> resB_atom_indices =
+        atom_local_to_global_indices(resB_path, rot_coord_offsetB);
+    // Calculate the size of each path
+    Int resA_size = (resA_atom_indices.array() != -1).count();
+    Int resB_size = (resB_atom_indices.array() != -1).count();
+
+    // Prefer exact parameters when both blocks share a residue base name,
+    // then fall back to the historical unique/wildcard and
+    // wildcard/wildcard lookups used by polymer connections.
+    int const first_lookup_mode =
+        block_type_is_fragment[block_typeA]
+                && block_type_is_fragment[block_typeB]
+            ? 0
+            : 1;
+    for (int lookup_mode = first_lookup_mode; lookup_mode < 3;
+         ++lookup_mode) {
+      const auto& resA_atom_id_table =
+          (lookup_mode == 2) ? atom_wildcard_ids[block_typeA]
+                             : atom_unique_ids[block_typeA];
+      const auto& resB_atom_id_table = (lookup_mode == 0)
+                                           ? atom_unique_ids[block_typeB]
+                                           : atom_cross_ids[block_typeB];
+
+      // Get the atom IDs
+      Vec<Int, 3> resA_subgraph_atom_ids =
+          get_atom_ids(resA_atom_id_table, resA_path);
+      Vec<Int, 3> resB_subgraph_atom_ids =
+          get_atom_ids(resB_atom_id_table, resB_path);
+
+      // Make the joined data structures
+      Vec<Int, 4> path;
+      Vec<Int, 4> atom_indices;
+      Vec<Int, 4> subgraph_atom_ids;
+
+      // Init with -1s
+      path << -1, -1, -1, -1;
+      atom_indices << -1, -1, -1, -1;
+      subgraph_atom_ids << -1, -1, -1, -1;
+
+      // Join the paths into 1
+      path.head(resA_size + resB_size) << resA_path.tail(resA_size),
+          resB_path.head(resB_size);
+      atom_indices.head(resA_size + resB_size)
+          << resA_atom_indices.tail(resA_size),
+          resB_atom_indices.head(resB_size);
+      subgraph_atom_ids.head(resA_size + resB_size)
+          << resA_subgraph_atom_ids.tail(resA_size),
+          resB_subgraph_atom_ids.head(resB_size);
+
+      // Do the lookup
+      param_index = hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
+      if (param_index != -1) {
+        // we found it!
+        subgraph_atom_indices = atom_indices;
+        break;
+      }
+    }
+    if (param_index != -1) {
+      score_subgraph(subgraph_atom_indices, param_index);
+    }
+  }
+}
+
 template <
     template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
@@ -244,6 +386,9 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     TView<Int, 2, D> atom_is_rosetta,
     TView<Int, 1, D> block_type_is_fragment,
     TView<Int, 2, D> atom_cross_ids,
+    TView<Vec<Int, 5>, 1, D> connection_hash_keys,
+    TView<Vec<Int, 2>, 1, D> connection_spans,
+    TView<Vec<Int, 5>, 1, D> connection_paths,
     TView<Vec<Int, 5>, 1, D> hash_keys,
     TView<Vec<Real, 7>, 1, D> hash_values,
     TView<Vec<Int, 4>, 1, D> cart_subgraphs,
@@ -512,105 +657,12 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       // Use capture-by-reference here so that we can write to the length_score,
       // angle_score, and torsion_score variables
       auto eval_inter_res_subgraphs = ([&] TMOL_DEVICE_FUNC(int tid) {
-        // no cross-residue torsion parameter exists; the two amide impropers
-        // are enumerated separately because they are not bonded paths
-        int n_connection_spanning_subgraphs =
-            common::NUM_INTER_RES_PATHS_THRU_ANGLE;
-        for (int i = tid; i < 2 * n_connection_spanning_subgraphs; i += nt) {
-          bool reverse = i % 2 == 1;
-          // interleave the subgraphs from the two directions so we can have
-          // better warp coherence.
-          int const subgraph_index = i / 2;
-          int const block_typeA = reverse ? block_type2 : block_type1;
-          int const block_typeB = reverse ? block_type1 : block_type2;
-          int const rot_coord_offsetA =
-              reverse ? rot_coord_offset2 : rot_coord_offset1;
-          int const rot_coord_offsetB =
-              reverse ? rot_coord_offset1 : rot_coord_offset2;
-          int const conn_indA = reverse ? conn_ind2 : conn_ind1;
-          int const conn_indB = reverse ? conn_ind1 : conn_ind2;
-
-          int param_index = -1;
-          Vec<Int, 4> subgraph_atom_indices = {-1, -1, -1, -1};
-
-          tuple<int, int, int> spanning_subgraphs =
-              get_connection_spanning_subgraph_indices(subgraph_index);
-          int resA_path_ind = common::get<1>(spanning_subgraphs);
-          int resB_path_ind = common::get<2>(spanning_subgraphs);
-          // Grab the paths from each block
-          Vec<Int, 3> resA_path =
-              atom_paths_from_conn[block_typeA][conn_indA][resA_path_ind];
-          Vec<Int, 3> resB_path =
-              atom_paths_from_conn[block_typeB][conn_indB][resB_path_ind];
-
-          // Make sure these are valid paths
-          if (resA_path[0] == -1 || resB_path[0] == -1) continue;
-          // Reverse the first path so that we can join them head-to-head
-          resA_path.reverseInPlace();
-          // Get a new Vec containing the global indices of the atoms
-          Vec<Int, 3> resA_atom_indices =
-              atom_local_to_global_indices(resA_path, rot_coord_offsetA);
-          Vec<Int, 3> resB_atom_indices =
-              atom_local_to_global_indices(resB_path, rot_coord_offsetB);
-          // Calculate the size of each path
-          Int resA_size = (resA_atom_indices.array() != -1).count();
-          Int resB_size = (resB_atom_indices.array() != -1).count();
-
-          // Prefer exact parameters when both blocks share a residue base name,
-          // then fall back to the historical unique/wildcard and
-          // wildcard/wildcard lookups used by polymer connections.
-          int const first_lookup_mode =
-              block_type_is_fragment[block_typeA]
-                      && block_type_is_fragment[block_typeB]
-                  ? 0
-                  : 1;
-          for (int lookup_mode = first_lookup_mode; lookup_mode < 3;
-               ++lookup_mode) {
-            const auto& resA_atom_id_table =
-                (lookup_mode == 2) ? atom_wildcard_ids[block_typeA]
-                                   : atom_unique_ids[block_typeA];
-            const auto& resB_atom_id_table = (lookup_mode == 0)
-                                                 ? atom_unique_ids[block_typeB]
-                                                 : atom_cross_ids[block_typeB];
-
-            // Get the atom IDs
-            Vec<Int, 3> resA_subgraph_atom_ids =
-                get_atom_ids(resA_atom_id_table, resA_path);
-            Vec<Int, 3> resB_subgraph_atom_ids =
-                get_atom_ids(resB_atom_id_table, resB_path);
-
-            // Make the joined data structures
-            Vec<Int, 4> path;
-            Vec<Int, 4> atom_indices;
-            Vec<Int, 4> subgraph_atom_ids;
-
-            // Init with -1s
-            path << -1, -1, -1, -1;
-            atom_indices << -1, -1, -1, -1;
-            subgraph_atom_ids << -1, -1, -1, -1;
-
-            // Join the paths into 1
-            path.head(resA_size + resB_size) << resA_path.tail(resA_size),
-                resB_path.head(resB_size);
-            atom_indices.head(resA_size + resB_size)
-                << resA_atom_indices.tail(resA_size),
-                resB_atom_indices.head(resB_size);
-            subgraph_atom_ids.head(resA_size + resB_size)
-                << resA_subgraph_atom_ids.tail(resA_size),
-                resB_subgraph_atom_ids.head(resB_size);
-
-            // Do the lookup
-            param_index = hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
-            if (param_index != -1) {
-              // we found it!
-              subgraph_atom_indices = atom_indices;
-              break;
-            }
-          }
-          if (param_index != -1) {
-            score_subgraph(subgraph_atom_indices, param_index);
-          }
-        }
+        evaluate_connection_paths<Int, D, nt>(
+            tid, block_type1, block_type2, rot_coord_offset1, rot_coord_offset2,
+            conn_ind1, conn_ind2, atom_paths_from_conn, block_type_is_fragment,
+            atom_unique_ids, atom_wildcard_ids, atom_cross_ids, hash_keys,
+            connection_hash_keys, connection_spans, connection_paths,
+            score_subgraph);
       });
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
           eval_inter_res_subgraphs);
@@ -732,6 +784,9 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     TView<Int, 2, D> atom_is_rosetta,
     TView<Int, 1, D> block_type_is_fragment,
     TView<Int, 2, D> atom_cross_ids,
+    TView<Vec<Int, 5>, 1, D> connection_hash_keys,
+    TView<Vec<Int, 2>, 1, D> connection_spans,
+    TView<Vec<Int, 5>, 1, D> connection_paths,
     TView<Vec<Int, 5>, 1, D> hash_keys,
     TView<Vec<Real, 7>, 1, D> hash_values,
     TView<Vec<Int, 4>, 1, D> cart_subgraphs,
@@ -964,123 +1019,27 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
 
       // Use by-reference capture here so that we can write to the length,
       // angle, and torsion_score variables
+      auto score_connection = ([&] TMOL_DEVICE_FUNC(
+          Vec<Int, 4> atoms, int param_index) {
+        score_subgraph(atoms, param_index, pose_ind, block_ind1, block_ind2);
+      });
       auto eval_inter_res_subgraphs = ([&] TMOL_DEVICE_FUNC(int tid) {
-        // no cross-residue torsion parameter exists; the two amide impropers
-        // are enumerated separately because they are not bonded paths
-        int n_connection_spanning_subgraphs =
-            common::NUM_INTER_RES_PATHS_THRU_ANGLE;
-        for (int i = tid; i < 2 * n_connection_spanning_subgraphs; i += nt) {
-          bool reverse = i % 2 == 1;
-          // interleave the subgraphs from the two directions so we can have
-          // better warp coherence.
-          int const subgraph_index = i / 2;
-          int const block_typeA = reverse ? block_type2 : block_type1;
-          int const block_typeB = reverse ? block_type1 : block_type2;
-          int const rot_coord_offsetA =
-              reverse ? rot_coord_offset2 : rot_coord_offset1;
-          int const rot_coord_offsetB =
-              reverse ? rot_coord_offset1 : rot_coord_offset2;
-          int const conn_indA = reverse ? conn_ind2 : conn_ind1;
-          int const conn_indB = reverse ? conn_ind1 : conn_ind2;
-
-          int param_index = -1;
-          Vec<Int, 4> subgraph_atom_indices = {-1, -1, -1, -1};
-
-          tuple<int, int, int> spanning_subgraphs =
-              get_connection_spanning_subgraph_indices(subgraph_index);
-          int resA_path_ind = common::get<1>(spanning_subgraphs);
-          int resB_path_ind = common::get<2>(spanning_subgraphs);
-          // Grab the paths from each block
-          Vec<Int, 3> resA_path =
-              atom_paths_from_conn[block_typeA][conn_indA][resA_path_ind];
-          Vec<Int, 3> resB_path =
-              atom_paths_from_conn[block_typeB][conn_indB][resB_path_ind];
-
-          // Make sure these are valid paths
-          if (resA_path[0] == -1 || resB_path[0] == -1) continue;
-          // Reverse the first path so that we can join them head-to-head
-          resA_path.reverseInPlace();
-          // Get a new Vec containing the global indices of the atoms
-          Vec<Int, 3> resA_atom_indices =
-              atom_local_to_global_indices(resA_path, rot_coord_offsetA);
-          Vec<Int, 3> resB_atom_indices =
-              atom_local_to_global_indices(resB_path, rot_coord_offsetB);
-          // Calculate the size of each path
-          Int resA_size = (resA_atom_indices.array() != -1).count();
-          Int resB_size = (resB_atom_indices.array() != -1).count();
-
-          // Prefer exact unique/unique parameters across generic connections.
-          int const first_lookup_mode =
-              block_type_is_fragment[block_typeA]
-                      && block_type_is_fragment[block_typeB]
-                  ? 0
-                  : 1;
-          for (int lookup_mode = first_lookup_mode; lookup_mode < 3;
-               ++lookup_mode) {
-            const auto& resA_atom_id_table =
-                (lookup_mode == 2) ? atom_wildcard_ids[block_typeA]
-                                   : atom_unique_ids[block_typeA];
-            const auto& resB_atom_id_table = (lookup_mode == 0)
-                                                 ? atom_unique_ids[block_typeB]
-                                                 : atom_cross_ids[block_typeB];
-
-            // Get the atom IDs
-            Vec<Int, 3> resA_subgraph_atom_ids =
-                get_atom_ids(resA_atom_id_table, resA_path);
-            Vec<Int, 3> resB_subgraph_atom_ids =
-                get_atom_ids(resB_atom_id_table, resB_path);
-
-            // Make the joined data structures
-            Vec<Int, 4> path;
-            Vec<Int, 4> atom_indices;
-            Vec<Int, 4> subgraph_atom_ids;
-
-            // Init with -1s
-            path << -1, -1, -1, -1;
-            atom_indices << -1, -1, -1, -1;
-            subgraph_atom_ids << -1, -1, -1, -1;
-
-            // Join the paths into 1
-            path.head(resA_size + resB_size) << resA_path.tail(resA_size),
-                resB_path.head(resB_size);
-            atom_indices.head(resA_size + resB_size)
-                << resA_atom_indices.tail(resA_size),
-                resB_atom_indices.head(resB_size);
-            subgraph_atom_ids.head(resA_size + resB_size)
-                << resA_subgraph_atom_ids.tail(resA_size),
-                resB_subgraph_atom_ids.head(resB_size);
-
-            // Do the lookup
-            param_index = hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
-            if (param_index != -1) {
-              // we found it!
-              subgraph_atom_indices = atom_indices;
-              break;
-            }
-          }
-          if (param_index != -1) {
-            score_subgraph(
-                subgraph_atom_indices,
-                param_index,
-                pose_ind,
-                block_ind1,
-                block_ind2);
-          }
-        }
+        evaluate_connection_paths<Int, D, nt>(
+            tid, block_type1, block_type2, rot_coord_offset1, rot_coord_offset2,
+            conn_ind1, conn_ind2, atom_paths_from_conn, block_type_is_fragment,
+            atom_unique_ids, atom_wildcard_ids, atom_cross_ids, hash_keys,
+            connection_hash_keys, connection_spans, connection_paths,
+            score_connection);
       });
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
           eval_inter_res_subgraphs);
 
-      auto score_improper = ([&] TMOL_DEVICE_FUNC(
-          Vec<Int, 4> atoms, int param_index) {
-        score_subgraph(atoms, param_index, pose_ind, block_ind1, block_ind2);
-      });
       auto eval_inter_res_impropers = ([&] TMOL_DEVICE_FUNC(int tid) {
         evaluate_connection_impropers<Int, D, nt>(
             tid, block_type1, block_type2, rot_coord_offset1, rot_coord_offset2,
             conn_ind1, conn_ind2, atom_paths_from_conn, atom_is_rosetta,
             atom_unique_ids, atom_wildcard_ids, atom_cross_ids, hash_keys,
-            score_improper);
+            score_connection);
       });
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
           eval_inter_res_impropers);
@@ -1131,6 +1090,9 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     TView<Int, 2, D> atom_is_rosetta,
     TView<Int, 1, D> block_type_is_fragment,
     TView<Int, 2, D> atom_cross_ids,
+    TView<Vec<Int, 5>, 1, D> connection_hash_keys,
+    TView<Vec<Int, 2>, 1, D> connection_spans,
+    TView<Vec<Int, 5>, 1, D> connection_paths,
     TView<Vec<Int, 5>, 1, D> hash_keys,
     TView<Vec<Real, 7>, 1, D> hash_values,
     TView<Vec<Int, 4>, 1, D> cart_subgraphs,
@@ -1494,103 +1456,12 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       // Use by-reference capture here so that we can write to the length,
       // angle, and torsion_score variables
       auto eval_inter_res_subgraphs = ([&] TMOL_DEVICE_FUNC(int tid) {
-        // no cross-residue torsion parameter exists; the two amide impropers
-        // are enumerated separately because they are not bonded paths
-        int n_connection_spanning_subgraphs =
-            common::NUM_INTER_RES_PATHS_THRU_ANGLE;
-        for (int i = tid; i < 2 * n_connection_spanning_subgraphs; i += nt) {
-          bool reverse = i % 2 == 1;
-          // interleave the subgraphs from the two directions so we can have
-          // better warp coherence.
-          int const subgraph_index = i / 2;
-          int const block_typeA = reverse ? block_type2 : block_type1;
-          int const block_typeB = reverse ? block_type1 : block_type2;
-          int const rot_coord_offsetA =
-              reverse ? rot_coord_offset2 : rot_coord_offset1;
-          int const rot_coord_offsetB =
-              reverse ? rot_coord_offset1 : rot_coord_offset2;
-          int const conn_indA = reverse ? conn_ind2 : conn_ind1;
-          int const conn_indB = reverse ? conn_ind1 : conn_ind2;
-
-          int param_index = -1;
-          Vec<Int, 4> subgraph_atom_indices = {-1, -1, -1, -1};
-
-          tuple<int, int, int> spanning_subgraphs =
-              get_connection_spanning_subgraph_indices(subgraph_index);
-          int resA_path_ind = common::get<1>(spanning_subgraphs);
-          int resB_path_ind = common::get<2>(spanning_subgraphs);
-          // Grab the paths from each block
-          Vec<Int, 3> resA_path =
-              atom_paths_from_conn[block_typeA][conn_indA][resA_path_ind];
-          Vec<Int, 3> resB_path =
-              atom_paths_from_conn[block_typeB][conn_indB][resB_path_ind];
-
-          // Make sure these are valid paths
-          if (resA_path[0] == -1 || resB_path[0] == -1) continue;
-          // Reverse the first path so that we can join them head-to-head
-          resA_path.reverseInPlace();
-          // Get a new Vec containing the global indices of the atoms
-          Vec<Int, 3> resA_atom_indices =
-              atom_local_to_global_indices(resA_path, rot_coord_offsetA);
-          Vec<Int, 3> resB_atom_indices =
-              atom_local_to_global_indices(resB_path, rot_coord_offsetB);
-          // Calculate the size of each path
-          Int resA_size = (resA_atom_indices.array() != -1).count();
-          Int resB_size = (resB_atom_indices.array() != -1).count();
-
-          // Prefer exact unique/unique parameters across generic connections.
-          int const first_lookup_mode =
-              block_type_is_fragment[block_typeA]
-                      && block_type_is_fragment[block_typeB]
-                  ? 0
-                  : 1;
-          for (int lookup_mode = first_lookup_mode; lookup_mode < 3;
-               ++lookup_mode) {
-            const auto& resA_atom_id_table =
-                (lookup_mode == 2) ? atom_wildcard_ids[block_typeA]
-                                   : atom_unique_ids[block_typeA];
-            const auto& resB_atom_id_table = (lookup_mode == 0)
-                                                 ? atom_unique_ids[block_typeB]
-                                                 : atom_cross_ids[block_typeB];
-
-            // Get the atom IDs
-            Vec<Int, 3> resA_subgraph_atom_ids =
-                get_atom_ids(resA_atom_id_table, resA_path);
-            Vec<Int, 3> resB_subgraph_atom_ids =
-                get_atom_ids(resB_atom_id_table, resB_path);
-
-            // Make the joined data structures
-            Vec<Int, 4> path;
-            Vec<Int, 4> atom_indices;
-            Vec<Int, 4> subgraph_atom_ids;
-
-            // Init with -1s
-            path << -1, -1, -1, -1;
-            atom_indices << -1, -1, -1, -1;
-            subgraph_atom_ids << -1, -1, -1, -1;
-
-            // Join the paths into 1
-            path.head(resA_size + resB_size) << resA_path.tail(resA_size),
-                resB_path.head(resB_size);
-            atom_indices.head(resA_size + resB_size)
-                << resA_atom_indices.tail(resA_size),
-                resB_atom_indices.head(resB_size);
-            subgraph_atom_ids.head(resA_size + resB_size)
-                << resA_subgraph_atom_ids.tail(resA_size),
-                resB_subgraph_atom_ids.head(resB_size);
-
-            // Do the lookup
-            param_index = hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
-            if (param_index != -1) {
-              // we found it!
-              subgraph_atom_indices = atom_indices;
-              break;
-            }
-          }
-          if (param_index != -1) {
-            score_subgraph(subgraph_atom_indices, param_index);
-          }
-        }
+        evaluate_connection_paths<Int, D, nt>(
+            tid, block_type1, block_type2, rot_coord_offset1, rot_coord_offset2,
+            conn_ind1, conn_ind2, atom_paths_from_conn, block_type_is_fragment,
+            atom_unique_ids, atom_wildcard_ids, atom_cross_ids, hash_keys,
+            connection_hash_keys, connection_spans, connection_paths,
+            score_subgraph);
       });
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
           eval_inter_res_subgraphs);
@@ -1687,6 +1558,9 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     TView<Int, 2, D> atom_is_rosetta,
     TView<Int, 1, D> block_type_is_fragment,
     TView<Int, 2, D> atom_cross_ids,
+    TView<Vec<Int, 5>, 1, D> connection_hash_keys,
+    TView<Vec<Int, 2>, 1, D> connection_spans,
+    TView<Vec<Int, 5>, 1, D> connection_paths,
     TView<Vec<Int, 5>, 1, D> hash_keys,
     TView<Vec<Real, 7>, 1, D> hash_values,
     TView<Vec<Int, 4>, 1, D> cart_subgraphs,
@@ -1913,103 +1787,12 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
       // Use by-reference capture here so that we can write to the length,
       // angle, and torsion_score variables
       auto eval_inter_res_subgraphs = ([&] TMOL_DEVICE_FUNC(int tid) {
-        // no cross-residue torsion parameter exists; the two amide impropers
-        // are enumerated separately because they are not bonded paths
-        int n_connection_spanning_subgraphs =
-            common::NUM_INTER_RES_PATHS_THRU_ANGLE;
-        for (int i = tid; i < 2 * n_connection_spanning_subgraphs; i += nt) {
-          bool reverse = i % 2 == 1;
-          // interleave the subgraphs from the two directions so we can have
-          // better warp coherence.
-          int const subgraph_index = i / 2;
-          int const block_typeA = reverse ? block_type2 : block_type1;
-          int const block_typeB = reverse ? block_type1 : block_type2;
-          int const rot_coord_offsetA =
-              reverse ? rot_coord_offset2 : rot_coord_offset1;
-          int const rot_coord_offsetB =
-              reverse ? rot_coord_offset1 : rot_coord_offset2;
-          int const conn_indA = reverse ? conn_ind2 : conn_ind1;
-          int const conn_indB = reverse ? conn_ind1 : conn_ind2;
-
-          int param_index = -1;
-          Vec<Int, 4> subgraph_atom_indices = {-1, -1, -1, -1};
-
-          tuple<int, int, int> spanning_subgraphs =
-              get_connection_spanning_subgraph_indices(subgraph_index);
-          int resA_path_ind = common::get<1>(spanning_subgraphs);
-          int resB_path_ind = common::get<2>(spanning_subgraphs);
-          // Grab the paths from each block
-          Vec<Int, 3> resA_path =
-              atom_paths_from_conn[block_typeA][conn_indA][resA_path_ind];
-          Vec<Int, 3> resB_path =
-              atom_paths_from_conn[block_typeB][conn_indB][resB_path_ind];
-
-          // Make sure these are valid paths
-          if (resA_path[0] == -1 || resB_path[0] == -1) continue;
-          // Reverse the first path so that we can join them head-to-head
-          resA_path.reverseInPlace();
-          // Get a new Vec containing the global indices of the atoms
-          Vec<Int, 3> resA_atom_indices =
-              atom_local_to_global_indices(resA_path, rot_coord_offsetA);
-          Vec<Int, 3> resB_atom_indices =
-              atom_local_to_global_indices(resB_path, rot_coord_offsetB);
-          // Calculate the size of each path
-          Int resA_size = (resA_atom_indices.array() != -1).count();
-          Int resB_size = (resB_atom_indices.array() != -1).count();
-
-          // Prefer exact unique/unique parameters across generic connections.
-          int const first_lookup_mode =
-              block_type_is_fragment[block_typeA]
-                      && block_type_is_fragment[block_typeB]
-                  ? 0
-                  : 1;
-          for (int lookup_mode = first_lookup_mode; lookup_mode < 3;
-               ++lookup_mode) {
-            const auto& resA_atom_id_table =
-                (lookup_mode == 2) ? atom_wildcard_ids[block_typeA]
-                                   : atom_unique_ids[block_typeA];
-            const auto& resB_atom_id_table = (lookup_mode == 0)
-                                                 ? atom_unique_ids[block_typeB]
-                                                 : atom_cross_ids[block_typeB];
-
-            // Get the atom IDs
-            Vec<Int, 3> resA_subgraph_atom_ids =
-                get_atom_ids(resA_atom_id_table, resA_path);
-            Vec<Int, 3> resB_subgraph_atom_ids =
-                get_atom_ids(resB_atom_id_table, resB_path);
-
-            // Make the joined data structures
-            Vec<Int, 4> path;
-            Vec<Int, 4> atom_indices;
-            Vec<Int, 4> subgraph_atom_ids;
-
-            // Init with -1s
-            path << -1, -1, -1, -1;
-            atom_indices << -1, -1, -1, -1;
-            subgraph_atom_ids << -1, -1, -1, -1;
-
-            // Join the paths into 1
-            path.head(resA_size + resB_size) << resA_path.tail(resA_size),
-                resB_path.head(resB_size);
-            atom_indices.head(resA_size + resB_size)
-                << resA_atom_indices.tail(resA_size),
-                resB_atom_indices.head(resB_size);
-            subgraph_atom_ids.head(resA_size + resB_size)
-                << resA_subgraph_atom_ids.tail(resA_size),
-                resB_subgraph_atom_ids.head(resB_size);
-
-            // Do the lookup
-            param_index = hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
-            if (param_index != -1) {
-              // we found it!
-              subgraph_atom_indices = atom_indices;
-              break;
-            }
-          }
-          if (param_index != -1) {
-            score_subgraph(subgraph_atom_indices, param_index);
-          }
-        }
+        evaluate_connection_paths<Int, D, nt>(
+            tid, block_type1, block_type2, rot_coord_offset1, rot_coord_offset2,
+            conn_ind1, conn_ind2, atom_paths_from_conn, block_type_is_fragment,
+            atom_unique_ids, atom_wildcard_ids, atom_cross_ids, hash_keys,
+            connection_hash_keys, connection_spans, connection_paths,
+            score_subgraph);
       });
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
           eval_inter_res_subgraphs);
