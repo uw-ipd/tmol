@@ -1,3 +1,6 @@
+import gc
+import weakref
+
 import numpy
 import pytest
 
@@ -9,6 +12,108 @@ from tmol.types import (
     convert_args,
     NDArray,
 )
+from tmol.types._validators import get_validator
+from tmol.types._converters import get_converter
+
+
+@pytest.mark.parametrize("first_branch", [NDArray[int][:], NDArray[float][:, 3]])
+@pytest.mark.parametrize("nested", [False, True])
+def test_successful_union_releases_value_and_caller(first_branch, nested):
+    annotation = Union[first_branch, NDArray[float][:]]
+    if nested:
+        annotation = Union[List[int], List[annotation]]
+
+    @validate_args
+    def consume(value: annotation):
+        pass
+
+    def invoke():
+        value = numpy.arange(32, dtype=float)
+        value_ref = weakref.ref(value)
+        consume([value] if nested else value)
+        return value_ref
+
+    gc.collect()
+    gc_enabled = gc.isenabled()
+    gc.disable()
+    try:
+        value_ref = invoke()
+        assert value_ref() is None
+    finally:
+        if gc_enabled:
+            gc.enable()
+
+
+def test_rejected_union_preserves_last_error_cause():
+    annotation = Union[int, str]
+    with pytest.raises(TypeError) as error:
+        get_validator(annotation)(1.5)
+    assert str(error.value) == f"expected {annotation}, received <class 'float'>"
+    cause = error.value.__cause__
+    assert isinstance(cause, TypeError)
+    assert str(cause) == "expected <class 'str'>, received <class 'float'>"
+    assert cause.__traceback__ is not None
+
+
+def test_successful_union_conversion_releases_original_value():
+    class Convertible:
+        def __int__(self):
+            raise ValueError("Only floating-point conversion is supported")
+
+        def __float__(self):
+            return 1.25
+
+    gc.collect()
+    gc_enabled = gc.isenabled()
+    gc.disable()
+    try:
+        value = Convertible()
+        value_ref = weakref.ref(value)
+        converted = get_converter(Union[int, float])(value)
+        del value
+        assert converted == 1.25
+        assert value_ref() is None
+    finally:
+        if gc_enabled:
+            gc.enable()
+
+
+def test_rejected_union_conversion_preserves_error_message():
+    annotation = Union[int, float]
+    value = 1j
+    with pytest.raises(TypeError) as error:
+        get_converter(annotation)(value)
+    assert str(error.value) == (
+        f"Unable to convert to any union subtype: {annotation} value: {value!r}"
+    )
+    assert error.value.__cause__ is None
+
+
+@pytest.mark.parametrize("factory", [get_validator, get_converter])
+def test_rejected_union_releases_value_after_error_is_handled(factory):
+    class Value:
+        pass
+
+    def invoke():
+        value = Value()
+        value_ref = weakref.ref(value)
+        try:
+            factory(Union[int, float])(value)
+        except TypeError:
+            pass
+        else:
+            pytest.fail("The value must be rejected by both union branches")
+        return value_ref
+
+    gc.collect()
+    gc_enabled = gc.isenabled()
+    gc.disable()
+    try:
+        value_ref = invoke()
+        assert value_ref() is None
+    finally:
+        if gc_enabled:
+            gc.enable()
 
 
 def f(*args, **kwargs):

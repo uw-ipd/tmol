@@ -46,12 +46,11 @@ def union_convert(union_annotation, value):
         except (TypeError, ValueError):
             pass
 
-    errors = []
     for subtype in union_annotation.__args__:
         try:
             return get_converter(subtype)(value)
-        except (TypeError, ValueError) as ex:
-            errors.append(ex)
+        except (TypeError, ValueError):
+            pass
 
     raise TypeError(
         f"Unable to convert to any union subtype: {union_annotation} value: {value!r}"
