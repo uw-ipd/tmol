@@ -431,10 +431,12 @@ void launch_lk_ball_compact_pose_pair_workgroups(
     TView<Int, 1, Dev> neighbors,
     int n_poses,
     int max_n_blocks,
-    Eval eval) {
+    Eval eval,
+    bool allow_split_pairs = true) {
   using common::TilePairMode;
   constexpr int min_split_workgroups = 1 << 15;
-  if (max_n_blocks > 1 && neighbors.size(0) - 1 >= min_split_workgroups) {
+  if (allow_split_pairs && max_n_blocks > 1
+      && neighbors.size(0) - 1 >= min_split_workgroups) {
     // Keep both passes on the original list, including caller-provided
     // subsets. Specialize the scoring body while retaining its triangular
     // candidate IDs, so each pass excludes the other kind of pair.
@@ -912,7 +914,8 @@ class LKBallPoseScoreDispatch {
       TView<Int, 3, Dev> scratch_rot_neighbors,  // from forward pass
       TView<Int, 1, Dev> compact_block_neighbors,
       TView<Real, 4, Dev> dTdV,
-      bool block_pair_scoring)
+      bool block_pair_scoring,
+      bool allow_split_pairs)
       -> std::tuple<TPack<Vec<Real, 3>, 1, Dev>, TPack<Vec<Real, 3>, 2, Dev>> {
     // std::cout << "d lkball start" << std::endl;
     using tmol::score::common::accumulate;
@@ -950,15 +953,22 @@ class LKBallPoseScoreDispatch {
 #ifdef __NVCC__
                             int cta, auto pair_mode_tag) {
       constexpr auto pair_mode = decltype(pair_mode_tag)::value;
+      constexpr auto index_mode = decltype(pair_mode_tag)::index_mode;
 #else
                             int cta) {
       constexpr auto pair_mode = common::TilePairMode::InterAndIntra;
+      constexpr auto index_mode = pair_mode;
 #endif
-      auto pair_indices = lk_ball_pose_pair_indices<pair_mode>(
+      auto pair_indices = lk_ball_pose_pair_indices<index_mode>(
           cta, max_n_blocks, n_block_pairs);
       int const pose_ind = common::get<0>(pair_indices);
       int const block_ind1 = common::get<1>(pair_indices);
       int const block_ind2 = common::get<2>(pair_indices);
+      if constexpr (pair_mode == common::TilePairMode::Inter) {
+        if (block_ind1 == block_ind2) return;
+      } else if constexpr (pair_mode == common::TilePairMode::Intra) {
+        if (block_ind1 != block_ind2) return;
+      }
 
       // Reject empty work before setting up the derivative machinery below.
       if (!use_compact_block_neighbors
@@ -1163,16 +1173,17 @@ class LKBallPoseScoreDispatch {
     // capture in a CUDA graph.
 #ifdef __NVCC__
     if (use_compact_block_neighbors) {
-      auto eval_compact = ([=] TMOL_DEVICE_FUNC(int cta) {
-        eval_derivs(
-            cta, TilePairModeTag<common::TilePairMode::InterAndIntra>{});
-      });
-      score::common::sphere_overlap::launch_precomputed_block_neighbors<
+      launch_lk_ball_compact_pose_pair_workgroups<
           DeviceDispatch,
           Dev,
           launch_t,
           Int>(
-          mgr, compact_block_neighbors, n_poses, max_n_blocks, eval_compact);
+          mgr,
+          compact_block_neighbors,
+          n_poses,
+          max_n_blocks,
+          eval_derivs,
+          allow_split_pairs);
       return {dV_d_pose_coords_t, dV_d_water_coords_t};
     }
     int const n_pairs = score::common::checked_triangular_size(

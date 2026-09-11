@@ -231,6 +231,15 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
 
     def setup_poses(self, pose_stack: PoseStack):
         super(LKBallEnergyTerm, self).setup_poses(pose_stack)
+        # Plan once before graph capture; padding can greatly overstate the
+        # useful work in the two specialized derivative kernels.
+        blocks = pose_stack.max_n_blocks
+        pose_stack._lk_ball_allow_split_backward = (
+            pose_stack.device.type == "cuda"
+            and pose_stack.block_type_ind.numel() >= 512
+            and pose_stack.n_poses * blocks * (blocks + 1) // 2 >= 32768
+            and int((pose_stack.block_type_ind >= 0).sum()) >= 512
+        )
 
     def pose_score_lk_ball(self, *args):
         from tmol.score.lk_ball.potentials import (
@@ -290,6 +299,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             water_coords,
             block_pair_scoring,
             shared_block_neighbors,
+            getattr(pose_stack, "_lk_ball_allow_split_backward", False),
         ]
         if common_args[0].dtype == torch.float64:
             convert_float64(args)

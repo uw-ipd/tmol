@@ -1,3 +1,4 @@
+import pytest
 import numpy
 import torch
 
@@ -137,3 +138,22 @@ class TestLKBallEnergyTerm(EnergyTermTestBase):
             resnums=resnums,
             nondet_tol=1e-6,  # fd this is necessary here...
         )
+
+
+@pytest.mark.parametrize("short_residues, expected_split", [(1, False), (10, True)])
+def test_backward_specialization_uses_actual_residues(
+    ubq_pdb, default_database, torch_device, short_residues, expected_split
+):
+    from tmol.pose import PoseStackBuilder
+
+    full = pose_stack_from_pdb(ubq_pdb, torch_device)
+    short = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=short_residues)
+    pose = PoseStackBuilder.from_poses([full] + [short] * 63, torch_device)
+    energy = LKBallEnergyTerm(param_db=default_database, device=torch_device)
+    for bt in pose.packed_block_types.active_block_types:
+        energy.setup_block_type(bt)
+    energy.setup_packed_block_types(pose.packed_block_types)
+    energy.setup_poses(pose)
+    assert pose._lk_ball_allow_split_backward == (
+        expected_split and torch_device.type == "cuda"
+    )

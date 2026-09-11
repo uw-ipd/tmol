@@ -203,20 +203,24 @@ def test_cpu_compact_neighbors_preserve_pose_accumulation_order(
 
 
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
-def test_lk_ball_compact_specialization_preserves_subsets(ubq_pdb, torch_device, dtype):
+def test_lk_ball_compact_specialization_preserves_subsets(
+    ubq_pdb, torch_device, dtype, monkeypatch
+):
     if torch_device.type != "cuda":
         pytest.skip("CUDA compact interaction specialization")
     single_pose = pose_stack_from_pdb(ubq_pdb, torch_device)
-    pose = PoseStackBuilder.from_poses([single_pose] * 16, torch_device)
+    short_pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
+    pose = PoseStackBuilder.from_poses([single_pose, short_pose] * 8, torch_device)
     scorer = _non_memoized_beta2016(torch_device).render_whole_pose_scoring_module(pose)
     term = next(t for t in scorer.term_modules if t.classname == "LKBall")
     coords = pose.coords.to(dtype).detach().requires_grad_(True)
     neighbors = scorer._build_shared_block_neighbors(coords)
     assert neighbors.numel() - 1 >= 32768
+    assert pose._lk_ball_allow_split_backward
 
     # Identical custom subsets with different spare capacity exercise both
     # dispatch paths, without permitting either path to rebuild the list.
-    subset = neighbors[1 : int(neighbors[0]) + 1 : 4].clone()
+    subset = neighbors[1 : int(neighbors[0]) + 1 : 4].flip(0).clone()
     neighbors[0] = subset.numel()
     neighbors[1 : subset.numel() + 1] = subset
     compact = neighbors[: subset.numel() + 1].clone()
@@ -227,8 +231,25 @@ def test_lk_ball_compact_specialization_preserves_subsets(ubq_pdb, torch_device,
     (expected_grad,) = torch.autograd.grad(expected, coords, weights)
     actual = term(coords, neighbors)
     (actual_grad,) = torch.autograd.grad(actual, coords, weights)
-    torch.testing.assert_close(actual, expected, atol=1e-5, rtol=1e-5)
-    torch.testing.assert_close(actual_grad, expected_grad, atol=1e-5, rtol=1e-5)
+    tolerance = 1e-10 if dtype == torch.float64 else 1e-5
+    torch.testing.assert_close(actual, expected, atol=tolerance, rtol=tolerance)
+    torch.testing.assert_close(
+        actual_grad, expected_grad, atol=tolerance, rtol=tolerance
+    )
+
+    import tmol.score.lk_ball.potentials as potentials
+
+    native = potentials.lk_ball_pose_score
+    with monkeypatch.context() as patch:
+        patch.setattr(
+            potentials, "lk_ball_pose_score", lambda *args: native(*args[:-1])
+        )
+        legacy = term(coords, neighbors)
+    (legacy_grad,) = torch.autograd.grad(legacy, coords, weights)
+    torch.testing.assert_close(legacy, expected, atol=tolerance, rtol=tolerance)
+    torch.testing.assert_close(
+        legacy_grad, expected_grad, atol=tolerance, rtol=tolerance
+    )
 
 
 def test_shared_block_neighbors_follow_active_terms(
