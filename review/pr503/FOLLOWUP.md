@@ -14,7 +14,7 @@ historical evidence, not a claim that the follow-up is complete.
 | Group identity and safety (3–7,9,30,31,33–37) | Real multi-pose/multi-database groups, repeated chi names, jagged/empty counts, early rejection; native parity | Capped anchors, rigid cyclic cores, external attachments and sampled pendant branches tested CPU/CUDA, including packing and two-pose reuse; later masks now constrain geometry and ownership; task-dependent tests recorded below |
 | Sampling budgets/caches (8,14,27) | Explicit budget semantics; task propagation; immutable sampler reuse; actual library/extra/proton counts; reproducible HYP count | Explicit task overrides and actual group/library bounds implemented/tested CPU/CUDA; aggregate/default budget policy and adaptive library expansion remain open |
 | Residue identity/completion (10–12,16,32) | Insertion codes, chain identity, explicit/CCD authority, missing atoms, custom names; realistic scaling | Reader annotation reuse and finite-geometry repair checks pass; AtomWorks parser/converter profiles recorded; broader identity/authority contracts remain open |
-| Content/profile caches (13,20,29,39) | No serialization aliases; safe object lifetimes, bounded memory; repeated preparation | Content framing and shared bounded weak caches fixed for rotamer/alpha/NA profiles; identity/lifetime/LRU/concurrency tests pass; remaining caches still need audit |
+| Content/profile caches (13,20,29,39,40) | No serialization aliases; safe object lifetimes, bounded memory; repeated preparation | Content framing and shared bounded weak caches fixed for rotamer/alpha/NA profiles; identity/lifetime/LRU/concurrency tests pass; remaining caches still need audit |
 | Group kinematics/performance (15,17,35) | Profile CPU/GPU; batch invariant work; retain all covalent constraints for tree/cyclic/multiple-anchor topologies | Bounded conformer batches and 32-entry shape caches verified/profiled; independent axes preserve rigid cycles/external boundaries; task-imposed fixed members now constrain axes; correlated ring-pucker sampling remains open |
 | Native maintainability (18) | Shared improper enumeration with unchanged canonical scores and independent analytic/numeric derivatives | Shared helper in all four paths; canonical references, numerical gradients, independent Cartesian reference and group packing pass CPU/CUDA (238323, 238529) |
 | Duplicate work (19) | Removal covered by chemistry regression suite | Existing fix; final suite pending |
@@ -527,3 +527,17 @@ each engine's own unchanged rules. No rule values were altered in this change.
 
 AtomWorks cache implementation is committed locally as `0e4ffe8f` on
 `review/tmol-pr503-shared-chemistry`; no AtomWorks remote was written.
+
+### Parameter injection invalidation prerequisite
+
+Before introducing connection parameter records, an executable cache audit found
+that the public `inject_residue_params()` route changed cartbonded data without
+changing its hash. Existing block/PBT annotations then used whichever database
+was scored first. Updating alanine's CA–CB equilibrium length/stiffness gave
+zero change on an already annotated pose, including weighted block-pair scores.
+Rebuilding the hash fixes this. Four CPU regressions failed before and pass
+after; Slurm 245573 passes 14 CPU/CUDA tests, covering both annotation orders,
+whole-pose/block-pair energies and independent coordinate gradients, plus the
+existing manual-parameter replacement and connection-improper reference checks.
+The source database remains unchanged. This fixes parameter invalidation; it
+does not yet supply the missing attachment potential records.

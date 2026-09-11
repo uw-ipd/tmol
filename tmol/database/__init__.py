@@ -207,7 +207,10 @@ def inject_residue_params(
     new_cart = param_db.scoring.cartbonded
     if cartbonded_params:
         new_res_params = {**new_cart.residue_params, **cartbonded_params}
-        new_cart = attr.evolve(new_cart, residue_params=new_res_params)
+        # Scoring annotations are keyed by this content hash. Carrying the
+        # old hash into an extended database can reuse another database's
+        # bonded parameters on an already annotated block type or pose.
+        new_cart = type(new_cart).from_cartres_dict(new_res_params)
 
     new_scoring = attr.evolve(
         param_db.scoring,

@@ -385,6 +385,14 @@ CUDA reproduces the full minimization failure: the same three starts finish at *
 
 Fixed on the follow-up in both engines. The direct molecule API borrows private read-only queries; public rule results own copies. Six new tests per project cover mutation, 500 distinct pH requests and interleaved states; AtomWorks' complete affected suite has 40 passes. The 500-pH direct-API benchmark reduces tmol retained traced Python allocations from **16.10 MB to 0.065 MB**, with a **3.5%** warm latency increase (0.509→0.527 ms per molecule). AtomWorks avoids recompilation and improves **1.493→0.515 ms** (**2.90×**); its retained traced Python allocation increases from 34 to 44 KB for the bounded rule cache. These are rule-engine measurements, not end-to-end preparation or total native/process-memory claims. See [profile_dimorphite_cache.py](profile_dimorphite_cache.py).
 
+### 40. P1 — injected cartbonded parameters keep the previous cache key
+
+[tmol/database/__init__.py:210](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/database/__init__.py#L210)
+
+> Can injecting cartbonded rows recompute the database hash? `attr.evolve()` replaces `residue_params` but retains `hash`; the scorer caches block and packed-block annotations under that hash. Two parameter databases used on the same pose therefore share whichever bonded parameters were annotated first. The public injection route should behave like `CartBondedDatabase.from_cartres_dict()` and leave the original database intact.
+
+Reproduced with four CPU failures: changing alanine's CA–CB equilibrium length and stiffness through `inject_residue_params()` produces zero score difference on the same pose instead of the independent harmonic prediction. The failure occurs in either annotation order, in whole-pose and weighted block-pair scoring. Fixed by rebuilding the content hash. The four CPU regressions pass; Slurm **245573 has 14 passes** across CPU/CUDA, including score/gradient regressions, independent connection-improper checks and the existing manual-parameter replacement test. The test does not rely only on unequal hash strings.
+
 ## Validation record
 
 See [VALIDATION.md](VALIDATION.md) for the initial review commands, counts, environment, examples, and remaining failures; [FOLLOWUP.md](FOLLOWUP.md) records subsequent fixes and validation. All raw run logs were retained separately under `/mnt/home/kdidi/tmol-pr503-results`. No upstream golden score files were regenerated to make tests pass.
