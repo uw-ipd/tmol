@@ -335,8 +335,10 @@ namespace potentials {
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
-template <common::TilePairMode Mode>
-using TilePairModeTag = std::integral_constant<common::TilePairMode, Mode>;
+template <common::TilePairMode Mode, common::TilePairMode IndexMode = Mode>
+struct TilePairModeTag : std::integral_constant<common::TilePairMode, Mode> {
+  static constexpr auto index_mode = IndexMode;
+};
 
 // TO DO: standardize tiled inter-block count pair
 template <int TILE, typename InterEnergyData>
@@ -416,6 +418,52 @@ void launch_lk_ball_pose_pair_workgroups(
       mgr, n_poses, n_pairs, eval);
 #endif
 }
+
+#ifdef __NVCC__
+template <
+    template <tmol::Device> class DeviceDispatch,
+    tmol::Device Dev,
+    typename Launch,
+    typename Int,
+    typename Eval>
+void launch_lk_ball_compact_pose_pair_workgroups(
+    ContextManager& mgr,
+    TView<Int, 1, Dev> neighbors,
+    int n_poses,
+    int max_n_blocks,
+    Eval eval) {
+  using common::TilePairMode;
+  constexpr int min_split_workgroups = 1 << 15;
+  if (max_n_blocks > 1 && neighbors.size(0) - 1 >= min_split_workgroups) {
+    // Keep both passes on the original list, including caller-provided
+    // subsets. Specialize the scoring body while retaining its triangular
+    // candidate IDs, so each pass excludes the other kind of pair.
+    auto eval_inter = ([=] TMOL_DEVICE_FUNC(int cta) {
+      eval(
+          cta,
+          TilePairModeTag<TilePairMode::Inter, TilePairMode::InterAndIntra>{});
+    });
+    auto eval_intra = ([=] TMOL_DEVICE_FUNC(int cta) {
+      eval(
+          cta,
+          TilePairModeTag<TilePairMode::Intra, TilePairMode::InterAndIntra>{});
+    });
+    common::sphere_overlap::
+        launch_precomputed_block_neighbors<DeviceDispatch, Dev, Launch, Int>(
+            mgr, neighbors, n_poses, max_n_blocks, eval_inter);
+    common::sphere_overlap::
+        launch_precomputed_block_neighbors<DeviceDispatch, Dev, Launch, Int>(
+            mgr, neighbors, n_poses, max_n_blocks, eval_intra);
+  } else {
+    auto eval_all = ([=] TMOL_DEVICE_FUNC(int cta) {
+      eval(cta, TilePairModeTag<TilePairMode::InterAndIntra>{});
+    });
+    common::sphere_overlap::
+        launch_precomputed_block_neighbors<DeviceDispatch, Dev, Launch, Int>(
+            mgr, neighbors, n_poses, max_n_blocks, eval_all);
+  }
+}
+#endif
 
 template <
     template <tmol::Device> class DeviceDispatch,
@@ -538,8 +586,8 @@ class LKBallPoseScoreDispatch {
     }
     auto output = output_t.view;
 
-    // This kernel is latency- and register-bound. A 16-warp occupancy target
-    // reduces its register footprint without introducing local-memory spills.
+    // A 16-warp occupancy target balances register pressure and occupancy
+    // for these scoring kernels.
     LAUNCH_BOX_32_OCC(16);
     // Define nt and reduce_t
     CTA_REAL_REDUCE_T_TYPEDEF;
@@ -548,9 +596,11 @@ class LKBallPoseScoreDispatch {
 #ifdef __NVCC__
                                        int cta, auto pair_mode_tag) {
       constexpr auto pair_mode = decltype(pair_mode_tag)::value;
+      constexpr auto index_mode = decltype(pair_mode_tag)::index_mode;
 #else
                                        int cta) {
       constexpr auto pair_mode = common::TilePairMode::InterAndIntra;
+      constexpr auto index_mode = pair_mode;
 #endif
       auto score_inter_lk_ball_atom_pair =
           ([=] TMOL_DEVICE_FUNC(
@@ -629,11 +679,18 @@ class LKBallPoseScoreDispatch {
 
       int const max_important_bond_separation = 4;
 
-      auto pair_indices = lk_ball_pose_pair_indices<pair_mode>(
+      auto pair_indices = lk_ball_pose_pair_indices<index_mode>(
           cta, max_n_blocks, n_block_pairs);
       int const pose_ind = common::get<0>(pair_indices);
       int const block_ind1 = common::get<1>(pair_indices);
       int const block_ind2 = common::get<2>(pair_indices);
+      if constexpr (pair_mode != index_mode) {
+        if constexpr (pair_mode == common::TilePairMode::Inter) {
+          if (block_ind1 == block_ind2) return;
+        } else {
+          if (block_ind1 != block_ind2) return;
+        }
+      }
 
       // We still kill CTAs targetting non-neighboring block pairs, though,
       // and that can be a lot
@@ -743,16 +800,16 @@ class LKBallPoseScoreDispatch {
     }
 #ifdef __NVCC__
     if (!output_block_pair_energies && use_shared_compact_block_neighbors) {
-      auto eval_all = ([=] TMOL_DEVICE_FUNC(int cta) {
-        eval_energies_by_block(
-            cta, TilePairModeTag<common::TilePairMode::InterAndIntra>{});
-      });
-      score::common::sphere_overlap::launch_precomputed_block_neighbors<
+      launch_lk_ball_compact_pose_pair_workgroups<
           DeviceDispatch,
           Dev,
           launch_t,
           Int>(
-          mgr, shared_compact_block_neighbors, n_poses, max_n_blocks, eval_all);
+          mgr,
+          shared_compact_block_neighbors,
+          n_poses,
+          max_n_blocks,
+          eval_energies_by_block);
     } else if (
         !output_block_pair_energies
         && score::common::sphere_overlap::should_compact_block_neighbors(

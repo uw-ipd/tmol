@@ -122,6 +122,35 @@ def test_cpu_compact_neighbors_preserve_pose_accumulation_order(
     torch.testing.assert_close(parallel, serial, rtol=0, atol=0)
 
 
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+def test_lk_ball_compact_specialization_preserves_subsets(ubq_pdb, torch_device, dtype):
+    if torch_device.type != "cuda":
+        pytest.skip("CUDA compact interaction specialization")
+    single_pose = pose_stack_from_pdb(ubq_pdb, torch_device)
+    pose = PoseStackBuilder.from_poses([single_pose] * 16, torch_device)
+    scorer = _non_memoized_beta2016(torch_device).render_whole_pose_scoring_module(pose)
+    term = next(t for t in scorer.term_modules if t.classname == "LKBall")
+    coords = pose.coords.to(dtype).detach().requires_grad_(True)
+    neighbors = scorer._build_shared_block_neighbors(coords)
+    assert neighbors.numel() - 1 >= 32768
+
+    # Identical custom subsets with different spare capacity exercise both
+    # dispatch paths, without permitting either path to rebuild the list.
+    subset = neighbors[1 : int(neighbors[0]) + 1 : 4].clone()
+    neighbors[0] = subset.numel()
+    neighbors[1 : subset.numel() + 1] = subset
+    compact = neighbors[: subset.numel() + 1].clone()
+    assert compact.numel() - 1 < 32768
+    weights = torch.linspace(-1, 2, 64, device=torch_device, dtype=dtype).reshape(4, 16)
+
+    expected = term(coords, compact)
+    (expected_grad,) = torch.autograd.grad(expected, coords, weights)
+    actual = term(coords, neighbors)
+    (actual_grad,) = torch.autograd.grad(actual, coords, weights)
+    torch.testing.assert_close(actual, expected, atol=1e-5, rtol=1e-5)
+    torch.testing.assert_close(actual_grad, expected_grad, atol=1e-5, rtol=1e-5)
+
+
 def test_shared_block_neighbors_follow_active_terms(
     ubq_pdb, default_database, torch_device
 ):
