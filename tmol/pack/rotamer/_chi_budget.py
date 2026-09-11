@@ -14,6 +14,41 @@ the same rule; only the tree differs.
 """
 
 import attr
+from copy import copy
+
+
+def sampler_for_task(sampler, task):
+    """Apply an explicit task budget to a private sampler/task view."""
+    budget = getattr(task, "chi_sample_budget", None)
+    if budget is None or budget == (
+        sampler.chi_sample_expanded_limit,
+        sampler.chi_sample_limit,
+    ):
+        return sampler, task
+    configured = attr.evolve(
+        sampler, chi_sample_expanded_limit=budget[0], chi_sample_limit=budget[1]
+    )
+    private_task = copy(task)
+    private_task.conformer_sampler_index = dict(task.conformer_sampler_index)
+    private_task.conformer_sampler_index[id(configured)] = task.conformer_sampler_index[
+        id(sampler)
+    ]
+    return configured, private_task
+
+
+def checked_sample_count(counts, expanded_limit, limit):
+    """Check the bound and get the allocation size with one device-to-host copy."""
+    import torch
+
+    if counts.numel() == 0:
+        return 0
+    total, largest = torch.stack((counts.sum(), counts.max())).tolist()
+    maximum = max(expanded_limit, limit)
+    if largest > maximum:
+        raise ValueError(
+            f"Sampling budget {maximum} cannot fit the required library states"
+        )
+    return total
 
 
 def n_conformers(samples, expanded: bool) -> int:
@@ -27,7 +62,12 @@ def n_conformers(samples, expanded: bool) -> int:
 
 
 def apply_chi_sample_budget(
-    samples, depths, expanded_limit, limit, n_library_chi: int = 0
+    samples,
+    depths,
+    expanded_limit,
+    limit,
+    n_library_chi: int = 0,
+    library_size: int = 1,
 ):
     """Trim sampled chi so the rotamers they enumerate stay bounded.
 
@@ -35,19 +75,24 @@ def apply_chi_sample_budget(
     ``n_library_chi`` how many chi a borrowed rotamer library already defines.
     The expansions are kept while the product stays under ``expanded_limit``
     and dropped at ``limit``; past it, chi freeze from the tip inward. A proton
-    chi is never frozen: its hydrogen has no other source of placement, and
-    optH reads the same samples.
+    chi retains at least one mean, so its hydrogen is still placed. Library
+    multiplicity is explicit; the number of chi cannot predict a library's size.
     """
     return tuple(
         cs
         for _, cs in _budgeted_chi_samples(
-            samples, depths, expanded_limit, limit, n_library_chi=n_library_chi
+            samples,
+            depths,
+            expanded_limit,
+            limit,
+            n_library_chi=n_library_chi,
+            library_size=library_size,
         )
     )
 
 
 def _budgeted_chi_samples(
-    samples, depths, expanded_limit, limit, n_library_chi=0, library_size=None
+    samples, depths, expanded_limit, limit, n_library_chi=0, library_size=1
 ):
     """Return (input index, sample) pairs, preserving ownership across blocks.
 
@@ -63,7 +108,7 @@ def _budgeted_chi_samples(
     indices = [i for i, _, _ in kept]
     samples = [cs for _, cs, _ in kept]
     depths = [d for _, _, d in kept]
-    library = 3**n_library_chi if library_size is None else library_size
+    library = library_size
     if library * n_conformers(samples, True) <= expanded_limit:
         return tuple(zip(indices, samples))
 
@@ -79,6 +124,20 @@ def _budgeted_chi_samples(
             break
         total //= len(samples[index].samples)
         samples[index] = None
+    # A proton still needs a placement, not every alternative placement.
+    for index in sorted(
+        (i for i, cs in enumerate(samples) if cs is not None and cs.is_proton),
+        key=lambda i: (depths[i], int(samples[i].chi_dihedral[3:])),
+        reverse=True,
+    ):
+        if total <= limit:
+            break
+        total //= len(samples[index].samples)
+        samples[index] = attr.evolve(samples[index], samples=samples[index].samples[:1])
+    if total > limit:
+        raise ValueError(
+            f"Sampling budget {limit} cannot fit the required {library} library states"
+        )
     return tuple((i, cs) for i, cs in zip(indices, samples) if cs is not None)
 
 

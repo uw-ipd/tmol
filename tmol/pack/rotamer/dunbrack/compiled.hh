@@ -66,7 +66,8 @@ struct DunbrackChiSampler {
       TView<Real, 3, D> non_dunbrack_expansion_for_buildable_restype,
       TView<Int, 2, D> non_dunbrack_expansion_counts_for_buildable_restype,
       TView<Real, 1, D> prob_cumsum_limit_for_buildable_restype,
-      TView<Int, 1, D> nchi_for_buildable_restype
+      TView<Int, 1, D> nchi_for_buildable_restype,
+      int64_t max_samples_per_restype
 
       )
       -> std::tuple<

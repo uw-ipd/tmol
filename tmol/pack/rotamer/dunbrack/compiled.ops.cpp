@@ -61,7 +61,8 @@ std::vector<Tensor> dun_sample_chi(
     Tensor non_dunbrack_expansion_for_buildable_restype,
     Tensor non_dunbrack_expansion_counts_for_buildable_restype,
     Tensor prob_cumsum_limit_for_buildable_restype,
-    Tensor nchi_for_buildable_restype) {
+    Tensor nchi_for_buildable_restype,
+    int64_t max_samples_per_restype) {
   nvtx_range_push("dunbrack_sample_chi");
   // std::cout << "Hit compiled.ops.cpp" << std::endl;
 
@@ -118,7 +119,8 @@ std::vector<Tensor> dun_sample_chi(
               TCAST(non_dunbrack_expansion_for_buildable_restype),
               TCAST(non_dunbrack_expansion_counts_for_buildable_restype),
               TCAST(prob_cumsum_limit_for_buildable_restype),
-              TCAST(nchi_for_buildable_restype)
+              TCAST(nchi_for_buildable_restype),
+              max_samples_per_restype
 
           );
 

@@ -37,7 +37,7 @@ The complete 213-file upstream inventory is in [upstream-files.tsv](upstream-fil
 11. Use the actual prepared parameter database in group-packing tests, and update two stale fold-tree assertions to require a split at each branch point. The latter changes test expectations to match the existing documented kinematics invariant; no fold-tree algorithm changes.
 12. Keep explicitly prepared ligand fragments eligible for block-type selection. Remove their cut bonds from the intermediate AtomArray bond table so the existing fragment mapping installs those connections once, while retaining bonds within fragments and between original residues.
 
-Subsequent follow-up changes add the Rosetta mixed-chirality disulfide distribution with independent energy/gradient checks, repair terminal-cap and nucleotide proton geometry, and consume AtomWorks chemistry annotations. See [FOLLOWUP.md](FOLLOWUP.md) for current completion gates and [ATOMWORKS.md](ATOMWORKS.md) for the reuse and performance audit. Task-level sampling-budget enforcement remains open; sampler-local cache settings are now checked when reusing chemical types.
+Subsequent follow-up changes add the Rosetta mixed-chirality disulfide distribution with independent energy/gradient checks, repair terminal-cap and nucleotide proton geometry, and consume AtomWorks chemistry annotations. See [FOLLOWUP.md](FOLLOWUP.md) for current completion gates and [ATOMWORKS.md](ATOMWORKS.md) for the reuse and performance audit. Explicit task limits and sampler cache settings are now enforced; aggregate/default budget policy remains open (see [BUDGETS.md](BUDGETS.md)).
 
 ## Measured performance
 
@@ -130,7 +130,7 @@ Reproduced. Fixed with an N+1 prefix map and explicit negative-sentinel handling
 
 > Where are these values propagated to the samplers? `SetPackerTask.from_packer_task()` does not copy them, and the samplers read their own default fields. Setting a smaller task budget currently has no consumer. Please test a material reduction in generated rotamers after calling this method, including setting it before and after adding samplers.
 
-Confirmed by tracing every reference to both fields. Left open: task overrides must be designed together with cache invalidation, rather than mutating shared sampler objects as a quick workaround.
+Reproduced and addressed: explicit limits survive task conversion; private NA/OptH sampler views avoid mutating reusable caller objects; actual group-library cardinality and native Dunbrack count checks enforce bounds before final sample allocation. CPU/CUDA tests cover setting limits before/after adding samplers and repeated reuse. Aggregate/default budget policy remains open; see [BUDGETS.md](BUDGETS.md).
 
 ### 9. P1 — group-tree cache aliases unrelated type tables
 
@@ -178,7 +178,7 @@ Fixed; tests cover metadata boundaries, tensor contents, strides, shape, dtype a
 
 > These annotations now depend on sampler budget fields, but cache validity is still only `hasattr(rt, ...)`. Could configuration-dependent samples be cached by configuration or computed at sampling time? Otherwise whichever sampler annotates a shared residue first determines subsequent tasks' sample sets.
 
-Static finding; left open with the task-budget design.
+Fixed and tested on CPU/CUDA: cache validity includes sampler settings and relevant chemistry inputs; one most-recent table is retained on each RT/PBT. Explicit task overrides use private sampler views. Concurrent mutation remains outside the supported contract.
 
 ### 15. P2 — repeated allocation in the group conformer loop
 
@@ -282,7 +282,7 @@ Reproduced. The branch permits fragment candidates and removes only bonds crossi
 
 > Could this distinguish borrowed-library cardinality from the additional chi sampling/expansion multiplier? HYP currently produces 18 rotamers on both CPU and CUDA, versus the asserted six. The comment describes two library rotamers times three hydroxyl samples. Please pin whether expanded samples are intended here, then test the library and extra-chi counts separately so a factor-of-three change has a clear diagnosis.
 
-Reproduced on the baseline and initial candidate. Follow-up checks independently identify two unique library states and nine hydroxyl angles (three means with ±20° expansions) on CPU/CUDA. The expected count is now 18 with that separate check. Task-level budget semantics and enforcement remain open.
+Reproduced on the baseline and initial candidate. Follow-up checks independently identify two unique library states and nine hydroxyl angles (three means with ±20° expansions) on CPU/CUDA. The expected count is now 18 with that separate check. Explicit task overrides and actual group-library bounds now have CPU/CUDA checks. Aggregate/default budget policy remains open.
 
 ### 28. P1 — terminal proton sampling rotates an entire generated nucleotide
 

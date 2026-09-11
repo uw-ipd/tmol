@@ -23,7 +23,11 @@ from tmol.pack._packer_task import (
     DEFAULT_CHI_SAMPLE_EXPANDED_LIMIT,
     DEFAULT_CHI_SAMPLE_LIMIT,
 )
-from tmol.pack.rotamer._chi_budget import apply_chi_sample_budget, chi_depths
+from tmol.pack.rotamer._chi_budget import (
+    apply_chi_sample_budget,
+    chi_depths,
+    sampler_for_task,
+)
 from tmol.pack.rotamer._single_residue_kinforest import (
     construct_single_residue_kinforest,
 )
@@ -238,6 +242,9 @@ class NaChiRotamerSampler(ChiSampler):
         Tensor[torch.int32][:, :],  # chi_defining_atom_for_rotamer
         Tensor[torch.float32][:, :],  # chi_for_rotamers
     ]:
+        configured, task = sampler_for_task(self, task)
+        if configured is not self:
+            return configured.sample_chi_for_poses(poses, task)
         pbt = poses.packed_block_types
         cache = self.annotate_packed_block_types(pbt)
 
@@ -281,7 +288,12 @@ class NaChiRotamerSampler(ChiSampler):
             active, n_modes * n_steps * n_combos, torch.zeros_like(n_combos)
         ).to(torch.int32)
 
-        n_rots = int(n_rots_for_gbt.sum())
+        from tmol.pack.rotamer._chi_budget import checked_sample_count
+
+        n_rots = checked_sample_count(
+            n_rots_for_gbt, self.chi_sample_expanded_limit, self.chi_sample_limit
+        )
+
         if n_rots == 0:
             return (
                 n_rots_for_gbt,

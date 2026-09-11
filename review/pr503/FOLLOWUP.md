@@ -12,7 +12,7 @@ historical evidence, not a claim that the follow-up is complete.
 | Import/closure inference (1) | Fresh checkout collection; explicit/inferred closure, padding, breaks and caps on both devices | Existing replacement; extend audit |
 | Mixed chirality (2) | Published reference parameters/formula; LL/DD/LD/DL permutation and reflection energies/gradients; whole-pose and packing parity | Rosetta mixed distribution and shared derivatives implemented; independent LL/LD/DL/DD energy/gradient, permutation and reflection checks pass on CPU/CUDA; additional packing parity pending |
 | Group identity and safety (3–7,9) | Real multi-pose/multi-database groups, repeated chi names, jagged/empty counts, early rejection; native parity | Initial fixes exist; integration/property coverage pending |
-| Sampling budgets/caches (8,14,27) | Explicit budget semantics; task propagation; immutable sampler reuse; actual library/extra/proton counts; reproducible HYP count | NA/OptH configuration caches and independent HYP counts fixed/tested CPU/CUDA; task propagation and actual group/library budget enforcement remain open |
+| Sampling budgets/caches (8,14,27) | Explicit budget semantics; task propagation; immutable sampler reuse; actual library/extra/proton counts; reproducible HYP count | Explicit task overrides and actual group/library bounds implemented/tested CPU/CUDA; aggregate/default budget policy and adaptive library expansion remain open |
 | Residue identity/completion (10–12,16) | Insertion codes, chain identity, explicit/CCD authority, missing atoms, custom names; realistic scaling | Initial unit fixes exist; broader profiling pending |
 | Content/profile caches (13,20) | No serialization aliases; safe object lifetimes, bounded memory; repeated preparation | Content framing and bounded weak profile cache fixed; identity/lifetime/LRU tests pass; broader cache audit pending |
 | Group kinematics/performance (15,17) | Profile CPU/GPU; batch invariant work; retain all covalent constraints for tree/cyclic/multiple-anchor topologies | Pending |
@@ -119,3 +119,46 @@ with asymmetric block-pair weights. No score/parameter values changed in this
 refactor. CPU-only existing cartbonded suite: 16 pass, 11 CUDA skips.
 Machine-readable cases for these and the preceding follow-up runs are in
 `results/followup-geometry-sampling-native.json`.
+
+### Explicit budgets and CPU packing precision
+
+Explicit task limits now survive `SetPackerTask` conversion and configure private
+NA/OptH sampler views. A reused caller-owned sampler retains its settings.
+Groups count actual anchor-library rows, every member and the offered current
+state before allocating their Cartesian product. When child torsions freeze,
+the empty product still supplies one state. Proton chi retain a placement even
+when alternative means are removed. Required library states that cannot fit
+raise before final rotamer arrays are allocated; Dunbrack also enforces an
+explicit task limit at its native count stage. See [BUDGETS.md](BUDGETS.md) for
+exact limits and remaining API policy decisions.
+
+The four full O-/N-glycan packing tests previously skipped on CPU are enabled.
+This exposed a separate LJ/LK whole-pose accumulation error: adding thousands
+of float32 block-pair totals rounded away small contributions. CPU whole-pose
+totals now accumulate in double and cast once; pair calculations, output dtype
+and CUDA accumulation are unchanged. Packing/whole-pose energy agreement passes
+without loosening its tolerance. CPU LJ/LK plus group suite: 38 pass. Fresh CUDA
+subset: 18 pass (240101). A separate run passes both CPU accumulation branches,
+the formerly failing CPU N-glycan energy case and all 13 explicit-task budget
+cases on CPU/CUDA: 16 pass (240099). Earlier failed JIT builds in job 240094 are
+superseded by these fresh-process checks, not counted as successes.
+
+Paired ubiquitin batch 1/4/16 benchmarks reduce CPU discrepancy from a precise
+block-pair sum from 0.00031231 to 0.00000944175 (33-fold). This accuracy fix has
+a measurable CPU cost: roughly 3–5% in the initial comparison and the first two
+alternating-order rounds. The third round's baseline slowed by over 2x for an
+unresolved environmental reason; all raw data are retained, and that anomalous
+round does not establish a speedup. The initial CUDA comparison changes latency
+by about 0–1%. This is an accuracy/performance tradeoff, not a universal speedup.
+Scratch memory is 24 bytes per CPU pose; no CUDA scratch allocation is added.
+See `profile_ljlk_accumulation.py` and `results/ljlk-*.json`.
+
+With budgets 100/1000 and actual anchor rows held fixed, N-glycan enumeration
+falls from 595 to 67 conformers (4760 to 536 member rotamers); chi arrays shrink
+from 11900 to 804 bytes. Seven warm paired samples give stage latencies of
+1.571→1.144 ms on CPU and 3.224→2.294 ms on CUDA (240110). Biotin and O-glycan
+counts stay unchanged. The comparison loads the prior enumerator and budget
+helpers from `fccd9ad5c`; see `profile_group_budget.py` and
+`results/group-budget-{cpu,cuda}.json`. These are enumeration-stage results,
+not measurements of total packing latency or retained conformational accuracy
+at every budget.

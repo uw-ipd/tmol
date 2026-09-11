@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import numpy as np
 import torch
+import pytest
 
 from tmol.database.chemical import ChiSamples
 from tmol.pack.rotamer._chi_budget import _budgeted_chi_samples, apply_chi_sample_budget
@@ -34,6 +35,18 @@ def test_independent_library_does_not_remove_child_chi():
     )
 
 
+def test_budget_retains_a_proton_placement_and_rejects_oversize_library():
+    import attr
+
+    proton = attr.evolve(sample("chi2", expansions=(20,)), is_proton=True)
+    kept = _budgeted_chi_samples([proton], [2], 1, 1)
+    assert len(kept) == 1
+    assert kept[0][1].samples == (0.0,)
+    assert kept[0][1].expansions == ()
+    with pytest.raises(ValueError, match="required 11 library states"):
+        _budgeted_chi_samples([], [], 10, 10, library_size=11)
+
+
 def test_group_budget_keeps_correct_residue_and_linkage(monkeypatch):
     import tmol.kinematics
 
@@ -59,7 +72,7 @@ def test_group_budget_keeps_correct_residue_and_linkage(monkeypatch):
         lambda *a, **kw: (rkd, np.arange(4)),
     )
     group = ConjugatedGroup(0, (0, 1, 2), ((0, 0, 1, 0), (1, 1, 2, 0)))
-    kept = group_sampled_chi(group, pose, 27, 27)
+    kept = group_sampled_chi(group, pose, 27, 27, library_size=3)
     assert kept == [(2, children[1].chi_samples[0])]
 
 

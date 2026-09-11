@@ -582,6 +582,9 @@ class DunbrackChiSampler(ChiSampler):
             non_dunbrack_expansion_counts_for_bbt,
             prob_cumsum_limit_for_bbt,
             n_chi_for_bbt,
+            max_samples_per_restype=max(
+                getattr(task, "chi_sample_budget", None) or (0,)
+            ),
         )
 
         return self.package_samples_for_output(
@@ -681,6 +684,7 @@ class DunbrackChiSampler(ChiSampler):
         non_dunbrack_expansion_counts_for_buildable_restype,
         prob_cumsum_limit_for_buildable_restype,
         nchi_for_buildable_restype,
+        max_samples_per_restype=0,
     ):
         from ._compiled import dun_sample_chi
 
@@ -721,6 +725,7 @@ class DunbrackChiSampler(ChiSampler):
             non_dunbrack_expansion_counts_for_buildable_restype,
             prob_cumsum_limit_for_buildable_restype,
             nchi_for_buildable_restype,
+            max_samples_per_restype,
         )
 
     @validate_args

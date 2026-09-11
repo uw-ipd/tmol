@@ -1,0 +1,92 @@
+{
+  "commit": "fccd9ad5cf2b94d999a8584e417d737c127500aa",
+  "diff": "diff --git a/tmol/score/ljlk/potentials/ljlk_pose_score.impl.hh b/tmol/score/ljlk/potentials/ljlk_pose_score.impl.hh\nindex 5828f33ae..836251553 100644\n--- a/tmol/score/ljlk/potentials/ljlk_pose_score.impl.hh\n+++ b/tmol/score/ljlk/potentials/ljlk_pose_score.impl.hh\n@@ -2,6 +2,7 @@\n \n #include <Eigen/Core>\n #include <Eigen/Geometry>\n+#include <vector>\n \n #include <tmol/utility/tensor/TensorAccessor.h>\n #include <tmol/utility/tensor/TensorPack.h>\n@@ -444,9 +445,15 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(\n           output[1][p][b1][b2] = cta_total_ljrep;                             \\\n           output[2][p][b1][b2] = cta_total_lk;                                \\\n         } else {                                                              \\\n-          accumulate<D, Real>::add(output[0][p][0][0], cta_total_ljatr);      \\\n-          accumulate<D, Real>::add(output[1][p][0][0], cta_total_ljrep);      \\\n-          accumulate<D, Real>::add(output[2][p][0][0], cta_total_lk);         \\\n+          if constexpr (D == tmol::Device::CPU) {                           \\\n+            cpu_pose_accum[3 * p] += cta_total_ljatr;                         \\\n+            cpu_pose_accum[3 * p + 1] += cta_total_ljrep;                     \\\n+            cpu_pose_accum[3 * p + 2] += cta_total_lk;                        \\\n+          } else {                                                          \\\n+            accumulate<D, Real>::add(output[0][p][0][0], cta_total_ljatr);    \\\n+            accumulate<D, Real>::add(output[1][p][0][0], cta_total_ljrep);    \\\n+            accumulate<D, Real>::add(output[2][p][0][0], cta_total_lk);       \\\n+          }                                                                 \\\n         }                                                                     \\\n       }                                                                       \\\n     });                                                                       \\\n@@ -779,6 +786,16 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(\n   }\n   auto output = output_t.view;\n \n+  // CPU workgroups execute serially. Accumulate their totals in double so\n+  // thousands of small block-pair terms are not rounded away in a large\n+  // float pose total. Atom-pair math, derivatives and returned dtype stay Real.\n+  // The CUDA path does not allocate or access this host scratch storage.\n+  std::vector<double> cpu_pose_totals;\n+  if constexpr (D == tmol::Device::CPU) {\n+    if (!output_block_pair_energies) cpu_pose_totals.resize(3 * n_poses, 0.0);\n+  }\n+  double* cpu_pose_accum = cpu_pose_totals.data();\n+\n   // Optimal launch box on v100 and a100 is nt=32, vt=1\n   LAUNCH_BOX_32;\n   // Define nt and reduce_t\n@@ -903,7 +920,8 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(\n     // the tile\n     auto eval_interres_atom_pair_scores = ([=] EVAL_INTERRES_ATOM_PAIR_SCORES);\n \n-    auto store_calculated_energies = ([=] STORE_POSE_CALCULATED_ENERGIES);\n+    auto store_calculated_energies =\n+        ([=, cpu_pose_accum = cpu_pose_accum] STORE_POSE_CALCULATED_ENERGIES);\n \n     auto load_tile_invariant_intrares_data =\n         ([=] LOAD_TILE_INVARIANT_INTRARES_DATA);\n@@ -1074,7 +1092,8 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(\n \n     auto eval_interres_atom_pair_scores = ([=] EVAL_INTERRES_ATOM_PAIR_SCORES);\n \n-    auto store_calculated_energies = ([=] STORE_POSE_CALCULATED_ENERGIES);\n+    auto store_calculated_energies =\n+        ([=, cpu_pose_accum = cpu_pose_accum] STORE_POSE_CALCULATED_ENERGIES);\n \n     auto load_tile_invariant_intrares_data =\n         ([=] LOAD_TILE_INVARIANT_INTRARES_DATA);\n@@ -1156,6 +1175,16 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(\n         mgr, n_poses * max_n_upper_triangle_inds, eval_energies);\n   }\n \n+  if constexpr (D == tmol::Device::CPU) {\n+    if (!output_block_pair_energies) {\n+      for (int p = 0; p < n_poses; ++p) {\n+        for (int term = 0; term < 3; ++term) {\n+          output[term][p][0][0] = cpu_pose_accum[3 * p + term];\n+        }\n+      }\n+    }\n+  }\n+\n   return {output_t, dV_dcoords_t, scratch_rot_neighbors_t};\n }  // LJLKPoseScoreDispatch::forward\n \n",
+  "torch": "2.13.0+cu132",
+  "device": "cpu",
+  "rows": [
+    {
+      "batch": 1,
+      "blocks": 76,
+      "seconds": [
+        0.004202224314212799,
+        0.004214681684970856,
+        0.0042076678946614265,
+        0.004121797159314156,
+        0.004042808897793293,
+        0.004184164106845856,
+        0.004210683982819319,
+        0.004216288216412067,
+        0.0041987220756709576,
+        0.004066771827638149,
+        0.004215169232338667,
+        0.004104980733245611,
+        0.004185677971690893,
+        0.004202136304229498,
+        0.004209623206406832,
+        0.004188286140561104,
+        0.004172572400420904,
+        0.004120604135096073,
+        0.004121682140976191,
+        0.0041963644325733185
+      ],
+      "median": 0.004192325286567211,
+      "max_error_vs_precise_pair_sum": 9.441748261451721e-06
+    },
+    {
+      "batch": 4,
+      "blocks": 76,
+      "seconds": [
+        0.01653464511036873,
+        0.016548211220651865,
+        0.01652303710579872,
+        0.016494295094162226,
+        0.01686696708202362,
+        0.016601443756371737,
+        0.01651546871289611,
+        0.01660133572295308,
+        0.01652827300131321,
+        0.016448815818876028,
+        0.016629295889288187,
+        0.016530949156731367,
+        0.01633956888690591,
+        0.01658218912780285,
+        0.016574235167354345,
+        0.016464616172015667,
+        0.016555075999349356,
+        0.016645584721118212,
+        0.01639420073479414,
+        0.01665448397397995
+      ],
+      "median": 0.016541428165510297,
+      "max_error_vs_precise_pair_sum": 9.441748261451721e-06
+    },
+    {
+      "batch": 16,
+      "blocks": 76,
+      "seconds": [
+        0.06606727000325918,
+        0.06608786899596453,
+        0.06576896086335182,
+        0.06649459199979901,
+        0.06646282318979502,
+        0.06832982366904616,
+        0.06587595911696553,
+        0.0657240878790617,
+        0.06596032716333866,
+        0.06585790123790503,
+        0.06638032011687756,
+        0.06580812111496925,
+        0.06569856172427535,
+        0.06579888705164194,
+        0.06600092398002744,
+        0.06604066211730242,
+        0.06592772202566266,
+        0.06583157880231738,
+        0.06585696712136269,
+        0.0665236134082079
+      ],
+      "median": 0.06594402459450066,
+      "max_error_vs_precise_pair_sum": 9.441748261451721e-06
+    }
+  ]
+}

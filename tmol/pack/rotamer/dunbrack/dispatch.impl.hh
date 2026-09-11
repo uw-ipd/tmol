@@ -17,6 +17,7 @@
 #include <tmol/extern/moderngpu/operators.hxx>
 
 #include <ATen/Tensor.h>
+#include <c10/util/Exception.h>
 
 namespace tmol {
 namespace pack {
@@ -75,7 +76,8 @@ struct DunbrackChiSampler {
     TView<Real, 3, D> non_dunbrack_expansion_for_buildable_restype,
     TView<Int, 2, D> non_dunbrack_expansion_counts_for_buildable_restype,
     TView<Real, 1, D> prob_cumsum_limit_for_buildable_restype,
-    TView<Int, 1, D> nchi_for_buildable_restype  // inc. hydroxyl chi, e.g.
+    TView<Int, 1, D> nchi_for_buildable_restype,  // inc. hydroxyl chi, e.g.
+    int64_t max_samples_per_restype
 
     )
       -> std::tuple<
@@ -296,6 +298,15 @@ struct DunbrackChiSampler {
         expansion_dim_prods_for_brt,
         n_rotamers_to_build_per_brt,
         n_rotamers_to_build_per_brt_offsets);
+
+    if (max_samples_per_restype > 0) {
+      Int const maximum = Dispatch<D>::reduce(
+          mgr, n_rotamers_to_build_per_brt.data(), n_brt, mgpu::maximum_t<Int>());
+      TORCH_CHECK(
+          maximum <= max_samples_per_restype,
+          "Sampling budget ", max_samples_per_restype,
+          " cannot fit the required ", maximum, " Dunbrack library/extra-chi states");
+    }
 
     // Get a mapping from rotamer index to buildable restype
     auto brt_for_rotamer_tp = TPack<Int, 1, D>::zeros(n_rotamers);

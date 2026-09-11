@@ -340,13 +340,32 @@ class PackerTask:
         #    from the tip inward at the second
         self.chi_sample_expanded_limit = DEFAULT_CHI_SAMPLE_EXPANDED_LIMIT
         self.chi_sample_limit = DEFAULT_CHI_SAMPLE_LIMIT
+        self.chi_sample_budget = None
 
     def set_chi_sample_budget(self, expanded_limit: int, limit: int):
-        """Bound the rotamers sampled chi enumerate; see tmol.pack.rotamer."""
+        """Set expansion/fallback budgets without mutating reusable samplers.
+
+        Groups count one rotamer per member per conformer, including current.
+        A required library that cannot fit is rejected before the group product
+        is allocated. Sampler-specific defaults apply until this setter is used.
+        """
+        import operator
+
+        try:
+            if isinstance(expanded_limit, bool) or isinstance(limit, bool):
+                raise TypeError
+            expanded_limit, limit = operator.index(expanded_limit), operator.index(
+                limit
+            )
+        except TypeError:
+            raise ValueError(
+                "chi sample budget limits must be positive integers"
+            ) from None
         if expanded_limit < 1 or limit < 1:
-            raise ValueError("chi sample budget limits must be positive")
+            raise ValueError("chi sample budget limits must be positive integers")
         self.chi_sample_expanded_limit = expanded_limit
         self.chi_sample_limit = limit
+        self.chi_sample_budget = (expanded_limit, limit)
 
     def restrict_to_repacking(self):
         # Use the pre-calculated masks to disable packing for
@@ -497,6 +516,7 @@ class SetPackerTask:
         set_task = cls()
         set_task.pbt = task.pbt
         set_task.device = task.device
+        set_task.chi_sample_budget = task.chi_sample_budget
         set_task.is_real_block = task.is_real_block
         set_task.real_block_pose, set_task.real_block_block = torch.nonzero(
             set_task.is_real_block, as_tuple=True

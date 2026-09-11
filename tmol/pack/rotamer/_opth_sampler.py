@@ -978,6 +978,11 @@ class OptHSampler(ConformerSampler):
         pose_stack: PoseStack,
         task: "SetPackerTask",  # noqa: F821
     ) -> Tuple[Tensor[torch.int32][:], Tensor[torch.int32][:], dict,]:
+        from tmol.pack.rotamer._chi_budget import sampler_for_task
+
+        configured, task = sampler_for_task(self, task)
+        if configured is not self:
+            return configured.create_samples_for_poses(pose_stack, task)
         self._annotate_packed_block_types(pose_stack.packed_block_types)
 
         # ensure dunbrack and optH sampler are not _both_ specified for the same block
@@ -993,7 +998,11 @@ class OptHSampler(ConformerSampler):
             self._count_rots_and_measure_all_flips(pose_stack, task, coords)
         )
 
-        n_rots_total = int(n_rots_for_gbt.sum().item())
+        from tmol.pack.rotamer._chi_budget import checked_sample_count
+
+        n_rots_total = checked_sample_count(
+            n_rots_for_gbt, self.chi_sample_expanded_limit, self.chi_sample_limit
+        )
 
         if n_rots_total == 0:
             empty_chi = torch.zeros(

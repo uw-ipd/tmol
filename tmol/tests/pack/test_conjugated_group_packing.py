@@ -37,9 +37,6 @@ FIXTURES = {
     "nglycan": "nglycan_tree_1ax2",
 }
 
-# groups big enough that a full pack is only practical on the gpu
-BIG = {"oglycan", "nglycan"}
-
 
 def _pose(stem, device):
     aa = atom_array_from_cif(data_path("covalent_fixtures", stem + ".cif"))
@@ -142,13 +139,24 @@ def test_a_group_is_sampled_as_the_product_of_its_parts(torch_device):
         #    conformer the group came in with
         assert (conformers.shape[0] - 1) % n_tree == 0
         assert conformers.shape[1] == len(columns)
+        assert conformers.shape[0] * len(group.blocks) <= max(
+            sampler.chi_sample_expanded_limit, sampler.chi_sample_limit
+        )
+        # An explicit task budget must survive conversion without changing
+        # the sampler the caller may reuse for another pose/task.
+        task.set_chi_sample_budget(1, 1)
+        restricted = SetPackerTask.from_packer_task(task)
+        assert restricted.chi_sample_budget == (1, 1)
+        with pytest.raises(ValueError, match="Sampling budget"):
+            sampler.group_conformers(
+                pose_stack, anchor_chi, restricted.chi_sample_budget
+            )
+        assert sampler.chi_sample_limit == 1000
 
 
 @pytest.mark.parametrize("fixture", sorted(FIXTURES))
 def test_the_bond_survives_packing(fixture, torch_device):
     """Every bond joining a group's blocks keeps its length through a pack."""
-    if fixture in BIG and torch_device.type == "cpu":
-        pytest.skip(f"{fixture}'s group is too big to pack on cpu; cuda covers it")
     pose_stack, ctx = _pose(FIXTURES[fixture], torch_device)
     param_db = ctx.parameter_database
     sfxn = beta2016_score_function(torch_device, param_db=param_db)
@@ -175,8 +183,6 @@ def test_the_packers_energy_matches_what_the_pose_scores(fixture, torch_device):
     are assembled; if any pair energy is dropped or double counted there, the
     number the packer works from stops describing the structure it picks.
     """
-    if fixture in BIG and torch_device.type == "cpu":
-        pytest.skip(f"{fixture}'s group is too big to pack on cpu; cuda covers it")
     pose_stack, ctx = _pose(FIXTURES[fixture], torch_device)
     param_db = ctx.parameter_database
     sfxn = beta2016_score_function(torch_device, param_db=param_db)

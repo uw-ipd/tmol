@@ -78,53 +78,34 @@ class ConjugatedChiSampler(ChiSampler):
     def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
         return sc_roots_for_chis(rt, [cs.chi_dihedral for cs in _heavy_chi(rt)])
 
-    def group_conformers(self, pose_stack: PoseStack, anchor_chi=None):
-        """Every group in the stack with the chi values it enumerates.
+    def group_conformers(self, pose_stack: PoseStack, anchor_chi=None, budget=None):
+        """Enumerate each group's product using actual library cardinality.
 
-        Each entry is (group, [(group index, chi name, defining atom)], array of
-        conformers x chi in radians). A group conformer sets one value for every
-        sampled chi at once: that is what makes the members move together.
+        Limits count all member rotamers, including the offered input state.
+        Library states are retained; an impossible limit fails before allocating
+        the Cartesian product. Frozen child chi retain their input geometry.
         """
+        expanded_limit, limit = budget or (
+            self.chi_sample_expanded_limit,
+            self.chi_sample_limit,
+        )
         out = []
+        pbt = pose_stack.packed_block_types
         for group in find_conjugated_groups(pose_stack):
-            kept = group_sampled_chi(
-                group,
-                pose_stack,
-                self.chi_sample_expanded_limit,
-                self.chi_sample_limit,
-            )
-            if not kept:
-                continue
-            pbt = pose_stack.packed_block_types
-            columns, per_chi = [], []
-            for owner, cs in kept:
-                bt = pbt.active_block_types[
-                    int(pose_stack.block_type_ind[group.pose, group.blocks[owner]])
-                ]
-                uaids = bt.torsion_to_uaids[cs.chi_dihedral]
-                columns.append((owner, cs.chi_dihedral, uaids[1][0], uaids[2][0]))
-                values = []
-                for s in cs.samples:
-                    values.append(s)
-                    for e in cs.expansions:
-                        values.extend((s - e, s + e))
-                per_chi.append([math.radians(v) for v in values])
-            tree = numpy.array(list(itertools.product(*per_chi)), dtype=numpy.float32)
-
-            # the anchor's library rotamers multiply the tree's conformers: a
-            #    group conformer names a chi value for every sampled torsion in
-            #    the group at once, which is what holds the members together
+            anchor_cols = []
+            lib = numpy.empty((1, 0), dtype=numpy.float32)
             entry = (anchor_chi or {}).get((group.pose, group.anchor))
-            if entry is not None:
+            if entry is not None and entry[0].shape[0]:
                 anchor_atoms, anchor_values = entry
                 anchor_bt = pbt.active_block_types[
                     int(pose_stack.block_type_ind[group.pose, group.anchor])
                 ]
-                atom_to_chi = {}
-                for name, uaids in anchor_bt.torsion_to_uaids.items():
-                    if name.startswith("chi"):
-                        atom_to_chi[int(uaids[2][0])] = (name, uaids[1][0], uaids[2][0])
-                anchor_cols, keep_cols = [], []
+                atom_to_chi = {
+                    int(uaids[2][0]): (name, uaids[1][0], uaids[2][0])
+                    for name, uaids in anchor_bt.torsion_to_uaids.items()
+                    if name.startswith("chi")
+                }
+                keep_cols = []
                 for j in range(anchor_atoms.shape[1]):
                     atom = int(anchor_atoms[0, j])
                     if atom < 0 or atom not in atom_to_chi:
@@ -134,26 +115,42 @@ class ConjugatedChiSampler(ChiSampler):
                     keep_cols.append(j)
                 if anchor_cols:
                     lib = anchor_values[:, keep_cols]
-                    n_lib, n_tree = lib.shape[0], tree.shape[0]
-                    conformers = numpy.concatenate(
-                        [
-                            numpy.repeat(lib, n_tree, axis=0),
-                            numpy.tile(tree, (n_lib, 1)),
-                        ],
-                        axis=1,
-                    ).astype(numpy.float32)
-                    columns = anchor_cols + columns
-                    out.append(
-                        (
-                            group,
-                            columns,
-                            self._with_current(pose_stack, group, columns, conformers),
-                        )
-                    )
-                    continue
 
+            kept = group_sampled_chi(
+                group,
+                pose_stack,
+                expanded_limit,
+                limit,
+                library_size=lib.shape[0],
+                reserve_current=self.include_current,
+            )
+            columns, per_chi = [], []
+            for owner, cs in kept:
+                bt = pbt.active_block_types[
+                    int(pose_stack.block_type_ind[group.pose, group.blocks[owner]])
+                ]
+                uaids = bt.torsion_to_uaids[cs.chi_dihedral]
+                columns.append((owner, cs.chi_dihedral, uaids[1][0], uaids[2][0]))
+                values = []
+                for value in cs.samples:
+                    values.append(value)
+                    for expansion in cs.expansions:
+                        values.extend((value - expansion, value + expansion))
+                per_chi.append([math.radians(v) for v in values])
+            # The empty product is one state, not an absent group: the anchor
+            # can still move while all child chi are frozen.
+            tree = numpy.array(list(itertools.product(*per_chi)), dtype=numpy.float32)
+            conformers = numpy.concatenate(
+                [numpy.repeat(lib, len(tree), axis=0), numpy.tile(tree, (len(lib), 1))],
+                axis=1,
+            )
+            columns = anchor_cols + columns
             out.append(
-                (group, columns, self._with_current(pose_stack, group, columns, tree))
+                (
+                    group,
+                    columns,
+                    self._with_current(pose_stack, group, columns, conformers),
+                )
             )
         return out
 
@@ -311,7 +308,9 @@ class ConjugatedChiSampler(ChiSampler):
         anchor_chi = self.anchor_library_chi(
             pose_stack, task, find_conjugated_groups(pose_stack)
         )
-        groups = self.group_conformers(pose_stack, anchor_chi)
+        groups = self.group_conformers(
+            pose_stack, anchor_chi, budget=getattr(task, "chi_sample_budget", None)
+        )
         emitted = []
         for gi, (group, columns, conformers) in enumerate(groups):
             n_conf = int(conformers.shape[0])

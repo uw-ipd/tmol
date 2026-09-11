@@ -23,7 +23,9 @@ from tmol.pose._conjugated_groups import (  # noqa: F401
 )
 
 
-def group_sampled_chi(group, pose_stack, expanded_limit, limit):
+def group_sampled_chi(
+    group, pose_stack, expanded_limit, limit, library_size=1, reserve_current=False
+):
     """Which chi of a group's attached blocks survive the budget.
 
     The whole group enumerates one product, so the budget is applied across it
@@ -64,29 +66,15 @@ def group_sampled_chi(group, pose_stack, expanded_limit, limit):
                 int(offsets[i]) + bt.torsion_to_uaids[cs.chi_dihedral][2][0]
             )
 
-    if not entries:
-        return []
-
-    # the anchor's own chi come from its rotamer library and multiply whatever
-    #    the tree enumerates, so the budget has to know how many there are; the
-    #    library's chi are its torsions less the ones conjugation added
-    anchor = block_types[0]
-    n_conjugations = sum(1 for _, _, child, _ in group.links if child == 0) + sum(
-        1 for parent, _, _, _ in group.links if parent == 0
-    )
-    n_anchor_chi = (
-        sum(1 for t in anchor.torsions if t.name.startswith("chi")) - n_conjugations
-    )
-
     depths = chi_depths(rkd, depths_in)
     # every block of the group carries a copy of each conformer
     n_blocks = max(len(group.blocks), 1)
     kept = _budgeted_chi_samples(
         entries,
         depths,
-        max(expanded_limit // n_blocks, 1),
-        max(limit // n_blocks, 1),
-        library_size=3 ** max(n_anchor_chi, 0),
+        max(expanded_limit // n_blocks - int(reserve_current), 0),
+        max(limit // n_blocks - int(reserve_current), 0),
+        library_size=library_size,
     )
 
     return [(owners[index], cs) for index, cs in kept]
