@@ -189,10 +189,9 @@ def armijo_linesearch_segmented(
         sigma_decrease,
     )
 
-    while True:
-        if not _any_true(active):
-            break
-
+    combine_cuda_checks = searching.is_cuda and searching.numel() > 1
+    any_active = _any_true(active)
+    while any_active:
         trial = armijo_trial(status, alpha, accepted, factor)
         phi_trial = func(trial)
         n_evals += 1
@@ -209,7 +208,13 @@ def armijo_linesearch_segmented(
             sigma_decrease,
             minstep,
         )
-        if _any_true(failed):
+        if combine_cuda_checks:
+            # Transfer both decisions together and reuse the active flag on
+            # the next iteration instead of synchronizing its mask again.
+            any_failed, any_active = torch.stack((failed, active)).any(dim=1).tolist()
+        else:
+            any_failed = _any_true(failed)
+        if any_failed:
             for p in failed.nonzero(as_tuple=False).flatten().tolist():
                 step = float(trial[p])
                 finite = (
@@ -230,6 +235,8 @@ def armijo_linesearch_segmented(
 
         alpha = trial
         phi = phi_trial
+        if not combine_cuda_checks:
+            any_active = _any_true(active)
 
     return accepted, phi_accepted, n_evals, status, bool(torch.equal(alpha, accepted))
 
