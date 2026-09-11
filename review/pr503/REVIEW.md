@@ -9,7 +9,7 @@ Improvement branch: `review/pr503-chemistry-efficiency`
 Review date: 2026-09-11
 
 The six-file update has been reviewed separately. Comments 1–46 retain their
-original `c03c1e745` anchors; comments 47–53 address the updated head. The
+original `c03c1e745` anchors; comments 47–56 address the updated head. The
 fold-forest expectations and HYP count are now corrected upstream. See
 [FOLLOWUP.md](FOLLOWUP.md) for reconciliation and validation details.
 
@@ -512,6 +512,30 @@ The attached ASN fixture fails the controlled pre-fix annotation check. The bran
 > Could both block and packed-block annotations be scoped to the generic database and chemical element mapping? Reusing the same pose with another database currently skips setup because the attributes already exist. Changed Fourier coefficients, improper strengths, type hierarchies or Rosetta ownership can therefore retain the first term's data. Rendering an older term again after another setup also needs to recover its own parameters, while existing modules keep their original tensors.
 
 Four CPU reproductions reuse a jagged KK/KKK pose with synthetic generic ownership and two parameter databases whose strengths differ by exactly two. Both setup orders fail in whole-pose and block-pair scoring before the fix. This is a controlled scaling test of cache identity, not a proposed physical model. The follow-up keeps one latest annotation per owner, weakly identifies its database, and captures the returned tensors when rendering. Rotamer energies/weighted gradients, ownership changes, invalid element mappings and database collection are covered. The database-wide inter-block tables are now shared through a bounded weak cache instead of rebuilt for each packed set. Slurm 249000 passes 119 CPU/CUDA cases with four fixture-specific skips; exact-tensor setup profiles and limits are recorded in [FOLLOWUP.md](FOLLOWUP.md).
+
+### 54. P1 — Cartbonded ownership outlives the configuration that defined it
+
+[tmol/score/cartbonded/_cartbonded_energy_term.py:235](https://github.com/uw-ipd/tmol/blob/0f4c3bc426bca78e8681f0b730fa23c3e26ef261/tmol/score/cartbonded/_cartbonded_energy_term.py#L235)
+
+> Could the Rosetta ownership mask be part of the term's parameter snapshot? This `hasattr` guard ignores changes to `genbonded.rosetta_typed`, and the Cartbonded content hash does not contain that setting. Reusing a pose with another ownership configuration therefore scores connection impropers using whichever configuration ran first. Existing rendered modules must also retain their own mask after a new term is set up.
+
+Both setup orders fail in a perturbed AA connection reproduction with unchanged Cartbonded parameters and different ownership sets. The follow-up records the ownership setting/mask in the packed annotation, refreshes it on configuration changes, and captures it during rendering. Identical ownership masks are shared across parameter fits. The independent peptide/proline improper reference and the new reuse tests pass on CPU/CUDA.
+
+### 55. P2 — bonded annotation dictionaries retain every fitted parameter set
+
+[tmol/score/cartbonded/_cartbonded_energy_term.py:370](https://github.com/uw-ipd/tmol/blob/0f4c3bc426bca78e8681f0b730fa23c3e26ef261/tmol/score/cartbonded/_cartbonded_energy_term.py#L370), also [block annotations at line 228](https://github.com/uw-ipd/tmol/blob/0f4c3bc426bca78e8681f0b730fa23c3e26ef261/tmol/score/cartbonded/_cartbonded_energy_term.py#L228).
+
+> Can these caches have an explicit lifetime bound? Each changed bonded database adds another set of subgraphs, parameter dictionaries and packed tensors to every reused owner. Retaining a pose or its block types therefore retains all prior fits even when their databases are no longer needed. Evicting cached annotations must leave existing modules valid and allow an older term to rebuild its own snapshot.
+
+The branch now retains the two most recently used parameter configurations per block and packed set. Six fitted databases previously retained six entries; the cache now remains at two. On 230 default block types, cache-reachable packed tensor storage falls from 9,379,104 to 3,170,528 bytes, and block NumPy arrays from 5,974,848 to 1,991,616 bytes on both CPU/CUDA. This excludes Python dictionaries, rendered-module snapshots and process/allocator memory. Reusing an evicted configuration rebuilds it; this is a memory/performance tradeoff, not a faster fit claim. Existing and newly rendered modules are checked after repeated evictions.
+
+### 56. P2 — common atom setup synchronizes once per atom
+
+[tmol/score/_atom_type_dependent_term.py:154](https://github.com/uw-ipd/tmol/blob/0f4c3bc426bca78e8681f0b730fa23c3e26ef261/tmol/score/_atom_type_dependent_term.py#L154), with [the per-block CUDA slice bound at line 141](https://github.com/uw-ipd/tmol/blob/0f4c3bc426bca78e8681f0b730fa23c3e26ef261/tmol/score/_atom_type_dependent_term.py#L141).
+
+> Could heavy-atom selection reuse the host indices and host hydrogen flags already available here? This repeats type-name lookup and converts one device boolean to Python per atom. The slice bound also reads a device scalar once per block. Expanded residue databases multiply this common setup cost across thousands of atoms before scoring begins.
+
+This path predates the PR. The optimization uses the current resolver's freshly computed host indices and static residue lengths, preserving behavior even for a fresh packed set built from shared blocks with another atom-type ordering. A separate profiler counts 4,968 native scalar reads before and zero after on 230 default types / 4,738 atoms. Seven paired warm sets show 19.863→7.646 ms CPU and 72.613→10.255 ms CUDA, with every annotation exactly equal. These are common setup measurements, excluding term construction and scoring; they do not resolve the separate stale-cache identity issue when reusing an already annotated packed set.
 
 ## Validation record
 

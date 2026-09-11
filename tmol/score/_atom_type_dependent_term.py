@@ -138,22 +138,18 @@ class AtomTypeDependentTerm(EnergyTerm):
                 atom_cross_ids[i, j] = atom_unique_id_index[atom_name]
 
         for i, restype in enumerate(packed_block_types.active_block_types):
-            atom_types[i, : packed_block_types.n_atoms[i]] = (
-                self.atom_type_index.get_indexer([x.atom_type for x in restype.atoms])
+            atom_types[i, : len(restype.atoms)] = self.atom_type_index.get_indexer(
+                [x.atom_type for x in restype.atoms]
             )
 
-        heavy_atom_inds = []
-        for restype in packed_block_types.active_block_types:
-            rt_heavy = [
-                j
-                for j, atype_ind in enumerate(
-                    self.atom_type_resolver.index.get_indexer(
-                        [restype.atoms[j].atom_type for j in range(len(restype.atoms))]
-                    )
-                )
-                if not self.atom_type_resolver.params.is_hydrogen[atype_ind]
-            ]
-            heavy_atom_inds.append(rt_heavy)
+        # Reuse the indices just resolved on the host. Reading is_hydrogen
+        # from a CUDA tensor once per atom synchronizes thousands of times.
+        # These rows follow this resolver even when the block types already
+        # carry annotations from another atom-type ordering.
+        heavy_atom_inds = [
+            numpy.flatnonzero(self.np_is_heavyatom[atom_types[i, : len(rt.atoms)]])
+            for i, rt in enumerate(packed_block_types.active_block_types)
+        ]
 
         n_heavy_atoms = numpy.array(
             [len(heavy_inds) for heavy_inds in heavy_atom_inds], dtype=numpy.int32

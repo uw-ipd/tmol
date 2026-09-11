@@ -1,4 +1,6 @@
 import torch
+import attr
+import numpy
 
 from tmol.pose import PackedBlockTypes
 from tmol.score import AtomTypeDependentTerm
@@ -58,3 +60,39 @@ def test_take_heavyatom_inds_in_range():
         s = slice(i * tile_size, i * tile_size + subset_size)
         heavy_subset_wi_tile[s] = heavy_inds[subset]
     # print(heavy_subset_wi_tile)
+
+
+def test_new_packed_set_uses_current_resolver_for_shared_blocks(
+    default_database, fresh_default_restype_set, torch_device
+):
+    original = AtomTypeDependentTerm(default_database, torch_device)
+    restypes = fresh_default_restype_set.residue_types
+    for rt in restypes:
+        original.setup_block_type(rt)
+    reversed_database = attr.evolve(
+        default_database,
+        chemical=attr.evolve(
+            default_database.chemical,
+            atom_types=tuple(reversed(default_database.chemical.atom_types)),
+        ),
+    )
+    current = AtomTypeDependentTerm(reversed_database, torch_device)
+    pbt = PackedBlockTypes.from_restype_list(
+        reversed_database.chemical, fresh_default_restype_set, restypes, torch_device
+    )
+    current.setup_packed_block_types(pbt)
+    elements = {at.name: at.element for at in reversed_database.chemical.atom_types}
+    indices = pbt.atom_types.cpu().numpy()
+    heavy = pbt.heavy_atom_inds.cpu().numpy()
+    counts = pbt.n_heavy_atoms.cpu().numpy()
+    for i, rt in enumerate(restypes):
+        numpy.testing.assert_array_equal(
+            indices[i, : len(rt.atoms)],
+            current.atom_type_index.get_indexer([a.atom_type for a in rt.atoms]),
+        )
+        expected = [
+            j for j, atom in enumerate(rt.atoms) if elements[atom.atom_type] != "H"
+        ]
+        assert counts[i] == len(expected)
+        numpy.testing.assert_array_equal(heavy[i, : counts[i]], expected)
+        assert numpy.all(heavy[i, counts[i] :] == -1)

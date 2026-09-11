@@ -1471,3 +1471,64 @@ it is not an end-to-end GPU-memory claim. Slurm 249001 completed the CUDA profil
 `results/generic-setup-{cpu,cuda}.json` and `results/generic-identity-validation.json`.
 Cartbonded's per-database annotation dictionaries and shared parent atom-type
 cache identity remain further audit targets. The full goal remains active.
+
+### Bounded Cartbonded snapshots and common setup synchronization
+
+Cartbonded retained an unbounded dictionary per block and packed set, keyed by
+the bonded content hash. It also stored a separate ownership mask behind an
+attribute-only guard, so another `rosetta_typed` configuration reused the first
+mask even when its bonded hash was unchanged. Two CPU ownership-order tests and
+one five-database cache-bound test fail on the preceding branch.
+
+The cache now retains the two most recently used bonded parameter sets. This
+preserves common two-configuration reuse while bounding retained historical
+arrays. Packed setup consumes returned block annotations; rendering obtains the
+requested packed annotation even after eviction. Previously rendered modules
+retain their own tensors. Ownership and its immutable setting live in the packed
+snapshot, with identical masks shared across fits. Cache-device comparisons use
+the resolver's actual tensor device, so an unindexed `cuda` argument does not
+force warm annotations to rebuild. Dead commented-out cache guards and an unused
+render conversion helper were removed.
+
+The [cache profiler](profile_cart_cache.py) checks all old annotation fields for
+exact equality at each of six different ALA fits on 230 default block types.
+Cache-reachable packed tensor bytes fall from **9,379,104 to 3,170,528**, and
+per-block NumPy array bytes from **5,974,848 to 1,991,616**, on CPU and CUDA.
+This is not total process or GPU allocator memory: it excludes Python parameter
+dictionaries, object overhead, rendered modules and profiler-held snapshots.
+Per-fit times in the artifact are single-sample diagnostics, not a benchmark
+claim. Re-rendering an evicted third-or-older configuration incurs setup again;
+the tests verify that this remains correct. The cache is bounded independently
+of how long callers retain their own scoring modules.
+
+The shared `AtomTypeDependentTerm` setup also read one CUDA scalar per block to
+form a slice bound and one per atom to decide whether it was hydrogen. It now
+uses static residue lengths and the current resolver's host indices/flags.
+This removes a redundant type-name lookup and **4,968 scalar reads** for the
+default 230 types / 4,738 atoms. The new fresh-packed-set regression starts from
+blocks annotated with a different atom-type order and checks all current indices,
+heavy-atom counts, selected positions and padding independently by element.
+It does not claim that the older cache guards safely support every reuse of an
+already annotated block/packed set; that shared identity issue remains open.
+
+[Seven paired warm timing sets](profile_atom_type_setup.py) of ten fresh packed
+annotations give **19.863→7.646 ms CPU (2.60×)** and **72.613→10.255 ms CUDA
+(7.08×)**. All annotation tensors and identifier maps match exactly. Native
+scalar reads are counted in a separate instrumented run; CUDA timing is
+synchronized. Term construction, pose creation, scoring and allocator peaks are
+outside the measurement. These gains must not be multiplied by the earlier
+generic-only setup ratios to claim an end-to-end speedup.
+
+Slurm 249005 completed 0:0 in 2:30 with **201 CPU/CUDA passes / 4 fixture-specific
+skips** across Cartbonded, generic scoring, common atom annotations and coupled
+local conjugate parameters. Slurm 249009 adds the fresh-packed-set resolver
+regression and profiles; 249012 then checks the final shared mask and unindexed
+device behavior: **26 passes / one CPU-only skip**, completed 0:0 in 43 seconds,
+including the final CUDA cache measurement. Suites overlap. The focused initial
+CPU run has seven passes / seven CUDA skips. Source/log hashes and case inventories
+are in `results/cart-cache-validation.json`; paired profiles are in
+`results/atom-type-setup-{cpu,cuda}.json` and `results/cart-cache-{cpu,cuda}.json`.
+
+Review comments 54–56 record the ownership, lifetime and setup-cost findings.
+Shared parent atom-type cache identity, complete default chemistry integration,
+the scientific checks and the other full completion requirements remain open.
