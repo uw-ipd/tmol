@@ -88,6 +88,8 @@ class NonStandardResidueInfo:
     in_polymer_entity: Optional[bool] = None
     # why this residue's chemistry cannot be trusted, or None
     chemistry_problem: Optional[str] = None
+    # {own connection atom: {(partner residue name, partner atom name)}}
+    connection_partners: Optional[dict] = attr.ib(default=None, eq=False, hash=False)
 
 
 def get_chem_comp_type(
@@ -640,7 +642,7 @@ def detect_nonstandard_residues(
     results: list[NonStandardResidueInfo] = []
     polymer_names = polymer_entity_residues(atom_array)
 
-    cross_residue_atoms = _cross_residue_bond_atoms(
+    cross_residue_atoms, cross_residue_partners = _cross_residue_bond_atoms(
         atom_array, chem_comp_types=chem_comp_types
     )
     covalently_linked_names = frozenset(
@@ -651,6 +653,12 @@ def detect_nonstandard_residues(
     connection_atoms_by_name: dict[str, set[str]] = {}
     for (_chain, _res_id, res_name), atoms in cross_residue_atoms.items():
         connection_atoms_by_name.setdefault(res_name, set()).update(atoms)
+    partners_by_name: dict[str, dict[str, set[tuple]]] = {}
+    for (_chain, _res_id, res_name), by_atom in cross_residue_partners.items():
+        for atom, far_side in by_atom.items():
+            partners_by_name.setdefault(res_name, {}).setdefault(atom, set()).update(
+                far_side
+            )
 
     residue_starts = struc.get_residue_starts(atom_array)
 
@@ -693,6 +701,10 @@ def detect_nonstandard_residues(
                 in_polymer_entity=(
                     None if polymer_names is None else res_name in polymer_names
                 ),
+                connection_partners={
+                    atom: frozenset(far_side)
+                    for atom, far_side in partners_by_name.get(res_name, {}).items()
+                },
             )
         )
 
@@ -841,8 +853,12 @@ def _cross_residue_bond_atoms(  # noqa: C901
     atom_array: struc.AtomArray,
     spatial_cutoff: float = 1.8,
     chem_comp_types: Optional[dict] = None,
-) -> dict[tuple, frozenset[str]]:
+) -> tuple[dict[tuple, frozenset[str]], dict[tuple, dict[str, frozenset[tuple]]]]:
     """Atoms of each residue instance that bond to a different residue.
+
+    Returns the atoms alongside, for each of them, the (residue name, atom
+    name) pairs on the far side of the bond. Which residue an attachment lands
+    on is what separates a chain link from a conjugation.
 
     Keyed by ``(chain_id, res_id, res_name)``. These atoms are where the
     residue's polymer connections attach, which is what says where its backbone
@@ -871,14 +887,21 @@ def _cross_residue_bond_atoms(  # noqa: C901
     res_names = atom_array.res_name
 
     linked: dict[tuple, set[str]] = {}
+    partners: dict[tuple, dict[str, set[tuple[str, str]]]] = {}
     atom_names = atom_array.atom_name
 
     def _key(idx: int) -> tuple:
         chain = chain_ids[idx] if chain_ids is not None else None
         return (chain, res_ids[idx], res_names[idx].strip())
 
-    def _record(idx: int) -> None:
-        linked.setdefault(_key(idx), set()).add(str(atom_names[idx]).strip())
+    def _record(idx: int, partner: Optional[int] = None) -> None:
+        name = str(atom_names[idx]).strip()
+        linked.setdefault(_key(idx), set()).add(name)
+        if partner is None:
+            return
+        partners.setdefault(_key(idx), {}).setdefault(name, set()).add(
+            (res_names[partner].strip(), str(atom_names[partner]).strip())
+        )
 
     def _spans_residues(a: int, b: int) -> bool:
         """Whether atoms ``a`` and ``b`` belong to different residues."""
@@ -891,8 +914,8 @@ def _cross_residue_bond_atoms(  # noqa: C901
         for a, b, _ in atom_array.bonds.as_array():
             a, b = int(a), int(b)
             if _spans_residues(a, b):
-                _record(a)
-                _record(b)
+                _record(a, b)
+                _record(b, a)
 
     polymer_names = polymer_entity_residues(atom_array)
 
@@ -918,11 +941,17 @@ def _cross_residue_bond_atoms(  # noqa: C901
                 b = int(heavy_indices[j])
                 if not _spans_residues(a, b):
                     continue
-                for idx in (a, b):
+                for idx, other in ((a, b), (b, a)):
                     if _is_polymer(res_names[idx].strip()):
-                        _record(idx)
+                        _record(idx, other)
 
-    return {key: frozenset(names) for key, names in linked.items()}
+    return (
+        {key: frozenset(names) for key, names in linked.items()},
+        {
+            key: {atom: frozenset(seen) for atom, seen in by_atom.items()}
+            for key, by_atom in partners.items()
+        },
+    )
 
 
 def _residue_names_with_cross_residue_bonds(
@@ -935,5 +964,5 @@ def _residue_names_with_cross_residue_bonds(
         res_name
         for _chain, _res_id, res_name in _cross_residue_bond_atoms(
             atom_array, spatial_cutoff, chem_comp_types
-        )
+        )[0]
     )

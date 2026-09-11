@@ -305,11 +305,15 @@ auto calculate_ff_edge_delays(
     Tensor pose_stack_block_type,          // x - P x L
     Tensor ff_edges_cpu,  // y - P x E x 4 -- 0: type, 1: start, 2: stop, 3:
                           // jump ind
-    Tensor block_type_kts_conn_info,    // y - T x I x O x C x 2 -- 2 is for gen
-                                        // (0) and scan (1)
-    Tensor block_type_nodes_for_gens,   // y - T x I x O x G x N
-    Tensor block_type_scan_path_starts  // y - T x I x O x G x S
-    ) -> tensor_list {
+    Tensor block_type_kts_conn_info,   // y - T x I x O x C x 2 -- 2 is for gen
+                                       // (0) and scan (1)
+    Tensor block_type_nodes_for_gens,  // y - T x I x O x G x N
+    Tensor block_type_scan_path_starts,  // y - T x I x O x G x S
+    Tensor pose_stack_block_type_cpu,
+    Tensor pose_stack_inter_res_conn_cpu,
+    Tensor block_type_kts_conn_info_cpu,
+    Tensor block_type_polymeric_conn_index_cpu,
+    Tensor block_type_n_conn_cpu) -> tensor_list {
   Tensor dfs_order_of_ff_edges;
   Tensor n_ff_edges;
   Tensor ff_edge_parent;
@@ -334,7 +338,12 @@ auto calculate_ff_edge_delays(
                     TCAST(ff_edges_cpu),
                     TCAST(block_type_kts_conn_info),
                     TCAST(block_type_nodes_for_gens),
-                    TCAST(block_type_scan_path_starts));
+                    TCAST(block_type_scan_path_starts),
+                    TCAST(pose_stack_block_type_cpu),
+                    TCAST(pose_stack_inter_res_conn_cpu),
+                    TCAST(block_type_kts_conn_info_cpu),
+                    TCAST(block_type_polymeric_conn_index_cpu),
+                    TCAST(block_type_n_conn_cpu));
         dfs_order_of_ff_edges = std::get<0>(result).tensor;
         n_ff_edges = std::get<1>(result).tensor;
         ff_edge_parent = std::get<2>(result).tensor;

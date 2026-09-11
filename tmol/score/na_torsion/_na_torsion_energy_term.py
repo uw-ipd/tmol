@@ -616,6 +616,7 @@ def eval_na_torsion_for_rotamers(
     _rot_offset_for_pose,
     _n_rots_for_block,
     _rot_offset_for_block,
+    _lockstep_group_for_block,
     _max_n_rots_per_pose,
     # term args
     has_na,

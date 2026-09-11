@@ -58,14 +58,14 @@ nonstandard_aa:
   dunbrack_rot: 22.7186
   dunbrack_rotdev: 24.3825
   dunbrack_semirot: 19.4504
-  fa_elec: -38.9941
-  fa_ljatr: -200.2097
-  fa_ljrep: 660.8489
-  fa_lk: 168.421
-  gen_torsions: 48.7593
+  fa_elec: -52.3353
+  fa_ljatr: -201.6004
+  fa_ljrep: 662.7233
+  fa_lk: 168.8435
+  gen_torsions: 47.9583
   hbond: -28.1222
-  lk_ball: 81.1354
-  lk_ball_iso: 194.812
+  lk_ball: 81.7163
+  lk_ball_iso: 195.8998
   lk_bridge: 0.1518
   lk_bridge_uncpl: 1.6022
   na_torsion: 0.0

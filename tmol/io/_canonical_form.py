@@ -48,6 +48,8 @@ class CanonicalForm:
     res_not_connected: Optional[Tensor[torch.bool][:, :, 2]]
     # n_cyclic_closures x 3
     cyclic_bonds: Optional[Tensor[torch.int64][:, 3]] = None
+    # n_covalent_bonds x 5: pose, res1, canonical atom1, res2, canonical atom2
+    covalent_bonds: Optional[Tensor[torch.int64][:, 5]] = None
 
     def __iter__(self):
         yield self.chain_id
@@ -61,6 +63,7 @@ class CanonicalForm:
         yield self.disulfides
         yield self.res_not_connected
         yield self.cyclic_bonds
+        yield self.covalent_bonds
 
     def as_dict(self):
         return {
@@ -75,4 +78,5 @@ class CanonicalForm:
             "disulfides": self.disulfides,
             "res_not_connected": self.res_not_connected,
             "cyclic_bonds": self.cyclic_bonds,
+            "covalent_bonds": self.covalent_bonds,
         }

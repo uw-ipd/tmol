@@ -94,6 +94,7 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
         dslf_10,
         rnc_10,
         _cyc,
+        _cov2,
     ) = cf_as_tuple_from_pdb_lines(co, ubq_pdb[: 81 * 167], torch_device)
     assert dslf_10 is None
     assert rnc_10 is None
@@ -120,6 +121,7 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
         _1,
         _2,
         _3,
+        _4,
         res_lab,
         res_ins,
         ch_lab,
@@ -177,6 +179,7 @@ def test_left_justify_can_form_with_gaps_in_dslf(pertuzumab_pdb, torch_device):
         orig_dslf,
         orig_rnc,
         _cyc,
+        _cov2,
     ) = cf_as_tuple_from_pdb_lines(co, pertuzumab_pdb, torch_device)
 
     # the actual disulfides
@@ -207,6 +210,7 @@ def test_left_justify_can_form_with_gaps_in_dslf(pertuzumab_pdb, torch_device):
         lj_at_is_pres,
         lj_dslf,
         _cyc,
+        _cov,
         _2,
         _res_lab,
         _res_ins,
@@ -256,6 +260,7 @@ def test_assign_block_types_for_pert_and_antigen(
         orig_dslf,
         orig_rnc,
         _cyc,
+        _cov2,
     ) = cf_as_tuple_from_pdb_lines(co, pert_and_erbb2_lines, torch_device)
 
     orig_res_not_connected = torch.tensor(res_not_connected, device=torch_device)
@@ -276,6 +281,7 @@ def test_assign_block_types_for_pert_and_antigen(
         lj_at_is_pres,
         _1,
         _cyc,
+        _cov,
         lj_res_not_connected,
         lj_res_lab,
         lj_res_ins,

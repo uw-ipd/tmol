@@ -51,6 +51,14 @@ def remove_atom(res, atom):
         if atom not in [x.a.connection, x.b.connection, x.c.connection, x.d.connection]
     )
     res.connections = tuple(x for x in res.connections if x.name != atom)
+    # a chi sample names a torsion; one whose torsion has just gone with the
+    #    atom would name nothing
+    remaining = {x.name for x in res.torsions}
+    res.chi_samples = tuple(x for x in res.chi_samples if x.chi_dihedral in remaining)
+    # a chi sample names a torsion; one whose torsion has just gone with the
+    #    atom would name nothing
+    remaining = {x.name for x in res.torsions}
+    res.chi_samples = tuple(x for x in res.chi_samples if x.chi_dihedral in remaining)
 
     # atom_downstream_of_conn indexes every mainchain atom, so a patch that drops
     # one (e.g. the DNA 5' terminus dropping P) must drop it here too
@@ -90,33 +98,24 @@ def update_icoor(res, patch, atoms_remove, namemap):
                 great_grand_parent=None,
             )
 
-        # map p, gp, ggp names
-        p_i = source_i.parent if not target_i.parent else target_i.parent
-        if p_i in namemap:
-            p_i = namemap[p_i]
-        gp_i = (
-            source_i.grand_parent
-            if not target_i.grand_parent
-            else target_i.grand_parent
-        )
-        if gp_i in namemap:
-            gp_i = namemap[gp_i]
-        ggp_i = (
-            source_i.great_grand_parent
-            if not target_i.great_grand_parent
-            else target_i.great_grand_parent
-        )
-        if ggp_i in namemap:
-            ggp_i = namemap[ggp_i]
+        # a field the patch omits is inherited from its source; only an
+        #    absent field is omitted, since 0.0 is a legitimate angle
+        def inherited(field):
+            value = getattr(target_i, field)
+            return getattr(source_i, field) if value is None else value
+
+        def mapped(field):
+            name = inherited(field)
+            return namemap[name] if name in namemap else name
 
         icoor_i = Icoor(
             name=target_i.name,
-            phi=source_i.phi if not target_i.phi else target_i.phi,
-            theta=source_i.theta if not target_i.theta else target_i.theta,
-            d=source_i.d if not target_i.d else target_i.d,
-            parent=p_i,
-            grand_parent=gp_i,
-            great_grand_parent=ggp_i,
+            phi=inherited("phi"),
+            theta=inherited("theta"),
+            d=inherited("d"),
+            parent=mapped("parent"),
+            grand_parent=mapped("grand_parent"),
+            great_grand_parent=mapped("great_grand_parent"),
         )
 
         new_icoor.append(icoor_i)
@@ -333,6 +332,7 @@ def validate_patch(patch):
     added_ats_and_conns = addedatoms.union(set([i.name for i in patch.add_connections]))
 
     _validate_patch_fields(patch)
+    _validate_patch_scope(patch)
     _validate_patch_atom_references(
         patch, "remove_atoms", "remove_nonreference_atom", lambda x: x
     )
@@ -342,6 +342,19 @@ def validate_patch(patch):
     _validate_patch_atom_aliases(patch, addedatoms)
     _validate_patch_bonds(patch, added_ats_and_conns)
     _validate_patch_icoors(patch, added_ats_and_conns)
+
+
+def _validate_patch_scope(patch):
+    """A patch naming atoms outright must name the one residue type it means."""
+    if patch.pattern:
+        return
+    base_names = patch.applies_to.base_names
+    if not base_names or len(base_names) != 1:
+        raise RuntimeError(
+            f"Bad patch: {patch.name}\n"
+            "Error: a patch with no pattern names atoms outright, so it must "
+            "be scoped with applies_to.base_names to exactly one residue type."
+        )
 
 
 def _validate_patch_fields(patch):
@@ -478,13 +491,29 @@ def _validate_patch_icoors(patch, added_ats_and_conns):
         raise RuntimeError(err_msg)
 
 
-def pattern_namemaps(variant, resgraph, patchgraph):
+def pattern_namemaps(variant, resgraph, patchgraph, res=None):
     """Each distinct way the patch's pattern binds to the residue.
 
     A namemap sends every pattern placeholder to the name it matched, which is
     an atom's or, at a connection, the connection's. Two bindings that modify
     the same atoms are one binding found twice.
+
+    A patch with no pattern names the residue's atoms outright: ``<OG>`` is the
+    atom called OG. Generated patches are written that way, since a pattern
+    cannot tell one hydroxyl of a sugar from another.
     """
+    if patchgraph is None:
+        # the residue's own atoms, hydrogens included; resgraph carries only
+        #    the heavy ones a SMILES pattern can match
+        names = [atom.name for atom in res.atoms] + [c.name for c in res.connections]
+        namemap = {"<" + str(name) + ">": name for name in names}
+        added, modded, deleted = get_modified_atoms(variant)
+        # a pattern stops matching once its atoms are gone; so does this
+        if any(
+            name not in namemap for name in (*modded, *deleted) if name not in added
+        ):
+            return []
+        return [namemap]
     atoms_match = (
         lambda x, y: ("element" not in y)
         or ("element" not in x)
@@ -518,7 +547,7 @@ def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
         "Patch " + variant.name + " does not modify any atoms!"
     )
 
-    namemaps = pattern_namemaps(variant, resgraph, patchgraph)
+    namemaps = pattern_namemaps(variant, resgraph, patchgraph, res)
 
     # fd: this could be supported in the future, with a few issues to work out
     #    -if the patch adds atoms, we need to figure out how to ensure unique names
@@ -654,10 +683,14 @@ def patch_residue(res, variants, graph_builder):
                 if newtag in resvariantnames or newtag in rvn_new:
                     continue  # we already made this variant
 
-                patchgraph = read_smiles(
-                    variant.pattern,
-                    explicit_hydrogen=True,
-                    do_fill_valence=False,
+                patchgraph = (
+                    read_smiles(
+                        variant.pattern,
+                        explicit_hydrogen=True,
+                        do_fill_valence=False,
+                    )
+                    if variant.pattern
+                    else None
                 )
                 patched_reses, mark_i_new = do_patch(
                     res_i, variant, resgraph, patchgraph, mark_i
@@ -709,6 +742,35 @@ class PatchedChemicalDatabase:
             residues=patched_residues,
             variants=chemdb.variants,
             name3_aliases=chemdb.name3_aliases,
+        )
+
+    def with_variants_applied(self, variants):
+        """Return a copy with new patches applied to the residues already held.
+
+        ``with_added_residues`` patches only what it adds, which is right for a
+        patch a new residue brings with it. A conjugation patch instead acts on
+        a residue the database already has -- serine gains a connection at OG
+        -- so its forms are built here and appended alongside the base.
+        """
+        known = {v.name for v in self.variants}
+        extra = tuple(v for v in variants if v.name not in known)
+        if not extra:
+            return self
+        all_variants = (*self.variants, *extra)
+        G = RestypeGraphBuilder({x.name: x.element for x in self.atom_types})
+        present = {res.name for res in self.residues}
+        added = []
+        for res in self.residues:
+            if ":" in res.name:
+                continue  # a variant form; patching starts from the base
+            if not any(v.applies_to.matches(res) for v in extra):
+                continue
+            for form in patch_residue(res, all_variants, G):
+                if form.name not in present:
+                    added.append(form)
+                    present.add(form.name)
+        return attr.evolve(
+            self, residues=(*self.residues, *added), variants=all_variants
         )
 
     def with_added_residues(self, residues, atom_types=None, variants=None):

@@ -12,6 +12,7 @@ from tmol.kinematics import (
     KinForest,
     KinForestScanOrdering,
     annotate_block_type_with_residue_kinforest_data,
+    block_group_kinforest_data,
 )
 from tmol.chemical import RefinedResidueType
 from tmol.pose import PackedBlockTypes
@@ -58,28 +59,16 @@ class PackedRotamerKintree:
     dofs_ideal: Tensor[torch.float32][:, :]
 
 
-@validate_args
-def construct_single_residue_kinforest(restype: RefinedResidueType):
+def _rotamer_kinforest_from_data(rkd, n_atoms, atom_names, mainchain_atoms, ideal):
+    """Build a RotamerKintree from a spanning tree over a flat atom array.
+
+    Shared by the single-residue and block-group paths: nothing here asks which
+    block an atom belongs to. ``mainchain_atoms`` is the set whose atoms are
+    preferred as reference-frame atoms (they hold still across rotamers); for a
+    group it is the anchor block's.
+    """
     from tmol.kinematics.compiled import inverse_kin
     from tmol.utility.ndarray import invert_mapping
-
-    """Create a kinforest for a single residue and its associated
-    scan ordering data.
-
-    The kinforest data structure on its own is incomplete and
-    before it can be stored will need to be left-padded with
-    0s. In particular, the id, doftype, parent, frame_x, _y
-    and _z data all require the 0th position to be occupied
-    by the "root" atom
-
-    Also create the backbone fingerprint
-    """
-    if hasattr(restype, "rotamer_kinforest"):
-        return
-
-    annotate_block_type_with_residue_kinforest_data(restype)
-    rkd = restype.residue_kinforest_data
-    n_atoms = restype.n_atoms
 
     kfo_2_to = rkd.bfto_2_orig.astype(numpy.int64)  # KFO → TO (0-indexed)
     preds = rkd.preds.astype(numpy.int64)  # BFS predecessors in TO; -9999 for root
@@ -107,19 +96,14 @@ def construct_single_residue_kinforest(restype: RefinedResidueType):
     #   if root has only 1 child:  c1 = that child, c2 = first child of c1
     root_children = numpy.where((kfo_parents == 0) & (numpy.arange(n_atoms) > 0))[0]
 
-    polymer_mc = (
-        restype.properties.polymer.mainchain_atoms
-        if hasattr(restype, "properties") and hasattr(restype.properties, "polymer")
-        else None
-    )
-    if polymer_mc:
+    if mainchain_atoms:
         # Polymer residues: prefer mainchain atoms as frame atoms because their
         # positions are fixed across rotamers (otherwise CB ends up as the ref
         # frame and is not idealized).
-        mc_atoms = set(polymer_mc)
+        mc_atoms = set(mainchain_atoms)
 
         def sort_key(i):
-            return (restype.atoms[kfo_2_to[i]].name not in mc_atoms, i)
+            return (atom_names[kfo_2_to[i]] not in mc_atoms, i)
 
         root_children = sorted(root_children, key=sort_key)
         c1 = int(root_children[0])
@@ -150,15 +134,20 @@ def construct_single_residue_kinforest(restype: RefinedResidueType):
     frame_y[0] = 0
     frame_z[0] = c2
 
-    # c1 (KFO 1): default frame_z = kfo_parents[kfo_parents[1]] = kfo_parents[0] = 0
-    # (root itself), but it should be c2.
+    # c1's own default frame_z is the root, which is no frame at all; it takes
+    # c2 instead.
     frame_z[c1] = c2
 
-    # Other direct children of root (KFO > 1, parent == 0):
-    # default frame_z = kfo_parents[root] = root = 0, but it should be c1.
-    other_root_children = numpy.where((kfo_parents == 0) & (numpy.arange(n_atoms) > 1))[
-        0
-    ]
+    # Every other direct child of the root takes c1. Note that c1 is whichever
+    # child the ordering above chose, NOT necessarily the first one: with a
+    # mainchain to prefer it is often a later atom. Selecting these by index
+    # rather than by "not c1" leaves whichever child sits at index 1 with the
+    # root as its frame_z -- a frame of two distinct points, which gives no
+    # reference direction, and every atom built on it comes out wrong.
+    arange = numpy.arange(n_atoms)
+    other_root_children = numpy.where(
+        (kfo_parents == 0) & (arange > 0) & (arange != c1)
+    )[0]
     frame_z[other_root_children] = c1
 
     # --- Build KinForest with global root at position 0 (required by inverse_kin) ---
@@ -194,10 +183,7 @@ def construct_single_residue_kinforest(restype: RefinedResidueType):
     ideal_coords = torch.cat(
         (
             torch.zeros((1, 3), dtype=torch.float32),
-            torch.tensor(
-                restype.ideal_coords[restype.at_to_icoor_ind][kfo_2_to],
-                dtype=torch.float32,
-            ),
+            torch.tensor(ideal[kfo_2_to], dtype=torch.float32),
         )
     )
 
@@ -211,7 +197,7 @@ def construct_single_residue_kinforest(restype: RefinedResidueType):
     )
     dofs_ideal = dofs_ideal.numpy()
 
-    rotamer_kinforest = RotamerKintree(
+    return RotamerKintree(
         kinforest_idx=to_2_kfo.astype(numpy.int32),
         id=kfo_2_to.astype(numpy.int32),
         doftype=dof_type_kfo,
@@ -227,7 +213,58 @@ def construct_single_residue_kinforest(restype: RefinedResidueType):
         n_scans_per_gen=n_scans_per_gen,
         dofs_ideal=dofs_ideal[1:],
     )
-    setattr(restype, "rotamer_kinforest", rotamer_kinforest)
+
+
+@validate_args
+def construct_single_residue_kinforest(restype: RefinedResidueType):
+    """Create a kinforest for a single residue and its scan ordering data.
+
+    The kinforest data structure on its own is incomplete and before it can be
+    stored will need to be left-padded with 0s. In particular, the id, doftype,
+    parent, frame_x, _y and _z data all require the 0th position to be occupied
+    by the "root" atom.
+    """
+    if hasattr(restype, "rotamer_kinforest"):
+        return
+
+    annotate_block_type_with_residue_kinforest_data(restype)
+    polymer = getattr(getattr(restype, "properties", None), "polymer", None)
+    setattr(
+        restype,
+        "rotamer_kinforest",
+        _rotamer_kinforest_from_data(
+            restype.residue_kinforest_data,
+            restype.n_atoms,
+            [a.name for a in restype.atoms],
+            getattr(polymer, "mainchain_atoms", None),
+            restype.ideal_coords[restype.at_to_icoor_ind],
+        ),
+    )
+
+
+def construct_block_group_kinforest(block_types, links, anchor: int = 0):
+    """Create a kinforest spanning a group of blocks joined by their bonds.
+
+    The single-block case of construct_single_residue_kinforest: a conjugated
+    residue and everything hanging off it fold as one unit, so a torsion about
+    a linkage bond moves what is beyond it. ``links`` are (parent, parent_conn,
+    child, child_conn) tuples as taken by block_group_kinforest_data.
+
+    The inter-block bond's own geometry is not in any block's ideal coords, so
+    the dofs it reports are placeholders; they are overwritten by the values
+    measured from the pose.
+    """
+    rkd, offsets = block_group_kinforest_data(block_types, links, anchor)
+    names = [a.name for bt in block_types for a in bt.atoms]
+    ideal = numpy.concatenate(
+        [bt.ideal_coords[bt.at_to_icoor_ind] for bt in block_types]
+    )
+    polymer = getattr(getattr(block_types[anchor], "properties", None), "polymer", None)
+    mainchain = getattr(polymer, "mainchain_atoms", None)
+    return (
+        _rotamer_kinforest_from_data(rkd, int(offsets[-1]), names, mainchain, ideal),
+        offsets,
+    )
 
 
 @validate_args

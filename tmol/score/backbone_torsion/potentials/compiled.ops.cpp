@@ -668,6 +668,8 @@ std::vector<Tensor> backbone_torsion_rotamer_score_op(
     Tensor rot_offset_for_pose,
     Tensor n_rots_for_block,
     Tensor rot_offset_for_block,
+    // only the pair terms enumerate rotamer pairs
+    Tensor /*lockstep_group_for_block*/,
     int64_t max_n_rots_per_pose,
 
     Tensor pose_stack_block_type,

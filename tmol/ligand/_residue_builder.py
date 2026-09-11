@@ -25,7 +25,7 @@ from tmol.database.chemical import (
     RawResidueType,
 )
 from tmol.ligand._atom_typing import AtomTypeAssignment, RosettaTypingState
-from tmol.ligand._chi_topology import apply_chi_sample_budget, build_chi_topology
+from tmol.ligand._chi_topology import build_chi_topology
 
 logger = logging.getLogger(__name__)
 
@@ -564,11 +564,6 @@ def build_residue_type(  # noqa: C901
         generate_heavy_chi_samples=generate_heavy_chi_samples,
         logger=logger,
     )
-    if not generate_heavy_chi_samples:
-        # a polymer residue is budgeted once its borrowed library is known,
-        #    which is what its sampled chi have to multiply against
-        chi_samples = apply_chi_sample_budget(chi_samples)
-
     properties = ChemicalProperties(
         is_canonical=False,
         polymer=PolymerProperties(

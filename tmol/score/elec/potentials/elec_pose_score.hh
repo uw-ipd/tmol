@@ -187,6 +187,9 @@ struct ElecRotamerScoreDispatch {
       TView<Int, 1, D> rot_offset_for_pose,
       TView<Int, 2, D> n_rots_for_block,
       TView<Int, 2, D> rot_offset_for_block,
+      // [n_poses, max_n_blocks]; blocks sharing an id >= 0 move in
+      // lockstep, so only matching rotamer indices ever coexist
+      TView<Int, 2, D> lockstep_group_for_block,
       Int max_n_rots_per_pose,
 
       // dims: n-poses x max-n-blocks x max-n-blocks

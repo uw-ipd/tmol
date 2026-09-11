@@ -76,6 +76,9 @@ class AtomType:
     is_hydroxyl: bool = False
     is_polarh: bool = False
     acceptor_hybridization: Optional[AcceptorHybridization] = None
+    # the type this atom takes when a covalent bond replaces its hydrogen:
+    #    a hydroxyl becomes an ether, a thiol a thioether
+    conjugated_type: Optional[str] = None
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -226,9 +229,10 @@ class RawResidueType:
 class IcoorVariant:
     name: str
     source: Optional[str] = None
-    phi: Optional[DihedralAngle] = 0.0
-    theta: Optional[BondAngle] = 0.0
-    d: Optional[float] = 0.0
+    # absent means "take the source's", so 0.0 can be asked for outright
+    phi: Optional[DihedralAngle] = None
+    theta: Optional[BondAngle] = None
+    d: Optional[float] = None
     parent: Optional[str] = None
     grand_parent: Optional[str] = None
     great_grand_parent: Optional[str] = None

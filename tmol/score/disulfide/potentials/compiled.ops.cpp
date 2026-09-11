@@ -562,6 +562,8 @@ std::vector<Tensor> disulfide_rotamer_scores_op(
 
     Tensor n_rots_for_block,
     Tensor rot_offset_for_block,
+    // only the pair terms enumerate rotamer pairs
+    Tensor /*lockstep_group_for_block*/,
     int64_t max_n_rots_per_pose,
 
     // custom params

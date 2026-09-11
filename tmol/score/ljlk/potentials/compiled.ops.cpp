@@ -297,6 +297,7 @@ class LJLKRotamerScoreOp
       Tensor rot_offset_for_pose,
       Tensor n_rots_for_block,
       Tensor rot_offset_for_block,
+      Tensor lockstep_group_for_block,
       int64_t max_n_rots_per_pose,
 
       Tensor pose_stack_min_bond_separation,
@@ -340,6 +341,7 @@ class LJLKRotamerScoreOp
                   TCAST(rot_offset_for_pose),
                   TCAST(n_rots_for_block),
                   TCAST(rot_offset_for_block),
+                  TCAST(lockstep_group_for_block),
                   max_n_rots_per_pose,
 
                   TCAST(pose_stack_min_bond_separation),
@@ -611,6 +613,7 @@ std::vector<Tensor> ljlk_rotamer_scores_op(
     Tensor rot_offset_for_pose,
     Tensor n_rots_for_block,
     Tensor rot_offset_for_block,
+    Tensor lockstep_group_for_block,
     int64_t max_n_rots_per_pose,
 
     Tensor pose_stack_min_bond_separation,
@@ -643,6 +646,7 @@ std::vector<Tensor> ljlk_rotamer_scores_op(
       rot_offset_for_pose,
       n_rots_for_block,
       rot_offset_for_block,
+      lockstep_group_for_block,
       max_n_rots_per_pose,
 
       pose_stack_min_bond_separation,

@@ -21,6 +21,11 @@ from tmol.pack.rotamer import (
     construct_single_residue_kinforest,
     sc_roots_for_chis,
 )
+from tmol.pack._packer_task import (
+    DEFAULT_CHI_SAMPLE_EXPANDED_LIMIT,
+    DEFAULT_CHI_SAMPLE_LIMIT,
+)
+from tmol.pack.rotamer._chi_budget import apply_chi_sample_budget, chi_depths
 from tmol.numeric import coord_dihedrals
 from tmol.utility.tensor import exclusive_cumsum1d
 
@@ -282,6 +287,10 @@ class OptHSampler(ConformerSampler):
     """
 
     flip_NHQ: bool = True
+    # optH samples one residue at a time, so its budget is per residue: no
+    #    grouping, but the same limits the full packer applies
+    chi_sample_expanded_limit: int = DEFAULT_CHI_SAMPLE_EXPANDED_LIMIT
+    chi_sample_limit: int = DEFAULT_CHI_SAMPLE_LIMIT
 
     @classmethod
     def sampler_name(cls):
@@ -319,6 +328,23 @@ class OptHSampler(ConformerSampler):
         # proton chi annotation. A chi that turns heavy atoms is sampled by the
         #    packer alone, so optH never sees it.
         proton_chi = [cs for cs in rt.chi_samples if cs.is_proton]
+        if proton_chi:
+            # chi_samples are stored unbudgeted so that what optH enumerates and
+            #    what the packer enumerates are each bounded on their own terms;
+            #    a hydroxyl-rich sugar is otherwise thousands of rotamers here
+            construct_single_residue_kinforest(rt)
+            depths = chi_depths(
+                rt.residue_kinforest_data,
+                [rt.torsion_to_uaids[cs.chi_dihedral][2][0] for cs in proton_chi],
+            )
+            proton_chi = list(
+                apply_chi_sample_budget(
+                    proton_chi,
+                    depths,
+                    self.chi_sample_expanded_limit,
+                    self.chi_sample_limit,
+                )
+            )
         if not proton_chi:
             setattr(
                 rt,

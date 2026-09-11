@@ -137,6 +137,7 @@ class TermRotamerScoringModule(TermScoringModule):
         rotamer_set,
         term_parameters,
         term_score_poses,
+        lockstep_group_for_block,
     ):
         super(TermRotamerScoringModule, self).__init__(
             classname, term_parameters, term_score_poses
@@ -163,6 +164,7 @@ class TermRotamerScoringModule(TermScoringModule):
                     rotamer_set.rot_offset_for_pose,
                     rotamer_set.n_rots_for_block,
                     rotamer_set.rot_offset_for_block,  # three times?!
+                    lockstep_group_for_block,
                     rotamer_set.max_n_rots_per_pose,
                 ]
             ],

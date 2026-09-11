@@ -28,6 +28,7 @@ from ._scan_ordering import (  # noqa: F401
     get_scans,
     construct_kin_module_data_for_pose,
     annotate_block_type_with_residue_kinforest_data,
+    block_group_kinforest_data,
     _annotate_block_type_with_gen_scan_path_segs,
     _annotate_packed_block_type_with_gen_scan_path_segs,
 )

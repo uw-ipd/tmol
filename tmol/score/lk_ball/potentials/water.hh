@@ -127,6 +127,13 @@ class WaterGenPoseContextData {
   TView<Int, 2, Dev> first_rot_for_block;
   TView<Int, 2, Dev> first_rot_block_type;
 
+  // Blocks sharing a lockstep id move together: rotamer k of one is only ever
+  // present alongside rotamer k of the others. Their atoms are therefore not
+  // the same in every rotamer the way a neighbouring backbone's are, so a
+  // water whose geometry reaches into one has to reach into the matching copy.
+  TView<Int, 2, Dev> lockstep_group_for_block;
+  TView<Int, 2, Dev> rot_offset_for_block;
+
   // For determining which atoms to retrieve from neighboring
   // residues we have to know how the blocks in the Pose
   // are connected to each other...
@@ -231,6 +238,8 @@ void TMOL_DEVICE_FUNC water_gen_load_tile_invariant_data(
     TView<Vec<Real, 3>, 1, Dev> rot_coords,
     TView<Int, 2, Dev> first_rot_for_block,
     TView<Int, 2, Dev> first_rot_block_type,
+    TView<Int, 2, Dev> lockstep_group_for_block,
+    TView<Int, 2, Dev> rot_offset_for_block,
     TView<Int, 1, Dev> rot_coord_offset,
     TView<Int, 1, Dev> block_type_ind_for_rot,
     TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections,
@@ -277,6 +286,9 @@ void TMOL_DEVICE_FUNC water_gen_load_tile_invariant_data(
   water_gen_dat.pose_context.rot_coords = rot_coords;
   water_gen_dat.pose_context.first_rot_for_block = first_rot_for_block;
   water_gen_dat.pose_context.first_rot_block_type = first_rot_block_type;
+  water_gen_dat.pose_context.lockstep_group_for_block =
+      lockstep_group_for_block;
+  water_gen_dat.pose_context.rot_offset_for_block = rot_offset_for_block;
   water_gen_dat.pose_context.rot_coord_offset = rot_coord_offset;
   water_gen_dat.pose_context.block_type_ind_for_rot = block_type_ind_for_rot;
   water_gen_dat.pose_context.pose_stack_inter_residue_connections =
@@ -317,12 +329,32 @@ TMOL_DEVICE_FUNC Eigen::Matrix<Real, 3, 1> load_coord(
   }
   if (!in_smem) {
     // outside of tile or on other res, retrieve from global coords
-    int coord_offset =
-        (bcat.block == single_res_dat.block_ind
-             ? single_res_dat.rot_coord_offset
-             : context_dat
-                   .rot_coord_offset[context_dat.first_rot_for_block
-                                         [context_dat.pose_ind][bcat.block]]);
+    int coord_offset;
+    if (bcat.block == single_res_dat.block_ind) {
+      coord_offset = single_res_dat.rot_coord_offset;
+    } else {
+      int const pose_ind = context_dat.pose_ind;
+      int const my_group =
+          context_dat
+              .lockstep_group_for_block[pose_ind][single_res_dat.block_ind];
+      int const other_group =
+          context_dat.lockstep_group_for_block[pose_ind][bcat.block];
+      int other_rot;
+      if (my_group >= 0 && my_group == other_group) {
+        // the neighbour moves with this block; take the copy that goes with
+        // this rotamer rather than the block's first, which is a different
+        // conformer of the same group
+        int const k =
+            single_res_dat.rot_ind
+            - context_dat
+                  .rot_offset_for_block[pose_ind][single_res_dat.block_ind];
+        other_rot = context_dat.rot_offset_for_block[pose_ind][bcat.block] + k;
+      } else {
+        // every rotamer of the neighbour presents the same atoms here
+        other_rot = context_dat.first_rot_for_block[pose_ind][bcat.block];
+      }
+      coord_offset = context_dat.rot_coord_offset[other_rot];
+    }
 
     xyz = context_dat.rot_coords[bcat.atom + coord_offset];
   }

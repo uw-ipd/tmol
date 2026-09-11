@@ -432,3 +432,42 @@ class PackedBlockTypes:
             if self_key not in new_inst.__dict__:
                 setattr(new_inst, self_key, cpu_equiv(self.__dict___[self_key]))
         return new_inst
+
+
+def annotate_packed_block_types_w_dslf_conn_inds(pbt: PackedBlockTypes):
+    """Annotate each block type with its disulfide connection index, or -1."""
+    if hasattr(pbt, "canonical_dslf_conn_ind"):
+        return
+    canonical_dslf_conn_ind = numpy.full((pbt.n_types,), -1, dtype=numpy.int64)
+    for i, bt in enumerate(pbt.active_block_types):
+        if "dslf" in bt.connection_to_cidx:
+            canonical_dslf_conn_ind[i] = bt.connection_to_cidx["dslf"]
+    canonical_dslf_conn_ind = torch.tensor(
+        canonical_dslf_conn_ind, dtype=torch.int64, device=pbt.device
+    )
+    setattr(pbt, "canonical_dslf_conn_ind", canonical_dslf_conn_ind)
+
+
+def annotate_packed_block_types_w_conjugation_conns(pbt: PackedBlockTypes):
+    """Mark, per block type, which connections are conjugations.
+
+    A connection that is neither the polymer up or down nor the disulfide joins
+    a residue to something other than its own chain: a glycan on a serine, a
+    ligand on a lysine. Read from the connections themselves, so a generated
+    component and a patched canonical residue are treated alike.
+    """
+    if hasattr(pbt, "conjugation_conn"):
+        return
+    annotate_packed_block_types_w_dslf_conn_inds(pbt)
+    dslf = pbt.canonical_dslf_conn_ind.cpu().numpy()
+
+    conjugation_conn = numpy.zeros((pbt.n_types, pbt.max_n_conn), dtype=bool)
+    for i, bt in enumerate(pbt.active_block_types):
+        structural = {bt.down_connection_ind, bt.up_connection_ind, int(dslf[i])}
+        for ind in range(len(bt.connections)):
+            conjugation_conn[i, ind] = ind not in structural
+    setattr(
+        pbt,
+        "conjugation_conn",
+        torch.tensor(conjugation_conn, dtype=torch.bool, device=pbt.device),
+    )

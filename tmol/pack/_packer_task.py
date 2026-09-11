@@ -283,6 +283,13 @@ def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockType
     setattr(pbt, "default_packer_palette_annotations", annotation)
 
 
+# Defaults carried over from ligand preparation, where this budget used to be
+# applied; exposed here because the count a group enumerates is not knowable
+# until the pose says which blocks are conjugated to which.
+DEFAULT_CHI_SAMPLE_EXPANDED_LIMIT = 100
+DEFAULT_CHI_SAMPLE_LIMIT = 1000
+
+
 class PackerTask:
 
     def __init__(self, systems: PoseStack, palette: PackerPalette):
@@ -328,6 +335,18 @@ class PackerTask:
             device=systems.device,
         )
         self._bump_check = False
+        # how many conformers a block's (or a conjugated group's) sampled chi
+        #    may enumerate; expansions are dropped at the first and chi freeze
+        #    from the tip inward at the second
+        self.chi_sample_expanded_limit = DEFAULT_CHI_SAMPLE_EXPANDED_LIMIT
+        self.chi_sample_limit = DEFAULT_CHI_SAMPLE_LIMIT
+
+    def set_chi_sample_budget(self, expanded_limit: int, limit: int):
+        """Bound the rotamers sampled chi enumerate; see tmol.pack.rotamer."""
+        if expanded_limit < 1 or limit < 1:
+            raise ValueError("chi sample budget limits must be positive")
+        self.chi_sample_expanded_limit = expanded_limit
+        self.chi_sample_limit = limit
 
     def restrict_to_repacking(self):
         # Use the pre-calculated masks to disable packing for
@@ -419,6 +438,16 @@ class PackerTask:
         # max over the current sample level and the new sample level.
         self.per_block_chi_expansion[:, :, :, chi_ind] = torch.max(
             self.per_block_chi_expansion[:, :, :, chi_ind], sample_level
+        )
+
+    def disable_sampler_by_block_mask(
+        self, sampler, block_mask: Tensor[torch.bool][:, :]
+    ):
+        """Stop one sampler building rotamers for the masked blocks."""
+        index = self.conformer_sampler_index[id(sampler)]
+        self.per_block_conformer_sampler_allowed[:, :, index] = torch.logical_and(
+            self.per_block_conformer_sampler_allowed[:, :, index],
+            torch.logical_not(block_mask),
         )
 
     def disable_packing_by_block_mask(self, block_type_mask: Tensor[torch.bool][:, :]):

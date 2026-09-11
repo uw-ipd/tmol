@@ -19,6 +19,14 @@ from tmol.pose import (
     PoseStack,
 )
 from tmol.pack import SetPackerTask
+from tmol.pack._packer_task import (
+    DEFAULT_CHI_SAMPLE_EXPANDED_LIMIT,
+    DEFAULT_CHI_SAMPLE_LIMIT,
+)
+from tmol.pack.rotamer._chi_budget import apply_chi_sample_budget, chi_depths
+from tmol.pack.rotamer._single_residue_kinforest import (
+    construct_single_residue_kinforest,
+)
 from tmol.pack.rotamer import ChiSampler, sc_roots_for_chis
 from tmol.score.na_torsion import (
     NaTorsionParams,
@@ -65,6 +73,9 @@ class NaChiRotamerSampler(ChiSampler):
     sample_syn: bool = True
     device: torch.device = torch.device("cpu")
 
+    chi_sample_expanded_limit: int = DEFAULT_CHI_SAMPLE_EXPANDED_LIMIT
+    chi_sample_limit: int = DEFAULT_CHI_SAMPLE_LIMIT
+
     @classmethod
     def from_database(
         cls,
@@ -95,13 +106,30 @@ class NaChiRotamerSampler(ChiSampler):
         chi1 = rt.torsion_to_uaids.get("chi1")
         # the third atom of a torsion is the one whose dof carries it
         p["chi1_atom"] = -1 if chi1 is None else chi1[2][0]
+        # one residue at a time, so the budget is per residue: no grouping, but
+        #    the same limits the rest of the packer applies
+        sampled = list(rt.chi_samples)
+        if sampled:
+            construct_single_residue_kinforest(rt)
+            depths = chi_depths(
+                rt.residue_kinforest_data,
+                [rt.torsion_to_uaids[cs.chi_dihedral][2][0] for cs in sampled],
+            )
+            sampled = list(
+                apply_chi_sample_budget(
+                    sampled,
+                    depths,
+                    self.chi_sample_expanded_limit,
+                    self.chi_sample_limit,
+                )
+            )
         p["proton_chi"] = [
             (
                 int(samp.chi_dihedral[3:]) - 1,
                 rt.torsion_to_uaids[samp.chi_dihedral][2][0],
                 _expanded_samples(samp),
             )
-            for samp in rt.chi_samples
+            for samp in sampled
         ]
         setattr(rt, "na_chi_sampler_params", p)
 

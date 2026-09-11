@@ -1004,6 +1004,9 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
     TView<Int, 1, D> rot_offset_for_pose,
     TView<Int, 2, D> n_rots_for_block,
     TView<Int, 2, D> rot_offset_for_block,
+    // [n_poses, max_n_blocks]; blocks sharing an id >= 0 move in
+    // lockstep, so only matching rotamer indices ever coexist
+    TView<Int, 2, D> lockstep_group_for_block,
     Int max_n_rots_per_pose,
 
     TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
@@ -1069,7 +1072,12 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
       int const other_block_n_rots =
           n_rots_for_block[pose_ind][other_block_ind];
       if (block_ind < other_block_ind) {
-        n_output_intxns_for_rot_conn[index] = other_block_n_rots;
+        // blocks that sample in lockstep only ever coexist at matching
+        // rotamer indices, so this rotamer pairs with exactly one of theirs
+        int const g1 = lockstep_group_for_block[pose_ind][block_ind];
+        int const g2 = lockstep_group_for_block[pose_ind][other_block_ind];
+        n_output_intxns_for_rot_conn[index] =
+            (g1 >= 0 && g1 == g2) ? 1 : other_block_n_rots;
       }
     }
   });
@@ -1118,7 +1126,13 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
       int const block_ind2 =
           pose_stack_inter_block_connections[pose_ind][block_ind1][conn_ind1]
                                             [0];
-      rot_ind2 = first_rot_for_block[pose_ind][block_ind2] + local_rot_ind2;
+      int const g1 = lockstep_group_for_block[pose_ind][block_ind1];
+      int const g2 = lockstep_group_for_block[pose_ind][block_ind2];
+      int const offset2 =
+          (g1 >= 0 && g1 == g2)
+              ? rot_ind1 - first_rot_for_block[pose_ind][block_ind1]
+              : local_rot_ind2;
+      rot_ind2 = first_rot_for_block[pose_ind][block_ind2] + offset2;
     }
     dispatch_indices[2][index] = rot_ind2;
   });
@@ -1209,10 +1223,10 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
       int const conn_ind2 =
           pose_stack_inter_block_connections[pose_ind][block_ind1][conn_ind1]
                                             [1];
-      int const local_rot_ind2 =
-          cta - n_output_intxns_for_rot_conn_offset[rotconn_ind];
-      int const rot_ind2 =
-          rot_offset_for_block[pose_ind][block_ind2] + local_rot_ind2;
+      // which rotamer of block 2 this work unit pairs with was decided when
+      // the interactions were enumerated; lockstep pairs are not a simple
+      // walk over that block's rotamers, so read it rather than recompute it
+      int const rot_ind2 = dispatch_indices[2][cta];
       int const block_type2 = block_type_ind_for_rot[rot_ind2];
       int const rot_coord_offset2 = rot_coord_offset[rot_ind2];
       Int const bond_type_int =
@@ -1450,10 +1464,10 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::backward(
       int const conn_ind2 =
           pose_stack_inter_block_connections[pose_ind][block_ind1][conn_ind1]
                                             [1];
-      int const local_rot_ind2 =
-          cta - n_output_intxns_for_rot_conn_offset[rotconn_ind];
-      int const rot_ind2 =
-          rot_offset_for_block[pose_ind][block_ind2] + local_rot_ind2;
+      // which rotamer of block 2 this work unit pairs with was decided when
+      // the interactions were enumerated; lockstep pairs are not a simple
+      // walk over that block's rotamers, so read it rather than recompute it
+      int const rot_ind2 = dispatch_indices[2][cta];
       int const block_type2 = block_type_ind_for_rot[rot_ind2];
       int const rot_coord_offset2 = rot_coord_offset[rot_ind2];
       Int const bond_type_int =

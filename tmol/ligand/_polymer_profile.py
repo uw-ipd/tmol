@@ -962,6 +962,9 @@ def profile_for_atom_array(
         from tmol.database import ParameterDatabase
 
         chemdb = ParameterDatabase.get_default().chemical
+    # a sugar has no backbone; its attachments carry its topology instead
+    if is_carbohydrate(atom_array, connection_atoms):
+        return None
     if connection_atoms and len(connection_atoms) == 1:
         # a nucleotide seen only at a 5' terminus has one connection and no
         #    phosphate, which is a chain member rather than a cap
@@ -1048,6 +1051,57 @@ def _five_rings(adjacency, element):
         if len(ring) == 5 and sum(element.get(a) != "C" for a in ring) == 1:
             rings.append(ring)
     return rings
+
+
+# a furanose or pyranose; larger rings are not sugars for our purposes
+_SUGAR_RING_SIZES = (5, 6)
+
+
+def _sugar_ring(adjacency, element):
+    """A ring of carbons closed by exactly one oxygen, or None."""
+    for oxygen in sorted(adjacency):
+        if element.get(oxygen) != "O":
+            continue
+        neighbours = sorted(n for n in adjacency[oxygen] if element.get(n) == "C")
+        if len(neighbours) != 2:
+            continue
+        first, second = neighbours
+        path = _shortest_path(
+            {a: bs - {oxygen} for a, bs in adjacency.items()}, first, second
+        )
+        if path is None or len(path) + 1 not in _SUGAR_RING_SIZES:
+            continue
+        if all(element.get(a) == "C" for a in path):
+            return oxygen, tuple(path)
+    return None
+
+
+def is_carbohydrate(atom_array, connection_atoms=None) -> bool:
+    """Whether this residue is a sugar, from its ring rather than its name.
+
+    A sugar closes a five- or six-membered ring through one oxygen and carries
+    an anomeric carbon: the ring carbon that also bears an oxygen outside the
+    ring. Once a glycosidic bond forms that oxygen belongs to the neighbouring
+    residue, so an attachment at the carbon counts in its place. A nucleotide's
+    ribose has the ring but no such carbon -- C1' carries the base, and the
+    nucleotide attaches through its phosphate and O3' instead.
+    """
+    adjacency, _double, element = _heavy_adjacency(atom_array)
+    ring = _sugar_ring(adjacency, element)
+    if ring is None:
+        return False
+    ring_oxygen, carbons = ring
+    ring_atoms = {ring_oxygen, *carbons}
+    attached = frozenset(connection_atoms or ())
+    return any(
+        carbon in attached
+        or any(
+            element.get(other) == "O" and other not in ring_atoms
+            for other in adjacency[carbon]
+        )
+        for carbon in adjacency[ring_oxygen]
+        if carbon in ring_atoms
+    )
 
 
 def na_backbone_kind(atom_array, connection_atoms) -> Optional[str]:

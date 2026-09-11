@@ -160,9 +160,7 @@ def validate_fold_forest_jit(  # noqa: C901
     n_roots = numpy.zeros((n_poses,), dtype=numpy.int64)
     for i in range(n_poses):
         for j in range(max_n_edges):
-            if (
-                edges[i, j, 0] == EdgeType.jump
-            ):  # or edges[i, j, 0] == EdgeType.chemical:
+            if edges[i, j, 0] == EdgeType.jump or edges[i, j, 0] == EdgeType.chemical:
                 r1 = edges[i, j, 1]
                 r2 = edges[i, j, 2]
                 connections[i, r1, r2] += 1
@@ -321,6 +319,38 @@ def _append_bad_jumps_errors(
                         )
 
 
+def _append_unrooted_start_errors(n_poses, edges, errors):
+    """Every edge must depart from a block some other edge builds.
+
+    The kinematics find an edge's parent by asking which edge ENDS at its start
+    block, so an edge leaving the middle of a polymer edge has no parent and its
+    subtree is silently dropped. A polymer edge must therefore be split at any
+    block another edge departs from -- what reasonable_fold_forest does, and
+    what a hand-built fold forest has to do too.
+    """
+    for i in range(n_poses):
+        ends = set()
+        for j in range(edges.shape[1]):
+            if edges[i, j, 0] == -1:
+                continue
+            ends.add(int(edges[i, j, 2]))
+        for j in range(edges.shape[1]):
+            edge_type = edges[i, j, 0]
+            if edge_type == -1 or edge_type == EdgeType.root_jump:
+                continue
+            start = int(edges[i, j, 1])
+            if start not in ends:
+                errors.append(
+                    " ".join(
+                        [
+                            f"FOLD FOREST ERROR: Edge {j} in pose {i} starts at",
+                            f"block {start}, which no edge builds. Split the edge",
+                            "that spans it so that it ends there.",
+                        ]
+                    )
+                )
+
+
 def validate_fold_forest(
     n_blocks: NDArray[numpy.int64][:],
     edges: NDArray[numpy.int64][:, :, 4],
@@ -338,8 +368,13 @@ def validate_fold_forest(
         count_n_jumps,
     ) = validate_fold_forest_jit(n_blocks, edges)
 
+    n_poses = n_blocks.shape[0]
+    start_errors = []
+    _append_unrooted_start_errors(n_poses, edges, start_errors)
+    if start_errors:
+        raise ValueError("\n".join(start_errors))
+
     if not good:
-        n_poses = n_blocks.shape[0]
         max_n_edges = edges.shape[1]
         errors = []
 

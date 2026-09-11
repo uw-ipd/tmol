@@ -299,6 +299,7 @@ def _pattern_binding(chemdb, residue_type, template):
         template,
         RestypeGraphBuilder(elements).from_raw_res(residue_type),
         patchgraph,
+        residue_type,
     )
     return namemaps[0] if len(namemaps) == 1 else None
 
@@ -382,7 +383,7 @@ def _terminal_chemistry(
     mol = Chem.AddHs(mol)
     sanitize_tolerant(mol)
     types = assign_tmol_atom_types(mol)
-    charges = _mmff94_charges(Chem.MolToSmiles(mol), mol.GetNumAtoms())
+    charges = _mmff94_charges(mol, mol.GetNumAtoms())
     if charges is None:
         return None
 
@@ -481,25 +482,35 @@ def _terminal_heavy_atoms(site, names, by_index, charges, base_names):
     return out
 
 
-def _mmff94_charges(smiles, n_atoms):
-    """Per-atom MMFF94 charges, in the order the SMILES lists its atoms.
+def _mmff94_charges(mol, n_atoms):
+    """Per-atom MMFF94 charges, indexed as ``mol`` indexes its atoms.
 
     MMFF94 charges are bond-charge increments, so no conformer is needed. The
-    EEM fallback the free-ligand path allows is not taken here: it is a
+    molecule crosses to OpenBabel as a mol block rather than as a SMILES: a
+    SMILES is reordered on the way, and the charges would then be read off the
+    wrong atoms.
+
+    The EEM fallback the free-ligand path allows is not taken here: it is a
     different model, and a polymer residue that needs it should say so.
     """
     from openbabel import openbabel, pybel
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
 
     try:
-        mol = pybel.readstring("smi", smiles)
-        mol.addh()
+        block = Chem.Mol(mol)
+        if block.GetNumConformers() == 0:
+            AllChem.Compute2DCoords(block)
+        # kekulization is not needed for bond-charge increments, and a
+        #    residue that cannot be kekulized must not lose its charges
+        obmol = pybel.readstring("mol", Chem.MolToMolBlock(block, kekulize=False))
         model = openbabel.OBChargeModel.FindType("mmff94")
-        if model is None or not model.ComputeCharges(mol.OBMol):
+        if model is None or not model.ComputeCharges(obmol.OBMol):
             return None
     except Exception as err:  # noqa: BLE001 - report and fall back to a copy
-        logger.warning("MMFF94 charges unavailable for %r: %s", smiles, err)
+        logger.warning("MMFF94 charges unavailable: %s", err)
         return None
-    charges = [a.partialcharge for a in mol.atoms]
+    charges = [a.partialcharge for a in obmol.atoms]
     return charges if len(charges) == n_atoms else None
 
 

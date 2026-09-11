@@ -45,6 +45,7 @@ def dslf_and_his_resolved_pose_stack_from_canonical_form(
         at_is_pres,
         _1,
         _cyc,
+        _cov,
         _2,
         _res_labs,
         _res_ins,

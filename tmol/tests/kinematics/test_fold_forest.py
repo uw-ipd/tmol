@@ -87,24 +87,45 @@ def test_jagged_reasonable_fold_forest(
     _check_jump_indices(fold_forest, 1)
 
 
-def _linear_polymer_pose(segments, chain_ids):
+# Two synthetic block types for the connectivity-only tests below.
+# Type 0 is a polymer residue: down in slot 0, up in slot 1, the disulfide in
+# slot 2, and slot 3 free for a conjugation. Type 1 is a non-polymer residue
+# (a sugar, a ligand) whose four connections are all conjugations.
+_UP_C = numpy.array([1, -1], dtype=numpy.int64)
+_DOWN_C = numpy.array([0, -1], dtype=numpy.int64)
+_DSLF_C = numpy.array([2, -1], dtype=numpy.int64)
+_N_CONN = numpy.array([4, 4], dtype=numpy.int64)
+
+
+def _linear_polymer_pose(segments, chain_ids, block_types=None, bonds=()):
     """Connectivity for one pose built from disjoint polymer segments.
 
     segments is a list of (first, last) inclusive residue ranges bonded
     up-to-down along the backbone; chain_ids gives each residue's biological
-    chain. Block type 0 carries its down connection in slot 0 and its up
-    connection in slot 1.
+    chain. block_types names each residue's synthetic type, defaulting to the
+    polymer type; bonds adds (res1, conn1, res2, conn2) connections on top.
     """
-    n_res = max(last for _, last in segments) + 1
+    n_res = len(chain_ids)
     bti = numpy.zeros(n_res, dtype=numpy.int64)
-    irc = numpy.full((n_res, 2, 2), -1, dtype=numpy.int64)
+    if block_types is not None:
+        bti = numpy.array(block_types, dtype=numpy.int64)
+    irc = numpy.full((n_res, 4, 2), -1, dtype=numpy.int64)
     for first, last in segments:
         for r in range(first, last):
             irc[r, 1] = (r + 1, 0)
             irc[r + 1, 0] = (r, 1)
-    up_c = numpy.array([1], dtype=numpy.int64)
-    down_c = numpy.array([0], dtype=numpy.int64)
-    return bti, irc, up_c, down_c, numpy.array(chain_ids, dtype=numpy.int64)
+    for r1, c1, r2, c2 in bonds:
+        irc[r1, c1] = (r2, c2)
+        irc[r2, c2] = (r1, c1)
+    return (
+        bti,
+        irc,
+        _UP_C,
+        _DOWN_C,
+        _DSLF_C,
+        _N_CONN,
+        numpy.array(chain_ids, dtype=numpy.int64),
+    )
 
 
 def test_fold_forest_numbers_only_true_jumps():
@@ -128,5 +149,92 @@ def test_fold_forest_numbers_only_true_jumps():
 
     validate_fold_forest(
         numpy.array([9], dtype=numpy.int64),
+        numpy.array([edges], dtype=numpy.int64),
+    )
+
+
+def _typed_edges(edges):
+    by_type = {}
+    for edge_type, start, end, extra in edges:
+        by_type.setdefault(EdgeType(edge_type), []).append((start, end, extra))
+    return by_type
+
+
+def test_fold_forest_routes_through_a_conjugation():
+    """A glycan tree is reached through its bonds, not by jumps.
+
+    Residues 0-3 are a protein chain; residue 2 carries a sugar at 4, which
+    branches to 5 and 6. Every sugar must be built by a chemical edge naming
+    the connection on its parent, so that a torsion about a glycosidic bond
+    moves everything beyond it.
+    """
+    edges = _build_pose_fold_forest(
+        *_linear_polymer_pose(
+            [(0, 3)],
+            [0] * 7,
+            block_types=[0] * 4 + [1] * 3,
+            bonds=[(2, 3, 4, 0), (4, 1, 5, 0), (4, 2, 6, 0)],
+        )
+    )
+    by_type = _typed_edges(edges)
+
+    assert by_type[EdgeType.root_jump] == [(-1, 0, -1)]
+    assert by_type[EdgeType.polymer] == [(0, 3, -1)]
+    assert by_type[EdgeType.chemical] == [(2, 4, 3), (4, 5, 1), (4, 6, 2)]
+    assert EdgeType.jump not in by_type
+
+    validate_fold_forest(
+        numpy.array([7], dtype=numpy.int64),
+        numpy.array([edges], dtype=numpy.int64),
+    )
+
+
+def test_fold_forest_leaves_disulfides_alone():
+    """A disulfide is not routed through; its two chains stay independent."""
+    edges = _build_pose_fold_forest(
+        *_linear_polymer_pose([(0, 2), (3, 5)], [0] * 3 + [1] * 3, bonds=[(0, 2, 5, 2)])
+    )
+    by_type = _typed_edges(edges)
+
+    assert by_type[EdgeType.root_jump] == [(-1, 0, -1), (-1, 3, -1)]
+    assert EdgeType.chemical not in by_type
+
+
+def test_fold_forest_breaks_a_cycle_at_a_chemical_bond():
+    """A conjugation that would close a cycle is the bond that gets dropped."""
+    edges = _build_pose_fold_forest(
+        *_linear_polymer_pose(
+            [(0, 3)],
+            [0] * 6,
+            block_types=[0] * 4 + [1] * 2,
+            bonds=[(0, 3, 4, 0), (4, 1, 5, 0), (5, 1, 3, 3)],
+        )
+    )
+    by_type = _typed_edges(edges)
+
+    # three bonds join the two ligands to the chain, but a tree can use only
+    # two of them; the chain itself is never broken
+    assert by_type[EdgeType.polymer] == [(0, 3, -1)]
+    assert len(by_type[EdgeType.chemical]) == 2
+
+    validate_fold_forest(
+        numpy.array([6], dtype=numpy.int64),
+        numpy.array([edges], dtype=numpy.int64),
+    )
+
+
+def test_fold_forest_builds_outward_from_a_mid_chain_conjugation():
+    """A bond landing mid-chain builds that chain in both directions."""
+    edges = _build_pose_fold_forest(
+        *_linear_polymer_pose([(0, 2), (3, 6)], [0] * 3 + [1] * 4, bonds=[(1, 3, 5, 3)])
+    )
+    by_type = _typed_edges(edges)
+
+    assert by_type[EdgeType.chemical] == [(1, 5, 3)]
+    assert by_type[EdgeType.polymer] == [(0, 2, -1), (5, 3, -1), (5, 6, -1)]
+    assert EdgeType.jump not in by_type
+
+    validate_fold_forest(
+        numpy.array([7], dtype=numpy.int64),
         numpy.array([edges], dtype=numpy.int64),
     )

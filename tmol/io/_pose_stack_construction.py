@@ -32,6 +32,7 @@ def pose_stack_from_canonical_form(  # noqa: C901
     disulfides: Optional[Tensor[torch.int64][:, 3]] = None,
     res_not_connected: Optional[Tensor[torch.bool][:, :, 2]] = None,
     cyclic_bonds: Optional[Tensor[torch.int64][:, 3]] = None,
+    covalent_bonds: Optional[Tensor[torch.int64][:, 5]] = None,
     *,
     find_additional_disulfides: Optional[bool] = True,
     find_additional_cyclic_closures: Optional[bool] = True,
@@ -97,6 +98,12 @@ def pose_stack_from_canonical_form(  # noqa: C901
         but if you want to skip disulfide detection or want to prevent
         unpaired CYS from being locked into disulfides, then set this flag
         to False
+
+    covalent_bonds: an optional n-total-bonds x 5 tensor of the cross-residue
+        bonds the input declares that are neither backbone links nor
+        disulfides: [ [pose_ind, res1_ind, atom1_ind, res2_ind, atom2_ind], ...]
+        where the atom indices are canonical-ordering indices. Nothing
+        consumes these yet.
 
     cyclic_bonds: an optional n-total-closures x 3 tensor naming the chains
         whose last residue is chemically bonded back onto their first:
@@ -225,6 +232,7 @@ def pose_stack_from_canonical_form(  # noqa: C901
         atom_is_present,
         disulfides,
         cyclic_bonds,
+        covalent_bonds,
         res_not_connected,
         res_labels,
         res_ins_codes,
@@ -238,6 +246,7 @@ def pose_stack_from_canonical_form(  # noqa: C901
         atom_is_present,
         disulfides,
         cyclic_bonds,
+        covalent_bonds,
         res_not_connected,
         res_labels,
         res_ins_codes,
@@ -294,6 +303,7 @@ def pose_stack_from_canonical_form(  # noqa: C901
         found_disulfides,
         res_not_connected,
         cyclic_closures,
+        covalent_bonds,
     )
 
     # 6

@@ -36,21 +36,20 @@ atom_types:
   - { name: NhisDDepro, element: N, is_acceptor: true, acceptor_hybridization: ring } # Deprotenated form in HIS_D
 
   - { name: NtrR, element: N, is_donor : true }
-  - { name: NH2O, element: N, is_donor : true }
-  - { name: Nlys, element: N, is_donor : true }
+  - { name: NH2O, element: N, is_donor : true , conjugated_type: Nglyc }
+  - { name: Nlys, element: N, is_donor : true , conjugated_type: Nbb }
   - { name: Narg, element: N, is_donor : true }
   - { name: Npro, element: N, is_donor : true } # should not be a donor, but matching rosetta
 
-  - { name: OH      , element: O, is_donor : true, is_acceptor : true, acceptor_hybridization: sp3, is_hydroxyl : true }
-  - { name: OHphenol, element: O, is_donor : true, is_acceptor : true, acceptor_hybridization: sp3, is_hydroxyl : true } # Phenol hydrogen in TYR
+  - { name: OH      , element: O, is_donor : true, is_acceptor : true, acceptor_hybridization: sp3, is_hydroxyl : true , conjugated_type: Oet3 }
+  - { name: OHphenol, element: O, is_donor : true, is_acceptor : true, acceptor_hybridization: sp3, is_hydroxyl : true , conjugated_type: Oet3 } # Phenol hydrogen in TYR
 
   - { name: Owat, element: O, is_donor: true, is_acceptor : true , acceptor_hybridization: sp3 }
   - { name: ONH2, element: O, is_acceptor : true, acceptor_hybridization: sp2 }
   - { name: OOC , element: O, is_acceptor : true, acceptor_hybridization: sp2 }
 
   - { name: S   , element: S }
-  - { name: SH1 , element: S }
-
+  - { name: SH1 , element: S , conjugated_type: S }
   - { name: Nbb , element: N, is_donor : true }
   - { name: CAbb, element: C }
   - { name: CObb, element: C }
@@ -120,7 +119,7 @@ atom_types:
   - { name: Oat , element: O, is_acceptor: true, acceptor_hybridization: sp2 }
   - { name: Oet , element: O } # fd: this should be an acceptor, leaving as-is to match Rosetta
   - { name: Ofu , element: O }
-  - { name: Ohx , element: O, is_donor: true, is_acceptor: true, acceptor_hybridization: sp3 } # fd: is_hydroxyl should be true but false to match Rosetta
+  - { name: Ohx , element: O, is_donor: true, is_acceptor: true, acceptor_hybridization: sp3 , conjugated_type: Oet } # fd: is_hydroxyl should be true but false to match Rosetta
   - { name: Ont , element: O }
   - { name: OG2 , element: O, is_acceptor: true, acceptor_hybridization: sp2 }
   - { name: OG3 , element: O, is_acceptor: true, acceptor_hybridization: sp3 }

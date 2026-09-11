@@ -69,6 +69,7 @@ def build_missing_leaf_atoms(
         block_leaf_atom_is_missing,
         block_coord_offset,
         block_types,
+        inter_residue_connections,
     )
 
     return (
@@ -521,6 +522,10 @@ class BlockTypeHCompletionAnnotation:
     neigh: NDArray[numpy.int32][:, 3]
     n_neigh: NDArray[numpy.int32][:]
     dist: NDArray[numpy.float32][:]
+    # connections borne by the parent: the atoms on their far side are
+    # substituents too, and the open vertex is not right without them
+    par_conn: NDArray[numpy.int32][:, :]
+    n_par_conn: NDArray[numpy.int32][:]
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -530,6 +535,8 @@ class PackedBlockTypesHCompletionAnnotation:
     neigh: Tensor[torch.int64][:, :, 3]
     n_neigh: Tensor[torch.int64][:, :]
     dist: Tensor[torch.float32][:, :]
+    par_conn: Tensor[torch.int64][:, :, 3]
+    n_par_conn: Tensor[torch.int64][:, :]
 
 
 def _determine_h_completion_for_block_type(bt, atom_is_hydrogen):
@@ -549,13 +556,29 @@ def _determine_h_completion_for_block_type(bt, atom_is_hydrogen):
     neigh = numpy.full((n, _H_COMPLETION_MAX_NEIGH), -1, dtype=numpy.int32)
     n_neigh = numpy.zeros(n, dtype=numpy.int32)
     dist = numpy.zeros(n, dtype=numpy.float32)
+    par_conn = numpy.full((n, _H_COMPLETION_MAX_NEIGH), -1, dtype=numpy.int32)
+    n_par_conn = numpy.zeros(n, dtype=numpy.int32)
 
-    # Only autogen-regenerated ligands suffer the conformer mismatch; canonical
-    # residues keep their (well-tested) dihedral-built hydrogens untouched.
-    if getattr(bt, "hydrogens_regenerated", False):
+    # Two cases need a hydrogen placed from geometry rather than from a stored
+    # dihedral: an autogen ligand, whose heavy atoms and H icoors come from
+    # different conformers, and an atom a conjugation bonded to something,
+    # whose icoors were measured before the bond existed and so describe the
+    # wrong geometry once it does. Canonical residues are otherwise left with
+    # their well-tested dihedral-built hydrogens, the backbone amide's
+    # included: its connection is the polymer's, not a conjugation.
+    structural = {bt.down_connection_ind, bt.up_connection_ind}
+    conjugated_atoms = {
+        int(at)
+        for i, at in enumerate(bt.ordered_connection_atoms)
+        if i not in structural
+    }
+    if getattr(bt, "hydrogens_regenerated", False) or conjugated_atoms:
         adj = [[] for _ in range(n)]
         for a0, a1 in bt.bond_indices:
             adj[int(a0)].append(int(a1))
+        conns_on_atom = {}
+        for ci, at in enumerate(bt.ordered_connection_atoms):
+            conns_on_atom.setdefault(int(at), []).append(ci)
         for j in range(n):
             if not is_h[j]:
                 continue
@@ -567,13 +590,22 @@ def _determine_h_completion_for_block_type(bt, atom_is_hydrogen):
                 continue
             par_heavy = [k for k in adj[par] if not is_h[k]]
             par_n_h = sum(1 for k in adj[par] if is_h[k])
-            if len(par_heavy) < 2 or par_n_h != 1:
+            par_conns = conns_on_atom.get(par, [])
+            if len(par_heavy) + len(par_conns) < 2 or par_n_h != 1:
                 continue
+            if not getattr(bt, "hydrogens_regenerated", False):
+                # a canonical residue only needs this where a conjugation
+                #    changed the site out from under its icoors
+                if par not in conjugated_atoms:
+                    continue
             par_heavy = par_heavy[:_H_COMPLETION_MAX_NEIGH]
             eligible[j] = True
             parent[j] = par
             n_neigh[j] = len(par_heavy)
             neigh[j, : len(par_heavy)] = par_heavy
+            par_conns = par_conns[:_H_COMPLETION_MAX_NEIGH]
+            n_par_conn[j] = len(par_conns)
+            par_conn[j, : len(par_conns)] = par_conns
             dist[j] = float(bt.icoors[bt.icoors_index[bt.atoms[j].name]].d)
 
     setattr(
@@ -585,6 +617,8 @@ def _determine_h_completion_for_block_type(bt, atom_is_hydrogen):
             neigh=neigh,
             n_neigh=n_neigh,
             dist=dist,
+            par_conn=par_conn,
+            n_par_conn=n_par_conn,
         ),
     )
 
@@ -601,6 +635,10 @@ def _annotate_packed_block_types_w_h_completion(pbt: PackedBlockTypes):
     )
     n_neigh = numpy.zeros((pbt.n_types, pbt.max_n_atoms), dtype=numpy.int64)
     dist = numpy.zeros((pbt.n_types, pbt.max_n_atoms), dtype=numpy.float32)
+    par_conn = numpy.full(
+        (pbt.n_types, pbt.max_n_atoms, _H_COMPLETION_MAX_NEIGH), -1, dtype=numpy.int64
+    )
+    n_par_conn = numpy.zeros((pbt.n_types, pbt.max_n_atoms), dtype=numpy.int64)
     atom_is_hydrogen_cpu = pbt.atom_is_hydrogen.cpu()
     for i, bt in enumerate(pbt.active_block_types):
         _determine_h_completion_for_block_type(bt, atom_is_hydrogen_cpu[i, :])
@@ -610,6 +648,8 @@ def _annotate_packed_block_types_w_h_completion(pbt: PackedBlockTypes):
         neigh[i, : bt.n_atoms] = ann.neigh
         n_neigh[i, : bt.n_atoms] = ann.n_neigh
         dist[i, : bt.n_atoms] = ann.dist
+        par_conn[i, : bt.n_atoms] = ann.par_conn
+        n_par_conn[i, : bt.n_atoms] = ann.n_par_conn
 
     dev = pbt.device
     setattr(
@@ -621,6 +661,8 @@ def _annotate_packed_block_types_w_h_completion(pbt: PackedBlockTypes):
             neigh=torch.tensor(neigh, dtype=torch.int64, device=dev),
             n_neigh=torch.tensor(n_neigh, dtype=torch.int64, device=dev),
             dist=torch.tensor(dist, dtype=torch.float32, device=dev),
+            par_conn=torch.tensor(par_conn, dtype=torch.int64, device=dev),
+            n_par_conn=torch.tensor(n_par_conn, dtype=torch.int64, device=dev),
         ),
     )
 
@@ -631,6 +673,7 @@ def _apply_h_geometric_completion(
     block_leaf_atom_is_missing,
     block_coord_offset,
     block_types,
+    inter_residue_connections,
 ):
     """Place eligible rebuilt H opposite the mean direction of the parent's heavy
     neighbors, replacing the conformer-specific dihedral placement.
@@ -661,6 +704,19 @@ def _apply_h_geometric_completion(
         for k in range(nn):
             na = int(ann.neigh[bt_ind, a, k])
             v = pose_coords[p, off + na] - par_pos
+            acc = acc + v / torch.linalg.norm(v)
+        # a bonded partner in another block is a substituent like any other
+        for k in range(int(ann.n_par_conn[bt_ind, a])):
+            conn = int(ann.par_conn[bt_ind, a, k])
+            other_b = int(inter_residue_connections[p, b, conn, 0])
+            other_conn = int(inter_residue_connections[p, b, conn, 1])
+            if other_b < 0 or other_conn < 0:
+                continue
+            other_bt = int(bt64[p, other_b])
+            other_at = int(pbt.conn_atom[other_bt, other_conn])
+            if other_at < 0:
+                continue
+            v = pose_coords[p, int(block_coord_offset[p, other_b]) + other_at] - par_pos
             acc = acc + v / torch.linalg.norm(v)
         d = ann.dist[bt_ind, a]
         h_pos = par_pos - d * acc / torch.linalg.norm(acc)

@@ -3,6 +3,7 @@ import torch
 from tmol.score import beta2016_score_function
 from tmol.pack import pack_rotamers, PackerTask, PackerPalette
 from tmol.pack.rotamer import IncludeCurrentSampler, FixedAAChiSampler
+from tmol.pack.rotamer._conjugated_groups import add_conjugated_group_sampler
 from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
 from tmol.optimization import run_cart_min
 
@@ -110,6 +111,9 @@ def calculate_block_pair_ddg(
         task.add_conformer_sampler(dun_sampler)
         task.add_conformer_sampler(fixed_sampler)
         task.add_conformer_sampler(IncludeCurrentSampler())
+        # a residue with something bonded to its sidechain packs together with
+        #    it; sampling the two apart would break the bond
+        add_conjugated_group_sampler(task, pose_stack)
         task.restrict_to_repacking()
 
         # Disable packing for blocks that are not in the pack_mask.

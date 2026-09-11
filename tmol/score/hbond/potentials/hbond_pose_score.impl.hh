@@ -1070,6 +1070,9 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     TView<Int, 1, Dev> rot_offset_for_pose,
     TView<Int, 2, Dev> n_rots_for_block,
     TView<Int, 2, Dev> rot_offset_for_block,
+    // [n_poses, max_n_blocks]; blocks sharing an id >= 0 move in
+    // lockstep, so only matching rotamer indices ever coexist
+    TView<Int, 2, Dev> lockstep_group_for_block,
     Int max_n_rots_per_pose,
 
     // For determining which atoms to retrieve from neighboring
@@ -1264,7 +1267,11 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 
   auto dispatch_indices_t = score::common::sphere_overlap::
       rot_neighbor_indices_from_block_neighbors<DeviceDispatch, Dev, Int>::f(
-          mgr, scratch_block_neighbors, n_rots_for_block, rot_offset_for_block);
+          mgr,
+          scratch_block_neighbors,
+          n_rots_for_block,
+          rot_offset_for_block,
+          lockstep_group_for_block);
 
   auto dispatch_indices = dispatch_indices_t.view;
 

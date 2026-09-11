@@ -18,6 +18,7 @@ def left_justify_canonical_form(
     atom_is_present: Optional[Tensor[torch.bool][:, :, :]] = None,
     disulfides: Optional[Tensor[torch.int64][:, 3]] = None,
     cyclic_bonds: Optional[Tensor[torch.int64][:, 3]] = None,
+    covalent_bonds: Optional[Tensor[torch.int64][:, 5]] = None,
     res_not_connected: Optional[Tensor[torch.bool][:, :, 2]] = None,
     res_labels: Optional[NDArray[int][:, :]] = None,
     res_ins_codes: Optional[NDArray[str][:, :]] = None,
@@ -65,26 +66,24 @@ def left_justify_canonical_form(
     if atom_is_present is not None:
         atom_is_present = lj(atom_is_present, 0)
 
-    def lj_res_pair_list(pairs):
-        """Rewrite the residue indices of a [pose, res, res] list."""
+    def lj_res_index_list(rows, res_columns):
+        """Rewrite the residue indices of a pose-indexed table in place."""
         old_2_new = torch.full(
             res_types.shape, -1, dtype=torch.int64, device=res_types.device
         )
         old_2_new[old_res_types_real] = torch.nonzero(res_types != -1)[:, 1]
-        pose_ind = pairs[:, 0]
-        return torch.cat(
-            [
-                pose_ind.unsqueeze(1),
-                old_2_new[pose_ind, pairs[:, 1]].unsqueeze(1),
-                old_2_new[pose_ind, pairs[:, 2]].unsqueeze(1),
-            ],
-            dim=1,
-        )
+        pose_ind = rows[:, 0]
+        rewritten = rows.clone()
+        for column in res_columns:
+            rewritten[:, column] = old_2_new[pose_ind, rows[:, column]]
+        return rewritten
 
     if disulfides is not None:
-        disulfides = lj_res_pair_list(disulfides)
+        disulfides = lj_res_index_list(disulfides, (1, 2))
     if cyclic_bonds is not None:
-        cyclic_bonds = lj_res_pair_list(cyclic_bonds)
+        cyclic_bonds = lj_res_index_list(cyclic_bonds, (1, 2))
+    if covalent_bonds is not None:
+        covalent_bonds = lj_res_index_list(covalent_bonds, (1, 3))
     if res_not_connected is not None:
         res_not_connected = lj(res_not_connected, False)
 
@@ -109,6 +108,7 @@ def left_justify_canonical_form(
         atom_is_present,
         disulfides,
         cyclic_bonds,
+        covalent_bonds,
         res_not_connected,
         res_labels,
         res_ins_codes,

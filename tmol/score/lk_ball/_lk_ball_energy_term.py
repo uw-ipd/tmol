@@ -250,8 +250,18 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         pose_stack = args[-2]
         block_pair_scoring = args[-1]
 
+        # each block appears once, so nothing moves in lockstep with anything
+        no_lockstep = torch.full(
+            pose_stack.block_type_ind.shape,
+            -1,
+            dtype=torch.int32,
+            device=pose_stack.block_type_ind.device,
+        )
+
         args = [
-            *common_args,
+            *common_args[:12],
+            no_lockstep,
+            *common_args[12:],
             pose_stack.inter_residue_connections,
             pose_stack.packed_block_types.n_atoms,
             pose_stack.packed_block_types.n_conn,
@@ -312,6 +322,9 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         pose_stack = args[-2]
         block_pair_scoring = args[-1]
 
+        # water generation takes the same common args as the scoring call: a
+        #    water can reach into a bonded neighbour, and in a group that
+        #    neighbour's atoms differ from one conformer to the next
         args = [
             *common_args,
             pose_stack.inter_residue_connections,

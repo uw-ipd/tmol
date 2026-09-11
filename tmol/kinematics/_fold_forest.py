@@ -3,21 +3,24 @@ import attr
 import enum
 
 from tmol.types import NDArray
-from tmol.pose import PoseStack
+from tmol.pose import PoseStack, annotate_packed_block_types_w_dslf_conn_inds
 
 
 class EdgeType(enum.IntEnum):
     polymer = 0
     jump = enum.auto()
     root_jump = enum.auto()
+    chemical = enum.auto()
 
 
-def _build_pose_fold_forest(bti_p, irc_p, up_c, down_c, chain_id_p):
-    """Build fold forest edges for a single pose from polymer connectivity only.
+def _build_pose_fold_forest(bti_p, irc_p, up_c, down_c, dslf_c, n_conn, chain_id_p):
+    """Build fold forest edges for a single pose from its chemical connectivity.
 
-    Only backbone (up/down) connections are considered.  The resulting graph is
-    a disjoint union of simple paths (linear chains) and simple cycles (C→N
-    cyclisation).  Non-polymer connections (disulfides, etc.) are ignored.
+    Backbone (up/down) connections give a disjoint union of simple paths
+    (linear chains) and simple cycles (C→N cyclisation).  Every other
+    connection except the disulfide is a chemical bond joining two such
+    chains, and becomes a chemical edge; disulfides are left to close on
+    their own, as they always have.
 
     poly_succ / poly_pred are built with a vectorised numpy gather:
     for each residue r, r's *up*-conn slot points to the C-terminal neighbour s,
@@ -115,32 +118,117 @@ def _build_pose_fold_forest(bti_p, irc_p, up_c, down_c, chain_id_p):
         c_term = int(poly_pred_arr[n_term])
         chains.append((n_term, c_term))
 
+    chains = sorted(chains, key=lambda c: c[0])
+
     # ------------------------------------------------------------------
-    # Emit edges: one root-jump (or intra-chain jump) per chain,
-    # one polymer edge if len > 1.
-    #
-    # If the residue immediately before this chain's N-terminus belongs to
-    # the same biological chain (same chain_id), the break is a chain gap
-    # within one chain and is represented as a jump from that predecessor.
-    # Otherwise the chain is rooted at the virtual root.
+    # Contract each chain to a node and span the chemical bonds between
+    # them.  Chemical bonds are the connections that are neither polymeric
+    # nor the disulfide: a glycan on a serine, a ligand on a lysine.
     # ------------------------------------------------------------------
+    chem_parent = _chemical_spanning_forest(
+        chains, poly_succ_arr, bti_p, irc_p, up_c, down_c, dslf_c, n_conn, real_mask
+    )
+
+    # ------------------------------------------------------------------
+    # Emit edges.  A chain is entered either through a chemical bond, or --
+    # as before -- by a jump from the residue preceding its N-terminus when
+    # that residue belongs to the same biological chain (a chain gap), or
+    # by a root jump.  Polymer edges then run outward from the entry
+    # residue in both directions.
+    # ------------------------------------------------------------------
+    # Every edge must start at a block some other edge ends at, so a polymer
+    # edge is split wherever a chemical edge leaves from its middle -- a glycan
+    # on a serine partway along a chain. Rosetta splits its peptide edges at
+    # branch points for the same reason.
+    branch_blocks = {parent_res for parent_res, _, _ in chem_parent.values()}
+
     result = []
     jump_idx = 0
 
-    for start, end in sorted(chains, key=lambda c: c[0]):
-        prev = start - 1
-        if prev >= 0 and bti_p[prev] >= 0 and chain_id_p[prev] == chain_id_p[start]:
-            result.append([int(EdgeType.jump), prev, start, jump_idx])
-            # only true jumps are numbered; a root jump is identified by its
-            # downstream block, and numbering it would leave a gap in the
-            # jump indices, which must run contiguously from 0
-            jump_idx += 1
+    for ci, (start, end) in enumerate(chains):
+        if ci in chem_parent:
+            parent_res, parent_conn, entry = chem_parent[ci]
+            result.append([int(EdgeType.chemical), parent_res, entry, parent_conn])
         else:
-            result.append([int(EdgeType.root_jump), -1, start, -1])
-        if start != end:
-            result.append([int(EdgeType.polymer), start, end, -1])
+            entry = start
+            prev = start - 1
+            if prev >= 0 and bti_p[prev] >= 0 and chain_id_p[prev] == chain_id_p[start]:
+                result.append([int(EdgeType.jump), prev, start, jump_idx])
+                # only true jumps are numbered; a root jump is identified by its
+                # downstream block, and numbering it would leave a gap in the
+                # jump indices, which must run contiguously from 0
+                jump_idx += 1
+            else:
+                result.append([int(EdgeType.root_jump), -1, start, -1])
+        for run_end in (start, end):
+            if entry == run_end:
+                continue
+            step = 1 if entry < run_end else -1
+            a = entry
+            for b in range(entry + step, run_end + step, step):
+                if b in branch_blocks and b != run_end:
+                    result.append([int(EdgeType.polymer), a, b, -1])
+                    a = b
+            result.append([int(EdgeType.polymer), a, run_end, -1])
 
     return result
+
+
+def _chemical_spanning_forest(
+    chains, poly_succ_arr, bti_p, irc_p, up_c, down_c, dslf_c, n_conn, real_mask
+):
+    """Which chemical bond, if any, builds each polymer chain.
+
+    Each chain is contracted to a node and the bonds between them -- the
+    connections that are neither polymeric nor the disulfide -- are spanned
+    breadth-first from each component's lowest-index chain.  A bond reaching
+    an already-visited chain would close a cycle and is dropped; because the
+    polymer chains are contracted first, a cycle of mixed polymer and
+    chemical bonds can only break at a chemical bond.
+
+    Returns a map from chain index to (parent residue, connection on it, the
+    residue it builds).
+    """
+    chain_of = numpy.full(len(real_mask), -1, dtype=numpy.int64)
+    for ci, (start, end) in enumerate(chains):
+        cur = start
+        chain_of[cur] = ci
+        while cur != end:
+            cur = int(poly_succ_arr[cur])
+            chain_of[cur] = ci
+
+    incident = [[] for _ in chains]
+    for r in numpy.where(real_mask)[0]:
+        r = int(r)
+        bt = int(bti_p[r])
+        structural = {int(up_c[bt]), int(down_c[bt]), int(dslf_c[bt])}
+        for c in range(int(n_conn[bt])):
+            if c in structural:
+                continue
+            partner = int(irc_p[r, c, 0])
+            if partner < 0 or not real_mask[partner]:
+                continue
+            incident[chain_of[r]].append((r, c, partner))
+    for bonds in incident:
+        bonds.sort()
+
+    chem_parent = {}
+    seen = numpy.zeros(len(chains), dtype=bool)
+    for ci in range(len(chains)):
+        if seen[ci]:
+            continue
+        seen[ci] = True
+        queue = [ci]
+        while queue:
+            cur = queue.pop(0)
+            for r, c, partner in incident[cur]:
+                child = int(chain_of[partner])
+                if seen[child]:
+                    continue
+                seen[child] = True
+                chem_parent[child] = (r, c, partner)
+                queue.append(child)
+    return chem_parent
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -149,11 +237,12 @@ class FoldForest:
     Each tensor in the class has its first dimension over the number of poses.
 
     The primary definition of a FoldTree is the Edge. The Edge defines a connection
-    between two parts of a Pose. The three types of edges are 1. polymer edges
+    between two parts of a Pose. The four types of edges are 1. polymer edges
     (analgous to the previously named "peptide edges" from Rosetta++ and Rosetta3), 2.
-    jump edges which connect any pair of residues in the Pose, and 3. root-jump
+    jump edges which connect any pair of residues in the Pose, 3. root-jump
     edges, which originate at the explicit virtual root and connect to a particular
-    residue. A polymer edge spans a contiguous range of polymeric block types where
+    residue, and 4. chemical edges, which join two residues through a single
+    non-polymeric bond (Rosetta's Edge::CHEMICAL). A polymer edge spans a contiguous range of polymeric block types where
     the "up" connection of residue i is connected to the "down" connection of residue
     i+1 for all i in the range between the "start" and "end" blocks.
 
@@ -161,7 +250,10 @@ class FoldForest:
     where type is one of the EdgeType enum values, start is the index of the upstream
     residue of the edge, end is the index of the downstream residue of the edge, and
     jump-index is used to assign an id to any particular jump edge; jump-edge indices
-    must be unique and ascending from 0 to n_jumps-1. "Root jump" edges take their
+    must be unique and ascending from 0 to n_jumps-1. A chemical edge stores in that
+    fourth slot the index of the connection on its start residue that leads to its
+    end residue; the connection on the end residue follows from the PoseStack's
+    inter-residue connections. "Root jump" edges take their
     "identity" from the downstream residue of the edge, so they do not need an index.
 
     The FoldForest in tmol differs from the FoldTree in Rosetta3 in that there
@@ -199,7 +291,10 @@ class FoldForest:
         between different biological chains produce separate root-jumps.
         Cyclic polymers (C→N cyclisation) are broken at the bond entering
         the lowest-index residue; that bond is dropped to keep the forest
-        a valid tree.  Non-polymer connections (disulfides, etc.) are ignored.
+        a valid tree.  Every remaining connection except the disulfide --
+        a glycan on a serine, a ligand on a lysine -- becomes a chemical
+        edge, so torsions across it propagate downstream; a chemical bond
+        that would close a cycle is the one dropped.
         """
         irc = pose_stack.inter_residue_connections.cpu().numpy()
         bti = pose_stack.block_type_ind.cpu().numpy()
@@ -207,9 +302,14 @@ class FoldForest:
         pbt = pose_stack.packed_block_types
         up_c = pbt.up_conn_inds.cpu().numpy()
         down_c = pbt.down_conn_inds.cpu().numpy()
+        n_conn = pbt.n_conn.cpu().numpy()
+        annotate_packed_block_types_w_dslf_conn_inds(pbt)
+        dslf_c = pbt.canonical_dslf_conn_ind.cpu().numpy()
 
         all_pose_edges = [
-            _build_pose_fold_forest(bti[p], irc[p], up_c, down_c, chain_id[p])
+            _build_pose_fold_forest(
+                bti[p], irc[p], up_c, down_c, dslf_c, n_conn, chain_id[p]
+            )
             for p in range(pose_stack.n_poses)
         ]
 

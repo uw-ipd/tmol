@@ -15,6 +15,7 @@ from tmol.io import CanonicalOrdering
 from tmol.pose import (
     PackedBlockTypes,
     PoseStackBuilder,
+    annotate_packed_block_types_w_dslf_conn_inds,
 )
 
 logger = logging.getLogger(__name__)
@@ -31,6 +32,7 @@ def assign_block_types(
     found_disulfides64: Tensor[torch.int64][:, 3],
     res_not_connected: Optional[Tensor[torch.bool][:, :, 2]] = None,
     cyclic_closures64: Optional[Tensor[torch.int64][:, 3]] = None,
+    covalent_bonds64: Optional[Tensor[torch.int64][:, 5]] = None,
 ) -> Tuple[
     Tensor[torch.int64][:, :],
     Tensor[torch.int64][:, :, :, 2],
@@ -38,7 +40,7 @@ def assign_block_types(
 ]:
     pbt = packed_block_types
     _annotate_packed_block_types_w_canonical_res_order(canonical_ordering, pbt)
-    _annotate_packed_block_types_w_dslf_conn_inds(pbt)
+    annotate_packed_block_types_w_dslf_conn_inds(pbt)
     PoseStackBuilder._annotate_pbt_w_polymeric_down_up_bondsep_dist(pbt)
     PoseStackBuilder._annotate_pbt_w_intraresidue_connection_atom_distances(pbt)
 
@@ -75,6 +77,9 @@ def assign_block_types(
         res_types64,
         termini_variants,
         res_type_variants64,
+    )
+    conjugation_conns = _apply_conjugated_variants(
+        canonical_ordering, pbt, block_type_ind64, covalent_bonds64
     )
 
     # UGH: stealing/duplicating a lot of code from pose_stack_builder below
@@ -212,6 +217,14 @@ def assign_block_types(
         inter_residue_connections64[cyc_pose, cyc_down_res, cyc_down_conn64, 1] = (
             cyc_up_conn64
         )
+
+    # a conjugation joins two residues through connections neither of them
+    #    declares by position, so both ends come from the bond itself
+    for pose_ind, res1, conn1, res2, conn2 in conjugation_conns:
+        inter_residue_connections64[pose_ind, res1, conn1, 0] = res2
+        inter_residue_connections64[pose_ind, res1, conn1, 1] = conn2
+        inter_residue_connections64[pose_ind, res2, conn2, 0] = res1
+        inter_residue_connections64[pose_ind, res2, conn2, 1] = conn1
 
     # now that we have the inter-residue connections established,
     _assert_connections_are_well_formed(
@@ -1089,7 +1102,14 @@ def _annotate_packed_block_types_w_canonical_res_order(
     # derived
     n_co_io_equiv_classes = co.n_restype_io_equiv_classes
 
+    _annotate_packed_block_types_w_conjugations(pbt)
     for i, bt in enumerate(pbt.active_block_types):
+        # a conjugated form is chosen from the bonds the input declares, never
+        #    by which atoms are present: it differs from its base by a hydrogen
+        #    that a structure need not model, so it would always look the
+        #    better match
+        if pbt.conjugation_atoms_for_bt[i]:
+            continue
         term_ind, spcase_var_ind, bt_is_non_default_term = _assign_var_inds_for_bt(
             co, bt
         )
@@ -1158,15 +1178,96 @@ def _annotate_packed_block_types_w_canonical_res_order(
 
 
 @validate_args
-def _annotate_packed_block_types_w_dslf_conn_inds(pbt: PackedBlockTypes):
-    # to do: is this something that's specific to the canonical form?
-    if hasattr(pbt, "canonical_dslf_conn_ind"):
+def _apply_conjugated_variants(
+    canonical_ordering, pbt, block_type_ind64, covalent_bonds64
+):
+    """Swap in the conjugated form of each residue an input bond attaches to.
+
+    Returns the connections the bonds ask for, as
+    ``(pose, res1, conn1, res2, conn2)``; the block types are edited in place.
+    Which form a residue takes depends on the sites *that instance* is attached
+    at, so two copies of one sugar in a glycan can differ.
+    """
+    if covalent_bonds64 is None or covalent_bonds64.shape[0] == 0:
+        return []
+    _annotate_packed_block_types_w_conjugations(pbt)
+
+    names_for_class = canonical_ordering.restypes_ordered_atom_names
+
+    def atom_name(bt_ind, canonical_atom):
+        equiv = pbt.active_block_types[bt_ind].io_equiv_class
+        return names_for_class[equiv][canonical_atom]
+
+    # the sites each residue is attached at, from the bonds themselves
+    sites = {}
+    for pose_ind, res1, atom1, res2, atom2 in covalent_bonds64.cpu().tolist():
+        for res, atom in ((res1, atom1), (res2, atom2)):
+            bt_ind = int(block_type_ind64[pose_ind, res])
+            if bt_ind < 0:
+                continue
+            sites.setdefault((pose_ind, res), set()).add(atom_name(bt_ind, atom))
+
+    for (pose_ind, res), atoms in sites.items():
+        bt_ind = int(block_type_ind64[pose_ind, res])
+        base = pbt.active_block_types[bt_ind].name
+        key = (base, frozenset(atoms))
+        conjugated = pbt.conjugated_bt_for_base_and_atoms.get(key)
+        if conjugated is None:
+            raise ValueError(
+                f"no residue type for {base} attached at {sorted(atoms)}; the "
+                "component was prepared without a connection at every site the "
+                "input bonds it through"
+            )
+        block_type_ind64[pose_ind, res] = conjugated
+
+    connections = []
+    for pose_ind, res1, atom1, res2, atom2 in covalent_bonds64.cpu().tolist():
+        resolved = []
+        for res, atom in ((res1, atom1), (res2, atom2)):
+            bt = pbt.active_block_types[int(block_type_ind64[pose_ind, res])]
+            name = names_for_class[bt.io_equiv_class][atom]
+            conn = next(
+                (i for i, c in enumerate(bt.connections) if c.atom == name), None
+            )
+            if conn is None:
+                raise ValueError(
+                    f"{bt.name} has no connection at {name} for a declared bond"
+                )
+            resolved.append((res, conn))
+        connections.append((pose_ind, *resolved[0], *resolved[1]))
+    return connections
+
+
+def _annotate_packed_block_types_w_conjugations(pbt: PackedBlockTypes):
+    """Which connections join a residue to something other than its chain.
+
+    A connection that is neither the polymer up or down nor the disulfide is a
+    conjugation: a glycan on a serine, a ligand on a lysine. Read from the
+    connections themselves, so it holds for a generated component and a patched
+    canonical residue alike.
+
+    Annotates, per block type, the atoms its conjugations attach at, and a
+    lookup from (unconjugated name, attachment atoms) to the block type that
+    carries exactly those.
+    """
+    if hasattr(pbt, "conjugation_atoms_for_bt"):
         return
-    canonical_dslf_conn_ind = numpy.full((pbt.n_types,), -1, dtype=numpy.int64)
+    annotate_packed_block_types_w_dslf_conn_inds(pbt)
+    dslf = pbt.canonical_dslf_conn_ind.cpu().numpy()
+
+    atoms_for_bt = []
+    by_base_and_atoms = {}
     for i, bt in enumerate(pbt.active_block_types):
-        if "dslf" in bt.connection_to_cidx:
-            canonical_dslf_conn_ind[i] = bt.connection_to_cidx["dslf"]
-    canonical_dslf_conn_ind = torch.tensor(
-        canonical_dslf_conn_ind, dtype=torch.int64, device=pbt.device
-    )
-    setattr(pbt, "canonical_dslf_conn_ind", canonical_dslf_conn_ind)
+        structural = {bt.down_connection_ind, bt.up_connection_ind, int(dslf[i])}
+        conjugations = [
+            conn for ind, conn in enumerate(bt.connections) if ind not in structural
+        ]
+        atoms = frozenset(conn.atom for conn in conjugations)
+        atoms_for_bt.append(atoms)
+        # the variant tags to drop are the connections' own names
+        tags = {conn.name for conn in conjugations}
+        base = ":".join(part for part in bt.name.split(":") if part not in tags)
+        by_base_and_atoms[(base, atoms)] = i
+
+    setattr(pbt, "conjugation_atoms_for_bt", atoms_for_bt)
+    setattr(pbt, "conjugated_bt_for_base_and_atoms", by_base_and_atoms)

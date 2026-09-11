@@ -505,6 +505,79 @@ def _map_atoms_to_canonical(co, atom_res_inds, res_names, atom_names):
     )
 
 
+def _template_array(structure):
+    """The single AtomArray whose bond table describes every model."""
+    if isinstance(structure, biotite.structure.AtomArrayStack):
+        return structure[0]
+    return structure
+
+
+def _covalent_bonds_for_poses(bonds, n_poses, torch_device):
+    """Stamp one [res1, atom1, res2, atom2] table with each pose's index."""
+    if bonds.shape[0] == 0:
+        return torch.zeros((0, 5), dtype=torch.int64, device=torch_device)
+    repeated = numpy.tile(bonds, (n_poses, 1))
+    pose_column = numpy.repeat(numpy.arange(n_poses), bonds.shape[0])
+    return torch.tensor(
+        numpy.column_stack((pose_column, repeated)),
+        dtype=torch.int64,
+        device=torch_device,
+    )
+
+
+def _covalent_bonds_from_biotite(
+    array, co, atom_res_inds, restype_for_res, valid_atom_mask, valid_atom_inds
+):
+    """Cross-residue bonds the input declares that no other channel carries.
+
+    Backbone links and disulfides are left out: the first reach the pose
+    through the sequential connection logic, the second through
+    find_disulfides. Both are recognized from the canonical ordering rather
+    than by atom name, so a modified residue's backbone is excluded too.
+    """
+    if array.bonds is None:
+        return numpy.zeros((0, 4), dtype=numpy.int64)
+
+    atom_canonical_ind = numpy.full(array.array_length(), -1, dtype=numpy.int64)
+    atom_canonical_ind[valid_atom_mask] = valid_atom_inds
+
+    conn_inds = co.polymer_conn_inds
+    down_atom = numpy.array(conn_inds.down_atom_for_co_restype, dtype=numpy.int64)
+    up_atom = numpy.array(conn_inds.up_atom_for_co_restype, dtype=numpy.int64)
+    cys_classes = frozenset(co.cys_inds.cys_co_aa_inds)
+    sg_atom = co.cys_inds.sg_atom_for_co_cys
+
+    found = []
+    for atom1, atom2, _order in array.bonds.as_array():
+        res1, res2 = int(atom_res_inds[atom1]), int(atom_res_inds[atom2])
+        if res1 == res2:
+            continue
+        canonical1 = int(atom_canonical_ind[atom1])
+        canonical2 = int(atom_canonical_ind[atom2])
+        if canonical1 < 0 or canonical2 < 0:
+            continue
+        restype1, restype2 = restype_for_res[res1], restype_for_res[res2]
+        is_backbone = (
+            canonical1 == up_atom[restype1] and canonical2 == down_atom[restype2]
+        ) or (canonical2 == up_atom[restype2] and canonical1 == down_atom[restype1])
+        if is_backbone:
+            continue
+        if (
+            canonical1 == sg_atom
+            and canonical2 == sg_atom
+            and restype1 in cys_classes
+            and restype2 in cys_classes
+        ):
+            continue
+        if res1 > res2:
+            res1, canonical1, res2, canonical2 = res2, canonical2, res1, canonical1
+        found.append((res1, canonical1, res2, canonical2))
+
+    if not found:
+        return numpy.zeros((0, 4), dtype=numpy.int64)
+    return numpy.array(sorted(set(found)), dtype=numpy.int64)
+
+
 def _res_names_for_structure(
     biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
 ):
@@ -594,6 +667,7 @@ def _break_connections_for_missing_density(
     biotite_chain_id_for_res: numpy.ndarray,
     tmol_coords: torch.Tensor,
     threshold: float,
+    is_polymeric: numpy.ndarray | None = None,
 ) -> None:
     """Break inter-residue connections where upper/lower atoms are too far apart.
 
@@ -611,6 +685,8 @@ def _break_connections_for_missing_density(
         tmol_coords: Shape (n_poses, n_res, max_atoms, 3) coordinate tensor.
         threshold: Distance threshold in Angstroms. Connections where the
             closest inter-residue atom pair exceeds this distance are broken.
+        is_polymeric: Shape (n_res,) boolean array; pairs where either residue
+            is not a chain member are left alone.
     """
     n_res = not_connected.shape[0]
     coords_np = tmol_coords.cpu().numpy()
@@ -621,6 +697,11 @@ def _break_connections_for_missing_density(
             continue
         # Skip cross-chain pairs (handled separately by chain-break logic)
         if biotite_chain_id_for_res[i] != biotite_chain_id_for_res[i + 1]:
+            continue
+        # A ligand numbered in the chain it sits in is not the next link of
+        #    that chain, so its distance says nothing about a break. Marking
+        #    one would take the C-terminus off the residue before it.
+        if is_polymeric is not None and not (is_polymeric[i] and is_polymeric[i + 1]):
             continue
 
         # Compute minimum inter-residue distance across all poses.
@@ -863,6 +944,14 @@ def canonical_form_from_biotite(
         biotite_res_name_for_atom,
         biotite_name_for_atom,
     )
+    covalent_bonds_np = _covalent_bonds_from_biotite(
+        _template_array(biotite_structure),
+        co,
+        atom_res_inds,
+        tmol_restypes,
+        valid_atom_mask,
+        valid_atom_inds,
+    )
     tmol_coords, n_poses = _populate_canonical_coords(
         biotite_structure,
         torch_device,
@@ -903,11 +992,20 @@ def canonical_form_from_biotite(
     # Geometry-based missing density detection: break connections where the
     # upper atom of residue i and lower atom of residue i+1 are too far apart.
     if missing_density_distance_threshold > 0 and len(biotite_residues) > 1:
+        conn_inds = co.polymer_conn_inds
+        polymeric = numpy.array(
+            [
+                conn_inds.down_atom_for_co_restype[restype] >= 0
+                or conn_inds.up_atom_for_co_restype[restype] >= 0
+                for restype in tmol_restypes
+            ]
+        )
         _break_connections_for_missing_density(
             not_connected,
             biotite_chain_id_for_res,
             tmol_coords,
             missing_density_distance_threshold,
+            polymeric,
         )
         res_not_connected_1 = torch.tensor(
             not_connected, dtype=torch.bool, device=torch_device
@@ -927,6 +1025,9 @@ def canonical_form_from_biotite(
         atom_b_factor=biotite_b_factors,
         disulfides=None,
         res_not_connected=res_not_connected,
+        covalent_bonds=_covalent_bonds_for_poses(
+            covalent_bonds_np, n_poses, torch_device
+        ),
     )
 
 

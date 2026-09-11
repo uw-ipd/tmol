@@ -134,7 +134,15 @@ class ConstraintEnergyTerm(EnergyTerm):
         return self.constraint_pose_scores
 
     def get_rotamer_score_term_function(self):
-        return self.constraint_pose_scores
+        return self.constraint_rotamer_scores
+
+    def constraint_rotamer_scores(self, *args):
+        """Score rotamers with the same routine the whole pose uses.
+
+        The rotamer arg list carries one extra tensor -- which blocks sample in
+        lockstep -- that only the pair terms' rotamer-pair enumerator reads.
+        """
+        return self.constraint_pose_scores(*args[:12], *args[13:])
 
     def get_score_term_attributes(self, pose_stack: PoseStack):
         return [

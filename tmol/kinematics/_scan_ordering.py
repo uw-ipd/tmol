@@ -353,6 +353,7 @@ def construct_kin_module_data_for_pose(
     ff_edges_cpu = fold_forest_edges.cpu()
     ff_edges_device = fold_forest_edges.to(device)
 
+    cpu = torch.device("cpu")
     result = calculate_ff_edge_delays(
         pose_stack.block_coord_offset,
         pose_stack.block_type_ind,
@@ -360,6 +361,11 @@ def construct_kin_module_data_for_pose(
         pbt_gssps.scan_path_seg_that_builds_output_conn,
         pbt_gssps.nodes_for_gen,
         pbt_gssps.scan_path_seg_starts,
+        pose_stack.block_type_ind.to(cpu),
+        pose_stack.inter_residue_connections.to(cpu).to(torch.int32),
+        pbt_gssps.scan_path_seg_that_builds_output_conn.to(cpu),
+        pbt.polymeric_conn_inds.to(cpu).to(torch.int32),
+        pbt.n_conn.to(cpu).to(torch.int32),
     )
 
     (
@@ -1044,6 +1050,85 @@ class ResidueKinforestData:
     preds: NDArray[numpy.int64][:]  # BFS predecessors in TO; -9999 for root
     bfto_2_orig: NDArray[numpy.int64][:]  # BFS traversal order → TO (= KFO ordering)
     dof_type: NDArray[numpy.int64][:]  # NodeType per atom in TO
+
+
+def block_group_kinforest_data(block_types, links, anchor: int = 0):
+    """Spanning tree over a group of blocks joined by inter-block bonds.
+
+    The single-block case of annotate_block_type_with_residue_kinforest_data,
+    generalized: atoms of the group's blocks are concatenated, each link adds
+    one bond between the two blocks' connection atoms, and the tree is rooted
+    at the anchor block's jump atom. Torsion-defining bonds -- the linkage
+    torsions among them -- are prioritized so they become tree edges and so
+    carry a degree of freedom.
+
+    ``links`` are (parent, parent_conn, child, child_conn) tuples, where the
+    block entries index ``block_types`` and the conn entries are connection
+    indices on those blocks. Returns the ResidueKinforestData for the
+    concatenated group together with each block's atom offset.
+    """
+    offsets = numpy.cumsum([0] + [bt.n_atoms for bt in block_types])
+    n_atoms = int(offsets[-1])
+
+    def _csgraph(bonds, weight):
+        weights = numpy.broadcast_to(
+            numpy.full((1,), weight, dtype=numpy.float32), bonds[:, 0].shape
+        )
+        return sparse.csr_matrix(
+            (weights, (bonds[:, 0], bonds[:, 1])), shape=(n_atoms, n_atoms)
+        )
+
+    all_bonds, tor_bonds = [], []
+    for i, bt in enumerate(block_types):
+        off = int(offsets[i])
+        all_bonds.append(numpy.asarray(bt.bond_indices) + off)
+        tor_bonds.extend(
+            (uaids[1][0] + off, uaids[2][0] + off)
+            for uaids in bt.torsion_to_uaids.values()
+            if uaids[1][0] >= 0 and uaids[2][0] >= 0
+        )
+
+    # each link is a bond, and it is a torsion axis: the chi built on it must
+    #    be a tree edge or the linkage has no degree of freedom
+    for parent, parent_conn, child, child_conn in links:
+        a = int(offsets[parent]) + int(
+            block_types[parent].ordered_connection_atoms[parent_conn]
+        )
+        b = int(offsets[child]) + int(
+            block_types[child].ordered_connection_atoms[child_conn]
+        )
+        all_bonds.append(numpy.array([[a, b], [b, a]], dtype=numpy.int64))
+        tor_bonds.extend([(a, b), (b, a)])
+
+    all_bonds = numpy.concatenate(all_bonds)
+    tor_bonds = (
+        numpy.array(tor_bonds, dtype=numpy.int64)
+        if tor_bonds
+        else numpy.zeros((0, 2), dtype=numpy.int64)
+    )
+
+    bond_graph = _csgraph(all_bonds, -1) + _csgraph(tor_bonds, -0.125)
+    spanning_tree = csgraph.minimum_spanning_tree(bond_graph.tocsr())
+
+    jump_atom = int(offsets[anchor]) + (
+        block_types[anchor].default_jump_connection_atom_index
+    )
+    bfto_2_orig, preds = csgraph.breadth_first_order(
+        spanning_tree, jump_atom, directed=False, return_predecessors=True
+    )
+
+    dof_type = numpy.full((n_atoms,), NodeType.bond, dtype=numpy.int64)
+    dof_type[jump_atom] = NodeType.jump
+
+    return (
+        ResidueKinforestData(
+            jump_atom=jump_atom,
+            preds=preds,
+            bfto_2_orig=bfto_2_orig,
+            dof_type=dof_type,
+        ),
+        offsets.astype(numpy.int64),
+    )
 
 
 def annotate_block_type_with_residue_kinforest_data(bt):

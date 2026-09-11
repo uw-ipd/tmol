@@ -188,6 +188,9 @@ struct LKBallRotamerScoreDispatch {
       TView<Int, 1, Dev> rot_offset_for_pose,
       TView<Int, 2, Dev> n_rots_for_block,
       TView<Int, 2, Dev> rot_offset_for_block,
+      // [n_poses, max_n_blocks]; blocks sharing an id >= 0 move in
+      // lockstep, so only matching rotamer indices ever coexist
+      TView<Int, 2, Dev> lockstep_group_for_block,
       Int max_n_rots_per_pose,
 
       // For determining which atoms to retrieve from neighboring

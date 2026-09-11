@@ -1498,6 +1498,9 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
     TView<Int, 1, D> rot_offset_for_pose,
     TView<Int, 2, D> n_rots_for_block,
     TView<Int, 2, D> rot_offset_for_block,
+    // [n_poses, max_n_blocks]; blocks sharing an id >= 0 move in
+    // lockstep, so only matching rotamer indices ever coexist
+    TView<Int, 2, D> lockstep_group_for_block,
     Int max_n_rots_per_pose,
 
     // dims: n-systems x max-n-blocks x max-n-blocks
@@ -1651,7 +1654,11 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
 
   auto dispatch_indices_t = score::common::sphere_overlap::
       rot_neighbor_indices_from_block_neighbors<DeviceOperations, D, Int>::f(
-          mgr, scratch_block_neighbors, n_rots_for_block, rot_offset_for_block);
+          mgr,
+          scratch_block_neighbors,
+          n_rots_for_block,
+          rot_offset_for_block,
+          lockstep_group_for_block);
 
   auto dispatch_indices = dispatch_indices_t.view;
 
