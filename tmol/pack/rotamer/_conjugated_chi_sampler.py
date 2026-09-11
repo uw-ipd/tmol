@@ -13,6 +13,7 @@ be bonded to a sidechain to be here at all.
 """
 
 import attr
+from copy import copy
 import itertools
 import math
 import numpy
@@ -475,16 +476,16 @@ class ConjugatedChiSampler(ChiSampler):
         if self.library_sampler is None:
             return {}
         index = task.conformer_sampler_index[id(self.library_sampler)]
-        allowed = task.per_block_conformer_sampler_allowed
-        saved = allowed[:, :, index].clone()
+        # Only anchors need this extra library pass. Keep the caller's task
+        # immutable, including while the library is executing or raises.
+        library_task = copy(task)
+        allowed = torch.zeros_like(task.per_block_conformer_sampler_allowed)
+        library_task.per_block_conformer_sampler_allowed = allowed
         for group in groups:
             allowed[group.pose, group.anchor, index] = True
-        try:
-            _n, gbt_for_rot, chi_atoms, chi = self.library_sampler.sample_chi_for_poses(
-                pose_stack, task
-            )
-        finally:
-            allowed[:, :, index] = saved
+        _n, gbt_for_rot, chi_atoms, chi = self.library_sampler.sample_chi_for_poses(
+            pose_stack, library_task
+        )
 
         pose_of = task.cons_bt_pose.cpu().numpy()
         block_of = task.cons_bt_block.cpu().numpy()

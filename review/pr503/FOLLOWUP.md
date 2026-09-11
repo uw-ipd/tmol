@@ -99,3 +99,13 @@ RT/PBT tables; changing NHQ flips updates buildable types; changing chemical
 element assignments updates sugar-ring recognition. One most-recent table is
 retained per object, avoiding unbounded per-configuration caches. This fixes
 sequential sampler reuse; it does not implement the task-level budget API.
+
+Job 238312 passes 26 group regression/packing tests across CPU/CUDA with four
+existing CPU skips for large full-packing cases. Anchor-library sampling now
+uses an isolated task mask containing only group anchors. Exact anchor output
+arrays match the previous implementation on all three fixtures and both
+devices. Seven paired warm measurements show CPU stage speedups of 1.46×,
+1.80× and 1.79×; GPU stage latency is essentially unchanged (about 1%).
+Enumerated rows fall from 1781→60 (biotin), 3028→3 (O-glycan), and 5849→66
+(N-glycan). These are stage measurements, not end-to-end packing speedups.
+See `profile_anchor_library.py` and `results/anchor-library-{cpu,cuda}.json`.

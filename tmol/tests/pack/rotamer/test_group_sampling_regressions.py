@@ -65,7 +65,14 @@ def test_group_budget_keeps_correct_residue_and_linkage(monkeypatch):
 
 def test_anchor_library_keeps_identical_block_numbers_in_different_poses(torch_device):
     class Library:
-        def sample_chi_for_poses(self, pose, task):
+        def sample_chi_for_poses(self, pose, library_task):
+            # An observer must never see the caller's task temporarily changed.
+            torch.testing.assert_close(allowed, original_allowed)
+            selected = library_task.per_block_conformer_sampler_allowed[:, :, 0]
+            torch.testing.assert_close(
+                selected,
+                torch.tensor([[True, False], [True, False]], device=torch_device),
+            )
             return (
                 None,
                 torch.tensor([0, 1], device=torch_device),
@@ -75,7 +82,8 @@ def test_anchor_library_keeps_identical_block_numbers_in_different_poses(torch_d
 
     library = Library()
     sampler = ConjugatedChiSampler(library_sampler=library)
-    allowed = torch.zeros((2, 2, 1), dtype=torch.bool, device=torch_device)
+    allowed = torch.tensor([[[False], [True]], [[False], [True]]], device=torch_device)
+    original_allowed = allowed.clone()
     task = SimpleNamespace(
         conformer_sampler_index={id(library): 0},
         per_block_conformer_sampler_allowed=allowed,
@@ -91,7 +99,7 @@ def test_anchor_library_keeps_identical_block_numbers_in_different_poses(torch_d
     assert set(result) == {(0, 0), (1, 0)}
     np.testing.assert_array_equal(result[(0, 0)][1], [[0.25]])
     np.testing.assert_array_equal(result[(1, 0)][1], [[1.25]])
-    assert not allowed.any()
+    torch.testing.assert_close(allowed, original_allowed)
 
 
 def test_kinforest_cache_is_scoped_to_packed_block_types(monkeypatch):
