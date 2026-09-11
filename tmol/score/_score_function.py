@@ -1386,6 +1386,8 @@ class WholePoseScoringModule:
         if mode in ("forward_backward", "both") and not hasattr(
             self, "_cuda_graphed_autograd"
         ):
+            from tmol.score.common._cuda_graph import CapturedScoringGraph
+
             graph_module = _DefaultWholePoseScoringModule(
                 self.weights,
                 self._execution_modules,
@@ -1397,16 +1399,13 @@ class WholePoseScoringModule:
                 torch.enable_grad(),
                 warnings.catch_warnings(),
             ):
-                # PyTorch's backward-capture warmup retains the sample leaf's
-                # default-stream AccumulateGrad node. Capture and replay are
-                # valid; suppress only that known internal warning.
+                # Scoring parameters may retain an AccumulateGrad node on
+                # another stream. Suppress only that known warmup warning.
                 warnings.filterwarnings(
                     "ignore",
                     message="The AccumulateGrad node's stream does not match",
                 )
-                self._cuda_graphed_autograd = torch.cuda.make_graphed_callables(
-                    graph_module, (sample,), allow_unused_input=True
-                )
+                self._cuda_graphed_autograd = CapturedScoringGraph(graph_module, sample)
         return self
 
 
