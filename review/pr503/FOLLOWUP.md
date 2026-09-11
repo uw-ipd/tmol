@@ -24,7 +24,7 @@ historical evidence, not a claim that the follow-up is complete.
 | D geometry (24) | Signed stereocentre volumes and actual library sampling after repacking; reject mislabeled geometry | Every offered D rotamer and packed result retains signed alpha-centre volume on CPU/CUDA (237089); broader stereocentre coverage remains |
 | Fold trees/fragments (25,26) | Branch-point invariant, fragment restoration/minimize/pack/DDG and multi-pose checks | Existing fixes; final suite pending |
 | Scientific ownership (general 2,7) | Independent potential checks and canonical change audit; sampling/scoring reference separation | Pending |
-| Connection bonded potentials (38) | Every declared attachment has explicit length/angle energy ownership; independent stretching/bending forces; parameter persistence; no double counting; packing and Cartesian minimization | Explicit connection-record backend implemented and validated CPU/CUDA; automatic parameter generation/persistence still pending, so default preparation retains the 14 missing attachment potentials |
+| Connection bonded potentials (38) | Every declared attachment has explicit length/angle energy ownership; independent stretching/bending forces; parameter persistence; no double counting; packing and Cartesian minimization | Backend, bundle persistence and private capped-MMFF harmonic generator validated CPU/CUDA; default integration/local chemistry corrections remain pending, so default preparation retains the 14 missing attachment potentials |
 | API/authority/reproducibility (general 1,6,8,9) | Executable input-route examples, settings/seed provenance, documented migration and fresh-checkout CI | Pending |
 | Workload scale/release (general 4,5,10) | Explicit matrix of chemistry/topology/input/batch/stage/backend coverage; paired profiles/timings/memory, no masked regressions | Paired baseline/candidate 19-fixture CPU/CUDA matrices recorded; larger-scale and full-stage matrix pending |
 
@@ -850,3 +850,117 @@ generated length/angle energies**. Acylation corrections, three-block angles,
 fragment projection, name-context conflicts, sampling budgets, AtomWorks
 reader/rule-profile contracts, cache lifetime and full workflow/release gates
 remain open. No whole-force-field or scientific-fit validation is claimed.
+
+## Capped-MMFF attachment generator and repeated-group cost
+
+The private `tmol.ligand._connection_params` prototype now consumes complete
+capped models and produces explicit `ConnectionCartRes` records. It uses the
+existing molecule converter and direct protonation API, preserving heavy-atom
+maps through protonation. Hydrogens map by their bonded parent and count;
+attachment neighborhoods and bond orders must agree with the patched residue type. Exact
+terminal variants receive separate records. Repeated names/site sets with
+incompatible chemical graphs, formal charges, MMFF assignments or hydrogen
+counts raise. This checks identities within the input; it does not solve
+selection of context-specific residue types across poses or reused databases.
+
+The parameters are the local harmonic curvature of MMFF94: equilibrium bond
+lengths in Å, angles in radians, and `K = 143.9325 * kb` or
+`K = 143.9325 * ka`. The conversion follows RDKit's pinned
+[bond implementation](https://raw.githubusercontent.com/rdkit/rdkit/Release_2026_03_6/Code/ForceField/MMFF/BondStretch.cpp),
+[angle implementation](https://raw.githubusercontent.com/rdkit/rdkit/Release_2026_03_6/Code/ForceField/MMFF/AngleBend.cpp)
+and [unit constant](https://raw.githubusercontent.com/rdkit/rdkit/Release_2026_03_6/Code/ForceField/MMFF/Params.h).
+Independent tests query RDKit's energy and Cartesian gradients with all other
+terms disabled, then finite-difference the bond and angle curvature in water
+and the special linear angle in HCN. These are unit/implementation checks,
+not an independent validation of MMFF's fit for the conjugates. The harmonic
+model omits anharmonic and stretch-bend terms; it is not the complete MMFF
+energy function.
+
+Each record contains JSON provenance with the method version, RDKit version,
+pH, compiled protonation-rule hash, first-ordered-variant selection policy,
+precision/variant limit and complete capped molecular SMILES. Actual generated
+records roundtrip through a source ligand's `.tmol` bundle into both fresh and
+already prepared databases, with repeat injection idempotent. The prototype
+does not independently infer connectivity from coordinates or introduce a
+second molecule/protonation implementation.
+
+Native whole-pose and weighted block-pair energy/gradient checks cover all
+**15 source links and 61 adjacent angles** in biotin, O-glycan and N-glycan,
+including the unanchored disaccharide. They isolate the generated terms so
+legacy wildcard parameters cannot conceal missing rows. All-NaN coordinates,
+reversed atom order within residues, changed instance numbering and duplicated
+inputs yield identical records. Changed amide chemistry under a reused residue
+name and mismatched attachment hydrogen inventories raise explicitly.
+
+The diagnostic now accepts `--generated-connections`, installs these records
+through the public database injection API, and asserts the measured stretching
+stiffness against each generated K. On CPU and CUDA, all **14 anchored links**
+pass: K is **838.983** for the biotin amide, **671.301** for the ASN attachment,
+and **726.427 kcal/mol/Å²** for glycosidic O–C links. Three peptide controls
+remain **369.445**. Perpendicular bending has a nonzero force response; its
+curvature need not be positive away from equilibrium (the fixed biotin
+hydrogen geometry gives −1.134 in this particular scan).
+
+With the protein fixed, 100-iteration full-score biotin minimizations from
+initial bond lengths 1.329, 1.829 and 2.329 Å finish at **1.3603, 1.3676 and
+1.3794 Å on CPU**, and **1.3601, 1.3670 and 1.3792 Å on CUDA**. All lower the
+score, restore the link within 0.1 Å of its generated 1.369 Å target, and leave
+every masked-out coordinate unchanged. The earlier default runs instead
+finished at 1.660/2.150/2.556 Å on CPU and 1.658/2.120/2.558 Å on CUDA. These are
+specific minimization checks, not global-minimum or force-field validation.
+See `results/generated-connection-stiffness-{cpu,cuda}.json`.
+
+Profiling showed repeated protonation dominates generation for duplicated
+glycans. Models now stream one group at a time, release cap-construction
+temporaries before parameterization, and skip already processed chemistry
+within a call. At most 128 content digests are retained; the local set is
+cleared at its bound. There is no global model/molecule cache. The digest
+includes the chemical annotations consumed by conversion, explicit bonds,
+atom/residue names and relative source/cap identity. Chain numbering and the
+all-NaN model coordinates do not determine chemical parameters.
+
+`profile_connection_generation.py` compares this implementation against the
+same generator with reuse disabled and models materialized. Every timed result
+must equal the reference record tuple. Seven alternating-order warm pairs give:
+
+| Fixture copies | Biotin reference → candidate | O-glycan reference → candidate | N-glycan reference → candidate |
+|---|---|---|---|
+| 1 | 4.47 → 4.52 ms | 17.48 → 17.65 ms | 22.86 → 23.11 ms |
+| 8 | 31.66 → 9.15 ms (3.46×) | 134.34 → 22.68 ms (5.92×) | 176.52 → 36.05 ms (4.90×) |
+| 32 | 125.29 → 25.02 ms (5.01×) | 533.74 → 39.47 ms (13.52×) | 699.23 → 89.59 ms (7.80×) |
+
+Traced Python peaks at 32 copies fall from **0.643→0.595 MB**, **0.812→0.496 MB**
+and **2.146→1.769 MB**, respectively. At one copy the candidate costs an extra
+9–24 KB of traced Python peak memory and about 1% time; streaming retains
+its group-index state while parameterizing. These measurements exclude native
+RDKit/RSS allocations. They describe the new generator stage, **not a speedup
+over upstream preparation**, which does not generate these parameters, or an
+end-to-end preparation benchmark. Raw pairs and source hashes are in
+`results/connection-generation-profile.json`.
+
+Validation: Slurm **248831 has 92 passes, six skips, exit 0:0** for the initial
+generator plus existing backend/model/bundle checks on CPU/CUDA. The first
+follow-up job **248833** passed 49 tests but then failed in the diagnostic:
+switching databases required annotating each block type before packed-type
+setup. That harness error is fixed. **248835 has 52 passes, six skips, exit
+0:0**, followed by the complete CPU/CUDA stiffness and minimization checks.
+Final model/generator CPU checks have **30 passes, 12 skips**; the final
+provenance and explicit angle-count checks have **20 passes, ten skips**.
+The final bond-order guard and generator checks have **23 passes, ten skips**.
+Counts overlap; the pure chemistry tests use CPU even inside a GPU job.
+See `results/generated-connection-tests.json`. Review drafts remain at
+**44 inline comments and 12 general questions**, with comment 38 updated to
+distinguish the tested prototype from the still-unfixed default route.
+
+**Next:** derive local geometry, typing/charge and torsion-ownership changes
+from this same capped chemistry, then integrate one consistent parameterization
+pass into preparation and export. The prototype deliberately remains private
+and is not called by default preparation. Ordinary LYS parameters still govern
+the local acylated site; hydrogen construction/optimization must agree with
+the resulting amide chemistry. Incompatible contexts need explicit selection
+or rejection across reused databases, not only within this generator call.
+Scoped handling of skipped/unprepared groups, mixed existing connections,
+three-block angles and fragment projection remain open. The existing broader
+sampling-budget, cache-lifetime, AtomWorks reader/rule-profile and release
+validation requirements also remain active. This is a working, tested
+parameter-generation mechanism, not a claim that the full PR is ready.

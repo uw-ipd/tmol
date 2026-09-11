@@ -1,0 +1,80 @@
+{
+  "baseline": "13d5490dc9d0069c45c8a0246e494ade4b5382b8",
+  "runs": [
+    {
+      "name": "Initial CPU generation/units/native checks",
+      "passed": 14,
+      "skipped": 10,
+      "seconds": 18.21,
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/generated-connections-tests-cpu.log"
+    },
+    {
+      "name": "Broader CPU/CUDA generator/backend/roundtrip checks",
+      "slurm": 248831,
+      "passed": 92,
+      "skipped": 6,
+      "seconds": 72.84,
+      "state": "COMPLETED",
+      "exit_code": "0:0",
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/generated-connections-248831.log"
+    },
+    {
+      "name": "Initial reuse checks plus diagnostic harness failure",
+      "slurm": 248833,
+      "passed": 49,
+      "skipped": 6,
+      "seconds": 67.87,
+      "state": "FAILED",
+      "exit_code": "1:0",
+      "failure": "Following pytest, diagnostic omitted per-block annotation for the new parameter database and failed at O-glycan setup. Fixed in the diagnostic; no failed diagnostic completion is counted.",
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/generated-connections-final-248833.log"
+    },
+    {
+      "name": "Final model/generator CPU checks with actual record bundles",
+      "passed": 30,
+      "skipped": 12,
+      "seconds": 26.52,
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/generated-connections-final-cpu.log"
+    },
+    {
+      "name": "Final CPU/CUDA generator/model/roundtrips plus both-device stiffness/minimization",
+      "slurm": 248835,
+      "passed": 52,
+      "skipped": 6,
+      "state": "COMPLETED",
+      "exit_code": "0:0",
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/generated-connections-final-248835.log",
+      "seconds": 73.15
+    },
+    {
+      "name": "Final CPU provenance and explicit 61-angle checks",
+      "passed": 20,
+      "skipped": 10,
+      "seconds": 23.01,
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/generated-connections-provenance-cpu.log"
+    },
+    {
+      "name": "Final attachment bond-order validation and generator CPU suite",
+      "passed": 23,
+      "skipped": 10,
+      "seconds": 22.71,
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/generated-connections-bond-order-cpu.log"
+    }
+  ],
+  "source_sha256": {
+    "tmol/ligand/_connection_params.py": "f728d5f88770b3e9d24d1808fb90483a9e8fc674e4c5e97cfbfeaec2534153f9",
+    "tmol/ligand/_conjugate_model.py": "274eaab3b23441dd5a53b081466593923f290dcf997763620c19acb70dc08bf1",
+    "tmol/tests/ligand/test_generated_connection_params.py": "db01bbb2abb819e0a517555526b95802ce7ff7d290f439de7f67e7a5ef1191e3",
+    "review/pr503/diagnose_connection_stiffness.py": "ab52a5b7e7c59c87ac8e7a2d7a3cbdcce98aad25ed6210f2f4351326adc55fdf",
+    "review/pr503/profile_connection_generation.py": "558768568fd47cca0f37f8d1be868744cc52ce59d786d64a14972f51c1c364f9"
+  },
+  "notes": [
+    "Counts overlap; do not sum as unique tests. Pure RDKit/model checks use CPU in either environment; native energies/gradients and diagnostics use CPU/CUDA.",
+    "The private prototype is not enabled by default. It generates two-block harmonic length/angle terms only; local atom typing/charges/torsions, three-block angles and context selection remain open.",
+    "Independent RDKit energy/force curvature checks cover water bond/bent angle and HCN linear angle. The model omits MMFF anharmonic and stretch-bend terms.",
+    "Native generated-record coverage includes 15 source links and 61 adjacent angles. Stiffness diagnostic covers 14 anchored links and 3 peptide controls per device.",
+    "Both-device full-score biotin Cartesian minimizations improve energy and restore the bond within 0.1 angstrom of its target, with every masked-out atom unchanged.",
+    "Final provenance records the compiled protonation rule hash and selection policy; this metadata-only addition was verified in the final CPU run.",
+    "No independent scientific parameter fit or full-force-field validation is claimed."
+  ]
+}

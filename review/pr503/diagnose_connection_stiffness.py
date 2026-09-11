@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import math
 from pathlib import Path
 
 import networkx as nx
@@ -21,24 +22,40 @@ def main():
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--minimize-biotin", action="store_true")
     parser.add_argument(
+        "--generated-connections",
+        action="store_true",
+        help="Install the private capped-MMFF harmonic prototype for this diagnostic",
+    )
+    parser.add_argument(
         "--fixtures", nargs="+", choices=list(FIXTURES), default=list(FIXTURES)
     )
     args = parser.parse_args()
     rows = []
     for name in args.fixtures:
         stem = FIXTURES[name]
+        array = atom_array_from_cif(data_path("covalent_fixtures", stem + ".cif"))
         pose, context = pose_stack_from_biotite(
-            atom_array_from_cif(data_path("covalent_fixtures", stem + ".cif")),
+            array,
             torch.device(args.device),
             prepare_ligands=True,
             no_optH=True,
             return_context=True,
             ligand_seed=20250828,
         )
-        term = CartBondedEnergyTerm(
-            param_db=context.parameter_database, device=pose.device
-        )
+        database = context.parameter_database
+        if args.generated_connections:
+            from tmol.database import inject_residue_params
+            from tmol.ligand._connection_params import (
+                generate_conjugate_connection_params,
+            )
+
+            records = generate_conjugate_connection_params(array, database)
+            database = inject_residue_params(database, [], connection_params=records)
+        term = CartBondedEnergyTerm(param_db=database, device=pose.device)
+        for block_type in pose.packed_block_types.active_block_types:
+            term.setup_block_type(block_type)
         term.setup_packed_block_types(pose.packed_block_types)
+        term.setup_poses(pose)
         module = term.render_whole_pose_scoring_module(pose)
         graph = nx.Graph()
         graph.add_edges_from(pose_bonds(pose))
@@ -115,19 +132,46 @@ def main():
                 )
             row = dict(
                 fixture=name,
+                parameter_model=(
+                    "tmol-mmff94-harmonic-v1"
+                    if args.generated_connections
+                    else "default"
+                ),
                 kind=kind,
                 blocks=[ba, bb],
                 atoms=[types[ba].atoms[ia].name, types[bb].atoms[ib].name],
                 distance=distance,
                 probes=probes,
             )
+            if args.generated_connections and kind == "conjugation":
+                key = (
+                    types[ba].name,
+                    types[ba].connections[ac].name,
+                    types[bb].name,
+                    types[bb].connections[bc].name,
+                )
+                record = next(
+                    r
+                    for r in records
+                    if (r.block_type1, r.connection1, r.block_type2, r.connection2)
+                    in (key, (*key[2:], *key[:2]))
+                )
+                parameter = record.length_parameters[0]
+                expected_stiffness = float(
+                    torch.tensor(parameter.K, dtype=torch.float32)
+                )
+                assert math.isclose(
+                    probes["stretch"]["stiffness"],
+                    expected_stiffness,
+                    rel_tol=1e-8,
+                    abs_tol=1e-8,
+                )
+                row["generated_bond"] = dict(x0=parameter.x0, K=expected_stiffness)
             if args.minimize_biotin and name == "biotin" and kind == "conjugation":
                 from tmol.optimization import run_cart_min
                 from tmol.score import beta2016_score_function
 
-                score = beta2016_score_function(
-                    pose.device, param_db=context.parameter_database
-                )
+                score = beta2016_score_function(pose.device, param_db=database)
                 whole = score.render_whole_pose_scoring_module(pose)
                 mask = torch.zeros_like(pose.real_atoms)
                 mask[0, sorted(moving)] = True
@@ -142,6 +186,15 @@ def main():
                         coord_mask=mask,
                         optimizer_kwargs={"max_iter": 100},
                     )
+                    if args.generated_connections:
+                        final_distance = float(
+                            (final.coords[0, first] - final.coords[0, second]).norm()
+                        )
+                        assert abs(final_distance - row["generated_bond"]["x0"]) < 0.1
+                        assert float(whole(final.coords).detach()) < before
+                        torch.testing.assert_close(
+                            final.coords[~mask], initial.coords[~mask], rtol=0, atol=0
+                        )
                     row["cartesian_minimization"].append(
                         dict(
                             displacement=displacement,
