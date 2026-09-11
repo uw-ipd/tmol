@@ -9,7 +9,7 @@ component name raise before preparation.
 
 This audit used the local `atomworks-dev` checkout at
 `a1bda7edfcf325bc140091889b9745220adb5eba`. The improvements are on the separate
-local branch `review/tmol-pr503-shared-chemistry`, commit `cdda3c07`, in
+local branch `review/tmol-pr503-shared-chemistry`, commit `44641189`, in
 `/mnt/home/kdidi/projects/atomworks-tmol-pr503-review`.
 
 ## Overlap and recommended ownership
@@ -125,3 +125,25 @@ candidates for one shared AtomWorks API. The assembled hydrogen-placement and
 tmol charge/conformer-generation pipelines still need separate entry points.
 Package consolidation should pin a released shared contract instead of silently
 selecting different chemistry based on whether AtomWorks happens to be installed.
+
+## Dimorphite compatibility before consolidation
+
+The two vendored engines also differ behaviorally. Before follow-up, AtomWorks
+lost heavy-atom map identities in **12 of 21** mapped molecule/pH cases; organic
+azidoethane at pH 2 also differed in charge state. Its direct molecule API
+deduplicated through an unordered SMILES set, losing atom properties and stable
+variant ordering. Tmol's neutralization provenance and azide exception, plus
+stable product retention, are now implemented on the AtomWorks branch.
+
+The seven classes are acetate, ethylammonium, azidoethane, nitroethane, cysteine,
+histidine and phosphoserine, each at pH 2, 7.4 and 12 with precision 0.1. All 21
+ordered chemical-state and heavy-map inventories now match tmol; **34 AtomWorks
+identity/protonation tests pass**. This is chemical compatibility evidence, not
+an independent validation of pKa predictions. AtomWorks' unchanged pattern-loader
+still recompiles SMARTS per call; tmol caches by pH without a size bound. A shared
+bounded cache with ownership-safe results is a further simplification opportunity.
+
+See [check_dimorphite_contract.py](check_dimorphite_contract.py),
+`results/dimorphite-contract.json` (AtomWorks `cdda3c07`) and
+`results/dimorphite-contract-after.json` (`44641189`), both compared against
+tmol's engine from `6b7071d54` in the same RDKit 2026.3.6 CPU environment.

@@ -20,7 +20,11 @@ project the library onto the remaining movable axes, retaining the first of
 each identical projected row. All distinct projected states remain required;
 child chi may freeze. An empty set of axes produces one input conformer, not
 two identical empty rows. The count is checked before allocating the Cartesian
-product.
+product. Subsequent task masks can freeze individual members: the total is
+`active_members * conformers + fixed_members`, with one input/background
+rotamer for each fixed member. Their atoms constrain the permitted axes before
+enumeration, so the sampled members cannot pull away from a frozen neighbor.
+Disabling the group sampler for every member skips enumeration entirely.
 
 Fully constrained anchors skip the source-library pass. A partially constrained
 anchor can need more temporary source-library rows than its final projected

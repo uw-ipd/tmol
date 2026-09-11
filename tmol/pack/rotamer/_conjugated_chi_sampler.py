@@ -33,6 +33,7 @@ from tmol.pack.rotamer._conjugated_groups import (
     group_sampled_chi,
     group_sampling_topology,
     resolve_group_atom,
+    GroupSamplingPlan,
 )
 from tmol.pack._packer_task import (
     DEFAULT_CHI_SAMPLE_EXPANDED_LIMIT,
@@ -43,6 +44,12 @@ from tmol.pack._packer_task import (
 def _heavy_chi(rt: RefinedResidueType):
     """The chi this sampler is responsible for: sampled, and not a proton chi."""
     return [cs for cs in rt.chi_samples if not cs.is_proton]
+
+
+def _has_conjugation(rt):
+    return any(
+        connection.name not in ("up", "down", "dslf") for connection in rt.connections
+    )
 
 
 # Bound each native transform workspace; a single larger group is indivisible.
@@ -160,13 +167,13 @@ class ConjugatedChiSampler(ChiSampler):
         # a type-level necessary condition; which blocks are actually sampled is
         #    decided per pose, since being bonded to a sidechain is not a
         #    property of the residue type
-        return len(_heavy_chi(rt)) > 0
+        return _has_conjugation(rt)
 
     def defines_rotamers_for_bts(
         self, pbt: PackedBlockTypes, bt_inds: Tensor[torch.int64]
     ) -> Tensor[torch.bool]:
         builds = torch.tensor(
-            [len(_heavy_chi(bt)) > 0 for bt in pbt.active_block_types],
+            [_has_conjugation(bt) for bt in pbt.active_block_types],
             dtype=torch.bool,
             device=pbt.device,
         )
@@ -176,7 +183,9 @@ class ConjugatedChiSampler(ChiSampler):
     def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
         return sc_roots_for_chis(rt, [cs.chi_dihedral for cs in _heavy_chi(rt)])
 
-    def group_conformers(self, pose_stack: PoseStack, anchor_chi=None, budget=None):
+    def group_conformers(
+        self, pose_stack: PoseStack, anchor_chi=None, budget=None, *, plans=None
+    ):
         """Enumerate each group's product using actual library cardinality.
 
         Limits count all member rotamers, including the offered input state.
@@ -190,8 +199,21 @@ class ConjugatedChiSampler(ChiSampler):
         )
         out = []
         pbt = pose_stack.packed_block_types
-        for group in find_conjugated_groups(pose_stack):
-            topology = group_sampling_topology(group, pose_stack)
+        if plans is None:
+            first_owner = int(self.library_sampler is None)
+            plans = [
+                GroupSamplingPlan(
+                    group,
+                    group_sampling_topology(
+                        group, pose_stack, (0,) if first_owner else ()
+                    ),
+                    tuple(range(first_owner, len(group))),
+                )
+                for group in find_conjugated_groups(pose_stack)
+                if len(group) > first_owner
+            ]
+        for sampling_plan in plans:
+            group, topology = sampling_plan.group, sampling_plan.topology
             block_types, offsets, partners = (
                 topology.block_types,
                 topology.offsets,
@@ -241,6 +263,7 @@ class ConjugatedChiSampler(ChiSampler):
                 topology=topology,
                 exclude_axes={frozenset(c[2:]) for c in anchor_cols},
                 include_anchor=self.library_sampler is not None,
+                sampled_members=len(sampling_plan.owners),
             )
             columns, per_chi = [], []
             for owner, cs in kept:
@@ -421,10 +444,11 @@ class ConjugatedChiSampler(ChiSampler):
     def create_samples_for_poses(self, pose_stack: PoseStack, task):
         """One rotamer per attached block per group conformer.
 
-        Every member of a group gets the same number of rotamers, and rotamer k
+        Every active member gets the same number of rotamers, and rotamer k
         of each member belongs to group conformer k. That correspondence is what
         keeps them in step; it is recorded so the packer can later treat a
-        group's rotamers as one choice rather than several.
+        group's rotamers as one choice rather than several. Inactive members
+        constrain the group's geometry and retain their input via fallback.
         """
         device = pose_stack.device
         n_gbt = task.cons_bt_pose.shape[0]
@@ -434,27 +458,58 @@ class ConjugatedChiSampler(ChiSampler):
         block_of = task.cons_bt_block.cpu().numpy()
         bt_of = task.cons_bt_block_type.cpu().numpy()
         gbt_for = {}
+        allowed = task.is_cons_bt_allowed.cpu().numpy()
+        sampler_index = task.conformer_sampler_index[id(self)]
+        sampler_allowed = (
+            task.per_block_conformer_sampler_allowed[:, :, sampler_index].cpu().numpy()
+        )
+        block_types = pose_stack.block_type_ind.cpu().numpy()
         for i in range(n_gbt):
-            gbt_for[(int(pose_of[i]), int(block_of[i]), int(bt_of[i]))] = i
+            if allowed[i] and sampler_allowed[pose_of[i], block_of[i]]:
+                gbt_for[(int(pose_of[i]), int(block_of[i]), int(bt_of[i]))] = i
+
+        plans = []
+        for group in find_conjugated_groups(pose_stack):
+            first_owner = int(self.library_sampler is None)
+            owners = tuple(
+                owner
+                for owner in range(first_owner, len(group))
+                if (
+                    group.pose,
+                    group.blocks[owner],
+                    int(block_types[group.pose, group.blocks[owner]]),
+                )
+                in gbt_for
+            )
+            if not owners:
+                continue
+            fixed = tuple(owner for owner in range(len(group)) if owner not in owners)
+            plans.append(
+                GroupSamplingPlan(
+                    group, group_sampling_topology(group, pose_stack, fixed), owners
+                )
+            )
 
         anchor_chi = self.anchor_library_chi(
-            pose_stack, task, find_conjugated_groups(pose_stack)
+            pose_stack,
+            task,
+            [plan.group for plan in plans],
+            plans=plans,
         )
         groups = self.group_conformers(
-            pose_stack, anchor_chi, budget=getattr(task, "chi_sample_budget", None)
+            pose_stack,
+            anchor_chi,
+            budget=getattr(task, "chi_sample_budget", None),
+            plans=plans,
         )
         emitted = []
         for gi, (group, columns, conformers) in enumerate(groups):
             n_conf = int(conformers.shape[0])
-            # the anchor is emitted too when its own chi are part of the
-            #    product; otherwise it keeps the conformation it came in with
-            first_owner = 0 if self.library_sampler is not None else 1
-            for owner in range(first_owner, len(group)):
+            # Planning has already checked both task masks for each owner.
+            for owner in plans[gi].owners:
                 block = group.blocks[owner]
-                bt = int(pose_stack.block_type_ind[group.pose, block])
-                gbt = gbt_for.get((group.pose, block, bt))
-                if gbt is None:
-                    continue  # the packer is not considering this block type
+                bt = int(block_types[group.pose, block])
+                gbt = gbt_for[group.pose, block, bt]
                 n_rots_for_gbt[gbt] = n_conf
                 emitted.append((gbt, gi, owner, n_conf))
 
@@ -540,7 +595,7 @@ class ConjugatedChiSampler(ChiSampler):
                 )
                 conf_dofs_kto[rows] = member_dofs
 
-    def anchor_library_chi(self, pose_stack, task, groups):
+    def anchor_library_chi(self, pose_stack, task, groups, *, plans=None):
         """The chi values a rotamer library offers each group's anchor.
 
         The anchor is an ordinary amino acid, so its chi come from its library
@@ -561,8 +616,12 @@ class ConjugatedChiSampler(ChiSampler):
         library_task.chi_sample_budget = None
         allowed = torch.zeros_like(task.per_block_conformer_sampler_allowed)
         library_task.per_block_conformer_sampler_allowed = allowed
-        for group in groups:
-            topology = group_sampling_topology(group, pose_stack)
+        for group_index, group in enumerate(groups):
+            topology = (
+                plans[group_index].topology
+                if plans is not None
+                else group_sampling_topology(group, pose_stack)
+            )
             if any(
                 name.startswith("chi")
                 and frozenset((int(u[1][0]), int(u[2][0]))) in topology.movable_axes

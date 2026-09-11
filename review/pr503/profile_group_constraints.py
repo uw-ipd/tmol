@@ -145,8 +145,8 @@ def measure_case(name, device):
     }
     original = group_module._group_sampling_topology
 
-    def without_constraints(group, pose):
-        topology = original(group, pose)
+    def without_constraints(group, pose, fixed_owners=()):
+        topology = original(group, pose, fixed_owners)
         return attr.evolve(
             topology,
             movable_axes={

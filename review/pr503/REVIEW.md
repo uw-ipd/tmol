@@ -30,7 +30,7 @@ The complete 213-file upstream inventory is in [upstream-files.tsv](upstream-fil
 4. Identify hydrogen atoms by element when checking whether a template covers the observed heavy atoms; names such as `1H` no longer block completion.
 5. Retain original chi indices through budgeting, separating the anchor library's multiplicity from the child's chi numbering. Update the conformer count by division while freezing chi instead of recomputing the product each iteration.
 6. Key anchor library entries by `(pose, block)` and scope group kinforest caches to their `PackedBlockTypes`, so equal numeric type indices in another database cannot reuse a different chemistry's tree.
-7. Reuse invariant node/scan/generation tensors across group conformers. This removes repeated CPU-to-device allocations; the much larger per-conformer kinematics loop remains a future batching opportunity.
+7. Reuse invariant node/scan/generation tensors and fold group conformers in bounded batches. The follow-up also bounds shape caches and verifies scalar/batched CPU/CUDA parity; timing and temporary-memory tradeoffs are recorded in [FOLLOWUP.md](FOLLOWUP.md).
 8. Validate equal lockstep counts before native scoring; read counts to the host once and upload one completed group-ID tensor. Preserve the exclusive-end offset when collapsing groups with trailing zero-rotamer blocks.
 9. Frame content-hash values to avoid metadata collisions and hash tensor memory directly instead of allocating `.tobytes()` copies.
 10. Remove a duplicated chi-pruning pass from `remove_atom()`.
@@ -347,7 +347,7 @@ The preparation call now enables existing non-ring heavy-chi generation for conj
 
 > Can group discovery retain every internal bond and external attachment, and sampling check those constraints before turning an axis? A cycle-closing bond disappears from this tree, while a second polymer member can remain attached to an external backbone. Sampling a tree edge can then break a different bond. Independent axes should preserve rigid cycles and fixed boundaries; alternate cyclic conformations require correlated closure-aware sampling.
 
-Implemented complete edge inventories and bridge/subtree checks, projection of constrained library axes, stable deduplication and a single input conformer when no axes remain. Synthetic free, cyclic and externally anchored crosslinks pass full geometry, target-angle and packing/energy checks on CPU/CUDA. Removing only these restrictions in a controlled ablation produces maximum bond errors of 13.82 Å (cycle) and 26.29 Å (external); constrained results stay below 0.000003 Å. This ablation uses current preparation and kernels, not a pristine upstream checkout. Alternate ring puckers and task-imposed partial freezing remain separate open work.
+Implemented complete edge inventories and bridge/subtree checks, projection of constrained library axes, stable deduplication and a single input conformer when no axes remain. Synthetic free, cyclic and externally anchored crosslinks pass full geometry, target-angle and packing/energy checks on CPU/CUDA. Removing only these restrictions in a controlled ablation produces maximum bond errors of 13.82 Å (cycle) and 26.29 Å (external); constrained results stay below 0.000003 Å. This ablation uses current preparation and kernels, not a pristine upstream checkout. Task-imposed partial freezing is addressed in comment 37; alternate ring puckers remain open.
 
 ### 36. P1 — independent samplers remain enabled on secondary polymer members
 
@@ -355,7 +355,7 @@ Implemented complete edge inventories and bridge/subtree checks, projection of c
 
 > Could this mask cover every member owned by the group sampler? A second lysine reached through a crosslink is a child here, but still has its own Dunbrack sampler. Disabling only the first anchor can mix independent rotamers into that member's correlated sequence. IncludeCurrent/Fallback should likewise remain independent only for a primary anchor that the group intentionally does not emit.
 
-The helper now disables independent samplers across owned members, retaining the library-free primary-anchor exception. Full three-member crosslink construction and packing/energy tests pass on both devices. Subsequent user changes to individual group masks still need a separate task-constraint policy and integration coverage.
+The helper now disables independent samplers across owned members, retaining the library-free primary-anchor exception. Full three-member crosslink construction and packing/energy tests pass on both devices. Subsequent disabling of individual group members is addressed in comment 37. Reenabling independent samplers after setup still needs explicit ownership checks.
 
 ### 37. P1 — group sampling ignores subsequent task masks
 
@@ -363,7 +363,7 @@ The helper now disables independent samplers across owned members, retaining the
 
 > Can sampling consume both the group's sampler mask and each member's packing state before it enumerates or emits rows? Presence in `cons_bt_*` is not proof that this sampler is enabled. Disabling it for a complete synthetic crosslink still emits its 235 conformers plus fallback; disabling packing for just one member produces 235/235/236 counts. Fixed members must constrain the group's permitted motion, and a disabled group sampler must emit no rows.
 
-Reproduced in the current follow-up branch; unresolved. The later lockstep-count guard can reject mismatches, but does not implement the requested task semantics. See [the reproduction](reproduce_group_task_masks.py) and the next implementation gate in [FOLLOWUP.md](FOLLOWUP.md).
+Reproduced on follow-up commit `6b7071d54` and fixed: sampler/allowed-type masks are applied before enumeration; every atom of an inactive member constrains the permitted axes; only active members receive correlated rows. Fully disabled groups now produce 1/1/1 fallback counts, and the one-fixed-member diagnostic produces 10/10/1. Tests cover geometry, actual packing/energy, mixed-mask batches, reuse, budgets, rigid members and library-free anchors. See [the reproduction](reproduce_group_task_masks.py) and [FOLLOWUP.md](FOLLOWUP.md). Alternative chemical types and later conflicting samplers remain open.
 
 ## Validation record
 

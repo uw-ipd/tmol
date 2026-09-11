@@ -11,11 +11,11 @@ historical evidence, not a claim that the follow-up is complete.
 |---|---|---|
 | Import/closure inference (1) | Fresh checkout collection; explicit/inferred closure, padding, breaks and caps on both devices | Existing replacement; extend audit |
 | Mixed chirality (2) | Published reference parameters/formula; LL/DD/LD/DL permutation and reflection energies/gradients; whole-pose and packing parity | Rosetta mixed distribution and shared derivatives implemented; independent LL/LD/DL/DD energy/gradient, permutation and reflection checks pass on CPU/CUDA; additional packing parity pending |
-| Group identity and safety (3–7,9,30,31,33–37) | Real multi-pose/multi-database groups, repeated chi names, jagged/empty counts, early rejection; native parity | Capped anchors, rigid cyclic cores, external attachments and sampled pendant branches tested CPU/CUDA, including packing and two-pose reuse; later task-mask changes still violate sampling ownership |
+| Group identity and safety (3–7,9,30,31,33–37) | Real multi-pose/multi-database groups, repeated chi names, jagged/empty counts, early rejection; native parity | Capped anchors, rigid cyclic cores, external attachments and sampled pendant branches tested CPU/CUDA, including packing and two-pose reuse; later masks now constrain geometry and ownership; task-dependent tests recorded below |
 | Sampling budgets/caches (8,14,27) | Explicit budget semantics; task propagation; immutable sampler reuse; actual library/extra/proton counts; reproducible HYP count | Explicit task overrides and actual group/library bounds implemented/tested CPU/CUDA; aggregate/default budget policy and adaptive library expansion remain open |
 | Residue identity/completion (10–12,16,32) | Insertion codes, chain identity, explicit/CCD authority, missing atoms, custom names; realistic scaling | Reader annotation reuse and finite-geometry repair checks pass; AtomWorks parser/converter profiles recorded; broader identity/authority contracts remain open |
 | Content/profile caches (13,20,29) | No serialization aliases; safe object lifetimes, bounded memory; repeated preparation | Content framing and shared bounded weak caches fixed for rotamer/alpha/NA profiles; identity/lifetime/LRU/concurrency tests pass; remaining caches still need audit |
-| Group kinematics/performance (15,17,35) | Profile CPU/GPU; batch invariant work; retain all covalent constraints for tree/cyclic/multiple-anchor topologies | Bounded conformer batches and 32-entry shape caches verified/profiled; independent axes preserve rigid cycles/external boundaries; correlated ring-pucker sampling and task-imposed constraints remain open |
+| Group kinematics/performance (15,17,35) | Profile CPU/GPU; batch invariant work; retain all covalent constraints for tree/cyclic/multiple-anchor topologies | Bounded conformer batches and 32-entry shape caches verified/profiled; independent axes preserve rigid cycles/external boundaries; task-imposed fixed members now constrain axes; correlated ring-pucker sampling remains open |
 | Native maintainability (18) | Shared improper enumeration with unchanged canonical scores and independent analytic/numeric derivatives | Shared helper in all four paths; canonical references, numerical gradients, independent Cartesian reference and group packing pass CPU/CUDA (238323, 238529) |
 | Duplicate work (19) | Removal covered by chemistry regression suite | Existing fix; final suite pending |
 | Correct test parameters (21) | Prepared database used throughout examples and packing; generated parameter coverage | Existing correction; final audit pending |
@@ -346,11 +346,59 @@ trade bounded retained data for avoided work; eviction and configuration tests
 verify the bounds. See `profile_group_constraints.py` and
 `results/group-constraints-{cpu,cuda}.json` (CUDA 243133).
 
-Still open: subsequent task masks and disabled members, multiple member
-libraries, completely rigid member types, free groups without a polymer anchor,
-coupled ring conformers, and remaining design/multi-database cases. A current
-task-mask diagnostic confirms that disabling the group sampler still emits its
+At this milestone, task-mask handling was still open: disabling the group sampler emitted its
 235 conformers plus fallback (236 per member); disabling one member gives
-235/235/236 counts. The sampler must consume those task constraints before
-enumeration. This is the next correctness gate, not covered by the passing
-unrestricted packing cases above.
+235/235/236 counts. The next section records the fix and its separate tests.
+
+### Task masks, fixed members and rigid-member ownership
+
+The group sampler now checks both allowed residue types and its per-block mask
+before generating a library or Cartesian product. A fully disabled group emits
+no rows, leaving one input rotamer per member. A partially disabled group fixes
+every atom in inactive members, retains compatible motions elsewhere, and emits
+correlated rows only for active members. The bounded topology cache includes
+fixed-member identity. It never stores coordinates or a previous task's masks.
+
+Limits count `active_members * conformers + fixed_members`. Freezing the second
+lysine in the diagnostic yields 10/10/1 member rotamers instead of 235/235/236.
+Freezing both lysines can retain all nine pendant grid states plus the input
+within 12 total rotamers. Without an anchor library, the complete anchor remains
+fixed. A member with no local heavy-chi samples still advertises group ownership,
+preventing an extra independent fallback rotamer from disrupting correlation.
+
+Tests cover free/cyclic/externally attached crosslinks, sampler and packing masks,
+each individual fixed member, two or all fixed members, budget accounting,
+all offered bond lengths/angles/stereochemistry, actual packing/energy parity,
+rigid-linker sampling definitions, a library-free anchor and three-pose batches
+with different masks using the same sampler. Final device results are recorded
+in `results/group-task-masks-tests.json`. Slurm **243810: 121 passes** across
+CPU and H200 CUDA. The earlier broad run **243626: 163 passes, 12 failures**
+used the old test helper, which unconditionally dereferenced group collapse
+when only one member was movable or all members were fixed. Production packing
+already guards that case; the corrected helper follows production and all 12
+cases pass in 243810. They were not skipped or removed. Other broad group tests
+passed in 243626. Run counts overlap and should not be summed as unique tests.
+
+Final command: `python -m pytest -q
+tmol/tests/pack/rotamer/test_group_task_masks.py
+tmol/tests/pack/rotamer/test_group_sampling_regressions.py` in the recorded CUDA
+container/environment. The independent CPU environment passed 58 selected
+tests, followed by three rigid-member and three library-free cases.
+
+Still open: changing member chemical types, reenabling conflicting independent
+samplers after group setup, multiple member libraries, free groups without a
+polymer anchor, coupled ring conformers, and remaining design/multi-database cases.
+Disabling a sampler is covered here; arbitrary combinations of additional samplers
+and chemical design are not claimed to be supported by this fix.
+
+### Shared protonation identity contract
+
+AtomWorks branch `44641189` preserves atom maps through reaction provenance,
+retains ordered molecular products instead of an unordered SMILES roundtrip,
+and protects the charge-separated organic-azide motif during neutralization.
+The 34 identity/protonation tests pass. The cross-project 21-case diagnostic
+records before/after full ordered chemical-state/map inventories: 12 AtomWorks
+identity failures before, zero after; the azidoethane charge mismatch at pH 2
+also disappears. See [ATOMWORKS.md](ATOMWORKS.md). This closes another prerequisite
+for API consolidation; tmol still retains its vendored engine until the shared
+dependency/version and public ownership contract are established.

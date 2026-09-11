@@ -63,14 +63,22 @@ class GroupSamplingTopology:
     movable_axes: dict
 
 
-def group_sampling_topology(group, pose_stack):
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class GroupSamplingPlan:
+    group: ConjugatedGroup
+    topology: GroupSamplingTopology
+    owners: tuple
+
+
+def group_sampling_topology(group, pose_stack, fixed_owners=()):
     """Independent axes that preserve cycles and fixed external attachments.
 
     Cycle edges cannot turn independently. A bridge can turn only if its
     moving subtree contains no fixed atom. External connection atoms and their
     neighbors stay fixed to preserve the boundary's bonds and bond angles.
     Polymer backbones with external attachments stay fixed; a freely attached
-    polymer member can move with the group.
+    polymer member can move with the group. Every atom in a task-frozen member
+    stays fixed; its owner index is part of the cached constraint identity.
     """
     pbt = pose_stack.packed_block_types
     indices = tuple(pose_stack.block_type_ind[group.pose, list(group.blocks)].tolist())
@@ -78,20 +86,21 @@ def group_sampling_topology(group, pose_stack):
         indices,
         group.links,
         tuple((a, c) for a, c, _b, _bc in group.external_links),
+        tuple(fixed_owners),
     )
     cache = getattr(pbt, "conjugated_sampling_topology_cache", None)
     if cache is None:
         cache = OrderedDict()
         pbt.conjugated_sampling_topology_cache = cache
     if key not in cache:
-        cache[key] = _group_sampling_topology(group, pose_stack)
+        cache[key] = _group_sampling_topology(group, pose_stack, fixed_owners)
         if len(cache) > 32:
             cache.popitem(last=False)
     cache.move_to_end(key)
     return cache[key]
 
 
-def _group_sampling_topology(group, pose_stack):
+def _group_sampling_topology(group, pose_stack, fixed_owners=()):
     from tmol.kinematics import block_group_kinforest_data
 
     types, offsets, partners = group_atom_context(group, pose_stack)
@@ -107,6 +116,8 @@ def _group_sampling_topology(group, pose_stack):
         )
     fixed = numpy.zeros(int(offsets[-1]), dtype=bool)
     fixed[rkd.jump_atom] = True
+    for owner in fixed_owners:
+        fixed[int(offsets[owner]) : int(offsets[owner + 1])] = True
     backbone_owners = {0}
     for owner, conn, _partner, _partner_conn in group.external_links:
         atom = int(offsets[owner]) + int(types[owner].ordered_connection_atoms[conn])
@@ -142,6 +153,7 @@ def group_sampled_chi(
     topology=None,
     exclude_axes=(),
     include_anchor=False,
+    sampled_members=None,
 ):
     """Which chi of a group's attached blocks survive the budget.
 
@@ -152,11 +164,9 @@ def group_sampled_chi(
     anchor -- the ones that move the most atoms -- are the last to go. Library
     axes are excluded. Additional anchor axes may be included explicitly.
 
-    The budget counts rotamers, not conformers. A group conformer places every
-    one of its blocks, so it costs one rotamer per block, and what scoring and
-    the interaction graph pay for is that total. Dividing the limit by the
-    number of blocks is what keeps a seven-sugar tree the same size as a
-    one-sugar one.
+    The budget counts rotamers, not conformers. Every active member costs one
+    rotamer per conformer; inactive members each cost one background rotamer.
+    Subtract that background cost before dividing by the active member count.
 
     Returns a list of (index within the group, ChiSamples) for the survivors.
     """
@@ -193,23 +203,26 @@ def group_sampled_chi(
     entries = [item[2] for item in selected]
     owners = [item[0] for item in selected]
     depths = chi_depths(topology.kinforest, [item[3] for item in selected])
-    # every block of the group carries a copy of each conformer
-    n_blocks = max(len(group.blocks), 1)
+    # Only active members carry a copy of each conformer.
+    n_blocks = len(group.blocks) if sampled_members is None else sampled_members
+    fixed_members = len(group.blocks) - n_blocks
+    expanded_limit = (expanded_limit - fixed_members) // n_blocks
+    limit = (limit - fixed_members) // n_blocks
     # With no library axes, a one-state budget keeps the input itself. There
     # is no need to reserve a second identical empty-product conformer.
     if (
         reserve_current
         and library_size == 1
         and not exclude_axes
-        and (max(expanded_limit, limit) // n_blocks == 1)
+        and max(expanded_limit, limit) == 1
     ):
         return []
     reserve_current = reserve_current and bool(entries or exclude_axes)
     kept = _budgeted_chi_samples(
         entries,
         depths,
-        max(expanded_limit // n_blocks - int(reserve_current), 0),
-        max(limit // n_blocks - int(reserve_current), 0),
+        max(expanded_limit - int(reserve_current), 0),
+        max(limit - int(reserve_current), 0),
         library_size=library_size,
     )
 

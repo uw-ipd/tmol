@@ -187,10 +187,12 @@ def test_the_packers_energy_matches_what_the_pose_scores(fixture, torch_device):
     _pack_and_check_score(pose_stack, ctx.parameter_database, torch_device)
 
 
-def _pack_and_check_score(pose_stack, param_db, torch_device):
+def _pack_and_check_score(pose_stack, param_db, torch_device, task=None):
     """Return the imposed pose after checking the annealer's complete energy."""
     sfxn = beta2016_score_function(torch_device, param_db=param_db)
-    task, _ = _task(pose_stack, param_db, torch_device)
+    default_task = task is None
+    if default_task:
+        task, _ = _task(pose_stack, param_db, torch_device)
     set_task = SetPackerTask.from_packer_task(task)
 
     pose_stack, rotamer_set = build_rotamers(pose_stack, set_task, param_db.chemical)
@@ -207,7 +209,8 @@ def _pack_and_check_score(pose_stack, param_db, torch_device):
     ) = _calculate_packer_energies(
         pose_stack, sfxn, rotamer_set, set_task, verbose=False
     )
-    assert collapse is not None, "the group should have been folded together"
+    if default_task:
+        assert collapse is not None, "the group should have been folded together"
 
     scores, assignments = run_simulated_annealing(tables)
     # blocks treated as background are left out of the packer's tables
@@ -221,19 +224,20 @@ def _pack_and_check_score(pose_stack, param_db, torch_device):
         bc_rot_to_orig_rot,
         assignments,
     )
-    new_pose_stack = write_group_members(
-        new_pose_stack,
-        rotamer_set,
-        collapse,
-        chosen_rotamer_for_block(
-            pose_stack,
-            rotamer_for_nonmolten_block,
-            n_molten_blocks_per_pose,
-            bc_rot_offset_for_molten_block,
-            bc_rot_to_orig_rot,
-            assignments[:, 0, :],
-        ),
-    )
+    if collapse is not None:
+        new_pose_stack = write_group_members(
+            new_pose_stack,
+            rotamer_set,
+            collapse,
+            chosen_rotamer_for_block(
+                pose_stack,
+                rotamer_for_nonmolten_block,
+                n_molten_blocks_per_pose,
+                bc_rot_offset_for_molten_block,
+                bc_rot_to_orig_rot,
+                assignments[:, 0, :],
+            ),
+        )
 
     wpsm = sfxn.render_whole_pose_scoring_module(new_pose_stack)
     torch.testing.assert_close(
