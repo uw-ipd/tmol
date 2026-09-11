@@ -616,3 +616,82 @@ cases on CUDA and verifies on CPU/CUDA that public residue-parameter updates
 retain the already-installed connection records and their actual energies.
 The earlier 246520 statement describes that historical run; CUDA fragment
 coverage is now explicit. All four backend/extension Slurm jobs completed 0:0.
+
+## Conjugate persistence and bounded params export
+
+This goal turn made progress from `e2107de71`; it does not close the automatic
+connection-parameter gate or the overall review. Preparation/export/reload of
+all three actual conjugate fixtures failed on CPU before the changes: the saved
+file omitted the canonical partner patches and charges, and the loader also
+discarded patches whose base definitions were supplied by the standard database.
+
+The preparation records now carry shared partner metadata as well as optional
+`ConnectionCartRes` records. Canonical conjugation generation returns patches
+and charges to this same bundle; direct preparation and export use the same
+injection path instead of adding canonical partners separately only in memory.
+Public injection applies new patches to existing partners before adding new
+base residues. Loading a bundle after its ligand base type has already been
+registered still installs shared additions. Repeating an identical bundle is
+idempotent; conflicting patch definitions with the same name raise explicitly.
+The loader retains each shared record once in the returned preparation list,
+and rejects metadata-only bundles that have no residue to carry it. Inject the
+whole list to restore the bundle. Base residue definitions already registered
+under a name still follow the existing skip policy; this does not solve the
+broader conflicting chemical identities under one name.
+
+The writer preserves bond order in the definition and full numeric internal
+coordinates. Previously it sorted bonds for appearance and rounded distances
+and degree-converted angles. `ConnectionCartRes` fields, including provenance,
+now survive `.tmol` serialization. Writers emit **version 2.0** so old readers
+reject files whose connection/partner metadata they would otherwise silently
+drop; this reader accepts both version 1 and version 2. Old files cannot recover
+metadata already omitted by their writers. Exact residue/charge/coordinate/
+connection comparisons and per-term score/gradient checks pass for biotin,
+N-glycan and O-glycan on CPU/CUDA. Synthetic explicit connection records retain
+their actual scoring/gradient effects after reload, both with and without an
+already registered ligand base type.
+
+Export also allocated and globally registered a fresh Python marker class for
+every atom/charge/parameter row. A single module-level marker class removes this
+retention and the extra dictionary copy. In seven alternating-order warm writer
+pairs on shared prepared records, median export improves **1.06–1.08×**. Twenty
+exports retain **10.19/53.51/51.85 MB** of traced Python allocations for biotin/
+O-glycan/N-glycan before, versus **1.1 KB** each after garbage collection. The
+YAML registry grows by **4,220/22,360/22,780** classes before and zero after;
+traced peaks fall from **10.90/57.60/55.99 MB** to **0.70/4.06/4.16 MB**. These
+are YAML export measurements, not native/process memory or total preparation
+performance. The benchmark is `profile_params_writer.py`, with raw pairs and
+allocation counts in `results/params-writer-profile.json`.
+
+Validation before the format-version guard: **116 CPU passes, nine skips** for
+roundtrip, entry-point and nonstandard-backbone tests; **52 CPU passes, ten
+skips** for roundtrip, additional bundle validation, pipeline and reference-I/O
+checks. Slurm **247637: 64 CPU/CUDA passes, exit 0:0**, including the complete
+explicit connection backend and injection-cache regressions. These runs overlap
+and must not be added as a unique-test count. Format-version validation adds
+**40 CPU entry-point passes**. The first v2 GPU job, **247959**, has **11 passes
+and four failures in a new test's YAML quote-style assertion**; all failures
+occur after successful parsing/record equality and before native scoring. The
+assertion now compares parsed YAML rather than literal quote style. The affected
+checks are rerun separately and recorded in `results/conjugate-roundtrip-tests.json`.
+The final rerun, Slurm **248153: ten passes, exit 0:0**, covers all four explicit
+connection-bundle CPU/CUDA cases and the six loader compatibility/validation
+cases. The v2 quote-style test failures are resolved.
+
+Review drafts now contain **42 inline comments and 12 general questions**.
+Comments 41/42 cover conjugate persistence and per-record YAML class retention.
+No comments were posted to the upstream PR.
+
+**Next correctness gate remains automatic parameter generation for actual
+conjugation chemistry**, including local geometry/typing/proper-improper
+ownership changed by conjugation. The full default 14-link stiffness failure
+is still open. The new backend and persistence path are prerequisites, not
+substitutes for generated parameters. Next, probe lysine acylation's local
+geometry and torsion ownership with independent energy/force checks before
+choosing and documenting a generated bonded model. Three-block angles and
+reused residue names in incompatible partner contexts also remain open. Other
+previously recorded gates—sampling budgets and late sampler conflicts,
+AtomWorks default-reader/rule-profile contracts, cache lifetime, broad workflow
+and release validation—remain active. Atom-type element mappings for newly
+introduced custom type names are also not yet serialized by `.tmol`; canonical
+and existing generic types cover the current fixture roundtrip checks.

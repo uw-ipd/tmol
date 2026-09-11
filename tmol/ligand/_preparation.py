@@ -6,6 +6,7 @@ This module contains the concrete preparation pipeline implementation.
 
 import itertools
 import logging
+from dataclasses import replace
 from typing import Optional
 
 import attr
@@ -868,11 +869,10 @@ def _site_hydrogen_counts(atom_array, res_name, partners, ph):
     return counts
 
 
-def _inject_canonical_conjugations(param_db, sites, lengths, atom_array=None, ph=7.4):
+def _canonical_conjugation_parameters(
+    param_db, sites, lengths, atom_array=None, ph=7.4
+):
     """Patches and charges for the database residues a component attaches to."""
-    import attr
-
-    from tmol.database import inject_residue_params
     from tmol.ligand._conjugation_patches import (
         charges_for_database_residue,
         conjugation_charge_entries,
@@ -905,12 +905,7 @@ def _inject_canonical_conjugations(param_db, sites, lengths, atom_array=None, ph
                 residue_type, atoms, param_db.chemical, base, hydrogens
             )
         )
-    if not variants:
-        return param_db
-    param_db = attr.evolve(
-        param_db, chemical=param_db.chemical.with_variants_applied(variants)
-    )
-    return inject_residue_params(param_db, residue_types=[], partial_charges=charges)
+    return tuple(variants), charges
 
 
 def _routes_to_polymer_path(
@@ -1277,10 +1272,7 @@ def prepare_ligands(  # noqa: C901
             for fragment_prep in definition.fragment_preparations
         ]
         _assert_fragment_names_available(param_db, fragment_preparations)
-        param_db = inject_ligand_preparations(
-            param_db, preparations, strict_atom_types=strict_atom_types
-        )
-        param_db = _inject_canonical_conjugations(
+        partner_patches, partner_charges = _canonical_conjugation_parameters(
             param_db,
             canonical_conjugation_sites(
                 ligands, ligands_by_name, canonical_ordering, param_db.chemical
@@ -1289,6 +1281,20 @@ def prepare_ligands(  # noqa: C901
             atom_array,
             ph,
         )
+        # Keep shared partner metadata with the source preparation so export
+        # and direct injection follow the same path.
+        first = preparations[0]
+        preparations[0] = replace(
+            first,
+            adds_patches=(*first.adds_patches, *partner_patches),
+            variant_partial_charges={
+                **(first.variant_partial_charges or {}),
+                **partner_charges,
+            },
+        )
+        param_db = inject_ligand_preparations(
+            param_db, preparations, strict_atom_types=strict_atom_types
+        )
         canonical_ordering = rebuild_canonical_ordering(param_db)
 
         if params_output:
@@ -1296,8 +1302,10 @@ def prepare_ligands(  # noqa: C901
 
             # Fragment residue types are an in-memory representation in this
             # first API version. Persist only the fully prepared source ligand.
+            sources = {p.residue_type.name for _, p in prepared_ligands}
+            sources.update(p.residue_type.name for p in prepared_polymers)
             write_params_file(
-                [prep for _, prep in prepared_ligands] + prepared_polymers,
+                [p for p in preparations if p.residue_type.name in sources],
                 params_output,
                 format="tmol",
             )

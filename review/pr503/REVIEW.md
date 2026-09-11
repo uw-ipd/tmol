@@ -377,7 +377,7 @@ The follow-up branch `026475f0e` still reproduces this omission for all **14** a
 
 CUDA reproduces the full minimization failure: the same three starts finish at **1.658, 2.120 and 2.558 Å** (Slurm 244924). Unresolved. [diagnose_connection_stiffness.py](diagnose_connection_stiffness.py) records energies and analytic force projections, with a finite-difference stiffness from those forces. The required fix must give connection geometry explicit parameter ownership, preserve canonical/fragment parameters, avoid counting bonds twice, and cover score/gradient/packing/Cartesian-minimization paths. Repeated components with different partners cannot share parameters merely because their atom names match.
 
-The follow-up now implements an explicit connection-record backend with validated topology/ownership, sparse pair lookup and one shared native evaluator. CPU/CUDA energy/gradient, packing, minimization and serialization tests pass with explicit synthetic records; canonical and existing fragment checks also pass. Automatic chemical parameter generation and ligand `.tmol` persistence are still pending, so this is **not yet a fix for the default conjugation preparation**. See the final connection section of [FOLLOWUP.md](FOLLOWUP.md).
+The follow-up now implements an explicit connection-record backend with validated topology/ownership, sparse pair lookup and one shared native evaluator. CPU/CUDA energy/gradient, packing, minimization and serialization tests pass with explicit synthetic records; canonical and existing fragment checks also pass. Ligand `.tmol` persistence is now covered by comment 41. Automatic chemical parameter generation remains pending, so this is **not yet a fix for the default conjugation preparation**. See the connection sections of [FOLLOWUP.md](FOLLOWUP.md).
 
 ### 39. P2 — protonation cache grows with every pH and exposes mutable rules
 
@@ -394,6 +394,22 @@ Fixed on the follow-up in both engines. The direct molecule API borrows private 
 > Can injecting cartbonded rows recompute the database hash? `attr.evolve()` replaces `residue_params` but retains `hash`; the scorer caches block and packed-block annotations under that hash. Two parameter databases used on the same pose therefore share whichever bonded parameters were annotated first. The public injection route should behave like `CartBondedDatabase.from_cartres_dict()` and leave the original database intact.
 
 Reproduced with four CPU failures: changing alanine's CA–CB equilibrium length and stiffness through `inject_residue_params()` produces zero score difference on the same pose instead of the independent harmonic prediction. The failure occurs in either annotation order, in whole-pose and weighted block-pair scoring. Fixed by rebuilding the content hash. The four CPU regressions pass; Slurm **245573 has 14 passes** across CPU/CUDA, including score/gradient regressions, independent connection-improper checks and the existing manual-parameter replacement test. The test does not rely only on unequal hash strings.
+
+### 41. P1 — conjugate params export omits the canonical partner
+
+[tmol/ligand/_preparation.py:1297](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/ligand/_preparation.py#L1297), with the loader at [tmol/ligand/_params_file.py:202](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/ligand/_params_file.py#L202).
+
+> Can the exported bundle include the canonical attachment partner's patches and charge changes? `_inject_canonical_conjugations()` adds them only to the database, while this call writes only the ligand preparations. The loader also attaches patches only to base residues defined in the file, discarding a patch for an existing ASN/LYS/THR partner. Please test preparation → export → fresh-database reload for the actual conjugate fixtures, including atom identity, connections and score/gradient parity.
+
+Reproduced as three CPU failures at `e2107de71`: biotin, N-glycan and O-glycan exports lose patched residue types. Fixed on the follow-up by keeping shared partner metadata in the preparation bundle, applying patches to existing partners during injection, and loading additions even if the ligand base type was registered earlier. Explicit connection records and provenance now roundtrip through `.tmol`. Bond ordering and numeric internal coordinates are preserved instead of being reformatted lossily. Version 2 exports prevent older readers from silently dropping the new metadata; the new reader accepts version 1 files. CPU/CUDA residue, charge, topology, score and gradient roundtrips pass. This does not generate the default missing connection parameters in comment 38.
+
+### 42. P2 — every exported atom record leaves a class in a global registry
+
+[tmol/ligand/_params_io.py:367](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/ligand/_params_io.py#L367)
+
+> Can `_FlowDict` be defined and registered once at module scope? Defining it inside `_flow_atom()` creates a distinct class for every atom, charge and parameter row. `_CompactDumper.yaml_representers` retains each class, so discarding the output records does not release them. One reusable marker class also avoids the extra dictionary copy.
+
+Fixed and measured with the same prepared records in both writers. Twenty exports retain **10.19/53.51/51.85 MB** of traced Python allocation for biotin/O-glycan/N-glycan before, versus **1.1 KB** each after garbage collection following the fix. Registry growth is **4,220/22,360/22,780** classes before and zero after. Seven alternating-order warm timing pairs give **1.06–1.08×** median export speedups. This is YAML export, not end-to-end preparation or total-process memory. See [profile_params_writer.py](profile_params_writer.py) and [results/params-writer-profile.json](results/params-writer-profile.json).
 
 ## Validation record
 

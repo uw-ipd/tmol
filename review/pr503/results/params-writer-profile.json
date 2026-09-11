@@ -1,0 +1,120 @@
+{
+  "baseline": "e2107de71f5f5335cce6f39507856923f64ea77d",
+  "rows": [
+    {
+      "fixture": "biotin",
+      "seconds": {
+        "baseline": [
+          0.01853207778185606,
+          0.018470915034413338,
+          0.018633061088621616,
+          0.01848424505442381,
+          0.018418815918266773,
+          0.018542583100497723,
+          0.018447428941726685
+        ],
+        "candidate": [
+          0.016650070436298847,
+          0.016967122443020344,
+          0.20566512178629637,
+          0.017183921299874783,
+          0.01730432268232107,
+          0.01708406861871481,
+          0.017199675552546978
+        ]
+      },
+      "memory": {
+        "baseline": {
+          "writes": 20,
+          "retained_python_bytes": 10194635,
+          "peak_python_bytes": 10897525,
+          "added_yaml_representers": 4220
+        },
+        "candidate": {
+          "writes": 20,
+          "retained_python_bytes": 1121,
+          "peak_python_bytes": 703765,
+          "added_yaml_representers": 0
+        }
+      },
+      "median_speedup": 1.0756709561139868
+    },
+    {
+      "fixture": "oglycan",
+      "seconds": {
+        "baseline": [
+          0.09320592414587736,
+          0.09306779596954584,
+          0.09230480715632439,
+          0.09423398599028587,
+          0.28674000781029463,
+          0.09716622810810804,
+          0.09697032999247313
+        ],
+        "candidate": [
+          0.2929571280255914,
+          0.08693769667297602,
+          0.085825408808887,
+          0.08620111830532551,
+          0.09664760995656252,
+          0.08974595088511705,
+          0.0889448756352067
+        ]
+      },
+      "memory": {
+        "baseline": {
+          "writes": 20,
+          "retained_python_bytes": 53512891,
+          "peak_python_bytes": 57595737,
+          "added_yaml_representers": 22360
+        },
+        "candidate": {
+          "writes": 20,
+          "retained_python_bytes": 1121,
+          "peak_python_bytes": 4056555,
+          "added_yaml_representers": 0
+        }
+      },
+      "median_speedup": 1.059465037387557
+    },
+    {
+      "fixture": "nglycan",
+      "seconds": {
+        "baseline": [
+          0.0956980474293232,
+          0.33498454838991165,
+          0.09600215125828981,
+          0.09702990110963583,
+          0.09625825844705105,
+          0.09961045905947685,
+          0.3470045980066061
+        ],
+        "candidate": [
+          0.08922817464917898,
+          0.08996034692972898,
+          0.0897512398660183,
+          0.09080556966364384,
+          0.08980747498571873,
+          0.08956790156662464,
+          0.08890405297279358
+        ]
+      },
+      "memory": {
+        "baseline": {
+          "writes": 20,
+          "retained_python_bytes": 51847398,
+          "peak_python_bytes": 55994387,
+          "added_yaml_representers": 22780
+        },
+        "candidate": {
+          "writes": 20,
+          "retained_python_bytes": 1121,
+          "peak_python_bytes": 4160582,
+          "added_yaml_representers": 0
+        }
+      },
+      "median_speedup": 1.0810981692785884
+    }
+  ],
+  "scope": "Same prepared records; warm YAML export only. Tracemalloc excludes native allocations and RSS."
+}

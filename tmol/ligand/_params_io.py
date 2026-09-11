@@ -265,22 +265,13 @@ def read_params_file(path: str | Path) -> RawResidueType:  # noqa: C901
 # diffs readable and the injection-equivalence tests strict.
 
 _OMIT_IF_EMPTY_FIELDS = ("torsions",)
-_PROPERTIES_OMIT_IF_DEFAULT: dict[str, Any] = {}
-_POLYMER_OMIT_IF_DEFAULT: dict[str, Any] = {}
 
 
-def _radians_to_deg_str(val: float) -> str:
-    """Format a radian angle as a ``"<deg> deg"`` string (Frank's convention)."""
-    return f"{math.degrees(val):.6f} deg"
-
-
-def _unstructure_residue(rt: RawResidueType) -> dict[str, Any]:  # noqa: C901
+def _unstructure_residue(rt: RawResidueType) -> dict[str, Any]:
     """Unstructure a RawResidueType to a YAML-friendly dict.
 
-    Output matches the compact style Frank uses for ligand ``.tmol`` files:
-    flow-style atoms/bonds (one entry per line), icoor angles re-formatted as
-    degree strings, and optional fields with default values omitted entirely so
-    the output is byte-close to a hand-curated reference.
+    Keep numeric precision and order intact; formatting must not change the
+    reconstructed residue or its derived kinematics.
     """
     d = cattr.unstructure(rt)
 
@@ -288,29 +279,6 @@ def _unstructure_residue(rt: RawResidueType) -> dict[str, Any]:  # noqa: C901
     for f in _OMIT_IF_EMPTY_FIELDS:
         if f in d and not d[f]:
             del d[f]
-
-    # Trim default polymer/protonation fields when they match the neutral
-    # non-polymer ligand defaults (the only setting the pipeline emits).
-    props = d.get("properties")
-    if isinstance(props, dict):
-        for k, default in _PROPERTIES_OMIT_IF_DEFAULT.items():
-            if k in props and props[k] == default:
-                del props[k]
-        polymer = props.get("polymer")
-        if isinstance(polymer, dict):
-            for k, default in _POLYMER_OMIT_IF_DEFAULT.items():
-                if k in polymer and polymer[k] == default:
-                    del polymer[k]
-
-    for ic in d.get("icoors", []):
-        if isinstance(ic.get("phi"), (int, float)):
-            ic["phi"] = _radians_to_deg_str(ic["phi"])
-        if isinstance(ic.get("theta"), (int, float)):
-            ic["theta"] = _radians_to_deg_str(ic["theta"])
-        # Round bond distances to match Frank's 6-decimal convention.
-        if isinstance(ic.get("d"), float):
-            rounded = round(ic["d"], 6)
-            ic["d"] = float(f"{rounded:g}")
 
     # Trim ``UnresolvedAtom`` defaults inside torsion entries and emit them
     # flow-style (``{atom: C3}``) — Frank's references keep only ``atom``.
@@ -347,6 +315,13 @@ class _CompactDumper(yaml.SafeDumper):
 _CompactDumper.add_representer(_FlowList, _flow_list_representer)
 
 
+class _FlowDict(dict):
+    """Marker subtype for compact, flow-style records."""
+
+
+_CompactDumper.add_representer(_FlowDict, _flow_dict_representer)
+
+
 def _np_scalar_representer(dumper: Any, data: Any) -> Any:
     """Represent numpy scalar types (np.str_, np.float64, ...) as native Python.
 
@@ -362,13 +337,7 @@ _CompactDumper.add_multi_representer(np.generic, _np_scalar_representer)
 
 def _flow_atom(d: dict[str, Any]) -> dict[str, Any]:
     """Mark an atom dict for flow-style emission."""
-    out = dict(d)
-
-    class _FlowDict(dict):
-        pass
-
-    _CompactDumper.add_representer(_FlowDict, _flow_dict_representer)
-    return _FlowDict(out)
+    return _FlowDict(d)
 
 
 def _compactify_patch(d: dict[str, Any]) -> dict[str, Any]:
@@ -399,12 +368,7 @@ def _compactify_residue(d: dict[str, Any]) -> dict[str, Any]:
     if "atoms" in d:
         d["atoms"] = [_flow_atom(a) for a in d["atoms"]]
     if "bonds" in d:
-        # Sort bonds: SINGLE first (in input order), then non-SINGLE in input
-        # order — matches Frank's reference layout.
-        bonds = list(d["bonds"])
-        single = [b for b in bonds if (b[2] if len(b) > 2 else "SINGLE") == "SINGLE"]
-        other = [b for b in bonds if (b[2] if len(b) > 2 else "SINGLE") != "SINGLE"]
-        d["bonds"] = [_FlowList(b) for b in single + other]
+        d["bonds"] = [_FlowList(b) for b in d["bonds"]]
     if "icoors" in d:
         d["icoors"] = [_flow_atom(ic) for ic in d["icoors"]]
     return d
@@ -416,6 +380,7 @@ def _write_tmol_params_file(
     charges: Mapping[str, dict[str, float]],
     cartbonded: Mapping[str, CartRes],
     patches: "list | None" = None,
+    connection_params: tuple = (),
 ) -> None:
     """Write prepared ligand data to a tmol params YAML (``.tmol``) file.
 
@@ -463,6 +428,10 @@ def _write_tmol_params_file(
             "residue_params": cartbonded_payload,
         },
     }
+    if connection_params:
+        payload["cartbonded"]["connection_params"] = [
+            cattr.unstructure(record) for record in connection_params
+        ]
 
     with Path(path).open("w") as f:
         yaml.dump(
@@ -518,6 +487,9 @@ def write_params_file(
             charges,
             {p.residue_type.name: p.cartbonded_params for p in preps},
             patches=[v for p in preps for v in p.adds_patches],
+            connection_params=tuple(
+                dict.fromkeys(record for p in preps for record in p.connection_params)
+            ),
         )
     else:
         raise ValueError(f"unknown params format {format!r} (use 'rosetta' or 'tmol')")

@@ -190,9 +190,12 @@ def inject_residue_params(
 
     # patching runs at db load
     # injected residues get all db variants applied here
-    new_patched = param_db.chemical.with_added_residues(
-        residue_types, atom_types=new_atom_types, variants=variants
-    )
+    chemical = param_db.chemical
+    if variants:
+        # Attachments also patch partners already present in the database.
+        chemical = attr.evolve(chemical, atom_types=new_atom_types)
+        chemical = chemical.with_variants_applied(variants)
+    new_patched = chemical.with_added_residues(residue_types, atom_types=new_atom_types)
 
     new_elec = param_db.scoring.elec
     if partial_charges:

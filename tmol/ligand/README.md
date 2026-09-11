@@ -246,6 +246,21 @@ extends a database directly. Prefer context reuse over file round-trips when the
 ligand topology is fixed within a run; use `.tmol` when you need persistence
 across runs or manual control.
 
+Conjugate exports include patches and charges for canonical attachment partners,
+even when those partners' base residue definitions already come from the standard
+database. Explicit `ConnectionCartRes` records are stored under
+`cartbonded.connection_params`, including their provenance. The loader carries
+shared additions once in the returned preparation list; inject the whole list to
+restore the bundle. Adding the bundle after its source ligand has already been
+registered still installs its attachment metadata. Numeric internal coordinates
+and bond order in the definition are preserved during export.
+The writer emits format version 2.0, preventing older readers from silently
+dropping the attachment metadata. This reader also accepts existing version 1
+files; those files cannot recover metadata an older writer omitted.
+
+Persisting explicit connection records does not generate them: automatic bonded
+parameter generation for conjugates is still under development.
+
 ## Pipeline Overview
 
 All three input modes converge on a single typing/build/inject core.

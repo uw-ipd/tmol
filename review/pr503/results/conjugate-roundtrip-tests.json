@@ -1,0 +1,75 @@
+{
+  "baseline": "e2107de71f5f5335cce6f39507856923f64ea77d",
+  "before": {
+    "cpu_failed": 3,
+    "cuda_skipped": 3,
+    "log": "/mnt/home/kdidi/tmol-pr503-followup/conjugate-roundtrip-before.log",
+    "failure": "All three conjugate fixtures lose patched residue types on params export/reload."
+  },
+  "runs": [
+    {
+      "name": "CPU backbone and entry-point regressions",
+      "passed": 116,
+      "skipped": 9,
+      "seconds": 78.14,
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/conjugate-roundtrip-cpu.log"
+    },
+    {
+      "name": "CPU I/O, pipeline and additional bundle checks",
+      "passed": 52,
+      "skipped": 10,
+      "seconds": 26.73,
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/conjugate-roundtrip-io.log"
+    },
+    {
+      "name": "CPU/CUDA roundtrip and complete connection backend regressions",
+      "slurm": 247637,
+      "passed": 64,
+      "seconds": 50.82,
+      "state": "COMPLETED",
+      "exit_code": "0:0",
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/conjugate-roundtrip-247637.log"
+    },
+    {
+      "name": "CPU v2 compatibility entry-point checks",
+      "passed": 40,
+      "seconds": 9.74,
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/conjugate-format-v2.log"
+    },
+    {
+      "name": "Initial v2 CPU/CUDA checks with quote-style test failure",
+      "slurm": 247959,
+      "passed": 11,
+      "failed": 4,
+      "seconds": 49.93,
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/conjugate-format-v2-247959.log",
+      "failure": "New assertion expected double quotes; container PyYAML uses single quotes. Parsed record equality succeeded. Assertion changed to parsed YAML version comparison."
+    },
+    {
+      "name": "Final v2 CPU/CUDA connection scoring plus loader compatibility",
+      "slurm": 248153,
+      "passed": 10,
+      "deselected": 45,
+      "seconds": 6.11,
+      "state": "COMPLETED",
+      "exit_code": "0:0",
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/conjugate-format-final-248153.log"
+    }
+  ],
+  "source_sha256": {
+    "tmol/database/__init__.py": "479acdd24baaa130326b8c3e8b9a35bcae47f7cca3fcb70aa3b00c48e5d5aa07",
+    "tmol/ligand/_registry.py": "f5390066a617ee9cbed546c871ef6ba18c0521811dfd47ef572ce88afa6b9c9d",
+    "tmol/ligand/_preparation.py": "0f1e712e45132c7755bfa792c15880955e43c2fd53fc3743208b8a68ef365a2d",
+    "tmol/ligand/_params_io.py": "d6f886e3c4452c42b59217ba892cdf36d501e788f486f689988c5b8e3cc0be89",
+    "tmol/ligand/_params_file.py": "fc065d5b08fc66e6549fe54a7d9c31610a5d5db8b2d0674130f2b7685ebec73f",
+    "tmol/tests/ligand/test_conjugate_params_roundtrip.py": "1245587ceb4f91c2b2e4650b33654e03721a6acd1e470a62327868427c402e58",
+    "tmol/tests/ligand/test_ligand_entry_paths.py": "3a50fd31659aeb35247e501b7069967510e5136854feb3d6bf19f76ca213ded9"
+  },
+  "notes": [
+    "Runs overlap; counts are not additive unique coverage.",
+    "These initial runs precede the format-version guard. Final v2 runs are recorded separately.",
+    "Default conjugates still lack automatically generated cross-connection length/angle parameters. Roundtrip parity is not scientific force-field validation.",
+    "New exports preserve bond order and floating-point icoors. Version 1 files already written with omitted metadata cannot recover it.",
+    "Final run resolves all four quote-style test failures; no implementation failure remains in this validation set."
+  ]
+}

@@ -20,6 +20,7 @@ from tmol.database.chemical import (
 from tmol.database.scoring import (
     AngleGroup,
     CartRes,
+    ConnectionCartRes,
     LengthGroup,
 )
 from tmol.io import CanonicalOrdering
@@ -257,11 +258,12 @@ class LigandPreparation:
     # from the RDKit Mol). The params-file path leaves it None and the
     # injector falls back to an element heuristic.
     atom_type_elements: Optional[dict[str, str]] = None
-    # Patches for this residue's chain ends, scoped to it alone. A backbone the
-    # database's own termini patches were not written for carries its own.
+    # Patches for this residue and any existing residues it attaches to.
+    # Shared bundle metadata is carried once, on its first preparation.
     adds_patches: tuple = ()
     # {variant residue name: {atom: charge}} for those patches
     variant_partial_charges: Optional[dict[str, dict[str, float]]] = None
+    connection_params: tuple[ConnectionCartRes, ...] = ()
 
 
 def _applied_patch(chemdb, base, variant):
@@ -375,8 +377,9 @@ def inject_ligand_preparations(
     evolves the input ``ParameterDatabase`` exactly once via
     :func:`tmol.database.inject_residue_params`.
 
-    Residues whose name already exists in ``param_db`` are silently
-    skipped so repeat injection is idempotent.
+    Base definitions whose name already exists in ``param_db`` are skipped.
+    Their additional patches, variant charges and connection records are still
+    installed; repeating an identical bundle returns the original database.
 
     Args:
         param_db: Base database (not modified).
@@ -397,7 +400,35 @@ def inject_ligand_preparations(
 
     existing_names = {r.name for r in param_db.chemical.residues}
     new_preps = [p for p in preparations if p.residue_type.name not in existing_names]
-    if not new_preps:
+    known_variants = {v.name: v for v in param_db.chemical.variants}
+    variants = []
+    for prep in preparations:
+        for variant in prep.adds_patches:
+            if variant.name in known_variants:
+                if variant != known_variants[variant.name]:
+                    raise ValueError(f"Conflicting patch definition: {variant.name}")
+            else:
+                known_variants[variant.name] = variant
+                variants.append(variant)
+    old_charges = {
+        (p.res, p.atom): p.charge for p in param_db.scoring.elec.atom_charge_parameters
+    }
+    extra_charges = {}
+    for prep in preparations:
+        for name, charges in (prep.variant_partial_charges or {}).items():
+            for atom, charge in charges.items():
+                if old_charges.get((name, atom)) != charge:
+                    extra_charges.setdefault(name, {})[atom] = charge
+    known_connections = set(param_db.scoring.cartbonded.connection_params)
+    connections = tuple(
+        dict.fromkeys(
+            record
+            for prep in preparations
+            for record in prep.connection_params
+            if record not in known_connections
+        )
+    )
+    if not new_preps and not variants and not extra_charges and not connections:
         return param_db
 
     new_atom_types: list[AtomType] = []
@@ -422,15 +453,23 @@ def inject_ligand_preparations(
             len(prep.residue_type.bonds),
         )
 
+    charges = (
+        _charges_with_termini(
+            param_db, new_preps, (*param_db.chemical.atom_types, *new_atom_types)
+        )
+        if new_preps
+        else {}
+    )
+    for name, delta in extra_charges.items():
+        charges.setdefault(name, {}).update(delta)
     return inject_residue_params(
         param_db,
         residue_types=[p.residue_type for p in new_preps],
         atom_types=new_atom_types or None,
-        variants=[v for p in new_preps for v in p.adds_patches] or None,
-        partial_charges=_charges_with_termini(
-            param_db, new_preps, (*param_db.chemical.atom_types, *new_atom_types)
-        ),
+        variants=variants or None,
+        partial_charges=charges,
         cartbonded_params={p.residue_type.name: p.cartbonded_params for p in new_preps},
+        connection_params=connections,
     )
 
 
