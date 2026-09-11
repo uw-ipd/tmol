@@ -14,7 +14,7 @@ from tmol.optimization._armijo_compiled import (
 
 
 def lbfgs_two_loop(grad, dirs, stps):
-    """L-BFGS search direction H_k @ grad via the compact
+    """L-BFGS search direction -H_k @ grad via the compact
     representation of Byrd, Nocedal & Schnabel, (Math. Prog. 63 (1994)):
         H_0 = I
         M = [[ R^-T (D + Y^T Y) R^-1, -R^-T ], [ -R^-1, 0 ]]
@@ -83,17 +83,17 @@ def lbfgs_two_loop(grad, dirs, stps):
     else:
         q = q - torch.einsum("pi,ipk->pk", u, Y)
         v = D * u - torch.einsum("ipk,pk->pi", Y, q)
-    # p1 = R^-T v
-    p1 = torch.linalg.solve_triangular(
+    # p = R^-T v
+    p = torch.linalg.solve_triangular(
         R.transpose(-2, -1), v.unsqueeze(-1), upper=False
     ).squeeze(-1)
-    # result = q + S p1
+    # result = q + S p
     if single_segment:
-        result = (q[0] + torch.mv(S_one.T, p1[0])).unsqueeze(0)
+        result = (q[0] + torch.mv(S_one.T, p[0])).unsqueeze(0)
     elif use_bmm:
-        result = q + torch.bmm(p1.unsqueeze(1), S_by_pose).squeeze(1)
+        result = q + torch.bmm(p.unsqueeze(1), S_by_pose).squeeze(1)
     else:
-        result = q + torch.einsum("pi,ipk->pk", p1, S)
+        result = q + torch.einsum("pi,ipk->pk", p, S)
     result = result.to(out_dtype)
     return result.squeeze(0) if unbatched else result
 

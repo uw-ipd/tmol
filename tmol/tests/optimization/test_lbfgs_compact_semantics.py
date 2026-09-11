@@ -59,3 +59,13 @@ def test_compact_history_matches_dense_updates(
         expected_grads = torch.autograd.grad(expected.sum(), inputs)
         for actual_grad, expected_grad in zip(actual_grads, expected_grads):
             torch.testing.assert_close(actual_grad, expected_grad, atol=0, rtol=0)
+
+
+@pytest.mark.parametrize("batch,history_batch", [(1, 1), (2, 2), (2, 1)])
+def test_compact_second_derivatives(torch_device, batch, history_batch):
+    torch.manual_seed(491)
+    grad = torch.randn(batch, 7, dtype=torch.float64, device=torch_device)
+    steps = torch.randn(3, history_batch, 7, dtype=torch.float64, device=torch_device)
+    directions = steps + 0.1 * torch.randn_like(steps)
+    inputs = tuple(value.requires_grad_() for value in (grad, directions, steps))
+    assert torch.autograd.gradgradcheck(lbfgs_two_loop, inputs, fast_mode=True)
