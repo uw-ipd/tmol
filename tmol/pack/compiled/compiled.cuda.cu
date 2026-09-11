@@ -135,14 +135,18 @@ struct InteractionGraph {
   }
 };
 
-/// @brief Return a uniformly-distributed integer in the range
-/// between 0 and n-1.
-/// Note that curand_uniform() returns a random number in the range
-/// (0,1], unlike unlike rand() returns a random number in the range
-/// [0,1). Take care with curand_uniform().
+// Preserve the existing mapping, including cuRAND's inclusive upper endpoint.
+// Most products already lie in range and need no integer division. Keep the
+// remainder fallback for the endpoint and any float-to-int boundary cases.
+MGPU_DEVICE
+int curand_in_range(float uniform, int n) {
+  int const index = int(uniform * n);
+  return index >= 0 && index < n ? index : index % n;
+}
+
 MGPU_DEVICE
 int curand_in_range(curandStatePhilox4_32_10_t* state, int n) {
-  return int(curand_uniform(state) * n) % n;
+  return curand_in_range(curand_uniform(state), n);
 }
 
 template <tmol::Device D>
@@ -325,11 +329,11 @@ MGPU_DEVICE float warp_wide_sim_annealing(
         if (g.thread_rank() == 0) {
           float4 rands = curand_uniform4(state);
           int global_ran_rot =
-              int(rands.x * n_rotamers) % n_rotamers + pose_rotamer_offset;
+              curand_in_range(rands.x, n_rotamers) + pose_rotamer_offset;
           ran_res = ig.res_for_rot()[global_ran_rot];
           int const ran_res_n_rots = ig.n_rotamers_for_res_[pose][ran_res];
           int const ran_res_offset = ig.oneb_offsets_[pose][ran_res];
-          local_new_rot = int(rands.y * ran_res_n_rots) % ran_res_n_rots;
+          local_new_rot = curand_in_range(rands.y, ran_res_n_rots);
           global_new_rot = local_new_rot + ran_res_offset;
           accept_rand = rands.z;
         }
@@ -679,7 +683,7 @@ struct Annealer {
       // Random initial assignment
       for (int i = g.thread_rank(); i < n_res; i += 32) {
         int const i_n_rots = ig.n_rotamers_for_res()[pose][i];
-        int chosen = int(curand_uniform(&state) * i_n_rots) % i_n_rots;
+        int chosen = curand_in_range(&state, i_n_rots);
         current_rotamer_assignments_hitemp[pose][traj_id][i] = chosen;
         best_rotamer_assignments_hitemp[pose][traj_id][i] = chosen;
       }
