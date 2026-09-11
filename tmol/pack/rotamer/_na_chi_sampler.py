@@ -98,10 +98,23 @@ class NaChiRotamerSampler(ChiSampler):
     def sampler_name(cls):
         return "NaChiRotamerSampler"
 
+    def _annotation_key(self):
+        # Keep only the most recent tables on each type/PBT, but validate all
+        # inputs to those tables. A different sampler must not inherit the
+        # first sampler's budget or chemical element assignments.
+        return (
+            self.chi_sample_expanded_limit,
+            self.chi_sample_limit,
+            tuple(sorted(self.element_for_atom_type.items())),
+        )
+
     @validate_args
     def annotate_residue_type(self, rt: RefinedResidueType):
-        if hasattr(rt, "na_chi_sampler_params"):
-            return
+        key = self._annotation_key()
+        if getattr(rt, "_na_chi_sampler_key", None) == key and hasattr(
+            rt, "na_chi_sampler_params"
+        ):
+            return rt.na_chi_sampler_params
         p = block_type_params(rt, self.element_for_atom_type)
         chi1 = rt.torsion_to_uaids.get("chi1")
         # the third atom of a torsion is the one whose dof carries it
@@ -134,29 +147,28 @@ class NaChiRotamerSampler(ChiSampler):
             for samp in sampled
         ]
         setattr(rt, "na_chi_sampler_params", p)
+        setattr(rt, "_na_chi_sampler_key", key)
+        return p
 
     @validate_args
     def annotate_packed_block_types(self, packed_block_types: PackedBlockTypes):
-        if hasattr(packed_block_types, "na_chi_sampler_cache"):
-            return
-        for bt in packed_block_types.active_block_types:
-            self.annotate_residue_type(bt)
+        key = self._annotation_key()
+        if getattr(packed_block_types, "_na_chi_sampler_key", None) == key:
+            return packed_block_types.na_chi_sampler_cache
         bts = packed_block_types.active_block_types
-        n_chi = max(1 + len(bt.na_chi_sampler_params["proton_chi"]) for bt in bts)
+        params = [self.annotate_residue_type(bt) for bt in bts]
+        n_chi = max(1 + len(p["proton_chi"]) for p in params)
 
         def to_t(arr, dtype=torch.int32):
             return torch.tensor(arr, dtype=dtype, device=packed_block_types.device)
 
-        ring = numpy.stack([bt.na_chi_sampler_params["ring"] for bt in bts])
-        base = numpy.array([bt.na_chi_sampler_params["base"] for bt in bts])
+        ring = numpy.stack([p["ring"] for p in params])
+        base = numpy.array([p["base"] for p in params])
         chi_atom = numpy.full((len(bts), n_chi), -1, dtype=numpy.int32)
-        combos = [
-            _proton_combinations(bt.na_chi_sampler_params["proton_chi"]) for bt in bts
-        ]
+        combos = [_proton_combinations(p["proton_chi"]) for p in params]
         n_combos = numpy.array([len(c) for c in combos], dtype=numpy.int64)
         proton = numpy.zeros((len(bts), n_combos.max(), n_chi - 1), dtype=numpy.float32)
-        for i, bt in enumerate(bts):
-            p = bt.na_chi_sampler_params
+        for i, p in enumerate(params):
             if p["base"] < 0:
                 continue
             chi_atom[i, 0] = p["chi1_atom"]
@@ -175,17 +187,17 @@ class NaChiRotamerSampler(ChiSampler):
             n_chi=n_chi,
         )
         setattr(packed_block_types, "na_chi_sampler_cache", cache)
+        setattr(packed_block_types, "_na_chi_sampler_key", key)
+        return cache
 
     @validate_args
     def defines_rotamers_for_rt(self, rt: RefinedResidueType):
-        self.annotate_residue_type(rt)
-        return rt.na_chi_sampler_params["base"] >= 0
+        return self.annotate_residue_type(rt)["base"] >= 0
 
     def defines_rotamers_for_bts(
         self, pbt: PackedBlockTypes, bt_inds: Tensor[torch.int64]
     ) -> Tensor[torch.bool]:
-        self.annotate_packed_block_types(pbt)
-        return pbt.na_chi_sampler_cache["builds_bt"][bt_inds]
+        return self.annotate_packed_block_types(pbt)["builds_bt"][bt_inds]
 
     @validate_args
     def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
@@ -193,9 +205,10 @@ class NaChiRotamerSampler(ChiSampler):
             rt, ("chi1",) + tuple(cs.chi_dihedral for cs in rt.chi_samples)
         )
 
-    def _pucker_for_blocks(self, poses: PoseStack, pbt: PackedBlockTypes):
+    def _pucker_for_blocks(self, poses: PoseStack, pbt: PackedBlockTypes, cache=None):
         """argmax pucker state of every block's input sugar, -1 where absent."""
-        cache = pbt.na_chi_sampler_cache
+        if cache is None:
+            cache = self.annotate_packed_block_types(pbt)
         bt = poses.block_type_ind64
         real = bt >= 0
         ring_local = cache["ring"][bt.clamp_min(0)]
@@ -226,8 +239,7 @@ class NaChiRotamerSampler(ChiSampler):
         Tensor[torch.float32][:, :],  # chi_for_rotamers
     ]:
         pbt = poses.packed_block_types
-        self.annotate_packed_block_types(pbt)
-        cache = pbt.na_chi_sampler_cache
+        cache = self.annotate_packed_block_types(pbt)
 
         self_ind = task.conformer_sampler_index[id(self)]
         allowed = task.per_block_conformer_sampler_allowed[:, :, self_ind]
@@ -238,7 +250,7 @@ class NaChiRotamerSampler(ChiSampler):
         ]
         active = allowed_for_cons & builds & bt_allowed
 
-        pucker_for_block = self._pucker_for_blocks(poses, pbt)
+        pucker_for_block = self._pucker_for_blocks(poses, pbt, cache)
         pucker = pucker_for_block[task.cons_bt_pose, task.cons_bt_block]
         base = cache["base"][task.cons_bt_block_type]
         active = active & (pucker >= 0)

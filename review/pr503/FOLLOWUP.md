@@ -92,3 +92,10 @@ nucleotide jump root now follows the sugar side of its glycosidic torsion,
 with an interior-backbone fallback for unclassified nucleotides. In the 5CM
 diagnostic, the maximum heavy displacement falls from 2.44 Å to 0.0000049 Å.
 Old noncanonical score references are not refreshed by this fix.
+
+Job 238307 passes 33 OptH/NA/cache-setting tests on CPU and CUDA. Alternating
+expanded/unexpanded budgets on shared residue types now rebuilds the relevant
+RT/PBT tables; changing NHQ flips updates buildable types; changing chemical
+element assignments updates sugar-ring recognition. One most-recent table is
+retained per object, avoiding unbounded per-configuration caches. This fixes
+sequential sampler reuse; it does not implement the task-level budget API.

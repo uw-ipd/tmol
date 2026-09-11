@@ -37,7 +37,7 @@ The complete 213-file upstream inventory is in [upstream-files.tsv](upstream-fil
 11. Use the actual prepared parameter database in group-packing tests, and update two stale fold-tree assertions to require a split at each branch point. The latter changes test expectations to match the existing documented kinematics invariant; no fold-tree algorithm changes.
 12. Keep explicitly prepared ligand fragments eligible for block-type selection. Remove their cut bonds from the intermediate AtomArray bond table so the existing fragment mapping installs those connections once, while retaining bonds within fragments and between original residues.
 
-The branch deliberately leaves scientific choices such as mixed-chirality S–S torsion statistics unchanged. It also does not claim that the task-level sampling budget is fixed: that setting is not propagated, and making sampler caches depend on task options needs a separate design decision.
+Subsequent follow-up changes add the Rosetta mixed-chirality disulfide distribution with independent energy/gradient checks, repair terminal-cap and nucleotide proton geometry, and consume AtomWorks chemistry annotations. See [FOLLOWUP.md](FOLLOWUP.md) for current completion gates and [ATOMWORKS.md](ATOMWORKS.md) for the reuse and performance audit. Task-level sampling-budget enforcement remains open; sampler-local cache settings are now checked when reusing chemical types.
 
 ## Measured performance
 
@@ -282,8 +282,16 @@ Reproduced. The branch permits fragment candidates and removes only bonds crossi
 
 > Could this distinguish borrowed-library cardinality from the additional chi sampling/expansion multiplier? HYP currently produces 18 rotamers on both CPU and CUDA, versus the asserted six. The comment describes two library rotamers times three hydroxyl samples. Please pin whether expanded samples are intended here, then test the library and extra-chi counts separately so a factor-of-three change has a clear diagnosis.
 
-Reproduced on the baseline and initial candidate. Left open with sampling-budget semantics; the expected count was not simply changed to the observed value.
+Reproduced on the baseline and initial candidate. Follow-up checks independently identify two unique library states and nine hydroxyl angles (three means with ±20° expansions) on CPU/CUDA. The expected count is now 18 with that separate check. Task-level budget semantics and enforcement remain open.
+
+### 28. P1 — terminal proton sampling rotates an entire generated nucleotide
+
+[tmol/ligand/_polymer_builder.py:893](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/ligand/_polymer_builder.py#L893).
+
+> Could the nucleotide jump root use the sugar side of the glycosidic torsion, as canonical nucleotides do, instead of the second mainchain atom? For generated 5CM that atom is O5′, which carries a proton chi at a free 5′ terminus. OptH writes that chi into the jump degree of freedom and moves heavy atoms by up to 2.44 Å. Please check heavy-coordinate preservation for every offered proton rotamer, not only finite scores or the selected residue label.
+
+Reproduced in the follow-up branch before the root correction. After correction, the maximum heavy displacement in that diagnostic is 0.0000049 Å. Five modified DNA/RNA fixtures preserve heavy atoms in all offered proton rotamers and actual packing on CPU/CUDA (job 237980). Old score references may encode the damaged geometry and must be reconciled independently.
 
 ## Validation record
 
-See [VALIDATION.md](VALIDATION.md) for final commands, counts, environment, examples, and remaining failures. All raw run logs were retained separately under `/mnt/home/kdidi/tmol-pr503-results`. No upstream golden score files were regenerated to make tests pass.
+See [VALIDATION.md](VALIDATION.md) for the initial review commands, counts, environment, examples, and remaining failures; [FOLLOWUP.md](FOLLOWUP.md) records subsequent fixes and validation. All raw run logs were retained separately under `/mnt/home/kdidi/tmol-pr503-results`. No upstream golden score files were regenerated to make tests pass.

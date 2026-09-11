@@ -83,5 +83,47 @@
       "bytes": 229392
     }
   ],
-  "method": "One annotation per fresh prepared database, CPU torch 2.8, OMP_NUM_THREADS=2. Timing is diagnostic, not repeated benchmark; tensor sizes are exact."
+  "method": "One annotation per fresh prepared database, CPU torch 2.8, OMP_NUM_THREADS=2. Timing is diagnostic, not repeated benchmark; tensor sizes are exact.",
+  "after_settings_cache_fix": [
+    {
+      "fixture": "cif/1UBQ.cif",
+      "seconds": 0.040223690681159496,
+      "shape": [
+        230,
+        81,
+        3
+      ],
+      "bytes": 223560
+    },
+    {
+      "fixture": "covalent_fixtures/nglycan_tree_1ax2.cif",
+      "seconds": 0.03753996454179287,
+      "shape": [
+        268,
+        81,
+        3
+      ],
+      "bytes": 260496
+    },
+    {
+      "fixture": "covalent_fixtures/oglycan_sia_1g1s.cif",
+      "seconds": 0.038213979452848434,
+      "shape": [
+        262,
+        81,
+        3
+      ],
+      "bytes": 254664
+    },
+    {
+      "fixture": "ncaa_fixtures/na_rna_psu_1bzt.cif",
+      "seconds": 0.04289477597922087,
+      "shape": [
+        236,
+        81,
+        3
+      ],
+      "bytes": 229392
+    }
+  ]
 }

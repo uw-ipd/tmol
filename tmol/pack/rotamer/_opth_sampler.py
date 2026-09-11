@@ -298,7 +298,8 @@ class OptHSampler(ConformerSampler):
 
     @validate_args
     def _annotate_residue_type(self, rt: RefinedResidueType):
-        if hasattr(rt, "opth_sampler_cache"):
+        key = (self.chi_sample_expanded_limit, self.chi_sample_limit)
+        if getattr(rt, "_opth_sampler_key", None) == key:
             return
 
         base = rt.base_name
@@ -357,6 +358,7 @@ class OptHSampler(ConformerSampler):
                     is_his,
                 ),
             )
+            setattr(rt, "_opth_sampler_key", key)
             return
 
         deg_to_rad = math.pi / 180
@@ -417,9 +419,12 @@ class OptHSampler(ConformerSampler):
             ),
         )
 
+        setattr(rt, "_opth_sampler_key", key)
+
     @validate_args
     def _annotate_packed_block_types(self, packed_block_types: PackedBlockTypes):
-        if hasattr(packed_block_types, "opth_sample_cache"):
+        key = (self.chi_sample_expanded_limit, self.chi_sample_limit, self.flip_NHQ)
+        if getattr(packed_block_types, "_opth_sampler_key", None) == key:
             return
         for bt in packed_block_types.active_block_types:
             self._annotate_residue_type(bt)
@@ -589,6 +594,7 @@ class OptHSampler(ConformerSampler):
         )
 
         setattr(packed_block_types, "opth_sample_cache", cache)
+        setattr(packed_block_types, "_opth_sampler_key", key)
 
     @validate_args
     def defines_rotamers_for_rt(self, rt: RefinedResidueType):
