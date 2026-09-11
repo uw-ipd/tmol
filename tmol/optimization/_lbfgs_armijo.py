@@ -595,10 +595,10 @@ class LBFGS_Armijo(Optimizer):
                 hist_shape = (history_size, L)
             else:
                 hist_shape = (history_size, self._n_segments, self._segment_size)
-                # scratch for the padded gradient handed to the two-loop
-                state["grad_pad"] = torch.zeros(
-                    hist_shape[1:], device=x.device, dtype=x.dtype
-                )
+                if not self._segments_are_dense:
+                    state["grad_pad"] = torch.zeros(
+                        hist_shape[1:], device=x.device, dtype=x.dtype
+                    )
             # Only ``history_count`` written slots are consumed. Non-dense
             # segmented writes explicitly zero their own padding.
             state["old_dirs_mat"] = torch.empty(
@@ -741,7 +741,12 @@ class LBFGS_Armijo(Optimizer):
                         (ctx.old_stps_mat[start:], ctx.old_stps_mat[:start])
                     )
 
-                grad_pad = self._pad(flat_grad, out=ctx.state["grad_pad"])
+                # Dense gradients already have the layout consumed by the
+                # two-loop calculation; only scattered segments need a copy.
+                grad_pad = self._pad(
+                    flat_grad,
+                    out=None if self._segments_are_dense else ctx.state["grad_pad"],
+                )
                 d.copy_(
                     self._unpad(lbfgs_two_loop(grad_pad, old_dirs_view, old_stps_view))
                 )
