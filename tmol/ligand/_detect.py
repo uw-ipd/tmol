@@ -722,33 +722,26 @@ def _representative_instance(atom_array, residue_starts, start, connection_atoms
     """
     wanted = set(connection_atoms)
 
-    def instance(other):
-        mask = atom_array.res_name == atom_array.res_name[other]
-        if hasattr(atom_array, "res_id"):
-            mask &= atom_array.res_id == atom_array.res_id[other]
-        if hasattr(atom_array, "chain_id"):
-            mask &= atom_array.chain_id == atom_array.chain_id[other]
-        return atom_array[mask]
-
     def suitable(candidate):
         if not wanted <= {str(n) for n in candidate.atom_name}:
             return False
         return not np.isnan(candidate.coord).any()
 
-    copies = [
-        instance(other)
-        for other in residue_starts
-        if atom_array.res_name[other] == atom_array.res_name[start]
-    ]
-    first = instance(start)
-    for candidate in [first, *copies]:
+    ends = np.append(residue_starts[1:], atom_array.array_length())
+    index = int(np.searchsorted(residue_starts, start))
+    first = atom_array[start : ends[index]]
+    if suitable(first):
+        return first
+    fallback = first if wanted <= set(first.atom_name) else None
+    for begin, end in zip(residue_starts, ends):
+        if begin == start or atom_array.res_name[begin] != atom_array.res_name[start]:
+            continue
+        candidate = atom_array[begin:end]
         if suitable(candidate):
             return candidate
-    # nothing is fully resolved; take one that at least shows the connections
-    for candidate in [first, *copies]:
-        if wanted <= {str(n) for n in candidate.atom_name}:
-            return candidate
-    return first
+        if fallback is None and wanted <= set(candidate.atom_name):
+            fallback = candidate
+    return first if fallback is None else fallback
 
 
 def with_resolved_coordinates(atom_array, res_name: str, use_ccd: bool):
@@ -906,7 +899,12 @@ def _cross_residue_bond_atoms(  # noqa: C901
     def _spans_residues(a: int, b: int) -> bool:
         """Whether atoms ``a`` and ``b`` belong to different residues."""
         same_chain = chain_ids is None or chain_ids[a] == chain_ids[b]
-        if same_chain and res_ids[a] == res_ids[b] and res_names[a] == res_names[b]:
+        if (
+            same_chain
+            and res_ids[a] == res_ids[b]
+            and res_names[a] == res_names[b]
+            and atom_array.ins_code[a] == atom_array.ins_code[b]
+        ):
             return False
         return True
 

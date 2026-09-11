@@ -20,14 +20,27 @@ def content_hash(*parts) -> str:
 
 def _update(digest, value) -> None:
     if isinstance(value, torch.Tensor):
-        digest.update(repr((tuple(value.shape), str(value.dtype))).encode())
-        digest.update(value.detach().cpu().contiguous().numpy().tobytes())
+        digest.update(b"tensor:")
+        _update(digest, (tuple(value.shape), str(value.dtype)))
+        array = value.detach().cpu().contiguous().numpy().reshape(-1)
+        _write(digest, memoryview(array).cast("B"))
     elif attr.has(type(value)):
+        digest.update(b"attrs:")
+        _write(digest, type(value).__qualname__.encode())
         for field in attr.fields(type(value)):
-            digest.update(field.name.encode())
+            _write(digest, field.name.encode())
             _update(digest, getattr(value, field.name))
     elif isinstance(value, (tuple, list)):
+        digest.update(b"sequence:")
+        digest.update(len(value).to_bytes(8, "big"))
         for item in value:
             _update(digest, item)
     else:
-        digest.update(repr(value).encode())
+        digest.update(b"scalar:")
+        _write(digest, repr(value).encode())
+
+
+def _write(digest, data):
+    """Frame each byte string so distinct adjacent values cannot alias."""
+    digest.update(len(data).to_bytes(8, "big"))
+    digest.update(data)

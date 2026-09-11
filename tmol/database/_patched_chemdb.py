@@ -55,10 +55,6 @@ def remove_atom(res, atom):
     #    atom would name nothing
     remaining = {x.name for x in res.torsions}
     res.chi_samples = tuple(x for x in res.chi_samples if x.chi_dihedral in remaining)
-    # a chi sample names a torsion; one whose torsion has just gone with the
-    #    atom would name nothing
-    remaining = {x.name for x in res.torsions}
-    res.chi_samples = tuple(x for x in res.chi_samples if x.chi_dihedral in remaining)
 
     # atom_downstream_of_conn indexes every mainchain atom, so a patch that drops
     # one (e.g. the DNA 5' terminus dropping P) must drop it here too

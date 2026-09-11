@@ -837,14 +837,11 @@ def canonical_conjugation_sites(ligands, ligands_by_name, canonical_ordering, ch
 
 def _canonical_residue_array(atom_array, res_name):
     """One residue of this name from the input, for reading its chemistry."""
-    import numpy
-
-    mask = numpy.array([str(n).strip() == res_name for n in atom_array.res_name])
-    if not mask.any():
-        return None
-    ids = atom_array.res_id[mask]
-    first = atom_array[mask][atom_array.res_id[mask] == ids[0]]
-    return first if len(first) else None
+    boundaries = struc.get_residue_starts(atom_array, add_exclusive_stop=True)
+    for start, stop in zip(boundaries, boundaries[1:]):
+        if str(atom_array.res_name[start]).strip() == res_name:
+            return atom_array[start:stop]
+    return None
 
 
 def _site_hydrogen_counts(atom_array, res_name, partners, ph):

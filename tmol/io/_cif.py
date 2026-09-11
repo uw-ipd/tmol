@@ -189,14 +189,18 @@ def _component_dictionary_template(res_name: str):
     return component if component.bonds is not None else None
 
 
-def _accounts_for(observed, template) -> bool:
+def _accounts_for(residue, template) -> bool:
     """Whether a template names every heavy atom the structure resolved."""
     declared = {
         str(n)
         for n, e in zip(template.atom_name, template.element)
         if str(e).strip().upper() != "H"
     }
-    heavy = {n for n in observed if not n.startswith("H")}
+    heavy = {
+        str(n)
+        for n, e in zip(residue.atom_name, residue.element)
+        if str(e).strip().upper() != "H"
+    }
     return bool(heavy) and heavy <= declared
 
 
@@ -283,14 +287,16 @@ def with_unresolved_atoms(atom_array, declared: dict, *, use_ccd: bool = True):
     from tmol.ligand._polymer_profile import completed_connection_atoms
 
     connections = _connection_atoms_by_name(atom_array)
-    starts = struc.get_residue_starts(atom_array)
+    boundaries = struc.get_residue_starts(atom_array, add_exclusive_stop=True)
+    starts = boundaries[:-1]
+    templates = dict(declared)
     warned: set = set()
     additions: dict[int, list] = {}
-    for start in starts:
+    for start, stop in zip(starts, boundaries[1:]):
         res_name = str(atom_array.res_name[start]).strip()
-        template = declared.get(res_name)
-        if template is None and use_ccd:
-            template = _component_dictionary_template(res_name)
+        if res_name not in templates and use_ccd:
+            templates[res_name] = _component_dictionary_template(res_name)
+        template = templates.get(res_name)
         if template is None:
             # nothing describes this residue, so there is no telling whether
             #    what was resolved is all of it. A code no dictionary defines
@@ -307,9 +313,9 @@ def with_unresolved_atoms(atom_array, declared: dict, *, use_ccd: bool = True):
                     res_name,
                 )
             continue
-        residue = atom_array[_residue_mask(atom_array, start)]
+        residue = atom_array[start:stop]
         present = {str(n) for n in residue.atom_name}
-        if not _accounts_for(present, template):
+        if not _accounts_for(residue, template):
             if res_name in warned:
                 continue
             warned.add(res_name)
@@ -331,15 +337,6 @@ def with_unresolved_atoms(atom_array, declared: dict, *, use_ccd: bool = True):
     return _inserted(atom_array, starts, additions)
 
 
-def _residue_mask(atom_array, start):
-    """Boolean mask of the residue instance the atom at ``start`` belongs to."""
-    mask = atom_array.res_id == atom_array.res_id[start]
-    mask &= atom_array.res_name == atom_array.res_name[start]
-    if hasattr(atom_array, "chain_id"):
-        mask &= atom_array.chain_id == atom_array.chain_id[start]
-    return mask
-
-
 def _connection_atoms_by_name(atom_array) -> dict:
     """Atoms each residue name bonds a neighbouring residue through.
 
@@ -349,13 +346,12 @@ def _connection_atoms_by_name(atom_array) -> dict:
     if atom_array.bonds is None or atom_array.bonds.get_bond_count() == 0:
         return {}
     names = atom_array.res_name
-    ids = atom_array.res_id
-    chains = atom_array.chain_id if hasattr(atom_array, "chain_id") else None
+    boundaries = struc.get_residue_starts(atom_array, add_exclusive_stop=True)
+    residue_index = np.repeat(np.arange(len(boundaries) - 1), np.diff(boundaries))
     linked: dict = {}
     for i, j, _order in atom_array.bonds.as_array():
         i, j = int(i), int(j)
-        same = names[i] == names[j] and ids[i] == ids[j]
-        if same and (chains is None or chains[i] == chains[j]):
+        if residue_index[i] == residue_index[j]:
             continue
         for at in (i, j):
             linked.setdefault(str(names[at]).strip(), set()).add(
@@ -375,14 +371,13 @@ def _inserted(atom_array, starts, additions: dict):
 
     # final layout: each residue's own atoms, then the ones it did not resolve
     pieces = []
-    remap = {}
+    remap = np.empty(atom_array.array_length(), dtype=np.uint32)
     added_at = {}
     total = 0
     for begin, end in zip(boundaries, boundaries[1:]):
         pieces.append(atom_array[begin:end])
-        for old in range(begin, end):
-            remap[old] = total
-            total += 1
+        remap[begin:end] = np.arange(total, total + end - begin, dtype=np.uint32)
+        total += end - begin
         entry = additions.get(int(begin))
         if entry is None:
             continue
@@ -392,33 +387,33 @@ def _inserted(atom_array, starts, additions: dict):
             added_at[(int(begin), name)] = total
             total += 1
 
-    combined = pieces[0]
-    for piece in pieces[1:]:
-        combined = combined + piece
+    combined = struc.concatenate(pieces)
 
-    bonds = struc.BondList(combined.array_length())
+    bond_tables = []
     if atom_array.bonds is not None:
-        for i, j, order in atom_array.bonds.as_array():
-            bonds.add_bond(remap[int(i)], remap[int(j)], int(order))
+        original_bonds = atom_array.bonds.as_array()
+        original_bonds[:, :2] = remap[original_bonds[:, :2]]
+        bond_tables.append(original_bonds)
 
+    ends = dict(zip(boundaries[:-1], boundaries[1:]))
+    added_bonds = []
     for begin, (missing, template) in additions.items():
+        missing = set(missing)
         position = {
             str(atom_array.atom_name[old]): remap[old]
-            for old in range(begin, _residue_end(boundaries, begin))
+            for old in range(begin, ends[begin])
         }
         position.update({name: added_at[(begin, name)] for name in missing})
         for i, j, order in template.bonds.as_array():
             a, b = str(template.atom_name[i]), str(template.atom_name[j])
             if (a in missing or b in missing) and a in position and b in position:
-                bonds.add_bond(position[a], position[b], int(order))
+                added_bonds.append((position[a], position[b], int(order)))
 
-    combined.bonds = bonds
+    bond_tables.append(np.asarray(added_bonds, dtype=np.uint32).reshape(-1, 3))
+    combined.bonds = struc.BondList(
+        combined.array_length(), np.concatenate(bond_tables)
+    )
     return combined
-
-
-def _residue_end(boundaries, begin) -> int:
-    """Where the residue starting at ``begin`` ends in the original array."""
-    return boundaries[boundaries.index(begin) + 1]
 
 
 def _placeholder_atoms(atom_array, begin, missing, template):
