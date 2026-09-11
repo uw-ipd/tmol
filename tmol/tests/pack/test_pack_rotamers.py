@@ -371,6 +371,7 @@ def test_shared_rotamer_dispatch_matches_independent_lk_ball_layout(
     (shared_grad,) = torch.autograd.grad(shared.values().sum(), shared_coords)
 
     lk_ball = next(term for term in scorer.term_modules if term.classname == "LKBall")
+    shared_cutoff = lk_ball.block_neighbor_cutoff
     lk_ball.block_neighbor_cutoff += 0.5
     fallback_coords = rotamer_set.coords.detach().clone().requires_grad_(True)
     fallback = scorer(fallback_coords).coalesce()
@@ -378,15 +379,25 @@ def test_shared_rotamer_dispatch_matches_independent_lk_ball_layout(
 
     torch.testing.assert_close(shared.to_dense(), fallback.to_dense())
     if torch_device.type == "cuda":
-        # Rotamer gradients use atomics, so even two independent evaluations
-        # need not be elementwise deterministic. Fused and independent layouts
-        # also sum terms in different orders; retain the repeat envelope with a
-        # small, scale-aware rounding floor for that expected reassociation.
-        repeat_coords = rotamer_set.coords.detach().clone().requires_grad_(True)
-        repeat = scorer(repeat_coords).coalesce()
-        (repeat_grad,) = torch.autograd.grad(repeat.values().sum(), repeat_coords)
-        torch.testing.assert_close(fallback.to_dense(), repeat.to_dense())
-        repeat_error = torch.max(torch.abs(fallback_grad - repeat_grad))
+        # Atomic reductions vary within either layout. A single repeat can
+        # underestimate that variation, so measure each layout's range over
+        # four samples while retaining the same envelope and rounding floor.
+        repeat_errors = []
+        for cutoff, expected, initial_grad in (
+            (shared_cutoff, shared, shared_grad),
+            (shared_cutoff + 0.5, fallback, fallback_grad),
+        ):
+            lk_ball.block_neighbor_cutoff = cutoff
+            gradients = [initial_grad]
+            for _ in range(3):
+                coords = rotamer_set.coords.detach().clone().requires_grad_(True)
+                scores = scorer(coords).coalesce()
+                (grad,) = torch.autograd.grad(scores.values().sum(), coords)
+                torch.testing.assert_close(expected.to_dense(), scores.to_dense())
+                gradients.append(grad)
+            samples = torch.stack(gradients)
+            repeat_errors.append((samples.amax(0) - samples.amin(0)).amax())
+        repeat_error = torch.maximum(*repeat_errors)
         shared_error = torch.max(torch.abs(shared_grad - fallback_grad))
         gradient_scale = torch.maximum(
             torch.max(torch.abs(shared_grad)), torch.max(torch.abs(fallback_grad))
