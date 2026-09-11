@@ -1969,3 +1969,68 @@ hashes, exact test inventories, intermediate failures, scheduler accounting and
 the fingerprint probe are in
 [results/libraryless-validation.json](results/libraryless-validation.json).
 Black, Flake8 and whitespace checks pass. No performance ratio is claimed.
+
+## Preserve current sampler ownership in mainchain-copy plans
+
+Mainchain fingerprints now follow the current sampler's actual sidechain roots
+and weak chemical-database identity. Different instances of the same sampler
+class can coexist in one task. Source atoms come from the union of retained
+regions; selecting only the largest region loses atoms when regions are not
+nested. Each target sampler still copies only its own retained atoms. Empty
+samplers return an empty DOF-copy plan without looking up a nonexistent entry.
+
+RT annotations retain only current configurations. Equivalent new sampler
+instances reuse the packed tensors without retaining old sampler objects, and
+PBT reuse validates the actual current fingerprint payloads. This also corrects
+the old cache guard, which checked an attribute that was never stored. The
+legacy source/target atom and DOF assertions remain; their source lookup now
+uses the explicit source mapping instead of selecting a target sampler.
+
+Fingerprint construction shares one all-atom descriptor calculation across
+samplers on a residue and uses local element dictionaries instead of repeated
+linear database scans. The full descriptor list is temporary, not an additional
+persistent cache. Unique class-name lookup remains available to existing helper
+callers; internal sampling uses instance identity.
+
+Four coordinate regressions fail before the fix. Tests compare sequential
+sampler switches and two sampler configurations in one two-pose task against
+independently built fresh poses, in both orders. Further checks cover nonnested
+regions, equivalent-instance tensor reuse over twelve rounds, changed chemical
+element definitions, expired owners, and a sampler with no buildable types.
+The last case exposed a separate missing-entry lookup and fails before its
+empty-plan guard. Final CPU validation passes **40 tests / 35 CUDA skips**.
+
+Slurm **249781** passes **426 tests with no skips** across packing, Dunbrack,
+nucleic-acid/OptH sampling, noncanonical and conjugated-group fixtures. It ran
+the initial cache implementation before the later zero-state guard and generator
+optimization. Slurm **249793** then validates the final source with **75 passes
+and no skips**, covering identity, original fingerprint/rotamer tests and
+library-free polymers. Both finish **0:0**, respectively **12:44 / 1:40**, with
+batch peak host RSS **5,650,620 / 2,509,832 KiB**. These runs overlap.
+
+Paired five-round setup profiles compare the exact preceding implementation
+from `dd99ab29e`, over 230 types. Every legal source/target transfer matches:
+**80,960 maps** for Dunbrack + FixedAA and **121,440** when adding the task's
+default Fallback sampler.
+
+| Samplers | Device | Cold setup, previous → current | Repeated setup, previous → current |
+| --- | --- | ---: | ---: |
+| Dunbrack + FixedAA | CPU | 119.332 → 125.054 ms | 9.598 → 6.036 ms |
+| Dunbrack + FixedAA | CUDA | 120.162 → 128.819 ms | 10.657 → 8.311 ms |
+| Above + default Fallback | CPU | 278.561 → 191.619 ms | 15.801 → 10.422 ms |
+| Above + default Fallback | CUDA | 278.974 → 199.698 ms | 18.427 → 15.610 ms |
+
+The default three-sampler cold path improves **1.45× CPU / 1.40× CUDA**; packed
+tensor fields shrink **848,240 → 813,280 bytes (4.1%)**. With two samplers,
+cold setup costs **4.8% CPU / 7.2% CUDA** more and tensor fields grow
+**533,600 → 548,320 bytes (2.8%)** to represent the explicit source union.
+Repeated setup improves in both configurations. These timings exclude chemical,
+resolver and kinforest construction, fresh object copying, sampling and scoring.
+Tensor byte totals exclude Python metadata, allocator overhead and process RSS;
+no whole-packer or peak-memory improvement is claimed.
+
+Review comment 68 is updated. Exact source hashes, initial-source snapshots,
+intermediate failures, test inventories, scheduler accounting and full profiles
+are recorded in [results/fingerprint-validation.json](results/fingerprint-validation.json).
+Black, Flake8 and whitespace checks pass. Global resolver retention and scoring
+annotation identity remain separate follow-up items.

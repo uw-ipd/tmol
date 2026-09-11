@@ -1,7 +1,7 @@
 import torch
 import attr
 
-from typing import Tuple
+from typing import Tuple, Union
 
 from tmol.types import (
     Tensor,
@@ -94,7 +94,7 @@ class ChiSampler(ConformerSampler):
         copy_dofs_from_orig_to_rotamers_for_sampler(
             pose_stack,
             task,
-            self.sampler_name(),
+            id(self),
             gbt_for_conformer,
             block_type_ind_for_conformer,
             conf_inds_for_sampler,
@@ -127,7 +127,7 @@ class ChiSampler(ConformerSampler):
 def copy_dofs_from_orig_to_rotamers_for_sampler(
     poses: PoseStack,
     task,
-    sampler_name: str,
+    sampler_name: Union[str, int],
     gbt_for_rot: Tensor[torch.int64][:],
     block_type_ind_for_rot: Tensor[torch.int64][:],
     conf_inds_for_sampler: Tensor[torch.int64][:],
@@ -155,7 +155,7 @@ def copy_dofs_from_orig_to_rotamers_for_sampler(
 def create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler(
     poses: PoseStack,
     task: "PackerTask",  # noqa F821
-    sampler_name: str,
+    sampler_name: Union[str, int],
     gbt_for_rot: Tensor[torch.int64][:],  # max-n-rots
     block_type_ind_for_rot: Tensor[torch.int64][:],
     conf_inds_for_sampler: Tensor[torch.int64][:],
@@ -163,6 +163,9 @@ def create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler(
     sampler_gbt_for_rotamer: Tensor[torch.int32][:],
     n_dof_atoms_offset_for_rot: Tensor[torch.int64][:],
 ) -> Tuple[Tensor[torch.int64][:], Tensor[torch.int64][:]]:
+    # A sampler with no states need not have an ownership fingerprint at all.
+    if conf_inds_for_sampler.numel() == 0:
+        return conf_inds_for_sampler, conf_inds_for_sampler
     # we want to copy from the orig_dofs tensor into the
     # rot_dofs tensor for the "mainchain" atoms in the
     # original residues into the appropriate positions
@@ -205,8 +208,7 @@ def create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler(
 
     mcfp = pbt.mc_fingerprints
 
-    sampler_ind_for_orig = mcfp.max_sampler[orig_block_type_ind]
-    orig_res_mcfp = mcfp.max_fingerprint[orig_block_type_ind]
+    orig_res_mcfp = mcfp.source_fingerprint[orig_block_type_ind]
     orig_res_mcfp_for_samplers_rots = orig_res_mcfp[real_res_ind_for_samplers_rots]
 
     # now lets find the kinforest-ordered indices of the
@@ -276,9 +278,7 @@ def create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler(
     # 2. they are stored in residue-type order (rto)
     # 3. they are indexed by original residue index
 
-    orig_mcfp_at_inds_rto = mcfp.atom_mapping[
-        sampler_ind_for_orig, orig_res_mcfp, orig_block_type_ind, :
-    ].view(-1)
+    orig_mcfp_at_inds_rto = mcfp.source_atom_mapping[orig_block_type_ind, :].view(-1)
 
     real_orig_block_type_ind_for_orig_mcfp_ats = stretch(
         orig_block_type_ind, max_n_mcfp_atoms

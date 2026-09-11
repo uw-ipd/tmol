@@ -420,10 +420,10 @@ def test_inv_kin_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
     )
 
     dun_sampler_ind = pbt.mc_fingerprints.sampler_mapping[dun_sampler.sampler_name()]
-    met_max_fp = pbt.mc_fingerprints.max_fingerprint[1]
+    met_max_fp = pbt.mc_fingerprints.source_fingerprint[1]
     for i in range(pbt.mc_fingerprints.atom_mapping.shape[3]):
         leu_at_i = pbt.mc_fingerprints.atom_mapping[dun_sampler_ind, met_max_fp, 0, i]
-        met_at_i = pbt.mc_fingerprints.atom_mapping[dun_sampler_ind, met_max_fp, 0, i]
+        met_at_i = pbt.mc_fingerprints.source_atom_mapping[1, i]
         if leu_at_i >= 0 and met_at_i >= 0:
             leu_ktat_i = leu_rt.rotamer_kinforest.kinforest_idx[leu_at_i]
             met_ktat_i = met_rt.rotamer_kinforest.kinforest_idx[met_at_i]

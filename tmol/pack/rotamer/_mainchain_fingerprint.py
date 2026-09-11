@@ -2,7 +2,7 @@ import attr
 import numpy
 import torch
 
-from typing import Tuple, Mapping
+from typing import Tuple, Mapping, Union
 
 from tmol.types import (
     NDArray,
@@ -13,6 +13,11 @@ from tmol.numeric import coord_dihedrals
 from tmol.database import PatchedChemicalDatabase
 from tmol.chemical import RefinedResidueType
 from tmol.pose import PackedBlockTypes
+from tmol.score._annotation_cache import (
+    AnnotationKey,
+    cached_annotation,
+    store_annotation,
+)
 
 from tmol.pack.rotamer import (
     ChiSampler,
@@ -99,10 +104,10 @@ class MCFingerprint:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class MCFingerprints:
-    atom_mapping: Tensor[torch.int32][:, :, :, :]  # make int64
-    sampler_mapping: Mapping[str, int]
-    max_sampler: Tensor[torch.int32][:]
-    max_fingerprint: Tensor[torch.int32][:]
+    atom_mapping: Tensor[torch.int64][:, :, :, :]
+    sampler_mapping: Mapping[Union[str, int], int]
+    source_atom_mapping: Tensor[torch.int64][:, :]
+    source_fingerprint: Tensor[torch.int64][:]
 
 
 @validate_args
@@ -113,6 +118,13 @@ def create_non_sidechain_fingerprint(  # noqa: C901
     chem_db: PatchedChemicalDatabase,
 ):
     non_sc_atoms = numpy.nonzero(sc_atoms == 0)[0]
+    # Preserve the first record for each name, matching the scalar lookups.
+    element_for_type = {}
+    for at in chem_db.atom_types:
+        element_for_type.setdefault(at.name, at.element)
+    number_for_element = {}
+    for element in chem_db.element_types:
+        number_for_element.setdefault(element.name, element.atomic_number)
     # TO DO: mainchain_atoms determined programatically from
     # shortest path between up- and down-connection atoms
     mc_at_names = rt.properties.polymer.mainchain_atoms
@@ -131,9 +143,7 @@ def create_non_sidechain_fingerprint(  # noqa: C901
     n_nonh_bonds = numpy.zeros(rt.n_atoms, dtype=numpy.int32)
     for i in range(rt.bond_indices.shape[0]):
         bonded_atom_type = rt.atoms[rt.bond_indices[i, 1]].atom_type
-        bonded_elem_name = next(
-            at.element for at in chem_db.atom_types if at.name == bonded_atom_type
-        )
+        bonded_elem_name = element_for_type[bonded_atom_type]
         n_bonds[rt.bond_indices[i, 0]] += 1
         if bonded_elem_name != "H":
             n_nonh_bonds[rt.bond_indices[i, 0]] += 1
@@ -235,12 +245,7 @@ def create_non_sidechain_fingerprint(  # noqa: C901
                 chirality = 0
 
         atom_type_name = rt.atoms[nsc_at].atom_type
-        elem_name = next(
-            at.element for at in chem_db.atom_types if at.name == atom_type_name
-        )
-        atomic_number = next(
-            el.atomic_number for el in chem_db.element_types if el.name == elem_name
-        )
+        atomic_number = number_for_element[element_for_type[atom_type_name]]
         base_fp = AtomFingerprint(
             mc_ind=mc_anc,
             mc_bond_dist=bonds_from_mc,
@@ -330,6 +335,11 @@ def _mc_inds_for_chiral_mc_atom(
 def create_mainchain_fingerprint(
     rt: RefinedResidueType, sc_roots: Tuple[str, ...], chem_db: PatchedChemicalDatabase
 ):
+    parents, sidechain_atoms = _mainchain_region(rt, sc_roots)
+    return create_non_sidechain_fingerprint(rt, parents, sidechain_atoms, chem_db)
+
+
+def _mainchain_region(rt, sc_roots):
     id = rt.rotamer_kinforest.id
     parents = rt.rotamer_kinforest.parent.copy()
     parents[parents < 0] = 0
@@ -340,7 +350,7 @@ def create_mainchain_fingerprint(
     sidechain_atoms = bfs_sidechain_atoms_jit(
         parents, numpy.array(sc_roots, dtype=numpy.int32)
     )
-    return create_non_sidechain_fingerprint(rt, parents, sidechain_atoms, chem_db)
+    return parents, sidechain_atoms
 
 
 def annotate_residue_type_with_sampler_fingerprints(
@@ -348,127 +358,134 @@ def annotate_residue_type_with_sampler_fingerprints(
     samplers: Tuple[ChiSampler, ...],
     chem_db: PatchedChemicalDatabase,
 ):
-    # Mainchain fingerprints describe how to transfer sidechain DOFs across
-    # mainchains; they require polymer.mainchain_atoms and are meaningless for
-    # non-polymer residues (e.g. ligands).
-    if not restype.properties.polymer.is_polymer:
-        return
-    for sampler in samplers:
-        if sampler.defines_rotamers_for_rt(restype):
-            if hasattr(restype, "mc_fingerprints"):
-                if sampler.sampler_name() in restype.mc_fingerprints:
-                    continue
-            else:
-                setattr(restype, "mc_fingerprints", {})
-
-            sc_roots = sampler.first_sc_atoms_for_rt(restype)
-            mc_ats, mc_at_fps, at_for_fp = create_mainchain_fingerprint(
-                restype, sc_roots, chem_db
+    # Keep only the current task's ownership configurations. A sampler class
+    # may have several instances with different roots in the same task.
+    previous = list(getattr(restype, "_mc_fingerprint_annotations", {}).values())
+    records, fingerprints, labels, aliases = {}, {}, {}, {}
+    names = [sampler.sampler_name() for sampler in samplers]
+    all_atom_fps = None
+    if restype.properties.polymer.is_polymer:
+        for index, sampler in enumerate(samplers):
+            if not sampler.defines_rotamers_for_rt(restype):
+                continue
+            name = names[index]
+            slot = name if names.count(name) == 1 else id(sampler)
+            roots = tuple(sorted(set(sampler.first_sc_atoms_for_rt(restype))))
+            key = AnnotationKey.from_sources(chem_db, settings=roots)
+            cached = next(
+                (
+                    (old_key, value)
+                    for old_key, value in previous
+                    if key.matches(old_key)
+                ),
+                None,
             )
-            fingerprint = tuple(sorted(mc_at_fps))
-            restype.mc_fingerprints[sampler.sampler_name()] = MCFingerprint(
-                mc_ats=mc_ats,
-                mc_at_fingerprints=mc_at_fps,
-                fingerprint=fingerprint,
-                at_for_fingerprint=at_for_fp,
-            )
+            if cached is None:
+                # Atom descriptors do not depend on the selected roots. Compute
+                # them once for this call, then keep only each retained region.
+                if all_atom_fps is None:
+                    all_atom_fps = create_mainchain_fingerprint(restype, (), chem_db)[1]
+                _, sidechain_atoms = _mainchain_region(restype, roots)
+                mc_ats = numpy.nonzero(sidechain_atoms == 0)[0]
+                mc_at_fps = tuple(all_atom_fps[at] for at in mc_ats)
+                at_for_fp = {all_atom_fps[at]: int(at) for at in mc_ats}
+                value = MCFingerprint(
+                    mc_ats=mc_ats,
+                    mc_at_fingerprints=mc_at_fps,
+                    fingerprint=tuple(sorted(mc_at_fps)),
+                    at_for_fingerprint=at_for_fp,
+                )
+                cached = (key, value)
+                previous.append(cached)
+            records[slot] = cached
+            fingerprints[slot] = cached[1]
+            labels[slot] = (name, index)
+            aliases[id(sampler)] = slot
+    restype._mc_fingerprint_annotations = records
+    restype.mc_fingerprints = fingerprints
+    restype._mc_sampler_labels = labels
+    restype._mc_sampler_aliases = aliases
 
 
-def find_max_length_fp_among_res_samplers(
-    pbt: PackedBlockTypes, sampler_types, fp_sets
-):
-    fp_to_ind = {fp: i for i, fp in enumerate(fp_sets)}
-    n_fps_for_rt = numpy.zeros((pbt.n_types,), dtype=numpy.int32)
-    max_sampler_for_rt = numpy.full((pbt.n_types,), -1, dtype=numpy.int32)
-    max_fp_for_rt = numpy.full((pbt.n_types,), -1, dtype=numpy.int32)
+def find_unique_fingerprints(pbt: PackedBlockTypes):
+    """Copy from the union of regions retained by the current samplers.
 
-    for i, rt in enumerate(pbt.active_block_types):
-        if hasattr(rt, "mc_fingerprints"):
-            for j, sampler in enumerate(sampler_types):
-                if sampler in rt.mc_fingerprints:
-                    j_len = len(rt.mc_fingerprints[sampler].mc_ats)
-                    if j_len > n_fps_for_rt[i]:
-                        n_fps_for_rt[i] = j_len
-                        max_sampler_for_rt[i] = j
-                        max_fp_for_rt[i] = fp_to_ind[
-                            rt.mc_fingerprints[sampler].fingerprint
-                        ]
-    return (n_fps_for_rt, max_sampler_for_rt, max_fp_for_rt, fp_to_ind)
-
-
-def find_unique_fingerprints(  # noqa: C901
-    pbt: PackedBlockTypes,
-):
-    sampler_types = set()
+    Source regions need not be nested. Each destination sampler still copies
+    only its own retained atoms, matched against the source union by chemistry.
+    """
+    labels, aliases = {}, {}
     for rt in pbt.active_block_types:
-        if hasattr(rt, "mc_fingerprints"):
-            for sampler in rt.mc_fingerprints:
-                sampler_types.add(sampler)
-
-    # we do not need to re-annotate this PackedBlockTypes object if there
-    # are no sidechain samplers that it has not encountered before
-    if hasattr(pbt, "mc_atom_mapping"):
-        all_found = True
-        for bt in sampler_types:
-            if bt not in pbt.mc_atom_mapping:
-                all_found = False
-                break
-        if all_found:
-            return
-    sampler_types = sorted(list(sampler_types))
-    n_samplers = len(sampler_types)
+        labels.update(getattr(rt, "_mc_sampler_labels", {}))
+        aliases.update(getattr(rt, "_mc_sampler_aliases", {}))
+    sampler_types = sorted(labels, key=labels.get)
     sampler_inds = {sampler: i for i, sampler in enumerate(sampler_types)}
-
-    fp_sets = set()
-    for rt in pbt.active_block_types:
-        if hasattr(rt, "mc_fingerprints"):
-            for _, mcfps in rt.mc_fingerprints.items():
-                fp_sets.add(mcfps.fingerprint)
-    fp_sets = sorted(fp_sets)
-
-    n_mcs = len(fp_sets)
-    max_n_mc_atoms = max(len(fp) for fp in fp_sets)
-
-    (
-        n_fps_for_rt,
-        max_sampler_for_rt,
-        max_fp_for_rt,
-        fp_to_ind,
-    ) = find_max_length_fp_among_res_samplers(pbt, sampler_types, fp_sets)
-
-    # ok, we need have n mainchain types
-    # and we have m residue types
-    # we have n x n different ways to map atoms from one mainchain
-    # type onto another mainchain type
-
-    # we will create an b x n x m x n-ats array that says which atom l
-    # on mc-type j maps to which atom on residue type k as defined by
-    # sampler i
-
-    mc_atom_inds_for_rt_for_sampler = numpy.full(
-        (n_samplers, n_mcs, pbt.n_types, max_n_mc_atoms), -1, dtype=numpy.int32
+    sampler_mapping = dict(sampler_inds)
+    sampler_mapping.update(
+        {identity: sampler_inds[slot] for identity, slot in aliases.items()}
     )
-    for ii, sampler in enumerate(sampler_types):
-        for jj, fp in enumerate(fp_sets):
-            for kk, rt in enumerate(pbt.active_block_types):
-                # now we'er going to find the index of the mainchain atom
-                if not hasattr(rt, "mc_fingerprints"):
-                    continue
-                if sampler not in rt.mc_fingerprints:
-                    continue
-                rt_fingerprint = rt.mc_fingerprints[sampler]
-                for ll, at_fp in enumerate(fp):
-                    mc_atom_inds_for_rt_for_sampler[ii, jj, kk, ll] = (
-                        rt_fingerprint.at_for_fingerprint.get(at_fp, -1)
-                    )
+    rows = [
+        [getattr(rt, "mc_fingerprints", {}).get(sampler) for sampler in sampler_types]
+        for rt in pbt.active_block_types
+    ]
+    key = AnnotationKey.from_sources(
+        *(fp for row in rows for fp in row if fp is not None),
+        settings=(
+            tuple(labels[sampler][0] for sampler in sampler_types),
+            tuple(tuple(fp is not None for fp in row) for row in rows),
+        ),
+    )
+    cached = cached_annotation(pbt, "_mc_packed_annotation", key)
+    if cached is not None:
+        # New instances with identical ownership reuse the large tensor plan.
+        if cached.sampler_mapping != sampler_mapping:
+            cached = attr.evolve(cached, sampler_mapping=sampler_mapping)
+        pbt.mc_fingerprints = cached
+        return store_annotation(pbt, "_mc_packed_annotation", key, cached)
 
-    def _t(arr):
-        return torch.tensor(arr, dtype=torch.int64, device=pbt.device)
+    sources = []
+    for row in rows:
+        source = {}
+        for fp in row:
+            if fp is None:
+                continue
+            for atom_fp, atom in fp.at_for_fingerprint.items():
+                if atom_fp in source and source[atom_fp] != atom:
+                    raise ValueError(
+                        "Sampler fingerprints disagree on an atom identity"
+                    )
+                source[atom_fp] = atom
+        sources.append(source)
+    source_fps = [tuple(sorted(source)) for source in sources]
+    fp_sets = sorted(set(fp for fp in source_fps if fp))
+    fp_to_ind = {fp: i for i, fp in enumerate(fp_sets)}
+    max_n_mc_atoms = max((len(fp) for fp in fp_sets), default=0)
+    source_indices = numpy.full((pbt.n_types, max_n_mc_atoms), -1, dtype=numpy.int32)
+    source_fp_indices = numpy.full(pbt.n_types, -1, dtype=numpy.int32)
+    for i, (source, fp) in enumerate(zip(sources, source_fps)):
+        source_indices[i, : len(fp)] = [source[atom_fp] for atom_fp in fp]
+        source_fp_indices[i] = fp_to_ind.get(fp, -1)
+
+    atom_mapping = numpy.full(
+        (len(sampler_types), len(fp_sets), pbt.n_types, max_n_mc_atoms),
+        -1,
+        dtype=numpy.int32,
+    )
+    for ti, row in enumerate(rows):
+        for si, fingerprint in enumerate(row):
+            if fingerprint is None:
+                continue
+            lookup = fingerprint.at_for_fingerprint
+            for fi, fp in enumerate(fp_sets):
+                atom_mapping[si, fi, ti, : len(fp)] = [lookup.get(at, -1) for at in fp]
+
+    def to_device(array):
+        return torch.tensor(array, dtype=torch.int64, device=pbt.device)
 
     fingerprints = MCFingerprints(
-        atom_mapping=_t(mc_atom_inds_for_rt_for_sampler),
-        sampler_mapping=sampler_inds,
-        max_sampler=_t(max_sampler_for_rt),
-        max_fingerprint=_t(max_fp_for_rt),
+        atom_mapping=to_device(atom_mapping),
+        sampler_mapping=sampler_mapping,
+        source_atom_mapping=to_device(source_indices),
+        source_fingerprint=to_device(source_fp_indices),
     )
-    setattr(pbt, "mc_fingerprints", fingerprints)
+    pbt.mc_fingerprints = fingerprints
+    return store_annotation(pbt, "_mc_packed_annotation", key, fingerprints)

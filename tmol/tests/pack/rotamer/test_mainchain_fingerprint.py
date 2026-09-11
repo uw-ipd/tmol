@@ -226,8 +226,7 @@ def test_merge_fingerprints(default_database):  # noqa: C901
     )
 
     for i, rt_orig in enumerate(pbt.active_block_types):
-        orig_rt_sampler = pbt.mc_fingerprints.max_sampler[i]
-        orig_max_fp = pbt.mc_fingerprints.max_fingerprint[i]
+        orig_max_fp = pbt.mc_fingerprints.source_fingerprint[i]
         orig_mc_ats = which_atoms(rt_orig, rt_orig)
 
         for j, rt_new in enumerate(pbt.active_block_types):
@@ -240,9 +239,7 @@ def test_merge_fingerprints(default_database):  # noqa: C901
             # now the atom mapping:
             # print(rt_new.atom_to_idx)
             for k in range(6):
-                k_orig = pbt.mc_fingerprints.atom_mapping[
-                    orig_rt_sampler, orig_max_fp, i, k
-                ]
+                k_orig = pbt.mc_fingerprints.source_atom_mapping[i, k]
                 k_new = pbt.mc_fingerprints.atom_mapping[
                     new_rt_sampler, orig_max_fp, j, k
                 ]
