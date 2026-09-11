@@ -1012,7 +1012,12 @@ class LKBallPoseScoreDispatch {
                LKBallSingleResData<Real> const& occ_dat,
                LKBallResPairData<Real> const& respair_dat,
                int cp_separation) {
-            lk_ball_atom_derivs_full<TILE_SIZE, MAX_N_WATER>(
+            lk_ball_atom_derivs_full<
+                TILE_SIZE,
+                MAX_N_WATER,
+                Real,
+                Dev,
+                (Dev == tmol::Device::CUDA)>(
                 pol_ind,
                 occ_ind,
                 pol_tile_ind,
