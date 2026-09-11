@@ -766,7 +766,11 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   if (!output_block_pair_energies && use_shared_compact_block_neighbors) {
     score::common::sphere_overlap::
         launch_precomputed_block_neighbors<DeviceDispatch, Dev, launch_t, Int>(
-            mgr, shared_compact_block_neighbors, eval_energies);
+            mgr,
+            shared_compact_block_neighbors,
+            n_poses,
+            max_n_blocks,
+            eval_energies);
   } else if (
       !output_block_pair_energies
       && score::common::sphere_overlap::should_compact_block_neighbors(
@@ -782,7 +786,12 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
           DeviceDispatch,
           Dev,
           launch_t,
-          Int>(mgr, shared_compact_block_neighbors, eval_energies);
+          Int>(
+          mgr,
+          shared_compact_block_neighbors,
+          n_poses,
+          max_n_blocks,
+          eval_energies);
     } else {
       DeviceDispatch<Dev>::template foreach_pose_workgroup<launch_t>(
           mgr, n_poses, max_n_upper_triangle_inds, eval_energies);

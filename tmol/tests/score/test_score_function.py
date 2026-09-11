@@ -79,6 +79,49 @@ def test_shared_block_neighbors_preserve_scores_and_gradients(ubq_pdb, torch_dev
     torch.testing.assert_close(shared_grad, legacy_grad, atol=1e-5, rtol=1e-5)
 
 
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+@pytest.mark.parametrize("reverse_neighbors", [False, True])
+@pytest.mark.parametrize("strided_neighbors", [False, True])
+def test_cpu_compact_neighbors_preserve_pose_accumulation_order(
+    ubq_pdb, request, dtype, reverse_neighbors, strided_neighbors
+):
+    device = torch.device("cpu")
+    short = pose_stack_from_pdb(ubq_pdb, device, residue_end=3)
+    longer = pose_stack_from_pdb(ubq_pdb, device, residue_end=5)
+    pose = PoseStackBuilder.from_poses([short, longer, longer, short], device)
+    scorer = _non_memoized_beta2016(device).render_whole_pose_scoring_module(pose)
+    original_threads = torch.get_num_threads()
+    request.addfinalizer(lambda: torch.set_num_threads(original_threads))
+
+    def evaluate(threads):
+        torch.set_num_threads(threads)
+        coords = pose.coords.to(dtype=dtype).detach().requires_grad_(True)
+        neighbors = scorer._build_shared_block_neighbors(coords)
+        if reverse_neighbors:
+            count = int(neighbors[0])
+            neighbors[1 : count + 1] = neighbors[1 : count + 1].flip(0)
+        if strided_neighbors:
+            storage = neighbors.new_empty(neighbors.numel() * 2)
+            storage[::2] = neighbors
+            neighbors = storage[::2]
+        scores = torch.cat(
+            [
+                term(coords, neighbors)
+                for term in scorer.term_modules
+                if getattr(term, "block_neighbor_cutoff", None) is not None
+            ]
+        )
+        # Distinct signs and zero upstream weights expose writes to another
+        # pose's gradient, including the padded poses at either end.
+        upstream = torch.tensor([0.5, -2.0, 0.0, 3.0], dtype=dtype).expand_as(scores)
+        (gradient,) = torch.autograd.grad(scores, coords, upstream)
+        return scores, gradient
+
+    serial = evaluate(1)
+    parallel = evaluate(4)
+    torch.testing.assert_close(parallel, serial, rtol=0, atol=0)
+
+
 def test_shared_block_neighbors_follow_active_terms(
     ubq_pdb, default_database, torch_device
 ):

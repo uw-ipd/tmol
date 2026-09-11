@@ -834,7 +834,11 @@ auto ljlk_elec_forward_impl(
   } else {
     common::sphere_overlap::
         launch_precomputed_block_neighbors<DeviceOperations, D, launch_t, Int>(
-            mgr, shared_compact_block_neighbors, eval_neighbor);
+            mgr,
+            shared_compact_block_neighbors,
+            n_poses,
+            max_n_blocks,
+            eval_neighbor);
   }
   return {output_t, dV_dcoords_t};
 }

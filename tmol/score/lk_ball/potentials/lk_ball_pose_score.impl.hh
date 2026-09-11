@@ -751,7 +751,8 @@ class LKBallPoseScoreDispatch {
           DeviceDispatch,
           Dev,
           launch_t,
-          Int>(mgr, shared_compact_block_neighbors, eval_all);
+          Int>(
+          mgr, shared_compact_block_neighbors, n_poses, max_n_blocks, eval_all);
     } else if (
         !output_block_pair_energies
         && score::common::sphere_overlap::should_compact_block_neighbors(
@@ -773,7 +774,12 @@ class LKBallPoseScoreDispatch {
           DeviceDispatch,
           Dev,
           launch_t,
-          Int>(mgr, shared_compact_block_neighbors, eval_energies_by_block);
+          Int>(
+          mgr,
+          shared_compact_block_neighbors,
+          n_poses,
+          max_n_blocks,
+          eval_energies_by_block);
     } else {
       launch_lk_ball_pose_pair_workgroups<DeviceDispatch, Dev, launch_t>(
           mgr, n_poses, max_n_blocks, eval_energies_by_block);
@@ -1108,7 +1114,8 @@ class LKBallPoseScoreDispatch {
           DeviceDispatch,
           Dev,
           launch_t,
-          Int>(mgr, compact_block_neighbors, eval_compact);
+          Int>(
+          mgr, compact_block_neighbors, n_poses, max_n_blocks, eval_compact);
       return {dV_d_pose_coords_t, dV_d_water_coords_t};
     }
     int const n_pairs = score::common::checked_triangular_size(
@@ -1134,7 +1141,8 @@ class LKBallPoseScoreDispatch {
           DeviceDispatch,
           Dev,
           launch_t,
-          Int>(mgr, compact_block_neighbors, eval_derivs);
+          Int>(
+          mgr, compact_block_neighbors, n_poses, max_n_blocks, eval_derivs);
     } else {
       launch_lk_ball_pose_pair_workgroups<DeviceDispatch, Dev, launch_t>(
           mgr, n_poses, max_n_blocks, eval_derivs);

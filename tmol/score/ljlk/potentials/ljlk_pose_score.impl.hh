@@ -1072,13 +1072,23 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
           DeviceOperations,
           D,
           launch_t_high_occupancy,
-          Int>(mgr, shared_compact_block_neighbors, eval_energies);
+          Int>(
+          mgr,
+          shared_compact_block_neighbors,
+          n_poses,
+          max_n_blocks,
+          eval_energies);
     } else {
       score::common::sphere_overlap::launch_precomputed_block_neighbors<
           DeviceOperations,
           D,
           launch_t_high_occupancy,
-          Int>(mgr, shared_compact_block_neighbors, eval_energies_by_block);
+          Int>(
+          mgr,
+          shared_compact_block_neighbors,
+          n_poses,
+          max_n_blocks,
+          eval_energies_by_block);
     }
   } else if (output_block_pair_energies) {
     DeviceOperations<D>::template foreach_pose_workgroup<launch_t>(

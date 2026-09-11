@@ -849,11 +849,19 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     if (compute_derivs) {
       score::common::sphere_overlap::
           launch_precomputed_block_neighbors<DeviceDispatch, D, launch_t, Int>(
-              mgr, shared_compact_block_neighbors, eval_energies);
+              mgr,
+              shared_compact_block_neighbors,
+              n_poses,
+              max_n_blocks,
+              eval_energies);
     } else {
       score::common::sphere_overlap::
           launch_precomputed_block_neighbors<DeviceDispatch, D, launch_t, Int>(
-              mgr, shared_compact_block_neighbors, eval_energies_by_block);
+              mgr,
+              shared_compact_block_neighbors,
+              n_poses,
+              max_n_blocks,
+              eval_energies_by_block);
     }
   } else if (
       !output_block_pair_energies
@@ -877,13 +885,23 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
             DeviceDispatch,
             D,
             launch_t,
-            Int>(mgr, shared_compact_block_neighbors, eval_energies);
+            Int>(
+            mgr,
+            shared_compact_block_neighbors,
+            n_poses,
+            max_n_blocks,
+            eval_energies);
       } else {
         score::common::sphere_overlap::launch_precomputed_block_neighbors<
             DeviceDispatch,
             D,
             launch_t,
-            Int>(mgr, shared_compact_block_neighbors, eval_energies_by_block);
+            Int>(
+            mgr,
+            shared_compact_block_neighbors,
+            n_poses,
+            max_n_blocks,
+            eval_energies_by_block);
       }
     } else if (output_block_pair_energies || !compute_derivs) {
       DeviceDispatch<D>::template foreach_pose_workgroup<launch_t>(
