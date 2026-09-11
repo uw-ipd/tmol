@@ -292,6 +292,14 @@ Reproduced on the baseline and initial candidate. Follow-up checks independently
 
 Reproduced in the follow-up branch before the root correction. After correction, the maximum heavy displacement in that diagnostic is 0.0000049 Å. Five modified DNA/RNA fixtures preserve heavy atoms in all offered proton rotamers and actual packing on CPU/CUDA (job 237980). Old score references may encode the damaged geometry and must be reconciled independently.
 
+### 29. P1 — polymer profile caches can reuse a dead database's identity
+
+[tmol/ligand/_polymer_profile.py:169](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/ligand/_polymer_profile.py#L169), and [nucleotide cache at line 1248](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/ligand/_polymer_profile.py#L1248)
+
+> Could these caches validate the live database referent, release entries when it dies, and bound retained profiles? An integer `id(chemdb)` can be reused after collection; a later custom database could then inherit the previous database's cap geometry, atom types and reference fields. The alpha and nucleotide caches also retain every computed profile indefinitely. Please cover separate database instances, expired identities and repeated preparation in a long-running process.
+
+Addressed with one bounded weak-identity cache implementation shared by alpha, nucleotide and rotamer-reference profiles. Real database lifetime, configuration separation, eviction, simulated stale-identity and simultaneous-miss tests pass. All 136 affected preparation/scoring cases pass on CPU/CUDA. A 100-database churn measurement retains zero profile entries instead of 300, with identical profile contents; the small lookup cost is recorded in [FOLLOWUP.md](FOLLOWUP.md).
+
 ## Validation record
 
 See [VALIDATION.md](VALIDATION.md) for the initial review commands, counts, environment, examples, and remaining failures; [FOLLOWUP.md](FOLLOWUP.md) records subsequent fixes and validation. All raw run logs were retained separately under `/mnt/home/kdidi/tmol-pr503-results`. No upstream golden score files were regenerated to make tests pass.

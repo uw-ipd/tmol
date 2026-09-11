@@ -1,0 +1,41 @@
+{
+  "baseline": "09258fbad",
+  "databases": 100,
+  "profiles_per_database": 3,
+  "profiles_equal": true,
+  "measurements": "tracemalloc Python allocations; seven warm 30000-lookup samples",
+  "rows": {
+    "before": {
+      "warm_seconds_per_lookup": [
+        9.761120503147444e-08,
+        9.950740883747736e-08,
+        9.840143223603567e-08,
+        9.986767545342446e-08,
+        9.789733837048213e-08,
+        9.959256276488304e-08,
+        9.793303906917572e-08
+      ],
+      "warm_median": 9.840143223603567e-08,
+      "live_bytes": 1326640,
+      "peak_bytes": 1361972,
+      "retained_bytes": 1153528,
+      "retained_entries": 300
+    },
+    "after": {
+      "warm_seconds_per_lookup": [
+        4.346153388420741e-07,
+        4.367706055442492e-07,
+        4.359346504012744e-07,
+        4.366340736548106e-07,
+        4.3855026985208194e-07,
+        4.345208406448364e-07,
+        4.4557228684425353e-07
+      ],
+      "warm_median": 4.366340736548106e-07,
+      "live_bytes": 469372,
+      "peak_bytes": 513604,
+      "retained_bytes": 3288,
+      "retained_entries": 0
+    }
+  }
+}

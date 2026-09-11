@@ -8,16 +8,14 @@ measured -- including which atom each is measured to, which fixes the value.
 """
 
 import itertools
-import threading
-from collections import OrderedDict
 from typing import Mapping, Optional, Sequence
-import weakref
 
 import attr
 import cattr
 import numpy
 
 from tmol.chemical import RefinedResidueType
+from tmol.utility.weak_identity_cache import WeakIdentityLRU
 
 # every atom is weighted by how far it sits from the sidechain root, halving
 #    per bond: an error at chi1 swings the whole sidechain where one at the far
@@ -638,39 +636,16 @@ def reference_profiles(chemical_database, library_names) -> list:
     return profiles
 
 
-_PROFILE_CACHE = OrderedDict()
-_PROFILE_CACHE_LIMIT = 32
-_PROFILE_CACHE_LOCK = threading.RLock()
+_PROFILE_CACHE = WeakIdentityLRU()
 
 
 def _cached_profiles(chemical_database, library_names) -> list:
-    """Bounded identity cache that does not retain the chemical database.
-
-    ChemicalDatabase is not reliably hashable (its residue records can be
-    mutable), so weak references are values rather than WeakKeyDictionary keys.
-    Verify referent identity as well as id, including in the eviction callback.
-    """
-    key = (id(chemical_database), tuple(sorted(library_names)))
-    with _PROFILE_CACHE_LOCK:
-        entry = _PROFILE_CACHE.get(key)
-        if entry is not None and entry[0]() is chemical_database:
-            _PROFILE_CACHE.move_to_end(key)
-            return entry[1]
-
-    profiles = reference_profiles(chemical_database, library_names)
-
-    def discard(ref):
-        with _PROFILE_CACHE_LOCK:
-            current = _PROFILE_CACHE.get(key)
-            if current is not None and current[0] is ref:
-                del _PROFILE_CACHE[key]
-
-    with _PROFILE_CACHE_LOCK:
-        _PROFILE_CACHE[key] = (weakref.ref(chemical_database, discard), profiles)
-        _PROFILE_CACHE.move_to_end(key)
-        while len(_PROFILE_CACHE) > _PROFILE_CACHE_LIMIT:
-            _PROFILE_CACHE.popitem(last=False)
-    return profiles
+    names = tuple(sorted(library_names))
+    return _PROFILE_CACHE.get_or_create(
+        chemical_database,
+        names,
+        lambda: reference_profiles(chemical_database, names),
+    )
 
 
 def library_chi_count(name, chemical_database, library_names) -> int:

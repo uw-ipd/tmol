@@ -1,0 +1,896 @@
+{
+  "polymer-cache": {
+    "suites": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "130",
+        "time": "112.488",
+        "timestamp": "2026-09-11T12:10:53.233257+00:00",
+        "hostname": "slurm-h200-interactive-244-105"
+      }
+    ],
+    "cases": [
+      {
+        "classname": "tmol.tests.ligand.test_reference_cache_lifetime",
+        "name": "test_cache_uses_identity_and_releases_database",
+        "time": "0.098",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_reference_cache_lifetime",
+        "name": "test_cache_is_bounded_and_evicts_least_recently_used",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_reference_cache_lifetime",
+        "name": "test_polymer_profiles_release_real_database_and_remain_bounded",
+        "time": "1.350",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_reference_cache_lifetime",
+        "name": "test_cache_checks_referent_identity_even_when_integer_key_matches",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_complete_polymer_chemistry",
+        "name": "test_capping_replaces_terminal_hydroxyl_and_preserves_sidechain[BAL]",
+        "time": "1.239",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_complete_polymer_chemistry",
+        "name": "test_capping_replaces_terminal_hydroxyl_and_preserves_sidechain[ASP]",
+        "time": "0.031",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_complete_polymer_chemistry",
+        "name": "test_phosphate_completion_preserves_one_double_bond[OP1]",
+        "time": "0.061",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_complete_polymer_chemistry",
+        "name": "test_phosphate_completion_preserves_one_double_bond[OP2]",
+        "time": "0.008",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_standard_nucleotide_backbone_is_recognized[1MA]",
+        "time": "0.026",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_standard_nucleotide_backbone_is_recognized[3DR]",
+        "time": "0.026",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_standard_nucleotide_backbone_is_recognized[5CM]",
+        "time": "0.026",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_standard_nucleotide_backbone_is_recognized[8OG]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_standard_nucleotide_backbone_is_recognized[A]",
+        "time": "0.025",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_standard_nucleotide_backbone_is_recognized[DA]",
+        "time": "0.025",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_standard_nucleotide_backbone_is_recognized[DT]",
+        "time": "0.026",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_standard_nucleotide_backbone_is_recognized[OMG]",
+        "time": "0.025",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_standard_nucleotide_backbone_is_recognized[PSU]",
+        "time": "0.025",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_standard_nucleotide_backbone_is_recognized[TTD]",
+        "time": "0.025",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_standard_nucleotide_backbone_is_recognized[U]",
+        "time": "0.025",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_fused_dinucleotide_is_not_a_standard_backbone",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_chi_is_measured_the_way_the_tables_were_built[8OG]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_chi_is_measured_the_way_the_tables_were_built[DA]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_chi_is_measured_the_way_the_tables_were_built[DC]",
+        "time": "0.025",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_chi_is_measured_the_way_the_tables_were_built[PSU]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_nucleotide_prepares_from_a_structure[na_dna_5mc_1d17]",
+        "time": "2.686",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_nucleotide_prepares_from_a_structure[na_dna_8og_183d]",
+        "time": "0.470",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_nucleotide_prepares_from_a_structure[na_dna_ttd_1ttd]",
+        "time": "0.576",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_nucleotide_prepares_from_a_structure[na_rna_2ome_310d]",
+        "time": "0.963",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_nucleotide_prepares_from_a_structure[na_rna_psu_1bzt]",
+        "time": "0.509",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_standard_nucleotide_keeps_the_backbone_and_its_torsions[na_dna_5mc_1d17]",
+        "time": "0.454",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_standard_nucleotide_keeps_the_backbone_and_its_torsions[na_rna_psu_1bzt]",
+        "time": "0.455",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_standard_nucleotide_keeps_the_backbone_and_its_torsions[na_rna_2ome_310d]",
+        "time": "0.918",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_standard_nucleotide_keeps_the_backbone_and_its_torsions[na_dna_8og_183d]",
+        "time": "0.473",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_fused_dinucleotide_is_prepared_as_a_ligand",
+        "time": "0.577",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_every_canonical_base_identifies_as_itself",
+        "time": "0.012",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_modified_base_is_scored_on_the_base_it_modifies[na_dna_5mc_1d17-5CM-DC]",
+        "time": "0.456",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_modified_base_is_scored_on_the_base_it_modifies[na_dna_8og_183d-8OG-DG]",
+        "time": "0.468",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_modified_base_is_scored_on_the_base_it_modifies[na_rna_psu_1bzt-PSU-U]",
+        "time": "0.458",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_modified_base_is_scored_on_the_base_it_modifies[na_rna_2ome_310d-OMC-C]",
+        "time": "0.928",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_modified_base_is_scored_on_the_base_it_modifies[na_rna_2ome_310d-OMG-G]",
+        "time": "0.923",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_nucleotide_seen_only_at_a_terminus_gets_its_phosphate_back",
+        "time": "0.467",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_nucleotide_scores[cpu-na_dna_5mc_1d17]",
+        "time": "6.807",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_nucleotide_scores[cpu-na_dna_8og_183d]",
+        "time": "3.145",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_nucleotide_scores[cpu-na_dna_ttd_1ttd]",
+        "time": "3.307",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_nucleotide_scores[cpu-na_rna_2ome_310d]",
+        "time": "3.900",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_nucleotide_scores[cpu-na_rna_psu_1bzt]",
+        "time": "3.781",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_nucleotide_scores[cuda-na_dna_5mc_1d17]",
+        "time": "5.753",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_nucleotide_scores[cuda-na_dna_8og_183d]",
+        "time": "3.527",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_nucleotide_scores[cuda-na_dna_ttd_1ttd]",
+        "time": "3.731",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_nucleotide_scores[cuda-na_rna_2ome_310d]",
+        "time": "4.391",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_a_nucleotide_scores[cuda-na_rna_psu_1bzt]",
+        "time": "3.556",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_every_variant_carries_charges_for_all_of_its_atoms[na_dna_5mc_1d17]",
+        "time": "0.464",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_every_variant_carries_charges_for_all_of_its_atoms[na_dna_8og_183d]",
+        "time": "0.476",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_every_variant_carries_charges_for_all_of_its_atoms[na_dna_ttd_1ttd]",
+        "time": "0.593",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_every_variant_carries_charges_for_all_of_its_atoms[na_rna_2ome_310d]",
+        "time": "0.949",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_every_variant_carries_charges_for_all_of_its_atoms[na_rna_psu_1bzt]",
+        "time": "0.470",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_every_variant_builds_finite_ideal_coordinates[na_dna_5mc_1d17]",
+        "time": "0.483",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_every_variant_builds_finite_ideal_coordinates[na_dna_8og_183d]",
+        "time": "0.495",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_every_variant_builds_finite_ideal_coordinates[na_dna_ttd_1ttd]",
+        "time": "0.625",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_every_variant_builds_finite_ideal_coordinates[na_rna_2ome_310d]",
+        "time": "1.014",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nucleic_acids",
+        "name": "test_every_variant_builds_finite_ideal_coordinates[na_rna_psu_1bzt]",
+        "time": "0.497",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_every_class_is_reachable",
+        "time": "0.185",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_only_an_unmodified_alpha_backbone_matches_the_alpha_profile[AIB]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_only_an_unmodified_alpha_backbone_matches_the_alpha_profile[B3K]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_only_an_unmodified_alpha_backbone_matches_the_alpha_profile[FGA]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_only_an_unmodified_alpha_backbone_matches_the_alpha_profile[HAO]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_only_an_unmodified_alpha_backbone_matches_the_alpha_profile[HYP]",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_only_an_unmodified_alpha_backbone_matches_the_alpha_profile[MLE]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_only_an_unmodified_alpha_backbone_matches_the_alpha_profile[SAR]",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_typing_matches_the_backbone_class[AIB]",
+        "time": "0.229",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_typing_matches_the_backbone_class[B3K]",
+        "time": "0.403",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_typing_matches_the_backbone_class[FGA]",
+        "time": "0.385",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_typing_matches_the_backbone_class[HAO]",
+        "time": "0.372",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_typing_matches_the_backbone_class[HYP]",
+        "time": "0.369",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_typing_matches_the_backbone_class[MLE]",
+        "time": "0.397",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_typing_matches_the_backbone_class[SAR]",
+        "time": "0.278",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_declared_mainchain_is_a_bonded_path[AIB]",
+        "time": "0.277",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_declared_mainchain_is_a_bonded_path[B3K]",
+        "time": "0.406",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_declared_mainchain_is_a_bonded_path[FGA]",
+        "time": "0.386",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_declared_mainchain_is_a_bonded_path[HAO]",
+        "time": "0.365",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_declared_mainchain_is_a_bonded_path[HYP]",
+        "time": "0.367",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_declared_mainchain_is_a_bonded_path[MLE]",
+        "time": "0.396",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_declared_mainchain_is_a_bonded_path[SAR]",
+        "time": "0.291",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_an_alpha_backbone_prepares_to_something_usable[AIB]",
+        "time": "0.276",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_an_alpha_backbone_prepares_to_something_usable[HYP]",
+        "time": "0.359",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_the_amide_nitrogen_rule_separates_proline_from_n_methyl",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_backbone_named_otherwise_is_still_recognized",
+        "time": "0.026",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_backbone_takes_canonical_names_and_keeps_the_input_as_an_alias[renames0]",
+        "time": "0.351",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_backbone_takes_canonical_names_and_keeps_the_input_as_an_alias[renames1]",
+        "time": "0.356",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_backbone_takes_canonical_names_and_keeps_the_input_as_an_alias[renames2]",
+        "time": "0.253",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_backbone_takes_canonical_names_and_keeps_the_input_as_an_alias[renames3]",
+        "time": "0.357",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_canonically_named_backbone_is_not_renamed",
+        "time": "0.347",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_the_input_spelling_resolves_to_the_canonical_atom",
+        "time": "0.373",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_reserved_name_used_for_another_atom_is_refused",
+        "time": "0.003",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_ring_atom_called_cd_needs_no_injected_angle",
+        "time": "0.514",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_ring_atom_called_otherwise_carries_its_own_angle",
+        "time": "0.317",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_ring_atom_named_otherwise_scores_the_same[cpu]",
+        "time": "6.024",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_ring_atom_named_otherwise_scores_the_same[cuda]",
+        "time": "7.025",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_an_injected_residue_gets_charges_for_its_termini",
+        "time": "0.856",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_terminal_residue_finds_its_other_end[ACB]",
+        "time": "0.027",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_terminal_residue_finds_its_other_end[FGA]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_terminal_residue_finds_its_other_end[SAR]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_free_sidechain_acid_does_not_outrank_the_backbone[GLU]",
+        "time": "0.026",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_free_sidechain_acid_does_not_outrank_the_backbone[ASP]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_free_sidechain_acid_does_not_outrank_the_backbone[ASN]",
+        "time": "0.025",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_free_sidechain_acid_does_not_outrank_the_backbone[GLN]",
+        "time": "0.025",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_terminal_residue_is_completed_under_an_unknown_name",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_an_undeterminable_terminal_residue_is_refused",
+        "time": "0.005",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_declaring_both_ends_prepares_what_could_not_be_inferred",
+        "time": "0.414",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_declared_chemistry_completes_an_unresolved_sidechain",
+        "time": "3.309",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_the_component_dictionary_completes_what_the_file_does_not_declare",
+        "time": "3.494",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_dictionary_entry_for_a_different_molecule_is_not_used",
+        "time": "0.052",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_residue_nothing_describes_is_assumed_complete",
+        "time": "0.445",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_nonstandard_backbone_is_found_and_prepared_from_a_structure[beta_peptide_3c3g]",
+        "time": "3.074",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_nonstandard_backbone_is_found_and_prepared_from_a_structure[gamma_peptide_1gac]",
+        "time": "0.415",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_nonstandard_backbone_is_found_and_prepared_from_a_structure[nmethyl_peptide_6mvz]",
+        "time": "0.420",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_nonstandard_backbone_brings_its_own_termini_patches",
+        "time": "0.399",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_an_alpha_backbone_keeps_using_the_database_patches",
+        "time": "0.364",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_generated_patch_avoids_names_the_residue_already_uses",
+        "time": "0.309",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_cap_has_no_termini_variants",
+        "time": "0.331",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_every_variant_carries_charges_for_all_of_its_atoms[nmethyl_peptide_6mvz]",
+        "time": "0.417",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_every_variant_carries_charges_for_all_of_its_atoms[gamma_peptide_1gac]",
+        "time": "0.409",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_every_variant_carries_charges_for_all_of_its_atoms[collagen_hyp_1bkv]",
+        "time": "0.403",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_params_file_carries_the_patches_it_needs",
+        "time": "0.454",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_generated_patch_types_its_atoms_as_a_ligand[MLE]",
+        "time": "0.402",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_generated_patch_types_its_atoms_as_a_ligand[B3K]",
+        "time": "0.410",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_generated_patch_types_its_atoms_as_a_ligand[HAO]",
+        "time": "0.370",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_terminus_is_protonated_by_its_own_chemistry",
+        "time": "0.766",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_terminal_group_is_built_at_the_angle_its_geometry_calls_for",
+        "time": "9.269",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_terminus_that_cannot_be_built_falls_back_to_the_residue",
+        "time": "0.401",
+        "status": "pass"
+      }
+    ]
+  },
+  "polymer-cache-score": {
+    "suites": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "6",
+        "time": "36.744",
+        "timestamp": "2026-09-11T12:14:53.006912+00:00",
+        "hostname": "slurm-h200-interactive-244-105"
+      }
+    ],
+    "cases": [
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_nonstandard_backbone_scores[cpu-beta_peptide_3c3g]",
+        "time": "14.417",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_nonstandard_backbone_scores[cpu-gamma_peptide_1gac]",
+        "time": "3.155",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_nonstandard_backbone_scores[cpu-nmethyl_peptide_6mvz]",
+        "time": "3.238",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_nonstandard_backbone_scores[cuda-beta_peptide_3c3g]",
+        "time": "8.592",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_nonstandard_backbone_scores[cuda-gamma_peptide_1gac]",
+        "time": "3.399",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_nonstandard_backbones",
+        "name": "test_a_nonstandard_backbone_scores[cuda-nmethyl_peptide_6mvz]",
+        "time": "3.422",
+        "status": "pass"
+      }
+    ]
+  },
+  "profile-cache-lifetime": {
+    "suites": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "5",
+        "time": "1.611",
+        "timestamp": "2026-09-11T12:16:45.099691+00:00",
+        "hostname": "slurm-login-0"
+      }
+    ],
+    "cases": [
+      {
+        "classname": "tmol.tests.ligand.test_reference_cache_lifetime",
+        "name": "test_cache_uses_identity_and_releases_database",
+        "time": "0.180",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_reference_cache_lifetime",
+        "name": "test_cache_is_bounded_and_evicts_least_recently_used",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_reference_cache_lifetime",
+        "name": "test_polymer_profiles_release_real_database_and_remain_bounded",
+        "time": "1.078",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_reference_cache_lifetime",
+        "name": "test_cache_checks_referent_identity_even_when_integer_key_matches",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_reference_cache_lifetime",
+        "name": "test_simultaneous_misses_publish_one_cached_value",
+        "time": "0.002",
+        "status": "pass"
+      }
+    ]
+  }
+}

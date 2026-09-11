@@ -18,6 +18,8 @@ import biotite.structure as struc
 from rdkit import Chem
 from rdkit.Chem import rdFMCS
 
+from tmol.utility.weak_identity_cache import WeakIdentityLRU
+
 logger = logging.getLogger(__name__)
 
 
@@ -155,7 +157,7 @@ def _stub_from_icoor(
     )
 
 
-_ALPHA_PROFILE_CACHE: dict = {}
+_POLYMER_PROFILE_CACHE = WeakIdentityLRU()
 
 
 def alpha_profile(chemdb) -> PolymerProfile:
@@ -166,10 +168,9 @@ def alpha_profile(chemdb) -> PolymerProfile:
     geometry are all surveyed from the canonical residues that already carry
     them, so a change to the database reaches this without an edit.
     """
-    key = id(chemdb)
-    if key not in _ALPHA_PROFILE_CACHE:
-        _ALPHA_PROFILE_CACHE[key] = _build_alpha_profile(chemdb)
-    return _ALPHA_PROFILE_CACHE[key]
+    return _POLYMER_PROFILE_CACHE.get_or_create(
+        chemdb, "alpha", lambda: _build_alpha_profile(chemdb)
+    )
 
 
 def _build_alpha_profile(chemdb) -> PolymerProfile:  # noqa: C901
@@ -1256,8 +1257,6 @@ def cap_residue(atom_array, profile: PolymerProfile):
 # nucleic acids
 # --------------------------------------------------------------------------- #
 
-_NA_PROFILE_CACHE: dict = {}
-
 
 def na_profile(chemdb, kind: str) -> Optional[PolymerProfile]:
     """The DNA or RNA profile, read off the database's own nucleotides.
@@ -1268,10 +1267,9 @@ def na_profile(chemdb, kind: str) -> Optional[PolymerProfile]:
     -- everything on the near side of the bond from the sugar to the base --
     so only the base is left to the ligand typer.
     """
-    key = (id(chemdb), kind)
-    if key not in _NA_PROFILE_CACHE:
-        _NA_PROFILE_CACHE[key] = _build_na_profile(chemdb, kind)
-    return _NA_PROFILE_CACHE[key]
+    return _POLYMER_PROFILE_CACHE.get_or_create(
+        chemdb, ("na", kind), lambda: _build_na_profile(chemdb, kind)
+    )
 
 
 def _canonical_na_residues(chemdb, kind):

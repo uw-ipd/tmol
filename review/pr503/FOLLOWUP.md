@@ -14,7 +14,7 @@ historical evidence, not a claim that the follow-up is complete.
 | Group identity and safety (3–7,9) | Real multi-pose/multi-database groups, repeated chi names, jagged/empty counts, early rejection; native parity | Initial fixes exist; integration/property coverage pending |
 | Sampling budgets/caches (8,14,27) | Explicit budget semantics; task propagation; immutable sampler reuse; actual library/extra/proton counts; reproducible HYP count | Explicit task overrides and actual group/library bounds implemented/tested CPU/CUDA; aggregate/default budget policy and adaptive library expansion remain open |
 | Residue identity/completion (10–12,16) | Insertion codes, chain identity, explicit/CCD authority, missing atoms, custom names; realistic scaling | Initial unit fixes exist; broader profiling pending |
-| Content/profile caches (13,20) | No serialization aliases; safe object lifetimes, bounded memory; repeated preparation | Content framing and bounded weak profile cache fixed; identity/lifetime/LRU tests pass; broader cache audit pending |
+| Content/profile caches (13,20,29) | No serialization aliases; safe object lifetimes, bounded memory; repeated preparation | Content framing and shared bounded weak caches fixed for rotamer/alpha/NA profiles; identity/lifetime/LRU/concurrency tests pass; remaining caches still need audit |
 | Group kinematics/performance (15,17) | Profile CPU/GPU; batch invariant work; retain all covalent constraints for tree/cyclic/multiple-anchor topologies | Bounded conformer batches verified/profiled on CPU/CUDA; cyclic/multiple-anchor topology support remains open |
 | Native maintainability (18) | Shared improper enumeration with unchanged canonical scores and independent analytic/numeric derivatives | Shared helper in all four paths; canonical references, numerical gradients, independent Cartesian reference and group packing pass CPU/CUDA (238323, 238529) |
 | Duplicate work (19) | Removal covered by chemistry regression suite | Existing fix; final suite pending |
@@ -191,3 +191,29 @@ exclude persistent input/output tensors and report PyTorch allocated memory,
 not CUDA allocator reservations. See `profile_group_kinematics.py` and
 `results/group-kinematics-chunks-{cpu,cuda}.json`; the initial unbounded-batch
 measurements are retained as `results/group-kinematics-{cpu,cuda}.json`.
+
+### Shared profile cache lifetime
+
+Alpha and nucleotide profiles also used unbounded integer-ID caches. They now
+share the same weak-identity LRU implementation as rotamer-reference profiles,
+with 32 entries per cache, referent checks and expiration callbacks. Cache
+values must not retain their database, and callers must publish a new database
+instead of mutating a cached one. Concurrent misses may compute twice but
+publish one value; this does not make mutation of shared RT/PBT sampler tables
+thread-safe.
+
+The affected alpha/nucleotide preparation and scoring suites pass **136 cases**
+across CPU/CUDA (240300 plus the six separately executed nonstandard-backbone
+score smokes in 240302). These finite-score checks do not resolve the separate
+pinned-score differences tracked above. Five cache tests cover owner identity,
+real ChemicalDatabase collection, LRU bounds, configuration separation,
+simulated stale identities and simultaneous misses.
+
+A 100-database/three-profile churn experiment retains zero profile entries,
+versus 300 previously. Traced Python memory after collection falls from
+1,153,528 to 3,288 bytes; peak traced allocations fall from 1,361,972 to
+513,604 bytes. Alpha/DNA/RNA profile fields match exactly. Seven warm samples
+of 30,000 lookups measure 0.098→0.437 µs per lookup: a small absolute cost for
+lifetime/identity checking, not a lookup speedup. This measures Python cache
+allocation, not process RSS or all ligand preparation memory. See
+`profile_polymer_cache.py` and `results/polymer-cache.json`.
