@@ -1167,11 +1167,14 @@ def resolve_cap_names(profile: PolymerProfile, existing):
     return resolved
 
 
-def cap_residue(atom_array, profile: PolymerProfile):
+def cap_residue(atom_array, profile: PolymerProfile, *, include_coordinates=True):
     """Return (capped heavy-atom AtomArray, cap name mapping).
 
     Hydrogens are dropped: the pipeline derives a SMILES from heavy atoms and the
-    bond table, then re-protonates.
+    bond table, then re-protonates. Source annotations survive for retained
+    atoms; synthetic cap annotations start empty/zero except residue identity.
+    With ``include_coordinates=False``, return all-NaN coordinates without
+    constructing geometric frames, for topology-only parameter generation.
     """
     names = {str(n) for n in atom_array.atom_name}
     missing = sorted(profile.required_atoms() - names)
@@ -1213,43 +1216,66 @@ def cap_residue(atom_array, profile: PolymerProfile):
     kept_indices = numpy.nonzero(keep)[0]
     residue = atom_array[kept_indices]
 
-    pos = {str(n): c for n, c in zip(residue.atom_name, residue.coord)}
-    for cap in profile.caps:
-        frame = [pos[cap_names.get(r, r)] for r in cap.refs]
-        while len(frame) < 3:
-            frame = [synthetic_reference(*frame[:2])] + frame
-        a, b, c = frame
-        pos[cap_names[cap.name]] = place_atom(a, b, c, cap.d, cap.angle, cap.dihedral)
-
     n_residue = residue.array_length()
     out = struc.AtomArray(n_residue + len(profile.caps))
-    out.coord[:n_residue] = residue.coord
-    out.atom_name[:n_residue] = residue.atom_name
-    out.element[:n_residue] = residue.element
+    out.coord[:] = numpy.nan
+    defaults = set(out.get_annotation_categories())
+    for annotation in residue.get_annotation_categories():
+        source = residue.get_annotation(annotation)
+        if (
+            annotation in defaults
+            and out.get_annotation(annotation).dtype == source.dtype
+        ):
+            values = out.get_annotation(annotation)
+        else:
+            values = numpy.zeros(len(out), dtype=source.dtype)
+            out.set_annotation(annotation, values)
+        values[:n_residue] = source
+    # Cap names can be longer than the input's atom-name column.
+    width = max(len(n) for n in (*names, *cap_names.values()))
+    if out.atom_name.dtype.kind != "U" or out.atom_name.dtype.itemsize < 4 * width:
+        out.set_annotation("atom_name", out.atom_name.astype(f"U{width}"))
+    if include_coordinates:
+        pos = {str(n): c for n, c in zip(residue.atom_name, residue.coord)}
+        for cap in profile.caps:
+            frame = [pos[cap_names.get(r, r)] for r in cap.refs]
+            while len(frame) < 3:
+                frame = [synthetic_reference(*frame[:2])] + frame
+            a, b, c = frame
+            pos[cap_names[cap.name]] = place_atom(
+                a, b, c, cap.d, cap.angle, cap.dihedral
+            )
+        out.coord[:n_residue] = residue.coord
     for offset, cap in enumerate(profile.caps):
-        out.coord[n_residue + offset] = pos[cap_names[cap.name]]
+        if include_coordinates:
+            out.coord[n_residue + offset] = pos[cap_names[cap.name]]
         out.atom_name[n_residue + offset] = cap_names[cap.name]
         out.element[n_residue + offset] = cap.element
-    for field in ("res_name", "chain_id", "res_id", "hetero"):
+    for field in ("res_name", "chain_id", "res_id", "hetero", "ins_code"):
         if field in atom_array.get_annotation_categories():
             value = getattr(atom_array, field)[0]
-            getattr(out, field)[:] = value
+            getattr(out, field)[n_residue:] = value
 
-    remap = {int(old): new for new, old in enumerate(kept_indices)}
-    bonds = struc.BondList(out.array_length())
-    if atom_array.bonds is not None:
-        for i, j, bond_type in atom_array.bonds.as_array():
-            if i in remap and j in remap:
-                bonds.add_bond(remap[i], remap[j], bond_type)
+    remap = numpy.full(len(atom_array), -1, dtype=numpy.int64)
+    remap[kept_indices] = numpy.arange(n_residue)
+    source_bonds = atom_array.bonds.as_array()
+    endpoints = remap[source_bonds[:, :2]]
+    retained = (endpoints >= 0).all(axis=1)
+    bonds = numpy.column_stack((endpoints[retained], source_bonds[retained, 2]))
     index = {str(n): i for i, n in enumerate(out.atom_name)}
     order = {"SINGLE": struc.BondType.SINGLE, "DOUBLE": struc.BondType.DOUBLE}
-    for cap in profile.caps:
-        bonds.add_bond(
-            index[cap_names[cap.name]],
-            index[cap_names.get(cap.bond_to, cap.bond_to)],
-            order[cap.bond_order],
-        )
-    out.bonds = bonds
+    cap_bonds = numpy.asarray(
+        [
+            (
+                index[cap_names[cap.name]],
+                index[cap_names.get(cap.bond_to, cap.bond_to)],
+                order[cap.bond_order],
+            )
+            for cap in profile.caps
+        ],
+        dtype=numpy.int64,
+    ).reshape(-1, 3)
+    out.bonds = struc.BondList(len(out), numpy.concatenate((bonds, cap_bonds)))
     return out, cap_names
 
 

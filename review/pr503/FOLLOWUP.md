@@ -775,3 +775,78 @@ incompatible chemistry sharing names, broader sampling budgets, AtomWorks
 reader/rule-profile contracts, cache lifetime and full workflow/release gates
 remain open. The new variant and persistence support are prerequisites, not a
 claim that those default chemical failures are fixed.
+
+## Complete capped conjugate models, with source annotations retained
+
+This goal turn made progress from `b723e88c7`. The automatic parameter generator
+now has a private, tested chemical-model builder, `tmol.ligand._conjugate_model`.
+It consumes explicit bonds and a prepared chemical database, cuts ordinary
+up/down polymer connections, and uses the existing polymer cap profiles to
+model the remaining connected covalent groups. It retains every attachment in
+a group, including unanchored groups and groups with more than one polymer
+anchor. Source atom and residue-instance indices are retained separately from
+atom names; synthetic cap atoms have source index −1. Unknown residue
+definitions, duplicate atom names within an instance, or caps that remove an
+attachment atom raise explicitly. The builder is not yet called by the default
+preparation pipeline and does not install energy parameters.
+
+The underlying capping code used to discard source annotations and construct
+coordinates even when only chemical topology was needed. It now retains the
+annotations of surviving source atoms, including formal charges, chemistry
+tags and insertion codes; synthetic cap fields start empty/zero except residue
+identity. Cap names are widened as needed. `include_coordinates=False` skips
+frame construction and gives all-NaN coordinates. Bond remapping is batched,
+default annotation buffers are reused, and new group construction filters
+cross-residue bonds in NumPy before Python classification. Group links are
+indexed by residue so collecting many independent groups does not rescan all
+links for every group. No new global cache or duplicate molecule converter is
+introduced.
+
+Model tests cover all **15 source attachment links** in the three fixtures
+(biotin 1, N-glycan 8 including its free disaccharide, O-glycan 6), as well as
+duplicated inputs. Retained atom annotations and declared bond orders agree
+with the original input; protonation retains a complete heavy-atom map, every
+group is one connected molecule, and MMFF supplies each connection bond and
+its adjacent angles. Distorted coordinates and all-NaN inputs produce identical
+models/SMILES. The capped biotin model is neutral, unlike the artificial free
+backbone ammonium in the earlier uncapped diagnostic. This is a parameter-model
+charge, not a claim that every terminal form of the actual pose is neutral.
+
+A constructed two-anchor case attaches a second lysine to biotin C10 while
+retaining the original C11 amide. Both lysine instances survive in the same
+model: the acylated nitrogen has one hydrogen and formal charge zero; the
+alkylated nitrogen has two hydrogens and formal charge +1 at the tested pH.
+Their MMFF atom types differ despite sharing a residue name. This is a useful
+regression input for the remaining context-sensitive patch/parameter generator;
+the current default preparation does not yet distinguish these contexts.
+
+`profile_capping.py` compares identical residues/profiles with the previous
+source implementation loaded separately. Before timing, it verifies identical
+coordinates, bonds and common annotations; the old output is missing `charge`
+and the added source chemistry tag. Seven alternating-order sets of 100 calls
+on HYP/MLE/B3K/FGA give **2.46–2.64×** topology-only speedups. Coordinate-producing
+calls cost **7–13% more** (approximately 20–33 µs per call here) to retain their
+annotations. Raw pairs are in `results/capping-profile.json`. This does not
+measure full preparation, molecule conversion, or end-to-end scoring speed.
+
+Validation: **77 CPU passes, four skips** for capping identity and the existing
+nonstandard-backbone suite. Slurm **248818: 104 passes, two skips, exit 0:0**
+includes cap/group chemistry checks plus CPU/CUDA backbone and conjugate
+roundtrip tests. Final focused CPU checks after buffer reuse and cross-bond
+filtering have **16 passes, two skips**. Counts overlap and the graph/capping
+tests themselves are CPU chemistry tests even when run inside a GPU job.
+Final container/CUDA roundtrips are recorded in `results/capped-model-tests.json`.
+Slurm **248821: 32 passes, two skips, exit 0:0** verifies the final capping and
+model changes together with CPU/CUDA conjugate roundtrips.
+Review drafts now have **44 inline comments and 12 general questions**.
+
+**Next action:** consume these capped models to derive atom identities,
+hydrogen counts, local typing/charge updates and harmonic connection records;
+map generated hydrogens by their bonded parent and validate counts against
+the actual patched types. Keep terminal variants and repeated residue contexts
+separate, and carry the resulting records through the already validated bundle
+and scoring paths. The original **14 anchored links still lack default
+generated length/angle energies**. Acylation corrections, three-block angles,
+fragment projection, name-context conflicts, sampling budgets, AtomWorks
+reader/rule-profile contracts, cache lifetime and full workflow/release gates
+remain open. No whole-force-field or scientific-fit validation is claimed.

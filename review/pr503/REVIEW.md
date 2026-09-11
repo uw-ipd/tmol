@@ -421,6 +421,14 @@ Reproduced on CPU and CUDA by [diagnose_acylated_lysine.py](diagnose_acylated_ly
 
 The follow-up adds isolated, exact-variant `CartRes` replacements and their `.tmol` persistence as the mechanism for local corrections. Eight before-fix CPU checks show that exact variant rows were ignored; independent whole-pose, weighted block-pair, rotamer and biotin bundle score/gradient checks now pass on CPU/CUDA. **Automatic chemistry-derived local parameters, typing/charge updates and ownership remain unresolved.** Synthetic replacement tests establish the mechanism, not a fitted amide model.
 
+### 44. P2 — polymer capping discards source atom annotations
+
+[tmol/ligand/_polymer_profile.py:1201](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/ligand/_polymer_profile.py#L1201)
+
+> Can retained atoms keep their input annotations when caps are added? Rebuilding an AtomArray here copies only coordinates, names, elements and four residue fields. Formal charges, source chemistry tags and insertion codes disappear before the molecule converter sees them. Synthetic caps can have empty annotations without discarding the metadata on real atoms. Please also preserve long cap names rather than truncating them to the default atom-name column width.
+
+Fixed on the follow-up. The baseline comparison confirms that `charge` and a source chemistry annotation disappear. Retained annotations now survive, cap annotations start empty/zero except residue identity, and long names remain intact. Coordinates and bonds match the baseline on the shared fields in four backbone examples. A topology-only option avoids geometric frame construction and produces all-NaN coordinates; it is used by the new private capped-conjugate model builder. Seven alternating-order sets of 100 calls measure **2.46–2.64×** faster topology-only capping, while coordinate-producing calls are **7–13% slower** because they now retain the annotations (about 20–33 µs per call in this run). These are cap-construction timings, not full preparation speedups. See [profile_capping.py](profile_capping.py) and [results/capping-profile.json](results/capping-profile.json).
+
 ## Validation record
 
 See [VALIDATION.md](VALIDATION.md) for the initial review commands, counts, environment, examples, and remaining failures; [FOLLOWUP.md](FOLLOWUP.md) records subsequent fixes and validation. All raw run logs were retained separately under `/mnt/home/kdidi/tmol-pr503-results`. No upstream golden score files were regenerated to make tests pass.

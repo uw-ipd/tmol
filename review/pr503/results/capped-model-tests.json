@@ -1,0 +1,53 @@
+{
+  "baseline": "b723e88c746c728183c66ba9d00091d0bad658cb",
+  "runs": [
+    {
+      "name": "CPU cap identity plus existing backbone regressions",
+      "passed": 77,
+      "skipped": 4,
+      "seconds": 62.3,
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/cap-backbone-cpu.log"
+    },
+    {
+      "name": "Broader container checks including CPU/CUDA backbone and conjugate roundtrips",
+      "slurm": 248818,
+      "passed": 104,
+      "skipped": 2,
+      "seconds": 125.25,
+      "state": "COMPLETED",
+      "exit_code": "0:0",
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/capped-conjugates-248818.log"
+    },
+    {
+      "name": "Final CPU cap and group-model checks",
+      "passed": 16,
+      "skipped": 2,
+      "seconds": 8.81,
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/capped-models-final-cpu.log"
+    },
+    {
+      "name": "Final container cap/group-model and CPU/CUDA roundtrip checks",
+      "slurm": 248821,
+      "passed": 32,
+      "skipped": 2,
+      "seconds": 50.86,
+      "state": "COMPLETED",
+      "exit_code": "0:0",
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/capped-models-final-248821.log"
+    }
+  ],
+  "source_sha256": {
+    "tmol/ligand/_polymer_profile.py": "8a41f3de28f963d96c070fc34295ca78687717005c6d2fb6d7c77f6e6174665f",
+    "tmol/ligand/_conjugate_model.py": "decf9597141501c6536e9f0da5eeec66f44fe6a3ab82b431a78ec7cfaff4f424",
+    "tmol/tests/ligand/test_cap_identity.py": "c1106ac541dbfd8f6ed88d2fb84b59b5acbd05e11070e4e1903ac03f4e63da46",
+    "tmol/tests/ligand/test_conjugate_model.py": "63d30721fbe2d8dc6cef329e8c46a753428c81cddc0fcb65e84b9111817d5972"
+  },
+  "notes": [
+    "Runs overlap and must not be summed as unique tests.",
+    "Group/capping chemistry tests use CPU inside either environment. Device-dependent backbone and roundtrip tests exercise CPU/CUDA.",
+    "All 15 source fixture attachment bonds and their adjacent angles have MMFF coverage in complete capped models, including the unanchored disaccharide.",
+    "Constructed dual-lysine-anchor model distinguishes neutral amide N with one hydrogen from charged alkylated N with two hydrogens.",
+    "Distorted/all-NaN input coordinates preserve model topology and mapped SMILES.",
+    "The model builder is not yet used by default preparation and does not install generated energy parameters."
+  ]
+}
