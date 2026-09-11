@@ -163,15 +163,14 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
                      ? TPack<Vec<Real, 3>, 2, D>::zeros({3, n_atoms})
                      : TPack<Vec<Real, 3>, 2, D>::empty({3, 0});
 
-  // The derivative-enabled CUDA kernel fully writes every scratch element it
-  // consumes.  Skip separate initialization launches there, while retaining
-  // the established CPU and inference allocation paths.
+  // Both CUDA modes fully write every scratch element they consume.
+  // Keep CPU initialization while avoiding separate CUDA memset launches.
   auto dihedral_atom_inds_t =
-      D == Device::CPU || !accumulate_derivs
+      D == Device::CPU
           ? TPack<Vec<Int, DIH_N_ATOMS>, 2, D>::zeros({n_rots, max_n_dih})
           : TPack<Vec<Int, DIH_N_ATOMS>, 2, D>::empty({n_rots, max_n_dih});
   auto dihedral_atom_inds = dihedral_atom_inds_t.view;
-  auto dihedral_values_t = D == Device::CPU || !accumulate_derivs
+  auto dihedral_values_t = D == Device::CPU
                                ? TPack<Real, 2, D>::zeros({n_rots, max_n_dih})
                                : TPack<Real, 2, D>::empty({n_rots, max_n_dih});
   auto dihedral_values = dihedral_values_t.view;
@@ -184,15 +183,13 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   auto dihedral_deriv = dihedral_deriv_t.view;
 
   auto rotameric_rottable_assignment_t =
-      D == Device::CPU || !accumulate_derivs
-          ? TPack<Int, 1, D>::zeros({n_rots})
-          : TPack<Int, 1, D>::empty({n_rots});
+      D == Device::CPU ? TPack<Int, 1, D>::zeros({n_rots})
+                       : TPack<Int, 1, D>::empty({n_rots});
   auto rotameric_rottable_assignment = rotameric_rottable_assignment_t.view;
 
   auto semirotameric_rottable_assignment_t =
-      D == Device::CPU || !accumulate_derivs
-          ? TPack<Int, 1, D>::zeros({n_rots})
-          : TPack<Int, 1, D>::empty({n_rots});
+      D == Device::CPU ? TPack<Int, 1, D>::zeros({n_rots})
+                       : TPack<Int, 1, D>::empty({n_rots});
   auto semirotameric_rottable_assignment =
       semirotameric_rottable_assignment_t.view;
 
