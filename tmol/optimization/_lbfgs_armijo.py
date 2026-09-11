@@ -722,8 +722,8 @@ class LBFGS_Armijo(Optimizer):
                 # No history: use steepest descent direction
                 d.copy_(flat_grad).neg_()
             else:
-                # Create views old -> new
-                if ctx.history_count < ctx.history_size:
+                # A partial or unwrapped buffer is already in chronological order.
+                if ctx.history_start == 0:
                     old_dirs_view = ctx.old_dirs_mat[: ctx.history_count]
                     old_stps_view = ctx.old_stps_mat[: ctx.history_count]
                 else:
