@@ -41,9 +41,19 @@ before allocating rotamer mappings and chi tensors. Required oversized products
 currently raise; Dunbrack extra-chi settings and NA glycosidic/proton products
 are not yet adaptively reduced together.
 
-These are per-sampler/per-restype bounds (or a group's sum across members), not
-a bound on a whole task's sum across residue types and samplers, including
-IncludeCurrent/Fallback. They also do not directly bound quadratic pair-energy
-memory. Default policy, aggregate budgeting and extreme integer-overflow limits
-remain tracked in `FOLLOWUP.md`. Tests cover sequential reuse; concurrent
-mutation of shared RT/PBT annotations is not supported by these cache checks.
+With an explicit task budget, the combined count at each physical residue must
+also fit `max(expanded_limit, limit)`, summing all allowed residue types and all
+samplers, including IncludeCurrent/Fallback. This shared check runs before
+merging source rows or allocating conformer coordinates. Oversized required
+unions raise with the pose/block/count; states are not silently discarded.
+Separate poses and residue positions have separate limits. Sampler defaults
+continue to apply when no explicit task budget is set.
+
+This aggregate check occurs after samplers have created their private source
+rows, so it is not a bound on temporary sampling workspace. It is also not a
+bound on the task's total across positions or quadratic pair-energy memory.
+Default policy, adaptive library expansion and extreme native integer-overflow
+limits remain tracked in `FOLLOWUP.md`. The merge itself counts in int64 and
+rejects totals exceeding native int32 indexing. Tests cover sequential reuse;
+concurrent mutation of shared RT/PBT annotations is not supported by these
+cache checks.

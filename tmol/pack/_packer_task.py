@@ -348,6 +348,8 @@ class PackerTask:
         Groups count one rotamer per member per conformer, including current.
         A required library that cannot fit is rejected before the group product
         is allocated. Sampler-specific defaults apply until this setter is used.
+        The combined count across samplers and allowed types at each physical
+        residue must also fit the larger limit before rows/coordinates merge.
         """
         import operator
 

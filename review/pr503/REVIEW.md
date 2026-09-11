@@ -145,7 +145,7 @@ Reproduced. Fixed with an N+1 prefix map and explicit negative-sentinel handling
 
 > Where are these values propagated to the samplers? `SetPackerTask.from_packer_task()` does not copy them, and the samplers read their own default fields. Setting a smaller task budget currently has no consumer. Please test a material reduction in generated rotamers after calling this method, including setting it before and after adding samplers.
 
-Reproduced and addressed: explicit limits survive task conversion; private NA/OptH sampler views avoid mutating reusable caller objects; actual group-library cardinality and native Dunbrack count checks enforce bounds before final sample allocation. CPU/CUDA tests cover setting limits before/after adding samplers and repeated reuse. Aggregate/default budget policy remains open; see [BUDGETS.md](BUDGETS.md).
+Reproduced and addressed: explicit limits survive task conversion; private NA/OptH sampler views avoid mutating reusable caller objects; actual group-library cardinality and native Dunbrack count checks enforce bounds before final sample allocation. CPU/CUDA tests cover setting limits before/after adding samplers and repeated reuse. The shared merge path also checks the combined count across all samplers and allowed types at each physical residue, including current/fallback rows. This closes per-residue aggregate enforcement for explicit limits; default policy, adaptive source-library workspace and whole-task/pair-memory limits remain open. See [BUDGETS.md](BUDGETS.md).
 
 ### 9. P1 — group-tree cache aliases unrelated type tables
 

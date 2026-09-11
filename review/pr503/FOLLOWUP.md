@@ -1702,3 +1702,80 @@ counts overlap earlier runs. Source/log hashes, case names and terminal
 accounting are in
 [results/hbond-point-validation.json](results/hbond-point-validation.json).
 Black, Flake8 and whitespace checks pass.
+
+## Combined sampling budgets and linear rotamer merging
+
+Explicit budgets now also cover the combined conformer count at each physical
+residue, summing every sampler and allowed residue type, including input and
+fallback rows. Two real-task regressions reproduce the gap: two input samplers,
+and design between ALA/GLY. Each source fits a one-state limit independently,
+but their union does not. The check rejects that union before row merging or
+coordinate allocation and identifies the pose, block and count. A larger limit
+builds finite coordinates; a jagged two-pose test checks that residues and poses
+have independent limits. Required states are not silently discarded. Default
+sampler behavior is unchanged when no explicit task budget is supplied.
+
+The merge now places rows using prefix offsets instead of sorting a global
+rotamer key, sorting again for uniqueness, and reconstructing inverse mappings
+with `nonzero`. Its output order remains considered type, then sampler, then
+original row. Direct destination indices also provide the inverse mapping used
+to copy each sampler's degrees of freedom. Mixed int32/int64 source indices,
+zero-count types, empty samplers and an empty considered-type axis are supported.
+An independent record-enumeration oracle checks every output and source payload.
+
+The ordering contract is validated before indexed writes: source IDs must be
+monotonic and match both endpoints of every nonempty count interval. Together,
+those conditions require every source row to have its declared type. Negative
+counts, mismatched lengths and native-index-capacity violations are rejected.
+A further regression checks four int64 counts of `2**62`, whose sum wraps to zero:
+the original sort-based implementation also accepts the resulting invalid empty
+plan. Validating each count against the available rows closes that edge case.
+The merge no longer changes global Torch print options.
+
+The combined-budget check runs after individual samplers have allocated their
+private source rows. It does not bound that temporary workspace, total states
+across the entire task, or quadratic pair-energy memory. Default/adaptive
+library policy and overflow in native sampler products before the merge remain
+open; [BUDGETS.md](BUDGETS.md) distinguishes those requirements explicitly.
+
+Final paired benchmarks include count-range and source-order validation. Five
+alternating warm rounds, with five samples per round, compare the exact previous
+function from `9d49606e0` against the prefix implementation. Every returned count,
+index, mask and inverse mapping matches exactly, including mixed index dtypes.
+
+| Merged rows | CPU old → new | CUDA old → new | CUDA peak allocated tensors old → new |
+| ---: | ---: | ---: | ---: |
+| 360 | 0.192 → 0.195 ms | 0.654 → 0.614 ms | 32,256 → 21,504 bytes |
+| 48,318 | 2.920 → 0.877 ms | 0.812 → 0.631 ms | 3,658,240 → 1,538,048 bytes |
+| 1,548,739 | 100.564 → 14.524 ms | 1.059 → 0.654 ms | 116,422,144 → 46,385,152 bytes |
+
+The large merge is **6.92× faster on CPU / 1.62× on CUDA**, with about **60% less
+peak allocated CUDA tensor storage**. Tiny merges have no meaningful performance
+change. These measurements cover only merging; input creation, chemical
+preparation, source sampling, coordinates, scoring and parity verification are
+outside timing. CUDA peaks are measured above held inputs using the Torch
+allocator, not reserved memory or process RSS. CPU memory is not measured.
+
+An independent count-only probe also confirms three unresolved native Dunbrack
+cases before the merge: an expansion product of `2**32` becomes zero, a
+library/expansion product of `3 * 2**30` becomes negative, and four valid counts
+of `2**30` wrap the total to zero and produce negative offsets. The probe uses
+small count tables and never allocates those enormous rotamer arrays. This is
+evidence for the next native-arithmetic fix, not a claim that merge validation
+already protects that earlier stage.
+
+Final Slurm **249542** completed **0:0** in **5:00**, with **275 passes and no
+skips** across merge validation, task budgets, rotamer construction, covalent
+groups, real packing and nucleotide sampling on CPU/CUDA. The final focused CPU
+run gives **28 passes / 27 CUDA skips**. Earlier versions pass 263 tests in job
+249474 and 273 in job 249516, before the final count-range check; those runs and
+intermediate regression failures are retained as evidence, not additional unique
+coverage. The final job moved from the congested interactive partition to
+`hpc-mid` while pending, with a revised request of four task CPUs and 32 GB;
+Slurm accounting reports eight allocated CPUs and 5,529,640 KiB peak host RSS.
+
+Source hashes, exact case inventories, paired profiles, intermediate source
+snapshots, native count-probe results and terminal scheduler accounting are in
+[results/sample-merge-validation.json](results/sample-merge-validation.json).
+Black, Flake8 and whitespace checks pass. The upstream head is still
+`0593a93b07d80b0302383163d2d98c78e315ab98`.

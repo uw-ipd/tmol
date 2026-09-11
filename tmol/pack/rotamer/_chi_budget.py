@@ -51,6 +51,30 @@ def checked_sample_count(counts, expanded_limit, limit):
     return total
 
 
+def check_task_sample_budget(task, samples):
+    """Bound each physical residue's combined sampler/type rows before merging."""
+    budget = getattr(task, "chi_sample_budget", None)
+    if budget is None:
+        return
+    import torch
+
+    n_poses, n_blocks = task.per_block_orig_block_type.shape
+    if n_poses * n_blocks == 0:
+        return
+    counts = torch.stack([sample[0].to(torch.int64) for sample in samples]).sum(dim=0)
+    per_block = torch.zeros(n_poses * n_blocks, dtype=torch.int64, device=counts.device)
+    per_block.index_add_(0, task.cons_bt_pose * n_blocks + task.cons_bt_block, counts)
+    largest, index = per_block.max(dim=0)
+    largest, index = torch.stack((largest, index)).tolist()
+    maximum = max(budget)
+    if largest > maximum:
+        raise ValueError(
+            f"Sampling budget {maximum} cannot fit {largest} combined rotamers "
+            f"at pose {index // n_blocks} block {index % n_blocks} "
+            "across samplers and allowed residue types"
+        )
+
+
 def n_conformers(samples, expanded: bool) -> int:
     """How many conformers a set of sampled chi enumerates."""
     total = 1
