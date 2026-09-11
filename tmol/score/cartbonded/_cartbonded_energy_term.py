@@ -236,6 +236,14 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         block_type.cartbonded_annotations[self.hash] = cb_block_ann
 
     def _parameter_name(self, block_type):
+        if block_type.is_ligand_fragment:
+            records = self.cart_database.residue_params
+            # Fragment preparations carry the source ligand's complete
+            # CartRes. Equal records must share its namespace so paths across
+            # a cut still resolve to the original ligand parameters. This
+            # also covers separately deserialized copies of those records.
+            if records.get(block_type.name) == records.get(block_type.base_name):
+                return block_type.base_name
         return (
             block_type.name
             if block_type.name in self.cart_database.residue_params

@@ -1,7 +1,9 @@
 # Fixed-input noncanonical scoring replay
 
 These are diagnostic inputs, not replacement score goldens. The original
-`tmol/tests/data/noncanonical_scores.yaml` remains unchanged.
+`tmol/tests/data/noncanonical_scores.yaml` was unchanged when this bundle was
+recorded. The later upstream commit `0f4c3bc42` updates that YAML; this bundle
+remains the original fixed input/parameter/score record for comparison.
 
 The four `.tmol` files use tmol's existing parameter export, including generated
 residues, patches and scoring records. Each NPZ stores exact pose coordinates,

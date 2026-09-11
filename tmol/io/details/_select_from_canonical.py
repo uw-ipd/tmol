@@ -1200,6 +1200,7 @@ def _apply_conjugated_variants(
     _annotate_packed_block_types_w_conjugations(pbt)
 
     names_for_class = canonical_ordering.restypes_ordered_atom_names
+    bonds = covalent_bonds64.cpu().tolist()
 
     def atom_name(bt_ind, canonical_atom):
         equiv = pbt.active_block_types[bt_ind].io_equiv_class
@@ -1207,7 +1208,7 @@ def _apply_conjugated_variants(
 
     # the sites each residue is attached at, from the bonds themselves
     sites = {}
-    for pose_ind, res1, atom1, res2, atom2 in covalent_bonds64.cpu().tolist():
+    for pose_ind, res1, atom1, res2, atom2 in bonds:
         for res, atom in ((res1, atom1), (res2, atom2)):
             bt_ind = int(block_type_ind64[pose_ind, res])
             if bt_ind < 0:
@@ -1216,7 +1217,15 @@ def _apply_conjugated_variants(
 
     for (pose_ind, res), atoms in sites.items():
         bt_ind = int(block_type_ind64[pose_ind, res])
-        base = pbt.active_block_types[bt_ind].name
+        bt = pbt.active_block_types[bt_ind]
+        # Explicitly constructed types, including ligand fragments, may
+        # already declare the requested site. Keep the caller's bond between
+        # these block instances; equal component names do not make it a cut
+        # bond handled elsewhere. Fragment expansion removes exact cut bonds.
+        atoms = atoms - {connection.atom for connection in bt.connections}
+        if not atoms:
+            continue
+        base = bt.name
         key = (base, frozenset(atoms))
         conjugated = pbt.conjugated_bt_for_base_and_atoms.get(key)
         if conjugated is None:
@@ -1228,7 +1237,7 @@ def _apply_conjugated_variants(
         block_type_ind64[pose_ind, res] = conjugated
 
     connections = []
-    for pose_ind, res1, atom1, res2, atom2 in covalent_bonds64.cpu().tolist():
+    for pose_ind, res1, atom1, res2, atom2 in bonds:
         resolved = []
         for res, atom in ((res1, atom1), (res2, atom2)):
             bt = pbt.active_block_types[int(block_type_ind64[pose_ind, res])]

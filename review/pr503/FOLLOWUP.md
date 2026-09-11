@@ -1150,3 +1150,126 @@ evidence; do not accept a changed expected score as scientific validation.
 Then resume the local chemical parameter/default integration and all broader
 completion gates above. No automatic goal completion is implied by this
 intermediate checkpoint.
+
+## Reconciliation of upstream `0f4c3bc42`
+
+The new six-file delta has now been inspected and reconciled. Its fold-forest
+error ordering correctly reports malformed indices/cycles before secondary
+unrooted starts. The scan-order tests now pass the five required connection
+tensors. Its two fold-forest expectation changes and HYP count of 18 agree
+with our earlier corrections; the branch retains its explicit conformer seed.
+The upstream golden YAML is included as upstream history, without regenerating
+values on this branch or treating changed expectations as validation.
+
+The new fragment selection code has two reproduced problems. Loading its
+complete selection module into the branch's prepared-fixture environment
+gives **three CPU failures**: explicit bonds between repeated fragment types
+return no connections, and either order of two alternative fragment states
+retains only the first candidate. `joins_one_component()` compares component
+base names without source-instance identity. Its candidate fallback mutates
+the same lists it uses to decide whether a class already has candidates.
+`check_upstream_selection.py` reproduces these failures and returns pytest's
+failure status. It is an isolated-module comparison, not a pristine upstream
+import. The separate unmodified `tmol-pr503-updated-baseline` worktree remains
+at `0f4c3bc42`; file inventory confirms the cyclic-search module is still absent.
+
+Reconciliation keeps our existing explicit `is_ligand_fragment` predicate and
+removes exact cut bonds during fragment expansion, where original component
+instances are known. It accepts the new behavior for already-declared
+connection sites without dropping the caller's bonds. Public canonical pose
+construction now checks three explicit links across a jagged two-pose batch,
+including crossed instances of repeated fragment types, and verifies the
+complete bidirectional connection tensors. Both alternative fragment states
+remain candidates in either order. The bond list is copied to the host once.
+
+The initial CPU selection/fold/scan run has **23 passes and 14 skips**; public
+fragment construction has **three passes and three skips**. The initial broader
+Slurm **248877** run has **133 passes and two failures**, exit **1:0**, pytest
+258.41 seconds. The two failures are the same ACE whole-versus-fragment gradient
+check on CPU and CUDA. They exposed a regression in our earlier exact-variant
+CartRes implementation, described below; the new upstream selection checks,
+cap tests, HYP count and scan/fold tests pass.
+
+### Fragment namespaces and cross-cut bonded terms
+
+The gradient discrepancy is not merely float32 accumulation. Per-term probes
+with identical ligand coordinates give a largest double-precision cart-angle
+gradient difference of **0.0031391** and cart-length difference **0.0003216**.
+Other double-precision ligand term gradients agree to roughly `2e-15`.
+The full weighted-gradient check first notices a difference around 0.00165,
+although the equilibrium structure's total energy comparisons pass.
+
+Our earlier exact-name CartRes lookup assigned separate namespaces to
+`LG1.1` and `LG1.2`, even though both preparations carry the source `LG1`'s
+complete, identical records. A cut path then combined IDs from two namespaces
+and failed to match its original source row. The fix reuses the base namespace
+for a fragment whose complete record equals the source record. Equality also
+covers independently deserialized copies; deliberately different exact records
+retain the separate-namespace behavior. This removes redundant atom-ID overrides
+for ordinary fragments while restoring the original bond and angle parameters.
+
+Two new CPU regressions displace one whole fragment by `(0.23, −0.11, 0.17)` Å,
+with identical coordinates in the unsplit ligand. Before the fix both fail;
+the missing angle energy alone differs by **3.99097 kcal/mol**. After the fix,
+whole/split energies and aligned coordinate gradients agree within `1e-7`,
+for both shared and independently copied source records. Existing exact
+terminal-variant and biotin bundle overrides remain tested. The combined CPU
+checks have **15 passes and 13 skips**. No tolerance was widened.
+
+On the complete original ACE fixture, the fixed largest per-term ligand
+gradient difference is **9.54e−7 in float32** and **1.78e−15 in float64** on CPU.
+See `diagnose_fragment_gradients.py` and
+`results/fragment-gradient-{cpu,cuda,fixed-cpu,fixed-cuda}.json`.
+This fixes the common source-record alias case; intentional fragment-specific
+parameter changes still need explicit ownership/projection for cross-cut terms.
+That broader fragment/custom-chemistry gate remains open.
+
+### Updated score references and fixed-input evidence
+
+Slurm **248878** exercises the updated upstream YAML: **eight failures and
+two passes**, exit **1:0**, pytest 79.07 seconds. All four regenerated chemistry
+classes differ from those references on container CPU and CUDA. Standalone CPU
+has **two failures, three passes and five skips** (40.00 seconds): DNA and beta
+peptide differ, while HYP and TTD match. These remain recorded failures.
+
+The updated beta-peptide LJ reference falls from about 663 to 122, close to
+the previously observed 121–122 range, but its full generated parameter inputs
+and environment are still not supplied by that commit. The DNA reference
+retains the earlier heavy-atom OptH displacement: its cart-length score is
+about 253.6 versus approximately 10.9–11.3 after our independently tested
+heavy-atom-preservation fix. Refreshing that number alone would hide the cause.
+
+Replaying the committed `.tmol` records and exact saved coordinates reproduces
+all **192 standalone CPU term scores bit-for-bit**. All **192 CUDA comparisons**
+remain within the existing test tolerance; the largest difference is
+**0.00263548** in HYP omega. The replay asserts complete atom identity before
+installing coordinates. Slurm **248886** completes the initial gradient
+diagnostic and CUDA replay, exit **0:0**, elapsed **0:58**. These are numerical
+checks for fixed inputs, not proof that regenerated chemical parameters agree
+across environments or that the force field has been independently fitted.
+See `results/upstream-reconcile-replay-comparison.json` and the unchanged
+`fixtures/noncanonical-score-replay/` input bundle.
+
+The updated inventory has **214 files**, recorded separately in
+`upstream-files-0f4c3bc42.tsv`; the original 213-file inventory and all original
+line anchors remain intact. Review drafts now contain **48 inline comments and
+13 general questions**, with the two new comments anchored to `0f4c3bc42`.
+Default local chemistry integration, complete sampling-budget semantics,
+cache-lifetime/scaling, shared AtomWorks rule/reader contracts and release
+validation remain active requirements.
+
+Final Slurm **248891** completes **161 CPU/CUDA tests with no failures or
+skips**, followed by CUDA fixed-input replay and the corrected gradient
+diagnostic: **COMPLETED, exit 0:0, elapsed 5:35** (pytest 265.65 seconds).
+The fixed CUDA per-term ligand-gradient differences are at most **9.54e−7**
+in float32 and **3.56e−15** in float64. The original whole-versus-fragment
+gradient assertions pass unchanged. Detailed before/after runs and final
+source hashes are in `results/upstream-reconciliation-tests.json`.
+
+PR head was rechecked and remains `0f4c3bc42`. This reconciliation includes
+that commit as an ancestor rather than maintaining a detached copy of its
+changes. The next implementation priority is again the consistent capped
+local chemistry model and default integration, with the unresolved
+fragment-specific cross-cut ownership issue carried alongside it. The broader
+goal remains active; passing this targeted reconciliation suite is not a
+release-completion claim.

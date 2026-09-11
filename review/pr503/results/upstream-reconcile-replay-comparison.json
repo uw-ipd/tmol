@@ -1,0 +1,3091 @@
+{
+  "scope": "Fixed exported parameters and exact coordinates; replay asserts full atom identity. Existing test tolerance abs=1e-2,rel=1e-4. Not generated-chemistry parity or independent fitting.",
+  "devices": [
+    {
+      "device": "cpu",
+      "count": 192,
+      "maximum_error": 0.0,
+      "rows": [
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "fa_ljatr",
+          "expected": -39.00383758544922,
+          "actual": -39.00383758544922,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "fa_ljrep",
+          "expected": 25.563232421875,
+          "actual": 25.563232421875,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "fa_lk",
+          "expected": 32.70353317260742,
+          "actual": 32.70353317260742,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "fa_elec",
+          "expected": 1.440407156944275,
+          "actual": 1.440407156944275,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "hbond",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "cart_lengths",
+          "expected": 5.124112606048584,
+          "actual": 5.124112606048584,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "cart_angles",
+          "expected": 67.89120483398438,
+          "actual": 67.89120483398438,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "cart_torsions",
+          "expected": 0.5149940252304077,
+          "actual": 0.5149940252304077,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "cart_impropers",
+          "expected": 0.5457887649536133,
+          "actual": 0.5457887649536133,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "cart_hxltorsions",
+          "expected": 5.039809226989746,
+          "actual": 5.039809226989746,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "disulfide",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "rama",
+          "expected": -17.302490234375,
+          "actual": -17.302490234375,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "omega",
+          "expected": -2.3495023250579834,
+          "actual": -2.3495023250579834,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "dunbrack_rot",
+          "expected": 9.1878662109375,
+          "actual": 9.1878662109375,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "dunbrack_rotdev",
+          "expected": 19.24623680114746,
+          "actual": 19.24623680114746,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "dunbrack_semirot",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "lk_ball_iso",
+          "expected": 40.474945068359375,
+          "actual": 40.474945068359375,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "lk_ball",
+          "expected": 10.744058609008789,
+          "actual": 10.744058609008789,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "lk_bridge",
+          "expected": 0.041228488087654114,
+          "actual": 0.041228488087654114,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "lk_bridge_uncpl",
+          "expected": 0.7590119242668152,
+          "actual": 0.7590119242668152,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "ref",
+          "expected": -14.895784378051758,
+          "actual": -14.895784378051758,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "gen_torsions",
+          "expected": -1.035997748374939,
+          "actual": -1.035997748374939,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "na_torsion",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "na_torsion_well",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "fa_ljatr",
+          "expected": -38.99140167236328,
+          "actual": -38.99140167236328,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "fa_ljrep",
+          "expected": 25.744041442871094,
+          "actual": 25.744041442871094,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "fa_lk",
+          "expected": 32.703529357910156,
+          "actual": 32.703529357910156,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "fa_elec",
+          "expected": 1.5479462146759033,
+          "actual": 1.5479462146759033,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "hbond",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "cart_lengths",
+          "expected": 5.124349594116211,
+          "actual": 5.124349594116211,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "cart_angles",
+          "expected": 67.89129638671875,
+          "actual": 67.89129638671875,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "cart_torsions",
+          "expected": 0.3117542862892151,
+          "actual": 0.3117542862892151,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "cart_impropers",
+          "expected": 0.5457580089569092,
+          "actual": 0.5457580089569092,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "cart_hxltorsions",
+          "expected": 2.3008742332458496,
+          "actual": 2.3008742332458496,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "disulfide",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "rama",
+          "expected": -17.302499771118164,
+          "actual": -17.302499771118164,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "omega",
+          "expected": -2.3484952449798584,
+          "actual": -2.3484952449798584,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "dunbrack_rot",
+          "expected": 9.187865257263184,
+          "actual": 9.187865257263184,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "dunbrack_rotdev",
+          "expected": 19.246280670166016,
+          "actual": 19.246280670166016,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "dunbrack_semirot",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "lk_ball_iso",
+          "expected": 40.474937438964844,
+          "actual": 40.474937438964844,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "lk_ball",
+          "expected": 10.694096565246582,
+          "actual": 10.694096565246582,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "lk_bridge",
+          "expected": 0.009243857115507126,
+          "actual": 0.009243857115507126,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "lk_bridge_uncpl",
+          "expected": 0.19023483991622925,
+          "actual": 0.19023483991622925,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "ref",
+          "expected": -14.895784378051758,
+          "actual": -14.895784378051758,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "gen_torsions",
+          "expected": -1.479101538658142,
+          "actual": -1.479101538658142,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "na_torsion",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "na_torsion_well",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "fa_ljatr",
+          "expected": -197.2432861328125,
+          "actual": -197.2432861328125,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "fa_ljrep",
+          "expected": 122.34365844726562,
+          "actual": 122.34365844726562,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "fa_lk",
+          "expected": 157.63978576660156,
+          "actual": 157.63978576660156,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "fa_elec",
+          "expected": -61.1767578125,
+          "actual": -61.1767578125,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "hbond",
+          "expected": -28.13156509399414,
+          "actual": -28.13156509399414,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "cart_lengths",
+          "expected": 247.56582641601562,
+          "actual": 247.56582641601562,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "cart_angles",
+          "expected": 51.101585388183594,
+          "actual": 51.101585388183594,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "cart_torsions",
+          "expected": 3.7980453968048096,
+          "actual": 3.7980453968048096,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "cart_impropers",
+          "expected": 6.925457000732422,
+          "actual": 6.925457000732422,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "cart_hxltorsions",
+          "expected": 1.3346577882766724,
+          "actual": 1.3346577882766724,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "disulfide",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "rama",
+          "expected": 5.81434965133667,
+          "actual": 5.81434965133667,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "omega",
+          "expected": 4.502179145812988,
+          "actual": 4.502179145812988,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "dunbrack_rot",
+          "expected": 22.718629837036133,
+          "actual": 22.718629837036133,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "dunbrack_rotdev",
+          "expected": 24.38249969482422,
+          "actual": 24.38249969482422,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "dunbrack_semirot",
+          "expected": 19.450366973876953,
+          "actual": 19.450366973876953,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "lk_ball_iso",
+          "expected": 184.5955352783203,
+          "actual": 184.5955352783203,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "lk_ball",
+          "expected": 75.46586608886719,
+          "actual": 75.46586608886719,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "lk_bridge",
+          "expected": 0.06382226943969727,
+          "actual": 0.06382226943969727,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "lk_bridge_uncpl",
+          "expected": 0.7948567867279053,
+          "actual": 0.7948567867279053,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "ref",
+          "expected": -5.80405330657959,
+          "actual": -5.80405330657959,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "gen_torsions",
+          "expected": 44.77052688598633,
+          "actual": 44.77052688598633,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "na_torsion",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "na_torsion_well",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "fa_ljatr",
+          "expected": -197.25564575195312,
+          "actual": -197.25564575195312,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "fa_ljrep",
+          "expected": 122.34370422363281,
+          "actual": 122.34370422363281,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "fa_lk",
+          "expected": 157.63978576660156,
+          "actual": 157.63978576660156,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "fa_elec",
+          "expected": -61.197410583496094,
+          "actual": -61.197410583496094,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "hbond",
+          "expected": -28.13156509399414,
+          "actual": -28.13156509399414,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "cart_lengths",
+          "expected": 247.56581115722656,
+          "actual": 247.56581115722656,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "cart_angles",
+          "expected": 51.10158157348633,
+          "actual": 51.10158157348633,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "cart_torsions",
+          "expected": 3.4131271839141846,
+          "actual": 3.4131271839141846,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "cart_impropers",
+          "expected": 6.925457000732422,
+          "actual": 6.925457000732422,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "cart_hxltorsions",
+          "expected": 0.7169773578643799,
+          "actual": 0.7169773578643799,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "disulfide",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "rama",
+          "expected": 5.81434965133667,
+          "actual": 5.81434965133667,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "omega",
+          "expected": 4.502179145812988,
+          "actual": 4.502179145812988,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "dunbrack_rot",
+          "expected": 22.718629837036133,
+          "actual": 22.718629837036133,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "dunbrack_rotdev",
+          "expected": 24.38249969482422,
+          "actual": 24.38249969482422,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "dunbrack_semirot",
+          "expected": 19.450366973876953,
+          "actual": 19.450366973876953,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "lk_ball_iso",
+          "expected": 184.5955352783203,
+          "actual": 184.5955352783203,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "lk_ball",
+          "expected": 75.3444595336914,
+          "actual": 75.3444595336914,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "lk_bridge",
+          "expected": 0.06382226943969727,
+          "actual": 0.06382226943969727,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "lk_bridge_uncpl",
+          "expected": 0.7948567867279053,
+          "actual": 0.7948567867279053,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "ref",
+          "expected": -5.80405330657959,
+          "actual": -5.80405330657959,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "gen_torsions",
+          "expected": 44.77052688598633,
+          "actual": 44.77052688598633,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "na_torsion",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "na_torsion_well",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "fa_ljatr",
+          "expected": -48.97913360595703,
+          "actual": -48.97913360595703,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "fa_ljrep",
+          "expected": 44.29155731201172,
+          "actual": 44.29155731201172,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "fa_lk",
+          "expected": 10.134069442749023,
+          "actual": 10.134069442749023,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "fa_elec",
+          "expected": 0.4342484176158905,
+          "actual": 0.4342484176158905,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "hbond",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "cart_lengths",
+          "expected": 10.861820220947266,
+          "actual": 10.861820220947266,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "cart_angles",
+          "expected": 41.92369079589844,
+          "actual": 41.92369079589844,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "cart_torsions",
+          "expected": 12.219131469726562,
+          "actual": 12.219131469726562,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "cart_impropers",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "cart_hxltorsions",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "disulfide",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "rama",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "omega",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "dunbrack_rot",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "dunbrack_rotdev",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "dunbrack_semirot",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "lk_ball_iso",
+          "expected": 11.10242748260498,
+          "actual": 11.10242748260498,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "lk_ball",
+          "expected": -1.0111877918243408,
+          "actual": -1.0111877918243408,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "lk_bridge",
+          "expected": 0.02508804015815258,
+          "actual": 0.02508804015815258,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "lk_bridge_uncpl",
+          "expected": 0.5630515813827515,
+          "actual": 0.5630515813827515,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "ref",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "gen_torsions",
+          "expected": 4.521371364593506,
+          "actual": 4.521371364593506,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "na_torsion",
+          "expected": 233.18289184570312,
+          "actual": 233.18289184570312,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "na_torsion_well",
+          "expected": 38.35997772216797,
+          "actual": 38.35997772216797,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "fa_ljatr",
+          "expected": -48.994876861572266,
+          "actual": -48.994876861572266,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "fa_ljrep",
+          "expected": 44.291770935058594,
+          "actual": 44.291770935058594,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "fa_lk",
+          "expected": 10.134056091308594,
+          "actual": 10.134056091308594,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "fa_elec",
+          "expected": -0.1618329882621765,
+          "actual": -0.1618329882621765,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "hbond",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "cart_lengths",
+          "expected": 10.861780166625977,
+          "actual": 10.861780166625977,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "cart_angles",
+          "expected": 41.92372131347656,
+          "actual": 41.92372131347656,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "cart_torsions",
+          "expected": 12.219149589538574,
+          "actual": 12.219149589538574,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "cart_impropers",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "cart_hxltorsions",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "disulfide",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "rama",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "omega",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "dunbrack_rot",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "dunbrack_rotdev",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "dunbrack_semirot",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "lk_ball_iso",
+          "expected": 11.102417945861816,
+          "actual": 11.102417945861816,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "lk_ball",
+          "expected": -1.0111815929412842,
+          "actual": -1.0111815929412842,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "lk_bridge",
+          "expected": 0.02508818916976452,
+          "actual": 0.02508818916976452,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "lk_bridge_uncpl",
+          "expected": 0.5630526542663574,
+          "actual": 0.5630526542663574,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "ref",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "gen_torsions",
+          "expected": 4.521373748779297,
+          "actual": 4.521373748779297,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "na_torsion",
+          "expected": 233.18310546875,
+          "actual": 233.18310546875,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "na_torsion_well",
+          "expected": 38.35997772216797,
+          "actual": 38.35997772216797,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "fa_ljatr",
+          "expected": -129.66355895996094,
+          "actual": -129.66355895996094,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "fa_ljrep",
+          "expected": 123.85820770263672,
+          "actual": 123.85820770263672,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "fa_lk",
+          "expected": 50.625308990478516,
+          "actual": 50.625308990478516,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "fa_elec",
+          "expected": -6.689560413360596,
+          "actual": -6.689560413360596,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "hbond",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "cart_lengths",
+          "expected": 43.18159103393555,
+          "actual": 43.18159103393555,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "cart_angles",
+          "expected": 102.82372283935547,
+          "actual": 102.82372283935547,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "cart_torsions",
+          "expected": 12.910895347595215,
+          "actual": 12.910895347595215,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "cart_impropers",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "cart_hxltorsions",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "disulfide",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "rama",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "omega",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "dunbrack_rot",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "dunbrack_rotdev",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "dunbrack_semirot",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "lk_ball_iso",
+          "expected": 55.436580657958984,
+          "actual": 55.436580657958984,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "lk_ball",
+          "expected": 0.5202683210372925,
+          "actual": 0.5202683210372925,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "lk_bridge",
+          "expected": 0.06700582057237625,
+          "actual": 0.06700582057237625,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "lk_bridge_uncpl",
+          "expected": 1.4723947048187256,
+          "actual": 1.4723947048187256,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "ref",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "gen_torsions",
+          "expected": 40.212425231933594,
+          "actual": 40.212425231933594,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "na_torsion",
+          "expected": 31.47650909423828,
+          "actual": 31.47650909423828,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "na_torsion_well",
+          "expected": 4.7034807205200195,
+          "actual": 4.7034807205200195,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "fa_ljatr",
+          "expected": -129.57371520996094,
+          "actual": -129.57371520996094,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "fa_ljrep",
+          "expected": 123.85774993896484,
+          "actual": 123.85774993896484,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "fa_lk",
+          "expected": 50.62531661987305,
+          "actual": 50.62531661987305,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "fa_elec",
+          "expected": -7.382784843444824,
+          "actual": -7.382784843444824,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "hbond",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "cart_lengths",
+          "expected": 43.1817512512207,
+          "actual": 43.1817512512207,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "cart_angles",
+          "expected": 102.82363891601562,
+          "actual": 102.82363891601562,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "cart_torsions",
+          "expected": 12.91088581085205,
+          "actual": 12.91088581085205,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "cart_impropers",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "cart_hxltorsions",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "disulfide",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "rama",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "omega",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "dunbrack_rot",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "dunbrack_rotdev",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "dunbrack_semirot",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "lk_ball_iso",
+          "expected": 55.436580657958984,
+          "actual": 55.436580657958984,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "lk_ball",
+          "expected": 0.5202667713165283,
+          "actual": 0.5202667713165283,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "lk_bridge",
+          "expected": 0.06700596213340759,
+          "actual": 0.06700596213340759,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "lk_bridge_uncpl",
+          "expected": 1.4723953008651733,
+          "actual": 1.4723953008651733,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "ref",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "gen_torsions",
+          "expected": 40.21244812011719,
+          "actual": 40.21244812011719,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "na_torsion",
+          "expected": 31.47652816772461,
+          "actual": 31.47652816772461,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "na_torsion_well",
+          "expected": 4.703482151031494,
+          "actual": 4.703482151031494,
+          "error": 0.0
+        }
+      ]
+    },
+    {
+      "device": "cuda",
+      "count": 192,
+      "maximum_error": 0.002635478973388672,
+      "rows": [
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "fa_ljatr",
+          "expected": -39.00383758544922,
+          "actual": -39.00383758544922,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "fa_ljrep",
+          "expected": 25.563232421875,
+          "actual": 25.563230514526367,
+          "error": 1.9073486328125e-06
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "fa_lk",
+          "expected": 32.70353317260742,
+          "actual": 32.70353317260742,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "fa_elec",
+          "expected": 1.440407156944275,
+          "actual": 1.4403986930847168,
+          "error": 8.463859558105469e-06
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "hbond",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "cart_lengths",
+          "expected": 5.124112606048584,
+          "actual": 5.124110221862793,
+          "error": 2.384185791015625e-06
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "cart_angles",
+          "expected": 67.89120483398438,
+          "actual": 67.8912124633789,
+          "error": 7.62939453125e-06
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "cart_torsions",
+          "expected": 0.5149940252304077,
+          "actual": 0.5150015950202942,
+          "error": 7.569789886474609e-06
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "cart_impropers",
+          "expected": 0.5457887649536133,
+          "actual": 0.5457763671875,
+          "error": 1.239776611328125e-05
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "cart_hxltorsions",
+          "expected": 5.039809226989746,
+          "actual": 5.039809226989746,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "disulfide",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "rama",
+          "expected": -17.302490234375,
+          "actual": -17.302486419677734,
+          "error": 3.814697265625e-06
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "omega",
+          "expected": -2.3495023250579834,
+          "actual": -2.352137804031372,
+          "error": 0.002635478973388672
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "dunbrack_rot",
+          "expected": 9.1878662109375,
+          "actual": 9.1878662109375,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "dunbrack_rotdev",
+          "expected": 19.24623680114746,
+          "actual": 19.246225357055664,
+          "error": 1.1444091796875e-05
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "dunbrack_semirot",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "lk_ball_iso",
+          "expected": 40.474945068359375,
+          "actual": 40.47494888305664,
+          "error": 3.814697265625e-06
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "lk_ball",
+          "expected": 10.744058609008789,
+          "actual": 10.744056701660156,
+          "error": 1.9073486328125e-06
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "lk_bridge",
+          "expected": 0.041228488087654114,
+          "actual": 0.0412285178899765,
+          "error": 2.9802322387695312e-08
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "lk_bridge_uncpl",
+          "expected": 0.7590119242668152,
+          "actual": 0.7590124607086182,
+          "error": 5.364418029785156e-07
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "ref",
+          "expected": -14.895784378051758,
+          "actual": -14.895784378051758,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "gen_torsions",
+          "expected": -1.035997748374939,
+          "actual": -1.0359982252120972,
+          "error": 4.76837158203125e-07
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "na_torsion",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": false,
+          "term": "na_torsion_well",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "fa_ljatr",
+          "expected": -38.99140167236328,
+          "actual": -38.99140167236328,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "fa_ljrep",
+          "expected": 25.744041442871094,
+          "actual": 25.744041442871094,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "fa_lk",
+          "expected": 32.703529357910156,
+          "actual": 32.70352554321289,
+          "error": 3.814697265625e-06
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "fa_elec",
+          "expected": 1.5479462146759033,
+          "actual": 1.5479427576065063,
+          "error": 3.4570693969726562e-06
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "hbond",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "cart_lengths",
+          "expected": 5.124349594116211,
+          "actual": 5.124345779418945,
+          "error": 3.814697265625e-06
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "cart_angles",
+          "expected": 67.89129638671875,
+          "actual": 67.89129638671875,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "cart_torsions",
+          "expected": 0.3117542862892151,
+          "actual": 0.31177663803100586,
+          "error": 2.2351741790771484e-05
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "cart_impropers",
+          "expected": 0.5457580089569092,
+          "actual": 0.5457533001899719,
+          "error": 4.708766937255859e-06
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "cart_hxltorsions",
+          "expected": 2.3008742332458496,
+          "actual": 2.3008742332458496,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "disulfide",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "rama",
+          "expected": -17.302499771118164,
+          "actual": -17.30249786376953,
+          "error": 1.9073486328125e-06
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "omega",
+          "expected": -2.3484952449798584,
+          "actual": -2.350062370300293,
+          "error": 0.0015671253204345703
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "dunbrack_rot",
+          "expected": 9.187865257263184,
+          "actual": 9.187865257263184,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "dunbrack_rotdev",
+          "expected": 19.246280670166016,
+          "actual": 19.24629020690918,
+          "error": 9.5367431640625e-06
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "dunbrack_semirot",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "lk_ball_iso",
+          "expected": 40.474937438964844,
+          "actual": 40.47493362426758,
+          "error": 3.814697265625e-06
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "lk_ball",
+          "expected": 10.694096565246582,
+          "actual": 10.694096565246582,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "lk_bridge",
+          "expected": 0.009243857115507126,
+          "actual": 0.009243865497410297,
+          "error": 8.381903171539307e-09
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "lk_bridge_uncpl",
+          "expected": 0.19023483991622925,
+          "actual": 0.1902349889278412,
+          "error": 1.4901161193847656e-07
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "ref",
+          "expected": -14.895784378051758,
+          "actual": -14.895784378051758,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "gen_torsions",
+          "expected": -1.479101538658142,
+          "actual": -1.4791016578674316,
+          "error": 1.1920928955078125e-07
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "na_torsion",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "alpha_aa",
+          "opt_h": true,
+          "term": "na_torsion_well",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "fa_ljatr",
+          "expected": -197.2432861328125,
+          "actual": -197.24331665039062,
+          "error": 3.0517578125e-05
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "fa_ljrep",
+          "expected": 122.34365844726562,
+          "actual": 122.34366607666016,
+          "error": 7.62939453125e-06
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "fa_lk",
+          "expected": 157.63978576660156,
+          "actual": 157.6397705078125,
+          "error": 1.52587890625e-05
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "fa_elec",
+          "expected": -61.1767578125,
+          "actual": -61.1767692565918,
+          "error": 1.1444091796875e-05
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "hbond",
+          "expected": -28.13156509399414,
+          "actual": -28.13157081604004,
+          "error": 5.7220458984375e-06
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "cart_lengths",
+          "expected": 247.56582641601562,
+          "actual": 247.56582641601562,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "cart_angles",
+          "expected": 51.101585388183594,
+          "actual": 51.101600646972656,
+          "error": 1.52587890625e-05
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "cart_torsions",
+          "expected": 3.7980453968048096,
+          "actual": 3.7980031967163086,
+          "error": 4.220008850097656e-05
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "cart_impropers",
+          "expected": 6.925457000732422,
+          "actual": 6.925472736358643,
+          "error": 1.5735626220703125e-05
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "cart_hxltorsions",
+          "expected": 1.3346577882766724,
+          "actual": 1.3346577882766724,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "disulfide",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "rama",
+          "expected": 5.81434965133667,
+          "actual": 5.8143510818481445,
+          "error": 1.430511474609375e-06
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "omega",
+          "expected": 4.502179145812988,
+          "actual": 4.502093315124512,
+          "error": 8.58306884765625e-05
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "dunbrack_rot",
+          "expected": 22.718629837036133,
+          "actual": 22.718626022338867,
+          "error": 3.814697265625e-06
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "dunbrack_rotdev",
+          "expected": 24.38249969482422,
+          "actual": 24.382474899291992,
+          "error": 2.47955322265625e-05
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "dunbrack_semirot",
+          "expected": 19.450366973876953,
+          "actual": 19.450366973876953,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "lk_ball_iso",
+          "expected": 184.5955352783203,
+          "actual": 184.59556579589844,
+          "error": 3.0517578125e-05
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "lk_ball",
+          "expected": 75.46586608886719,
+          "actual": 75.46588134765625,
+          "error": 1.52587890625e-05
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "lk_bridge",
+          "expected": 0.06382226943969727,
+          "actual": 0.06382226198911667,
+          "error": 7.450580596923828e-09
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "lk_bridge_uncpl",
+          "expected": 0.7948567867279053,
+          "actual": 0.7948567867279053,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "ref",
+          "expected": -5.80405330657959,
+          "actual": -5.804053783416748,
+          "error": 4.76837158203125e-07
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "gen_torsions",
+          "expected": 44.77052688598633,
+          "actual": 44.77052307128906,
+          "error": 3.814697265625e-06
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "na_torsion",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": false,
+          "term": "na_torsion_well",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "fa_ljatr",
+          "expected": -197.25564575195312,
+          "actual": -197.2556915283203,
+          "error": 4.57763671875e-05
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "fa_ljrep",
+          "expected": 122.34370422363281,
+          "actual": 122.34371948242188,
+          "error": 1.52587890625e-05
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "fa_lk",
+          "expected": 157.63978576660156,
+          "actual": 157.63978576660156,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "fa_elec",
+          "expected": -61.197410583496094,
+          "actual": -61.19743728637695,
+          "error": 2.6702880859375e-05
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "hbond",
+          "expected": -28.13156509399414,
+          "actual": -28.131572723388672,
+          "error": 7.62939453125e-06
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "cart_lengths",
+          "expected": 247.56581115722656,
+          "actual": 247.56581115722656,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "cart_angles",
+          "expected": 51.10158157348633,
+          "actual": 51.101600646972656,
+          "error": 1.9073486328125e-05
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "cart_torsions",
+          "expected": 3.4131271839141846,
+          "actual": 3.4130852222442627,
+          "error": 4.1961669921875e-05
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "cart_impropers",
+          "expected": 6.925457000732422,
+          "actual": 6.925472736358643,
+          "error": 1.5735626220703125e-05
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "cart_hxltorsions",
+          "expected": 0.7169773578643799,
+          "actual": 0.7169773578643799,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "disulfide",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "rama",
+          "expected": 5.81434965133667,
+          "actual": 5.8143510818481445,
+          "error": 1.430511474609375e-06
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "omega",
+          "expected": 4.502179145812988,
+          "actual": 4.502093315124512,
+          "error": 8.58306884765625e-05
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "dunbrack_rot",
+          "expected": 22.718629837036133,
+          "actual": 22.718626022338867,
+          "error": 3.814697265625e-06
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "dunbrack_rotdev",
+          "expected": 24.38249969482422,
+          "actual": 24.382474899291992,
+          "error": 2.47955322265625e-05
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "dunbrack_semirot",
+          "expected": 19.450366973876953,
+          "actual": 19.450366973876953,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "lk_ball_iso",
+          "expected": 184.5955352783203,
+          "actual": 184.59556579589844,
+          "error": 3.0517578125e-05
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "lk_ball",
+          "expected": 75.3444595336914,
+          "actual": 75.344482421875,
+          "error": 2.288818359375e-05
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "lk_bridge",
+          "expected": 0.06382226943969727,
+          "actual": 0.06382226198911667,
+          "error": 7.450580596923828e-09
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "lk_bridge_uncpl",
+          "expected": 0.7948567867279053,
+          "actual": 0.7948567867279053,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "ref",
+          "expected": -5.80405330657959,
+          "actual": -5.804053783416748,
+          "error": 4.76837158203125e-07
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "gen_torsions",
+          "expected": 44.77052688598633,
+          "actual": 44.77052307128906,
+          "error": 3.814697265625e-06
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "na_torsion",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "opt_h": true,
+          "term": "na_torsion_well",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "fa_ljatr",
+          "expected": -48.97913360595703,
+          "actual": -48.9791259765625,
+          "error": 7.62939453125e-06
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "fa_ljrep",
+          "expected": 44.29155731201172,
+          "actual": 44.29155731201172,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "fa_lk",
+          "expected": 10.134069442749023,
+          "actual": 10.134068489074707,
+          "error": 9.5367431640625e-07
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "fa_elec",
+          "expected": 0.4342484176158905,
+          "actual": 0.43424463272094727,
+          "error": 3.7848949432373047e-06
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "hbond",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "cart_lengths",
+          "expected": 10.861820220947266,
+          "actual": 10.861818313598633,
+          "error": 1.9073486328125e-06
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "cart_angles",
+          "expected": 41.92369079589844,
+          "actual": 41.923709869384766,
+          "error": 1.9073486328125e-05
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "cart_torsions",
+          "expected": 12.219131469726562,
+          "actual": 12.21915054321289,
+          "error": 1.9073486328125e-05
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "cart_impropers",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "cart_hxltorsions",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "disulfide",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "rama",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "omega",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "dunbrack_rot",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "dunbrack_rotdev",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "dunbrack_semirot",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "lk_ball_iso",
+          "expected": 11.10242748260498,
+          "actual": 11.102426528930664,
+          "error": 9.5367431640625e-07
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "lk_ball",
+          "expected": -1.0111877918243408,
+          "actual": -1.01118803024292,
+          "error": 2.384185791015625e-07
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "lk_bridge",
+          "expected": 0.02508804015815258,
+          "actual": 0.02508801594376564,
+          "error": 2.421438694000244e-08
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "lk_bridge_uncpl",
+          "expected": 0.5630515813827515,
+          "actual": 0.5630521178245544,
+          "error": 5.364418029785156e-07
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "ref",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "gen_torsions",
+          "expected": 4.521371364593506,
+          "actual": 4.521366596221924,
+          "error": 4.76837158203125e-06
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "na_torsion",
+          "expected": 233.18289184570312,
+          "actual": 233.18289184570312,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": false,
+          "term": "na_torsion_well",
+          "expected": 38.35997772216797,
+          "actual": 38.35997772216797,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "fa_ljatr",
+          "expected": -48.994876861572266,
+          "actual": -48.994873046875,
+          "error": 3.814697265625e-06
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "fa_ljrep",
+          "expected": 44.291770935058594,
+          "actual": 44.291770935058594,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "fa_lk",
+          "expected": 10.134056091308594,
+          "actual": 10.134056091308594,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "fa_elec",
+          "expected": -0.1618329882621765,
+          "actual": -0.16183531284332275,
+          "error": 2.3245811462402344e-06
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "hbond",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "cart_lengths",
+          "expected": 10.861780166625977,
+          "actual": 10.861781120300293,
+          "error": 9.5367431640625e-07
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "cart_angles",
+          "expected": 41.92372131347656,
+          "actual": 41.923744201660156,
+          "error": 2.288818359375e-05
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "cart_torsions",
+          "expected": 12.219149589538574,
+          "actual": 12.21915054321289,
+          "error": 9.5367431640625e-07
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "cart_impropers",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "cart_hxltorsions",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "disulfide",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "rama",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "omega",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "dunbrack_rot",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "dunbrack_rotdev",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "dunbrack_semirot",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "lk_ball_iso",
+          "expected": 11.102417945861816,
+          "actual": 11.102418899536133,
+          "error": 9.5367431640625e-07
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "lk_ball",
+          "expected": -1.0111815929412842,
+          "actual": -1.0111814737319946,
+          "error": 1.1920928955078125e-07
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "lk_bridge",
+          "expected": 0.02508818916976452,
+          "actual": 0.02508818544447422,
+          "error": 3.725290298461914e-09
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "lk_bridge_uncpl",
+          "expected": 0.5630526542663574,
+          "actual": 0.5630526542663574,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "ref",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "gen_torsions",
+          "expected": 4.521373748779297,
+          "actual": 4.52136754989624,
+          "error": 6.198883056640625e-06
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "na_torsion",
+          "expected": 233.18310546875,
+          "actual": 233.18313598632812,
+          "error": 3.0517578125e-05
+        },
+        {
+          "backbone": "dna",
+          "opt_h": true,
+          "term": "na_torsion_well",
+          "expected": 38.35997772216797,
+          "actual": 38.35997772216797,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "fa_ljatr",
+          "expected": -129.66355895996094,
+          "actual": -129.66354370117188,
+          "error": 1.52587890625e-05
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "fa_ljrep",
+          "expected": 123.85820770263672,
+          "actual": 123.85820007324219,
+          "error": 7.62939453125e-06
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "fa_lk",
+          "expected": 50.625308990478516,
+          "actual": 50.62530517578125,
+          "error": 3.814697265625e-06
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "fa_elec",
+          "expected": -6.689560413360596,
+          "actual": -6.689549446105957,
+          "error": 1.0967254638671875e-05
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "hbond",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "cart_lengths",
+          "expected": 43.18159103393555,
+          "actual": 43.18159484863281,
+          "error": 3.814697265625e-06
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "cart_angles",
+          "expected": 102.82372283935547,
+          "actual": 102.82373809814453,
+          "error": 1.52587890625e-05
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "cart_torsions",
+          "expected": 12.910895347595215,
+          "actual": 12.911046981811523,
+          "error": 0.00015163421630859375
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "cart_impropers",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "cart_hxltorsions",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "disulfide",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "rama",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "omega",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "dunbrack_rot",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "dunbrack_rotdev",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "dunbrack_semirot",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "lk_ball_iso",
+          "expected": 55.436580657958984,
+          "actual": 55.43657684326172,
+          "error": 3.814697265625e-06
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "lk_ball",
+          "expected": 0.5202683210372925,
+          "actual": 0.5202690362930298,
+          "error": 7.152557373046875e-07
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "lk_bridge",
+          "expected": 0.06700582057237625,
+          "actual": 0.06700586527585983,
+          "error": 4.470348358154297e-08
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "lk_bridge_uncpl",
+          "expected": 1.4723947048187256,
+          "actual": 1.4723951816558838,
+          "error": 4.76837158203125e-07
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "ref",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "gen_torsions",
+          "expected": 40.212425231933594,
+          "actual": 40.212440490722656,
+          "error": 1.52587890625e-05
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "na_torsion",
+          "expected": 31.47650909423828,
+          "actual": 31.47650718688965,
+          "error": 1.9073486328125e-06
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": false,
+          "term": "na_torsion_well",
+          "expected": 4.7034807205200195,
+          "actual": 4.703481197357178,
+          "error": 4.76837158203125e-07
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "fa_ljatr",
+          "expected": -129.57371520996094,
+          "actual": -129.57369995117188,
+          "error": 1.52587890625e-05
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "fa_ljrep",
+          "expected": 123.85774993896484,
+          "actual": 123.85771179199219,
+          "error": 3.814697265625e-05
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "fa_lk",
+          "expected": 50.62531661987305,
+          "actual": 50.62532043457031,
+          "error": 3.814697265625e-06
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "fa_elec",
+          "expected": -7.382784843444824,
+          "actual": -7.382783889770508,
+          "error": 9.5367431640625e-07
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "hbond",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "cart_lengths",
+          "expected": 43.1817512512207,
+          "actual": 43.1817512512207,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "cart_angles",
+          "expected": 102.82363891601562,
+          "actual": 102.82369995117188,
+          "error": 6.103515625e-05
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "cart_torsions",
+          "expected": 12.91088581085205,
+          "actual": 12.910945892333984,
+          "error": 6.008148193359375e-05
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "cart_impropers",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "cart_hxltorsions",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "disulfide",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "rama",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "omega",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "dunbrack_rot",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "dunbrack_rotdev",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "dunbrack_semirot",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "lk_ball_iso",
+          "expected": 55.436580657958984,
+          "actual": 55.43657684326172,
+          "error": 3.814697265625e-06
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "lk_ball",
+          "expected": 0.5202667713165283,
+          "actual": 0.5202672481536865,
+          "error": 4.76837158203125e-07
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "lk_bridge",
+          "expected": 0.06700596213340759,
+          "actual": 0.06700598448514938,
+          "error": 2.2351741790771484e-08
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "lk_bridge_uncpl",
+          "expected": 1.4723953008651733,
+          "actual": 1.4723953008651733,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "ref",
+          "expected": 0.0,
+          "actual": 0.0,
+          "error": 0.0
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "gen_torsions",
+          "expected": 40.21244812011719,
+          "actual": 40.21245574951172,
+          "error": 7.62939453125e-06
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "na_torsion",
+          "expected": 31.47652816772461,
+          "actual": 31.476531982421875,
+          "error": 3.814697265625e-06
+        },
+        {
+          "backbone": "nonstandard_na",
+          "opt_h": true,
+          "term": "na_torsion_well",
+          "expected": 4.703482151031494,
+          "actual": 4.703482151031494,
+          "error": 0.0
+        }
+      ]
+    }
+  ]
+}

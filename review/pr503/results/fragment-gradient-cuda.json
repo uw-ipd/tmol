@@ -1,0 +1,678 @@
+{
+  "device": "cuda:0",
+  "torch": "2.13.0+cu132",
+  "rows": [
+    {
+      "dtype": "torch.float32",
+      "term": "fa_ljatr",
+      "max_gradient_difference": 1.043081283569336e-07,
+      "atom": "O3",
+      "component": 0,
+      "values": [
+        -0.24080270528793335,
+        -0.240802600979805
+      ],
+      "max_gradient_magnitude": 0.5412576198577881,
+      "max_float32_reference_error": [
+        2.0249356691426357e-07,
+        2.0741370204691023e-07
+      ]
+    },
+    {
+      "dtype": "torch.float32",
+      "term": "fa_ljrep",
+      "max_gradient_difference": 9.5367431640625e-07,
+      "atom": "H6",
+      "component": 2,
+      "values": [
+        -5.499232769012451,
+        -5.499233722686768
+      ],
+      "max_gradient_magnitude": 20.160655975341797,
+      "max_float32_reference_error": [
+        2.6586595339495034e-05,
+        2.658659533594232e-05
+      ]
+    },
+    {
+      "dtype": "torch.float32",
+      "term": "fa_lk",
+      "max_gradient_difference": 1.4901161193847656e-07,
+      "atom": "C10",
+      "component": 1,
+      "values": [
+        0.3523504137992859,
+        0.35235026478767395
+      ],
+      "max_gradient_magnitude": 1.1233090162277222,
+      "max_float32_reference_error": [
+        7.236249026376651e-07,
+        7.236249028874653e-07
+      ]
+    },
+    {
+      "dtype": "torch.float32",
+      "term": "fa_elec",
+      "max_gradient_difference": 4.76837158203125e-07,
+      "atom": "O2",
+      "component": 1,
+      "values": [
+        -6.35107946395874,
+        -6.351079940795898
+      ],
+      "max_gradient_magnitude": 6.472463607788086,
+      "max_float32_reference_error": [
+        4.33239310715372e-06,
+        4.319778510897265e-06
+      ]
+    },
+    {
+      "dtype": "torch.float32",
+      "term": "hbond",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        -0.18574568629264832,
+        -0.18574568629264832
+      ],
+      "max_gradient_magnitude": 1.110730528831482,
+      "max_float32_reference_error": [
+        1.940256909560567e-05,
+        1.940256909560567e-05
+      ]
+    },
+    {
+      "dtype": "torch.float32",
+      "term": "cart_lengths",
+      "max_gradient_difference": 0.00032016634941101074,
+      "atom": "N1",
+      "component": 1,
+      "values": [
+        0.06291202455759048,
+        0.0632321909070015
+      ],
+      "max_gradient_magnitude": 0.1754683554172516,
+      "max_float32_reference_error": [
+        3.889499925158191e-05,
+        3.889499925158191e-05
+      ]
+    },
+    {
+      "dtype": "torch.float32",
+      "term": "cart_angles",
+      "max_gradient_difference": 0.0031197629868984222,
+      "atom": "C4",
+      "component": 2,
+      "values": [
+        -0.028322510421276093,
+        -0.031442273408174515
+      ],
+      "max_gradient_magnitude": 0.11480297148227692,
+      "max_float32_reference_error": [
+        3.74576300422938e-05,
+        3.74576300422938e-05
+      ]
+    },
+    {
+      "dtype": "torch.float32",
+      "term": "cart_torsions",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        0.0,
+        0.0
+      ],
+      "max_gradient_magnitude": 0.0,
+      "max_float32_reference_error": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "dtype": "torch.float32",
+      "term": "cart_impropers",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        0.0,
+        0.0
+      ],
+      "max_gradient_magnitude": 0.0,
+      "max_float32_reference_error": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "dtype": "torch.float32",
+      "term": "cart_hxltorsions",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        0.0,
+        0.0
+      ],
+      "max_gradient_magnitude": 0.0,
+      "max_float32_reference_error": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "dtype": "torch.float32",
+      "term": "disulfide",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        0.0,
+        0.0
+      ],
+      "max_gradient_magnitude": 0.0,
+      "max_float32_reference_error": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "dtype": "torch.float32",
+      "term": "rama",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        0.0,
+        0.0
+      ],
+      "max_gradient_magnitude": 0.0,
+      "max_float32_reference_error": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "dtype": "torch.float32",
+      "term": "omega",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        0.0,
+        0.0
+      ],
+      "max_gradient_magnitude": 0.0,
+      "max_float32_reference_error": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "dtype": "torch.float32",
+      "term": "dunbrack_rot",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        0.0,
+        0.0
+      ],
+      "max_gradient_magnitude": 0.0,
+      "max_float32_reference_error": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "dtype": "torch.float32",
+      "term": "dunbrack_rotdev",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        0.0,
+        0.0
+      ],
+      "max_gradient_magnitude": 0.0,
+      "max_float32_reference_error": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "dtype": "torch.float32",
+      "term": "dunbrack_semirot",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        0.0,
+        0.0
+      ],
+      "max_gradient_magnitude": 0.0,
+      "max_float32_reference_error": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "dtype": "torch.float32",
+      "term": "lk_ball_iso",
+      "max_gradient_difference": 2.384185791015625e-07,
+      "atom": "O4",
+      "component": 1,
+      "values": [
+        0.26735395193099976,
+        0.26735419034957886
+      ],
+      "max_gradient_magnitude": 1.6316248178482056,
+      "max_float32_reference_error": [
+        3.799005516835763e-07,
+        3.649993904897286e-07
+      ]
+    },
+    {
+      "dtype": "torch.float32",
+      "term": "lk_ball",
+      "max_gradient_difference": 1.1920928955078125e-07,
+      "atom": "O2",
+      "component": 1,
+      "values": [
+        -1.0480635166168213,
+        -1.0480633974075317
+      ],
+      "max_gradient_magnitude": 2.514286994934082,
+      "max_float32_reference_error": [
+        1.1596664286961378e-05,
+        1.1596664286739333e-05
+      ]
+    },
+    {
+      "dtype": "torch.float32",
+      "term": "lk_bridge",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        0.0,
+        0.0
+      ],
+      "max_gradient_magnitude": 0.24233119189739227,
+      "max_float32_reference_error": [
+        6.726624937961057e-07,
+        6.726624937961057e-07
+      ]
+    },
+    {
+      "dtype": "torch.float32",
+      "term": "lk_bridge_uncpl",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        0.0,
+        0.0
+      ],
+      "max_gradient_magnitude": 1.6033114194869995,
+      "max_float32_reference_error": [
+        3.1067605854584457e-06,
+        3.1067605854584457e-06
+      ]
+    },
+    {
+      "dtype": "torch.float32",
+      "term": "ref",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        0.0,
+        0.0
+      ],
+      "max_gradient_magnitude": 0.0,
+      "max_float32_reference_error": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "dtype": "torch.float32",
+      "term": "gen_torsions",
+      "max_gradient_difference": 2.384185791015625e-07,
+      "atom": "C4",
+      "component": 2,
+      "values": [
+        2.736210346221924,
+        2.7362101078033447
+      ],
+      "max_gradient_magnitude": 4.039285182952881,
+      "max_float32_reference_error": [
+        0.006561351426824125,
+        0.006561351426824125
+      ]
+    },
+    {
+      "dtype": "torch.float32",
+      "term": "na_torsion",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        0.0,
+        0.0
+      ],
+      "max_gradient_magnitude": 0.0,
+      "max_float32_reference_error": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "dtype": "torch.float32",
+      "term": "na_torsion_well",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        0.0,
+        0.0
+      ],
+      "max_gradient_magnitude": 0.0,
+      "max_float32_reference_error": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "dtype": "torch.float64",
+      "term": "fa_ljatr",
+      "max_gradient_difference": 1.1102230246251565e-16,
+      "atom": "C11",
+      "component": 2,
+      "values": [
+        -0.2734364268834087,
+        -0.2734364268834088
+      ],
+      "max_gradient_magnitude": 0.5412576181248328
+    },
+    {
+      "dtype": "torch.float64",
+      "term": "fa_ljrep",
+      "max_gradient_difference": 3.552713678800501e-15,
+      "atom": "C3",
+      "component": 1,
+      "values": [
+        -10.116898009271923,
+        -10.116898009271926
+      ],
+      "max_gradient_magnitude": 20.16062938874646
+    },
+    {
+      "dtype": "torch.float64",
+      "term": "fa_lk",
+      "max_gradient_difference": 3.608224830031759e-16,
+      "atom": "O3",
+      "component": 0,
+      "values": [
+        0.2463377190020923,
+        0.24633771900209195
+      ],
+      "max_gradient_magnitude": 1.123308775476082
+    },
+    {
+      "dtype": "torch.float64",
+      "term": "fa_elec",
+      "max_gradient_difference": 1.7763568394002505e-15,
+      "atom": "N1",
+      "component": 1,
+      "values": [
+        4.547973504604123,
+        4.547973504604121
+      ],
+      "max_gradient_magnitude": 6.472459288009576
+    },
+    {
+      "dtype": "torch.float64",
+      "term": "hbond",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        -0.18574598842833226,
+        -0.18574598842833226
+      ],
+      "max_gradient_magnitude": 1.1107301920951596
+    },
+    {
+      "dtype": "torch.float64",
+      "term": "cart_lengths",
+      "max_gradient_difference": 0.0003215883143198872,
+      "atom": "C4",
+      "component": 1,
+      "values": [
+        -0.016965830311835222,
+        -0.01728741862615511
+      ],
+      "max_gradient_magnitude": 0.1754803593674423
+    },
+    {
+      "dtype": "torch.float64",
+      "term": "cart_angles",
+      "max_gradient_difference": 0.0031391350545285426,
+      "atom": "C4",
+      "component": 2,
+      "values": [
+        -0.028301359911124133,
+        -0.031440494965652675
+      ],
+      "max_gradient_magnitude": 0.1147839175720389
+    },
+    {
+      "dtype": "torch.float64",
+      "term": "cart_torsions",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        0.0,
+        0.0
+      ],
+      "max_gradient_magnitude": 0.0
+    },
+    {
+      "dtype": "torch.float64",
+      "term": "cart_impropers",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        0.0,
+        0.0
+      ],
+      "max_gradient_magnitude": 0.0
+    },
+    {
+      "dtype": "torch.float64",
+      "term": "cart_hxltorsions",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        0.0,
+        0.0
+      ],
+      "max_gradient_magnitude": 0.0
+    },
+    {
+      "dtype": "torch.float64",
+      "term": "disulfide",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        0.0,
+        0.0
+      ],
+      "max_gradient_magnitude": 0.0
+    },
+    {
+      "dtype": "torch.float64",
+      "term": "rama",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        0.0,
+        0.0
+      ],
+      "max_gradient_magnitude": 0.0
+    },
+    {
+      "dtype": "torch.float64",
+      "term": "omega",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        0.0,
+        0.0
+      ],
+      "max_gradient_magnitude": 0.0
+    },
+    {
+      "dtype": "torch.float64",
+      "term": "dunbrack_rot",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        0.0,
+        0.0
+      ],
+      "max_gradient_magnitude": 0.0
+    },
+    {
+      "dtype": "torch.float64",
+      "term": "dunbrack_rotdev",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        0.0,
+        0.0
+      ],
+      "max_gradient_magnitude": 0.0
+    },
+    {
+      "dtype": "torch.float64",
+      "term": "dunbrack_semirot",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        0.0,
+        0.0
+      ],
+      "max_gradient_magnitude": 0.0
+    },
+    {
+      "dtype": "torch.float64",
+      "term": "lk_ball_iso",
+      "max_gradient_difference": 6.661338147750939e-16,
+      "atom": "O3",
+      "component": 2,
+      "values": [
+        -1.242928289997691,
+        -1.2429282899976917
+      ],
+      "max_gradient_magnitude": 1.6316247660106207
+    },
+    {
+      "dtype": "torch.float64",
+      "term": "lk_ball",
+      "max_gradient_difference": 2.220446049250313e-16,
+      "atom": "C3",
+      "component": 2,
+      "values": [
+        0.94563075475866,
+        0.9456307547586598
+      ],
+      "max_gradient_magnitude": 2.5142837511675236
+    },
+    {
+      "dtype": "torch.float64",
+      "term": "lk_bridge",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        0.0,
+        0.0
+      ],
+      "max_gradient_magnitude": 0.24233105626176513
+    },
+    {
+      "dtype": "torch.float64",
+      "term": "lk_bridge_uncpl",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        0.0,
+        0.0
+      ],
+      "max_gradient_magnitude": 1.603311105476801
+    },
+    {
+      "dtype": "torch.float64",
+      "term": "ref",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        0.0,
+        0.0
+      ],
+      "max_gradient_magnitude": 0.0
+    },
+    {
+      "dtype": "torch.float64",
+      "term": "gen_torsions",
+      "max_gradient_difference": 4.440892098500626e-16,
+      "atom": "C3",
+      "component": 0,
+      "values": [
+        2.1270299987308015,
+        2.127029998730802
+      ],
+      "max_gradient_magnitude": 4.03982018736258
+    },
+    {
+      "dtype": "torch.float64",
+      "term": "na_torsion",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        0.0,
+        0.0
+      ],
+      "max_gradient_magnitude": 0.0
+    },
+    {
+      "dtype": "torch.float64",
+      "term": "na_torsion_well",
+      "max_gradient_difference": 0.0,
+      "atom": "C1",
+      "component": 0,
+      "values": [
+        0.0,
+        0.0
+      ],
+      "max_gradient_magnitude": 0.0
+    }
+  ]
+}

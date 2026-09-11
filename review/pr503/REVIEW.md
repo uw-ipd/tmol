@@ -2,15 +2,16 @@
 
 Reviewed PR: https://github.com/uw-ipd/tmol/pull/503  
 Author branch: `dimaio/noncanonicals_through_ligand_pipeline`  
-Pinned head: `c03c1e745f3bc655948ea12dac44d6c74620358f`  
+Initial pinned head: `c03c1e745f3bc655948ea12dac44d6c74620358f`\
+Updated head: `0f4c3bc426bca78e8681f0b730fa23c3e26ef261`\
 Diff merge base: `08d82941b6b5bfcd405303f8730b36b54dcfd28a`  
 Improvement branch: `review/pr503-chemistry-efficiency`  
 Review date: 2026-09-11
 
-**Update in progress:** upstream advanced to `0f4c3bc426bca78e8681f0b730fa23c3e26ef261`
-during the follow-up. Its six-file delta is fetched and being checked separately;
-the review below and its line anchors still describe the pinned `c03c1e745` tree.
-See the latest section of [FOLLOWUP.md](FOLLOWUP.md).
+The six-file update has been reviewed separately. Comments 1–46 retain their
+original `c03c1e745` anchors; comments 47–48 address the updated head. The
+fold-forest expectations and HYP count are now corrected upstream. See
+[FOLLOWUP.md](FOLLOWUP.md) for reconciliation and validation details.
 
 **Recommendation: request changes.** The chemistry expansion is substantial, but the exact submitted tree cannot import its I/O package. After supplying the missing module, targeted checks expose batch identity errors, lost/misassigned group torsions, residue identity errors, and a mixed D/L disulfide score that depends on residue ordering. The passing chemistry fixtures do not cover these cases.
 
@@ -25,7 +26,7 @@ This document and the comments below are drafts for the user; no review or comme
 
 The core design is useful: explicit reference fields are more extensible than residue-name inference; preserving unresolved atoms prevents accidental truncation of chemical identities; and a covalent group needs correlated conformers. The main weaknesses are identity/scope assumptions that hold for one fixture but fail across poses, repeated residues, or reused samplers, and incomplete enforcement of the advertised sampling budget.
 
-The complete 213-file upstream inventory is in [upstream-files.tsv](upstream-files.tsv). Static review concentrated on the new preparation, CIF completion, database mirroring/caching, group-packing, fold-forest, and scoring changes. Generated databases and fixture coordinates were assessed through their generators, schema, provenance notes, and executable checks; this is not an independent refit or scientific validation of those parameters.
+The initial 213-file inventory is in [upstream-files.tsv](upstream-files.tsv); the updated 214-file inventory is in [upstream-files-0f4c3bc42.tsv](upstream-files-0f4c3bc42.tsv). Static review concentrated on the new preparation, CIF completion, database mirroring/caching, group-packing, fold-forest, and scoring changes. Generated databases and fixture coordinates were assessed through their generators, schema, provenance notes, and executable checks; this is not an independent refit or scientific validation of those parameters.
 
 ## Branch improvements
 
@@ -278,6 +279,8 @@ Follow-up tests measure signed alpha-centre volumes in every offered D rotamer a
 
 Both failures reproduced on the baseline. Updated these two expectations; all seven executable fold-forest tests then pass on CPU, with the CUDA-only smoke case skipped locally.
 
+Upstream `0f4c3bc42` now makes the same two expectation corrections.
+
 ### 26. P1 — conjugation selection excludes every ligand fragment
 
 [tmol/io/details/_select_from_canonical.py:1110](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/io/details/_select_from_canonical.py#L1110), and the intermediate array at [tmol/ligand/_fragmentation.py:742](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/ligand/_fragmentation.py#L742).
@@ -285,6 +288,8 @@ Both failures reproduced on the baseline. Updated these two expectations; all se
 > Could explicitly prepared ligand fragments be exempt from this candidate filter, and their cut bonds remain owned by the fragment mapping? Every fragment has a non-polymer connection, so this filter leaves no candidate for its residue class. Merely allowing the candidate then routes its original cut bonds through conjugation-patch selection, although `apply_fragment_connections()` separately restores those bonds. The baseline fails 35 fragmentation tests before their restoration/scoring assertions can execute.
 
 Reproduced. The branch permits fragment candidates and removes only bonds crossing newly split pieces of the same original residue from the intermediate bond table. The prepared fragment mapping remains authoritative for cut-bond restoration. All 35 previously failing fragment cases pass in the final 133-case fragment/conjugation run (129 passed, four existing skips).
+
+Upstream `0f4c3bc42` adds a different fragment fallback; comments 47–48 record two independently reproduced limitations of that update. Reconciliation preserves our explicit fragment flag and exact cut-bond ownership, while accepting already-declared connection sites.
 
 ### 27. P2 — HYP rotamer count disagrees with the stated sampling model
 
@@ -451,6 +456,22 @@ The stale charge guard predates this PR; new parameter injection and generic typ
 > Can this helper accept only finite, positive measurements and use complete residue-instance boundaries? The reader deliberately preserves unresolved coordinates as NaN. If a bonded endpoint is unresolved, its NaN distance becomes the connection icoor in every patched type and the exported bundle. A later unresolved repeat also overwrites an earlier valid measurement. Comparing only chain and residue number misses a cross-residue bond between insertion-coded residues.
 
 Seven focused CPU checks fail before the fix. The follow-up filters unresolved/coincident endpoints, keeps a prior valid observation, and uses Biotite's full contiguous-residue boundaries. Export/reload retains finite geometry without filling the input's missing coordinates. A missing polymer NZ can still be rebuilt; a missing ligand C11 retains the existing explicit construction error. The same three missing-endpoint cases pass through AtomWorks input. Bond/coordinate temporary arrays are processed in chunks. This preserves the existing no-measurement fallback, which inherits the departing hydrogen's construction frame; it does not provide the chemistry-derived heavy-atom equilibrium geometry or attachment energy model discussed in comment 38. Distinct finite observations still use the last instance, so general context-specific construction remains open. See the attachment-measurement section of [FOLLOWUP.md](FOLLOWUP.md).
+
+### 47. P1 — equal component names do not identify a fragment cut bond
+
+[tmol/io/details/_select_from_canonical.py:1239](https://github.com/uw-ipd/tmol/blob/0f4c3bc426bca78e8681f0b730fa23c3e26ef261/tmol/io/details/_select_from_canonical.py#L1239)
+
+> Can exact fragment cut bonds be removed by the expansion/mapping layer instead of discarding every bond whose endpoints share a base name? This function also handles callers that supply explicit canonical bonds and have no later fragment-restoration mapping. Repeated copies share base names, so the predicate cannot establish which original component instance owns a cut. Declared connections between already prepared fragment blocks must remain in the returned connection list.
+
+Reproduced against the updated selection module: three declared links over a jagged pair of poses, including crossed instances of the same two fragment types, return an empty list. The reconciled branch retains all three links and verifies the exact bidirectional connection tensors through public canonical pose construction. Normal AtomArray fragment expansion still removes only its own cut bonds before this function and restores them through the explicit mapping. The isolated module comparison uses the branch's prepared fixture types; it is not a claim that the otherwise incomplete upstream tree imports cleanly.
+
+### 48. P2 — the conjugated-only fallback retains just the first candidate
+
+[tmol/io/details/_select_from_canonical.py:1132](https://github.com/uw-ipd/tmol/blob/0f4c3bc426bca78e8681f0b730fa23c3e26ef261/tmol/io/details/_select_from_canonical.py#L1132)
+
+> Could this decision use the class's unconjugated candidate inventory before the fallback loop, or the existing explicit fragment flag? After the first conjugated candidate is added, `any(lists[t][s])` becomes true and every later candidate in the same class is skipped. Alternative states or terminal forms therefore disappear according to input type order.
+
+Two CPU reproductions reverse the order of two fragment states in one equivalence class. Both retain only index 0 upstream. The branch's existing explicit fragment predicate retains both states in either order and avoids the extra fallback loop. Ordinary unconnected canonical residues remain protected from accidental selection of conjugated variants.
 
 ## Validation record
 

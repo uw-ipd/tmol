@@ -369,10 +369,6 @@ def validate_fold_forest(
     ) = validate_fold_forest_jit(n_blocks, edges)
 
     n_poses = n_blocks.shape[0]
-    start_errors = []
-    _append_unrooted_start_errors(n_poses, edges, start_errors)
-    if start_errors:
-        raise ValueError("\n".join(start_errors))
 
     if not good:
         max_n_edges = edges.shape[1]
@@ -387,3 +383,9 @@ def validate_fold_forest(
         )
 
         raise ValueError("\n".join(errors))
+
+    # reported last: an out-of-range index or a cycle is the more basic fault
+    start_errors = []
+    _append_unrooted_start_errors(n_poses, edges, start_errors)
+    if start_errors:
+        raise ValueError("\n".join(start_errors))

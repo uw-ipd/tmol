@@ -1,0 +1,105 @@
+{
+  "parent": "332bd31bb1b4615283853ea5079aa614e93391a4",
+  "upstream": "0f4c3bc426bca78e8681f0b730fa23c3e26ef261",
+  "scope": "Overlapping targeted checks. Upstream selection comparison uses branch-prepared fixtures and the full unchanged upstream selection module. Gold-reference failures are retained separately. Not full release validation.",
+  "source_sha256": {
+    "tmol/io/details/_select_from_canonical.py": "08348cbdf00b1b81a07ef913caf278e5809a3b392768000b50219a72a972c45e",
+    "tmol/kinematics/_check_fold_forest.py": "39b35ba01d5fa01f6bfcb6296735dc8d696dc645941b30410cd173480f3b7652",
+    "tmol/score/cartbonded/_cartbonded_energy_term.py": "70b46100c466237a0eb9ef690319ffc94318ccc870c5244a3e59993b99c25276",
+    "tmol/tests/io/details/test_fragment_selection_identity.py": "98227ff8342d6f4d48038a56b1fdd50ea91b27ee327efbb8f47eb519ca975914",
+    "tmol/tests/score/cartbonded/test_fragment_parameter_namespace.py": "2e6f38bfad6ecd041adcb94b52547c75ef5207035a372093290b25162db565c9",
+    "tmol/tests/kinematics/test_create_scan_orering_from_block_types.py": "bec4c3c0afb1cbd523945cd7d279e7b3110af258dc572848a36606b096669d9a",
+    "tmol/tests/data/noncanonical_scores.yaml": "bbe7a0e250ac16526f641edae009bfa5ccc932856cc882849f6283de83428572",
+    "review/pr503/check_upstream_selection.py": "b1943558a2f44e541e3d9d6d25619d71ecfd80f6bea7df16074c1ac61a268aa1",
+    "review/pr503/diagnose_fragment_gradients.py": "b305bac89e5abf6b3bd873798ed2e9c0e7e0b727e0a4561ca7706dddf22b9b01"
+  },
+  "runs": [
+    {
+      "name": "Updated upstream selection isolated module, final reproducible harness",
+      "passed": 0,
+      "failed": 3,
+      "skipped": 3,
+      "seconds": 7.95,
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/upstream-selection-harness-final.log"
+    },
+    {
+      "name": "Initial reconciled CPU selection/fold/scan checks",
+      "passed": 23,
+      "skipped": 14,
+      "seconds": 9.74,
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/upstream-reconcile-first-cpu.log"
+    },
+    {
+      "name": "Public fragment connection construction CPU",
+      "passed": 3,
+      "skipped": 3,
+      "seconds": 4.35,
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/upstream-fragment-selection-public-final-cpu.log"
+    },
+    {
+      "name": "Initial broad reconciliation checks",
+      "slurm": 248877,
+      "passed": 133,
+      "failed": 2,
+      "seconds": 258.41,
+      "state": "FAILED",
+      "exit_code": "1:0",
+      "failure": "ACE whole/fragment gradients disagree in CPU and CUDA; traced to the branch exact-variant namespace regression and fixed, not a new upstream regression.",
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/upstream-reconcile-248877.log"
+    },
+    {
+      "name": "Displaced fragment namespace regressions before fix",
+      "passed": 0,
+      "failed": 2,
+      "skipped": 2,
+      "seconds": 4.94,
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/fragment-namespace-before.log"
+    },
+    {
+      "name": "Namespace fix, variant overrides, ACE gradient parity CPU",
+      "passed": 15,
+      "skipped": 13,
+      "seconds": 19.09,
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/fragment-namespace-final-cpu.log"
+    },
+    {
+      "name": "Updated upstream score goldens in CUDA container",
+      "slurm": 248878,
+      "passed": 2,
+      "failed": 8,
+      "seconds": 79.07,
+      "state": "FAILED",
+      "exit_code": "1:0",
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/upstream-gold-248878.log"
+    },
+    {
+      "name": "Updated upstream score goldens on standalone CPU",
+      "passed": 3,
+      "failed": 2,
+      "skipped": 5,
+      "seconds": 40.0,
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/upstream-gold-standalone-cpu.log"
+    },
+    {
+      "name": "Initial CUDA gradient diagnosis and fixed-parameter score replay",
+      "slurm": 248886,
+      "state": "COMPLETED",
+      "exit_code": "0:0",
+      "elapsed": "00:00:58",
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/fragment-gradient-248886.log"
+    },
+    {
+      "name": "Final reconciliation, fragment force and existing variant/fragment/cap/fold/scan/rotamer checks; CUDA fixed-input replay and gradient diagnosis",
+      "slurm": 248891,
+      "passed": 161,
+      "failed": 0,
+      "skipped": 0,
+      "seconds": 265.65,
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/upstream-reconcile-final-248891.log",
+      "junit": "/mnt/home/kdidi/tmol-pr503-followup/upstream-reconcile-final-tests.xml",
+      "state": "COMPLETED",
+      "exit_code": "0:0",
+      "elapsed": "00:05:35"
+    }
+  ]
+}
