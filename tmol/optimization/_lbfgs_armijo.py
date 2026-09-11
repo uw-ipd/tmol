@@ -827,13 +827,13 @@ class LBFGS_Armijo(Optimizer):
         )
         ctx.ls_evals = ls_evals
 
-        torch.addcmul(
-            ctx.x_backup,
-            ctx.d,
-            self._per_element(accepted),
-            out=ctx.x,
-        )
         if not trial_is_accepted:
+            torch.addcmul(
+                ctx.x_backup,
+                ctx.d,
+                self._per_element(accepted),
+                out=ctx.x,
+            )
             ctx.closure()
         ctx.loss_vec = self._last_loss_vec
         # Keep the normal optimization path asynchronous. The scalar total is
