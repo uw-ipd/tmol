@@ -75,8 +75,8 @@ def lbfgs_two_loop(grad, dirs, stps):
     u = torch.linalg.solve_triangular(R, a.unsqueeze(-1), upper=True).squeeze(-1)
     # q = g - Y u; v = D u - Y^T q avoids forming Y^T Y.
     if single_segment:
-        q = (q[0] - torch.mv(Y[:, 0].T, u[0])).unsqueeze(0)
-        v = (D[0] * u[0] - torch.mv(Y[:, 0], q[0])).unsqueeze(0)
+        q = (q[0] - torch.mv(Y_one.T, u[0])).unsqueeze(0)
+        v = (D[0] * u[0] - torch.mv(Y_one, q[0])).unsqueeze(0)
     elif use_bmm:
         q = q - torch.bmm(u.unsqueeze(1), Y_by_pose).squeeze(1)
         v = D * u - torch.bmm(Y_by_pose, q.unsqueeze(-1)).squeeze(-1)
@@ -89,7 +89,7 @@ def lbfgs_two_loop(grad, dirs, stps):
     ).squeeze(-1)
     # result = q + S p1
     if single_segment:
-        result = (q[0] + torch.mv(S[:, 0].T, p1[0])).unsqueeze(0)
+        result = (q[0] + torch.mv(S_one.T, p1[0])).unsqueeze(0)
     elif use_bmm:
         result = q + torch.bmm(p1.unsqueeze(1), S_by_pose).squeeze(1)
     else:
