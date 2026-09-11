@@ -615,6 +615,41 @@ def nonstandard_residue_info_from_smiles_via_mol2(
     return attr.evolve(info, source_atom_order=source_order)
 
 
+def _component_types_from_annotations(atom_array, explicit=None):
+    """Consume per-atom chemistry supplied by AtomWorks or another reader.
+
+    An explicit mapping overrides annotations. A component name must otherwise
+    identify one type; conflicting annotations cannot define a reusable tmol
+    residue type and are rejected before parameter generation.
+    """
+    result = dict(explicit or {})
+    if "chem_comp_type" not in atom_array.get_annotation_categories():
+        return result
+    names = atom_array.res_name.astype(str)
+    values = atom_array.get_annotation("chem_comp_type").astype(str)
+    # Most annotations repeat across every atom of a residue. Collapse runs
+    # before sorting, while still detecting contradictory values within a run.
+    starts = np.r_[True, (names[1:] != names[:-1]) | (values[1:] != values[:-1])]
+    pairs = (
+        np.unique(np.stack((names[starts], values[starts]), axis=1), axis=0)
+        if len(names)
+        else []
+    )
+    declared = {}
+    for name, value in pairs:
+        name, value = name.strip().upper(), value.strip().upper()
+        if not value or value in {".", "?", "UNKNOWN"} or name in result:
+            continue
+        previous = declared.setdefault(name, value)
+        if previous != value:
+            raise ValueError(
+                f"Conflicting chem_comp_type annotations for {name}: "
+                f"{previous!r} and {value!r}"
+            )
+    declared.update(result)
+    return declared
+
+
 def detect_nonstandard_residues(
     atom_array: struc.AtomArray,
     canonical_ordering: CanonicalOrdering,
@@ -637,6 +672,7 @@ def detect_nonstandard_residues(
         A list of NonStandardResidueInfo objects, one per unique unknown
         residue name.
     """
+    chem_comp_types = _component_types_from_annotations(atom_array, chem_comp_types)
     known_names = set(canonical_ordering.restype_io_equiv_classes)
     seen: set[str] = set()
     results: list[NonStandardResidueInfo] = []
@@ -830,9 +866,10 @@ def polymer_entity_residues(atom_array: struc.AtomArray) -> Optional[frozenset[s
     """
     categories = atom_array.get_annotation_categories()
     names = atom_array.res_name.astype(str)
-    if "tmol_polymer_entity" in categories:
-        flag = atom_array.get_annotation("tmol_polymer_entity").astype(bool)
-        return frozenset(str(n).strip() for n in names[flag])
+    for annotation in ("tmol_polymer_entity", "is_polymer"):
+        if annotation in categories:
+            flag = atom_array.get_annotation(annotation).astype(bool)
+            return frozenset(str(n).strip() for n in names[flag])
     if "label_seq_id" not in categories:
         return None
     seq = atom_array.get_annotation("label_seq_id").astype(str)

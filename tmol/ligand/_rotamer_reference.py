@@ -8,7 +8,10 @@ measured -- including which atom each is measured to, which fixes the value.
 """
 
 import itertools
+import threading
+from collections import OrderedDict
 from typing import Mapping, Optional, Sequence
+import weakref
 
 import attr
 import cattr
@@ -635,15 +638,39 @@ def reference_profiles(chemical_database, library_names) -> list:
     return profiles
 
 
-_PROFILE_CACHE = {}
+_PROFILE_CACHE = OrderedDict()
+_PROFILE_CACHE_LIMIT = 32
+_PROFILE_CACHE_LOCK = threading.RLock()
 
 
 def _cached_profiles(chemical_database, library_names) -> list:
-    """reference_profiles memoized, since every residue asks for the same set."""
+    """Bounded identity cache that does not retain the chemical database.
+
+    ChemicalDatabase is not reliably hashable (its residue records can be
+    mutable), so weak references are values rather than WeakKeyDictionary keys.
+    Verify referent identity as well as id, including in the eviction callback.
+    """
     key = (id(chemical_database), tuple(sorted(library_names)))
-    if key not in _PROFILE_CACHE:
-        _PROFILE_CACHE[key] = reference_profiles(chemical_database, library_names)
-    return _PROFILE_CACHE[key]
+    with _PROFILE_CACHE_LOCK:
+        entry = _PROFILE_CACHE.get(key)
+        if entry is not None and entry[0]() is chemical_database:
+            _PROFILE_CACHE.move_to_end(key)
+            return entry[1]
+
+    profiles = reference_profiles(chemical_database, library_names)
+
+    def discard(ref):
+        with _PROFILE_CACHE_LOCK:
+            current = _PROFILE_CACHE.get(key)
+            if current is not None and current[0] is ref:
+                del _PROFILE_CACHE[key]
+
+    with _PROFILE_CACHE_LOCK:
+        _PROFILE_CACHE[key] = (weakref.ref(chemical_database, discard), profiles)
+        _PROFILE_CACHE.move_to_end(key)
+        while len(_PROFILE_CACHE) > _PROFILE_CACHE_LIMIT:
+            _PROFILE_CACHE.popitem(last=False)
+    return profiles
 
 
 def library_chi_count(name, chemical_database, library_names) -> int:
