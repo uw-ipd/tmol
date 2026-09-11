@@ -12,11 +12,11 @@ historical evidence, not a claim that the follow-up is complete.
 | Import/closure inference (1) | Fresh checkout collection; explicit/inferred closure, padding, breaks and caps on both devices | Existing replacement; extend audit |
 | Mixed chirality (2) | Published reference parameters/formula; LL/DD/LD/DL permutation and reflection energies/gradients; whole-pose and packing parity | Rosetta mixed distribution and shared derivatives implemented; independent LL/LD/DL/DD energy/gradient, permutation and reflection checks pass on CPU/CUDA; additional packing parity pending |
 | Group identity and safety (3–7,9) | Real multi-pose/multi-database groups, repeated chi names, jagged/empty counts, early rejection; native parity | Initial fixes exist; integration/property coverage pending |
-| Sampling budgets/caches (8,14,27) | Explicit budget semantics; task propagation; immutable sampler reuse; actual library/extra/proton counts; reproducible HYP count | Pending |
+| Sampling budgets/caches (8,14,27) | Explicit budget semantics; task propagation; immutable sampler reuse; actual library/extra/proton counts; reproducible HYP count | NA/OptH configuration caches and independent HYP counts fixed/tested CPU/CUDA; task propagation and actual group/library budget enforcement remain open |
 | Residue identity/completion (10–12,16) | Insertion codes, chain identity, explicit/CCD authority, missing atoms, custom names; realistic scaling | Initial unit fixes exist; broader profiling pending |
 | Content/profile caches (13,20) | No serialization aliases; safe object lifetimes, bounded memory; repeated preparation | Content framing and bounded weak profile cache fixed; identity/lifetime/LRU tests pass; broader cache audit pending |
 | Group kinematics/performance (15,17) | Profile CPU/GPU; batch invariant work; retain all covalent constraints for tree/cyclic/multiple-anchor topologies | Pending |
-| Native maintainability (18) | Shared improper enumeration with unchanged canonical scores and independent analytic/numeric derivatives | Pending |
+| Native maintainability (18) | Shared improper enumeration with unchanged canonical scores and independent analytic/numeric derivatives | Shared helper in all four paths; canonical references, numerical gradients, independent Cartesian reference and group packing pass CPU/CUDA (238323, 238529) |
 | Duplicate work (19) | Removal covered by chemistry regression suite | Existing fix; final suite pending |
 | Correct test parameters (21) | Prepared database used throughout examples and packing; generated parameter coverage | Existing correction; final audit pending |
 | Terminal caps (22) | ACE/amide caps build intact chains, finite coordinates/gradients, correct bond topology; CPU/GPU packing | ACE/NH2/NME construction, bonds, score/gradient and rotamer construction pass CPU/CUDA; amide geometry and actual packing pass CPU/CUDA (237089) |
@@ -25,7 +25,7 @@ historical evidence, not a claim that the follow-up is complete.
 | Fold trees/fragments (25,26) | Branch-point invariant, fragment restoration/minimize/pack/DDG and multi-pose checks | Existing fixes; final suite pending |
 | Scientific ownership (general 2,7) | Independent potential checks and canonical change audit; sampling/scoring reference separation | Pending |
 | API/authority/reproducibility (general 1,6,8,9) | Executable input-route examples, settings/seed provenance, documented migration and fresh-checkout CI | Pending |
-| Workload scale/release (general 4,5,10) | Explicit matrix of chemistry/topology/input/batch/stage/backend coverage; paired profiles/timings/memory, no masked regressions | Initial stage profiler added; baseline measurements pending |
+| Workload scale/release (general 4,5,10) | Explicit matrix of chemistry/topology/input/batch/stage/backend coverage; paired profiles/timings/memory, no masked regressions | Paired baseline/candidate 19-fixture CPU/CUDA matrices recorded; larger-scale and full-stage matrix pending |
 
 Performance measurements must separate JIT/cold setup from warm execution,
 synchronize CUDA around timed regions, use the same environment for paired
@@ -109,3 +109,13 @@ devices. Seven paired warm measurements show CPU stage speedups of 1.46×,
 Enumerated rows fall from 1781→60 (biotin), 3028→3 (O-glycan), and 5849→66
 (N-glycan). These are stage measurements, not end-to-end packing speedups.
 See `profile_anchor_library.py` and `results/anchor-library-{cpu,cuda}.json`.
+
+Jobs 238323 and 238529 validate the shared connection-improper enumerator.
+The former passes 48 canonical cartbonded/group-packing/mirror-image cases
+with four existing large-packing CPU skips. The latter passes four independent
+peptide/proline improper energy and gradient cases on CPU/CUDA: Cartesian
+plane normals and PyTorch autograd are evaluated at distorted coordinates,
+with asymmetric block-pair weights. No score/parameter values changed in this
+refactor. CPU-only existing cartbonded suite: 16 pass, 11 CUDA skips.
+Machine-readable cases for these and the preceding follow-up runs are in
+`results/followup-geometry-sampling-native.json`.

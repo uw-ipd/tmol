@@ -1,5 +1,9 @@
 # PR #503 validation
 
+This page records the initial review runs. For subsequent mixed-chirality,
+AtomWorks, terminal geometry, sampler-cache and native-refactor work, see
+[FOLLOWUP.md](FOLLOWUP.md) and [ATOMWORKS.md](ATOMWORKS.md).
+
 Review and code changes: [REVIEW.md](REVIEW.md). Machine-readable counts, per-file coverage, and failure messages: [results/test-runs.json](results/test-runs.json).
 
 ## What was tested

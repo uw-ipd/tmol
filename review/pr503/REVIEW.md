@@ -210,7 +210,7 @@ Question requiring a supported-chemistry contract; no unvalidated closure algori
 
 > Could the connection-centred improper enumeration and parameter lookup be a device-inline helper with a scoring callback? The same substantial block appears in whole-pose forward/backward and rotamer forward/backward. Sharing only enumeration would reduce the chance that a future chemistry fix changes one path but not its gradient or packing counterpart.
 
-Suggestion only; native physics logic left unchanged in the improvement branch.
+Implemented in follow-up: one device-inline helper now supplies enumeration and lookup to all four paths. Canonical references, numerical gradients, group packing and mirror checks pass CPU/CUDA (238323); an independent Cartesian peptide/proline reference passes energies and gradients on both devices (238529). This is a refactor with unchanged parameter values.
 
 ### 19. Maintainability — remove duplicated atom-removal work
 
