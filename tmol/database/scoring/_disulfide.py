@@ -2,6 +2,7 @@ from tmol.database._yaml import safe_load
 
 import attr
 import cattr
+import math
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -36,6 +37,15 @@ class DisulfideGlobalParameters:
     wt_ang: float
     wt_len: float
     shift: float
+
+    # Rosetta FullatomDisulfideParams13 mixed D/L distribution. Defaults keep
+    # existing custom parameter files readable; means are stored in radians.
+    dss_mixed_logA1: float = -28.1535
+    dss_mixed_kappa1: float = 25.9429
+    dss_mixed_mu1: float = -math.pi / 2
+    dss_mixed_logA2: float = -28.1535
+    dss_mixed_kappa2: float = 25.9429
+    dss_mixed_mu2: float = math.pi / 2
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)

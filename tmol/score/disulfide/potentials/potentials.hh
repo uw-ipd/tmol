@@ -20,6 +20,58 @@ namespace potentials {
 
 using namespace tmol::score::common;
 
+template <typename Real>
+struct DihedralScore {
+  Real V;
+  Real dV;
+};
+
+template <typename Real, int N>
+TMOL_DEVICE_FUNC DihedralScore<Real> dihedral_mixture(
+    Real angle,
+    const Real (&logA)[N],
+    const Real (&kappa)[N],
+    const Real (&mu)[N]) {
+  Real density = exp(Real(-20));
+  Real derivative = 0;
+  for (int i = 0; i < N; ++i) {
+    Real delta = angle - mu[i];
+    Real component = exp(logA[i] + kappa[i] * cos(delta));
+    density += component;
+    derivative += component * kappa[i] * sin(delta);
+  }
+  return {-log(density), derivative / density};
+}
+
+template <typename Real>
+TMOL_DEVICE_FUNC DihedralScore<Real> ss_dihedral(
+    Real angle,
+    const DisulfideGlobalParams<Real>& p1,
+    const DisulfideGlobalParams<Real>& p2) {
+  // The mixed distribution is symmetric in both chirality order and angle.
+  // Homochiral pairs retain the existing (mirrored for DD) parameter row.
+  bool mixed = p1.chirality != p2.chirality;
+  Real logA[] = {
+      mixed ? p1.dss_mixed_logA1 : p1.dss_logA1,
+      mixed ? p1.dss_mixed_logA2 : p1.dss_logA2};
+  Real kappa[] = {
+      mixed ? p1.dss_mixed_kappa1 : p1.dss_kappa1,
+      mixed ? p1.dss_mixed_kappa2 : p1.dss_kappa2};
+  Real mu[] = {
+      mixed ? p1.dss_mixed_mu1 : p1.dss_mu1,
+      mixed ? p1.dss_mixed_mu2 : p1.dss_mu2};
+  return dihedral_mixture(angle, logA, kappa, mu);
+}
+
+template <typename Real>
+TMOL_DEVICE_FUNC DihedralScore<Real> cs_dihedral(
+    Real angle, const DisulfideGlobalParams<Real>& p) {
+  Real logA[] = {p.dcs_logA1, p.dcs_logA2, p.dcs_logA3};
+  Real kappa[] = {p.dcs_kappa1, p.dcs_kappa2, p.dcs_kappa3};
+  Real mu[] = {p.dcs_mu1, p.dcs_mu2, p.dcs_mu3};
+  return dihedral_mixture(angle, logA, kappa, mu);
+}
+
 template <typename Real, tmol::Device D>
 TMOL_DEVICE_FUNC void accumulate_disulfide_potential(
     TView<Vec<Real, 3>, 1, D> rot_coords,
@@ -76,8 +128,8 @@ TMOL_DEVICE_FUNC void accumulate_disulfide_potential(
         z / params1.d_scale
         - (exp(-0.5 * z * z * params1.d_shape * params1.d_shape)
            * sqrt(2.0 / M_PI) * params1.d_shape)
-              / (params1.d_scale * std::erfc(-params1.d_shape * z / sqrt(2.0))
-                 + 1.e-12);
+              / (params1.d_scale
+                 * (std::erfc(-params1.d_shape * z / sqrt(2.0)) + MEST));
     dscore_d *= params1.wt_len;
     accumulate<D, Vec<Real, 3>>::add(
         dV_dx[0][rot1_S_ind], dscore_d * ssdist.dV_dA);
@@ -117,23 +169,9 @@ TMOL_DEVICE_FUNC void accumulate_disulfide_potential(
   }
 
   {  // SS dihed
-    // Score
-    Real ang_ss(dihed.V), exp_score1(0.0), exp_score2(0.0);
-    exp_score1 = exp(params1.dss_logA1)
-                 * exp(params1.dss_kappa1 * cos(ang_ss - params1.dss_mu1));
-    exp_score2 = exp(params1.dss_logA2)
-                 * exp(params1.dss_kappa2 * cos(ang_ss - params1.dss_mu2));
-    Real score_ss = -log(exp_score1 + exp_score2 + MEST);
-    score += params1.wt_dih_ss * score_ss;
-
-    // Derivatives
-    Real dscore_ss(0.0);
-    dscore_ss +=
-        exp_score1 * params1.dss_kappa1 * sin(dihed.V - params1.dss_mu1);
-    dscore_ss +=
-        exp_score2 * params1.dss_kappa2 * sin(dihed.V - params1.dss_mu2);
-    dscore_ss /= (exp_score1 + exp_score2 + MEST);
-    dscore_ss *= params1.wt_dih_ss;
+    auto ss = ss_dihedral(dihed.V, params1, params2);
+    score += params1.wt_dih_ss * ss.V;
+    Real dscore_ss = params1.wt_dih_ss * ss.dV;
 
     accumulate<D, Vec<Real, 3>>::add(
         dV_dx[0][rot1_CB_ind], dscore_ss * dihed.dV_dI);
@@ -146,27 +184,10 @@ TMOL_DEVICE_FUNC void accumulate_disulfide_potential(
   }
 
   {  // CB-S dihed
-    // Score (angle 1)
-    Real angle1(disulf_ca_dihedral_angle_1.V);
-    Real exp_score1 = exp(params1.dcs_logA1)
-                      * exp(params1.dcs_kappa1 * cos(angle1 - params1.dcs_mu1));
-    Real exp_score2 = exp(params1.dcs_logA2)
-                      * exp(params1.dcs_kappa2 * cos(angle1 - params1.dcs_mu2));
-    Real exp_score3 = exp(params1.dcs_logA3)
-                      * exp(params1.dcs_kappa3 * cos(angle1 - params1.dcs_mu3));
-    score +=
-        params1.wt_dih_cs * (-log(exp_score1 + exp_score2 + exp_score3 + MEST));
-
-    // Derivatives (angle 2)
-    Real dscore_cs = 0.0;
-    dscore_cs +=
-        exp_score1 * params1.dcs_kappa1 * sin(angle1 - params1.dcs_mu1);
-    dscore_cs +=
-        exp_score2 * params1.dcs_kappa2 * sin(angle1 - params1.dcs_mu2);
-    dscore_cs +=
-        exp_score3 * params1.dcs_kappa3 * sin(angle1 - params1.dcs_mu3);
-    dscore_cs /= (exp_score1 + exp_score2 + exp_score3 + MEST);
-    dscore_cs *= params1.wt_dih_cs;
+    auto cs1 = cs_dihedral(disulf_ca_dihedral_angle_1.V, params1);
+    auto cs2 = cs_dihedral(disulf_ca_dihedral_angle_2.V, params2);
+    score += params1.wt_dih_cs * cs1.V + params2.wt_dih_cs * cs2.V;
+    Real dscore_cs = params1.wt_dih_cs * cs1.dV;
 
     accumulate<D, Vec<Real, 3>>::add(
         dV_dx[0][rot1_CA_ind], dscore_cs * disulf_ca_dihedral_angle_1.dV_dI);
@@ -177,27 +198,7 @@ TMOL_DEVICE_FUNC void accumulate_disulfide_potential(
     accumulate<D, Vec<Real, 3>>::add(
         dV_dx[0][rot2_S_ind], dscore_cs * disulf_ca_dihedral_angle_1.dV_dL);
 
-    // Score (angle 2)
-    Real angle2(disulf_ca_dihedral_angle_2.V);
-    exp_score1 = exp(params1.dcs_logA1)
-                 * exp(params2.dcs_kappa1 * cos(angle2 - params2.dcs_mu1));
-    exp_score2 = exp(params1.dcs_logA2)
-                 * exp(params2.dcs_kappa2 * cos(angle2 - params2.dcs_mu2));
-    exp_score3 = exp(params1.dcs_logA3)
-                 * exp(params2.dcs_kappa3 * cos(angle2 - params2.dcs_mu3));
-    score +=
-        params1.wt_dih_cs * (-log(exp_score1 + exp_score2 + exp_score3 + MEST));
-
-    // Derivatives (angle 2)
-    dscore_cs = 0.0;
-    dscore_cs +=
-        exp_score1 * params2.dcs_kappa1 * sin(angle2 - params2.dcs_mu1);
-    dscore_cs +=
-        exp_score2 * params2.dcs_kappa2 * sin(angle2 - params2.dcs_mu2);
-    dscore_cs +=
-        exp_score3 * params2.dcs_kappa3 * sin(angle2 - params2.dcs_mu3);
-    dscore_cs /= (exp_score1 + exp_score2 + exp_score3 + MEST);
-    dscore_cs *= params1.wt_dih_cs;
+    dscore_cs = params2.wt_dih_cs * cs2.dV;
 
     accumulate<D, Vec<Real, 3>>::add(
         dV_dx[0][rot2_CA_ind], dscore_cs * disulf_ca_dihedral_angle_2.dV_dI);
@@ -276,8 +277,8 @@ TMOL_DEVICE_FUNC void accumulate_disulfide_derivs(
         z / params1.d_scale
         - (exp(-0.5 * z * z * params1.d_shape * params1.d_shape)
            * sqrt(2.0 / M_PI) * params1.d_shape)
-              / (params1.d_scale * std::erfc(-params1.d_shape * z / sqrt(2.0))
-                 + 1.e-12);
+              / (params1.d_scale
+                 * (std::erfc(-params1.d_shape * z / sqrt(2.0)) + MEST));
     dscore_d *= params1.wt_len;
     accumulate<D, Vec<Real, 3>>::add(
         dV_dx[0][block1_S_ind], dscore_d * ssdist.dV_dA * dTdV);
@@ -307,20 +308,8 @@ TMOL_DEVICE_FUNC void accumulate_disulfide_derivs(
   }
 
   {  // SS dihed
-    // Derivatives
-    Real ang_ss(dihed.V), exp_score1(0.0), exp_score2(0.0);
-    exp_score1 = exp(params1.dss_logA1)
-                 * exp(params1.dss_kappa1 * cos(ang_ss - params1.dss_mu1));
-    exp_score2 = exp(params1.dss_logA2)
-                 * exp(params1.dss_kappa2 * cos(ang_ss - params1.dss_mu2));
-
-    Real dscore_ss(0.0);
-    dscore_ss +=
-        exp_score1 * params1.dss_kappa1 * sin(dihed.V - params1.dss_mu1);
-    dscore_ss +=
-        exp_score2 * params1.dss_kappa2 * sin(dihed.V - params1.dss_mu2);
-    dscore_ss /= (exp_score1 + exp_score2 + MEST);
-    dscore_ss *= params1.wt_dih_ss;
+    auto ss = ss_dihedral(dihed.V, params1, params2);
+    Real dscore_ss = params1.wt_dih_ss * ss.dV;
 
     accumulate<D, Vec<Real, 3>>::add(
         dV_dx[0][block1_CB_ind], dscore_ss * dihed.dV_dI * dTdV);
@@ -333,31 +322,9 @@ TMOL_DEVICE_FUNC void accumulate_disulfide_derivs(
   }
 
   {  // CB-S dihed
-    Real angle1(disulf_ca_dihedral_angle_1.V);
-    Real exp_score1 = exp(params1.dcs_logA1)
-                      * exp(params1.dcs_kappa1 * cos(angle1 - params1.dcs_mu1));
-    Real exp_score2 = exp(params1.dcs_logA2)
-                      * exp(params1.dcs_kappa2 * cos(angle1 - params1.dcs_mu2));
-    Real exp_score3 = exp(params1.dcs_logA3)
-                      * exp(params1.dcs_kappa3 * cos(angle1 - params1.dcs_mu3));
-    Real dscore_cs = 0.0;
-    Real angle2(disulf_ca_dihedral_angle_2.V);
-    exp_score1 = exp(params1.dcs_logA1)
-                 * exp(params2.dcs_kappa1 * cos(angle2 - params2.dcs_mu1));
-    exp_score2 = exp(params1.dcs_logA2)
-                 * exp(params2.dcs_kappa2 * cos(angle2 - params2.dcs_mu2));
-    exp_score3 = exp(params1.dcs_logA3)
-                 * exp(params2.dcs_kappa3 * cos(angle2 - params2.dcs_mu3));
-
-    // Derivatives (angle 2)
-    dscore_cs +=
-        exp_score1 * params1.dcs_kappa1 * sin(angle1 - params1.dcs_mu1);
-    dscore_cs +=
-        exp_score2 * params1.dcs_kappa2 * sin(angle1 - params1.dcs_mu2);
-    dscore_cs +=
-        exp_score3 * params1.dcs_kappa3 * sin(angle1 - params1.dcs_mu3);
-    dscore_cs /= (exp_score1 + exp_score2 + exp_score3 + MEST);
-    dscore_cs *= params1.wt_dih_cs;
+    auto cs1 = cs_dihedral(disulf_ca_dihedral_angle_1.V, params1);
+    auto cs2 = cs_dihedral(disulf_ca_dihedral_angle_2.V, params2);
+    Real dscore_cs = params1.wt_dih_cs * cs1.dV;
 
     accumulate<D, Vec<Real, 3>>::add(
         dV_dx[0][block1_CA_ind],
@@ -372,16 +339,7 @@ TMOL_DEVICE_FUNC void accumulate_disulfide_derivs(
         dV_dx[0][block2_S_ind],
         dscore_cs * disulf_ca_dihedral_angle_1.dV_dL * dTdV);
 
-    // Derivatives (angle 2)
-    dscore_cs = 0.0;
-    dscore_cs +=
-        exp_score1 * params2.dcs_kappa1 * sin(angle2 - params2.dcs_mu1);
-    dscore_cs +=
-        exp_score2 * params2.dcs_kappa2 * sin(angle2 - params2.dcs_mu2);
-    dscore_cs +=
-        exp_score3 * params2.dcs_kappa3 * sin(angle2 - params2.dcs_mu3);
-    dscore_cs /= (exp_score1 + exp_score2 + exp_score3 + MEST);
-    dscore_cs *= params1.wt_dih_cs;
+    dscore_cs = params2.wt_dih_cs * cs2.dV;
 
     accumulate<D, Vec<Real, 3>>::add(
         dV_dx[0][block2_CA_ind],
