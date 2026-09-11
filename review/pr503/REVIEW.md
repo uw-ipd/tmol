@@ -473,6 +473,14 @@ Reproduced against the updated selection module: three declared links over a jag
 
 Two CPU reproductions reverse the order of two fragment states in one equivalence class. Both retain only index 0 upstream. The branch's existing explicit fragment predicate retains both states in either order and avoids the extra fallback loop. Ordinary unconnected canonical residues remain protected from accidental selection of conjugated variants.
 
+### 49. P1 — connection impropers are limited to fragments of one source ligand
+
+[tmol/score/genbonded/potentials/genbonded_pose_score.impl.hh:666](https://github.com/uw-ipd/tmol/blob/0f4c3bc426bca78e8681f0b730fa23c3e26ef261/tmol/score/genbonded/potentials/genbonded_pose_score.impl.hh#L666)
+
+> Could this gate follow the center's scoring ownership instead of fragment origin? An amide formed between a canonical residue and a ligand is also a three-coordinate center spanning a connection. Even after assigning a compatible Nad/CDp/CS2/HN neighborhood, this predicate drops its improper in all four scoring paths. The central atom's physical type should determine ownership; generic lookup references on its neighbors should not transfer their canonical sidechain torsions to the generic term.
+
+The isolated lysine–biotin reproduction retains just the existing Nad/CDp/CS2/HN table row and explicitly supplies the corrected site types; it is not a claim that default preparation already installs those types. Moving the retained hydrogen out of plane gives exactly zero attachment energy in both whole-pose and block-pair scoring with the fragment gate. This controlled comparison retains the new Python lookup-reference support and isolates the native predicate; it is not an unmodified upstream checkout. The correction checks center ownership in the shared helper and accepts other chemical connections. An optional per-atom `genbonded_type` provides lookup without changing physical atom typing; a LYS chi4 regression guards against transferring its axis to generic scoring. Full automatic local chemistry, charge and hydrogen reconstruction remain separate completion requirements.
+
 ## Validation record
 
 See [VALIDATION.md](VALIDATION.md) for the initial review commands, counts, environment, examples, and remaining failures; [FOLLOWUP.md](FOLLOWUP.md) records subsequent fixes and validation. All raw run logs were retained separately under `/mnt/home/kdidi/tmol-pr503-results`. No upstream golden score files were regenerated to make tests pass.

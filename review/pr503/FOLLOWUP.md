@@ -1273,3 +1273,66 @@ local chemistry model and default integration, with the unresolved
 fragment-specific cross-cut ownership issue carried alongside it. The broader
 goal remains active; passing this targeted reconciliation suite is not a
 release-completion claim.
+
+### Generic lookup references and attachment impropers
+
+The capped chemistry audit requires generic lookup types on canonical neighbors:
+LYS CE can remain physically CH2 while matching as CS2; its retained H can remain
+Hpol while matching as HN. Simply making CE physically generic would also make
+LYS chi4 generic-owned, adding a torsion alongside its Dunbrack term. `Atom` now
+has an optional `genbonded_type` reference, validated once per block setup as a
+known concrete type of the same element. Physical types still determine the
+generic term's proper/improper ownership checks. This does not remove any named
+CartRes torsions; local chemical reconstruction must also replace the affected
+records, charges and internal coordinates.
+
+The existing native improper helper only admitted fragments of one source
+ligand. With corrected amide lookup types, it still gave exactly zero attachment
+energy when the retained LYS–biotin H moved out of plane: two controlled CPU
+failures, whole-pose and block-pair. The shared helper now admits other chemical
+connections and excludes Rosetta-owned centers before neighbor enumeration.
+It uses the existing physical-type mask and adds no scoring tensor. Three-block
+impropers (a center with multiple remote neighbors) remain outside this
+connection-pair enumeration and require an explicit future representation.
+
+Tests independently compute the existing 80*theta^2 amide potential from plane
+normals, compare full coordinate gradients, check finite differences, and verify
+that correlated group rotamers use the same term. Canonical center and missing
+lookup controls stay at zero. The LYS chi4 ownership test guards against a
+nonzero generic table match being scored in addition to the canonical term.
+Export tests cover references in residue and patch atoms; `.tmol` emits v3 only
+when needed, otherwise v2, and accepts v1–v3. Rosetta `.params` export rejects
+references before writing because it cannot preserve them. Repeated invalid
+setup must raise without leaving partially published generic annotations.
+
+Validation so far: 19 focused CPU passes / 10 CUDA skips; Slurm 248902 has 155
+CPU/CUDA passes and no skips, including the existing generic, fragment and
+bundle/entry-path suites. The final Python export preflight has six additional
+CPU passes (overlapping cases). Earlier Slurm 248900 failed the initially
+unisolated tests and is superseded; the isolated fragment-gate reproduction is
+in `generic-references-fragment-gate.log` (2 failed, 13 passed, 8 skipped).
+Slurm 248902 completed 0:0 in 5:54. Fixed-input CUDA replay preserves all 192
+terms within the existing tolerances; the maximum difference from the preceding
+CUDA replay is 2.29e-5 (generic term maximum 1.19e-7). It does not validate a new
+parameter fit or remove the existing environment-dependent golden mismatches.
+
+[Paired profiles](profile_generic_impropers.py) compile the frozen baseline kernel
+in a distinct namespace and alternate both kernels on exactly the same pose and
+parameter tensors, after warmup and with CUDA synchronization. Baseline caaa27b6a
+has identical generic source to the preceding 1d1bb57a2 head. At 1/16/64 ubiquitin
+poses, CPU generic-term forward cost rises 1.9–2.5% and forward+backward rises
+1.5–3.1%; CUDA forward is 2.3–3.2% lower and forward+backward 0.4–1.5% lower.
+Scores and gradients are identical. These small stage-specific differences are
+not an end-to-end speedup claim. Avoiding generic work entirely for interactions
+with no owned terms remains a useful optimization target.
+
+The field adds 8 shallow Python bytes per Atom object (64→72), or 8,720 bytes
+for the 1,090 distinct Atom objects reachable from the default patched residues.
+This excludes allocator/native memory, strings and generated chemistry; there
+is no added GPU scoring tensor. Exact source/log hashes and raw timings are in
+`results/generic-reference-validation.json` and `results/generic-impropers-profile-{cpu,cuda}.json`.
+
+The default preparer does not yet generate/install these references or local
+chemistry corrections. This is a validated scoring prerequisite, not completion
+of automatic conjugate parameters or independent scientific validation of the
+existing generic amide table. Review comment 49 records the native restriction.

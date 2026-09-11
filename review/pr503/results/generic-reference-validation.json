@@ -1,0 +1,49 @@
+{
+  "parent": "1d1bb57a2f57528171e2077450e5c391a580105a",
+  "upstream": "0f4c3bc426bca78e8681f0b730fa23c3e26ef261",
+  "slurm_job": 248902,
+  "slurm_state": "COMPLETED",
+  "exit_code": "0:0",
+  "elapsed": "00:05:54",
+  "pytest_seconds": 229.59,
+  "pytest_passed": 155,
+  "pytest_skipped": 0,
+  "cpu_focused": {
+    "passed": 19,
+    "skipped": 10,
+    "seconds": 14.65
+  },
+  "final_export_preflight": {
+    "passed": 6,
+    "seconds": 2.66,
+    "note": "CPU only: final preflight also rejects references in patch atoms before Rosetta export. This small Python change followed the Slurm process import; native source is unchanged."
+  },
+  "controlled_fragment_gate_before": {
+    "failed": 2,
+    "passed": 13,
+    "skipped": 8,
+    "note": "New Python generic-reference support retained; native gate identical to upstream. Not a pristine upstream checkout."
+  },
+  "superseded_job": {
+    "id": 248900,
+    "failed": 16,
+    "passed": 133,
+    "reason": "Initial test failed to isolate other biotin impropers, and the old native gate dropped corrected attachment impropers."
+  },
+  "counts_overlap": true,
+  "source_sha256": {
+    "tmol/database/chemical/__init__.py": "81f674d58f83bf026a38b13c4f7bf1628b4f60667cbebcdd40dc0f3e39a07f1a",
+    "tmol/ligand/_params_file.py": "214cc56aaf9950adc8091b5a6b1a849bf4f52f4db0e06b70bb7b10503da93870",
+    "tmol/ligand/_params_io.py": "179193e8f5ed750728b0fdb0f008bbf426455f513a8ae65be2293731c0082d54",
+    "tmol/score/genbonded/_genbonded_energy_term.py": "f3782e31c6c778b4aee01356c77a1f4dc71130624ab1a29470e105ed8db6e5d5",
+    "tmol/score/genbonded/potentials/genbonded_pose_score.impl.hh": "8fbfc874984e583458353bfc4db7c303b77f86a265983ab3806a364aeb7f442a",
+    "tmol/tests/score/genbonded/test_generic_type_references.py": "a86fb78d81b0fbdcad726a4e6349e0046cdbf45ed0936f409673e8c51b5c2c75",
+    "review/pr503/profile_generic_impropers.py": "f55daa52249c6b382ebac31a6e6379b036f21daed2a935d74560fb7d3a55c52a"
+  },
+  "log_sha256": {
+    "generic-references-fixed-tests.xml": "0e4535a91527ce245f5276af4fff64f70c7e371e034b6eb01e8688744de61259",
+    "generic-references-final-cpu.log": "c472e6140526989598330d6ca0e8824dbe1acd5c64f7a4bdcca6128d45128fe3",
+    "generic-references-export-final-cpu.log": "132202a440c087861919b3fd44c8aafc4c89ed5fc4b55a92923edb9afd69c9de",
+    "generic-references-fragment-gate.log": "feee0487153cc145952f2ee8918f8d09b7cb8b7f3eb18d560700fea1025ed4ad"
+  }
+}

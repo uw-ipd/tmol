@@ -56,6 +56,17 @@ def _chi_number(name: str) -> int:
     return 0
 
 
+def _has_generic_references(residue_types, patches=()):
+    return any(
+        atom.genbonded_type is not None
+        for atoms in (
+            *(r.atoms for r in residue_types),
+            *(p.add_atoms + p.modify_atoms for p in patches),
+        )
+        for atom in atoms
+    )
+
+
 def _write_rosetta_params_file(
     restype: RawResidueType,
     path: str | Path,
@@ -69,6 +80,8 @@ def _write_rosetta_params_file(
         partial_charges: Optional per-atom partial charges. Keys are atom
             names matching restype.atoms[i].name.
     """
+    if _has_generic_references((restype,)):
+        raise ValueError("Rosetta .params cannot preserve genbonded_type; use .tmol")
     lines: list[str] = []
 
     lines.append(f"NAME {restype.name}")
@@ -337,7 +350,11 @@ _CompactDumper.add_multi_representer(np.generic, _np_scalar_representer)
 
 def _flow_atom(d: dict[str, Any]) -> dict[str, Any]:
     """Mark an atom dict for flow-style emission."""
-    return _FlowDict(d)
+    return _FlowDict(
+        (key, value)
+        for key, value in d.items()
+        if key != "genbonded_type" or value is not None
+    )
 
 
 def _compactify_patch(d: dict[str, Any]) -> dict[str, Any]:
@@ -418,8 +435,9 @@ def _write_tmol_params_file(
             _compactify_patch(cattr.unstructure(patch)) for patch in patches
         ]
 
+    has_generic_references = _has_generic_references(residue_types, patches or ())
     payload: dict[str, Any] = {
-        "version": TMOL_FORMAT_VERSION,
+        "version": TMOL_FORMAT_VERSION if has_generic_references else "2.0",
         "chemical": chemical,
         "elec": {
             "atom_charge_parameters": _FlowList(charge_list),
@@ -466,6 +484,13 @@ def write_params_file(
     preps = list(preparation) if is_list else [preparation]
     fmt = str(format).lower()
     if fmt == "rosetta":
+        if _has_generic_references(
+            (p.residue_type for p in preps),
+            (patch for p in preps for patch in p.adds_patches),
+        ):
+            raise ValueError(
+                "Rosetta .params cannot preserve genbonded_type; use .tmol"
+            )
         if is_list:
             out_dir = Path(path)
             for prep in preps:

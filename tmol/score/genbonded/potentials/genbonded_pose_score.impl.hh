@@ -189,6 +189,7 @@ TMOL_DEVICE_FUNC int inter_block_improper_for_side(
     int coord_offset2,
     TView<Vec<Int, 3>, 3, D> atom_paths_from_conn,
     TView<Vec<Int, 4>, 2, D> atom_type_hierarchy,
+    TView<Int, 2, D> atom_is_rosetta,
     TView<Int, 2, D> source_atom_index,
     TView<Vec<Int, 5>, 1, D> improper_hash_keys,
     Vec<Int, 4>& atoms) {
@@ -199,6 +200,8 @@ TMOL_DEVICE_FUNC int inter_block_improper_for_side(
   int center_offset = side == 0 ? coord_offset1 : coord_offset2;
   int other_offset = side == 0 ? coord_offset2 : coord_offset1;
 
+  Int center_atom = atom_paths_from_conn[center_bt][center_conn][0][0];
+  if (center_atom < 0 || atom_is_rosetta[center_bt][center_atom]) return -1;
   Vec<Int, 3> direct[3];
   int n_direct = 0;
   for (int path_ind = 1; path_ind <= 3; ++path_ind) {
@@ -660,12 +663,9 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::forward(
       // connection atom. It then has exactly two local neighbors and the
       // partner connection atom as its third neighbor. Evaluate either side as
       // the center; only one side can satisfy this condition for a given
-      // original three-coordinate atom. Restrict to fragments of one source
-      // ligand so polymer connections are unchanged.
+      // original three-coordinate atom. The helper skips Rosetta-owned
+      // centers but accepts generic centers across any chemical connection.
       auto eval_inter_improper = ([&] TMOL_DEVICE_FUNC(int tid) {
-        if (!same_source_ligand_fragments<Int, D>(
-                block_type1, block_type2, gen_source_block_type_index))
-          return;
         // Either connection atom can be the three-coordinate center, so both
         // sides are evaluated. The loop strides over the workgroup because a
         // single-threaded one would otherwise only ever see side 0.
@@ -681,6 +681,7 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::forward(
               rot_coord_offset2,
               atom_paths_from_conn,
               gen_atom_type_hierarchy,
+              gen_atom_is_rosetta,
               gen_source_atom_index,
               gen_inter_improper_hash_keys,
               atoms);
@@ -937,9 +938,6 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::backward(
       DeviceOps<D>::template for_each_in_workgroup<nt>(eval_inter_block);
 
       auto eval_inter_improper = ([&] TMOL_DEVICE_FUNC(int tid) {
-        if (!same_source_ligand_fragments<Int, D>(
-                block_type1, block_type2, gen_source_block_type_index))
-          return;
         // Either connection atom can be the three-coordinate center, so both
         // sides are evaluated. The loop strides over the workgroup because a
         // single-threaded one would otherwise only ever see side 0.
@@ -955,6 +953,7 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::backward(
               rot_coord_offset2,
               atom_paths_from_conn,
               gen_atom_type_hierarchy,
+              gen_atom_is_rosetta,
               gen_source_atom_index,
               gen_inter_improper_hash_keys,
               atoms);
@@ -1279,9 +1278,6 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
       DeviceOps<D>::template for_each_in_workgroup<nt>(eval_inter);
 
       auto eval_inter_improper = ([&] TMOL_DEVICE_FUNC(int tid) {
-        if (!same_source_ligand_fragments<Int, D>(
-                block_type1, block_type2, gen_source_block_type_index))
-          return;
         // Either connection atom can be the three-coordinate center, so both
         // sides are evaluated. The loop strides over the workgroup because a
         // single-threaded one would otherwise only ever see side 0.
@@ -1297,6 +1293,7 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
               rot_coord_offset2,
               atom_paths_from_conn,
               gen_atom_type_hierarchy,
+              gen_atom_is_rosetta,
               gen_source_atom_index,
               gen_inter_improper_hash_keys,
               atoms);
@@ -1520,9 +1517,6 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::backward(
       DeviceOps<D>::template for_each_in_workgroup<nt>(eval_inter);
 
       auto eval_inter_improper = ([&] TMOL_DEVICE_FUNC(int tid) {
-        if (!same_source_ligand_fragments<Int, D>(
-                block_type1, block_type2, gen_source_block_type_index))
-          return;
         // Either connection atom can be the three-coordinate center, so both
         // sides are evaluated. The loop strides over the workgroup because a
         // single-threaded one would otherwise only ever see side 0.
@@ -1538,6 +1532,7 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::backward(
               rot_coord_offset2,
               atom_paths_from_conn,
               gen_atom_type_hierarchy,
+              gen_atom_is_rosetta,
               gen_source_atom_index,
               gen_inter_improper_hash_keys,
               atoms);

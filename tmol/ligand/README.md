@@ -254,9 +254,19 @@ shared additions once in the returned preparation list; inject the whole list to
 restore the bundle. Adding the bundle after its source ligand has already been
 registered still installs its attachment metadata. Numeric internal coordinates
 and bond order in the definition are preserved during export.
-The writer emits format version 2.0, preventing older readers from silently
-dropping the attachment metadata. This reader also accepts existing version 1
-files; those files cannot recover metadata an older writer omitted.
+The writer emits format version 2.0 for attachment metadata, or 3.0 when atoms
+(including patch atoms) contain an explicit `genbonded_type` reference. Older
+readers reject these versions rather than silently dropping chemistry. This
+reader accepts versions 1–3; it cannot recover metadata an older writer omitted.
+
+An atom's optional `genbonded_type` controls only generic bonded parameter lookup.
+Its `atom_type` still controls nonbonded typing and the generic term’s ownership
+checks. Changing physical types also requires reviewing any retained, named
+`CartRes` torsions; a lookup reference does not rewrite those records. A reference must be a known concrete type of the same element. This
+lets, for example, an amide's canonical carbon and hydrogen neighbors supply
+appropriate generic lookup types without transferring their canonical torsions
+to the generic term. Rosetta `.params` export rejects these references because
+that format cannot preserve them.
 
 Persisting explicit connection records does not generate them: automatic bonded
 parameter generation for conjugates is still under development.

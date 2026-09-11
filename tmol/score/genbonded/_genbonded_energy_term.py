@@ -179,8 +179,25 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
         return impropers
 
     def get_atom_chem_type(self, block_type: RefinedResidueType, atom_idx: int) -> str:
-        """Return the chemical atom type string for *atom_idx* in *block_type*."""
-        return block_type.atoms[atom_idx].atom_type
+        """Return the generic lookup reference, independently of ownership."""
+        atom = block_type.atoms[atom_idx]
+        return atom.atom_type if atom.genbonded_type is None else atom.genbonded_type
+
+    def _validate_generic_references(self, block_type):
+        for atom in block_type.atoms:
+            reference = atom.genbonded_type
+            if reference is None:
+                continue
+            if (
+                reference not in self.gen_database.atom_hierarchy
+                or reference not in self._element_for_atom_type
+                or self._element_for_atom_type[reference]
+                != self._element_for_atom_type[atom.atom_type]
+            ):
+                raise ValueError(
+                    f"{block_type.name} atom {atom.name}: invalid genbonded_type "
+                    f"{reference!r} for atom type {atom.atom_type!r}"
+                )
 
     def resolve_torsion_params(self, block_type: RefinedResidueType, torsions):
         """For each torsion tuple (i,j,k,l), look up its genbonded parameters.
@@ -212,7 +229,10 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
             t3 = self.get_atom_chem_type(block_type, k)
             t4 = self.get_atom_chem_type(block_type, l)
 
-            if t2 in rosetta_typed and t3 in rosetta_typed:
+            if (
+                block_type.atoms[j].atom_type in rosetta_typed
+                and block_type.atoms[k].atom_type in rosetta_typed
+            ):
                 continue
             if frozenset((int(j), int(k))) in na_bonds:
                 continue
@@ -256,15 +276,16 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
 
         Impropers with no matching database entry are dropped.
 
-        No Rosetta/ligand partition is applied: every improper entry is centred
-        on a concrete generic type, which no Rosetta type's hierarchy reaches, so
-        a Rosetta-centred improper can never match.
+        A Rosetta-typed center belongs to the Rosetta terms even when it has
+        an explicit generic lookup reference for neighboring interactions.
         """
         kept = []
         rows = []
 
         for quad in impropers:
             center, n1, n2, n3 = quad
+            if block_type.atoms[center].atom_type in self.gen_database.rosetta_typed:
+                continue
             tc = self.get_atom_chem_type(block_type, center)
             t1 = self.get_atom_chem_type(block_type, n1)
             t2 = self.get_atom_chem_type(block_type, n2)
@@ -308,6 +329,9 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
             assert hasattr(block_type, "genbonded_intra_params")
             assert hasattr(block_type, "genbonded_atom_type_hierarchy")
             return
+
+        # Validate once, before publishing any partially constructed annotation.
+        self._validate_generic_references(block_type)
 
         # --- Proper torsions ---
         all_torsions = self.find_torsion_subgraphs(block_type.bond_indices)

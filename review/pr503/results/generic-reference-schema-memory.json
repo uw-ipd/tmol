@@ -1,0 +1,7 @@
+{
+  "scope": "Shallow Python object sizes, same attrs options and interpreter; excludes referenced strings, allocators, native/GPU memory and generated chemistry. Count includes unique Atom objects reachable through default patched residues.",
+  "previous_atom_bytes": 64,
+  "candidate_atom_bytes": 72,
+  "unique_default_atom_objects": 1090,
+  "default_additional_shallow_bytes": 8720
+}

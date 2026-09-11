@@ -85,6 +85,9 @@ class AtomType:
 class Atom:
     name: str = attr.ib()
     atom_type: str = attr.ib()
+    # Generic bonded lookup can describe a changed local environment without
+    # changing nonbonded typing or transferring Rosetta torsion ownership.
+    genbonded_type: Optional[str] = None
 
 
 @attr.s(frozen=True, slots=True)

@@ -1,0 +1,1544 @@
+{
+  "scope": "Identical saved coordinates and exported parameters; comparison against preceding reconciliation CUDA run. The existing abs=1e-2, rel=1e-4 tolerances are unchanged. This is not generated-parameter parity or an independent fit.",
+  "count": 192,
+  "maximum_error": 2.288818359375e-05,
+  "generic_maximum_error": 1.1920928955078125e-07,
+  "rows": [
+    {
+      "backbone": "alpha_aa",
+      "opt_h": false,
+      "term": "fa_ljatr",
+      "before": -39.00383758544922,
+      "after": -39.00383758544922,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": false,
+      "term": "fa_ljrep",
+      "before": 25.563230514526367,
+      "after": 25.563234329223633,
+      "error": 3.814697265625e-06
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": false,
+      "term": "fa_lk",
+      "before": 32.70353317260742,
+      "after": 32.703529357910156,
+      "error": 3.814697265625e-06
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": false,
+      "term": "fa_elec",
+      "before": 1.4403986930847168,
+      "after": 1.440399169921875,
+      "error": 4.76837158203125e-07
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": false,
+      "term": "hbond",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": false,
+      "term": "cart_lengths",
+      "before": 5.124110221862793,
+      "after": 5.124110221862793,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": false,
+      "term": "cart_angles",
+      "before": 67.8912124633789,
+      "after": 67.89122772216797,
+      "error": 1.52587890625e-05
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": false,
+      "term": "cart_torsions",
+      "before": 0.5150015950202942,
+      "after": 0.5150015950202942,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": false,
+      "term": "cart_impropers",
+      "before": 0.5457763671875,
+      "after": 0.5457764267921448,
+      "error": 5.960464477539063e-08
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": false,
+      "term": "cart_hxltorsions",
+      "before": 5.039809226989746,
+      "after": 5.039809226989746,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": false,
+      "term": "disulfide",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": false,
+      "term": "rama",
+      "before": -17.302486419677734,
+      "after": -17.302486419677734,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": false,
+      "term": "omega",
+      "before": -2.352137804031372,
+      "after": -2.352137804031372,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": false,
+      "term": "dunbrack_rot",
+      "before": 9.1878662109375,
+      "after": 9.1878662109375,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": false,
+      "term": "dunbrack_rotdev",
+      "before": 19.246225357055664,
+      "after": 19.246225357055664,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": false,
+      "term": "dunbrack_semirot",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": false,
+      "term": "lk_ball_iso",
+      "before": 40.47494888305664,
+      "after": 40.47494888305664,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": false,
+      "term": "lk_ball",
+      "before": 10.744056701660156,
+      "after": 10.744056701660156,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": false,
+      "term": "lk_bridge",
+      "before": 0.0412285178899765,
+      "after": 0.0412285178899765,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": false,
+      "term": "lk_bridge_uncpl",
+      "before": 0.7590124607086182,
+      "after": 0.7590124607086182,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": false,
+      "term": "ref",
+      "before": -14.895784378051758,
+      "after": -14.895784378051758,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": false,
+      "term": "gen_torsions",
+      "before": -1.0359982252120972,
+      "after": -1.0359981060028076,
+      "error": 1.1920928955078125e-07
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": false,
+      "term": "na_torsion",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": false,
+      "term": "na_torsion_well",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": true,
+      "term": "fa_ljatr",
+      "before": -38.99140167236328,
+      "after": -38.99140167236328,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": true,
+      "term": "fa_ljrep",
+      "before": 25.744041442871094,
+      "after": 25.744041442871094,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": true,
+      "term": "fa_lk",
+      "before": 32.70352554321289,
+      "after": 32.703529357910156,
+      "error": 3.814697265625e-06
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": true,
+      "term": "fa_elec",
+      "before": 1.5479427576065063,
+      "after": 1.5479423999786377,
+      "error": 3.5762786865234375e-07
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": true,
+      "term": "hbond",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": true,
+      "term": "cart_lengths",
+      "before": 5.124345779418945,
+      "after": 5.124345302581787,
+      "error": 4.76837158203125e-07
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": true,
+      "term": "cart_angles",
+      "before": 67.89129638671875,
+      "after": 67.89128875732422,
+      "error": 7.62939453125e-06
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": true,
+      "term": "cart_torsions",
+      "before": 0.31177663803100586,
+      "after": 0.31177663803100586,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": true,
+      "term": "cart_impropers",
+      "before": 0.5457533001899719,
+      "after": 0.5457533001899719,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": true,
+      "term": "cart_hxltorsions",
+      "before": 2.3008742332458496,
+      "after": 2.3008742332458496,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": true,
+      "term": "disulfide",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": true,
+      "term": "rama",
+      "before": -17.30249786376953,
+      "after": -17.30249786376953,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": true,
+      "term": "omega",
+      "before": -2.350062370300293,
+      "after": -2.350062370300293,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": true,
+      "term": "dunbrack_rot",
+      "before": 9.187865257263184,
+      "after": 9.187865257263184,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": true,
+      "term": "dunbrack_rotdev",
+      "before": 19.24629020690918,
+      "after": 19.24629020690918,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": true,
+      "term": "dunbrack_semirot",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": true,
+      "term": "lk_ball_iso",
+      "before": 40.47493362426758,
+      "after": 40.47492599487305,
+      "error": 7.62939453125e-06
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": true,
+      "term": "lk_ball",
+      "before": 10.694096565246582,
+      "after": 10.694099426269531,
+      "error": 2.86102294921875e-06
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": true,
+      "term": "lk_bridge",
+      "before": 0.009243865497410297,
+      "after": 0.009243865497410297,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": true,
+      "term": "lk_bridge_uncpl",
+      "before": 0.1902349889278412,
+      "after": 0.1902349889278412,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": true,
+      "term": "ref",
+      "before": -14.895784378051758,
+      "after": -14.895784378051758,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": true,
+      "term": "gen_torsions",
+      "before": -1.4791016578674316,
+      "after": -1.4791016578674316,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": true,
+      "term": "na_torsion",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "alpha_aa",
+      "opt_h": true,
+      "term": "na_torsion_well",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": false,
+      "term": "fa_ljatr",
+      "before": -197.24331665039062,
+      "after": -197.24330139160156,
+      "error": 1.52587890625e-05
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": false,
+      "term": "fa_ljrep",
+      "before": 122.34366607666016,
+      "after": 122.3436508178711,
+      "error": 1.52587890625e-05
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": false,
+      "term": "fa_lk",
+      "before": 157.6397705078125,
+      "after": 157.63978576660156,
+      "error": 1.52587890625e-05
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": false,
+      "term": "fa_elec",
+      "before": -61.1767692565918,
+      "after": -61.17679214477539,
+      "error": 2.288818359375e-05
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": false,
+      "term": "hbond",
+      "before": -28.13157081604004,
+      "after": -28.131572723388672,
+      "error": 1.9073486328125e-06
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": false,
+      "term": "cart_lengths",
+      "before": 247.56582641601562,
+      "after": 247.56582641601562,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": false,
+      "term": "cart_angles",
+      "before": 51.101600646972656,
+      "after": 51.101600646972656,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": false,
+      "term": "cart_torsions",
+      "before": 3.7980031967163086,
+      "after": 3.7980031967163086,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": false,
+      "term": "cart_impropers",
+      "before": 6.925472736358643,
+      "after": 6.925473213195801,
+      "error": 4.76837158203125e-07
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": false,
+      "term": "cart_hxltorsions",
+      "before": 1.3346577882766724,
+      "after": 1.3346577882766724,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": false,
+      "term": "disulfide",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": false,
+      "term": "rama",
+      "before": 5.8143510818481445,
+      "after": 5.8143510818481445,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": false,
+      "term": "omega",
+      "before": 4.502093315124512,
+      "after": 4.502093315124512,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": false,
+      "term": "dunbrack_rot",
+      "before": 22.718626022338867,
+      "after": 22.718626022338867,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": false,
+      "term": "dunbrack_rotdev",
+      "before": 24.382474899291992,
+      "after": 24.382474899291992,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": false,
+      "term": "dunbrack_semirot",
+      "before": 19.450366973876953,
+      "after": 19.450366973876953,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": false,
+      "term": "lk_ball_iso",
+      "before": 184.59556579589844,
+      "after": 184.59556579589844,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": false,
+      "term": "lk_ball",
+      "before": 75.46588134765625,
+      "after": 75.46588134765625,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": false,
+      "term": "lk_bridge",
+      "before": 0.06382226198911667,
+      "after": 0.06382226198911667,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": false,
+      "term": "lk_bridge_uncpl",
+      "before": 0.7948567867279053,
+      "after": 0.7948567867279053,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": false,
+      "term": "ref",
+      "before": -5.804053783416748,
+      "after": -5.804053783416748,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": false,
+      "term": "gen_torsions",
+      "before": 44.77052307128906,
+      "after": 44.77052307128906,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": false,
+      "term": "na_torsion",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": false,
+      "term": "na_torsion_well",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": true,
+      "term": "fa_ljatr",
+      "before": -197.2556915283203,
+      "after": -197.25567626953125,
+      "error": 1.52587890625e-05
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": true,
+      "term": "fa_ljrep",
+      "before": 122.34371948242188,
+      "after": 122.34371185302734,
+      "error": 7.62939453125e-06
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": true,
+      "term": "fa_lk",
+      "before": 157.63978576660156,
+      "after": 157.6397705078125,
+      "error": 1.52587890625e-05
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": true,
+      "term": "fa_elec",
+      "before": -61.19743728637695,
+      "after": -61.197452545166016,
+      "error": 1.52587890625e-05
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": true,
+      "term": "hbond",
+      "before": -28.131572723388672,
+      "after": -28.131568908691406,
+      "error": 3.814697265625e-06
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": true,
+      "term": "cart_lengths",
+      "before": 247.56581115722656,
+      "after": 247.5657958984375,
+      "error": 1.52587890625e-05
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": true,
+      "term": "cart_angles",
+      "before": 51.101600646972656,
+      "after": 51.101600646972656,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": true,
+      "term": "cart_torsions",
+      "before": 3.4130852222442627,
+      "after": 3.413085460662842,
+      "error": 2.384185791015625e-07
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": true,
+      "term": "cart_impropers",
+      "before": 6.925472736358643,
+      "after": 6.925472736358643,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": true,
+      "term": "cart_hxltorsions",
+      "before": 0.7169773578643799,
+      "after": 0.7169773578643799,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": true,
+      "term": "disulfide",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": true,
+      "term": "rama",
+      "before": 5.8143510818481445,
+      "after": 5.8143510818481445,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": true,
+      "term": "omega",
+      "before": 4.502093315124512,
+      "after": 4.502093315124512,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": true,
+      "term": "dunbrack_rot",
+      "before": 22.718626022338867,
+      "after": 22.718626022338867,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": true,
+      "term": "dunbrack_rotdev",
+      "before": 24.382474899291992,
+      "after": 24.382474899291992,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": true,
+      "term": "dunbrack_semirot",
+      "before": 19.450366973876953,
+      "after": 19.450366973876953,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": true,
+      "term": "lk_ball_iso",
+      "before": 184.59556579589844,
+      "after": 184.59555053710938,
+      "error": 1.52587890625e-05
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": true,
+      "term": "lk_ball",
+      "before": 75.344482421875,
+      "after": 75.34446716308594,
+      "error": 1.52587890625e-05
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": true,
+      "term": "lk_bridge",
+      "before": 0.06382226198911667,
+      "after": 0.06382226198911667,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": true,
+      "term": "lk_bridge_uncpl",
+      "before": 0.7948567867279053,
+      "after": 0.7948567867279053,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": true,
+      "term": "ref",
+      "before": -5.804053783416748,
+      "after": -5.804053783416748,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": true,
+      "term": "gen_torsions",
+      "before": 44.77052307128906,
+      "after": 44.77052307128906,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": true,
+      "term": "na_torsion",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_aa",
+      "opt_h": true,
+      "term": "na_torsion_well",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": false,
+      "term": "fa_ljatr",
+      "before": -48.9791259765625,
+      "after": -48.9791259765625,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": false,
+      "term": "fa_ljrep",
+      "before": 44.29155731201172,
+      "after": 44.29155731201172,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": false,
+      "term": "fa_lk",
+      "before": 10.134068489074707,
+      "after": 10.134068489074707,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": false,
+      "term": "fa_elec",
+      "before": 0.43424463272094727,
+      "after": 0.43424463272094727,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": false,
+      "term": "hbond",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": false,
+      "term": "cart_lengths",
+      "before": 10.861818313598633,
+      "after": 10.861818313598633,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": false,
+      "term": "cart_angles",
+      "before": 41.923709869384766,
+      "after": 41.92371368408203,
+      "error": 3.814697265625e-06
+    },
+    {
+      "backbone": "dna",
+      "opt_h": false,
+      "term": "cart_torsions",
+      "before": 12.21915054321289,
+      "after": 12.21915054321289,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": false,
+      "term": "cart_impropers",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": false,
+      "term": "cart_hxltorsions",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": false,
+      "term": "disulfide",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": false,
+      "term": "rama",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": false,
+      "term": "omega",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": false,
+      "term": "dunbrack_rot",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": false,
+      "term": "dunbrack_rotdev",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": false,
+      "term": "dunbrack_semirot",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": false,
+      "term": "lk_ball_iso",
+      "before": 11.102426528930664,
+      "after": 11.102426528930664,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": false,
+      "term": "lk_ball",
+      "before": -1.01118803024292,
+      "after": -1.01118803024292,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": false,
+      "term": "lk_bridge",
+      "before": 0.02508801594376564,
+      "after": 0.02508801594376564,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": false,
+      "term": "lk_bridge_uncpl",
+      "before": 0.5630521178245544,
+      "after": 0.5630521178245544,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": false,
+      "term": "ref",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": false,
+      "term": "gen_torsions",
+      "before": 4.521366596221924,
+      "after": 4.521366596221924,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": false,
+      "term": "na_torsion",
+      "before": 233.18289184570312,
+      "after": 233.18289184570312,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": false,
+      "term": "na_torsion_well",
+      "before": 38.35997772216797,
+      "after": 38.35997772216797,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": true,
+      "term": "fa_ljatr",
+      "before": -48.994873046875,
+      "after": -48.994873046875,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": true,
+      "term": "fa_ljrep",
+      "before": 44.291770935058594,
+      "after": 44.291770935058594,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": true,
+      "term": "fa_lk",
+      "before": 10.134056091308594,
+      "after": 10.134056091308594,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": true,
+      "term": "fa_elec",
+      "before": -0.16183531284332275,
+      "after": -0.1618354320526123,
+      "error": 1.1920928955078125e-07
+    },
+    {
+      "backbone": "dna",
+      "opt_h": true,
+      "term": "hbond",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": true,
+      "term": "cart_lengths",
+      "before": 10.861781120300293,
+      "after": 10.861781120300293,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": true,
+      "term": "cart_angles",
+      "before": 41.923744201660156,
+      "after": 41.923744201660156,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": true,
+      "term": "cart_torsions",
+      "before": 12.21915054321289,
+      "after": 12.21915054321289,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": true,
+      "term": "cart_impropers",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": true,
+      "term": "cart_hxltorsions",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": true,
+      "term": "disulfide",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": true,
+      "term": "rama",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": true,
+      "term": "omega",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": true,
+      "term": "dunbrack_rot",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": true,
+      "term": "dunbrack_rotdev",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": true,
+      "term": "dunbrack_semirot",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": true,
+      "term": "lk_ball_iso",
+      "before": 11.102418899536133,
+      "after": 11.102418899536133,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": true,
+      "term": "lk_ball",
+      "before": -1.0111814737319946,
+      "after": -1.0111814737319946,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": true,
+      "term": "lk_bridge",
+      "before": 0.02508818544447422,
+      "after": 0.02508818544447422,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": true,
+      "term": "lk_bridge_uncpl",
+      "before": 0.5630526542663574,
+      "after": 0.5630526542663574,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": true,
+      "term": "ref",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": true,
+      "term": "gen_torsions",
+      "before": 4.52136754989624,
+      "after": 4.52136754989624,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": true,
+      "term": "na_torsion",
+      "before": 233.18313598632812,
+      "after": 233.18313598632812,
+      "error": 0.0
+    },
+    {
+      "backbone": "dna",
+      "opt_h": true,
+      "term": "na_torsion_well",
+      "before": 38.35997772216797,
+      "after": 38.35997772216797,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": false,
+      "term": "fa_ljatr",
+      "before": -129.66354370117188,
+      "after": -129.66354370117188,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": false,
+      "term": "fa_ljrep",
+      "before": 123.85820007324219,
+      "after": 123.85820007324219,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": false,
+      "term": "fa_lk",
+      "before": 50.62530517578125,
+      "after": 50.62530517578125,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": false,
+      "term": "fa_elec",
+      "before": -6.689549446105957,
+      "after": -6.689549446105957,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": false,
+      "term": "hbond",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": false,
+      "term": "cart_lengths",
+      "before": 43.18159484863281,
+      "after": 43.18159484863281,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": false,
+      "term": "cart_angles",
+      "before": 102.82373809814453,
+      "after": 102.82373809814453,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": false,
+      "term": "cart_torsions",
+      "before": 12.911046981811523,
+      "after": 12.911046981811523,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": false,
+      "term": "cart_impropers",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": false,
+      "term": "cart_hxltorsions",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": false,
+      "term": "disulfide",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": false,
+      "term": "rama",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": false,
+      "term": "omega",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": false,
+      "term": "dunbrack_rot",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": false,
+      "term": "dunbrack_rotdev",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": false,
+      "term": "dunbrack_semirot",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": false,
+      "term": "lk_ball_iso",
+      "before": 55.43657684326172,
+      "after": 55.43657684326172,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": false,
+      "term": "lk_ball",
+      "before": 0.5202690362930298,
+      "after": 0.5202690362930298,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": false,
+      "term": "lk_bridge",
+      "before": 0.06700586527585983,
+      "after": 0.06700586527585983,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": false,
+      "term": "lk_bridge_uncpl",
+      "before": 1.4723951816558838,
+      "after": 1.4723951816558838,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": false,
+      "term": "ref",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": false,
+      "term": "gen_torsions",
+      "before": 40.212440490722656,
+      "after": 40.212440490722656,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": false,
+      "term": "na_torsion",
+      "before": 31.47650718688965,
+      "after": 31.47650718688965,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": false,
+      "term": "na_torsion_well",
+      "before": 4.703481197357178,
+      "after": 4.703481197357178,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": true,
+      "term": "fa_ljatr",
+      "before": -129.57369995117188,
+      "after": -129.57369995117188,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": true,
+      "term": "fa_ljrep",
+      "before": 123.85771179199219,
+      "after": 123.85771179199219,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": true,
+      "term": "fa_lk",
+      "before": 50.62532043457031,
+      "after": 50.62532043457031,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": true,
+      "term": "fa_elec",
+      "before": -7.382783889770508,
+      "after": -7.382782936096191,
+      "error": 9.5367431640625e-07
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": true,
+      "term": "hbond",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": true,
+      "term": "cart_lengths",
+      "before": 43.1817512512207,
+      "after": 43.1817512512207,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": true,
+      "term": "cart_angles",
+      "before": 102.82369995117188,
+      "after": 102.82369995117188,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": true,
+      "term": "cart_torsions",
+      "before": 12.910945892333984,
+      "after": 12.910945892333984,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": true,
+      "term": "cart_impropers",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": true,
+      "term": "cart_hxltorsions",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": true,
+      "term": "disulfide",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": true,
+      "term": "rama",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": true,
+      "term": "omega",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": true,
+      "term": "dunbrack_rot",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": true,
+      "term": "dunbrack_rotdev",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": true,
+      "term": "dunbrack_semirot",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": true,
+      "term": "lk_ball_iso",
+      "before": 55.43657684326172,
+      "after": 55.43657684326172,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": true,
+      "term": "lk_ball",
+      "before": 0.5202672481536865,
+      "after": 0.5202673673629761,
+      "error": 1.1920928955078125e-07
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": true,
+      "term": "lk_bridge",
+      "before": 0.06700598448514938,
+      "after": 0.06700598448514938,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": true,
+      "term": "lk_bridge_uncpl",
+      "before": 1.4723953008651733,
+      "after": 1.4723953008651733,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": true,
+      "term": "ref",
+      "before": 0.0,
+      "after": 0.0,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": true,
+      "term": "gen_torsions",
+      "before": 40.21245574951172,
+      "after": 40.21245574951172,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": true,
+      "term": "na_torsion",
+      "before": 31.476531982421875,
+      "after": 31.476531982421875,
+      "error": 0.0
+    },
+    {
+      "backbone": "nonstandard_na",
+      "opt_h": true,
+      "term": "na_torsion_well",
+      "before": 4.703482151031494,
+      "after": 4.703482151031494,
+      "error": 0.0
+    }
+  ]
+}

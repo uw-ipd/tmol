@@ -65,8 +65,9 @@ if TYPE_CHECKING:
 
 # Current .tmol format version.  Bump the major version on breaking
 # schema changes; bump the minor version on backward-compatible additions.
-# The version string is written into every .tmol file and checked on load.
-TMOL_FORMAT_VERSION: str = "2.0"
+# Writers choose the oldest supported major that preserves the bundle;
+# this is the newest supported version. Every file is checked on load.
+TMOL_FORMAT_VERSION: str = "3.0"
 
 _RAW_RESIDUE_DEFAULTS: dict[str, Any] = {
     "atom_aliases": [],
@@ -164,10 +165,11 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
     else:
         file_version = str(file_version)
         # Read legacy single-residue bundles as well as complete conjugates.
-        # New writers use v2 so old readers reject rather than drop shared
-        # partner patches or connection energies they do not understand.
+        # v2 adds shared partner patches and connection parameters; v3 adds
+        # per-atom generic bonded references. Old readers must reject fields
+        # they would otherwise silently drop.
         file_major = file_version.split(".")[0]
-        if file_major not in {"1", "2"}:
+        if file_major not in {"1", "2", "3"}:
             raise ValueError(
                 f"{path}: .tmol format version {file_version} is incompatible "
                 f"with the current format version {TMOL_FORMAT_VERSION}. "
