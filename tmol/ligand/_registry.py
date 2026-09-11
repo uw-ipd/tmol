@@ -264,6 +264,8 @@ class LigandPreparation:
     # {variant residue name: {atom: charge}} for those patches
     variant_partial_charges: Optional[dict[str, dict[str, float]]] = None
     connection_params: tuple[ConnectionCartRes, ...] = ()
+    # Complete CartRes replacements for other exact residue/variant names.
+    additional_cartbonded_params: Optional[dict[str, CartRes]] = None
 
 
 def _applied_patch(chemdb, base, variant):
@@ -362,6 +364,19 @@ def terminus_charge_entries(param_db, patched_chemdb, residue_type) -> dict:
     return entries
 
 
+def _additional_cartbonded_params(preparations):
+    """Collect shared records, rejecting contradictory definitions in one bundle."""
+    own = {p.residue_type.name: p.cartbonded_params for p in preparations}
+    extra = {}
+    for prep in preparations:
+        for name, params in (prep.additional_cartbonded_params or {}).items():
+            previous = extra.get(name, own.get(name))
+            if previous is not None and previous != params:
+                raise ValueError(f"Conflicting bonded parameters: {name}")
+            extra[name] = params
+    return extra
+
+
 def inject_ligand_preparations(
     param_db: ParameterDatabase,
     preparations: list[LigandPreparation],
@@ -428,7 +443,18 @@ def inject_ligand_preparations(
             if record not in known_connections
         )
     )
-    if not new_preps and not variants and not extra_charges and not connections:
+    additional_cart = {
+        name: params
+        for name, params in _additional_cartbonded_params(preparations).items()
+        if param_db.scoring.cartbonded.residue_params.get(name) != params
+    }
+    if (
+        not new_preps
+        and not variants
+        and not extra_charges
+        and not connections
+        and not additional_cart
+    ):
         return param_db
 
     new_atom_types: list[AtomType] = []
@@ -468,7 +494,10 @@ def inject_ligand_preparations(
         atom_types=new_atom_types or None,
         variants=variants or None,
         partial_charges=charges,
-        cartbonded_params={p.residue_type.name: p.cartbonded_params for p in new_preps},
+        cartbonded_params={
+            **{p.residue_type.name: p.cartbonded_params for p in new_preps},
+            **additional_cart,
+        },
         connection_params=connections,
     )
 

@@ -154,7 +154,7 @@ def test_repeated_exports_do_not_retain_per_record_classes(tmp_path):
     assert len(_CompactDumper.yaml_representers) == registered
 
 
-@pytest.mark.parametrize("section", ["patches", "charges", "connections"])
+@pytest.mark.parametrize("section", ["patches", "charges", "connections", "bonded"])
 def test_shared_metadata_without_residue_is_not_silently_dropped(tmp_path, section):
     import cattr
     import yaml
@@ -171,11 +171,17 @@ def test_shared_metadata_without_residue_is_not_silently_dropped(tmp_path, secti
                 {"res": "ASN:conj_ND2", "atom": "ND2", "charge": -0.2}
             ]
         }
-    else:
+    elif section == "connections":
         payload["cartbonded"] = {
             "connection_params": [
                 cattr.unstructure(ConnectionCartRes("A", "up", "B", "down", (), ()))
             ]
+        }
+    else:
+        from tmol.ligand._params_file import _empty_cartres
+
+        payload["cartbonded"] = {
+            "residue_params": {"LYS:conj_NZ": cattr.unstructure(_empty_cartres())}
         }
     path = tmp_path / "empty.tmol"
     path.write_text(yaml.safe_dump(payload))

@@ -478,14 +478,18 @@ def write_params_file(
             prep = preps[0]
             _write_rosetta_params_file(prep.residue_type, path, prep.partial_charges)
     elif fmt == "tmol":
+        from tmol.ligand._registry import _additional_cartbonded_params
+
         charges = {p.residue_type.name: p.partial_charges for p in preps}
+        cartbonded = {p.residue_type.name: p.cartbonded_params for p in preps}
+        cartbonded.update(_additional_cartbonded_params(preps))
         for prep in preps:
             charges.update(prep.variant_partial_charges or {})
         _write_tmol_params_file(
             path,
             [p.residue_type for p in preps],
             charges,
-            {p.residue_type.name: p.cartbonded_params for p in preps},
+            cartbonded,
             patches=[v for p in preps for v in p.adds_patches],
             connection_params=tuple(
                 dict.fromkeys(record for p in preps for record in p.connection_params)

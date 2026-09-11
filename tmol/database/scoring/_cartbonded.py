@@ -84,6 +84,13 @@ class ConnectionCartRes:
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class CartBondedDatabase:
+    """Bonded records by base or exact patched residue name.
+
+    An exact patched name supplies a complete CartRes replacement for that
+    type. Other variants fall back to their base name. Wildcard parameter and
+    explicit connection-record precedence are unchanged.
+    """
+
     residue_params: dict[str, CartRes]
     hash: str
     connection_params: Tuple[ConnectionCartRes, ...] = ()

@@ -226,6 +226,13 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
     cart_by_res = {
         str(name): cattr.structure(payload, CartRes) for name, payload in cb_raw.items()
     }
+    additional_cart = {
+        name: params
+        for name, params in cart_by_res.items()
+        if name not in residue_names
+    }
+    if additional_cart and not residues:
+        raise ValueError("A params bundle with bonded parameters must define a residue")
 
     charges_by_res: dict[str, dict[str, float]] = {}
     for item in elec.get("atom_charge_parameters") or []:
@@ -259,6 +266,9 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
                 adds_patches=tuple(patches_by_res.get(rt.name, ())),
                 variant_partial_charges=variant_charges_by_res.get(rt.name) or None,
                 connection_params=connections if not preps else (),
+                additional_cartbonded_params=(
+                    (additional_cart or None) if not preps else None
+                ),
             )
         )
     return preps

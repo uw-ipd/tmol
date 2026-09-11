@@ -695,3 +695,83 @@ AtomWorks default-reader/rule-profile contracts, cache lifetime, broad workflow
 and release validation—remain active. Atom-type element mappings for newly
 introduced custom type names are also not yet serialized by `.tmol`; canonical
 and existing generic types cover the current fixture roundtrip checks.
+
+## Acylation audit and isolated bonded parameters for exact variants
+
+This goal turn made progress from `b25bb991b`. The default biotin preparation
+still uses an amine-like local parameter set after removing lysine hydrogens.
+The existing `conjugated_chemistry()` helper reports one hydrogen, site type
+`Nad`, site charge −0.7301 and hydrogen charge 0.37, but preparation uses only
+the hydrogen count. The patch installs `Nbb` through a static type mapping;
+the effective NZ charge is +0.35643 after moving the departing hydrogen charges
+onto it. These numbers identify the code paths; this comparison alone is not a
+validated replacement partial-charge model.
+
+The surviving CE–NZ–HZ1 angle retains `x0=1.91114 rad, K=51.348`. Three
+CE–NZ proper torsions involving HZ1 retain their original LYS coefficients
+(`k3=2.704` each). With the heavy atoms held fixed, moving the hydrogen from
+109.5° to 120° costs **0.8621957 kcal/mol** in cartbonded angles. Rotating it
+180° about CE–NZ changes the old lysine proper energy by **14.7585565 kcal/mol**.
+The latter movement changes cross-connection angles as well, so it is not an
+equal-energy symmetry comparison. CPU/CUDA agree on these changes to about
+3e−14. No cart improper root covers NZ and the installed `Nbb` generic improper
+lookup returns None, but proper torsions do respond; do not report a complete
+absence of planarity energy.
+
+The topology-only MMFF probe has local angle targets 119.6°, 120.066° and
+120.277°. Its out-of-plane coefficient is −0.02, illustrating why copying it
+into a positive harmonic improper is not justified. The probe uses an uncapped
+residue pair, whose formal charge includes artificial free backbone termini;
+it is **not a reference for the conjugate's net charge**. These diagnostics are
+in `diagnose_acylated_lysine.py` and `results/acylated-lysine-{cpu,cuda}.json`.
+RDKit's [MMFF parameter API](https://rdkit.org/docs/source/rdkit.ForceField.rdForceField.html)
+documents the bond, angle and out-of-plane queries; the numerical observations
+here come from the executable diagnostic, not from a new parameter fit.
+
+**Implemented:** exact patched names in `CartBondedDatabase.residue_params`
+can now own complete `CartRes` replacements. Previously the scorer fetched only
+`base_name`, so rows for `LYS:conj_NZ` could not change its local geometry without
+also changing ordinary lysine. The scorer uses a private atom-ID namespace only
+for types with explicit replacements. Other variants, other score terms and
+the shared atom-ID tensor remain intact; when no replacements are active, the
+scorer reuses the existing ID tensor. No native kernel or signature changes are
+needed. A replacement is a complete record, not a merged delta; use an evolved
+copy of the base `CartRes` for a local correction. There is no implicit matching
+to other terminal/patch combinations. Existing wildcard and explicit
+connection-record precedence remain unchanged.
+
+`LigandPreparation.additional_cartbonded_params` carries these shared records;
+the writer and loader retain them even when the canonical partner's base is
+not defined in the bundle. They also apply when the source ligand is already
+installed, with repeat injection idempotent. A shared collector rejects
+contradictory bonded definitions within the same bundle. Metadata-only empty
+bundles raise rather than discard the records. The format remains the branch's
+unreleased v2 schema, now retaining these existing `residue_params` keys too.
+
+Validation: the old Python scorer, loaded from `b25bb991b` in a separate module
+on the same current poses/databases, produces **eight CPU failures**: every
+exact-variant override has zero effect. The new scorer passes independent
+harmonic energy/gradient checks on jagged AAA/AAAA batches containing unpatched,
+N-terminal and C-terminal ALA, both annotation orders, and whole-pose/weighted
+block-pair paths. Rotamer tests use jagged KKK/KKKK batches and independent
+per-rotamer energies and gradients. A biotin test persists a synthetic local
+angle replacement, reloads into both fresh and already prepared databases, and
+checks its isolated energy/gradient effect. Slurm **248669: 111 CPU/CUDA passes,
+exit 0:0**, includes these tests, the complete explicit connection backend,
+injection-cache regressions, existing cartbonded suite and conjugate roundtrips.
+Final CPU bundle/entry-point validation has **63 passes, 15 skips** and includes
+the added contradictory/empty-record checks. Counts overlap; see
+`results/variant-cartbonded-tests.json`. Review drafts now have **43 inline
+comments and 12 general questions**; no upstream comments were posted.
+
+**Next:** build automatic connection and local parameter generation from the
+complete conjugated chemistry, including an explicit protonation/charge policy,
+proper/improper ownership and provenance. The harmonic conversion of native
+MMFF coefficients requires documented units and approximations; current
+intra-ligand generation instead uses fixed K=300/80 and optimized geometry.
+Neither approach has yet been installed for the default conjugate links. The
+14-link default stiffness failure, acylation corrections, three-block angles,
+incompatible chemistry sharing names, broader sampling budgets, AtomWorks
+reader/rule-profile contracts, cache lifetime and full workflow/release gates
+remain open. The new variant and persistence support are prerequisites, not a
+claim that those default chemical failures are fixed.

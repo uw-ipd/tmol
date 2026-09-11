@@ -261,6 +261,16 @@ files; those files cannot recover metadata an older writer omitted.
 Persisting explicit connection records does not generate them: automatic bonded
 parameter generation for conjugates is still under development.
 
+An exact patched name in `cartbonded.residue_params`, such as `LYS:conj_NZ`,
+supplies a complete `CartRes` replacement for that type; other forms of lysine
+keep their base parameters. Use a copy of the base record with the needed rows
+changed when making a local correction. This does not merge partial records or
+infer applicability to other combinations of patches. Existing wildcard lookup
+and explicit connection-record precedence still apply. A preparation can carry
+such records for a partner in `additional_cartbonded_params`; they are retained
+on export/reload even when the partner's base definition comes from the standard
+database. Conflicting bonded definitions within a bundle raise an error.
+
 ## Pipeline Overview
 
 All three input modes converge on a single typing/build/inject core.
