@@ -220,10 +220,17 @@ class HBondPoseScoresOp
       ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
     }
 
+    // The integer neighbor output has no derivative. Do not allocate an
+    // unused zero gradient for it when differentiating the score.
+    ctx->set_materialize_grads(false);
     return {score, block_neighbors};
   }
 
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
+    tensor_list gradients(39);
+    if (!grad_outputs[0].defined()) {
+      return gradients;
+    }
     auto saved = ctx->get_saved_variables();
 
     at::Tensor dV_d_pose_coords;
@@ -361,7 +368,6 @@ class HBondPoseScoresOp
           }));
     }
 
-    tensor_list gradients(39);
     gradients[0] = dV_d_pose_coords;
     return gradients;
   }

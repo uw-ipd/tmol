@@ -498,10 +498,17 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
     auto returned_neighbors = shared_compact_block_neighbors.numel() != 0
                                   ? shared_compact_block_neighbors
                                   : block_neighbors;
+    // The integer neighbor output has no derivative. Do not allocate an
+    // unused zero gradient for it when differentiating the score.
+    ctx->set_materialize_grads(false);
     return {score, returned_neighbors};
   }
 
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
+    tensor_list gradients(30);
+    if (!grad_outputs[0].defined()) {
+      return gradients;
+    }
     auto saved = ctx->get_saved_variables();
 
     int i = 0;
@@ -600,7 +607,6 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
           dV_d_water_coords = std::get<1>(result).tensor;
         }));
 
-    tensor_list gradients(30);
     gradients[0] = dV_d_pose_coords;
     gradients[26] = dV_d_water_coords;
     return gradients;
