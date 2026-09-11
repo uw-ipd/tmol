@@ -964,3 +964,102 @@ three-block angles and fragment projection remain open. The existing broader
 sampling-budget, cache-lifetime, AtomWorks reader/rule-profile and release
 validation requirements also remain active. This is a working, tested
 parameter-generation mechanism, not a claim that the full PR is ready.
+
+## Electrostatic parameter identity and the local charge model
+
+Deriving local chemistry exposed two prerequisites in the electrostatic scorer.
+The existing BT/PBT annotations retain the first database's charges and
+count-pair representatives, and the resolver rejects records with more than
+one patch suffix. Those guards predate PR 503; parameter injection and the new
+generic/Rosetta classification make their scope consequential here. Four
+native CPU reuse checks plus one combined-patch lookup fail before this fix.
+
+The scorer now retains one most-recent annotation on each BT/PBT, keyed by a
+weak reference to the immutable electrostatic database and, for the packed
+mask, the Rosetta typing set. Rendering captures that term's parameter
+tensors, so an already rendered module survives another database's setup.
+When only charges change, it reuses the quadratic representative-distance
+tables. Forty successive charge databases leave no database owner alive and
+only the latest charge tensor on the packed owner after collection. There is
+no growing dictionary of database configurations. Global tensors are packed
+once per term, and the host cutoff comes directly from the database rather
+than converting a CUDA scalar during every render.
+
+Charge and count-pair rows can name an exact complete patched residue. Lookup
+tries that name, then individual patches in the existing name order, then the
+base. A combined record does not apply to a residue with another added patch.
+When multiple rows nominate a representative for the same atom, specificity
+is resolved across those rows; within equal specificity, the existing
+last-outer-atom rule remains. All **230 default refined residue types** have
+bitwise-identical charges and representative mappings to `20742270f`.
+Missing applicable charges on a known residue now raise rather than silently
+becoming NaN; an entirely unknown residue still has the existing zero fallback.
+
+Independent dielectric-formula checks cover changed charges, representatives,
+generic masks and globals on jagged AA/AAA poses, both annotation orders,
+whole-pose and weighted block-pair scores, and coordinate gradients. Jagged
+KK/KKK rotamer checks exercise both charge orders, all terminal rotamer pairs
+and weighted gradients. A real biotin/LYS bundle carries exact charges for
+`nterm + cterm + conj_NZ`, reloads into both fresh and previously prepared
+databases, and matches independent native energies/gradients. These injected
+test charges establish parameter routing, not a scientific charge fit.
+
+Final CPU electrostatic checks have **33 passes, 33 skips**; the added rotamer
+checks have **two passes, two skips**. Slurm **248854 has 115 passes and four
+skips** across CPU/CUDA electrostatics, conjugate bundles and generated
+connection tests. The earlier job 248849 had 107 passes and four failures
+from two test-construction mistakes (assuming identical atom indices between
+variants, and using a nonexistent Biotite singular-mask API); both were fixed
+before the final run. Counts overlap; the final checks are not an independent
+full-suite or release result. See `results/elec-identity-tests.json`.
+
+Slurm 248854 finishes **COMPLETED, exit 0:0, elapsed 2:02**, including the
+CUDA profile after pytest. Seven alternating-order warm measurement pairs
+from `profile_elec_setup.py` give:
+
+| Setup stage | CPU reference → candidate | CUDA reference → candidate |
+|---|---|---|
+| Collect scoring arguments | 5.70 → 0.89 µs | 67.16 → 0.95 µs |
+| Construct electrostatic term | 2.271 → 2.228 ms | 3.077 → 2.998 ms |
+| Two charge-database switches | 14.02 → 6.09 ms | 31.14 → 12.47 ms |
+
+The first two references load the unchanged classes from `20742270f` in the
+same process. All default residue lookups and emitted scoring arguments are
+checked for exact equality before timing. The switch reference uses candidate
+code with a forced, correct rebuild, because timing the stale original cache
+would compare against incorrect behavior. These are setup-stage measurements
+on a 20-residue sequence, **not native scoring or end-to-end speedups**.
+Reported Python allocation peaks exclude tensor/native allocations and are
+not process-memory measurements. Raw pairs, environment and source hashes are
+in `results/elec-setup-profile-{cpu,cuda}.json`.
+
+The local chemistry audit now compares complete capped conjugates with the
+same heavy-atom models whose attachment bonds have been cut and valences
+completed. These disconnected reference fragments are **not physical
+reactants**: for example, the biotin carbonyl carbon acquires hydrogen rather
+than an acid oxygen. MMFF partial charges sum to each model's formal charge;
+the artificial caps have zero charge delta in every fixture.
+
+For biotin, the complete group's formal charge changes **+1 → 0**. Heavy-atom
+plus attached-hydrogen deltas are **−0.2029 on LYS CE**, **−0.8571 on LYS NZ**
+and **+0.0600 on BTN C11**. NZ changes generic type `Nam → Nad`; BTN O11
+changes `Oal → Oad`, despite having unchanged MMFF type and partial charge.
+O-linked oxygen changes `Ohx → Oet` and loses its hydrogen, with a **−0.28**
+local charge delta balanced by **+0.28** on the attachment carbon. ASN ND2
+remains `Nad` but changes hydrogen count, with **−0.3001** balanced by
+**+0.3001** on its NAG carbon. Thus hydrogen count, generic type, MMFF type
+and charge are distinct outputs; none alone determines the others.
+
+One candidate policy is to preserve curated baseline charges and add the
+connected-versus-disconnected MMFF deltas, explicitly accounting for removed
+hydrogens on their parent. That would preserve remote backbone parameters
+while representing the formal-charge change. It is a model choice requiring
+validation, not an established physical reference. Replacing every capped
+group charge with MMFF would also change otherwise canonical regions. No
+automatic charge policy is installed by this change. Typing, surviving local
+bond/angle terms, generic/cartbonded torsion ownership and hydrogen
+construction must be resolved together before enabling default generation.
+See `diagnose_conjugation_charge_changes.py` and
+`results/conjugation-charge-changes.json`. Review drafts now contain
+**45 inline comments and 13 general questions**. All earlier completion gates
+remain active.

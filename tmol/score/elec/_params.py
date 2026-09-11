@@ -43,41 +43,42 @@ class ElecParamResolver(ValidateAttrs):
     # map (AA,atom) to partial charge
     partial_charges: dict
 
-    def get_partial_charges_for_block(self, block_type: RefinedResidueType):
-        # find patch variant (if exists in DB) else fall back to basename
-        res, *vars = block_type.name.split(":")
-        vars.append("")  # unpatched last
+    @staticmethod
+    def _lookup_order(name):
+        """Exact variant, individual patches in name order, then the base.
 
-        res_found = res in self.partial_charges
+        Combined records match that complete name only. A partial combined
+        record is not inherited by a type with additional patches.
+        """
+        base, _, patches = name.partition(":")
+        return base, tuple(dict.fromkeys((patches, *patches.split(":"), "")))
+
+    def get_partial_charges_for_block(self, block_type: RefinedResidueType):
+        res, variants = self._lookup_order(block_type.name)
+        if res not in self.partial_charges:
+            return numpy.zeros(len(block_type.atoms), dtype=numpy.float32)
+        residue_charges = self.partial_charges[res]
 
         def lookup_charge(atm):
-            if not res_found:
-                return 0.0
-            if atm.name not in self.partial_charges[res]:
-                raise KeyError(
-                    "Elec charge for atom "
-                    + block_type.name
-                    + ","
-                    + atm.name
-                    + " not found"
-                )
-            for vi in vars:
-                if vi in self.partial_charges[res][atm.name]:
-                    return self.partial_charges[res][atm.name][vi]
+            charges = residue_charges.get(atm.name, {})
+            for variant in variants:
+                if variant in charges:
+                    return charges[variant]
+            raise KeyError(
+                f"Elec charge for atom {block_type.name},{atm.name} not found"
+            )
 
-        partial_charge = numpy.vectorize(lookup_charge, otypes=[numpy.float32])(
-            block_type.atoms
+        return numpy.fromiter(
+            (lookup_charge(atom) for atom in block_type.atoms),
+            dtype=numpy.float32,
+            count=len(block_type.atoms),
         )
-
-        return partial_charge
 
     def get_bonded_path_length_mapping_for_block(self, block_type: RefinedResidueType):
         """remap bonded path length for a residue block"""
         representative_mapping = numpy.arange(block_type.n_atoms, dtype=numpy.int32)
 
-        # find patch variant (if exists in DB) else fall back to basename
-        res, *vars = block_type.name.split(":")
-        vars.append("")  # unpatched last
+        res, variants = self._lookup_order(block_type.name)
 
         if res not in self.cp_reps:
             # some residues may not have a need for
@@ -85,13 +86,17 @@ class ElecParamResolver(ValidateAttrs):
             # just return the default representatives
             return representative_mapping
 
+        # Different outer atoms can nominate a representative for the same
+        # inner atom. Resolve specificity across those rows too, retaining
+        # the historical last-outer-wins rule within one specificity level.
+        best_rank = {}
         for outer in block_type.atom_to_idx.keys():
             if outer not in self.cp_reps[res]:
                 continue
 
             inner = None
 
-            for v in vars:
+            for rank, v in enumerate(variants):
                 if v not in self.cp_reps[res][outer]:
                     continue
                 inner = self.cp_reps[res][outer][v]
@@ -105,9 +110,11 @@ class ElecParamResolver(ValidateAttrs):
                     "Invalid elec cp mapping: " + res + " " + outer + "->" + str(inner)
                 )
 
-            representative_mapping[block_type.atom_to_idx[inner]] = (
-                block_type.atom_to_idx[outer]
-            )
+            if rank <= best_rank.get(inner, len(variants)):
+                best_rank[inner] = rank
+                representative_mapping[block_type.atom_to_idx[inner]] = (
+                    block_type.atom_to_idx[outer]
+                )
 
         return representative_mapping
 
@@ -116,21 +123,13 @@ class ElecParamResolver(ValidateAttrs):
     def from_database(cls, elec_database: ElecDatabase, device: torch.device):
         """Initialize param resolver for all atoms defined in database."""
         # Load global params, coerce to 1D Tensors
-        global_params = ElecGlobalParams(
-            **{
-                n: torch.tensor(v, device=device)
-                for n, v in cattr.unstructure(elec_database.global_parameters).items()
-            }
-        )
+        values = cattr.unstructure(elec_database.global_parameters)
+        tensor = torch.tensor(list(values.values()), dtype=torch.float32, device=device)
+        global_params = ElecGlobalParams(**dict(zip(values, tensor.unbind())))
 
         def res_patch_from_line(line):
-            tag = line.res.split(":")
-            assert (
-                len(tag) <= 2
-            ), "Each atom charge can only be specialized by one patch!"
-            if len(tag) == 1:
-                return tag[0], ""
-            return tag[0], tag[1]
+            base, _, patches = line.res.partition(":")
+            return base, patches
 
         # dicts of the form dict[res][atm][patch] = value
         #   with patch = '' for unpatched

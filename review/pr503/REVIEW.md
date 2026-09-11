@@ -67,6 +67,8 @@ This measures CIF missing-atom insertion, **not end-to-end packing/scoring accel
 
 12. **Shared rule provenance:** Tmol adds an enamine SMARTS rule with pKa 1 ± 1 that AtomWorks does not contain. What evidence supports its scope and values, and should it be a shared default or an explicit preparation profile? Direct replacement currently changes charge states for an enamine and a vinylogous amide at pH 2 and 7.4. Which complete rule inventory and model version should exported parameters record?
 
+13. **Attachment charge policy:** Should local charge changes preserve the curated residue baseline and add a connected-versus-disconnected MMFF correction, or replace the whole capped group's charges? The former preserves remote backbone parameters but is a model choice requiring validation. Complete capped biotin changes formal charge by −1, with heavy-atom-plus-hydrogen deltas on both LYS and BTN, including LYS CE. Applying only a hydrogen-count patch cannot represent this. Which atom-type, torsion-ownership and proton-construction changes must accompany the charge model?
+
 ## Suggested inline comments
 
 Each item gives an upstream location, suggested comment, and what this branch does about it. “Reproduced” means exercised against PR code with only the missing import dependency supplied, not merely inferred from source.
@@ -428,6 +430,14 @@ The follow-up adds isolated, exact-variant `CartRes` replacements and their `.tm
 > Can retained atoms keep their input annotations when caps are added? Rebuilding an AtomArray here copies only coordinates, names, elements and four residue fields. Formal charges, source chemistry tags and insertion codes disappear before the molecule converter sees them. Synthetic caps can have empty annotations without discarding the metadata on real atoms. Please also preserve long cap names rather than truncating them to the default atom-name column width.
 
 Fixed on the follow-up. The baseline comparison confirms that `charge` and a source chemistry annotation disappear. Retained annotations now survive, cap annotations start empty/zero except residue identity, and long names remain intact. Coordinates and bonds match the baseline on the shared fields in four backbone examples. A topology-only option avoids geometric frame construction and produces all-NaN coordinates; it is used by the new private capped-conjugate model builder. Seven alternating-order sets of 100 calls measure **2.46–2.64×** faster topology-only capping, while coordinate-producing calls are **7–13% slower** because they now retain the annotations (about 20–33 µs per call in this run). These are cap-construction timings, not full preparation speedups. See [profile_capping.py](profile_capping.py) and [results/capping-profile.json](results/capping-profile.json).
+
+### 45. P1 — electrostatic annotations retain the first database's parameters
+
+[tmol/score/elec/_elec_energy_term.py:26](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/score/elec/_elec_energy_term.py#L26), with the [existing annotation guard](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/score/elec/_elec_energy_term.py#L43).
+
+> Can electrostatic annotations be scoped to the charge/count-pair database and this Rosetta/generic typing configuration? The block and packed-block setup guards check only whether an attribute exists. Reusing a pose with injected charges or changed typing therefore retains the first setup's tables. Each rendered module also needs to retain its own tensors, so refreshing another term cannot change an existing module's score. Please exercise both setup orders, block-pair weighting and rotamer energies/gradients.
+
+The stale charge guard predates this PR; new parameter injection and generic typing expose it to the expanded chemistry workflow. Four focused CPU score checks fail against the pre-fix implementation. The follow-up keeps only the latest annotation on each owner, weakly references its immutable database, and captures owned parameter tensors at render time. Unchanged representative-distance tables are reused across charge changes. Exact complete variant charge/count-pair rows now take precedence over individual patches; previously the resolver rejected multiple patch suffixes. That resolver restriction also predates the PR. Missing applicable charges raise instead of silently becoming NaN. Independent CPU/CUDA energy/gradient checks, a terminal-conjugate bundle and database-lifetime tests are recorded in the electrostatic section of [FOLLOWUP.md](FOLLOWUP.md).
 
 ## Validation record
 

@@ -1,0 +1,1463 @@
+{
+  "rdkit": "2026.03.6",
+  "ph": 7.4,
+  "scope": "Compare connected and disconnected capped parameter models.\n\nThe disconnected structures are valence-completed reference fragments, not\nphysical reactants. This audits MMFF charge/type changes; it does not install\na charge model, predict reaction energies, or independently validate a fit.\n",
+  "fixtures": {
+    "biotin": [
+      {
+        "formal_charge_before_after": [
+          1,
+          0
+        ],
+        "total_partial_charge_before_after": [
+          1.0,
+          0.0
+        ],
+        "charge_delta_by_source_residue": {
+          "45": -1.06,
+          "80": 0.06000000000000005
+        },
+        "cap_charge_delta": 0.0,
+        "changed_atoms": [
+          {
+            "source_atom": 346,
+            "source_residue": 45,
+            "residue": "LYS",
+            "atom": "CE",
+            "before": {
+              "generic_type": "CSp",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.503,
+              "hydrogen_types": [
+                "HC",
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0,
+                0.0
+              ]
+            },
+            "after": {
+              "generic_type": "CS2",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.3001,
+              "hydrogen_types": [
+                "HC",
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0,
+                0.0
+              ]
+            },
+            "charge_delta_with_hydrogens": -0.20290000000000002
+          },
+          {
+            "source_atom": 347,
+            "source_residue": 45,
+            "residue": "LYS",
+            "atom": "NZ",
+            "before": {
+              "generic_type": "Nam",
+              "mmff_type": 34,
+              "formal_charge": 1,
+              "partial_charge": -0.853,
+              "hydrogen_types": [
+                "HN",
+                "HN",
+                "HN"
+              ],
+              "hydrogen_charges": [
+                0.45,
+                0.45,
+                0.45
+              ]
+            },
+            "after": {
+              "generic_type": "Nad",
+              "mmff_type": 10,
+              "formal_charge": 0,
+              "partial_charge": -0.7301,
+              "hydrogen_types": [
+                "HN"
+              ],
+              "hydrogen_charges": [
+                0.37
+              ]
+            },
+            "charge_delta_with_hydrogens": -0.8571000000000001
+          },
+          {
+            "source_atom": 607,
+            "source_residue": 80,
+            "residue": "BTN",
+            "atom": "C11",
+            "before": {
+              "generic_type": "CDp",
+              "mmff_type": 3,
+              "formal_charge": 0,
+              "partial_charge": 0.4489999999999999,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.06
+              ]
+            },
+            "after": {
+              "generic_type": "CDp",
+              "mmff_type": 3,
+              "formal_charge": 0,
+              "partial_charge": 0.569,
+              "hydrogen_types": [],
+              "hydrogen_charges": []
+            },
+            "charge_delta_with_hydrogens": 0.06000000000000005
+          },
+          {
+            "source_atom": 608,
+            "source_residue": 80,
+            "residue": "BTN",
+            "atom": "O11",
+            "before": {
+              "generic_type": "Oal",
+              "mmff_type": 7,
+              "formal_charge": 0,
+              "partial_charge": -0.57,
+              "hydrogen_types": [],
+              "hydrogen_charges": []
+            },
+            "after": {
+              "generic_type": "Oad",
+              "mmff_type": 7,
+              "formal_charge": 0,
+              "partial_charge": -0.57,
+              "hydrogen_types": [],
+              "hydrogen_charges": []
+            },
+            "charge_delta_with_hydrogens": 0.0
+          }
+        ]
+      }
+    ],
+    "oglycan": [
+      {
+        "formal_charge_before_after": [
+          -1,
+          -1
+        ],
+        "total_partial_charge_before_after": [
+          -0.9999999999999999,
+          -0.9999999999999999
+        ],
+        "charge_delta_by_source_residue": {
+          "11": -0.28,
+          "14": -0.28,
+          "15": -0.28,
+          "16": 0.0,
+          "17": 0.28,
+          "18": 0.28,
+          "19": 0.28
+        },
+        "cap_charge_delta": 0.0,
+        "changed_atoms": [
+          {
+            "source_atom": 120,
+            "source_residue": 11,
+            "residue": "THR",
+            "atom": "CB",
+            "before": {
+              "generic_type": "CSp",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "after": {
+              "generic_type": "CS1",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "charge_delta_with_hydrogens": 0.0
+          },
+          {
+            "source_atom": 121,
+            "source_residue": 11,
+            "residue": "THR",
+            "atom": "OG1",
+            "before": {
+              "generic_type": "Ohx",
+              "mmff_type": 6,
+              "formal_charge": 0,
+              "partial_charge": -0.68,
+              "hydrogen_types": [
+                "HO"
+              ],
+              "hydrogen_charges": [
+                0.4
+              ]
+            },
+            "after": {
+              "generic_type": "Oet",
+              "mmff_type": 6,
+              "formal_charge": 0,
+              "partial_charge": -0.56,
+              "hydrogen_types": [],
+              "hydrogen_charges": []
+            },
+            "charge_delta_with_hydrogens": -0.28
+          },
+          {
+            "source_atom": 139,
+            "source_residue": 14,
+            "residue": "NGA",
+            "atom": "C1",
+            "before": {
+              "generic_type": "CS2",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC",
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0,
+                0.0
+              ]
+            },
+            "after": {
+              "generic_type": "CS1",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.56,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "charge_delta_with_hydrogens": 0.28
+          },
+          {
+            "source_atom": 141,
+            "source_residue": 14,
+            "residue": "NGA",
+            "atom": "C3",
+            "before": {
+              "generic_type": "CSp",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "after": {
+              "generic_type": "CS1",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "charge_delta_with_hydrogens": 0.0
+          },
+          {
+            "source_atom": 144,
+            "source_residue": 14,
+            "residue": "NGA",
+            "atom": "C6",
+            "before": {
+              "generic_type": "CSp",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC",
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0,
+                0.0
+              ]
+            },
+            "after": {
+              "generic_type": "CS2",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC",
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0,
+                0.0
+              ]
+            },
+            "charge_delta_with_hydrogens": 0.0
+          },
+          {
+            "source_atom": 148,
+            "source_residue": 14,
+            "residue": "NGA",
+            "atom": "O3",
+            "before": {
+              "generic_type": "Ohx",
+              "mmff_type": 6,
+              "formal_charge": 0,
+              "partial_charge": -0.68,
+              "hydrogen_types": [
+                "HO"
+              ],
+              "hydrogen_charges": [
+                0.4
+              ]
+            },
+            "after": {
+              "generic_type": "Oet",
+              "mmff_type": 6,
+              "formal_charge": 0,
+              "partial_charge": -0.56,
+              "hydrogen_types": [],
+              "hydrogen_charges": []
+            },
+            "charge_delta_with_hydrogens": -0.28
+          },
+          {
+            "source_atom": 151,
+            "source_residue": 14,
+            "residue": "NGA",
+            "atom": "O6",
+            "before": {
+              "generic_type": "Ohx",
+              "mmff_type": 6,
+              "formal_charge": 0,
+              "partial_charge": -0.68,
+              "hydrogen_types": [
+                "HO"
+              ],
+              "hydrogen_charges": [
+                0.4
+              ]
+            },
+            "after": {
+              "generic_type": "Oet",
+              "mmff_type": 6,
+              "formal_charge": 0,
+              "partial_charge": -0.56,
+              "hydrogen_types": [],
+              "hydrogen_charges": []
+            },
+            "charge_delta_with_hydrogens": -0.28
+          },
+          {
+            "source_atom": 153,
+            "source_residue": 15,
+            "residue": "NAG",
+            "atom": "C1",
+            "before": {
+              "generic_type": "CS2",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC",
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0,
+                0.0
+              ]
+            },
+            "after": {
+              "generic_type": "CS1",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.56,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "charge_delta_with_hydrogens": 0.28
+          },
+          {
+            "source_atom": 155,
+            "source_residue": 15,
+            "residue": "NAG",
+            "atom": "C3",
+            "before": {
+              "generic_type": "CSp",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "after": {
+              "generic_type": "CS1",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "charge_delta_with_hydrogens": 0.0
+          },
+          {
+            "source_atom": 156,
+            "source_residue": 15,
+            "residue": "NAG",
+            "atom": "C4",
+            "before": {
+              "generic_type": "CSp",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "after": {
+              "generic_type": "CS1",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "charge_delta_with_hydrogens": 0.0
+          },
+          {
+            "source_atom": 162,
+            "source_residue": 15,
+            "residue": "NAG",
+            "atom": "O3",
+            "before": {
+              "generic_type": "Ohx",
+              "mmff_type": 6,
+              "formal_charge": 0,
+              "partial_charge": -0.68,
+              "hydrogen_types": [
+                "HO"
+              ],
+              "hydrogen_charges": [
+                0.4
+              ]
+            },
+            "after": {
+              "generic_type": "Oet",
+              "mmff_type": 6,
+              "formal_charge": 0,
+              "partial_charge": -0.56,
+              "hydrogen_types": [],
+              "hydrogen_charges": []
+            },
+            "charge_delta_with_hydrogens": -0.28
+          },
+          {
+            "source_atom": 163,
+            "source_residue": 15,
+            "residue": "NAG",
+            "atom": "O4",
+            "before": {
+              "generic_type": "Ohx",
+              "mmff_type": 6,
+              "formal_charge": 0,
+              "partial_charge": -0.68,
+              "hydrogen_types": [
+                "HO"
+              ],
+              "hydrogen_charges": [
+                0.4
+              ]
+            },
+            "after": {
+              "generic_type": "Oet",
+              "mmff_type": 6,
+              "formal_charge": 0,
+              "partial_charge": -0.56,
+              "hydrogen_types": [],
+              "hydrogen_charges": []
+            },
+            "charge_delta_with_hydrogens": -0.28
+          },
+          {
+            "source_atom": 167,
+            "source_residue": 16,
+            "residue": "GAL",
+            "atom": "C1",
+            "before": {
+              "generic_type": "CS2",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC",
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0,
+                0.0
+              ]
+            },
+            "after": {
+              "generic_type": "CS1",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.56,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "charge_delta_with_hydrogens": 0.28
+          },
+          {
+            "source_atom": 169,
+            "source_residue": 16,
+            "residue": "GAL",
+            "atom": "C3",
+            "before": {
+              "generic_type": "CSp",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "after": {
+              "generic_type": "CS1",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "charge_delta_with_hydrogens": 0.0
+          },
+          {
+            "source_atom": 174,
+            "source_residue": 16,
+            "residue": "GAL",
+            "atom": "O3",
+            "before": {
+              "generic_type": "Ohx",
+              "mmff_type": 6,
+              "formal_charge": 0,
+              "partial_charge": -0.68,
+              "hydrogen_types": [
+                "HO"
+              ],
+              "hydrogen_charges": [
+                0.4
+              ]
+            },
+            "after": {
+              "generic_type": "Oet",
+              "mmff_type": 6,
+              "formal_charge": 0,
+              "partial_charge": -0.56,
+              "hydrogen_types": [],
+              "hydrogen_charges": []
+            },
+            "charge_delta_with_hydrogens": -0.28
+          },
+          {
+            "source_atom": 179,
+            "source_residue": 17,
+            "residue": "SIA",
+            "atom": "C2",
+            "before": {
+              "generic_type": "CS1",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.17400000000000004,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "after": {
+              "generic_type": "CS",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.45400000000000007,
+              "hydrogen_types": [],
+              "hydrogen_charges": []
+            },
+            "charge_delta_with_hydrogens": 0.28
+          },
+          {
+            "source_atom": 198,
+            "source_residue": 18,
+            "residue": "FUC",
+            "atom": "C1",
+            "before": {
+              "generic_type": "CS2",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC",
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0,
+                0.0
+              ]
+            },
+            "after": {
+              "generic_type": "CS1",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.56,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "charge_delta_with_hydrogens": 0.28
+          },
+          {
+            "source_atom": 208,
+            "source_residue": 19,
+            "residue": "GAL",
+            "atom": "C1",
+            "before": {
+              "generic_type": "CS2",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC",
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0,
+                0.0
+              ]
+            },
+            "after": {
+              "generic_type": "CS1",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.56,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "charge_delta_with_hydrogens": 0.28
+          }
+        ]
+      }
+    ],
+    "nglycan": [
+      {
+        "formal_charge_before_after": [
+          0,
+          0
+        ],
+        "total_partial_charge_before_after": [
+          -5.551115123125783e-17,
+          5.551115123125783e-17
+        ],
+        "charge_delta_by_source_residue": {
+          "16": -0.3000999999999999,
+          "239": -0.2599,
+          "240": 0.0,
+          "241": -0.56,
+          "242": 0.28,
+          "243": 0.28,
+          "244": 0.28,
+          "245": 0.28
+        },
+        "cap_charge_delta": 0.0,
+        "changed_atoms": [
+          {
+            "source_atom": 134,
+            "source_residue": 16,
+            "residue": "ASN",
+            "atom": "ND2",
+            "before": {
+              "generic_type": "Nad",
+              "mmff_type": 10,
+              "formal_charge": 0,
+              "partial_charge": -0.8,
+              "hydrogen_types": [
+                "HN",
+                "HN"
+              ],
+              "hydrogen_charges": [
+                0.37,
+                0.37
+              ]
+            },
+            "after": {
+              "generic_type": "Nad",
+              "mmff_type": 10,
+              "formal_charge": 0,
+              "partial_charge": -0.7301,
+              "hydrogen_types": [
+                "HN"
+              ],
+              "hydrogen_charges": [
+                0.37
+              ]
+            },
+            "charge_delta_with_hydrogens": -0.3000999999999999
+          },
+          {
+            "source_atom": 1855,
+            "source_residue": 239,
+            "residue": "NAG",
+            "atom": "C1",
+            "before": {
+              "generic_type": "CS2",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC",
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0,
+                0.0
+              ]
+            },
+            "after": {
+              "generic_type": "CS1",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.5801000000000001,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "charge_delta_with_hydrogens": 0.30010000000000003
+          },
+          {
+            "source_atom": 1857,
+            "source_residue": 239,
+            "residue": "NAG",
+            "atom": "C3",
+            "before": {
+              "generic_type": "CSp",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "after": {
+              "generic_type": "CS1",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "charge_delta_with_hydrogens": 0.0
+          },
+          {
+            "source_atom": 1858,
+            "source_residue": 239,
+            "residue": "NAG",
+            "atom": "C4",
+            "before": {
+              "generic_type": "CSp",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "after": {
+              "generic_type": "CS1",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "charge_delta_with_hydrogens": 0.0
+          },
+          {
+            "source_atom": 1864,
+            "source_residue": 239,
+            "residue": "NAG",
+            "atom": "O3",
+            "before": {
+              "generic_type": "Ohx",
+              "mmff_type": 6,
+              "formal_charge": 0,
+              "partial_charge": -0.68,
+              "hydrogen_types": [
+                "HO"
+              ],
+              "hydrogen_charges": [
+                0.4
+              ]
+            },
+            "after": {
+              "generic_type": "Oet",
+              "mmff_type": 6,
+              "formal_charge": 0,
+              "partial_charge": -0.56,
+              "hydrogen_types": [],
+              "hydrogen_charges": []
+            },
+            "charge_delta_with_hydrogens": -0.28
+          },
+          {
+            "source_atom": 1865,
+            "source_residue": 239,
+            "residue": "NAG",
+            "atom": "O4",
+            "before": {
+              "generic_type": "Ohx",
+              "mmff_type": 6,
+              "formal_charge": 0,
+              "partial_charge": -0.68,
+              "hydrogen_types": [
+                "HO"
+              ],
+              "hydrogen_charges": [
+                0.4
+              ]
+            },
+            "after": {
+              "generic_type": "Oet",
+              "mmff_type": 6,
+              "formal_charge": 0,
+              "partial_charge": -0.56,
+              "hydrogen_types": [],
+              "hydrogen_charges": []
+            },
+            "charge_delta_with_hydrogens": -0.28
+          },
+          {
+            "source_atom": 1869,
+            "source_residue": 240,
+            "residue": "NAG",
+            "atom": "C1",
+            "before": {
+              "generic_type": "CS2",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC",
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0,
+                0.0
+              ]
+            },
+            "after": {
+              "generic_type": "CS1",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.56,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "charge_delta_with_hydrogens": 0.28
+          },
+          {
+            "source_atom": 1872,
+            "source_residue": 240,
+            "residue": "NAG",
+            "atom": "C4",
+            "before": {
+              "generic_type": "CSp",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "after": {
+              "generic_type": "CS1",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "charge_delta_with_hydrogens": 0.0
+          },
+          {
+            "source_atom": 1879,
+            "source_residue": 240,
+            "residue": "NAG",
+            "atom": "O4",
+            "before": {
+              "generic_type": "Ohx",
+              "mmff_type": 6,
+              "formal_charge": 0,
+              "partial_charge": -0.68,
+              "hydrogen_types": [
+                "HO"
+              ],
+              "hydrogen_charges": [
+                0.4
+              ]
+            },
+            "after": {
+              "generic_type": "Oet",
+              "mmff_type": 6,
+              "formal_charge": 0,
+              "partial_charge": -0.56,
+              "hydrogen_types": [],
+              "hydrogen_charges": []
+            },
+            "charge_delta_with_hydrogens": -0.28
+          },
+          {
+            "source_atom": 1883,
+            "source_residue": 241,
+            "residue": "BMA",
+            "atom": "C1",
+            "before": {
+              "generic_type": "CS2",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC",
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0,
+                0.0
+              ]
+            },
+            "after": {
+              "generic_type": "CS1",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.56,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "charge_delta_with_hydrogens": 0.28
+          },
+          {
+            "source_atom": 1884,
+            "source_residue": 241,
+            "residue": "BMA",
+            "atom": "C2",
+            "before": {
+              "generic_type": "CSp",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "after": {
+              "generic_type": "CS1",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "charge_delta_with_hydrogens": 0.0
+          },
+          {
+            "source_atom": 1885,
+            "source_residue": 241,
+            "residue": "BMA",
+            "atom": "C3",
+            "before": {
+              "generic_type": "CSp",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "after": {
+              "generic_type": "CS1",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "charge_delta_with_hydrogens": 0.0
+          },
+          {
+            "source_atom": 1888,
+            "source_residue": 241,
+            "residue": "BMA",
+            "atom": "C6",
+            "before": {
+              "generic_type": "CSp",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC",
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0,
+                0.0
+              ]
+            },
+            "after": {
+              "generic_type": "CS2",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC",
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0,
+                0.0
+              ]
+            },
+            "charge_delta_with_hydrogens": 0.0
+          },
+          {
+            "source_atom": 1889,
+            "source_residue": 241,
+            "residue": "BMA",
+            "atom": "O2",
+            "before": {
+              "generic_type": "Ohx",
+              "mmff_type": 6,
+              "formal_charge": 0,
+              "partial_charge": -0.68,
+              "hydrogen_types": [
+                "HO"
+              ],
+              "hydrogen_charges": [
+                0.4
+              ]
+            },
+            "after": {
+              "generic_type": "Oet",
+              "mmff_type": 6,
+              "formal_charge": 0,
+              "partial_charge": -0.56,
+              "hydrogen_types": [],
+              "hydrogen_charges": []
+            },
+            "charge_delta_with_hydrogens": -0.28
+          },
+          {
+            "source_atom": 1890,
+            "source_residue": 241,
+            "residue": "BMA",
+            "atom": "O3",
+            "before": {
+              "generic_type": "Ohx",
+              "mmff_type": 6,
+              "formal_charge": 0,
+              "partial_charge": -0.68,
+              "hydrogen_types": [
+                "HO"
+              ],
+              "hydrogen_charges": [
+                0.4
+              ]
+            },
+            "after": {
+              "generic_type": "Oet",
+              "mmff_type": 6,
+              "formal_charge": 0,
+              "partial_charge": -0.56,
+              "hydrogen_types": [],
+              "hydrogen_charges": []
+            },
+            "charge_delta_with_hydrogens": -0.28
+          },
+          {
+            "source_atom": 1893,
+            "source_residue": 241,
+            "residue": "BMA",
+            "atom": "O6",
+            "before": {
+              "generic_type": "Ohx",
+              "mmff_type": 6,
+              "formal_charge": 0,
+              "partial_charge": -0.68,
+              "hydrogen_types": [
+                "HO"
+              ],
+              "hydrogen_charges": [
+                0.4
+              ]
+            },
+            "after": {
+              "generic_type": "Oet",
+              "mmff_type": 6,
+              "formal_charge": 0,
+              "partial_charge": -0.56,
+              "hydrogen_types": [],
+              "hydrogen_charges": []
+            },
+            "charge_delta_with_hydrogens": -0.28
+          },
+          {
+            "source_atom": 1894,
+            "source_residue": 242,
+            "residue": "XYP",
+            "atom": "C1",
+            "before": {
+              "generic_type": "CS2",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC",
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0,
+                0.0
+              ]
+            },
+            "after": {
+              "generic_type": "CS1",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.56,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "charge_delta_with_hydrogens": 0.28
+          },
+          {
+            "source_atom": 1903,
+            "source_residue": 243,
+            "residue": "MAN",
+            "atom": "C1",
+            "before": {
+              "generic_type": "CS2",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC",
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0,
+                0.0
+              ]
+            },
+            "after": {
+              "generic_type": "CS1",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.56,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "charge_delta_with_hydrogens": 0.28
+          },
+          {
+            "source_atom": 1914,
+            "source_residue": 244,
+            "residue": "MAN",
+            "atom": "C1",
+            "before": {
+              "generic_type": "CS2",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC",
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0,
+                0.0
+              ]
+            },
+            "after": {
+              "generic_type": "CS1",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.56,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "charge_delta_with_hydrogens": 0.28
+          },
+          {
+            "source_atom": 1925,
+            "source_residue": 245,
+            "residue": "FUC",
+            "atom": "C1",
+            "before": {
+              "generic_type": "CS2",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC",
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0,
+                0.0
+              ]
+            },
+            "after": {
+              "generic_type": "CS1",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.56,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "charge_delta_with_hydrogens": 0.28
+          }
+        ]
+      },
+      {
+        "formal_charge_before_after": [
+          0,
+          0
+        ],
+        "total_partial_charge_before_after": [
+          0.0,
+          0.0
+        ],
+        "charge_delta_by_source_residue": {
+          "246": -0.28,
+          "247": 0.28
+        },
+        "cap_charge_delta": 0.0,
+        "changed_atoms": [
+          {
+            "source_atom": 1938,
+            "source_residue": 246,
+            "residue": "NDG",
+            "atom": "C4",
+            "before": {
+              "generic_type": "CSp",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "after": {
+              "generic_type": "CS1",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "charge_delta_with_hydrogens": 0.0
+          },
+          {
+            "source_atom": 1945,
+            "source_residue": 246,
+            "residue": "NDG",
+            "atom": "O4",
+            "before": {
+              "generic_type": "Ohx",
+              "mmff_type": 6,
+              "formal_charge": 0,
+              "partial_charge": -0.68,
+              "hydrogen_types": [
+                "HO"
+              ],
+              "hydrogen_charges": [
+                0.4
+              ]
+            },
+            "after": {
+              "generic_type": "Oet",
+              "mmff_type": 6,
+              "formal_charge": 0,
+              "partial_charge": -0.56,
+              "hydrogen_types": [],
+              "hydrogen_charges": []
+            },
+            "charge_delta_with_hydrogens": -0.28
+          },
+          {
+            "source_atom": 1950,
+            "source_residue": 247,
+            "residue": "GAL",
+            "atom": "C1",
+            "before": {
+              "generic_type": "CS2",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.28,
+              "hydrogen_types": [
+                "HC",
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0,
+                0.0
+              ]
+            },
+            "after": {
+              "generic_type": "CS1",
+              "mmff_type": 1,
+              "formal_charge": 0,
+              "partial_charge": 0.56,
+              "hydrogen_types": [
+                "HC"
+              ],
+              "hydrogen_charges": [
+                0.0
+              ]
+            },
+            "charge_delta_with_hydrogens": 0.28
+          }
+        ]
+      }
+    ]
+  }
+}

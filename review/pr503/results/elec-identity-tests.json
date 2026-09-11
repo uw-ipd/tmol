@@ -1,0 +1,60 @@
+{
+  "baseline": "20742270fd3b527a30e89ec7b0f3b0e42abfd5a6",
+  "source_sha256": {
+    "tmol/score/elec/_params.py": "4ab799d6f8bfe286fd774b0076d30651b08b4a6ce354f8561944a75de2245a07",
+    "tmol/score/elec/_elec_energy_term.py": "11d1267cc3b8731440f4b1bea90911e1d8020906f050f943f52bdde53a11fb8e",
+    "tmol/tests/score/elec/test_parameter_identity.py": "42b81ffaffc689528e3663386dff752fdb43d1bce396e17a10fec693fb772f1a",
+    "review/pr503/diagnose_conjugation_charge_changes.py": "0ffbb426156f15678676121968b1ec0edb10bebf4d6e547ffd594b708a29c32d",
+    "review/pr503/profile_elec_setup.py": "5daaeec2be97f90dfd9c5dd2da189e3ac59919ac0eae2708cb314bb9c235aa16"
+  },
+  "runs": [
+    {
+      "name": "Pre-fix charge reuse and combined variant",
+      "passed": 0,
+      "failed": 5,
+      "skipped": 5,
+      "seconds": 8.41,
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/elec-identity-before.log"
+    },
+    {
+      "name": "CPU full electrostatics before added rotamer checks",
+      "passed": 33,
+      "skipped": 33,
+      "seconds": 10.35,
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/elec-identity-final-cpu.log"
+    },
+    {
+      "name": "CPU rotamer charge reuse",
+      "passed": 2,
+      "skipped": 2,
+      "seconds": 8.3,
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/elec-rotamer-final-cpu.log"
+    },
+    {
+      "name": "Initial CPU/CUDA bundle and electrostatics; two test fixture mistakes",
+      "slurm": 248849,
+      "passed": 107,
+      "failed": 4,
+      "skipped": 4,
+      "seconds": 77.54,
+      "state": "FAILED",
+      "exit_code": "1:0",
+      "failure": "Variant atom indices were incorrectly assumed equal; nonexistent singular Biotite get_residue_mask used. Corrected and rerun.",
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/elec-identity-248849.log"
+    },
+    {
+      "name": "Final CPU/CUDA electrostatics, bundles, connection generator; followed by CUDA profile",
+      "slurm": 248854,
+      "passed": 115,
+      "failed": 0,
+      "skipped": 4,
+      "seconds": 78.51,
+      "job_elapsed": "00:02:02",
+      "state": "COMPLETED",
+      "exit_code": "0:0",
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/elec-identity-final-248854.log",
+      "junit": "/mnt/home/kdidi/tmol-pr503-followup/elec-identity-final-tests.xml"
+    }
+  ],
+  "scope": "Overlapping targeted runs; not a full release suite. No automatic scientific charge model is installed."
+}
