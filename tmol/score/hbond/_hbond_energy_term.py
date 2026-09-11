@@ -220,7 +220,9 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         return score_op(*score_args)
 
     def supports_score_only_in_no_grad(self):
-        return True
+        # CPU compilers can round score-only and derivative paths differently
+        # (including float64 on ARM). Preserve tracked-input values there.
+        return self.device.type == "cuda"
 
     def get_pose_score_term_function(self):
         return self.pose_score_hbond
