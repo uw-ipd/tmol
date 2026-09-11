@@ -7,6 +7,11 @@ Diff merge base: `08d82941b6b5bfcd405303f8730b36b54dcfd28a`
 Improvement branch: `review/pr503-chemistry-efficiency`  
 Review date: 2026-09-11
 
+**Update in progress:** upstream advanced to `0f4c3bc426bca78e8681f0b730fa23c3e26ef261`
+during the follow-up. Its six-file delta is fetched and being checked separately;
+the review below and its line anchors still describe the pinned `c03c1e745` tree.
+See the latest section of [FOLLOWUP.md](FOLLOWUP.md).
+
 **Recommendation: request changes.** The chemistry expansion is substantial, but the exact submitted tree cannot import its I/O package. After supplying the missing module, targeted checks expose batch identity errors, lost/misassigned group torsions, residue identity errors, and a mixed D/L disulfide score that depends on residue ordering. The passing chemistry fixtures do not cover these cases.
 
 This document and the comments below are drafts for the user; no review or comments were posted to Frank's PR. Links in the comments point to the pinned upstream commit, so their line numbers remain valid after changes to this branch.
@@ -438,6 +443,14 @@ Fixed on the follow-up. The baseline comparison confirms that `charge` and a sou
 > Can electrostatic annotations be scoped to the charge/count-pair database and this Rosetta/generic typing configuration? The block and packed-block setup guards check only whether an attribute exists. Reusing a pose with injected charges or changed typing therefore retains the first setup's tables. Each rendered module also needs to retain its own tensors, so refreshing another term cannot change an existing module's score. Please exercise both setup orders, block-pair weighting and rotamer energies/gradients.
 
 The stale charge guard predates this PR; new parameter injection and generic typing expose it to the expanded chemistry workflow. Four focused CPU score checks fail against the pre-fix implementation. The follow-up keeps only the latest annotation on each owner, weakly references its immutable database, and captures owned parameter tensors at render time. Unchanged representative-distance tables are reused across charge changes. Exact complete variant charge/count-pair rows now take precedence over individual patches; previously the resolver rejected multiple patch suffixes. That resolver restriction also predates the PR. Missing applicable charges raise instead of silently becoming NaN. Independent CPU/CUDA energy/gradient checks, a terminal-conjugate bundle and database-lifetime tests are recorded in the electrostatic section of [FOLLOWUP.md](FOLLOWUP.md).
+
+### 46. P2 — unresolved attachment coordinates become NaN construction parameters
+
+[tmol/ligand/_preparation.py:768](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/ligand/_preparation.py#L768), with [residue identity at line 766](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/ligand/_preparation.py#L766).
+
+> Can this helper accept only finite, positive measurements and use complete residue-instance boundaries? The reader deliberately preserves unresolved coordinates as NaN. If a bonded endpoint is unresolved, its NaN distance becomes the connection icoor in every patched type and the exported bundle. A later unresolved repeat also overwrites an earlier valid measurement. Comparing only chain and residue number misses a cross-residue bond between insertion-coded residues.
+
+Seven focused CPU checks fail before the fix. The follow-up filters unresolved/coincident endpoints, keeps a prior valid observation, and uses Biotite's full contiguous-residue boundaries. Export/reload retains finite geometry without filling the input's missing coordinates. A missing polymer NZ can still be rebuilt; a missing ligand C11 retains the existing explicit construction error. The same three missing-endpoint cases pass through AtomWorks input. Bond/coordinate temporary arrays are processed in chunks. This preserves the existing no-measurement fallback, which inherits the departing hydrogen's construction frame; it does not provide the chemistry-derived heavy-atom equilibrium geometry or attachment energy model discussed in comment 38. Distinct finite observations still use the last instance, so general context-specific construction remains open. See the attachment-measurement section of [FOLLOWUP.md](FOLLOWUP.md).
 
 ## Validation record
 

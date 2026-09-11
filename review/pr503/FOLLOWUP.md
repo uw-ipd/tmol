@@ -1063,3 +1063,90 @@ See `diagnose_conjugation_charge_changes.py` and
 `results/conjugation-charge-changes.json`. Review drafts now contain
 **45 inline comments and 13 general questions**. All earlier completion gates
 remain active.
+
+## Unresolved attachment measurements and insertion-coded residues
+
+`_bond_lengths_by_site()` was copying every measured norm directly into the
+connection patch. Setting only the attached biotin LYS NZ coordinate to NaN
+therefore gave every LYS `conj_NZ` terminal combination and `BTN:conj_C11` a
+NaN connection distance. The resulting example pose still happened to have
+finite coordinates; the reproduced error is the invalid stored/exported
+construction parameter, not a claim that every score immediately becomes NaN.
+A later unresolved repeat also replaced an earlier valid observation, and
+residues distinguished only by insertion code were treated as one residue.
+Seven focused CPU checks fail against `daef9b803` before this fix.
+
+The helper now identifies cross-residue pairs using Biotite's complete
+contiguous-residue boundaries, filters nonfinite endpoints and nonpositive
+lengths, and processes bond/coordinate arrays in chunks of at most 4096
+bonds. An unresolved repeat cannot override a valid earlier measurement.
+Input coordinates remain untouched. Preparation, export, fresh reload and
+re-injection preserve finite icoors in all three biotin cases: missing NZ,
+missing C11, and both missing. The polymer NZ can be rebuilt; a missing ligand
+heavy atom still raises the existing explicit pose-construction error. The
+same three cases pass with AtomWorks' parsed AtomArray in the Biotite 1.6 CPU
+environment; tmol does not read or complete the file a second time.
+
+This retains the existing no-measurement behavior: the patch inherits its
+departing hydrogen's construction frame. It is **not** a chemistry-derived
+heavy-atom equilibrium geometry or a new attachment energy model. Multiple
+distinct finite observations still select the last instance. Default
+chemistry-derived geometry/context selection and reconstruction of unresolved
+ligand heavy atoms remain open; these changes do not silently place such atoms.
+
+The paired warm measurement benchmark compares unchanged `daef9b803` with
+the new helper on the same source arrays, with 1, 8 and 32 repeated copies.
+Seven alternating-order pairs show **2.59–4.44×** faster collection. At 32
+copies, biotin takes **28.21→8.62 ms**, O-glycan **9.54→2.15 ms**, and
+N-glycan **92.04→26.76 ms**. Key inventories match; batched float32 norms
+differ from individual norms by at most **1.20e−7 Å**. This measures the
+measurement helper, not full preparation or scoring.
+
+There is an allocation tradeoff: traced Python/NumPy peaks at 32 copies rise
+from roughly **7/6/10 KB** to **242/192/288 KB**, respectively. Chunking bounds
+the bond/coordinate temporaries; the residue-boundary scan still scales with
+the input. The original streaming Python loop has the lower traced peak.
+The first fully vectorized version used 332 KB for 32 biotin copies; bounded
+chunks reduce that to 242 KB with a small time cost. These figures exclude
+native/process allocations and must not be presented as total-memory savings.
+See `profile_attachment_measurements.py` and
+`results/attachment-measurements-profile.json`.
+
+Final CPU input/bundle checks have **18 passes and eight skips**. Final
+CPU/CUDA input/bundle checks have **26 passes** in Slurm **248870**,
+**COMPLETED, exit 0:0, elapsed 1:13** (pytest 59.78 seconds). Additional
+CPU/CUDA model, connection-generator and complete conjugate-packing checks
+have **85 passes and six skips** in Slurm **248864**, **COMPLETED, exit 0:0**
+(pytest 415.49 seconds). That broader run started before the bounded-chunk
+revision; 248870 and the final CPU run validate the final helper. Detailed
+run records, including AtomWorks, are in `results/attachment-measurements-tests.json`.
+Review drafts now contain **46 inline comments and 13 general questions**.
+The local charge/typing/torsion model, default generator integration, broader
+budget and cache-lifetime gates, and shared AtomWorks reader/rule-profile
+contracts remain active.
+
+## Upstream update detected during this follow-up
+
+On 2026-09-11, PR 503 advanced from `c03c1e745` to
+`0f4c3bc426bca78e8681f0b730fa23c3e26ef261` (author timestamp 17:39:28 UTC).
+It is fetched as `origin/pr-503-current`. The one new commit changes six files:
+canonical fragment selection, fold-forest error ordering, scan-order test
+arguments, two fold-forest expectations, HYP's expected count and NCAA score
+goldens. The submitted tree still lacks the cyclic-search module.
+
+The existing review/comment anchors remain pinned to `c03c1e745`; this update
+must be reconciled before calling the review current. The fragment fallback
+overlaps our explicit fragment selection and exact cut-bond removal. Its new
+`joins_one_component()` filter compares base names, not original component
+instances, so it needs a repeated-fragment crosslink check. Its fallback also
+adds only the first conjugated type when a class has no unconjugated candidates;
+later alternatives see a nonempty class and are skipped. These are review
+hypotheses pending executable checks, not yet reproduced findings.
+
+**Next priority:** independently exercise the six-file delta and reconcile it
+with the improvement branch, preserving the cap-selection and exact fragment
+identity fixes. Review the upstream golden changes against fixed-parameter
+evidence; do not accept a changed expected score as scientific validation.
+Then resume the local chemical parameter/default integration and all broader
+completion gates above. No automatic goal completion is implied by this
+intermediate checkpoint.

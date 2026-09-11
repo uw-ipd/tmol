@@ -754,25 +754,38 @@ def conjugation_atoms(lig, ligands_by_name, canonical_ordering, chemdb):
 
 
 def _bond_lengths_by_site(atom_array):
-    """``{(residue name, atom): length}`` for each cross-residue bond it declares."""
-    import numpy
+    """Finite, positive measurements of declared cross-residue bonds.
 
+    An unresolved or coincident endpoint supplies no measurement, so it must
+    neither override another instance's observation nor become a patch icoor.
+    """
     if atom_array.bonds is None:
         return {}
+    bonds = atom_array.bonds.as_array()
+    if len(bonds) == 0:
+        return {}
+    starts = struc.get_residue_starts(atom_array, add_exclusive_stop=True)
     lengths = {}
-    names, residues = atom_array.atom_name, atom_array.res_id
-    chains = getattr(atom_array, "chain_id", None)
-    for first, second, *_ in atom_array.bonds.as_array():
-        same_chain = chains is None or chains[first] == chains[second]
-        if same_chain and residues[first] == residues[second]:
-            continue
-        distance = float(
-            numpy.linalg.norm(atom_array.coord[first] - atom_array.coord[second])
-        )
-        for index in (first, second):
-            lengths[
-                (str(atom_array.res_name[index]).strip(), str(names[index]).strip())
-            ] = distance
+    # Bound bond/coordinate temporaries independently of the structure size.
+    # Search residue boundaries instead of allocating an index for every atom.
+    for start in range(0, len(bonds), 4096):
+        pairs = bonds[start : start + 4096, :2]
+        residues = np.searchsorted(starts, pairs, side="right")
+        pairs = pairs[residues[:, 0] != residues[:, 1]]
+        endpoints = atom_array.coord[pairs]
+        resolved = np.isfinite(endpoints).all(axis=(1, 2))
+        pairs, endpoints = pairs[resolved], endpoints[resolved]
+        distances = np.linalg.norm(endpoints[:, 0] - endpoints[:, 1], axis=1)
+        for (first, second), distance in zip(pairs, distances):
+            if not np.isfinite(distance) or distance <= 0:
+                continue
+            for index in (first, second):
+                lengths[
+                    (
+                        str(atom_array.res_name[index]).strip(),
+                        str(atom_array.atom_name[index]).strip(),
+                    )
+                ] = float(distance)
     return lengths
 
 
