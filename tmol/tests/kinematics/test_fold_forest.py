@@ -179,7 +179,8 @@ def test_fold_forest_routes_through_a_conjugation():
     by_type = _typed_edges(edges)
 
     assert by_type[EdgeType.root_jump] == [(-1, 0, -1)]
-    assert by_type[EdgeType.polymer] == [(0, 3, -1)]
+    # The glycan's parent must be the endpoint of an edge that builds it.
+    assert by_type[EdgeType.polymer] == [(0, 2, -1), (2, 3, -1)]
     assert by_type[EdgeType.chemical] == [(2, 4, 3), (4, 5, 1), (4, 6, 2)]
     assert EdgeType.jump not in by_type
 
@@ -231,7 +232,12 @@ def test_fold_forest_builds_outward_from_a_mid_chain_conjugation():
     by_type = _typed_edges(edges)
 
     assert by_type[EdgeType.chemical] == [(1, 5, 3)]
-    assert by_type[EdgeType.polymer] == [(0, 2, -1), (5, 3, -1), (5, 6, -1)]
+    assert by_type[EdgeType.polymer] == [
+        (0, 1, -1),
+        (1, 2, -1),
+        (5, 3, -1),
+        (5, 6, -1),
+    ]
     assert EdgeType.jump not in by_type
 
     validate_fold_forest(

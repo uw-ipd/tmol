@@ -34,14 +34,8 @@ def find_cyclic_closures(
         return explicit
     safe_types = res_types.clamp_min(0).long()
     up_atoms, down_atoms = up[safe_types], down[safe_types]
-    polymer = (res_types >= 0) & (chain_id >= 0) & (
-        (up_atoms >= 0) | (down_atoms >= 0)
-    )
-    adjacent = (
-        polymer[:, :-1]
-        & polymer[:, 1:]
-        & (chain_id[:, :-1] == chain_id[:, 1:])
-    )
+    polymer = (res_types >= 0) & (chain_id >= 0) & ((up_atoms >= 0) | (down_atoms >= 0))
+    adjacent = polymer[:, :-1] & polymer[:, 1:] & (chain_id[:, :-1] == chain_id[:, 1:])
     starts = polymer.clone()
     ends = polymer.clone()
     starts[:, 1:] &= ~adjacent
@@ -52,9 +46,7 @@ def find_cyclic_closures(
     valid = (pose == end_pose) & (first != last)
     ua, da = up_atoms[pose, last], down_atoms[pose, first]
     valid &= (ua >= 0) & (da >= 0)
-    delta = coords[pose, last, ua.clamp_min(0)] - coords[
-        pose, first, da.clamp_min(0)
-    ]
+    delta = coords[pose, last, ua.clamp_min(0)] - coords[pose, first, da.clamp_min(0)]
     distance2 = delta.square().sum(-1)
     valid &= torch.isfinite(distance2) & (distance2 < cutoff_dis**2)
     if explicit.shape[0]:
