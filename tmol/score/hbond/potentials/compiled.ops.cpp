@@ -81,7 +81,8 @@ class HBondPoseScoresOp
       Tensor derived_atom_inds,
 
       bool output_block_pair_energies,
-      Tensor shared_compact_block_neighbors
+      Tensor shared_compact_block_neighbors,
+      bool allow_split_pairs
 
   ) {
     at::Tensor score;
@@ -148,7 +149,8 @@ class HBondPoseScoresOp
 
                   TCAST(shared_compact_block_neighbors),
                   output_block_pair_energies,
-                  rot_coords.requires_grad());
+                  rot_coords.requires_grad(),
+                  allow_split_pairs);
 
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;
@@ -359,16 +361,9 @@ class HBondPoseScoresOp
           }));
     }
 
-    return {dV_d_pose_coords, torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor()};
+    tensor_list gradients(39);
+    gradients[0] = dV_d_pose_coords;
+    return gradients;
   }
 };
 
@@ -771,7 +766,8 @@ std::vector<Tensor> hbond_pose_scores_op(
     Tensor derived_atom_inds,
 
     bool output_block_pair_energies,
-    Tensor shared_compact_block_neighbors) {
+    Tensor shared_compact_block_neighbors,
+    bool allow_split_pairs = false) {
   return HBondPoseScoresOp<DispatchMethod>::apply(
       // common params
       rot_coords,
@@ -822,7 +818,8 @@ std::vector<Tensor> hbond_pose_scores_op(
       derived_atom_inds,
 
       output_block_pair_energies,
-      shared_compact_block_neighbors);
+      shared_compact_block_neighbors,
+      allow_split_pairs);
 }
 
 template <template <tmol::Device> class DispatchMethod>
@@ -1092,7 +1089,17 @@ std::vector<Tensor> gen_hbond_bases_op(
 
 // See https://stackoverflow.com/a/3221914
 TORCH_LIBRARY(tmol_hbond, m) {
-  m.def("hbond_pose_scores", &hbond_pose_scores_op<common::DeviceOperations>);
+  // Preserve the inferred positional argument names for existing callers.
+  m.def(
+      "hbond_pose_scores(Tensor _0, Tensor _1, Tensor _2, Tensor _3, Tensor "
+      "_4, Tensor _5, Tensor _6, Tensor _7, Tensor _8, Tensor _9, Tensor _10, "
+      "Tensor _11, int _12, Tensor _13, Tensor _14, Tensor _15, Tensor _16, "
+      "Tensor _17, Tensor _18, Tensor _19, Tensor _20, Tensor _21, Tensor _22, "
+      "Tensor _23, Tensor _24, Tensor _25, Tensor _26, Tensor _27, Tensor _28, "
+      "Tensor _29, Tensor _30, Tensor _31, Tensor _32, Tensor _33, Tensor _34, "
+      "Tensor _35, bool _36, Tensor _37, bool allow_split_pairs=False) -> "
+      "Tensor[] _0",
+      &hbond_pose_scores_op<common::DeviceOperations>);
   m.def(
       "hbond_rotamer_scores",
       &hbond_rotamer_scores_op<common::DeviceOperations>);

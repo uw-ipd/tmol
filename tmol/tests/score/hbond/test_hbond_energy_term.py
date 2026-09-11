@@ -1,7 +1,9 @@
 import numpy
+import pytest
 import torch
 
 from tmol.io import pose_stack_from_pdb
+from tmol.pose import PoseStackBuilder
 from tmol.score.hbond import HBondEnergyTerm
 from tmol.score import (
     ScoreFunction,
@@ -129,3 +131,77 @@ class TestHBondEnergyTerm(EnergyTermTestBase):
             torch_device,
             resnums=resnums,
         )
+
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+def test_compact_specialization_preserves_subsets(
+    ubq_pdb, default_database, torch_device, dtype, monkeypatch
+):
+    if torch_device.type != "cuda":
+        pytest.skip("CUDA compact interaction specialization")
+    full = pose_stack_from_pdb(ubq_pdb, torch_device)
+    short = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
+    pose = PoseStackBuilder.from_poses([full, short] * 32, torch_device)
+    energy = HBondEnergyTerm(param_db=default_database, device=torch_device)
+    for bt in pose.packed_block_types.active_block_types:
+        energy.setup_block_type(bt)
+    energy.setup_packed_block_types(pose.packed_block_types)
+    energy.setup_poses(pose)
+    term = energy.render_whole_pose_scoring_module(pose)
+    coords = pose.coords.to(dtype).detach()
+    neighbors = term.build_compact_block_neighbors(coords, term.block_neighbor_cutoff)
+    assert pose.block_type_ind.numel() >= 4096
+    assert pose._hbond_allow_split_pairs
+    assert neighbors.numel() - 1 >= 32768
+
+    # Reversed custom subsets with identical entries and different spare
+    # capacity exercise split and combined kernels without rebuilding the list.
+    subset = neighbors[1 : int(neighbors[0]) + 1 : 4].flip(0).clone()
+    neighbors[0] = subset.numel()
+    neighbors[1 : subset.numel() + 1] = subset
+    compact = neighbors[: subset.numel() + 1].clone()
+    assert compact.numel() - 1 < 32768
+    weights = torch.linspace(-1, 2, 64, device=torch_device, dtype=dtype)[None, :]
+    tolerance = 1e-10 if dtype == torch.float64 else 1e-5
+    for gradient in (False, True):
+        coords.requires_grad_(gradient)
+        expected = term(coords, compact)
+        actual = term(coords, neighbors)
+        torch.testing.assert_close(actual, expected, atol=tolerance, rtol=tolerance)
+        # Low-level callers may omit the new optional dispatch hint.
+        import tmol.score.hbond.potentials as potentials
+
+        native = potentials.hbond_pose_scores
+        with monkeypatch.context() as patch:
+            patch.setattr(
+                potentials, "hbond_pose_scores", lambda *args: native(*args[:-1])
+            )
+            legacy = term(coords, neighbors)
+        torch.testing.assert_close(legacy, expected, atol=tolerance, rtol=tolerance)
+        if gradient:
+            (expected_grad,) = torch.autograd.grad(expected, coords, weights)
+            (actual_grad,) = torch.autograd.grad(actual, coords, weights)
+            (legacy_grad,) = torch.autograd.grad(legacy, coords, weights)
+            torch.testing.assert_close(
+                legacy_grad, expected_grad, atol=tolerance, rtol=tolerance
+            )
+            torch.testing.assert_close(
+                actual_grad, expected_grad, atol=tolerance, rtol=tolerance
+            )
+
+
+@pytest.mark.parametrize("short_residues, expected_split", [(1, False), (40, True)])
+def test_specialization_uses_actual_residue_count(
+    ubq_pdb, default_database, torch_device, short_residues, expected_split
+):
+    full = pose_stack_from_pdb(ubq_pdb, torch_device)
+    short = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=short_residues)
+    pose = PoseStackBuilder.from_poses([full] + [short] * 63, torch_device)
+    energy = HBondEnergyTerm(param_db=default_database, device=torch_device)
+    for bt in pose.packed_block_types.active_block_types:
+        energy.setup_block_type(bt)
+    energy.setup_packed_block_types(pose.packed_block_types)
+    energy.setup_poses(pose)
+    assert pose._hbond_allow_split_pairs == (
+        expected_split and torch_device.type == "cuda"
+    )

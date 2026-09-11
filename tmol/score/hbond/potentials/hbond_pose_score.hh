@@ -112,7 +112,8 @@ struct HBondPoseScoreDispatch {
 
       TView<Int, 1, Dev> shared_compact_block_neighbors,
       bool output_block_pair_energies,
-      bool compute_derivs)
+      bool compute_derivs,
+      bool allow_split_pairs = false)
       -> std::tuple<
           TPack<Real, 4, Dev>,
           TPack<Vec<Real, 3>, 2, Dev>,

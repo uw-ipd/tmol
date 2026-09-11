@@ -62,6 +62,13 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
 
     def setup_poses(self, poses: PoseStack):
         super(HBondEnergyTerm, self).setup_poses(poses)
+        # Count actual residues once, before scoring or CUDA Graph capture.
+        # Padded stack size alone can overestimate work in jagged batches.
+        poses._hbond_allow_split_pairs = (
+            poses.device.type == "cuda"
+            and poses.block_type_ind.numel() >= 4096
+            and int((poses.block_type_ind >= 0).sum()) >= 2048
+        )
 
     def pose_score_hbond(self, *args):
         from tmol.score.hbond.potentials import (
@@ -73,6 +80,7 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         pose_stack = args[-3]
         block_pair_scoring = args[-2]
         shared_block_neighbors = args[-1]
+        allow_split_pairs = getattr(pose_stack, "_hbond_allow_split_pairs", False)
         coords_dtype = common_args[0].dtype
         pair_param_table, pair_poly_table, global_param_table = self._param_tables(
             coords_dtype
@@ -132,6 +140,7 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             derived_atom_inds,
             block_pair_scoring,
             shared_block_neighbors,
+            allow_split_pairs,
         )
 
     def rotamer_score_hbond(self, *args):
