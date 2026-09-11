@@ -193,23 +193,13 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   auto semirotameric_rottable_assignment =
       semirotameric_rottable_assignment_t.view;
 
-  auto dneglnprob_rot_dbb_xyz_t =
-      D == Device::CPU && accumulate_derivs
-          ? TPack<CoordQuad, 2, D>::zeros({n_deriv_rots, 2})
-          : TPack<CoordQuad, 2, D>::empty({n_deriv_rots, 2});
-  auto dneglnprob_rot_dbb_xyz = dneglnprob_rot_dbb_xyz_t.view;
-
-  auto drotchi_devpen_dtor_xyz_t =
+  // These three terms consume their derivatives sequentially within each
+  // rotamer's thread. Reuse one buffer after each contribution is accumulated.
+  auto dterm_dtor_xyz_t =
       D == Device::CPU && accumulate_derivs
           ? TPack<CoordQuad, 2, D>::zeros({n_deriv_rots, 3})
           : TPack<CoordQuad, 2, D>::empty({n_deriv_rots, 3});
-  auto drotchi_devpen_dtor_xyz = drotchi_devpen_dtor_xyz_t.view;
-
-  auto dneglnprob_nonrot_dtor_xyz_t =
-      D == Device::CPU && accumulate_derivs
-          ? TPack<CoordQuad, 2, D>::zeros({n_deriv_rots, 3})
-          : TPack<CoordQuad, 2, D>::empty({n_deriv_rots, 3});
-  auto dneglnprob_nonrot_dtor_xyz = dneglnprob_nonrot_dtor_xyz_t.view;
+  auto dterm_dtor_xyz = dterm_dtor_xyz_t.view;
 
   auto V = V_t.view;
   auto dV_dx = dV_dx_t.view;
@@ -317,7 +307,7 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           block_rotamer_table_set[block_type_index],
           dihedral_values[rotamer_index],
           rotameric_rottable_assignment[rotamer_index],
-          calc_derivs ? dneglnprob_rot_dbb_xyz[rotamer_index]
+          calc_derivs ? dterm_dtor_xyz[rotamer_index]
                       : TensorAccessor<CoordQuad, 1, D>(),
           calc_derivs ? dihedral_deriv[rotamer_index]
                       : TensorAccessor<CoordQuad, 1, D>(),
@@ -339,12 +329,10 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         for (int j = 0; j < DIH_N_ATOMS; ++j) {
           if (phi_ats[j] != -1)
             accumulate<D, Vec<Real, 3>>::add(
-                dV_dx[0][phi_ats[j]],
-                dneglnprob_rot_dbb_xyz[rotamer_index][0].row(j));
+                dV_dx[0][phi_ats[j]], dterm_dtor_xyz[rotamer_index][0].row(j));
           if (psi_ats[j] != -1)
             accumulate<D, Vec<Real, 3>>::add(
-                dV_dx[0][psi_ats[j]],
-                dneglnprob_rot_dbb_xyz[rotamer_index][1].row(j));
+                dV_dx[0][psi_ats[j]], dterm_dtor_xyz[rotamer_index][1].row(j));
         }
       }
     }
@@ -370,7 +358,7 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           ii,
           rotameric_rottable_assignment[rotamer_index],
           // Out
-          calc_derivs ? drotchi_devpen_dtor_xyz[rotamer_index]
+          calc_derivs ? dterm_dtor_xyz[rotamer_index]
                       : TensorAccessor<CoordQuad, 1, D>(),
           calc_derivs ? dihedral_deriv[rotamer_index]
                       : TensorAccessor<CoordQuad, 1, D>(),
@@ -385,16 +373,13 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         for (int j = 0; j < DIH_N_ATOMS; ++j) {
           if (tor0_ats[j] != -1)
             accumulate<D, Vec<Real, 3>>::add(
-                dV_dx[1][tor0_ats[j]],
-                drotchi_devpen_dtor_xyz[rotamer_index][0].row(j));
+                dV_dx[1][tor0_ats[j]], dterm_dtor_xyz[rotamer_index][0].row(j));
           if (tor1_ats[j] != -1)
             accumulate<D, Vec<Real, 3>>::add(
-                dV_dx[1][tor1_ats[j]],
-                drotchi_devpen_dtor_xyz[rotamer_index][1].row(j));
+                dV_dx[1][tor1_ats[j]], dterm_dtor_xyz[rotamer_index][1].row(j));
           if (tor2_ats[j] != -1)
             accumulate<D, Vec<Real, 3>>::add(
-                dV_dx[1][tor2_ats[j]],
-                drotchi_devpen_dtor_xyz[rotamer_index][2].row(j));
+                dV_dx[1][tor2_ats[j]], dterm_dtor_xyz[rotamer_index][2].row(j));
         }
       }
     }
@@ -425,7 +410,7 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           dihedral_values[rotamer_index],
           semirotameric_rottable_assignment[rotamer_index],
 
-          calc_derivs ? dneglnprob_nonrot_dtor_xyz[rotamer_index]
+          calc_derivs ? dterm_dtor_xyz[rotamer_index]
                       : TensorAccessor<CoordQuad, 1, D>(),
           calc_derivs ? dihedral_deriv[rotamer_index]
                       : TensorAccessor<CoordQuad, 1, D>(),
@@ -446,16 +431,13 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         for (int j = 0; j < DIH_N_ATOMS; ++j) {
           if (tor0_ats[j] != -1)
             accumulate<D, Vec<Real, 3>>::add(
-                dV_dx[2][tor0_ats[j]],
-                dneglnprob_nonrot_dtor_xyz[rotamer_index][0].row(j));
+                dV_dx[2][tor0_ats[j]], dterm_dtor_xyz[rotamer_index][0].row(j));
           if (tor1_ats[j] != -1)
             accumulate<D, Vec<Real, 3>>::add(
-                dV_dx[2][tor1_ats[j]],
-                dneglnprob_nonrot_dtor_xyz[rotamer_index][1].row(j));
+                dV_dx[2][tor1_ats[j]], dterm_dtor_xyz[rotamer_index][1].row(j));
           if (tor2_ats[j] != -1)
             accumulate<D, Vec<Real, 3>>::add(
-                dV_dx[2][tor2_ats[j]],
-                dneglnprob_nonrot_dtor_xyz[rotamer_index][2].row(j));
+                dV_dx[2][tor2_ats[j]], dterm_dtor_xyz[rotamer_index][2].row(j));
         }
       }
     }
