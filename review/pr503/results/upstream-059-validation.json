@@ -1,0 +1,3195 @@
+{
+  "parent_commit": "f04013d4b9a5b641519b2758b786fa8f9ffd9a1d",
+  "upstream_head": "0593a93b07d80b0302383163d2d98c78e315ab98",
+  "atomworks_commit": "0e4ffe8f597ec6f13658464497bf140542ac0590",
+  "final_sources_sha256": {
+    "tmol/io/details/_build_missing_leaf_atoms.py": "254dc040de565623bbc955f79a911141b9de363c6396cd29ea608fad1d6c5daf",
+    "tmol/io/details/_select_from_canonical.py": "08348cbdf00b1b81a07ef913caf278e5809a3b392768000b50219a72a972c45e",
+    "tmol/ligand/_polymer_profile.py": "9d7618b7ff2289b0de37c1c29854fbc753b327749717357150c183cf4a6ac7ab",
+    "tmol/ligand/_preparation.py": "4965f025746c7c221745aaaebc35994285dc0b70f002c646e0422e58fd118665",
+    "tmol/tests/io/test_pose_stack_from_biotite.py": "ae35256b74226d276977bbe2da1af455603bf41653aa7d42de573327e705a2c4",
+    "tmol/tests/pack/test_pack_rotamers.py": "3abd8a0cd3ae12e4603718022ac53cfe536374158b50e6716778381b79c7a538",
+    "tmol/tests/ligand/test_noncanonical_junctions.py": "c6891cf443984fa30951d9b2c49fc4344a5cc476d5a04d6dffe6f67a8f7661e7",
+    "tmol/tests/score/cartbonded/test_noncanonical_junction_reference.py": "d31bad4e3a4744b6d216c40ac4a56ded46ddb63ea96653fdb27b6124865a49be",
+    "review/pr503/profile_workloads.py": "24347ff5b995ef70eae07e758d7c5065a1aabad1df9318672833a9a6ea3b59b8"
+  },
+  "runs": [
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/upstream-059-caps-premerge.xml",
+      "sha256": "41529d7a208f7d6115c52ff4d263e7ad7665d07966efb14f3114c43964d3319a",
+      "slurm_job": null,
+      "stage": "f04013d4b replay of exact new upstream cap tests",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "1",
+          "skipped": "5",
+          "tests": "10",
+          "time": "20.425",
+          "timestamp": "2026-09-11T20:31:55.833057+00:00",
+          "hostname": "slurm-login-0"
+        }
+      ],
+      "counts": {
+        "passed": 4,
+        "skipped": 5,
+        "failure": 1,
+        "error": 0
+      },
+      "cases": [
+        {
+          "case": "tmol.tests.io._upstream_059_caps::test_a_capped_peptide_builds_a_pose_stack[cpu-capped_peptide_ace_nme]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io._upstream_059_caps::test_a_capped_peptide_builds_a_pose_stack[cpu-capped_peptide_ace_nh2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io._upstream_059_caps::test_a_capped_peptide_builds_a_pose_stack[cuda-capped_peptide_ace_nme]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.io._upstream_059_caps::test_a_capped_peptide_builds_a_pose_stack[cuda-capped_peptide_ace_nh2]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.io._upstream_059_caps::test_an_amide_cap_places_its_hydrogens_in_the_amide_plane[cpu]",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.io._upstream_059_caps::test_an_amide_cap_places_its_hydrogens_in_the_amide_plane[cuda]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack._upstream_059_caps::test_pack_a_capped_structure[cpu-capped_peptide_ace_nme]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack._upstream_059_caps::test_pack_a_capped_structure[cpu-capped_peptide_ace_nh2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack._upstream_059_caps::test_pack_a_capped_structure[cuda-capped_peptide_ace_nme]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack._upstream_059_caps::test_pack_a_capped_structure[cuda-capped_peptide_ace_nh2]",
+          "outcome": "skipped"
+        }
+      ]
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/upstream-059-junction-before.xml",
+      "sha256": "35865ac2550ad82012b369f4348b26b10d478feac39fc403db87e8ed3df38420",
+      "slurm_job": null,
+      "stage": "new upstream helper before role fixes; six behavior failures plus unsupported retained-atom argument",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "7",
+          "skipped": "0",
+          "tests": "10",
+          "time": "1.465",
+          "timestamp": "2026-09-11T20:39:24.514371+00:00",
+          "hostname": "slurm-login-0"
+        }
+      ],
+      "counts": {
+        "passed": 3,
+        "skipped": 0,
+        "failure": 7,
+        "error": 0
+      },
+      "cases": [
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_carbonyl_oxygen_is_selected_by_bond_order[False]",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_carbonyl_oxygen_is_selected_by_bond_order[True]",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_frame_is_substituted_when_only_the_neighbor_is_renamed[upper]",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_frame_is_substituted_when_only_the_neighbor_is_renamed[lower]",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_phosphate_or_ester_does_not_borrow_peptide_parameters[upper]",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_phosphate_or_ester_does_not_borrow_peptide_parameters[lower]",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_renamed_lower_frame_uses_only_retained_hydrogens",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_canonical_frame_requires_no_copied_rows",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_each_renamed_frame_preserves_database_parameters[mapping0-length0-angles0-improper0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_each_renamed_frame_preserves_database_parameters[mapping1-length1-angles1-improper1]",
+          "outcome": "passed"
+        }
+      ]
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/upstream-059-gpu.xml",
+      "sha256": "5ed034121d58a5a300dbc5a545f5847538c95e5e7b885de9533ff725eec46671",
+      "slurm_job": 249016,
+      "stage": "initial reconciled implementation; before final prepared-graph substitution",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "4",
+          "tests": "289",
+          "time": "409.658",
+          "timestamp": "2026-09-11T20:41:52.125291+00:00",
+          "hostname": "slurm-h200-interactive-244-105"
+        }
+      ],
+      "counts": {
+        "passed": 285,
+        "skipped": 4,
+        "failure": 0,
+        "error": 0
+      },
+      "cases": [
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_load_score_roundtrip_cif[1UBQ]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_load_score_roundtrip_cif[1R21]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_load_score_roundtrip_cif[1BL8]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_load_score_roundtrip_cif[6H9V]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_load_score_roundtrip_cif[3N0I]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_load_score_roundtrip_cif[6C4C]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_load_score_roundtrip_cif[3AA0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_build_context_from_biotite_smoke[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_build_context_from_biotite_smoke[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_canonical_form_from_biotite_smoke[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_canonical_form_from_biotite_smoke[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_pose_stack_from_biotite_1ubq_smoke[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_pose_stack_from_biotite_1ubq_smoke[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_pose_stack_from_biotite_1ubq_err_smoke[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_pose_stack_from_biotite_1ubq_err_smoke[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_pose_stack_from_biotite_1ubq_cif_smoke[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_pose_stack_from_biotite_1ubq_cif_smoke[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_pose_stack_from_and_to_biotite_1ubq_smoke[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_pose_stack_from_and_to_biotite_1ubq_smoke[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_pose_stack_from_and_to_biotite_1ubq_no_opth_smoke[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_pose_stack_from_and_to_biotite_1ubq_no_opth_smoke[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_pose_stack_from_and_to_biotite_multiple_poses_smoke[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_pose_stack_from_and_to_biotite_multiple_poses_smoke[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_canonical_form_multipose_metadata_propagation[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_canonical_form_multipose_metadata_propagation[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_pose_stack_from_biotite_1ubq_slice_smoke[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_pose_stack_from_biotite_1ubq_slice_smoke[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_pose_stack_from_biotite_n_term_smoke[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_pose_stack_from_biotite_n_term_smoke[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_pose_stack_from_biotite_c_term_smoke[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_pose_stack_from_biotite_c_term_smoke[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_pose_stack_from_biotite_his_d_smoke[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_pose_stack_from_biotite_his_d_smoke[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_pose_stack_from_biotite_missing_sidechain_smoke[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_pose_stack_from_biotite_missing_sidechain_smoke[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_pose_stack_from_biotite_missing_single_sidechain_smoke[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_pose_stack_from_biotite_missing_single_sidechain_smoke[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_ligand_proton_chi_samples_build_finite_coords[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_ligand_proton_chi_samples_build_finite_coords[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_ligand_build_from_mol2_bond_orders[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_ligand_build_from_mol2_bond_orders[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_a_capped_peptide_builds_a_pose_stack[cpu-capped_peptide_ace_nme]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_a_capped_peptide_builds_a_pose_stack[cpu-capped_peptide_ace_nh2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_a_capped_peptide_builds_a_pose_stack[cuda-capped_peptide_ace_nme]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_a_capped_peptide_builds_a_pose_stack[cuda-capped_peptide_ace_nh2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_an_amide_cap_places_its_hydrogens_in_the_amide_plane[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_an_amide_cap_places_its_hydrogens_in_the_amide_plane[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_polymer_caps::test_capped_peptide_builds_bonds_scores_and_gradients[cpu-nh2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_polymer_caps::test_capped_peptide_builds_bonds_scores_and_gradients[cpu-nme]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_polymer_caps::test_capped_peptide_builds_bonds_scores_and_gradients[cuda-nh2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_polymer_caps::test_capped_peptide_builds_bonds_scores_and_gradients[cuda-nme]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_build_missing_leaf_atoms::test_leaf_icoor_can_reference_any_declared_connection",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_build_missing_leaf_atoms::test_build_missing_leaf_atoms[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_build_missing_leaf_atoms::test_build_missing_leaf_atoms[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_build_missing_leaf_atoms::test_build_missing_leaf_atoms_error_handling[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_build_missing_leaf_atoms::test_build_missing_leaf_atoms_error_handling[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_build_missing_leaf_atoms::test_build_missing_leaf_atoms_backwards[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_build_missing_leaf_atoms::test_build_missing_leaf_atoms_backwards[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_build_missing_leaf_atoms::test_coord_sum_gradcheck[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_build_missing_leaf_atoms::test_coord_sum_gradcheck[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_build_missing_leaf_atoms::test_build_missing_hydrogens_and_oxygens_gradcheck[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_build_missing_leaf_atoms::test_build_missing_hydrogens_and_oxygens_gradcheck[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_select_from_canonical::test_annotate_pbt_w_canonical_res_order[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_select_from_canonical::test_annotate_pbt_w_canonical_res_order[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_select_from_canonical::test_annotate_pbt_w_canonical_res_order_caching[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_select_from_canonical::test_annotate_pbt_w_canonical_res_order_caching[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_select_from_canonical::test_assign_block_types[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_select_from_canonical::test_assign_block_types[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_select_from_canonical::test_assign_block_types_w_exotic_termini_options[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_select_from_canonical::test_assign_block_types_w_exotic_termini_options[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_select_from_canonical::test_assign_block_types_jagged_poses[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_select_from_canonical::test_assign_block_types_jagged_poses[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_select_from_canonical::test_assign_block_types_with_gaps[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_select_from_canonical::test_assign_block_types_with_gaps[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_select_from_canonical::test_assign_block_types_with_same_chain_cterm_vrt[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_select_from_canonical::test_assign_block_types_with_same_chain_cterm_vrt[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_select_from_canonical::test_assign_block_types_for_pert_and_antigen[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_select_from_canonical::test_assign_block_types_for_pert_and_antigen[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_select_from_canonical::test_take_block_type_atoms_from_canonical[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_select_from_canonical::test_take_block_type_atoms_from_canonical[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_select_from_canonical::test_select_best_block_type_candidate_choosing_default_term[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_select_from_canonical::test_select_best_block_type_candidate_choosing_default_term[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_select_from_canonical::test_select_best_block_type_candidate_w_mult_opts[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_select_from_canonical::test_select_best_block_type_candidate_w_mult_opts[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_select_from_canonical::test_select_best_block_type_candidate_error_impossible_combo[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_select_from_canonical::test_select_best_block_type_candidate_error_impossible_combo[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_select_from_canonical::test_select_best_block_type_candidate_accept_one_extraneous[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_select_from_canonical::test_select_best_block_type_candidate_accept_one_extraneous[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_cyclic_search::test_closes_each_polymer_before_trailing_ligand[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_cyclic_search::test_closes_each_polymer_before_trailing_ligand[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_cyclic_search::test_does_not_infer_invalid_closures[cpu-nan]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_cyclic_search::test_does_not_infer_invalid_closures[cpu-far]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_cyclic_search::test_does_not_infer_invalid_closures[cpu-different_chain]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_cyclic_search::test_does_not_infer_invalid_closures[cpu-single]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_cyclic_search::test_does_not_infer_invalid_closures[cuda-nan]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_cyclic_search::test_does_not_infer_invalid_closures[cuda-far]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_cyclic_search::test_does_not_infer_invalid_closures[cuda-different_chain]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_cyclic_search::test_does_not_infer_invalid_closures[cuda-single]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_cyclic_search::test_explicit_rows_survive_disable_and_are_not_duplicated[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_cyclic_search::test_explicit_rows_survive_disable_and_are_not_duplicated[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_cyclic_search::test_empty_batch[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.details.test_cyclic_search::test_empty_batch[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_optH[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_optH[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_w_cst[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_w_cst[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_w_empty_interaction_graph[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_w_empty_interaction_graph[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_w_dslf[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_w_dslf[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers2[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers2[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_irregular_sized_poses[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_irregular_sized_poses[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_a_capped_structure[cpu-capped_peptide_ace_nme]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_a_capped_structure[cpu-capped_peptide_ace_nh2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_a_capped_structure[cuda-capped_peptide_ace_nme]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_a_capped_structure[cuda-capped_peptide_ace_nh2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_carbonyl_oxygen_is_selected_by_bond_order[False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_carbonyl_oxygen_is_selected_by_bond_order[True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_frame_is_substituted_when_only_the_neighbor_is_renamed[upper]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_frame_is_substituted_when_only_the_neighbor_is_renamed[lower]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_phosphate_or_ester_does_not_borrow_peptide_parameters[upper]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_phosphate_or_ester_does_not_borrow_peptide_parameters[lower]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_renamed_lower_frame_uses_only_retained_hydrogens",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_canonical_frame_requires_no_copied_rows",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_each_renamed_frame_preserves_database_parameters[mapping0-length0-angles0-improper0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_each_renamed_frame_preserves_database_parameters[mapping1-length1-angles1-improper1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_nucleotide_profiles_do_not_acquire_peptide_junction_rows[5CM]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_nucleotide_profiles_do_not_acquire_peptide_junction_rows[8OG]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_nucleotide_profiles_do_not_acquire_peptide_junction_rows[PSU]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_prepared_gamma_backbone_carries_carbonyl_junction_parameters",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_every_class_is_reachable",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_only_an_unmodified_alpha_backbone_matches_the_alpha_profile[AIB]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_only_an_unmodified_alpha_backbone_matches_the_alpha_profile[B3K]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_only_an_unmodified_alpha_backbone_matches_the_alpha_profile[FGA]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_only_an_unmodified_alpha_backbone_matches_the_alpha_profile[HAO]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_only_an_unmodified_alpha_backbone_matches_the_alpha_profile[HYP]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_only_an_unmodified_alpha_backbone_matches_the_alpha_profile[MLE]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_only_an_unmodified_alpha_backbone_matches_the_alpha_profile[SAR]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_typing_matches_the_backbone_class[AIB]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_typing_matches_the_backbone_class[B3K]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_typing_matches_the_backbone_class[FGA]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_typing_matches_the_backbone_class[HAO]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_typing_matches_the_backbone_class[HYP]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_typing_matches_the_backbone_class[MLE]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_typing_matches_the_backbone_class[SAR]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_declared_mainchain_is_a_bonded_path[AIB]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_declared_mainchain_is_a_bonded_path[B3K]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_declared_mainchain_is_a_bonded_path[FGA]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_declared_mainchain_is_a_bonded_path[HAO]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_declared_mainchain_is_a_bonded_path[HYP]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_declared_mainchain_is_a_bonded_path[MLE]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_declared_mainchain_is_a_bonded_path[SAR]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_an_alpha_backbone_prepares_to_something_usable[AIB]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_an_alpha_backbone_prepares_to_something_usable[HYP]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_the_amide_nitrogen_rule_separates_proline_from_n_methyl",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_backbone_named_otherwise_is_still_recognized",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_backbone_takes_canonical_names_and_keeps_the_input_as_an_alias[renames0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_backbone_takes_canonical_names_and_keeps_the_input_as_an_alias[renames1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_backbone_takes_canonical_names_and_keeps_the_input_as_an_alias[renames2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_backbone_takes_canonical_names_and_keeps_the_input_as_an_alias[renames3]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_canonically_named_backbone_is_not_renamed",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_the_input_spelling_resolves_to_the_canonical_atom",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_reserved_name_used_for_another_atom_is_refused",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_ring_atom_called_cd_needs_no_injected_angle",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_ring_atom_called_otherwise_carries_its_own_angle",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_ring_atom_named_otherwise_scores_the_same[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_ring_atom_named_otherwise_scores_the_same[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_an_injected_residue_gets_charges_for_its_termini",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_terminal_residue_finds_its_other_end[ACB]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_terminal_residue_finds_its_other_end[FGA]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_terminal_residue_finds_its_other_end[SAR]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_free_sidechain_acid_does_not_outrank_the_backbone[GLU]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_free_sidechain_acid_does_not_outrank_the_backbone[ASP]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_free_sidechain_acid_does_not_outrank_the_backbone[ASN]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_free_sidechain_acid_does_not_outrank_the_backbone[GLN]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_terminal_residue_is_completed_under_an_unknown_name",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_an_undeterminable_terminal_residue_is_refused",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_declaring_both_ends_prepares_what_could_not_be_inferred",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_declared_chemistry_completes_an_unresolved_sidechain",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_the_component_dictionary_completes_what_the_file_does_not_declare",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_dictionary_entry_for_a_different_molecule_is_not_used",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_residue_nothing_describes_is_assumed_complete",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_nonstandard_backbone_is_found_and_prepared_from_a_structure[beta_peptide_3c3g]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_nonstandard_backbone_is_found_and_prepared_from_a_structure[gamma_peptide_1gac]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_nonstandard_backbone_is_found_and_prepared_from_a_structure[nmethyl_peptide_6mvz]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_nonstandard_backbone_scores[cpu-beta_peptide_3c3g]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_nonstandard_backbone_scores[cpu-gamma_peptide_1gac]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_nonstandard_backbone_scores[cpu-nmethyl_peptide_6mvz]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_nonstandard_backbone_scores[cuda-beta_peptide_3c3g]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_nonstandard_backbone_scores[cuda-gamma_peptide_1gac]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_nonstandard_backbone_scores[cuda-nmethyl_peptide_6mvz]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_nonstandard_backbone_brings_its_own_termini_patches",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_an_alpha_backbone_keeps_using_the_database_patches",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_generated_patch_avoids_names_the_residue_already_uses",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_cap_has_no_termini_variants",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_every_variant_carries_charges_for_all_of_its_atoms[nmethyl_peptide_6mvz]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_every_variant_carries_charges_for_all_of_its_atoms[gamma_peptide_1gac]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_every_variant_carries_charges_for_all_of_its_atoms[collagen_hyp_1bkv]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_params_file_carries_the_patches_it_needs",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_generated_patch_types_its_atoms_as_a_ligand[MLE]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_generated_patch_types_its_atoms_as_a_ligand[B3K]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_generated_patch_types_its_atoms_as_a_ligand[HAO]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_terminus_is_protonated_by_its_own_chemistry",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_terminal_group_is_built_at_the_angle_its_geometry_calls_for",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_terminus_that_cannot_be_built_falls_back_to_the_residue",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_backbone_is_recognized[1MA]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_backbone_is_recognized[3DR]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_backbone_is_recognized[5CM]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_backbone_is_recognized[8OG]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_backbone_is_recognized[A]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_backbone_is_recognized[DA]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_backbone_is_recognized[DT]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_backbone_is_recognized[OMG]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_backbone_is_recognized[PSU]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_backbone_is_recognized[TTD]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_backbone_is_recognized[U]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_fused_dinucleotide_is_not_a_standard_backbone",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_chi_is_measured_the_way_the_tables_were_built[8OG]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_chi_is_measured_the_way_the_tables_were_built[DA]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_chi_is_measured_the_way_the_tables_were_built[DC]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_chi_is_measured_the_way_the_tables_were_built[PSU]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_prepares_from_a_structure[na_dna_5mc_1d17]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_prepares_from_a_structure[na_dna_8og_183d]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_prepares_from_a_structure[na_dna_ttd_1ttd]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_prepares_from_a_structure[na_rna_2ome_310d]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_prepares_from_a_structure[na_rna_psu_1bzt]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_keeps_the_backbone_and_its_torsions[na_dna_5mc_1d17]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_keeps_the_backbone_and_its_torsions[na_rna_psu_1bzt]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_keeps_the_backbone_and_its_torsions[na_rna_2ome_310d]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_keeps_the_backbone_and_its_torsions[na_dna_8og_183d]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_fused_dinucleotide_is_prepared_as_a_ligand",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_every_canonical_base_identifies_as_itself",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_modified_base_is_scored_on_the_base_it_modifies[na_dna_5mc_1d17-5CM-DC]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_modified_base_is_scored_on_the_base_it_modifies[na_dna_8og_183d-8OG-DG]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_modified_base_is_scored_on_the_base_it_modifies[na_rna_psu_1bzt-PSU-U]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_modified_base_is_scored_on_the_base_it_modifies[na_rna_2ome_310d-OMC-C]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_modified_base_is_scored_on_the_base_it_modifies[na_rna_2ome_310d-OMG-G]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_seen_only_at_a_terminus_gets_its_phosphate_back",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_scores[cpu-na_dna_5mc_1d17]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_scores[cpu-na_dna_8og_183d]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_scores[cpu-na_dna_ttd_1ttd]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_scores[cpu-na_rna_2ome_310d]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_scores[cpu-na_rna_psu_1bzt]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_scores[cuda-na_dna_5mc_1d17]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_scores[cuda-na_dna_8og_183d]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_scores[cuda-na_dna_ttd_1ttd]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_scores[cuda-na_rna_2ome_310d]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_scores[cuda-na_rna_psu_1bzt]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_every_variant_carries_charges_for_all_of_its_atoms[na_dna_5mc_1d17]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_every_variant_carries_charges_for_all_of_its_atoms[na_dna_8og_183d]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_every_variant_carries_charges_for_all_of_its_atoms[na_dna_ttd_1ttd]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_every_variant_carries_charges_for_all_of_its_atoms[na_rna_2ome_310d]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_every_variant_carries_charges_for_all_of_its_atoms[na_rna_psu_1bzt]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_every_variant_builds_finite_ideal_coordinates[na_dna_5mc_1d17]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_every_variant_builds_finite_ideal_coordinates[na_dna_8og_183d]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_every_variant_builds_finite_ideal_coordinates[na_dna_ttd_1ttd]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_every_variant_builds_finite_ideal_coordinates[na_rna_2ome_310d]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_every_variant_builds_finite_ideal_coordinates[na_rna_psu_1bzt]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_install_checks_baseline_and_does_not_apply_twice[biotin]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_local_bundle_roundtrip_preserves_correction_and_baseline[biotin]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_generated_local_parameters_preserve_instance_identity[biotin]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_biotin_local_changes_and_canonical_ownership[biotin]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_attached_asparagine_is_not_flipped_independently[biotin]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_corrected_attachment_pose_charge_geometry_and_gradient[biotin-cpu-False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_corrected_attachment_pose_charge_geometry_and_gradient[biotin-cpu-True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_corrected_attachment_pose_charge_geometry_and_gradient[biotin-cuda-False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_corrected_attachment_pose_charge_geometry_and_gradient[biotin-cuda-True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_install_checks_baseline_and_does_not_apply_twice[nglycan]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_local_bundle_roundtrip_preserves_correction_and_baseline[nglycan]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_generated_local_parameters_preserve_instance_identity[nglycan]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_biotin_local_changes_and_canonical_ownership[nglycan]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_attached_asparagine_is_not_flipped_independently[nglycan]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_corrected_attachment_pose_charge_geometry_and_gradient[nglycan-cpu-False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_corrected_attachment_pose_charge_geometry_and_gradient[nglycan-cpu-True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_corrected_attachment_pose_charge_geometry_and_gradient[nglycan-cuda-False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_corrected_attachment_pose_charge_geometry_and_gradient[nglycan-cuda-True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_install_checks_baseline_and_does_not_apply_twice[oglycan]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_local_bundle_roundtrip_preserves_correction_and_baseline[oglycan]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_generated_local_parameters_preserve_instance_identity[oglycan]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_biotin_local_changes_and_canonical_ownership[oglycan]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_attached_asparagine_is_not_flipped_independently[oglycan]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_corrected_attachment_pose_charge_geometry_and_gradient[oglycan-cpu-False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_corrected_attachment_pose_charge_geometry_and_gradient[oglycan-cpu-True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_corrected_attachment_pose_charge_geometry_and_gradient[oglycan-cuda-False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_corrected_attachment_pose_charge_geometry_and_gradient[oglycan-cuda-True]",
+          "outcome": "passed"
+        }
+      ]
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/upstream-059-junction-native-gpu.xml",
+      "sha256": "44d50ba09f49c54ca25c8cfabab32f12cf7159e0118abc057d6df1b810d3ea14",
+      "slurm_job": 249017,
+      "stage": "independent native reference before final prepared-graph substitution",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "2",
+          "time": "8.592",
+          "timestamp": "2026-09-11T20:43:46.868413+00:00",
+          "hostname": "slurm-h200-interactive-244-105"
+        }
+      ],
+      "counts": {
+        "passed": 2,
+        "skipped": 0,
+        "failure": 0,
+        "error": 0
+      },
+      "cases": [
+        {
+          "case": "tmol.tests.score.cartbonded.test_noncanonical_junction_reference::test_gamma_junction_length_angle_energy_and_gradient[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.cartbonded.test_noncanonical_junction_reference::test_gamma_junction_length_angle_energy_and_gradient[cuda]",
+          "outcome": "passed"
+        }
+      ]
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/upstream-059-final-graph-cpu.xml",
+      "sha256": "fdb7e589c27a2e3b44cc07bd70b58023a1375c32bd204b686263571c3921c2c2",
+      "slurm_job": null,
+      "stage": "diagnostic: two test adapter calls not yet updated for simplified API; superseded",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "2",
+          "skipped": "1",
+          "tests": "17",
+          "time": "10.844",
+          "timestamp": "2026-09-11T20:48:57.506677+00:00",
+          "hostname": "slurm-login-0"
+        }
+      ],
+      "counts": {
+        "passed": 14,
+        "skipped": 1,
+        "failure": 2,
+        "error": 0
+      },
+      "cases": [
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_carbonyl_oxygen_is_selected_by_bond_order[False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_carbonyl_oxygen_is_selected_by_bond_order[True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_frame_is_substituted_when_only_the_neighbor_is_renamed[upper]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_frame_is_substituted_when_only_the_neighbor_is_renamed[lower]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_phosphate_or_ester_does_not_borrow_peptide_parameters[upper]",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_phosphate_or_ester_does_not_borrow_peptide_parameters[lower]",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_renamed_lower_frame_uses_only_retained_hydrogens",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_canonical_frame_requires_no_copied_rows",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_each_renamed_frame_preserves_database_parameters[mapping0-length0-angles0-improper0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_each_renamed_frame_preserves_database_parameters[mapping1-length1-angles1-improper1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_nucleotide_profiles_do_not_acquire_peptide_junction_rows[5CM]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_nucleotide_profiles_do_not_acquire_peptide_junction_rows[8OG]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_nucleotide_profiles_do_not_acquire_peptide_junction_rows[PSU]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_prepared_gamma_backbone_carries_carbonyl_junction_parameters",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_generated_amide_hydrogen_receives_its_connection_angle",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.cartbonded.test_noncanonical_junction_reference::test_gamma_junction_length_angle_energy_and_gradient[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.cartbonded.test_noncanonical_junction_reference::test_gamma_junction_length_angle_energy_and_gradient[cuda]",
+          "outcome": "skipped"
+        }
+      ]
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/upstream-059-final-graph-cpu-fixed.xml",
+      "sha256": "9deab6e8faba90d9c0aea65a8e5ac35db548657167a42e8027f4e7bdaff72528",
+      "slurm_job": null,
+      "stage": "final",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "1",
+          "tests": "17",
+          "time": "7.597",
+          "timestamp": "2026-09-11T20:50:24.778635+00:00",
+          "hostname": "slurm-login-0"
+        }
+      ],
+      "counts": {
+        "passed": 16,
+        "skipped": 1,
+        "failure": 0,
+        "error": 0
+      },
+      "cases": [
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_carbonyl_oxygen_is_selected_by_bond_order[False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_carbonyl_oxygen_is_selected_by_bond_order[True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_frame_is_substituted_when_only_the_neighbor_is_renamed[upper]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_frame_is_substituted_when_only_the_neighbor_is_renamed[lower]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_phosphate_or_ester_does_not_borrow_peptide_parameters[upper]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_phosphate_or_ester_does_not_borrow_peptide_parameters[lower]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_renamed_lower_frame_uses_only_retained_hydrogens",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_canonical_frame_requires_no_copied_rows",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_each_renamed_frame_preserves_database_parameters[mapping0-length0-angles0-improper0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_each_renamed_frame_preserves_database_parameters[mapping1-length1-angles1-improper1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_nucleotide_profiles_do_not_acquire_peptide_junction_rows[5CM]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_nucleotide_profiles_do_not_acquire_peptide_junction_rows[8OG]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_nucleotide_profiles_do_not_acquire_peptide_junction_rows[PSU]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_prepared_gamma_backbone_carries_carbonyl_junction_parameters",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_generated_amide_hydrogen_receives_its_connection_angle",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.cartbonded.test_noncanonical_junction_reference::test_gamma_junction_length_angle_energy_and_gradient[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.cartbonded.test_noncanonical_junction_reference::test_gamma_junction_length_angle_energy_and_gradient[cuda]",
+          "outcome": "skipped"
+        }
+      ]
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/upstream-059-final-gpu.xml",
+      "sha256": "270ee6dfd1701d82cb2a205aecfac0daaecf663c16fae6c328955841a6e7d67e",
+      "slurm_job": 249019,
+      "stage": "final",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "4",
+          "tests": "172",
+          "time": "183.661",
+          "timestamp": "2026-09-11T20:50:29.049238+00:00",
+          "hostname": "slurm-h200-interactive-244-105"
+        }
+      ],
+      "counts": {
+        "passed": 168,
+        "skipped": 4,
+        "failure": 0,
+        "error": 0
+      },
+      "cases": [
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_carbonyl_oxygen_is_selected_by_bond_order[False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_carbonyl_oxygen_is_selected_by_bond_order[True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_frame_is_substituted_when_only_the_neighbor_is_renamed[upper]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_frame_is_substituted_when_only_the_neighbor_is_renamed[lower]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_phosphate_or_ester_does_not_borrow_peptide_parameters[upper]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_phosphate_or_ester_does_not_borrow_peptide_parameters[lower]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_renamed_lower_frame_uses_only_retained_hydrogens",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_canonical_frame_requires_no_copied_rows",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_each_renamed_frame_preserves_database_parameters[mapping0-length0-angles0-improper0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_each_renamed_frame_preserves_database_parameters[mapping1-length1-angles1-improper1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_nucleotide_profiles_do_not_acquire_peptide_junction_rows[5CM]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_nucleotide_profiles_do_not_acquire_peptide_junction_rows[8OG]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_nucleotide_profiles_do_not_acquire_peptide_junction_rows[PSU]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_prepared_gamma_backbone_carries_carbonyl_junction_parameters",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_noncanonical_junctions::test_generated_amide_hydrogen_receives_its_connection_angle",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_every_class_is_reachable",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_only_an_unmodified_alpha_backbone_matches_the_alpha_profile[AIB]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_only_an_unmodified_alpha_backbone_matches_the_alpha_profile[B3K]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_only_an_unmodified_alpha_backbone_matches_the_alpha_profile[FGA]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_only_an_unmodified_alpha_backbone_matches_the_alpha_profile[HAO]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_only_an_unmodified_alpha_backbone_matches_the_alpha_profile[HYP]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_only_an_unmodified_alpha_backbone_matches_the_alpha_profile[MLE]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_only_an_unmodified_alpha_backbone_matches_the_alpha_profile[SAR]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_typing_matches_the_backbone_class[AIB]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_typing_matches_the_backbone_class[B3K]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_typing_matches_the_backbone_class[FGA]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_typing_matches_the_backbone_class[HAO]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_typing_matches_the_backbone_class[HYP]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_typing_matches_the_backbone_class[MLE]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_typing_matches_the_backbone_class[SAR]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_declared_mainchain_is_a_bonded_path[AIB]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_declared_mainchain_is_a_bonded_path[B3K]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_declared_mainchain_is_a_bonded_path[FGA]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_declared_mainchain_is_a_bonded_path[HAO]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_declared_mainchain_is_a_bonded_path[HYP]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_declared_mainchain_is_a_bonded_path[MLE]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_declared_mainchain_is_a_bonded_path[SAR]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_an_alpha_backbone_prepares_to_something_usable[AIB]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_an_alpha_backbone_prepares_to_something_usable[HYP]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_the_amide_nitrogen_rule_separates_proline_from_n_methyl",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_backbone_named_otherwise_is_still_recognized",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_backbone_takes_canonical_names_and_keeps_the_input_as_an_alias[renames0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_backbone_takes_canonical_names_and_keeps_the_input_as_an_alias[renames1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_backbone_takes_canonical_names_and_keeps_the_input_as_an_alias[renames2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_backbone_takes_canonical_names_and_keeps_the_input_as_an_alias[renames3]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_canonically_named_backbone_is_not_renamed",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_the_input_spelling_resolves_to_the_canonical_atom",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_reserved_name_used_for_another_atom_is_refused",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_ring_atom_called_cd_needs_no_injected_angle",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_ring_atom_called_otherwise_carries_its_own_angle",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_ring_atom_named_otherwise_scores_the_same[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_ring_atom_named_otherwise_scores_the_same[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_an_injected_residue_gets_charges_for_its_termini",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_terminal_residue_finds_its_other_end[ACB]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_terminal_residue_finds_its_other_end[FGA]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_terminal_residue_finds_its_other_end[SAR]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_free_sidechain_acid_does_not_outrank_the_backbone[GLU]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_free_sidechain_acid_does_not_outrank_the_backbone[ASP]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_free_sidechain_acid_does_not_outrank_the_backbone[ASN]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_free_sidechain_acid_does_not_outrank_the_backbone[GLN]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_terminal_residue_is_completed_under_an_unknown_name",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_an_undeterminable_terminal_residue_is_refused",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_declaring_both_ends_prepares_what_could_not_be_inferred",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_declared_chemistry_completes_an_unresolved_sidechain",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_the_component_dictionary_completes_what_the_file_does_not_declare",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_dictionary_entry_for_a_different_molecule_is_not_used",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_residue_nothing_describes_is_assumed_complete",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_nonstandard_backbone_is_found_and_prepared_from_a_structure[beta_peptide_3c3g]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_nonstandard_backbone_is_found_and_prepared_from_a_structure[gamma_peptide_1gac]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_nonstandard_backbone_is_found_and_prepared_from_a_structure[nmethyl_peptide_6mvz]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_nonstandard_backbone_scores[cpu-beta_peptide_3c3g]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_nonstandard_backbone_scores[cpu-gamma_peptide_1gac]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_nonstandard_backbone_scores[cpu-nmethyl_peptide_6mvz]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_nonstandard_backbone_scores[cuda-beta_peptide_3c3g]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_nonstandard_backbone_scores[cuda-gamma_peptide_1gac]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_nonstandard_backbone_scores[cuda-nmethyl_peptide_6mvz]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_nonstandard_backbone_brings_its_own_termini_patches",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_an_alpha_backbone_keeps_using_the_database_patches",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_generated_patch_avoids_names_the_residue_already_uses",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_cap_has_no_termini_variants",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_every_variant_carries_charges_for_all_of_its_atoms[nmethyl_peptide_6mvz]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_every_variant_carries_charges_for_all_of_its_atoms[gamma_peptide_1gac]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_every_variant_carries_charges_for_all_of_its_atoms[collagen_hyp_1bkv]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_params_file_carries_the_patches_it_needs",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_generated_patch_types_its_atoms_as_a_ligand[MLE]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_generated_patch_types_its_atoms_as_a_ligand[B3K]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_generated_patch_types_its_atoms_as_a_ligand[HAO]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_terminus_is_protonated_by_its_own_chemistry",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_terminal_group_is_built_at_the_angle_its_geometry_calls_for",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nonstandard_backbones::test_a_terminus_that_cannot_be_built_falls_back_to_the_residue",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_backbone_is_recognized[1MA]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_backbone_is_recognized[3DR]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_backbone_is_recognized[5CM]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_backbone_is_recognized[8OG]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_backbone_is_recognized[A]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_backbone_is_recognized[DA]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_backbone_is_recognized[DT]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_backbone_is_recognized[OMG]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_backbone_is_recognized[PSU]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_backbone_is_recognized[TTD]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_backbone_is_recognized[U]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_fused_dinucleotide_is_not_a_standard_backbone",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_chi_is_measured_the_way_the_tables_were_built[8OG]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_chi_is_measured_the_way_the_tables_were_built[DA]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_chi_is_measured_the_way_the_tables_were_built[DC]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_chi_is_measured_the_way_the_tables_were_built[PSU]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_prepares_from_a_structure[na_dna_5mc_1d17]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_prepares_from_a_structure[na_dna_8og_183d]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_prepares_from_a_structure[na_dna_ttd_1ttd]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_prepares_from_a_structure[na_rna_2ome_310d]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_prepares_from_a_structure[na_rna_psu_1bzt]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_keeps_the_backbone_and_its_torsions[na_dna_5mc_1d17]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_keeps_the_backbone_and_its_torsions[na_rna_psu_1bzt]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_keeps_the_backbone_and_its_torsions[na_rna_2ome_310d]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_standard_nucleotide_keeps_the_backbone_and_its_torsions[na_dna_8og_183d]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_fused_dinucleotide_is_prepared_as_a_ligand",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_every_canonical_base_identifies_as_itself",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_modified_base_is_scored_on_the_base_it_modifies[na_dna_5mc_1d17-5CM-DC]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_modified_base_is_scored_on_the_base_it_modifies[na_dna_8og_183d-8OG-DG]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_modified_base_is_scored_on_the_base_it_modifies[na_rna_psu_1bzt-PSU-U]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_modified_base_is_scored_on_the_base_it_modifies[na_rna_2ome_310d-OMC-C]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_modified_base_is_scored_on_the_base_it_modifies[na_rna_2ome_310d-OMG-G]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_seen_only_at_a_terminus_gets_its_phosphate_back",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_scores[cpu-na_dna_5mc_1d17]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_scores[cpu-na_dna_8og_183d]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_scores[cpu-na_dna_ttd_1ttd]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_scores[cpu-na_rna_2ome_310d]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_scores[cpu-na_rna_psu_1bzt]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_scores[cuda-na_dna_5mc_1d17]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_scores[cuda-na_dna_8og_183d]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_scores[cuda-na_dna_ttd_1ttd]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_scores[cuda-na_rna_2ome_310d]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_a_nucleotide_scores[cuda-na_rna_psu_1bzt]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_every_variant_carries_charges_for_all_of_its_atoms[na_dna_5mc_1d17]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_every_variant_carries_charges_for_all_of_its_atoms[na_dna_8og_183d]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_every_variant_carries_charges_for_all_of_its_atoms[na_dna_ttd_1ttd]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_every_variant_carries_charges_for_all_of_its_atoms[na_rna_2ome_310d]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_every_variant_carries_charges_for_all_of_its_atoms[na_rna_psu_1bzt]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_every_variant_builds_finite_ideal_coordinates[na_dna_5mc_1d17]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_every_variant_builds_finite_ideal_coordinates[na_dna_8og_183d]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_every_variant_builds_finite_ideal_coordinates[na_dna_ttd_1ttd]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_every_variant_builds_finite_ideal_coordinates[na_rna_2ome_310d]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_nucleic_acids::test_every_variant_builds_finite_ideal_coordinates[na_rna_psu_1bzt]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_install_checks_baseline_and_does_not_apply_twice[biotin]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_local_bundle_roundtrip_preserves_correction_and_baseline[biotin]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_generated_local_parameters_preserve_instance_identity[biotin]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_biotin_local_changes_and_canonical_ownership[biotin]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_attached_asparagine_is_not_flipped_independently[biotin]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_corrected_attachment_pose_charge_geometry_and_gradient[biotin-cpu-False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_corrected_attachment_pose_charge_geometry_and_gradient[biotin-cpu-True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_corrected_attachment_pose_charge_geometry_and_gradient[biotin-cuda-False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_corrected_attachment_pose_charge_geometry_and_gradient[biotin-cuda-True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_install_checks_baseline_and_does_not_apply_twice[nglycan]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_local_bundle_roundtrip_preserves_correction_and_baseline[nglycan]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_generated_local_parameters_preserve_instance_identity[nglycan]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_biotin_local_changes_and_canonical_ownership[nglycan]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_attached_asparagine_is_not_flipped_independently[nglycan]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_corrected_attachment_pose_charge_geometry_and_gradient[nglycan-cpu-False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_corrected_attachment_pose_charge_geometry_and_gradient[nglycan-cpu-True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_corrected_attachment_pose_charge_geometry_and_gradient[nglycan-cuda-False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_corrected_attachment_pose_charge_geometry_and_gradient[nglycan-cuda-True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_install_checks_baseline_and_does_not_apply_twice[oglycan]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_local_bundle_roundtrip_preserves_correction_and_baseline[oglycan]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_generated_local_parameters_preserve_instance_identity[oglycan]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_biotin_local_changes_and_canonical_ownership[oglycan]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_attached_asparagine_is_not_flipped_independently[oglycan]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_corrected_attachment_pose_charge_geometry_and_gradient[oglycan-cpu-False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_corrected_attachment_pose_charge_geometry_and_gradient[oglycan-cpu-True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_corrected_attachment_pose_charge_geometry_and_gradient[oglycan-cuda-False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.ligand.test_local_conjugate_params::test_corrected_attachment_pose_charge_geometry_and_gradient[oglycan-cuda-True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.cartbonded.test_noncanonical_junction_reference::test_gamma_junction_length_angle_energy_and_gradient[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.cartbonded.test_noncanonical_junction_reference::test_gamma_junction_length_angle_energy_and_gradient[cuda]",
+          "outcome": "passed"
+        }
+      ]
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/upstream-059-final-caps-gpu.xml",
+      "sha256": "0cb1b7e4cd9cf3f8ddc2a323be4c6fd52916dd2430d1e5fdf34c60ec7d89d389",
+      "slurm_job": 249019,
+      "stage": "final",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "14",
+          "time": "49.931",
+          "timestamp": "2026-09-11T20:53:47.807171+00:00",
+          "hostname": "slurm-h200-interactive-244-105"
+        }
+      ],
+      "counts": {
+        "passed": 14,
+        "skipped": 0,
+        "failure": 0,
+        "error": 0
+      },
+      "cases": [
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_a_capped_peptide_builds_a_pose_stack[cpu-capped_peptide_ace_nme]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_a_capped_peptide_builds_a_pose_stack[cpu-capped_peptide_ace_nh2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_a_capped_peptide_builds_a_pose_stack[cuda-capped_peptide_ace_nme]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_a_capped_peptide_builds_a_pose_stack[cuda-capped_peptide_ace_nh2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_an_amide_cap_places_its_hydrogens_in_the_amide_plane[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_pose_stack_from_biotite::test_an_amide_cap_places_its_hydrogens_in_the_amide_plane[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_a_capped_structure[cpu-capped_peptide_ace_nme]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_a_capped_structure[cpu-capped_peptide_ace_nh2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_a_capped_structure[cuda-capped_peptide_ace_nme]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_a_capped_structure[cuda-capped_peptide_ace_nh2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_polymer_caps::test_capped_peptide_builds_bonds_scores_and_gradients[cpu-nh2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_polymer_caps::test_capped_peptide_builds_bonds_scores_and_gradients[cpu-nme]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_polymer_caps::test_capped_peptide_builds_bonds_scores_and_gradients[cuda-nh2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.io.test_polymer_caps::test_capped_peptide_builds_bonds_scores_and_gradients[cuda-nme]",
+          "outcome": "passed"
+        }
+      ]
+    }
+  ],
+  "atomworks_matrices": [
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/upstream-059-final-atomworks-cpu/measurements.json",
+      "sha256": "0a6ec3180288f00eb0d191494cc711ef98c011ee5b83a96fc18239019ef6f208",
+      "packages": {
+        "torch": "2.8.0+cpu",
+        "numpy": "2.5.3",
+        "biotite": "1.6.0",
+        "rdkit": "2026.3.6"
+      },
+      "device": "cpu",
+      "cases": [
+        {
+          "fixture": "cif/1UBQ.cif",
+          "device": "cpu",
+          "batch": 1,
+          "blocks": 76,
+          "atoms": 1231,
+          "score": [
+            232.442138671875
+          ],
+          "max_abs_gradient": 72.8786849975586,
+          "rotamers": 2004,
+          "status": "passed",
+          "process_peak_rss_kib": 2116592
+        },
+        {
+          "fixture": "ncaa_fixtures/6dmz_mod_d.cif",
+          "device": "cpu",
+          "batch": 1,
+          "blocks": 47,
+          "atoms": 732,
+          "score": [
+            87.33906555175781
+          ],
+          "max_abs_gradient": 26.32322120666504,
+          "rotamers": 1218,
+          "status": "passed",
+          "process_peak_rss_kib": 2124164
+        },
+        {
+          "fixture": "ncaa_fixtures/6dmz_mod_l.cif",
+          "device": "cpu",
+          "batch": 1,
+          "blocks": 47,
+          "atoms": 732,
+          "score": [
+            88.89090728759766
+          ],
+          "max_abs_gradient": 26.323225021362305,
+          "rotamers": 1261,
+          "status": "passed",
+          "process_peak_rss_kib": 2125400
+        },
+        {
+          "fixture": "ncaa_fixtures/beta_peptide_3c3g.cif",
+          "device": "cpu",
+          "batch": 1,
+          "blocks": 31,
+          "atoms": 585,
+          "score": [
+            70.83207702636719
+          ],
+          "max_abs_gradient": 36.30831527709961,
+          "rotamers": 748,
+          "status": "passed",
+          "process_peak_rss_kib": 2218632
+        },
+        {
+          "fixture": "ncaa_fixtures/capped_peptide_ace_nh2.cif",
+          "device": "cpu",
+          "batch": 1,
+          "blocks": 3,
+          "atoms": 19,
+          "score": [
+            8.84525203704834
+          ],
+          "max_abs_gradient": 35.46399688720703,
+          "rotamers": 3,
+          "status": "passed",
+          "process_peak_rss_kib": 2218632
+        },
+        {
+          "fixture": "ncaa_fixtures/capped_peptide_ace_nme.cif",
+          "device": "cpu",
+          "batch": 1,
+          "blocks": 3,
+          "atoms": 22,
+          "score": [
+            8.94865894317627
+          ],
+          "max_abs_gradient": 35.47567367553711,
+          "rotamers": 3,
+          "status": "passed",
+          "process_peak_rss_kib": 2223240
+        },
+        {
+          "fixture": "ncaa_fixtures/collagen_hyp_1bkv.cif",
+          "device": "cpu",
+          "batch": 1,
+          "blocks": 29,
+          "atoms": 358,
+          "score": [
+            38.011295318603516
+          ],
+          "max_abs_gradient": 20.08220863342285,
+          "rotamers": 271,
+          "status": "passed",
+          "process_peak_rss_kib": 2341512
+        },
+        {
+          "fixture": "ncaa_fixtures/gamma_peptide_1gac.cif",
+          "device": "cpu",
+          "batch": 1,
+          "blocks": 5,
+          "atoms": 70,
+          "score": [
+            174.02267456054688
+          ],
+          "max_abs_gradient": 252.61241149902344,
+          "rotamers": 48,
+          "status": "passed",
+          "process_peak_rss_kib": 2486664
+        },
+        {
+          "fixture": "ncaa_fixtures/na_dna_5mc_1d17.cif",
+          "device": "cpu",
+          "batch": 1,
+          "blocks": 6,
+          "atoms": 195,
+          "score": [
+            290.69720458984375
+          ],
+          "max_abs_gradient": 148.89097595214844,
+          "rotamers": 22,
+          "status": "passed",
+          "process_peak_rss_kib": 2634088
+        },
+        {
+          "fixture": "ncaa_fixtures/na_dna_8og_183d.cif",
+          "device": "cpu",
+          "batch": 1,
+          "blocks": 10,
+          "atoms": 316,
+          "score": [
+            181.52169799804688
+          ],
+          "max_abs_gradient": 582.271728515625,
+          "rotamers": 26,
+          "status": "passed",
+          "process_peak_rss_kib": 2763880
+        },
+        {
+          "fixture": "ncaa_fixtures/na_dna_ttd_1ttd.cif",
+          "device": "cpu",
+          "batch": 1,
+          "blocks": 11,
+          "atoms": 382,
+          "score": [
+            99.21690368652344
+          ],
+          "max_abs_gradient": 43.52132034301758,
+          "rotamers": 27,
+          "status": "passed",
+          "process_peak_rss_kib": 2763880
+        },
+        {
+          "fixture": "ncaa_fixtures/na_rna_2ome_310d.cif",
+          "device": "cpu",
+          "batch": 1,
+          "blocks": 6,
+          "atoms": 212,
+          "score": [
+            111.12053680419922
+          ],
+          "max_abs_gradient": 67.14707946777344,
+          "rotamers": 33,
+          "status": "passed",
+          "process_peak_rss_kib": 2763880
+        },
+        {
+          "fixture": "ncaa_fixtures/na_rna_psu_1bzt.cif",
+          "device": "cpu",
+          "batch": 1,
+          "blocks": 17,
+          "atoms": 535,
+          "score": [
+            180.8675994873047
+          ],
+          "max_abs_gradient": 333.2503967285156,
+          "rotamers": 450,
+          "status": "passed",
+          "process_peak_rss_kib": 2763880
+        },
+        {
+          "fixture": "ncaa_fixtures/nmethyl_peptide_6mvz.cif",
+          "device": "cpu",
+          "batch": 1,
+          "blocks": 4,
+          "atoms": 87,
+          "score": [
+            18.33684539794922
+          ],
+          "max_abs_gradient": 38.00131607055664,
+          "rotamers": 31,
+          "status": "passed",
+          "process_peak_rss_kib": 2763880
+        },
+        {
+          "fixture": "ncaa_fixtures/phosphopeptide_5ema.cif",
+          "device": "cpu",
+          "batch": 1,
+          "blocks": 7,
+          "atoms": 106,
+          "score": [
+            12.730168342590332
+          ],
+          "max_abs_gradient": 35.16481018066406,
+          "rotamers": 340,
+          "status": "passed",
+          "process_peak_rss_kib": 2763880
+        },
+        {
+          "fixture": "covalent_fixtures/lys_biotin_1bdo.cif",
+          "device": "cpu",
+          "batch": 1,
+          "blocks": 81,
+          "atoms": 1252,
+          "score": [
+            -84.30335998535156
+          ],
+          "max_abs_gradient": 36.110774993896484,
+          "rotamers": 2094,
+          "status": "passed",
+          "process_peak_rss_kib": 2763880
+        },
+        {
+          "fixture": "covalent_fixtures/nglycan_tree_1ax2.cif",
+          "device": "cpu",
+          "batch": 1,
+          "blocks": 248,
+          "atoms": 3848,
+          "score": [
+            12.47869873046875
+          ],
+          "max_abs_gradient": 47.329769134521484,
+          "rotamers": 6356,
+          "status": "passed",
+          "process_peak_rss_kib": 2763880
+        },
+        {
+          "fixture": "covalent_fixtures/oglycan_sia_1g1s.cif",
+          "device": "cpu",
+          "batch": 1,
+          "blocks": 20,
+          "atoms": 396,
+          "score": [
+            88.00868225097656
+          ],
+          "max_abs_gradient": 29.414512634277344,
+          "rotamers": 3599,
+          "status": "passed",
+          "process_peak_rss_kib": 2763880
+        },
+        {
+          "fixture": "cif/cyclic_peptide_1jbl.cif",
+          "device": "cpu",
+          "batch": 1,
+          "blocks": 14,
+          "atoms": 210,
+          "score": [
+            31.79490852355957
+          ],
+          "max_abs_gradient": 36.72006607055664,
+          "rotamers": 232,
+          "status": "passed",
+          "process_peak_rss_kib": 2763880
+        }
+      ]
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/upstream-059-final-atomworks-cuda/measurements.json",
+      "sha256": "736b1dd0a613e13267f1cabe4bf4b321e169736b46ae16b0404b5476fe98f306",
+      "packages": {
+        "torch": "2.13.0+cu132",
+        "numpy": "2.1.0",
+        "biotite": "1.6.0",
+        "rdkit": "2026.3.6"
+      },
+      "device": "cuda:0",
+      "cases": [
+        {
+          "fixture": "cif/1UBQ.cif",
+          "device": "cuda:0",
+          "batch": 1,
+          "blocks": 76,
+          "atoms": 1231,
+          "score": [
+            232.44244384765625
+          ],
+          "max_abs_gradient": 72.88468933105469,
+          "rotamers": 2004,
+          "status": "passed",
+          "process_peak_rss_kib": 3364780,
+          "peak_gpu_allocated_bytes": 237197824
+        },
+        {
+          "fixture": "ncaa_fixtures/6dmz_mod_d.cif",
+          "device": "cuda:0",
+          "batch": 1,
+          "blocks": 47,
+          "atoms": 732,
+          "score": [
+            87.33895874023438
+          ],
+          "max_abs_gradient": 26.32317352294922,
+          "rotamers": 1218,
+          "status": "passed",
+          "process_peak_rss_kib": 3378092,
+          "peak_gpu_allocated_bytes": 231668736
+        },
+        {
+          "fixture": "ncaa_fixtures/6dmz_mod_l.cif",
+          "device": "cuda:0",
+          "batch": 1,
+          "blocks": 47,
+          "atoms": 732,
+          "score": [
+            88.890869140625
+          ],
+          "max_abs_gradient": 26.32317543029785,
+          "rotamers": 1261,
+          "status": "passed",
+          "process_peak_rss_kib": 3379116,
+          "peak_gpu_allocated_bytes": 232828416
+        },
+        {
+          "fixture": "ncaa_fixtures/beta_peptide_3c3g.cif",
+          "device": "cuda:0",
+          "batch": 1,
+          "blocks": 31,
+          "atoms": 585,
+          "score": [
+            72.89796447753906
+          ],
+          "max_abs_gradient": 36.33531951904297,
+          "rotamers": 748,
+          "status": "passed",
+          "process_peak_rss_kib": 3598356,
+          "peak_gpu_allocated_bytes": 238750208
+        },
+        {
+          "fixture": "ncaa_fixtures/capped_peptide_ace_nh2.cif",
+          "device": "cuda:0",
+          "batch": 1,
+          "blocks": 3,
+          "atoms": 19,
+          "score": [
+            8.818265914916992
+          ],
+          "max_abs_gradient": 35.46592712402344,
+          "rotamers": 3,
+          "status": "passed",
+          "process_peak_rss_kib": 3609620,
+          "peak_gpu_allocated_bytes": 230666752
+        },
+        {
+          "fixture": "ncaa_fixtures/capped_peptide_ace_nme.cif",
+          "device": "cuda:0",
+          "batch": 1,
+          "blocks": 3,
+          "atoms": 22,
+          "score": [
+            8.850066184997559
+          ],
+          "max_abs_gradient": 35.46589279174805,
+          "rotamers": 3,
+          "status": "passed",
+          "process_peak_rss_kib": 3609620,
+          "peak_gpu_allocated_bytes": 225772032
+        },
+        {
+          "fixture": "ncaa_fixtures/collagen_hyp_1bkv.cif",
+          "device": "cuda:0",
+          "batch": 1,
+          "blocks": 29,
+          "atoms": 358,
+          "score": [
+            38.750370025634766
+          ],
+          "max_abs_gradient": 20.076326370239258,
+          "rotamers": 271,
+          "status": "passed",
+          "process_peak_rss_kib": 3610644,
+          "peak_gpu_allocated_bytes": 227687936
+        },
+        {
+          "fixture": "ncaa_fixtures/gamma_peptide_1gac.cif",
+          "device": "cuda:0",
+          "batch": 1,
+          "blocks": 5,
+          "atoms": 70,
+          "score": [
+            177.60108947753906
+          ],
+          "max_abs_gradient": 254.9590301513672,
+          "rotamers": 48,
+          "status": "passed",
+          "process_peak_rss_kib": 3610644,
+          "peak_gpu_allocated_bytes": 227118592
+        },
+        {
+          "fixture": "ncaa_fixtures/na_dna_5mc_1d17.cif",
+          "device": "cuda:0",
+          "batch": 1,
+          "blocks": 6,
+          "atoms": 195,
+          "score": [
+            290.5368347167969
+          ],
+          "max_abs_gradient": 148.89096069335938,
+          "rotamers": 22,
+          "status": "passed",
+          "process_peak_rss_kib": 3746836,
+          "peak_gpu_allocated_bytes": 260277248
+        },
+        {
+          "fixture": "ncaa_fixtures/na_dna_8og_183d.cif",
+          "device": "cuda:0",
+          "batch": 1,
+          "blocks": 10,
+          "atoms": 316,
+          "score": [
+            181.06588745117188
+          ],
+          "max_abs_gradient": 582.271728515625,
+          "rotamers": 26,
+          "status": "passed",
+          "process_peak_rss_kib": 3749908,
+          "peak_gpu_allocated_bytes": 261407232
+        },
+        {
+          "fixture": "ncaa_fixtures/na_dna_ttd_1ttd.cif",
+          "device": "cuda:0",
+          "batch": 1,
+          "blocks": 11,
+          "atoms": 382,
+          "score": [
+            97.6650161743164
+          ],
+          "max_abs_gradient": 42.94708251953125,
+          "rotamers": 27,
+          "status": "passed",
+          "process_peak_rss_kib": 3750932,
+          "peak_gpu_allocated_bytes": 275736064
+        },
+        {
+          "fixture": "ncaa_fixtures/na_rna_2ome_310d.cif",
+          "device": "cuda:0",
+          "batch": 1,
+          "blocks": 6,
+          "atoms": 212,
+          "score": [
+            111.7111587524414
+          ],
+          "max_abs_gradient": 67.11654663085938,
+          "rotamers": 33,
+          "status": "passed",
+          "process_peak_rss_kib": 3764244,
+          "peak_gpu_allocated_bytes": 278262272
+        },
+        {
+          "fixture": "ncaa_fixtures/na_rna_psu_1bzt.cif",
+          "device": "cuda:0",
+          "batch": 1,
+          "blocks": 17,
+          "atoms": 535,
+          "score": [
+            180.8451385498047
+          ],
+          "max_abs_gradient": 333.2503967285156,
+          "rotamers": 450,
+          "status": "passed",
+          "process_peak_rss_kib": 3775508,
+          "peak_gpu_allocated_bytes": 394860032
+        },
+        {
+          "fixture": "ncaa_fixtures/nmethyl_peptide_6mvz.cif",
+          "device": "cuda:0",
+          "batch": 1,
+          "blocks": 4,
+          "atoms": 87,
+          "score": [
+            18.822406768798828
+          ],
+          "max_abs_gradient": 38.00126647949219,
+          "rotamers": 31,
+          "status": "passed",
+          "process_peak_rss_kib": 3798036,
+          "peak_gpu_allocated_bytes": 515853312
+        },
+        {
+          "fixture": "ncaa_fixtures/phosphopeptide_5ema.cif",
+          "device": "cuda:0",
+          "batch": 1,
+          "blocks": 7,
+          "atoms": 106,
+          "score": [
+            12.895904541015625
+          ],
+          "max_abs_gradient": 35.55924987792969,
+          "rotamers": 340,
+          "status": "passed",
+          "process_peak_rss_kib": 3801108,
+          "peak_gpu_allocated_bytes": 517035008
+        },
+        {
+          "fixture": "covalent_fixtures/lys_biotin_1bdo.cif",
+          "device": "cuda:0",
+          "batch": 1,
+          "blocks": 81,
+          "atoms": 1252,
+          "score": [
+            -84.20866394042969
+          ],
+          "max_abs_gradient": 36.11077880859375,
+          "rotamers": 2094,
+          "status": "passed",
+          "process_peak_rss_kib": 3808276,
+          "peak_gpu_allocated_bytes": 531938304
+        },
+        {
+          "fixture": "covalent_fixtures/nglycan_tree_1ax2.cif",
+          "device": "cuda:0",
+          "batch": 1,
+          "blocks": 248,
+          "atoms": 3848,
+          "score": [
+            14.0517578125
+          ],
+          "max_abs_gradient": 47.33009719848633,
+          "rotamers": 6356,
+          "status": "passed",
+          "process_peak_rss_kib": 3810324,
+          "peak_gpu_allocated_bytes": 524811776
+        },
+        {
+          "fixture": "covalent_fixtures/oglycan_sia_1g1s.cif",
+          "device": "cuda:0",
+          "batch": 1,
+          "blocks": 20,
+          "atoms": 396,
+          "score": [
+            87.74227905273438
+          ],
+          "max_abs_gradient": 29.411008834838867,
+          "rotamers": 3599,
+          "status": "passed",
+          "process_peak_rss_kib": 3817492,
+          "peak_gpu_allocated_bytes": 436163072
+        },
+        {
+          "fixture": "cif/cyclic_peptide_1jbl.cif",
+          "device": "cuda:0",
+          "batch": 1,
+          "blocks": 14,
+          "atoms": 210,
+          "score": [
+            31.794715881347656
+          ],
+          "max_abs_gradient": 36.72006607055664,
+          "rotamers": 232,
+          "status": "passed",
+          "process_peak_rss_kib": 3817492,
+          "peak_gpu_allocated_bytes": 420419584
+        }
+      ]
+    }
+  ],
+  "logs_sha256": {
+    "/mnt/home/kdidi/tmol-pr503-followup/upstream-059-final-249019.log": "3202e44518643296f4c8fe97ce66dadd0230e6090caa7710b0d892e1f768b8ac",
+    "/mnt/home/kdidi/tmol-pr503-followup/upstream-059-249016.log": "51fe14cd6598a3c25952615b7fb38b0a037f4520d292a69588708b8e8c28fb51",
+    "/mnt/home/kdidi/tmol-pr503-followup/upstream-059-native-249017.log": "9a34a36db21ab3256c66c66061d4406a75c16a376c4ac03fe9b63f076786a55d",
+    "/mnt/home/kdidi/tmol-pr503-followup/upstream-059-final-graph-cpu-fixed.log": "07f6caa7a1e04805aed59e454d1451962ce85b633af6e3330579e0331375d626",
+    "/mnt/home/kdidi/tmol-pr503-followup/upstream-059-final-atomworks-cpu.log": "4e18dd9f6ad435ef6c5a5bfab3b40f9f80a6af3b262452cbcdc42b8de8ae5f4b"
+  },
+  "slurm_accounting": "249016        COMPLETED      0:0   00:07:05 \n249016.batch  COMPLETED      0:0   00:07:05 \n249017        COMPLETED      0:0   00:00:23 \n249017.batch  COMPLETED      0:0   00:00:23 \n249019        COMPLETED      0:0   00:05:53 \n249019.batch  COMPLETED      0:0   00:05:53 \n",
+  "diagnostics": {
+    "upstream_nucleotide_roles": [
+      {
+        "code": "5CM",
+        "mainchain": [
+          "P",
+          "O5'",
+          "C5'",
+          "C4'",
+          "C3'",
+          "O3'"
+        ],
+        "upstream": [
+          {
+            "N": "P",
+            "CA": "O5'"
+          }
+        ],
+        "candidate": []
+      },
+      {
+        "code": "8OG",
+        "mainchain": [
+          "P",
+          "O5'",
+          "C5'",
+          "C4'",
+          "C3'",
+          "O3'"
+        ],
+        "upstream": [
+          {
+            "N": "P",
+            "CA": "O5'"
+          }
+        ],
+        "candidate": []
+      },
+      {
+        "code": "PSU",
+        "mainchain": [
+          "P",
+          "O5'",
+          "C5'",
+          "C4'",
+          "C3'",
+          "O3'"
+        ],
+        "upstream": [
+          {
+            "N": "P",
+            "CA": "O5'"
+          }
+        ],
+        "candidate": []
+      }
+    ],
+    "generated_h_before_prepared_graph": {
+      "atoms": [
+        [
+          "NX",
+          "Nad"
+        ],
+        [
+          "CA",
+          "CS1"
+        ],
+        [
+          "C",
+          "CDp"
+        ],
+        [
+          "O",
+          "Oat"
+        ],
+        [
+          "OXT",
+          "Oat"
+        ],
+        [
+          "CB",
+          "CS2"
+        ],
+        [
+          "CG",
+          "CS2"
+        ],
+        [
+          "CD",
+          "CDp"
+        ],
+        [
+          "OE1",
+          "Oad"
+        ],
+        [
+          "HN1",
+          "HN"
+        ],
+        [
+          "HC1",
+          "HC"
+        ],
+        [
+          "HC2",
+          "HC"
+        ],
+        [
+          "HC3",
+          "HC"
+        ],
+        [
+          "HC4",
+          "HC"
+        ],
+        [
+          "HC5",
+          "HC"
+        ]
+      ],
+      "bonds": [
+        [
+          "NX",
+          "CA",
+          "SINGLE",
+          false
+        ],
+        [
+          "CA",
+          "C",
+          "SINGLE",
+          false
+        ],
+        [
+          "C",
+          "O",
+          "SINGLE",
+          false
+        ],
+        [
+          "C",
+          "OXT",
+          "SINGLE",
+          false
+        ],
+        [
+          "CA",
+          "CB",
+          "SINGLE",
+          false
+        ],
+        [
+          "CB",
+          "CG",
+          "SINGLE",
+          false
+        ],
+        [
+          "CG",
+          "CD",
+          "SINGLE",
+          false
+        ],
+        [
+          "CD",
+          "OE1",
+          "DOUBLE",
+          false
+        ],
+        [
+          "NX",
+          "HN1",
+          "SINGLE",
+          false
+        ],
+        [
+          "CA",
+          "HC1",
+          "SINGLE",
+          false
+        ],
+        [
+          "CB",
+          "HC2",
+          "SINGLE",
+          false
+        ],
+        [
+          "CB",
+          "HC3",
+          "SINGLE",
+          false
+        ],
+        [
+          "CG",
+          "HC4",
+          "SINGLE",
+          false
+        ],
+        [
+          "CG",
+          "HC5",
+          "SINGLE",
+          false
+        ]
+      ],
+      "angles": [
+        [
+          "CG",
+          "CD",
+          "+N"
+        ],
+        [
+          "CD",
+          "+N",
+          "+CA"
+        ],
+        [
+          "CD",
+          "+N",
+          "+H"
+        ],
+        [
+          "OE1",
+          "CD",
+          "+N"
+        ],
+        [
+          "CD",
+          "+N",
+          "+CD"
+        ],
+        [
+          "NX",
+          "+C",
+          "+CA"
+        ],
+        [
+          "CA",
+          "NX",
+          "+C"
+        ],
+        [
+          "NX",
+          "+C",
+          "+O"
+        ]
+      ]
+    }
+  },
+  "limits": [
+    "Suites overlap; their pass counts must not be summed into unique-case coverage.",
+    "Role probes and 249016/249017 precede the final prepared-graph API; final suites supersede affected preparation checks.",
+    "Matrices validate construction, finite scoring/gradients and rotamer construction, not full packing or independent parameter fitting.",
+    "Single-run matrix times are diagnostics, not a paired speed benchmark.",
+    "No dense cap-mode fields are added: avoided storage is 24 bytes per padded atom, not total-process memory.",
+    "Both-partner renaming and general connection parameter coverage remain open."
+  ]
+}

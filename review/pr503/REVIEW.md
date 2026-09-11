@@ -3,13 +3,15 @@
 Reviewed PR: https://github.com/uw-ipd/tmol/pull/503  
 Author branch: `dimaio/noncanonicals_through_ligand_pipeline`  
 Initial pinned head: `c03c1e745f3bc655948ea12dac44d6c74620358f`\
-Updated head: `0f4c3bc426bca78e8681f0b730fa23c3e26ef261`\
+Previous updated head: `0f4c3bc426bca78e8681f0b730fa23c3e26ef261`\
+Latest reviewed head: `0593a93b07d80b0302383163d2d98c78e315ab98`\
 Diff merge base: `08d82941b6b5bfcd405303f8730b36b54dcfd28a`  
 Improvement branch: `review/pr503-chemistry-efficiency`  
 Review date: 2026-09-11
 
-The six-file update has been reviewed separately. Comments 1–46 retain their
-original `c03c1e745` anchors; comments 47–56 address the updated head. The
+Both subsequent six-file updates have been reviewed separately. Comments 1–46
+retain their original `c03c1e745` anchors; comments 47–56 address `0f4c3bc42`,
+and comments 57–59 address `0593a93b0`. The
 fold-forest expectations and HYP count are now corrected upstream. See
 [FOLLOWUP.md](FOLLOWUP.md) for reconciliation and validation details.
 
@@ -26,7 +28,7 @@ This document and the comments below are drafts for the user; no review or comme
 
 The core design is useful: explicit reference fields are more extensible than residue-name inference; preserving unresolved atoms prevents accidental truncation of chemical identities; and a covalent group needs correlated conformers. The main weaknesses are identity/scope assumptions that hold for one fixture but fail across poses, repeated residues, or reused samplers, and incomplete enforcement of the advertised sampling budget.
 
-The initial 213-file inventory is in [upstream-files.tsv](upstream-files.tsv); the updated 214-file inventory is in [upstream-files-0f4c3bc42.tsv](upstream-files-0f4c3bc42.tsv). Static review concentrated on the new preparation, CIF completion, database mirroring/caching, group-packing, fold-forest, and scoring changes. Generated databases and fixture coordinates were assessed through their generators, schema, provenance notes, and executable checks; this is not an independent refit or scientific validation of those parameters.
+The initial 213-file inventory is in [upstream-files.tsv](upstream-files.tsv); the intermediate 214-file inventory is in [upstream-files-0f4c3bc42.tsv](upstream-files-0f4c3bc42.tsv), and the latest 215-file inventory is in [upstream-files-0593a93b0.tsv](upstream-files-0593a93b0.tsv). Static review concentrated on the new preparation, CIF completion, database mirroring/caching, group-packing, fold-forest, and scoring changes. Generated databases and fixture coordinates were assessed through their generators, schema, provenance notes, and executable checks; this is not an independent refit or scientific validation of those parameters.
 
 ## Branch improvements
 
@@ -74,6 +76,8 @@ This measures CIF missing-atom insertion, **not end-to-end packing/scoring accel
 12. **Shared rule provenance:** Tmol adds an enamine SMARTS rule with pKa 1 ± 1 that AtomWorks does not contain. What evidence supports its scope and values, and should it be a shared default or an explicit preparation profile? Direct replacement currently changes charge states for an enamine and a vinylogous amide at pH 2 and 7.4. Which complete rule inventory and model version should exported parameters record?
 
 13. **Attachment charge policy:** Should local charge changes preserve the curated residue baseline and add a connected-versus-disconnected MMFF correction, or replace the whole capped group's charges? The former preserves remote backbone parameters but is a model choice requiring validation. Complete capped biotin changes formal charge by −1, with heavy-atom-plus-hydrogen deltas on both LYS and BTN, including LYS CE. Applying only a hydrogen-count patch cannot represent this. Which atom-type, torsion-ownership and proton-construction changes must accompany the charge model?
+
+14. **Junction parameter scope:** Can renamed junctions carry explicit chemical roles, including the partner frame, rather than borrowing rows through atom names alone? How should both ends being renamed, carbonyl oxygen versus hydroxyl, N-substitution, retained hydrogens, and non-peptide polymers be covered? The new `0593a93b0` helper maps nucleotide phosphate to peptide nitrogen; single-frame substitution also leaves the remote atom names canonical. A connection-specific parameter contract would make the supported scope explicit.
 
 ## Suggested inline comments
 
@@ -536,6 +540,30 @@ The branch now retains the two most recently used parameter configurations per b
 > Could heavy-atom selection reuse the host indices and host hydrogen flags already available here? This repeats type-name lookup and converts one device boolean to Python per atom. The slice bound also reads a device scalar once per block. Expanded residue databases multiply this common setup cost across thousands of atoms before scoring begins.
 
 This path predates the PR. The optimization uses the current resolver's freshly computed host indices and static residue lengths, preserving behavior even for a fresh packed set built from shared blocks with another atom-type ordering. A separate profiler counts 4,968 native scalar reads before and zero after on 230 default types / 4,738 atoms. Seven paired warm sets show 19.863→7.646 ms CPU and 72.613→10.255 ms CUDA, with every annotation exactly equal. These are common setup measurements, excluding term construction and scoring; they do not resolve the separate stale-cache identity issue when reusing an already annotated packed set.
+
+### 57. P1 — peptide junction substitutions do not validate chemical roles
+
+[tmol/ligand/_polymer_profile.py:1018](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/ligand/_polymer_profile.py#L1018), and the lower-side mapping at line 1025.
+
+> Could these mappings require a carbonyl carbon or an amine nitrogen, with the expected bond orders? The upper side chooses the first oxygen, including a single-bonded leaving hydroxyl. The lower side maps every non-`N` connection atom to peptide nitrogen: real 5CM, 8OG and PSU profiles produce `{"N": "P", "CA": "O5'"}`. Could this consume the final prepared graph? A removed hydrogen or hydroxyl can discard an otherwise valid frame, while a heavy-atom-only input omits the subsequently generated amide hydrogen and its angle row.
+
+Reproduced against the new helper with reordered synthetic atom arrays and three real nucleotide CCD components. Ordinary nucleotide links do not necessarily match these extraneous peptide rows; this is a parameter-role error, not a claim that their standard phosphodiester energies changed. The branch checks elements and bond orders on the final reconstructed residue graph, using its connection and mainchain fields directly. This eliminates separate input-profile, connection and retained-name arguments. Tests preserve canonical phosphate handling, verify prepared FGA carbonyl rows, and retain the generated `HN1–NX–+C` angle when a renamed nitrogen arrives without hydrogens.
+
+### 58. P1 — a canonical connection name can hide a noncanonical junction frame
+
+[tmol/ligand/_polymer_profile.py:1018](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/ligand/_polymer_profile.py#L1018), also line 1025.
+
+> Could the condition compare the entire junction frame rather than only `upper != "C"` or `lower != "N"`? A beta/gamma backbone can retain `C` or `N` while its directly bonded carbon has another name. The current early exclusion leaves the corresponding connection angle without its substituted row. Please test both sides and then a connection where both partner frames use noncanonical names; the latter still needs a solution for the canonical `+` names retained in these rows.
+
+Reproduced for independently renamed upper and lower neighbors. The branch maps changed bonded frames even when the connection atom retains its canonical name. Independent Cartesian harmonic energy and gradient checks exercise the real FGA-to-peptide connection. Simultaneously renamed partners remain a broader connection-parameter coverage requirement; this single-frame change does not claim to solve them.
+
+### 59. P2 — cap completion adds a second coordinate builder and dense tables
+
+[tmol/io/details/_build_missing_leaf_atoms.py:860](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/io/details/_build_missing_leaf_atoms.py#L860), with the packed fields at line 550.
+
+> Could the cap's third reference use the existing native unresolved-atom connection representation? This branch adds four packed fields (24 bytes per padded atom), then resolves each hydrogen's connection and frame through Python scalar reads. The existing native builder can follow one bond into the partner, which supplies the required plane without another coordinate-placement pass. Please retain the cap geometry and packing tests when consolidating these paths.
+
+The improvement branch uses the native connection ancestor and preserves relative generated hydrogen dihedrals, setting the first cap hydrogen trans to the partner reference. Before reconciliation, construction and packing passed but the two equivalent NH2 hydrogen names were reversed relative to the new upstream convention. After alignment, all new upstream cap checks pass on CPU and CUDA. The omitted dense fields avoid the stated storage by construction; no end-to-end latency claim is made from this source-level comparison. CPU/CUDA evidence is recorded in the follow-up validation artifact.
 
 ## Validation record
 

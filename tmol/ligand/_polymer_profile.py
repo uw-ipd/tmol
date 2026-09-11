@@ -901,7 +901,13 @@ _WILDCARD_GROUPS = (
 def substituted_wildcard_rows(cartbonded_db, canonical, replacement, present):
     """Wildcard rows naming ``canonical`` on this residue, under its own name.
 
-    ``canonical`` is one name or several; a row using any of them is copied.
+    ``canonical`` is one name or several standing in for a single
+    ``replacement`` atom -- what a cap needs, where one atom does the work of
+    several and a row naming two of them therefore describes a different
+    residue. Pass a ``{canonical: replacement}`` mapping instead when the
+    residue has a distinct atom for each: a backbone that connects through an
+    atom of its own naming needs the whole local frame substituted at once, so
+    rows naming several of them are exactly the ones to keep.
 
     The rows spanning a peptide bond are matched by name, so a residue that
     calls the atom something else is passed over. Copying them with the name it
@@ -917,7 +923,13 @@ def substituted_wildcard_rows(cartbonded_db, canonical, replacement, present):
             atom[1:] if atom.startswith("+") else "+" + atom for atom in reversed(atoms)
         )
 
-    names = (canonical,) if isinstance(canonical, str) else tuple(canonical)
+    one_for_many = not isinstance(canonical, dict)
+    if one_for_many:
+        names = (canonical,) if isinstance(canonical, str) else tuple(canonical)
+        mapping = {name: replacement for name in names}
+    else:
+        mapping = dict(canonical)
+        names = tuple(mapping)
 
     def rename(atoms, may_flip):
         # a row naming the atom on the partner's side describes this residue
@@ -927,16 +939,23 @@ def substituted_wildcard_rows(cartbonded_db, canonical, replacement, present):
         matched = [name for name in names if name in atoms]
         if not matched:
             return None
-        # the cap has one atom there, so a row naming two of the atoms it
-        #    stands in for describes a residue it is not
-        if len(matched) > 1:
+        # one atom standing in for several cannot satisfy a row naming two of
+        #    them; a residue with its own atom for each can
+        if one_for_many and len(matched) > 1:
+            return None
+        # a mapping describes one junction frame. A row reaching past it would
+        #    be renamed onto atoms that are not bonded the way the row assumes,
+        #    so take only the rows the frame accounts for entirely.
+        if not one_for_many and any(
+            atom not in mapping for atom in atoms if not atom.startswith("+")
+        ):
             return None
         out = []
         for atom in atoms:
             if atom.startswith("+"):
                 out.append(atom)
-            elif atom in names:
-                out.append(replacement)
+            elif atom in mapping:
+                out.append(mapping[atom])
             elif atom not in present:
                 return None
             else:
@@ -953,6 +972,58 @@ def substituted_wildcard_rows(cartbonded_db, canonical, replacement, present):
             if atoms:
                 rows[group].append((atoms, params))
     return rows
+
+
+def noncanonical_junction_substitutions(residue_type, atom_type_index):
+    """Map peptide junction frames onto their bonded, retained chemical atoms.
+
+    Only carbonyl-carbon and amine-nitrogen junctions borrow peptide rows.
+    A changed neighbor name also needs a mapping, even if C/N itself retains
+    its canonical name. Other polymer chemistries require their own parameters.
+    """
+    # Use the reconstructed molecule: the input can omit hydrogens, and its
+    # leaving groups are no longer part of the chemical identity being scored.
+    mainchain = tuple(residue_type.properties.polymer.mainchain_atoms or ())
+    if len(mainchain) < 3:
+        return []
+    elements = {
+        atom.name: atom_type_index[atom.atom_type].element
+        for atom in residue_type.atoms
+    }
+    conns = {c.atom for c in residue_type.connections if c.name in ("up", "down")}
+    neighbors = {name: {} for name in elements}
+    for a, b, order, *_ in residue_type.bonds:
+        neighbors[a][b] = order
+        neighbors[b][a] = order
+
+    def retain(mapping):
+        if any(k != v for k, v in mapping.items()):
+            subs.append(mapping)
+
+    subs = []
+    upper, before = mainchain[-1], mainchain[-2]
+    if upper in conns and elements.get(upper) == elements.get(before) == "C":
+        bonded = neighbors[upper]
+        oxygens = [
+            atom
+            for atom, order in bonded.items()
+            if elements[atom] == "O" and order == "DOUBLE"
+        ]
+        if bonded.get(before) == "SINGLE" and len(oxygens) == 1:
+            retain({"C": upper, "CA": before, "O": oxygens[0]})
+
+    lower, after = mainchain[0], mainchain[1]
+    if lower in conns and elements.get(lower) == "N" and elements.get(after) == "C":
+        bonded = neighbors[lower]
+        if bonded.get(after) == "SINGLE" and all(
+            order == "SINGLE" for order in bonded.values()
+        ):
+            mapping = {"N": lower, "CA": after}
+            hydrogens = sorted(atom for atom in bonded if elements[atom] == "H")
+            if hydrogens:
+                mapping["H"] = "H" if "H" in hydrogens else hydrogens[0]
+            retain(mapping)
+    return subs
 
 
 def profile_for_atom_array(

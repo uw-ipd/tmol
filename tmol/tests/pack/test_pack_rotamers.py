@@ -1,3 +1,4 @@
+import pytest
 import attrs
 import torch
 import math
@@ -26,7 +27,11 @@ from tmol.pack.rotamer import (
     IncludeCurrentSampler,
     OptHSampler,
 )
-from tmol.io import pose_stack_from_pdb
+from tmol.io import atom_array_from_cif, pose_stack_from_biotite, pose_stack_from_pdb
+from tmol.database import ParameterDatabase
+from tmol.score import beta2016_score_function
+from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
+from tmol.tests.data import data_path
 
 from tmol.score.constraint import ConstraintEnergyTerm
 
@@ -510,3 +515,40 @@ def test_pack_rotamers_irregular_sized_poses(
     task.or_expand_chi(1)
     sfxn = get_packer_sfxn(default_database, torch_device)
     pack_rotamers(pose_stack, sfxn, task)
+
+
+CAP_FIXTURES = ("capped_peptide_ace_nme", "capped_peptide_ace_nh2")
+
+
+@pytest.mark.parametrize("stem", CAP_FIXTURES)
+def test_pack_a_capped_structure(stem, torch_device):
+    """A cap has no chi of its own but still has to survive a packing run.
+
+    Its block carries a single rotamer, so it is classified as background while
+    the residues between the caps are packed.
+    """
+    structure = atom_array_from_cif(data_path("ncaa_fixtures") / f"{stem}.cif")
+    pose_stack, context = pose_stack_from_biotite(
+        structure,
+        torch_device,
+        prepare_ligands=True,
+        param_db=ParameterDatabase.get_default(),
+        return_context=True,
+    )
+    prepared = context.parameter_database
+    sfxn = beta2016_score_function(torch_device, param_db=prepared)
+
+    task = PackerTask(pose_stack, PackerPalette())
+    task.add_conformer_sampler(
+        create_dunbrack_sampler_from_database(prepared, torch_device)
+    )
+    task.add_conformer_sampler(FixedAAChiSampler())
+    task.add_conformer_sampler(IncludeCurrentSampler())
+    task.restrict_to_repacking()
+
+    packed = pack_rotamers(pose_stack, sfxn, task)
+
+    before = pose_stack.block_type_ind64.cpu()
+    after = packed.block_type_ind64.cpu()
+    assert torch.equal(before, after), "repacking must not change the cap types"
+    assert torch.all(torch.isfinite(packed.coords))

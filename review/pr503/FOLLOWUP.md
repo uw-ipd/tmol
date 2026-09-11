@@ -1532,3 +1532,67 @@ are in `results/cart-cache-validation.json`; paired profiles are in
 Review comments 54–56 record the ownership, lifetime and setup-cost findings.
 Shared parent atom-type cache identity, complete default chemistry integration,
 the scientific checks and the other full completion requirements remain open.
+
+### Second upstream update: cap completion and junction roles (`0593a93b0`)
+
+Frank's next head adds six files' worth of cap completion/tests and noncanonical
+junction substitutions. The full upstream inventory is now 215 changed files,
+recorded in `upstream-files-0593a93b0.tsv`. The cyclic-search implementation is
+still absent from that upstream tree. Comments 57–59 and general question 14
+review this delta separately from the prior pinned heads.
+
+The improvement branch already inferred cap termini from their connections and
+built a one-heavy-atom cap using the native connection ancestor. Replaying the
+new upstream tests before merging gives four passes and one failure on CPU:
+NH2 is planar, but its two equivalent hydrogen names are opposite the new
+convention. Aligning the first hydrogen trans to the partner reference preserves
+the remaining generated relative dihedrals. The native construction path now
+satisfies that convention without the additional Python coordinate pass or four
+packed fields. Omitted field storage is **24 bytes per padded atom**; this is a
+structural storage comparison, not a measured end-to-end latency or RSS gain.
+
+The new junction helper had no chemical-role checks. Its first-oxygen selection
+can choose a leaving hydroxyl instead of the carbonyl; its lower-side mapping
+turns real 5CM, 8OG and PSU phosphate frames into `N=P, CA=O5'` peptide roles.
+Excluding a side solely because its endpoint is called C/N also misses changed
+neighbor names. Six behavioral checks fail against that helper, plus one check
+for the added retained-atom argument. Ordinary nucleotide links need not match
+the extraneous peptide rows; their standard phosphodiester energy is not claimed
+to change because of this error.
+
+The final helper consumes the reconstructed residue's mainchain, connections,
+atoms and bond orders directly. Separate input profile, connection-atom and
+retained-name arguments are unnecessary. Carbonyl C and amine N frames are
+validated chemically; identity mappings add no rows. This also fixes a further
+heavy-atom-only input case: renamed FGA nitrogen NX acquires generated hydrogen
+HN1, which the input graph cannot supply for its connection angle. The new test
+requires the resulting `HN1–NX–+C` row. Upper/lower frame tests retain the
+original database parameter records, and an independent Cartesian calculation
+checks the real FGA-to-peptide bond and all four angles, including weighted
+coordinate gradients in double precision, on CPU and CUDA.
+
+A single local frame still cannot resolve arbitrary renamed atoms on both sides
+of a connection: the copied remote names remain canonical. General connection
+parameter coverage and scientific justification for borrowing peptide constants
+remain requirements, alongside the broader completion table above. No reference
+scores were updated to conceal changes in parameter coverage.
+
+Validation: Slurm **249016** completed **0:0** in **7:05**, with **285 passes /
+4 skips** across I/O, missing-atom gradients, selection, cyclic inference, cap
+packing, nonstandard backbones, nucleotides and local conjugate parameters.
+This run precedes the final prepared-graph simplification. Slurm **249017** adds
+two CPU/CUDA independent junction-force passes. The final graph implementation
+passes **16 CPU cases / one CUDA skip**, then Slurm **249019** passes **168
+CPU/CUDA cases / four fixture skips**, followed by **14 cap checks**. It also
+completes all **19 AtomWorks reader/preparation/construction/scoring/gradient/
+rotamer fixtures on CUDA**; a separate final CPU run passes the same 19 fixtures.
+Job 249019 completed **0:0** in **5:53**. These are overlapping suites, not a sum
+of unique cases. An intermediate test-adapter API mismatch (two failures) is
+retained as diagnostic evidence and superseded by the final passing reruns.
+
+Source/log hashes, case names, package versions, role probes and Slurm accounting
+are in [results/upstream-059-validation.json](results/upstream-059-validation.json).
+The AtomWorks matrix runs use one timing sample per stage and are compatibility
+checks, not new performance comparisons. Their finite energies/gradients and
+rotamer coordinates do not independently validate the force-field model or
+full packing for all 19 chemistries. Black, Flake8 and whitespace checks pass.

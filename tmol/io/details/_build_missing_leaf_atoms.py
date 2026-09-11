@@ -408,6 +408,7 @@ def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):  # noqa: C
         )
         setattr(bt, "leaf_atom_icoor_ann", ann)
         return
+    cap_phi_offsets = {}
     for j, at in enumerate(bt.atoms):
         atname = at.name
         j_icoor_ind = bt.icoors_index[atname]
@@ -456,9 +457,12 @@ def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):  # noqa: C
         # A one-heavy-atom polymer cap (e.g. NH2) has no local third
         # reference for its hydrogen plane. Continue one bond into the
         # connected residue rather than reusing the cap's nitrogen. Its
-        # hydrogens' phi offsets still distinguish the two sides of the plane.
+        # first hydrogen is trans to that reference; retain the remaining
+        # hydrogens' relative dihedrals from the generated chemical geometry.
         if gp_uaid[1] >= 0 and ggp_uaid == p_uaid:
             ggp_uaid = (-1, gp_uaid[1], 1)
+            if atom_is_hydrogen[j]:
+                phi += cap_phi_offsets.setdefault(p_uaid, numpy.pi - phi)
 
         ggp_ind_backup = None
         phi_backup = phi

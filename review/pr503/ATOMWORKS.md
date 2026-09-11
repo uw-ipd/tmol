@@ -180,3 +180,14 @@ The 19-fixture CPU input/preparation/construction/scoring/gradient/rotamer matri
 passes again after the rule-cache change. See
 `results/atomworks-rule-cache-matrix.json`. This is stage validation, not proof
 of correct Cartesian minimization or of the missing attachment bond potentials.
+
+## Recheck after upstream `0593a93b0`
+
+The final merged preparation changes pass the full 19-fixture AtomWorks route
+again on CPU and H200 CUDA: preparation, pose construction, finite scoring and
+coordinate gradients, and finite rotamer construction. CUDA Slurm 249019
+completed 0:0. The route still parses once and supplies AtomWorks' completed
+AtomArray to tmol. This is a compatibility rerun, with single stage timing
+samples; it does not establish a new speed ratio or validate full packing and
+all generated parameters. Source hashes, package versions and fixture results
+are in `results/upstream-059-validation.json`.
