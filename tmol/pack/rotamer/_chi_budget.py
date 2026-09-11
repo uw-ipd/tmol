@@ -37,12 +37,25 @@ def sampler_for_task(sampler, task):
 
 
 def checked_sample_count(counts, expanded_limit, limit):
-    """Check the bound and get the allocation size with one device-to-host copy."""
+    """Check index capacity and budget before narrowing counts or allocating rows."""
     import torch
 
     if counts.numel() == 0:
         return 0
-    total, largest = torch.stack((counts.sum(), counts.max())).tolist()
+    capacity = torch.iinfo(torch.int32).max
+    if counts.numel() > capacity:
+        raise ValueError(f"Sampling count exceeds index capacity {capacity}")
+    smallest, largest = torch.aminmax(counts)
+    total, smallest, largest = torch.stack(
+        (counts.sum(dtype=torch.int64), smallest, largest)
+    ).tolist()
+    # Check each count before trusting the sum: invalid int64 inputs can wrap
+    # even an int64 reduction. Valid counts and lengths cannot overflow it.
+    if smallest < 0 or largest > capacity or total > capacity:
+        raise ValueError(
+            f"Sampling count exceeds index capacity {capacity} "
+            "or contains a negative count"
+        )
     maximum = max(expanded_limit, limit)
     if largest > maximum:
         raise ValueError(

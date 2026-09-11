@@ -52,8 +52,13 @@ continue to apply when no explicit task budget is set.
 This aggregate check occurs after samplers have created their private source
 rows, so it is not a bound on temporary sampling workspace. It is also not a
 bound on the task's total across positions or quadratic pair-energy memory.
-Default policy, adaptive library expansion and extreme native integer-overflow
-limits remain tracked in `FOLLOWUP.md`. The merge itself counts in int64 and
-rejects totals exceeding native int32 indexing. Tests cover sequential reuse;
+Default policy and adaptive library expansion remain tracked in `FOLLOWUP.md`.
+Dunbrack now checks library-size narrowing, expansion products and both native
+count scans before allocating their outputs. NA retains wide counts through
+product/total validation; the shared NA/OptH allocation check rejects negative
+counts and totals outside int32 capacity. These index-capacity checks also apply
+without an explicit task budget. The merge itself counts in int64 and rejects
+totals exceeding native int32 indexing. These are count limits, not guarantees
+that every downstream tensor fits available memory. Tests cover sequential reuse;
 concurrent mutation of shared RT/PBT annotations is not supported by these
 cache checks.

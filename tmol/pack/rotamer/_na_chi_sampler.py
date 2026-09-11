@@ -284,15 +284,20 @@ class NaChiRotamerSampler(ChiSampler):
             syn_ok = torch.zeros_like(syn_ok)
         n_modes = torch.where(syn_ok, 2, 1)
         n_combos = cache["n_combos"][bt_for_gbt]
-        n_rots_for_gbt = torch.where(
-            active, n_modes * n_steps * n_combos, torch.zeros_like(n_combos)
-        ).to(torch.int32)
+        # Preserve an out-of-range sentinel while bounding the int64 product.
+        # Chi levels have at most five steps and two modes. Narrow only after
+        # validating both the individual counts and their total.
+        bounded_combos = n_combos.clamp(-1, torch.iinfo(torch.int32).max + 1)
+        counts = torch.where(
+            active, n_modes * n_steps * bounded_combos, torch.zeros_like(n_combos)
+        )
 
         from tmol.pack.rotamer._chi_budget import checked_sample_count
 
         n_rots = checked_sample_count(
-            n_rots_for_gbt, self.chi_sample_expanded_limit, self.chi_sample_limit
+            counts, self.chi_sample_expanded_limit, self.chi_sample_limit
         )
+        n_rots_for_gbt = counts.to(torch.int32)
 
         if n_rots == 0:
             return (
@@ -302,7 +307,6 @@ class NaChiRotamerSampler(ChiSampler):
                 torch.zeros((0, n_chi), dtype=torch.float32, device=poses.device),
             )
 
-        counts = n_rots_for_gbt.to(torch.int64)
         gbt_for_rotamer = torch.repeat_interleave(
             torch.arange(n_gbt, dtype=torch.int64, device=poses.device), counts
         )

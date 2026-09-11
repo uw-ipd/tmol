@@ -11,7 +11,7 @@ Review date: 2026-09-11
 
 Both subsequent six-file updates have been reviewed separately. Comments 1–46
 retain their original `c03c1e745` anchors; comments 47–56 address `0f4c3bc42`,
-and comments 57–64 address `0593a93b0`. The
+and comments 57–65 address `0593a93b0`. The
 fold-forest expectations and HYP count are now corrected upstream. See
 [FOLLOWUP.md](FOLLOWUP.md) for reconciliation and validation details.
 
@@ -604,6 +604,14 @@ The branch prepares the donor/acceptor catalog once, retains a name-based fallba
 > Could products, prefix sums and library-size conversion check the native index range? The count-only helper turns `65536 * 65536` into zero, `3 * 2**30` into a negative count, and four counts of `2**30` into a zero total with negative offsets. A later per-residue budget check cannot recover the true count after it has wrapped. Please cover overflow across scan blocks and reject it before allocating or indexing rotamer arrays.
 
 This arithmetic risk is inherited, but the expanded chemistry and sampling paths still depend on it. The branch propagates an error marker through checked products and both native count scans, then raises before large allocation. It also validates 64-bit library sizes before narrowing. The checks reuse existing buffers and synchronization points. Small-table regressions cover product and total overflow, repeated overflow that would become positive again, negative inputs, empty inputs, exact capacity boundaries, and the public sampler's possible-library stage. Ordinary counts/offsets are compared exactly; the isolated native profiler measures validation overhead rather than claiming a speedup.
+
+## 65. Validate nucleotide counts before narrowing or allocation — P2
+
+Location: [`tmol/pack/rotamer/_na_chi_sampler.py:268`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/pack/rotamer/_na_chi_sampler.py#L268).
+
+> Could the nucleotide sampler retain wide counts until both each product and the total fit the native index range? Casting here turns a count of `2**32` into zero, which the following empty-result branch accepts. A wrapped positive total can also hide invalid negative counts. Please check the product, total and narrowing before allocating rotamer rows.
+
+The branch keeps counts in int64, bounds invalid combination inputs with an out-of-range sentinel before multiplication, and narrows only after checking index capacity. The shared Python allocation helper now rejects negative counts, oversized individual counts and an oversized total, with one host transfer. Tests inject small count metadata into a real RNA sampler while blocking row allocation; they do not construct gigantic libraries. Existing budget behavior remains independently tested. The realistic default nucleotide products are small; this is an allocation-boundary guard, not evidence that ordinary RNA fixtures need billions of states.
 
 ## Validation record
 

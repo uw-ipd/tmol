@@ -1825,3 +1825,35 @@ profiles are in
 Review comment 64 describes the upstream locations. Python Black/Flake8 and
 whitespace checks pass. Python/nucleotide count arithmetic, adaptive sampling
 policy and whole-task/pair-energy memory limits remain separate work.
+
+## Validate Python and nucleotide counts before narrowing
+
+The shared NA/OptH allocation helper now rejects negative counts, individual
+counts outside int32 capacity, and totals outside that capacity. It checks the
+individual range before trusting the int64 sum, since invalid int64 inputs can
+themselves wrap the reduction. Valid nonnegative counts and a representable
+considered-type axis cannot overflow that wide sum. Min/max/sum still transfer
+to the host together once; explicit per-type budgets remain a separate check.
+
+The nucleotide sampler previously narrowed each product to int32 before checking
+it, so a large product could become zero and return an empty result. It now
+bounds invalid combination counts with a sentinel before multiplying by the
+small mode/step factors, validates the wide count vector, and narrows only then.
+That same wide vector is reused to enumerate rows, avoiding a conversion back
+from int32. The valid sampling policy and chemical parameters are unchanged.
+
+Eight regressions fail before the fix. The corrected selected CPU suites pass
+**37 tests / 36 CUDA skips**. Slurm **249685** passes **104 tests with no skips**
+across the new count boundaries, nucleotide sampling, hydrogen optimization,
+sampler-cache settings, explicit task budgets and packing on CPU/CUDA. The job
+completed **0:0** in **1:54**, with **3,961,408 KiB** batch peak host RSS. Tests
+cover empty inputs, exact capacity, combined overflow, int64 wraparound and
+invalid metadata in a real RNA sampler while blocking rotamer-row allocation.
+Ordinary RNA fixtures have small count products; no gigantic library is built.
+
+Review comment 65 and [BUDGETS.md](BUDGETS.md) record the boundary and remaining
+policy limitations. Source hashes, exact test inventories and terminal accounting
+are in [results/python-count-validation.json](results/python-count-validation.json).
+Black, Flake8 and whitespace checks pass. No performance improvement is claimed
+for this guard; index capacity does not guarantee sufficient workspace or bound
+quadratic pair-energy memory.
