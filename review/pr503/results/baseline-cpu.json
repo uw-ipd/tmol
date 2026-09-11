@@ -1,0 +1,1282 @@
+{
+  "checkout": "/mnt/home/kdidi/projects/tmol-pr503-perf-baseline",
+  "commit": "96ff844e82ecb7dff0958d6b419e7aa2a946694a",
+  "packages": {
+    "torch": "2.13.0+cu132",
+    "numpy": "2.1.0",
+    "biotite": "1.6.0",
+    "rdkit": "2026.3.6"
+  },
+  "device": "cpu",
+  "instrumented": false,
+  "threads": 2,
+  "device_name": "cpu",
+  "runs": [
+    {
+      "fixture": "cif/1UBQ.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.9829601622186601,
+          "samples": [
+            0.9829601622186601
+          ]
+        },
+        "prepare": {
+          "median": 1.8711879216134548,
+          "samples": [
+            1.8711879216134548
+          ]
+        },
+        "construct": {
+          "median": 91.98712157923728,
+          "samples": [
+            91.98712157923728
+          ]
+        },
+        "score_setup": {
+          "median": 309.01360437227413,
+          "samples": [
+            309.01360437227413
+          ]
+        },
+        "first_forward_backward": {
+          "median": 139.12186881015077,
+          "samples": [
+            139.12186881015077
+          ]
+        },
+        "score": {
+          "median": 0.012985278852283955,
+          "samples": [
+            0.01346697611734271,
+            0.012879643123596907,
+            0.012985278852283955,
+            0.012916284147650003,
+            0.01705864118412137
+          ]
+        },
+        "score_backward": {
+          "median": 0.022245594300329685,
+          "samples": [
+            0.02246265485882759,
+            0.022279614582657814,
+            0.02223473461344838,
+            0.022220598068088293,
+            0.022245594300329685
+          ]
+        },
+        "rotamers": {
+          "median": 2.160649464931339,
+          "samples": [
+            2.160649464931339
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 76,
+      "atoms": 1231,
+      "score": [
+        232.44259643554688
+      ],
+      "max_abs_gradient": 72.8786849975586,
+      "rotamers": 2004,
+      "status": "passed",
+      "process_peak_rss_kib": 1315988
+    },
+    {
+      "fixture": "ncaa_fixtures/6dmz_mod_d.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 1.324574529659003,
+          "samples": [
+            1.324574529659003
+          ]
+        },
+        "prepare": {
+          "median": 0.042891175020486116,
+          "samples": [
+            0.042891175020486116
+          ]
+        },
+        "construct": {
+          "median": 0.09196339081972837,
+          "samples": [
+            0.09196339081972837
+          ]
+        },
+        "score_setup": {
+          "median": 0.9476768099702895,
+          "samples": [
+            0.9476768099702895
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.013109916355460882,
+          "samples": [
+            0.013109916355460882
+          ]
+        },
+        "score": {
+          "median": 0.007328391075134277,
+          "samples": [
+            0.00752156600356102,
+            0.007364707998931408,
+            0.007328391075134277,
+            0.0073210978880524635,
+            0.007306244689971209
+          ]
+        },
+        "score_backward": {
+          "median": 0.012314580380916595,
+          "samples": [
+            0.012314580380916595,
+            0.01231809938326478,
+            0.012293303851038218,
+            0.01229925500229001,
+            0.01234035985544324
+          ]
+        },
+        "rotamers": {
+          "median": 0.8091894160024822,
+          "samples": [
+            0.8091894160024822
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 47,
+      "atoms": 732,
+      "score": [
+        88.44515991210938
+      ],
+      "max_abs_gradient": 26.366764068603516,
+      "rotamers": 1218,
+      "status": "passed",
+      "process_peak_rss_kib": 1983104
+    },
+    {
+      "fixture": "ncaa_fixtures/6dmz_mod_l.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.3015280310064554,
+          "samples": [
+            0.3015280310064554
+          ]
+        },
+        "prepare": {
+          "median": 0.04327695490792394,
+          "samples": [
+            0.04327695490792394
+          ]
+        },
+        "construct": {
+          "median": 0.0920805218629539,
+          "samples": [
+            0.0920805218629539
+          ]
+        },
+        "score_setup": {
+          "median": 1.0795026659034193,
+          "samples": [
+            1.0795026659034193
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.013038913253694773,
+          "samples": [
+            0.013038913253694773
+          ]
+        },
+        "score": {
+          "median": 0.007259142119437456,
+          "samples": [
+            0.007414692081511021,
+            0.007258018013089895,
+            0.007244958076626062,
+            0.007271096110343933,
+            0.007259142119437456
+          ]
+        },
+        "score_backward": {
+          "median": 0.01221752678975463,
+          "samples": [
+            0.01219590101391077,
+            0.012227233964949846,
+            0.01221752678975463,
+            0.012258613016456366,
+            0.012210571207106113
+          ]
+        },
+        "rotamers": {
+          "median": 0.8068528091534972,
+          "samples": [
+            0.8068528091534972
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 47,
+      "atoms": 732,
+      "score": [
+        89.9966049194336
+      ],
+      "max_abs_gradient": 26.366777420043945,
+      "rotamers": 1261,
+      "status": "passed",
+      "process_peak_rss_kib": 1983832
+    },
+    {
+      "fixture": "ncaa_fixtures/beta_peptide_3c3g.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.04003397515043616,
+          "samples": [
+            0.04003397515043616
+          ]
+        },
+        "prepare": {
+          "median": 5.378865118138492,
+          "samples": [
+            5.378865118138492
+          ]
+        },
+        "construct": {
+          "median": 50.65427418798208,
+          "samples": [
+            50.65427418798208
+          ]
+        },
+        "score_setup": {
+          "median": 0.01160925766453147,
+          "samples": [
+            0.01160925766453147
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.008886500727385283,
+          "samples": [
+            0.008886500727385283
+          ]
+        },
+        "score": {
+          "median": 0.005370575003325939,
+          "samples": [
+            0.005370575003325939,
+            0.005492751952260733,
+            0.00532559584826231,
+            0.005309822037816048,
+            0.005472157150506973
+          ]
+        },
+        "score_backward": {
+          "median": 0.008346165996044874,
+          "samples": [
+            0.008366567082703114,
+            0.008365205954760313,
+            0.008335094898939133,
+            0.008321685716509819,
+            0.008346165996044874
+          ]
+        },
+        "rotamers": {
+          "median": 0.16124368784949183,
+          "samples": [
+            0.16124368784949183
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 31,
+      "atoms": 586,
+      "score": [
+        191.37783813476562
+      ],
+      "max_abs_gradient": 41.26165008544922,
+      "rotamers": 725,
+      "status": "passed",
+      "process_peak_rss_kib": 2260180
+    },
+    {
+      "fixture": "ncaa_fixtures/capped_peptide_ace_nh2.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.08925480907782912,
+          "samples": [
+            0.08925480907782912
+          ]
+        },
+        "prepare": {
+          "median": 0.2973222699947655,
+          "samples": [
+            0.2973222699947655
+          ]
+        }
+      },
+      "status": "failed",
+      "error": "Traceback (most recent call last):\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/review/pr503/profile_workloads.py\", line 76, in measure\n    pose, stages[\"construct\"] = timed(\n                                ^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/review/pr503/profile_workloads.py\", line 43, in timed\n    result = fn()\n             ^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/review/pr503/profile_workloads.py\", line 77, in <lambda>\n    lambda: pose_stack_from_biotite(array, device, context=context, no_optH=True),\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/decorator/__init__.py\", line 247, in fun\n    return caller(func, *(extras + args), **kw)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/types/_functional.py\", line 27, in validate_f\n    retval = f(*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/io/_pose_stack_from_biotite.py\", line 283, in pose_stack_from_biotite\n    result = pose_stack_from_canonical_form(\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/decorator/__init__.py\", line 247, in fun\n    return caller(func, *(extras + args), **kw)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/types/_functional.py\", line 27, in validate_f\n    retval = f(*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/io/_pose_stack_construction.py\", line 296, in pose_stack_from_canonical_form\n    ) = assign_block_types(\n        ^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/decorator/__init__.py\", line 247, in fun\n    return caller(func, *(extras + args), **kw)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/types/_functional.py\", line 27, in validate_f\n    retval = f(*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/io/details/_select_from_canonical.py\", line 71, in assign_block_types\n    block_type_ind64 = select_best_block_type_candidate(\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/decorator/__init__.py\", line 247, in fun\n    return caller(func, *(extras + args), **kw)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/types/_functional.py\", line 27, in validate_f\n    retval = f(*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/io/details/_select_from_canonical.py\", line 733, in select_best_block_type_candidate\n    raise RuntimeError(err_msg + \"Best candidate exceeds failure threshold\")\nRuntimeError: failed to resolve a block type from the candidates available\nBest candidate exceeds failure threshold\n",
+      "process_peak_rss_kib": 2260180
+    },
+    {
+      "fixture": "ncaa_fixtures/capped_peptide_ace_nme.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.026846691966056824,
+          "samples": [
+            0.026846691966056824
+          ]
+        },
+        "prepare": {
+          "median": 0.3209392400458455,
+          "samples": [
+            0.3209392400458455
+          ]
+        }
+      },
+      "status": "failed",
+      "error": "Traceback (most recent call last):\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/review/pr503/profile_workloads.py\", line 76, in measure\n    pose, stages[\"construct\"] = timed(\n                                ^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/review/pr503/profile_workloads.py\", line 43, in timed\n    result = fn()\n             ^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/review/pr503/profile_workloads.py\", line 77, in <lambda>\n    lambda: pose_stack_from_biotite(array, device, context=context, no_optH=True),\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/decorator/__init__.py\", line 247, in fun\n    return caller(func, *(extras + args), **kw)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/types/_functional.py\", line 27, in validate_f\n    retval = f(*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/io/_pose_stack_from_biotite.py\", line 283, in pose_stack_from_biotite\n    result = pose_stack_from_canonical_form(\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/decorator/__init__.py\", line 247, in fun\n    return caller(func, *(extras + args), **kw)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/types/_functional.py\", line 27, in validate_f\n    retval = f(*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/io/_pose_stack_construction.py\", line 296, in pose_stack_from_canonical_form\n    ) = assign_block_types(\n        ^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/decorator/__init__.py\", line 247, in fun\n    return caller(func, *(extras + args), **kw)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/types/_functional.py\", line 27, in validate_f\n    retval = f(*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/io/details/_select_from_canonical.py\", line 71, in assign_block_types\n    block_type_ind64 = select_best_block_type_candidate(\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/decorator/__init__.py\", line 247, in fun\n    return caller(func, *(extras + args), **kw)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/types/_functional.py\", line 27, in validate_f\n    retval = f(*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/io/details/_select_from_canonical.py\", line 733, in select_best_block_type_candidate\n    raise RuntimeError(err_msg + \"Best candidate exceeds failure threshold\")\nRuntimeError: failed to resolve a block type from the candidates available\nBest candidate exceeds failure threshold\n",
+      "process_peak_rss_kib": 2260180
+    },
+    {
+      "fixture": "ncaa_fixtures/collagen_hyp_1bkv.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.053997754119336605,
+          "samples": [
+            0.053997754119336605
+          ]
+        },
+        "prepare": {
+          "median": 0.4236777778714895,
+          "samples": [
+            0.4236777778714895
+          ]
+        },
+        "construct": {
+          "median": 0.09272158099338412,
+          "samples": [
+            0.09272158099338412
+          ]
+        },
+        "score_setup": {
+          "median": 0.9787291609682143,
+          "samples": [
+            0.9787291609682143
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.0038974196650087833,
+          "samples": [
+            0.0038974196650087833
+          ]
+        },
+        "score": {
+          "median": 0.0021501202136278152,
+          "samples": [
+            0.002276697661727667,
+            0.0021575610153377056,
+            0.0021441378630697727,
+            0.002141502220183611,
+            0.0021501202136278152
+          ]
+        },
+        "score_backward": {
+          "median": 0.003192975651472807,
+          "samples": [
+            0.0031661158427596092,
+            0.003197076264768839,
+            0.003192527685314417,
+            0.003192975651472807,
+            0.0031970380805432796
+          ]
+        },
+        "rotamers": {
+          "median": 0.8214005143381655,
+          "samples": [
+            0.8214005143381655
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 29,
+      "atoms": 358,
+      "score": [
+        38.751651763916016
+      ],
+      "max_abs_gradient": 20.076210021972656,
+      "rotamers": 271,
+      "status": "passed",
+      "process_peak_rss_kib": 2382036
+    },
+    {
+      "fixture": "ncaa_fixtures/gamma_peptide_1gac.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.07637554127722979,
+          "samples": [
+            0.07637554127722979
+          ]
+        },
+        "prepare": {
+          "median": 0.4603967550210655,
+          "samples": [
+            0.4603967550210655
+          ]
+        },
+        "construct": {
+          "median": 0.09905052883550525,
+          "samples": [
+            0.09905052883550525
+          ]
+        },
+        "score_setup": {
+          "median": 0.9903317857533693,
+          "samples": [
+            0.9903317857533693
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.0023401430808007717,
+          "samples": [
+            0.0023401430808007717
+          ]
+        },
+        "score": {
+          "median": 0.000841168686747551,
+          "samples": [
+            0.0010622525587677956,
+            0.0008583050221204758,
+            0.0008074669167399406,
+            0.000841168686747551,
+            0.0008269348181784153
+          ]
+        },
+        "score_backward": {
+          "median": 0.0013315249234437943,
+          "samples": [
+            0.0013780537992715836,
+            0.0013595097698271275,
+            0.0013315249234437943,
+            0.0013044350780546665,
+            0.0013238303363323212
+          ]
+        },
+        "rotamers": {
+          "median": 0.8397669307887554,
+          "samples": [
+            0.8397669307887554
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 5,
+      "atoms": 70,
+      "score": [
+        177.65501403808594
+      ],
+      "max_abs_gradient": 254.95599365234375,
+      "rotamers": 48,
+      "status": "passed",
+      "process_peak_rss_kib": 2521300
+    },
+    {
+      "fixture": "ncaa_fixtures/na_dna_5mc_1d17.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.10375033412128687,
+          "samples": [
+            0.10375033412128687
+          ]
+        },
+        "prepare": {
+          "median": 0.5383513490669429,
+          "samples": [
+            0.5383513490669429
+          ]
+        },
+        "construct": {
+          "median": 0.09432083507999778,
+          "samples": [
+            0.09432083507999778
+          ]
+        },
+        "score_setup": {
+          "median": 1.5226109139621258,
+          "samples": [
+            1.5226109139621258
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.012099061161279678,
+          "samples": [
+            0.012099061161279678
+          ]
+        },
+        "score": {
+          "median": 0.005868648178875446,
+          "samples": [
+            0.006205433048307896,
+            0.005654194857925177,
+            0.005883875768631697,
+            0.005868648178875446,
+            0.005819274578243494
+          ]
+        },
+        "score_backward": {
+          "median": 0.008507577702403069,
+          "samples": [
+            0.00870435917750001,
+            0.008507577702403069,
+            0.008747856598347425,
+            0.008390137925744057,
+            0.008397229947149754
+          ]
+        },
+        "rotamers": {
+          "median": 0.8382198992185295,
+          "samples": [
+            0.8382198992185295
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 6,
+      "atoms": 195,
+      "score": [
+        290.53680419921875
+      ],
+      "max_abs_gradient": 148.89097595214844,
+      "rotamers": 22,
+      "status": "passed",
+      "process_peak_rss_kib": 2538708
+    },
+    {
+      "fixture": "ncaa_fixtures/na_dna_8og_183d.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.06135082012042403,
+          "samples": [
+            0.06135082012042403
+          ]
+        },
+        "prepare": {
+          "median": 0.520125875249505,
+          "samples": [
+            0.520125875249505
+          ]
+        },
+        "construct": {
+          "median": 0.10603985702618957,
+          "samples": [
+            0.10603985702618957
+          ]
+        },
+        "score_setup": {
+          "median": 0.9781700377352536,
+          "samples": [
+            0.9781700377352536
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.009036397095769644,
+          "samples": [
+            0.009036397095769644
+          ]
+        },
+        "score": {
+          "median": 0.0044472431764006615,
+          "samples": [
+            0.0047390758991241455,
+            0.004440044052898884,
+            0.004458199720829725,
+            0.0044472431764006615,
+            0.004392228089272976
+          ]
+        },
+        "score_backward": {
+          "median": 0.008016183041036129,
+          "samples": [
+            0.00804196298122406,
+            0.008016183041036129,
+            0.008070733863860369,
+            0.007918397895991802,
+            0.007888669148087502
+          ]
+        },
+        "rotamers": {
+          "median": 0.8489702711813152,
+          "samples": [
+            0.8489702711813152
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 10,
+      "atoms": 316,
+      "score": [
+        179.9315185546875
+      ],
+      "max_abs_gradient": 582.271728515625,
+      "rotamers": 26,
+      "status": "passed",
+      "process_peak_rss_kib": 2539732
+    },
+    {
+      "fixture": "ncaa_fixtures/na_dna_ttd_1ttd.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.050256187096238136,
+          "samples": [
+            0.050256187096238136
+          ]
+        },
+        "prepare": {
+          "median": 0.6107522160746157,
+          "samples": [
+            0.6107522160746157
+          ]
+        },
+        "construct": {
+          "median": 0.09506976697593927,
+          "samples": [
+            0.09506976697593927
+          ]
+        },
+        "score_setup": {
+          "median": 1.0045755128376186,
+          "samples": [
+            1.0045755128376186
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.010093008168041706,
+          "samples": [
+            0.010093008168041706
+          ]
+        },
+        "score": {
+          "median": 0.005255345720797777,
+          "samples": [
+            0.005715196020901203,
+            0.005288977175951004,
+            0.005193889141082764,
+            0.005175276193767786,
+            0.005255345720797777
+          ]
+        },
+        "score_backward": {
+          "median": 0.009236475918442011,
+          "samples": [
+            0.009152131620794535,
+            0.00902310386300087,
+            0.009236475918442011,
+            0.009411058854311705,
+            0.009394289925694466
+          ]
+        },
+        "rotamers": {
+          "median": 0.8396870121359825,
+          "samples": [
+            0.8396870121359825
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 11,
+      "atoms": 382,
+      "score": [
+        113.6611557006836
+      ],
+      "max_abs_gradient": 42.93984603881836,
+      "rotamers": 27,
+      "status": "passed",
+      "process_peak_rss_kib": 2540756
+    },
+    {
+      "fixture": "ncaa_fixtures/na_rna_2ome_310d.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.057671989779919386,
+          "samples": [
+            0.057671989779919386
+          ]
+        },
+        "prepare": {
+          "median": 1.0153048471547663,
+          "samples": [
+            1.0153048471547663
+          ]
+        },
+        "construct": {
+          "median": 0.10083542438223958,
+          "samples": [
+            0.10083542438223958
+          ]
+        },
+        "score_setup": {
+          "median": 1.0075247189961374,
+          "samples": [
+            1.0075247189961374
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.007788305636495352,
+          "samples": [
+            0.007788305636495352
+          ]
+        },
+        "score": {
+          "median": 0.0036592837423086166,
+          "samples": [
+            0.004007111769169569,
+            0.0037007280625402927,
+            0.0035872729495167732,
+            0.0036592837423086166,
+            0.0035562939010560513
+          ]
+        },
+        "score_backward": {
+          "median": 0.006601044908165932,
+          "samples": [
+            0.00671761017292738,
+            0.006569114048033953,
+            0.006601044908165932,
+            0.00668246578425169,
+            0.0065520331263542175
+          ]
+        },
+        "rotamers": {
+          "median": 0.8642422524280846,
+          "samples": [
+            0.8642422524280846
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 6,
+      "atoms": 212,
+      "score": [
+        111.71115112304688
+      ],
+      "max_abs_gradient": 67.11653900146484,
+      "rotamers": 33,
+      "status": "passed",
+      "process_peak_rss_kib": 2540756
+    },
+    {
+      "fixture": "ncaa_fixtures/na_rna_psu_1bzt.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.13408794719725847,
+          "samples": [
+            0.13408794719725847
+          ]
+        },
+        "prepare": {
+          "median": 0.49779905704781413,
+          "samples": [
+            0.49779905704781413
+          ]
+        },
+        "construct": {
+          "median": 0.0936147696338594,
+          "samples": [
+            0.0936147696338594
+          ]
+        },
+        "score_setup": {
+          "median": 0.9577800952829421,
+          "samples": [
+            0.9577800952829421
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.014039904344826937,
+          "samples": [
+            0.014039904344826937
+          ]
+        },
+        "score": {
+          "median": 0.0071820891462266445,
+          "samples": [
+            0.0072227222844958305,
+            0.007199161686003208,
+            0.0071153040044009686,
+            0.007099635899066925,
+            0.0071820891462266445
+          ]
+        },
+        "score_backward": {
+          "median": 0.013164328876882792,
+          "samples": [
+            0.013143707998096943,
+            0.013280595187097788,
+            0.013164328876882792,
+            0.013177765998989344,
+            0.013151647988706827
+          ]
+        },
+        "rotamers": {
+          "median": 0.826481175608933,
+          "samples": [
+            0.826481175608933
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 17,
+      "atoms": 535,
+      "score": [
+        197.62930297851562
+      ],
+      "max_abs_gradient": 333.3245849609375,
+      "rotamers": 450,
+      "status": "passed",
+      "process_peak_rss_kib": 2566356
+    },
+    {
+      "fixture": "ncaa_fixtures/nmethyl_peptide_6mvz.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.027665391098707914,
+          "samples": [
+            0.027665391098707914
+          ]
+        },
+        "prepare": {
+          "median": 0.4542492344044149,
+          "samples": [
+            0.4542492344044149
+          ]
+        },
+        "construct": {
+          "median": 0.08892567967996001,
+          "samples": [
+            0.08892567967996001
+          ]
+        },
+        "score_setup": {
+          "median": 1.191847937181592,
+          "samples": [
+            1.191847937181592
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.002282483968883753,
+          "samples": [
+            0.002282483968883753
+          ]
+        },
+        "score": {
+          "median": 0.0010374616831541061,
+          "samples": [
+            0.0011759200133383274,
+            0.0010383217595517635,
+            0.0009880643337965012,
+            0.0010374616831541061,
+            0.0009942981414496899
+          ]
+        },
+        "score_backward": {
+          "median": 0.0015794308856129646,
+          "samples": [
+            0.0014887312427163124,
+            0.001590600237250328,
+            0.0015794308856129646,
+            0.0015680291689932346,
+            0.0015843729488551617
+          ]
+        },
+        "rotamers": {
+          "median": 0.8156769387423992,
+          "samples": [
+            0.8156769387423992
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 4,
+      "atoms": 87,
+      "score": [
+        18.822399139404297
+      ],
+      "max_abs_gradient": 38.001258850097656,
+      "rotamers": 31,
+      "status": "passed",
+      "process_peak_rss_kib": 2566356
+    },
+    {
+      "fixture": "ncaa_fixtures/phosphopeptide_5ema.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.05186146032065153,
+          "samples": [
+            0.05186146032065153
+          ]
+        },
+        "prepare": {
+          "median": 0.41154504381120205,
+          "samples": [
+            0.41154504381120205
+          ]
+        },
+        "construct": {
+          "median": 0.08872910821810365,
+          "samples": [
+            0.08872910821810365
+          ]
+        },
+        "score_setup": {
+          "median": 0.9583414918743074,
+          "samples": [
+            0.9583414918743074
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.0022320658899843693,
+          "samples": [
+            0.0022320658899843693
+          ]
+        },
+        "score": {
+          "median": 0.0009379792027175426,
+          "samples": [
+            0.0010834909044206142,
+            0.000955730676651001,
+            0.0009142030030488968,
+            0.0009078942239284515,
+            0.0009379792027175426
+          ]
+        },
+        "score_backward": {
+          "median": 0.0015460583381354809,
+          "samples": [
+            0.0015197377651929855,
+            0.0015608281828463078,
+            0.0015460583381354809,
+            0.0015532039105892181,
+            0.0015399348922073841
+          ]
+        },
+        "rotamers": {
+          "median": 0.8151473407633603,
+          "samples": [
+            0.8151473407633603
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 7,
+      "atoms": 106,
+      "score": [
+        48.21892166137695
+      ],
+      "max_abs_gradient": 35.50484848022461,
+      "rotamers": 340,
+      "status": "passed",
+      "process_peak_rss_kib": 2566356
+    },
+    {
+      "fixture": "covalent_fixtures/lys_biotin_1bdo.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.03350848471745849,
+          "samples": [
+            0.03350848471745849
+          ]
+        },
+        "prepare": {
+          "median": 0.45186563627794385,
+          "samples": [
+            0.45186563627794385
+          ]
+        },
+        "construct": {
+          "median": 0.09701954573392868,
+          "samples": [
+            0.09701954573392868
+          ]
+        },
+        "score_setup": {
+          "median": 0.971636994741857,
+          "samples": [
+            0.971636994741857
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.022680391557514668,
+          "samples": [
+            0.022680391557514668
+          ]
+        },
+        "score": {
+          "median": 0.012750145047903061,
+          "samples": [
+            0.012912751641124487,
+            0.012750145047903061,
+            0.012773270718753338,
+            0.012711278162896633,
+            0.012725479900836945
+          ]
+        },
+        "score_backward": {
+          "median": 0.021779560949653387,
+          "samples": [
+            0.021804200019687414,
+            0.02177382493391633,
+            0.021788586396723986,
+            0.021779560949653387,
+            0.02175756823271513
+          ]
+        },
+        "rotamers": {
+          "median": 0.8628964331001043,
+          "samples": [
+            0.8628964331001043
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 81,
+      "atoms": 1252,
+      "score": [
+        -84.20866394042969
+      ],
+      "max_abs_gradient": 36.110774993896484,
+      "rotamers": 2094,
+      "status": "passed",
+      "process_peak_rss_kib": 2566356
+    },
+    {
+      "fixture": "covalent_fixtures/nglycan_tree_1ax2.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.06969190575182438,
+          "samples": [
+            0.06969190575182438
+          ]
+        },
+        "prepare": {
+          "median": 1.659889921080321,
+          "samples": [
+            1.659889921080321
+          ]
+        },
+        "construct": {
+          "median": 0.13413883838802576,
+          "samples": [
+            0.13413883838802576
+          ]
+        },
+        "score_setup": {
+          "median": 1.089177343994379,
+          "samples": [
+            1.089177343994379
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.08099822979420424,
+          "samples": [
+            0.08099822979420424
+          ]
+        },
+        "score": {
+          "median": 0.046342937275767326,
+          "samples": [
+            0.04641375923529267,
+            0.04631768586114049,
+            0.046342937275767326,
+            0.04647484282031655,
+            0.046286992728710175
+          ]
+        },
+        "score_backward": {
+          "median": 0.07993479818105698,
+          "samples": [
+            0.07996783778071404,
+            0.07999618165194988,
+            0.07993479818105698,
+            0.07985051907598972,
+            0.0798792908899486
+          ]
+        },
+        "rotamers": {
+          "median": 1.0598102826625109,
+          "samples": [
+            1.0598102826625109
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 248,
+      "atoms": 3848,
+      "score": [
+        14.0537109375
+      ],
+      "max_abs_gradient": 47.329769134521484,
+      "rotamers": 10580,
+      "status": "passed",
+      "process_peak_rss_kib": 2566356
+    },
+    {
+      "fixture": "covalent_fixtures/oglycan_sia_1g1s.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.016024207696318626,
+          "samples": [
+            0.016024207696318626
+          ]
+        },
+        "prepare": {
+          "median": 1.850908734370023,
+          "samples": [
+            1.850908734370023
+          ]
+        },
+        "construct": {
+          "median": 2.6595667311921716,
+          "samples": [
+            2.6595667311921716
+          ]
+        },
+        "score_setup": {
+          "median": 0.008177241776138544,
+          "samples": [
+            0.008177241776138544
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.006616388913244009,
+          "samples": [
+            0.006616388913244009
+          ]
+        },
+        "score": {
+          "median": 0.0041187359020113945,
+          "samples": [
+            0.0041463919915258884,
+            0.0041187359020113945,
+            0.004094610922038555,
+            0.004322879947721958,
+            0.0040949988178908825
+          ]
+        },
+        "score_backward": {
+          "median": 0.005950507707893848,
+          "samples": [
+            0.006031238939613104,
+            0.005943935364484787,
+            0.005939755123108625,
+            0.00597122497856617,
+            0.005950507707893848
+          ]
+        },
+        "rotamers": {
+          "median": 0.2116770800203085,
+          "samples": [
+            0.2116770800203085
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 20,
+      "atoms": 396,
+      "score": [
+        87.74317169189453
+      ],
+      "max_abs_gradient": 29.41127586364746,
+      "rotamers": 3599,
+      "status": "passed",
+      "process_peak_rss_kib": 2566356
+    },
+    {
+      "fixture": "cif/cyclic_peptide_1jbl.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.008984845131635666,
+          "samples": [
+            0.008984845131635666
+          ]
+        },
+        "prepare": {
+          "median": 0.040851224679499865,
+          "samples": [
+            0.040851224679499865
+          ]
+        },
+        "construct": {
+          "median": 0.08913590433076024,
+          "samples": [
+            0.08913590433076024
+          ]
+        },
+        "score_setup": {
+          "median": 0.9371042060665786,
+          "samples": [
+            0.9371042060665786
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.0035847839899361134,
+          "samples": [
+            0.0035847839899361134
+          ]
+        },
+        "score": {
+          "median": 0.0018734391778707504,
+          "samples": [
+            0.0019227857701480389,
+            0.001879632007330656,
+            0.0018734391778707504,
+            0.001836039125919342,
+            0.0017935936339199543
+          ]
+        },
+        "score_backward": {
+          "median": 0.002894085831940174,
+          "samples": [
+            0.002869929652661085,
+            0.0029050102457404137,
+            0.0028915232978761196,
+            0.002901512198150158,
+            0.002894085831940174
+          ]
+        },
+        "rotamers": {
+          "median": 0.7933280603028834,
+          "samples": [
+            0.7933280603028834
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 14,
+      "atoms": 210,
+      "score": [
+        42.8979377746582
+      ],
+      "max_abs_gradient": 31.84593391418457,
+      "rotamers": 232,
+      "status": "passed",
+      "process_peak_rss_kib": 2566356
+    }
+  ]
+}
