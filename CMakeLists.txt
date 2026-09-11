@@ -558,6 +558,11 @@ if(TMOL_BUILD_TESTS)
   )
 
   tmol_add_pybind_cpp_ext(
+    test_dunbrack_dihedral "tmol/tests/score/dunbrack" "_dihedral"
+    tmol/tests/score/dunbrack/dihedral.pybind.cpp
+  )
+
+  tmol_add_pybind_cpp_ext(
     test_lkball_ext "tmol/tests/score/lk_ball/potentials" "_ext"
     tmol/tests/score/lk_ball/potentials/compiled.pybind.cpp
   )
