@@ -219,6 +219,9 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             score_args += (shared_dispatch_indices,)
         return score_op(*score_args)
 
+    def supports_score_only_in_no_grad(self):
+        return True
+
     def get_pose_score_term_function(self):
         return self.pose_score_hbond
 

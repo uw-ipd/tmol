@@ -72,6 +72,10 @@ class DisulfideEnergyTerm(EnergyTerm):
     def setup_poses(self, poses: PoseStack):
         super(DisulfideEnergyTerm, self).setup_poses(poses)
 
+    def supports_score_only_in_no_grad(self):
+        # Tiny CPU disulfide calls do not amortize the per-call mode check.
+        return self.device.type == "cuda"
+
     def get_pose_score_term_function(self):
         from tmol.score.disulfide.potentials import disulfide_pose_scores
 
