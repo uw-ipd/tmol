@@ -458,6 +458,7 @@ set(_C_SOURCES
 
 if(TMOL_HAS_CUDA)
   list(APPEND _C_SOURCES
+    tmol/score/common/whole_pose_scoring.cuda.cu
     tmol/optimization/armijo_compiled.cuda.cu
     tmol/io/details/compiled/gen_pose_leaf_atoms.cuda.cu
     tmol/io/details/compiled/resolve_his_taut.cuda.cu
@@ -601,6 +602,19 @@ if(TMOL_BUILD_TESTS)
     test_in_place_heap "tmol/tests/utility/datastructures" "_in_place_heap"
     tmol/tests/utility/datastructures/in_place_heap.cpp
   )
+
+  if(TMOL_HAS_CUDA)
+    tmol_add_pybind_cuda_ext(
+      test_whole_pose_gradients "tmol/tests/score/common" "_whole_pose_gradients"
+      tmol/tests/score/common/whole_pose_gradients.pybind.cpp
+      tmol/score/common/whole_pose_scoring.cuda.cu
+    )
+  else()
+    tmol_add_pybind_cpp_ext(
+      test_whole_pose_gradients "tmol/tests/score/common" "_whole_pose_gradients"
+      tmol/tests/score/common/whole_pose_gradients.pybind.cpp
+    )
+  endif()
 
   # --- mixed-backend and CUDA-only test extensions ---
 

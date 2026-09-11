@@ -5,6 +5,7 @@ _ops = load_ops(
     __file__,
     [
         "compiled.ops.cpp",
+        "../../common/whole_pose_scoring.cuda.cu",
         "ljlk_pose_score.cpu.cpp",
         "ljlk_pose_score.cuda.cu",
         "ljlk_elec_pose_score.cpu.cpp",
