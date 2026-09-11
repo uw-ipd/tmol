@@ -126,6 +126,14 @@ class EnergyTerm:
         """Maximum whole-pose block-neighbor reach, or ``None`` if unused."""
         return None
 
+    def supports_score_only_in_no_grad(self):
+        """Whether whole-pose scoring may detach coordinates when grad is disabled.
+
+        Native terms can opt in to avoid calculating discarded derivatives.
+        Custom scoring functions keep their original input by default.
+        """
+        return False
+
     def get_rotamer_score_term_attributes(
         self, pose_stack: PoseStack, rotamer_set: RotamerSet
     ):
@@ -169,6 +177,7 @@ class EnergyTerm:
             term_attributes,
             f,
             self.get_block_neighbor_cutoff(),
+            score_only_in_no_grad=self.supports_score_only_in_no_grad(),
         )
 
     def render_block_pair_scoring_module(
