@@ -80,6 +80,86 @@ def test_shared_block_neighbors_preserve_scores_and_gradients(ubq_pdb, torch_dev
 
 
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+@pytest.mark.parametrize("weighted", [False, True])
+def test_fused_compact_specialization_preserves_subsets(
+    ubq_pdb, torch_device, dtype, weighted
+):
+    if torch_device.type != "cuda":
+        pytest.skip("CUDA compact interaction specialization")
+    single = pose_stack_from_pdb(ubq_pdb, torch_device)
+    short = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
+    pose = PoseStackBuilder.from_poses([single, short] * 32, torch_device)
+    scorer = _non_memoized_beta2016(torch_device).render_whole_pose_scoring_module(pose)
+    term = scorer._execution_modules[scorer._fused_ljlk_elec_module_index]
+    assert term.n_valid_rots == 32 * (single.max_n_blocks + short.max_n_blocks)
+    assert term.n_valid_rots < pose.block_type_ind.numel()
+    coords = pose.coords.to(dtype).detach().requires_grad_(True)
+    neighbors = scorer._build_shared_block_neighbors(coords)
+    assert neighbors.numel() - 1 >= 32768
+    subset = neighbors[1 : int(neighbors[0]) + 1 : 4].clone().flip(0)
+    neighbors[0] = subset.numel()
+    neighbors[1 : subset.numel() + 1] = subset
+    compact = neighbors[: subset.numel() + 1].clone()
+    assert compact.numel() - 1 < 32768
+    score_weights = torch.tensor(
+        [0.7, -0.2, 0.0, 1.3], device=torch_device, dtype=dtype
+    )
+    from tmol.score.ljlk.potentials import (
+        ljlk_elec_pose_scores,
+        ljlk_elec_weighted_pose_scores,
+    )
+
+    arguments = term._native_arguments(coords, neighbors)
+    operation = ljlk_elec_pose_scores
+    if weighted:
+        operation = ljlk_elec_weighted_pose_scores
+        arguments = (*arguments, score_weights)
+    for invalid_count in (-2, pose.block_type_ind.numel() + 1):
+        with pytest.raises(RuntimeError, match="valid rotamer count"):
+            operation(*arguments, invalid_count)
+
+    def evaluate(neighbor_list, gradient, legacy=False):
+        coords.requires_grad_(gradient)
+        with torch.set_grad_enabled(gradient):
+            if legacy:
+                arguments = term._native_arguments(coords, neighbor_list)
+                scores = (
+                    ljlk_elec_weighted_pose_scores(*arguments, score_weights)[0]
+                    if weighted
+                    else ljlk_elec_pose_scores(*arguments)[0]
+                )
+            else:
+                scores = (
+                    term.forward_weighted(coords, neighbor_list, score_weights)
+                    if weighted
+                    else term(coords, neighbor_list)
+                )
+            if not gradient:
+                return scores, None
+            upstream = torch.linspace(
+                -1, 2, scores.numel(), device=torch_device, dtype=dtype
+            ).reshape_as(scores)
+            (grad,) = torch.autograd.grad(scores, coords, upstream)
+            return scores, grad
+
+    tolerance = 1e-10 if dtype == torch.float64 else 1e-5
+    for gradient in (False, True):
+        expected, expected_grad = evaluate(compact, gradient)
+        actual, actual_grad = evaluate(neighbors, gradient)
+        legacy, legacy_grad = evaluate(neighbors, gradient, legacy=True)
+        torch.testing.assert_close(legacy, expected, atol=tolerance, rtol=tolerance)
+        if gradient:
+            torch.testing.assert_close(
+                legacy_grad, expected_grad, atol=tolerance, rtol=tolerance
+            )
+        torch.testing.assert_close(actual, expected, atol=tolerance, rtol=tolerance)
+        if gradient:
+            torch.testing.assert_close(
+                actual_grad, expected_grad, atol=tolerance, rtol=tolerance
+            )
+
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
 @pytest.mark.parametrize("reverse_neighbors", [False, True])
 @pytest.mark.parametrize("strided_neighbors", [False, True])
 def test_cpu_compact_neighbors_preserve_pose_accumulation_order(

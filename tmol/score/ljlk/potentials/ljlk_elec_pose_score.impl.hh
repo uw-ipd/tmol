@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <type_traits>
 
 #include <moderngpu/operators.hxx>
 
@@ -338,7 +339,8 @@ auto ljlk_elec_forward_impl(
     TView<Int, 1, D> shared_compact_block_neighbors,
     TView<Int, 2, D> rotamer_dispatch_indices,
     TView<Real, 1, D> score_weights,
-    TView<Real, 1, D> output_gradients)
+    TView<Real, 1, D> output_gradients,
+    Int n_valid_rots = -1)
     -> std::tuple<TPack<Real, 4, D>, TPack<LJLKExternalVec<Real, 3>, 2, D>> {
   using namespace ljlk_elec_detail;
   using Real3 = Eigen::Matrix<Real, 3, 1>;
@@ -381,7 +383,13 @@ auto ljlk_elec_forward_impl(
   // CPU workgroup lanes run serially; one lane traverses each tile directly.
   constexpr int score_nt = D == tmol::Device::CPU ? 1 : nt;
 
+#ifdef __NVCC__
+  auto eval_pair = ([=] TMOL_DEVICE_FUNC(int candidate, auto pair_mode_tag) {
+    constexpr auto pair_mode = decltype(pair_mode_tag)::value;
+#else
   auto eval_neighbor = ([=] TMOL_DEVICE_FUNC(int candidate) {
+    constexpr auto pair_mode = common::TilePairMode::InterAndIntra;
+#endif
     Real derivative_scale = 1;
     if (require_gradient && rotamer_pairs) {
       derivative_scale = output_gradients[candidate];
@@ -408,6 +416,11 @@ auto ljlk_elec_forward_impl(
       block_ind2 = common::get<1>(pair) - 1;
       rot_ind1 = rot_offset_for_block[pose_ind][block_ind1];
       rot_ind2 = rot_offset_for_block[pose_ind][block_ind2];
+    }
+    if constexpr (pair_mode == common::TilePairMode::Inter) {
+      if (block_ind1 == block_ind2) return;
+    } else if constexpr (pair_mode == common::TilePairMode::Intra) {
+      if (block_ind1 != block_ind2) return;
     }
     if (rot_ind1 < 0 || rot_ind2 < 0) {
       if (rotamer_pairs) output[0][0][0][candidate] = 0;
@@ -796,7 +809,8 @@ auto ljlk_elec_forward_impl(
         ScoringData<Real>,
         ScoringData<Real>,
         Real,
-        tile_size>(
+        tile_size,
+        pair_mode>(
         shared,
         pose_ind,
         rot_ind1,
@@ -820,6 +834,51 @@ auto ljlk_elec_forward_impl(
         eval_intra,
         store_energies);
   });
+
+#ifdef __NVCC__
+  using PairMode = common::TilePairMode;
+  auto eval_neighbor = ([=] TMOL_DEVICE_FUNC(int candidate) {
+    eval_pair(
+        candidate, std::integral_constant<PairMode, PairMode::InterAndIntra>{});
+  });
+  if constexpr (!rotamer_pairs) {
+    // Specialization amortizes the second launch only on larger stacks.
+    // Derivative evaluation has enough work to benefit at a smaller size.
+    constexpr int min_split_rots = require_gradient ? 1024 : 2048;
+    if (max_n_blocks > 1 && n_valid_rots >= min_split_rots
+        && shared_compact_block_neighbors.size(0) - 1 >= (1 << 15)) {
+      auto eval_inter = ([=] TMOL_DEVICE_FUNC(int candidate) {
+        eval_pair(
+            candidate, std::integral_constant<PairMode, PairMode::Inter>{});
+      });
+      auto eval_intra = ([=] TMOL_DEVICE_FUNC(int candidate) {
+        eval_pair(
+            candidate, std::integral_constant<PairMode, PairMode::Intra>{});
+      });
+      common::sphere_overlap::launch_precomputed_block_neighbors<
+          DeviceOperations,
+          D,
+          launch_t,
+          Int>(
+          mgr,
+          shared_compact_block_neighbors,
+          n_poses,
+          max_n_blocks,
+          eval_inter);
+      common::sphere_overlap::launch_precomputed_block_neighbors<
+          DeviceOperations,
+          D,
+          launch_t,
+          Int>(
+          mgr,
+          shared_compact_block_neighbors,
+          n_poses,
+          max_n_blocks,
+          eval_intra);
+      return {output_t, dV_dcoords_t};
+    }
+  }
+#endif
 
   if constexpr (rotamer_pairs) {
     if constexpr (require_gradient) {
@@ -879,7 +938,8 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
     TView<tmol::score::elec::potentials::ElecGlobalParams<Real>, 1, D>
         elec_global_params,
     TView<Int, 1, D> shared_compact_block_neighbors,
-    bool require_gradient)
+    bool require_gradient,
+    Int n_valid_rots)
     -> std::tuple<TPack<Real, 4, D>, TPack<LJLKExternalVec<Real, 3>, 2, D>> {
 #define TMOL_LJLK_ELEC_FORWARD_ARGS                                           \
   mgr, rot_coords, rot_coord_offset, pose_ind_for_atom, first_rot_for_block,  \
@@ -908,7 +968,8 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
         TMOL_LJLK_ELEC_FORWARD_ARGS,
         empty_rotamer_dispatch.view,
         empty_weights.view,
-        empty_weights.view);
+        empty_weights.view,
+        n_valid_rots);
   }
   return ljlk_elec_forward_impl<
       false,
@@ -921,7 +982,8 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
       TMOL_LJLK_ELEC_FORWARD_ARGS,
       empty_rotamer_dispatch.view,
       empty_weights.view,
-      empty_weights.view);
+      empty_weights.view,
+      n_valid_rots);
 #undef TMOL_LJLK_ELEC_FORWARD_ARGS
 }
 
@@ -963,7 +1025,8 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
             elec_global_params,
         TView<Int, 1, D> shared_compact_block_neighbors,
         TView<Real, 1, D> score_weights,
-        bool require_gradient) -> std::
+        bool require_gradient,
+        Int n_valid_rots) -> std::
         tuple<TPack<Real, 4, D>, TPack<LJLKExternalVec<Real, 3>, 2, D>> {
 #define TMOL_LJLK_ELEC_WEIGHTED_FORWARD_ARGS                                  \
   mgr, rot_coords, rot_coord_offset, pose_ind_for_atom, first_rot_for_block,  \
@@ -992,7 +1055,8 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
         TMOL_LJLK_ELEC_WEIGHTED_FORWARD_ARGS,
         empty_rotamer_dispatch.view,
         score_weights,
-        empty_output_gradients.view);
+        empty_output_gradients.view,
+        n_valid_rots);
   }
   return ljlk_elec_forward_impl<
       false,
@@ -1005,7 +1069,8 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
       TMOL_LJLK_ELEC_WEIGHTED_FORWARD_ARGS,
       empty_rotamer_dispatch.view,
       score_weights,
-      empty_output_gradients.view);
+      empty_output_gradients.view,
+      n_valid_rots);
 #undef TMOL_LJLK_ELEC_WEIGHTED_FORWARD_ARGS
 }
 
