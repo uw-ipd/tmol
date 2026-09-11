@@ -39,37 +39,31 @@ def lbfgs_two_loop(grad, dirs, stps):
     # promote to float64
     S = stps.double()
     Y = dirs.double()
-    g = -grad.double()
+    q = -grad.double()
     # Explicit batched products avoid einsum's repeated layout planning. Keep
     # the single-segment, broadcast, and differentiable paths: their reduction
     # layouts can differ at tight double-precision tolerances.
     single_segment = grad.shape[0] == 1 and out_dtype == torch.float32
     use_bmm = (
-        g.shape[0] > 1
-        and S.shape[1] == Y.shape[1] == g.shape[0]
-        and S.shape[2] == Y.shape[2] == g.shape[1]
+        q.shape[0] > 1
+        and S.shape[1] == Y.shape[1] == q.shape[0]
+        and S.shape[2] == Y.shape[2] == q.shape[1]
         and not (
             torch.is_grad_enabled()
             and (grad.requires_grad or dirs.requires_grad or stps.requires_grad)
         )
     )
     if single_segment:
-        S_one, Y_one, g_one = S[:, 0], Y[:, 0], g[0]
-        a = torch.mv(S_one, g_one).unsqueeze(0)  # a_i = s_i . g
-        b = torch.mv(Y_one, g_one).unsqueeze(0)  # b_i = y_i . g
+        S_one, Y_one = S[:, 0], Y[:, 0]
+        a = torch.mv(S_one, q[0]).unsqueeze(0)  # a_i = s_i . g
         SY = torch.mm(S_one, Y_one.T).unsqueeze(0)  # SY_ij = s_i . y_j
-        YY = torch.mm(Y_one, Y_one.T).unsqueeze(0)  # YY_ij = y_i . y_j
     elif use_bmm:
         S_by_pose, Y_by_pose = S.transpose(0, 1), Y.transpose(0, 1)
-        a = torch.bmm(S_by_pose, g.unsqueeze(-1)).squeeze(-1)
-        b = torch.bmm(Y_by_pose, g.unsqueeze(-1)).squeeze(-1)
+        a = torch.bmm(S_by_pose, q.unsqueeze(-1)).squeeze(-1)
         SY = torch.bmm(S_by_pose, Y_by_pose.transpose(-2, -1))
-        YY = torch.bmm(Y_by_pose, Y_by_pose.transpose(-2, -1))
     else:
-        a = torch.einsum("ipk,pk->pi", S, g)
-        b = torch.einsum("ipk,pk->pi", Y, g)
+        a = torch.einsum("ipk,pk->pi", S, q)
         SY = torch.einsum("ipk,jpk->pij", S, Y)
-        YY = torch.einsum("ipk,jpk->pij", Y, Y)
     R = torch.triu(SY)  # upper-triangular incl. diagonal
     D = SY.diagonal(dim1=-2, dim2=-1)  # D_i = s_i . y_i
 
@@ -79,30 +73,27 @@ def lbfgs_two_loop(grad, dirs, stps):
 
     # u = R^-1 a
     u = torch.linalg.solve_triangular(R, a.unsqueeze(-1), upper=True).squeeze(-1)
-    # v = (D + Y^T Y) u - b
+    # q = g - Y u; v = D u - Y^T q avoids forming Y^T Y.
     if single_segment:
-        v = (torch.mv(YY[0], u[0]) + D[0] * u[0] - b[0]).unsqueeze(0)
+        q = (q[0] - torch.mv(Y[:, 0].T, u[0])).unsqueeze(0)
+        v = (D[0] * u[0] - torch.mv(Y[:, 0], q[0])).unsqueeze(0)
     elif use_bmm:
-        v = torch.bmm(YY, u.unsqueeze(-1)).squeeze(-1) + D * u - b
+        q = q - torch.bmm(u.unsqueeze(1), Y_by_pose).squeeze(1)
+        v = D * u - torch.bmm(Y_by_pose, q.unsqueeze(-1)).squeeze(-1)
     else:
-        v = torch.einsum("pij,pj->pi", YY, u) + D * u - b
+        q = q - torch.einsum("pi,ipk->pk", u, Y)
+        v = D * u - torch.einsum("ipk,pk->pi", Y, q)
     # p1 = R^-T v
     p1 = torch.linalg.solve_triangular(
         R.transpose(-2, -1), v.unsqueeze(-1), upper=False
     ).squeeze(-1)
-    p2 = -u
-
-    # result = g + S p1 + Y p2
+    # result = q + S p1
     if single_segment:
-        result = (
-            g[0] + torch.mv(S[:, 0].T, p1[0]) + torch.mv(Y[:, 0].T, p2[0])
-        ).unsqueeze(0)
+        result = (q[0] + torch.mv(S[:, 0].T, p1[0])).unsqueeze(0)
     elif use_bmm:
-        result = g + torch.bmm(p1.unsqueeze(1), S_by_pose).squeeze(1)
-        result += torch.bmm(p2.unsqueeze(1), Y_by_pose).squeeze(1)
+        result = q + torch.bmm(p1.unsqueeze(1), S_by_pose).squeeze(1)
     else:
-        result = g + torch.einsum("pi,ipk->pk", p1, S)
-        result += torch.einsum("pi,ipk->pk", p2, Y)
+        result = q + torch.einsum("pi,ipk->pk", p1, S)
     result = result.to(out_dtype)
     return result.squeeze(0) if unbatched else result
 
