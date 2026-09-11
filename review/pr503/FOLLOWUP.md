@@ -15,7 +15,7 @@ historical evidence, not a claim that the follow-up is complete.
 | Sampling budgets/caches (8,14,27) | Explicit budget semantics; task propagation; immutable sampler reuse; actual library/extra/proton counts; reproducible HYP count | Explicit task overrides and actual group/library bounds implemented/tested CPU/CUDA; aggregate/default budget policy and adaptive library expansion remain open |
 | Residue identity/completion (10–12,16) | Insertion codes, chain identity, explicit/CCD authority, missing atoms, custom names; realistic scaling | Initial unit fixes exist; broader profiling pending |
 | Content/profile caches (13,20) | No serialization aliases; safe object lifetimes, bounded memory; repeated preparation | Content framing and bounded weak profile cache fixed; identity/lifetime/LRU tests pass; broader cache audit pending |
-| Group kinematics/performance (15,17) | Profile CPU/GPU; batch invariant work; retain all covalent constraints for tree/cyclic/multiple-anchor topologies | Pending |
+| Group kinematics/performance (15,17) | Profile CPU/GPU; batch invariant work; retain all covalent constraints for tree/cyclic/multiple-anchor topologies | Bounded conformer batches verified/profiled on CPU/CUDA; cyclic/multiple-anchor topology support remains open |
 | Native maintainability (18) | Shared improper enumeration with unchanged canonical scores and independent analytic/numeric derivatives | Shared helper in all four paths; canonical references, numerical gradients, independent Cartesian reference and group packing pass CPU/CUDA (238323, 238529) |
 | Duplicate work (19) | Removal covered by chemistry regression suite | Existing fix; final suite pending |
 | Correct test parameters (21) | Prepared database used throughout examples and packing; generated parameter coverage | Existing correction; final audit pending |
@@ -162,3 +162,32 @@ helpers from `fccd9ad5c`; see `profile_group_budget.py` and
 `results/group-budget-{cpu,cuda}.json`. These are enumeration-stage results,
 not measurements of total packing latency or retained conformational accuracy
 at every budget.
+
+### Batched group kinematics
+
+Group conformers now share forward-kinematics scans and each member's inverse
+kinematics runs in batches. Global DOF destinations are transferred/validated
+in bulk. Each native call handles at most 4096 atom rows, except an indivisible
+single group larger than that. This bounds transform workspace without dropping
+conformers or changing the configured sampling budget.
+
+Final tests: **17 CPU + 17 CUDA pass**, including scalar-versus-batch comparisons
+in float32/float64, empty/one/multiple conformers, chunk boundaries, a reused
+sampler on two real poses with different anchor geometry, and full biotin,
+O-glycan and N-glycan packing/bond/energy checks (CUDA job 240294). Full rotamer
+arrays match the scalar implementation exactly on CPU and within 0.000046 Å
+maximum coordinate difference on CUDA; existing bond and score tolerances pass.
+
+Seven alternating-order warm samples against `09258fbad`, with identical
+rotamer counts, show group-stage speedups of 2.93–3.21× on CPU and 7.25–8.41×
+on CUDA. Full rotamer construction latency falls 6–11% on CPU and 21–33% on
+CUDA. These do not measure the full annealing/packing pipeline.
+
+CUDA temporary group-stage allocation peaks are 1.31–1.44 MB, compared with
+0.54–0.70 MB for the scalar loop. The initial unbounded batch version needed
+up to 3.38 MB. Bounded batches retain most of its speedup with less temporary
+memory, but do not claim lower memory than the scalar baseline. Measurements
+exclude persistent input/output tensors and report PyTorch allocated memory,
+not CUDA allocator reservations. See `profile_group_kinematics.py` and
+`results/group-kinematics-chunks-{cpu,cuda}.json`; the initial unbounded-batch
+measurements are retained as `results/group-kinematics-{cpu,cuda}.json`.

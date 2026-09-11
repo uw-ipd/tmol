@@ -186,7 +186,7 @@ Fixed and tested on CPU/CUDA: cache validity includes sampler settings and relev
 
 > Can nodes/scans/generations and the atom-order conversion be constructed once outside this loop? They are invariant across conformers, but currently allocate and transfer on every iteration. A later improvement could combine conformers into one kinforest so forward/inverse kinematics and per-member scalar reads are batched too.
 
-Invariant allocations hoisted in this branch. No claim of measured end-to-end group-packing speedup.
+Addressed with invariant allocation hoisting and bounded forward/inverse-kinematics batches. Final scalar parity, chunk-boundary, multi-pose reuse and full group packing tests pass on CPU/CUDA. Paired full-rotamer construction latency falls 6–11% on CPU and 21–33% on CUDA, with a measured temporary-memory increase; see [FOLLOWUP.md](FOLLOWUP.md). This is not an end-to-end annealing/packing speedup claim.
 
 ### 16. P2 — quadratic CIF array assembly
 

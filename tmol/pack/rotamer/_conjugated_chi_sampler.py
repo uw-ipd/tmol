@@ -25,7 +25,6 @@ from tmol.types import Tensor, validate_args
 from tmol.chemical import RefinedResidueType
 from tmol.pose import PackedBlockTypes, PoseStack
 from tmol.pose._util import get_named_torsions
-from tmol.kinematics import KinForest
 from tmol.pack.rotamer._chi_sampler import ChiSampler
 from tmol.pack.rotamer._conformer_sampler import sc_roots_for_chis
 from tmol.pack.rotamer._conjugated_groups import (
@@ -41,6 +40,102 @@ from tmol.pack._packer_task import (
 def _heavy_chi(rt: RefinedResidueType):
     """The chi this sampler is responsible for: sampled, and not a proton chi."""
     return [cs for cs in rt.chi_samples if not cs.is_proton]
+
+
+# Bound each native transform workspace; a single larger group is indivisible.
+_KINEMATICS_BATCH_ATOMS = 4096
+
+
+def _repeated_kinforest(rot_kf, count, device):
+    """Independent copies of a local tree, sharing only the global root."""
+    n_atoms = len(rot_kf.id)
+    local = numpy.stack(
+        [
+            rot_kf.id,
+            rot_kf.doftype,
+            rot_kf.parent + 1,
+            rot_kf.frame_x + 1,
+            rot_kf.frame_y + 1,
+            rot_kf.frame_z + 1,
+        ],
+        axis=1,
+    )
+    repeated = numpy.broadcast_to(local, (count, n_atoms, 6)).copy()
+    offsets = numpy.arange(count, dtype=numpy.int32)[:, None] * n_atoms
+    repeated[:, :, 0] += offsets
+    repeated[:, :, 2:] += numpy.where(local[None, :, 2:] > 0, offsets[:, :, None], 0)
+    root = numpy.array([[-1, 0, 0, 0, 0, 0]], dtype=numpy.int32)
+    return torch.tensor(
+        numpy.concatenate([root, repeated.reshape(-1, 6)]),
+        dtype=torch.int32,
+        device=device,
+    )
+
+
+def _fold_group_conformers(rot_kf, dofs):
+    """Fold conformers in bounded scans; return original atom order."""
+    from tmol.kinematics.compiled import forward_only_op
+
+    count, n_nodes = dofs.shape[:2]
+    n_atoms = n_nodes - 1
+    if count == 0:
+        return dofs.new_empty((0, n_atoms, 3))
+    chunk = max(1, _KINEMATICS_BATCH_ATOMS // n_atoms)
+    if count > chunk:
+        return torch.cat(
+            [
+                _fold_group_conformers(rot_kf, dofs[start : start + chunk])
+                for start in range(0, count, chunk)
+            ]
+        )
+    offsets = numpy.arange(count, dtype=numpy.int32)[:, None] * n_atoms
+    node_parts, scan_parts = [], []
+    for (n0, s0), (n1, s1) in zip(rot_kf.gens[:-1], rot_kf.gens[1:]):
+        nodes = rot_kf.nodes[n0:n1]
+        node_parts.append((nodes + numpy.where(nodes > 0, offsets, 0)).ravel())
+        scan_parts.append(
+            (rot_kf.scans[s0:s1] + numpy.arange(count)[:, None] * (n1 - n0)).ravel()
+        )
+    stack = _repeated_kinforest(rot_kf, count, dofs.device)
+    coords = forward_only_op(
+        torch.cat([dofs[0, :1], dofs[:, 1:].reshape(-1, 9)]),
+        torch.tensor(
+            numpy.concatenate(node_parts), dtype=torch.int32, device=dofs.device
+        ),
+        torch.tensor(
+            numpy.concatenate(scan_parts), dtype=torch.int32, device=dofs.device
+        ),
+        torch.tensor(rot_kf.gens * count, dtype=torch.int32, device="cpu"),
+        stack,
+    )
+    original_order = torch.tensor(numpy.argsort(rot_kf.id), device=dofs.device)
+    return coords[1:].reshape(count, n_atoms, 3)[:, original_order]
+
+
+def _measure_member_dofs(rot_kf, coords):
+    """Measure copies of one member in bounded inverse-kinematics batches."""
+    from tmol.kinematics.compiled import inverse_kin
+
+    count, n_atoms = coords.shape[:2]
+    if count == 0:
+        return coords.new_empty((0, n_atoms, 9))
+    chunk = max(1, _KINEMATICS_BATCH_ATOMS // n_atoms)
+    if count > chunk:
+        return torch.cat(
+            [
+                _measure_member_dofs(rot_kf, coords[start : start + chunk])
+                for start in range(0, count, chunk)
+            ]
+        )
+    stack = _repeated_kinforest(rot_kf, count, coords.device)
+    atom_order = torch.tensor(rot_kf.id, dtype=torch.int64, device=coords.device)
+    ordered = torch.cat(
+        [coords.new_zeros((1, 3)), coords[:, atom_order].reshape(-1, 3)]
+    )
+    dofs = inverse_kin(
+        ordered, stack[:, 2], stack[:, 3], stack[:, 4], stack[:, 5], stack[:, 1]
+    )
+    return dofs[1:].reshape(count, n_atoms, 9)
 
 
 @attr.s(auto_attribs=True)
@@ -366,58 +461,22 @@ class ConjugatedChiSampler(ChiSampler):
         across the bond: a member's placement comes from where the group put it,
         not from where it started.
         """
-        from tmol.kinematics.compiled import inverse_kin, forward_only_op
         from tmol.pack.rotamer._single_residue_kinforest import (
             construct_single_residue_kinforest,
         )
 
         pbt = pose_stack.packed_block_types
-        device = pose_stack.device
-
-        def _p(t):
-            return torch.nn.Parameter(t, requires_grad=False)
-
-        def _t(x, d=device):
-            return torch.tensor(numpy.asarray(x, dtype=numpy.int32), device=d)
-
+        # One transfer for all destinations, not two scalar synchronizations
+        # for every member/conformer. Validate before indexing native outputs.
+        conf_indices = conf_inds_for_sampler.cpu().numpy()
+        dof_offsets = n_dof_atoms_offset_for_conformer.cpu().numpy()
+        if numpy.any((conf_indices < 0) | (conf_indices >= len(dof_offsets))):
+            raise IndexError("conjugated rotamer maps to an invalid global conformer")
+        destinations = dof_offsets[conf_indices] + 1
         for gi, (group, columns, conformers) in enumerate(sample_dict["groups"]):
-            kinforest, dofs, offsets = self.group_coords(
-                pose_stack, group, columns, conformers
-            )
+            _, dofs, offsets = self.group_coords(pose_stack, group, columns, conformers)
             rot_kf, _ = self._group_kinforest(pose_stack, group)
-            stack = _p(
-                torch.stack(
-                    [
-                        kinforest.id,
-                        kinforest.doftype,
-                        kinforest.parent,
-                        kinforest.frame_x,
-                        kinforest.frame_y,
-                        kinforest.frame_z,
-                    ],
-                    dim=1,
-                )
-            )
-            n_group_atoms = int(offsets[-1])
-            nodes = _p(_t(rot_kf.nodes))
-            scans = _p(_t(rot_kf.scans))
-            gens = _p(_t(rot_kf.gens, torch.device("cpu")))
-            atom_order = kinforest.id[1:].to(torch.int64)
-            folded = []
-            for i in range(dofs.shape[0]):
-                kco = forward_only_op(
-                    dofs[i],
-                    nodes,
-                    scans,
-                    gens,
-                    stack,
-                )
-                rto = torch.zeros(
-                    (n_group_atoms, 3), dtype=torch.float32, device=device
-                )
-                rto[atom_order] = kco[1:]
-                folded.append(rto)
-
+            folded = _fold_group_conformers(rot_kf, dofs)
             for pgi, owner, gbt, first in sample_dict["plan"]:
                 if pgi != gi:
                     continue
@@ -426,42 +485,23 @@ class ConjugatedChiSampler(ChiSampler):
                     int(pose_stack.block_type_ind[group.pose, block])
                 ]
                 construct_single_residue_kinforest(bt)
-                mkf = bt.rotamer_kinforest
-                mk = KinForest(
-                    id=_t(numpy.concatenate([[-1], mkf.id])),
-                    doftype=_t(numpy.concatenate([[0], mkf.doftype])),
-                    parent=_t(numpy.concatenate([[0], mkf.parent + 1])),
-                    frame_x=_t(numpy.concatenate([[0], mkf.frame_x + 1])),
-                    frame_y=_t(numpy.concatenate([[0], mkf.frame_y + 1])),
-                    frame_z=_t(numpy.concatenate([[0], mkf.frame_z + 1])),
-                )
                 lo, hi = int(offsets[owner]), int(offsets[owner + 1])
-                for k in range(len(folded)):
-                    member = folded[k][lo:hi]
-                    kco = torch.cat(
-                        [
-                            torch.zeros((1, 3), dtype=torch.float32, device=device),
-                            member,
-                        ]
-                    )[mk.id.to(torch.int64) + 1]
-                    kco[0, :] = 0
-                    member_dofs = inverse_kin(
-                        kco, mk.parent, mk.frame_x, mk.frame_y, mk.frame_z, mk.doftype
+                member_dofs = _measure_member_dofs(
+                    bt.rotamer_kinforest, folded[:, lo:hi]
+                )
+                starts = destinations[first : first + len(folded)]
+                if len(starts) != len(folded) or numpy.any(
+                    (starts < 1) | (starts + hi - lo > conf_dofs_kto.shape[0])
+                ):
+                    raise IndexError(
+                        f"conjugated group block {block} maps outside the global dof rows"
                     )
-                    conf = int(conf_inds_for_sampler[first + k])
-                    off = int(n_dof_atoms_offset_for_conformer[conf]) + 1
-                    n_member = hi - lo
-                    if off + n_member > conf_dofs_kto.shape[0]:
-                        raise IndexError(
-                            f"conjugated rotamer {first + k} (group block "
-                            f"{block}, conformer {k}) maps to global conformer "
-                            f"{conf}, whose dof offset {off} leaves only "
-                            f"{conf_dofs_kto.shape[0] - off} rows for "
-                            f"{n_member} atoms; sampler rotamers "
-                            f"{conf_inds_for_sampler.shape[0]}, total dof rows "
-                            f"{conf_dofs_kto.shape[0]}"
-                        )
-                    conf_dofs_kto[off : off + n_member, :] = member_dofs[1:]
+                rows = torch.tensor(
+                    starts[:, None] + numpy.arange(hi - lo),
+                    dtype=torch.int64,
+                    device=pose_stack.device,
+                )
+                conf_dofs_kto[rows] = member_dofs
 
     def anchor_library_chi(self, pose_stack, task, groups):
         """The chi values a rotamer library offers each group's anchor.

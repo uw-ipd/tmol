@@ -1,0 +1,238 @@
+{
+  "cpu": {
+    "suites": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "17",
+        "time": "321.264",
+        "timestamp": "2026-09-11T12:06:49.845030+00:00",
+        "hostname": "slurm-login-0"
+      }
+    ],
+    "cases": [
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype0-biotin]",
+        "time": "5.730",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype0-nglycan]",
+        "time": "1.931",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype0-oglycan]",
+        "time": "6.572",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype1-biotin]",
+        "time": "0.507",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype1-nglycan]",
+        "time": "1.967",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype1-oglycan]",
+        "time": "4.289",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_reused_sampler_keeps_real_pose_groups_independent[cpu]",
+        "time": "1.398",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cpu-biotin]",
+        "time": "1.209",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cpu-nglycan]",
+        "time": "2.533",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cpu-oglycan]",
+        "time": "4.256",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_a_group_is_sampled_as_the_product_of_its_parts[cpu]",
+        "time": "0.562",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cpu-biotin]",
+        "time": "10.593",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cpu-nglycan]",
+        "time": "46.945",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cpu-oglycan]",
+        "time": "87.322",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cpu-biotin]",
+        "time": "10.695",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cpu-nglycan]",
+        "time": "46.651",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cpu-oglycan]",
+        "time": "87.883",
+        "status": "pass"
+      }
+    ]
+  },
+  "cuda": {
+    "suites": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "17",
+        "time": "60.918",
+        "timestamp": "2026-09-11T12:06:54.544982+00:00",
+        "hostname": "slurm-h200-interactive-244-105"
+      }
+    ],
+    "cases": [
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype0-biotin]",
+        "time": "5.877",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype0-nglycan]",
+        "time": "1.954",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype0-oglycan]",
+        "time": "8.203",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype1-biotin]",
+        "time": "0.692",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype1-nglycan]",
+        "time": "1.909",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype1-oglycan]",
+        "time": "4.666",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_reused_sampler_keeps_real_pose_groups_independent[cuda]",
+        "time": "1.588",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cuda-biotin]",
+        "time": "1.452",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cuda-nglycan]",
+        "time": "2.786",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cuda-oglycan]",
+        "time": "4.967",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_a_group_is_sampled_as_the_product_of_its_parts[cuda]",
+        "time": "0.776",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cuda-biotin]",
+        "time": "2.929",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cuda-nglycan]",
+        "time": "4.833",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cuda-oglycan]",
+        "time": "5.064",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cuda-biotin]",
+        "time": "3.059",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cuda-nglycan]",
+        "time": "4.685",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cuda-oglycan]",
+        "time": "5.242",
+        "status": "pass"
+      }
+    ]
+  }
+}
