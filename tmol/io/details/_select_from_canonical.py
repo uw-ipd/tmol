@@ -1108,7 +1108,10 @@ def _annotate_packed_block_types_w_canonical_res_order(
         #    by which atoms are present: it differs from its base by a hydrogen
         #    that a structure need not model, so it would always look the
         #    better match
-        if pbt.conjugation_atoms_for_bt[i]:
+        # A user-defined ligand fragment already names its final chemistry.
+        # Its cut-bond connections are restored by apply_fragment_connections;
+        # there is no unconjugated fragment type to select first.
+        if pbt.conjugation_atoms_for_bt[i] and not bt.is_ligand_fragment:
             continue
         term_ind, spcase_var_ind, bt_is_non_default_term = _assign_var_inds_for_bt(
             co, bt

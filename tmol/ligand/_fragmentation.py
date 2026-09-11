@@ -738,6 +738,21 @@ def expand_fragmented_ligands(  # noqa: C901
     )
     expanded.set_annotation("res_id", np.asarray(output_residue_labels, dtype=np.int32))
 
+    # Cut bonds belong to the prepared fragment mapping and are installed by
+    # apply_fragment_connections. Leaving them in the input bond table makes
+    # canonical conversion request conjugation patches for the same cuts.
+    # Preserve all bonds within fragments and between original residues.
+    if expanded.bonds is not None:
+        original_residue = np.repeat(
+            np.arange(len(residue_starts)), residue_ends - residue_starts
+        )[atom_order]
+        bonds = expanded.bonds.as_array()
+        a, b = bonds[:, 0], bonds[:, 1]
+        is_cut = (original_residue[a] == original_residue[b]) & (
+            expanded.res_id[a] != expanded.res_id[b]
+        )
+        expanded.bonds = struc.BondList(expanded.array_length(), bonds[~is_cut])
+
     n_poses = len(structure) if isinstance(structure, struc.AtomArrayStack) else 1
     blocks = tuple(
         replace(record, pose_index=pose_index)
