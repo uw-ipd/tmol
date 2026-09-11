@@ -108,7 +108,9 @@ class NaChiRotamerSampler(ChiSampler):
         p["chi1_atom"] = -1 if chi1 is None else chi1[2][0]
         # one residue at a time, so the budget is per residue: no grouping, but
         #    the same limits the rest of the packer applies
-        sampled = list(rt.chi_samples)
+        # Protein/ligand chi must not enlarge this sampler's Cartesian product
+        # or padded tensors. Other samplers own those residues.
+        sampled = list(rt.chi_samples) if p["base"] >= 0 else []
         if sampled:
             construct_single_residue_kinforest(rt)
             depths = chi_depths(

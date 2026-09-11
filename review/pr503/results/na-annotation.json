@@ -1,0 +1,87 @@
+{
+  "before": [
+    {
+      "fixture": "cif/1UBQ.cif",
+      "seconds": 0.05737023241817951,
+      "shape": [
+        230,
+        81,
+        3
+      ],
+      "bytes": 223560
+    },
+    {
+      "fixture": "covalent_fixtures/nglycan_tree_1ax2.cif",
+      "seconds": 0.08468969911336899,
+      "shape": [
+        268,
+        243,
+        5
+      ],
+      "bytes": 1302480
+    },
+    {
+      "fixture": "covalent_fixtures/oglycan_sia_1g1s.cif",
+      "seconds": 0.08374866005033255,
+      "shape": [
+        262,
+        243,
+        5
+      ],
+      "bytes": 1273320
+    },
+    {
+      "fixture": "ncaa_fixtures/na_rna_psu_1bzt.cif",
+      "seconds": 0.06321159191429615,
+      "shape": [
+        236,
+        81,
+        3
+      ],
+      "bytes": 229392
+    }
+  ],
+  "after": [
+    {
+      "fixture": "cif/1UBQ.cif",
+      "seconds": 0.037586999125778675,
+      "shape": [
+        230,
+        81,
+        3
+      ],
+      "bytes": 223560
+    },
+    {
+      "fixture": "covalent_fixtures/nglycan_tree_1ax2.cif",
+      "seconds": 0.03682779707014561,
+      "shape": [
+        268,
+        81,
+        3
+      ],
+      "bytes": 260496
+    },
+    {
+      "fixture": "covalent_fixtures/oglycan_sia_1g1s.cif",
+      "seconds": 0.03511810954660177,
+      "shape": [
+        262,
+        81,
+        3
+      ],
+      "bytes": 254664
+    },
+    {
+      "fixture": "ncaa_fixtures/na_rna_psu_1bzt.cif",
+      "seconds": 0.039594667963683605,
+      "shape": [
+        236,
+        81,
+        3
+      ],
+      "bytes": 229392
+    }
+  ],
+  "method": "One annotation per fresh prepared database, CPU torch 2.8, OMP_NUM_THREADS=2. Timing is diagnostic, not repeated benchmark; tensor sizes are exact."
+}

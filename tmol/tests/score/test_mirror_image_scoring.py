@@ -88,13 +88,20 @@ def test_repacking_a_d_structure_keeps_it_d(symmetric_gly_db, torch_device) -> N
     all or place the sidechain as its mirror image. Only the handedness is
     checked: a tautomer or protonation state is a packing degree of freedom.
     """
-    from tmol.pack import PackerPalette, PackerTask, pack_rotamers
-    from tmol.pack.rotamer import FixedAAChiSampler, IncludeCurrentSampler
+    from tmol.pack import PackerPalette, PackerTask, SetPackerTask, pack_rotamers
+    from tmol.pack.rotamer import (
+        FixedAAChiSampler,
+        IncludeCurrentSampler,
+        build_rotamers,
+    )
     from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
 
     pose_stack = _pose(f"{MIRROR_PAIR}_d", symmetric_gly_db, torch_device)
     before = _chirality(pose_stack)
     assert "d" in before, "fixture is not D"
+    volumes_before = _alpha_volumes(pose_stack)
+    assert volumes_before
+    assert all(abs(v) > 0.2 for v in volumes_before.values())
 
     task = PackerTask(pose_stack, PackerPalette())
     task.restrict_to_repacking()
@@ -104,10 +111,34 @@ def test_repacking_a_d_structure_keeps_it_d(symmetric_gly_db, torch_device) -> N
         create_dunbrack_sampler_from_database(symmetric_gly_db, torch_device)
     )
 
+    # Check every offered conformer, not just the winning input rotamer.
+    rot_pose, rotamers = build_rotamers(
+        pose_stack, SetPackerTask.from_packer_task(task), symmetric_gly_db.chemical
+    )
+    coords = rotamers.coords.detach().cpu().numpy()
+    types = rot_pose.packed_block_types.active_block_types
+    for index, (pose, block, bt, offset) in enumerate(
+        zip(
+            rotamers.pose_for_rot.cpu().tolist(),
+            rotamers.block_ind_for_rot.cpu().tolist(),
+            rotamers.block_type_ind_for_rot.cpu().tolist(),
+            rotamers.coord_offset_for_rot.cpu().tolist(),
+        )
+    ):
+        expected = volumes_before.get((pose, block))
+        if expected is None:
+            continue
+        volume = _alpha_volume(coords, offset, types[bt])
+        assert volume * expected > 0, f"rotamer {index} inverted the alpha stereocentre"
+
     sfxn = beta2016_score_function(torch_device, param_db=symmetric_gly_db)
     repacked = pack_rotamers(pose_stack, sfxn, task)
 
     assert _chirality(repacked) == before
+    volumes_after = _alpha_volumes(repacked)
+    assert volumes_after.keys() == volumes_before.keys()
+    for key, value in volumes_after.items():
+        assert value * volumes_before[key] > 0, f"packed block {key} inverted chirality"
 
     total = sum(_scores_by_term(repacked, sfxn).values())
     assert numpy.isfinite(total)
@@ -121,3 +152,24 @@ def _chirality(pose_stack):
         for ind in pose_stack.block_type_ind[0]
         if int(ind) >= 0
     ]
+
+
+def _alpha_volume(coords, offset, block_type):
+    ca, n, c, cb = [
+        coords[offset + block_type.atom_to_idx[name]] for name in ("CA", "N", "C", "CB")
+    ]
+    return float(numpy.dot(numpy.cross(n - ca, c - ca), cb - ca))
+
+
+def _alpha_volumes(pose):
+    coords = pose.coords.detach().cpu().numpy()
+    types = pose.packed_block_types.active_block_types
+    result = {}
+    for p in range(pose.n_poses):
+        for b, ind in enumerate(pose.block_type_ind[p].cpu().tolist()):
+            if ind < 0 or not {"CA", "N", "C", "CB"} <= types[ind].atom_to_idx.keys():
+                continue
+            result[p, b] = _alpha_volume(
+                coords[p], int(pose.block_coord_offset[p, b]), types[ind]
+            )
+    return result
