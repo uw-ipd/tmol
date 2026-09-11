@@ -9,7 +9,7 @@ component name raise before preparation.
 
 This audit used the local `atomworks-dev` checkout at
 `a1bda7edfcf325bc140091889b9745220adb5eba`. The improvements are on the separate
-local branch `review/tmol-pr503-shared-chemistry`, commit `44641189`, in
+local branch `review/tmol-pr503-shared-chemistry`, commit `0e4ffe8f`, in
 `/mnt/home/kdidi/projects/atomworks-tmol-pr503-review`.
 
 ## Overlap and recommended ownership
@@ -147,3 +147,36 @@ See [check_dimorphite_contract.py](check_dimorphite_contract.py),
 `results/dimorphite-contract.json` (AtomWorks `cdda3c07`) and
 `results/dimorphite-contract-after.json` (`44641189`), both compared against
 tmol's engine from `6b7071d54` in the same RDKit 2026.3.6 CPU environment.
+
+## Fixed rule compilation and remaining rule-file difference
+
+Both engines now compile one fixed rule set and derive states for each request.
+Public loader results own independent query molecules and nested state lists;
+the direct molecule API borrows private queries for read-only matching. The
+cache stores neither input molecules nor an expanding history of pH values.
+All 40 affected AtomWorks tests and six tmol cache regressions pass.
+
+The paired direct-API benchmark improves AtomWorks **1.493→0.515 ms per molecule
+(2.90×)**. Tmol's previously cached warm calls take **0.509→0.527 ms (3.5% slower)**,
+while retained traced Python allocations across 500 distinct pH requests fall
+**16.10→0.065 MB**. AtomWorks adds about 10 KB of retained traced Python data for
+its fixed cache (34→44 KB). These are seven alternating-order warm pairs over
+21 molecule/pH cases, excluding imports and full parameter/conformer generation.
+Full ordered chemical/map inventories and all rules under 15 pH-range/precision
+settings match each project's unchanged baseline. Tracemalloc does not include
+native RDKit allocations. See `profile_dimorphite_cache.py` and
+`results/{atomworks,tmol}-dimorphite-cache.json`.
+
+The expanded compatibility audit is now 33 molecule/pH cases. Identity is
+preserved in every case, but four ordered chemical-state inventories differ:
+enamine and vinylogous amide at pH 2 and 7.4. Tmol includes a distinct `Enamine`
+rule with pKa 1 ± 1 ahead of the generic amine rule; AtomWorks does not. The
+benchmark preserves that difference. Which rule set becomes the shared default,
+and whether tmol needs an explicit versioned rule profile, remain open scientific/
+API questions. Neither engine should be selected implicitly by import availability.
+See `results/dimorphite-contract-expanded.json`.
+
+The 19-fixture CPU input/preparation/construction/scoring/gradient/rotamer matrix
+passes again after the rule-cache change. See
+`results/atomworks-rule-cache-matrix.json`. This is stage validation, not proof
+of correct Cartesian minimization or of the missing attachment bond potentials.

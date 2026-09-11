@@ -1,0 +1,1483 @@
+[
+  {
+    "name": "acetate",
+    "ph": 2.0,
+    "source": {
+      "smiles": "CC(=O)[O-]",
+      "mapped_smiles": "[CH3:1][C:2](=[O:3])[O-:4]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "CC(=O)O",
+        "mapped_smiles": "[CH3:1][C:2](=[O:3])[OH:4]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "CC(=O)O",
+        "mapped_smiles": "[CH3:1][C:2](=[O:3])[OH:4]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    ]
+  },
+  {
+    "name": "acetate",
+    "ph": 7.4,
+    "source": {
+      "smiles": "CC(=O)[O-]",
+      "mapped_smiles": "[CH3:1][C:2](=[O:3])[O-:4]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "CC(=O)[O-]",
+        "mapped_smiles": "[CH3:1][C:2](=[O:3])[O-:4]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "CC(=O)[O-]",
+        "mapped_smiles": "[CH3:1][C:2](=[O:3])[O-:4]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    ]
+  },
+  {
+    "name": "acetate",
+    "ph": 12.0,
+    "source": {
+      "smiles": "CC(=O)[O-]",
+      "mapped_smiles": "[CH3:1][C:2](=[O:3])[O-:4]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "CC(=O)[O-]",
+        "mapped_smiles": "[CH3:1][C:2](=[O:3])[O-:4]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "CC(=O)[O-]",
+        "mapped_smiles": "[CH3:1][C:2](=[O:3])[O-:4]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    ]
+  },
+  {
+    "name": "ethylammonium",
+    "ph": 2.0,
+    "source": {
+      "smiles": "CC[NH3+]",
+      "mapped_smiles": "[CH3:1][CH2:2][NH3+:3]",
+      "heavy_maps": [
+        1,
+        2,
+        3
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "CC[NH3+]",
+        "mapped_smiles": "[CH3:1][CH2:2][NH3+:3]",
+        "heavy_maps": [
+          1,
+          2,
+          3
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "CC[NH3+]",
+        "mapped_smiles": "[CH3:1][CH2:2][NH3+:3]",
+        "heavy_maps": [
+          1,
+          2,
+          3
+        ]
+      }
+    ]
+  },
+  {
+    "name": "ethylammonium",
+    "ph": 7.4,
+    "source": {
+      "smiles": "CC[NH3+]",
+      "mapped_smiles": "[CH3:1][CH2:2][NH3+:3]",
+      "heavy_maps": [
+        1,
+        2,
+        3
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "CC[NH3+]",
+        "mapped_smiles": "[CH3:1][CH2:2][NH3+:3]",
+        "heavy_maps": [
+          1,
+          2,
+          3
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "CC[NH3+]",
+        "mapped_smiles": "[CH3:1][CH2:2][NH3+:3]",
+        "heavy_maps": [
+          1,
+          2,
+          3
+        ]
+      }
+    ]
+  },
+  {
+    "name": "ethylammonium",
+    "ph": 12.0,
+    "source": {
+      "smiles": "CC[NH3+]",
+      "mapped_smiles": "[CH3:1][CH2:2][NH3+:3]",
+      "heavy_maps": [
+        1,
+        2,
+        3
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "CCN",
+        "mapped_smiles": "[CH3:1][CH2:2][NH2:3]",
+        "heavy_maps": [
+          1,
+          2,
+          3
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "CCN",
+        "mapped_smiles": "[CH3:1][CH2:2][NH2:3]",
+        "heavy_maps": [
+          1,
+          2,
+          3
+        ]
+      }
+    ]
+  },
+  {
+    "name": "azidoethane",
+    "ph": 2.0,
+    "source": {
+      "smiles": "CCN=[N+]=[N-]",
+      "mapped_smiles": "[CH3:1][CH2:2][N:3]=[N+:4]=[N-:5]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "CCN=[N+]=[N-]",
+        "mapped_smiles": "[CH3:1][CH2:2][N:3]=[N+:4]=[N-:5]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "CCN=[N+]=[N-]",
+        "mapped_smiles": "[CH3:1][CH2:2][N:3]=[N+:4]=[N-:5]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    ]
+  },
+  {
+    "name": "azidoethane",
+    "ph": 7.4,
+    "source": {
+      "smiles": "CCN=[N+]=[N-]",
+      "mapped_smiles": "[CH3:1][CH2:2][N:3]=[N+:4]=[N-:5]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "CCN=[N+]=[N-]",
+        "mapped_smiles": "[CH3:1][CH2:2][N:3]=[N+:4]=[N-:5]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "CCN=[N+]=[N-]",
+        "mapped_smiles": "[CH3:1][CH2:2][N:3]=[N+:4]=[N-:5]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    ]
+  },
+  {
+    "name": "azidoethane",
+    "ph": 12.0,
+    "source": {
+      "smiles": "CCN=[N+]=[N-]",
+      "mapped_smiles": "[CH3:1][CH2:2][N:3]=[N+:4]=[N-:5]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "CCN=[N+]=[N-]",
+        "mapped_smiles": "[CH3:1][CH2:2][N:3]=[N+:4]=[N-:5]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "CCN=[N+]=[N-]",
+        "mapped_smiles": "[CH3:1][CH2:2][N:3]=[N+:4]=[N-:5]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    ]
+  },
+  {
+    "name": "nitroethane",
+    "ph": 2.0,
+    "source": {
+      "smiles": "CC[N+](=O)[O-]",
+      "mapped_smiles": "[CH3:1][CH2:2][N+:3](=[O:4])[O-:5]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "CC[N+](=O)[O-]",
+        "mapped_smiles": "[CH3:1][CH2:2][N+:3](=[O:4])[O-:5]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "CC[N+](=O)[O-]",
+        "mapped_smiles": "[CH3:1][CH2:2][N+:3](=[O:4])[O-:5]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    ]
+  },
+  {
+    "name": "nitroethane",
+    "ph": 7.4,
+    "source": {
+      "smiles": "CC[N+](=O)[O-]",
+      "mapped_smiles": "[CH3:1][CH2:2][N+:3](=[O:4])[O-:5]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "CC[N+](=O)[O-]",
+        "mapped_smiles": "[CH3:1][CH2:2][N+:3](=[O:4])[O-:5]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "CC[N+](=O)[O-]",
+        "mapped_smiles": "[CH3:1][CH2:2][N+:3](=[O:4])[O-:5]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    ]
+  },
+  {
+    "name": "nitroethane",
+    "ph": 12.0,
+    "source": {
+      "smiles": "CC[N+](=O)[O-]",
+      "mapped_smiles": "[CH3:1][CH2:2][N+:3](=[O:4])[O-:5]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "CC[N+](=O)[O-]",
+        "mapped_smiles": "[CH3:1][CH2:2][N+:3](=[O:4])[O-:5]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "CC[N+](=O)[O-]",
+        "mapped_smiles": "[CH3:1][CH2:2][N+:3](=[O:4])[O-:5]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    ]
+  },
+  {
+    "name": "cysteine",
+    "ph": 2.0,
+    "source": {
+      "smiles": "N[C@@H](CS)C(=O)O",
+      "mapped_smiles": "[NH2:1][C@@H:2]([CH2:3][SH:4])[C:5](=[O:6])[OH:7]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "[NH3+][C@@H](CS)C(=O)O",
+        "mapped_smiles": "[NH3+:1][C@@H:2]([CH2:3][SH:4])[C:5](=[O:6])[OH:7]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "[NH3+][C@@H](CS)C(=O)O",
+        "mapped_smiles": "[NH3+:1][C@@H:2]([CH2:3][SH:4])[C:5](=[O:6])[OH:7]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      }
+    ]
+  },
+  {
+    "name": "cysteine",
+    "ph": 7.4,
+    "source": {
+      "smiles": "N[C@@H](CS)C(=O)O",
+      "mapped_smiles": "[NH2:1][C@@H:2]([CH2:3][SH:4])[C:5](=[O:6])[OH:7]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "[NH3+][C@@H](CS)C(=O)[O-]",
+        "mapped_smiles": "[NH3+:1][C@@H:2]([CH2:3][SH:4])[C:5](=[O:6])[O-:7]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "[NH3+][C@@H](CS)C(=O)[O-]",
+        "mapped_smiles": "[NH3+:1][C@@H:2]([CH2:3][SH:4])[C:5](=[O:6])[O-:7]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      }
+    ]
+  },
+  {
+    "name": "cysteine",
+    "ph": 12.0,
+    "source": {
+      "smiles": "N[C@@H](CS)C(=O)O",
+      "mapped_smiles": "[NH2:1][C@@H:2]([CH2:3][SH:4])[C:5](=[O:6])[OH:7]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "N[C@@H](C[S-])C(=O)[O-]",
+        "mapped_smiles": "[NH2:1][C@@H:2]([CH2:3][S-:4])[C:5](=[O:6])[O-:7]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "N[C@@H](C[S-])C(=O)[O-]",
+        "mapped_smiles": "[NH2:1][C@@H:2]([CH2:3][S-:4])[C:5](=[O:6])[O-:7]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      }
+    ]
+  },
+  {
+    "name": "histidine",
+    "ph": 2.0,
+    "source": {
+      "smiles": "N[C@@H](Cc1cnc[nH]1)C(=O)O",
+      "mapped_smiles": "[NH2:1][C@@H:2]([CH2:3][c:4]1[cH:5][n:6][cH:7][nH:8]1)[C:9](=[O:10])[OH:11]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "[NH3+][C@@H](Cc1c[nH+]c[nH]1)C(=O)O",
+        "mapped_smiles": "[NH3+:1][C@@H:2]([CH2:3][c:4]1[cH:5][nH+:6][cH:7][nH:8]1)[C:9](=[O:10])[OH:11]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "[NH3+][C@@H](Cc1c[nH+]c[nH]1)C(=O)O",
+        "mapped_smiles": "[NH3+:1][C@@H:2]([CH2:3][c:4]1[cH:5][nH+:6][cH:7][nH:8]1)[C:9](=[O:10])[OH:11]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ]
+      }
+    ]
+  },
+  {
+    "name": "histidine",
+    "ph": 7.4,
+    "source": {
+      "smiles": "N[C@@H](Cc1cnc[nH]1)C(=O)O",
+      "mapped_smiles": "[NH2:1][C@@H:2]([CH2:3][c:4]1[cH:5][n:6][cH:7][nH:8]1)[C:9](=[O:10])[OH:11]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "[NH3+][C@@H](Cc1cnc[nH]1)C(=O)[O-]",
+        "mapped_smiles": "[NH3+:1][C@@H:2]([CH2:3][c:4]1[cH:5][n:6][cH:7][nH:8]1)[C:9](=[O:10])[O-:11]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "[NH3+][C@@H](Cc1cnc[nH]1)C(=O)[O-]",
+        "mapped_smiles": "[NH3+:1][C@@H:2]([CH2:3][c:4]1[cH:5][n:6][cH:7][nH:8]1)[C:9](=[O:10])[O-:11]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ]
+      }
+    ]
+  },
+  {
+    "name": "histidine",
+    "ph": 12.0,
+    "source": {
+      "smiles": "N[C@@H](Cc1cnc[nH]1)C(=O)O",
+      "mapped_smiles": "[NH2:1][C@@H:2]([CH2:3][c:4]1[cH:5][n:6][cH:7][nH:8]1)[C:9](=[O:10])[OH:11]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "N[C@@H](Cc1cnc[nH]1)C(=O)[O-]",
+        "mapped_smiles": "[NH2:1][C@@H:2]([CH2:3][c:4]1[cH:5][n:6][cH:7][nH:8]1)[C:9](=[O:10])[O-:11]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "N[C@@H](Cc1cnc[nH]1)C(=O)[O-]",
+        "mapped_smiles": "[NH2:1][C@@H:2]([CH2:3][c:4]1[cH:5][n:6][cH:7][nH:8]1)[C:9](=[O:10])[O-:11]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ]
+      }
+    ]
+  },
+  {
+    "name": "phosphoserine",
+    "ph": 2.0,
+    "source": {
+      "smiles": "N[C@@H](COP(=O)(O)O)C(=O)O",
+      "mapped_smiles": "[NH2:1][C@@H:2]([CH2:3][O:4][P:5](=[O:6])([OH:7])[OH:8])[C:9](=[O:10])[OH:11]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "[NH3+][C@@H](COP(=O)(O)O)C(=O)O",
+        "mapped_smiles": "[NH3+:1][C@@H:2]([CH2:3][O:4][P:5](=[O:6])([OH:7])[OH:8])[C:9](=[O:10])[OH:11]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "[NH3+][C@@H](COP(=O)(O)O)C(=O)O",
+        "mapped_smiles": "[NH3+:1][C@@H:2]([CH2:3][O:4][P:5](=[O:6])([OH:7])[OH:8])[C:9](=[O:10])[OH:11]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ]
+      }
+    ]
+  },
+  {
+    "name": "phosphoserine",
+    "ph": 7.4,
+    "source": {
+      "smiles": "N[C@@H](COP(=O)(O)O)C(=O)O",
+      "mapped_smiles": "[NH2:1][C@@H:2]([CH2:3][O:4][P:5](=[O:6])([OH:7])[OH:8])[C:9](=[O:10])[OH:11]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "[NH3+][C@@H](COP(=O)([O-])[O-])C(=O)[O-]",
+        "mapped_smiles": "[NH3+:1][C@@H:2]([CH2:3][O:4][P:5](=[O:6])([O-:7])[O-:8])[C:9](=[O:10])[O-:11]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "[NH3+][C@@H](COP(=O)([O-])[O-])C(=O)[O-]",
+        "mapped_smiles": "[NH3+:1][C@@H:2]([CH2:3][O:4][P:5](=[O:6])([O-:7])[O-:8])[C:9](=[O:10])[O-:11]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ]
+      }
+    ]
+  },
+  {
+    "name": "phosphoserine",
+    "ph": 12.0,
+    "source": {
+      "smiles": "N[C@@H](COP(=O)(O)O)C(=O)O",
+      "mapped_smiles": "[NH2:1][C@@H:2]([CH2:3][O:4][P:5](=[O:6])([OH:7])[OH:8])[C:9](=[O:10])[OH:11]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "N[C@@H](COP(=O)([O-])[O-])C(=O)[O-]",
+        "mapped_smiles": "[NH2:1][C@@H:2]([CH2:3][O:4][P:5](=[O:6])([O-:7])[O-:8])[C:9](=[O:10])[O-:11]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "N[C@@H](COP(=O)([O-])[O-])C(=O)[O-]",
+        "mapped_smiles": "[NH2:1][C@@H:2]([CH2:3][O:4][P:5](=[O:6])([O-:7])[O-:8])[C:9](=[O:10])[O-:11]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ]
+      }
+    ]
+  },
+  {
+    "name": "enamine",
+    "ph": 2.0,
+    "source": {
+      "smiles": "C=CN(C)C",
+      "mapped_smiles": "[CH2:1]=[CH:2][N:3]([CH3:4])[CH3:5]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "C=CN(C)C",
+        "mapped_smiles": "[CH2:1]=[CH:2][N:3]([CH3:4])[CH3:5]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "C=C[NH+](C)C",
+        "mapped_smiles": "[CH2:1]=[CH:2][NH+:3]([CH3:4])[CH3:5]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    ]
+  },
+  {
+    "name": "enamine",
+    "ph": 7.4,
+    "source": {
+      "smiles": "C=CN(C)C",
+      "mapped_smiles": "[CH2:1]=[CH:2][N:3]([CH3:4])[CH3:5]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "C=CN(C)C",
+        "mapped_smiles": "[CH2:1]=[CH:2][N:3]([CH3:4])[CH3:5]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "C=C[NH+](C)C",
+        "mapped_smiles": "[CH2:1]=[CH:2][NH+:3]([CH3:4])[CH3:5]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    ]
+  },
+  {
+    "name": "enamine",
+    "ph": 12.0,
+    "source": {
+      "smiles": "C=CN(C)C",
+      "mapped_smiles": "[CH2:1]=[CH:2][N:3]([CH3:4])[CH3:5]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "C=CN(C)C",
+        "mapped_smiles": "[CH2:1]=[CH:2][N:3]([CH3:4])[CH3:5]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "C=CN(C)C",
+        "mapped_smiles": "[CH2:1]=[CH:2][N:3]([CH3:4])[CH3:5]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    ]
+  },
+  {
+    "name": "vinylogous_amide",
+    "ph": 2.0,
+    "source": {
+      "smiles": "CN(C)/C=C/C=O",
+      "mapped_smiles": "[O:1]=[CH:2]/[CH:3]=[CH:4]/[N:5]([CH3:6])[CH3:7]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "CN(C)/C=C/C=O",
+        "mapped_smiles": "[O:1]=[CH:2]/[CH:3]=[CH:4]/[N:5]([CH3:6])[CH3:7]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "C[NH+](C)/C=C/C=O",
+        "mapped_smiles": "[O:1]=[CH:2]/[CH:3]=[CH:4]/[NH+:5]([CH3:6])[CH3:7]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      }
+    ]
+  },
+  {
+    "name": "vinylogous_amide",
+    "ph": 7.4,
+    "source": {
+      "smiles": "CN(C)/C=C/C=O",
+      "mapped_smiles": "[O:1]=[CH:2]/[CH:3]=[CH:4]/[N:5]([CH3:6])[CH3:7]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "CN(C)/C=C/C=O",
+        "mapped_smiles": "[O:1]=[CH:2]/[CH:3]=[CH:4]/[N:5]([CH3:6])[CH3:7]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "C[NH+](C)/C=C/C=O",
+        "mapped_smiles": "[O:1]=[CH:2]/[CH:3]=[CH:4]/[NH+:5]([CH3:6])[CH3:7]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      }
+    ]
+  },
+  {
+    "name": "vinylogous_amide",
+    "ph": 12.0,
+    "source": {
+      "smiles": "CN(C)/C=C/C=O",
+      "mapped_smiles": "[O:1]=[CH:2]/[CH:3]=[CH:4]/[N:5]([CH3:6])[CH3:7]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "CN(C)/C=C/C=O",
+        "mapped_smiles": "[O:1]=[CH:2]/[CH:3]=[CH:4]/[N:5]([CH3:6])[CH3:7]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "CN(C)/C=C/C=O",
+        "mapped_smiles": "[O:1]=[CH:2]/[CH:3]=[CH:4]/[N:5]([CH3:6])[CH3:7]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      }
+    ]
+  },
+  {
+    "name": "guanidine",
+    "ph": 2.0,
+    "source": {
+      "smiles": "N=C(N)N",
+      "mapped_smiles": "[NH:1]=[C:2]([NH2:3])[NH2:4]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "NC(N)=[NH2+]",
+        "mapped_smiles": "[NH2+:1]=[C:2]([NH2:3])[NH2:4]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "NC(N)=[NH2+]",
+        "mapped_smiles": "[NH2+:1]=[C:2]([NH2:3])[NH2:4]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    ]
+  },
+  {
+    "name": "guanidine",
+    "ph": 7.4,
+    "source": {
+      "smiles": "N=C(N)N",
+      "mapped_smiles": "[NH:1]=[C:2]([NH2:3])[NH2:4]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "NC(N)=[NH2+]",
+        "mapped_smiles": "[NH2+:1]=[C:2]([NH2:3])[NH2:4]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "NC(N)=[NH2+]",
+        "mapped_smiles": "[NH2+:1]=[C:2]([NH2:3])[NH2:4]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    ]
+  },
+  {
+    "name": "guanidine",
+    "ph": 12.0,
+    "source": {
+      "smiles": "N=C(N)N",
+      "mapped_smiles": "[NH:1]=[C:2]([NH2:3])[NH2:4]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "N=C(N)N",
+        "mapped_smiles": "[NH:1]=[C:2]([NH2:3])[NH2:4]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "smiles": "NC(N)=[NH2+]",
+        "mapped_smiles": "[NH2+:1]=[C:2]([NH2:3])[NH2:4]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "N=C(N)N",
+        "mapped_smiles": "[NH:1]=[C:2]([NH2:3])[NH2:4]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "smiles": "NC(N)=[NH2+]",
+        "mapped_smiles": "[NH2+:1]=[C:2]([NH2:3])[NH2:4]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    ]
+  },
+  {
+    "name": "imine",
+    "ph": 2.0,
+    "source": {
+      "smiles": "CC=NCC",
+      "mapped_smiles": "[CH3:1][CH:2]=[N:3][CH2:4][CH3:5]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "CC=NCC",
+        "mapped_smiles": "[CH3:1][CH:2]=[N:3][CH2:4][CH3:5]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "CC=NCC",
+        "mapped_smiles": "[CH3:1][CH:2]=[N:3][CH2:4][CH3:5]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    ]
+  },
+  {
+    "name": "imine",
+    "ph": 7.4,
+    "source": {
+      "smiles": "CC=NCC",
+      "mapped_smiles": "[CH3:1][CH:2]=[N:3][CH2:4][CH3:5]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "CC=NCC",
+        "mapped_smiles": "[CH3:1][CH:2]=[N:3][CH2:4][CH3:5]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "CC=NCC",
+        "mapped_smiles": "[CH3:1][CH:2]=[N:3][CH2:4][CH3:5]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    ]
+  },
+  {
+    "name": "imine",
+    "ph": 12.0,
+    "source": {
+      "smiles": "CC=NCC",
+      "mapped_smiles": "[CH3:1][CH:2]=[N:3][CH2:4][CH3:5]",
+      "heavy_maps": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "tmol": [
+      {
+        "smiles": "CC=NCC",
+        "mapped_smiles": "[CH3:1][CH:2]=[N:3][CH2:4][CH3:5]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    ],
+    "atomworks": [
+      {
+        "smiles": "CC=NCC",
+        "mapped_smiles": "[CH3:1][CH:2]=[N:3][CH2:4][CH3:5]",
+        "heavy_maps": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    ]
+  }
+]

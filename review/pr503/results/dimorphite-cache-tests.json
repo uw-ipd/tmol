@@ -1,0 +1,29 @@
+{
+  "tmol_parent": "2188aff54",
+  "atomworks_parent": "44641189",
+  "source_sha256": {
+    "tmol": "1f6d4b7520b6a98eb56974bebb6e73d6364ab99f2e64651db2527933e44eb1d3",
+    "atomworks": "0e64f9cdb18301e8328a8a8d3960d9193343083a78e30e176a4608fe1c70e5d2"
+  },
+  "cpu_tests": {
+    "tmol": {
+      "command": "python -m pytest -q tmol/tests/ligand/test_dimorphite_cache.py",
+      "passed": 6
+    },
+    "atomworks": {
+      "command": "python -m pytest -q tests/io/utils/test_dimorphite_cache.py tests/io/utils/test_dimorphite_identity.py tests/io/utils/test_protonation.py",
+      "passed": 40
+    }
+  },
+  "integration": {
+    "command": "python review/pr503/profile_workloads.py --reader atomworks --device cpu --rotamers --repeats 1 --output <output>",
+    "passed": 19,
+    "failed": 0
+  },
+  "cross_project_contract": {
+    "cases": 33,
+    "identity_failures": 0,
+    "ordered_chemical_state_mismatches": 4,
+    "details": "Enamine and vinylogous amide at pH 2 and 7.4; rule files intentionally unchanged"
+  }
+}

@@ -54,6 +54,10 @@ def main():
         "cysteine": "N[C@@H](CS)C(=O)O",
         "histidine": "N[C@@H](Cc1cnc[nH]1)C(=O)O",
         "phosphoserine": "N[C@@H](COP(=O)(O)O)C(=O)O",
+        "enamine": "C=CN(C)C",
+        "vinylogous_amide": "O=C/C=C/N(C)C",
+        "guanidine": "N=C(N)N",
+        "imine": "CC=NCC",
     }
     rows = []
     for name, smiles in inputs.items():
@@ -72,6 +76,10 @@ def main():
                     row[label] = {"error": repr(error)}
             rows.append(row)
     args.output.write_text(json.dumps(rows, indent=2) + "\n")
+    print(
+        "ordered state mismatches",
+        [(row["name"], row["ph"]) for row in rows if row["tmol"] != row["atomworks"]],
+    )
     for label in engines:
         failures = sum(
             not isinstance(row[label], list)

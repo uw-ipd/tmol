@@ -65,6 +65,8 @@ This measures CIF missing-atom insertion, **not end-to-end packing/scoring accel
 10. **Scale and release:** What canonical-protein load/score/pack baseline is acceptable after eagerly adding mirrored tables and invoking group discovery in scoring setup? Can the PR be split along its existing commit sequence into import/preparation, score corrections, and group packing?
 11. **Shared AtomWorks chemistry:** Can AtomWorks own CIF completion and chemical annotations, with tmol consuming a completed AtomArray? Before replacing the default reader, which author/label identifiers, insertion codes, alternate locations, unresolved residues and CCD authority must be preserved? Can the copied Dimorphite and pre-protonation rules use one versioned shared API, while tmol keeps parameter generation and numerical scoring?
 
+12. **Shared rule provenance:** Tmol adds an enamine SMARTS rule with pKa 1 ± 1 that AtomWorks does not contain. What evidence supports its scope and values, and should it be a shared default or an explicit preparation profile? Direct replacement currently changes charge states for an enamine and a vinylogous amide at pH 2 and 7.4. Which complete rule inventory and model version should exported parameters record?
+
 ## Suggested inline comments
 
 Each item gives an upstream location, suggested comment, and what this branch does about it. “Reproduced” means exercised against PR code with only the missing import dependency supplied, not merely inferred from source.
@@ -374,6 +376,14 @@ Reproduced on follow-up commit `6b7071d54` and fixed: sampler/allowed-type masks
 The follow-up branch `026475f0e` still reproduces this omission for all **14** attachment bonds in the biotin/N-glycan/O-glycan fixtures (1/7/6 bonds). Rigid-component stretching and perpendicular bending produce cartbonded stiffness below `2e-13` on CPU and CUDA; the same probe gives the expected **369.445 kcal/mol/Å²** for three ordinary peptide-bond controls. Full CPU Cartesian minimization of the biotin atoms, holding the protein fixed, moves the unperturbed amide link from **1.329 to 1.660 Å** while lowering the weighted score from **−84.55 to −93.54**. Starting 0.5 or 1 Å farther out yields final lengths of **2.150 or 2.556 Å**. These are 100-iteration minimization reproductions, not claims of convergence to a global minimum.
 
 CUDA reproduces the full minimization failure: the same three starts finish at **1.658, 2.120 and 2.558 Å** (Slurm 244924). Unresolved. [diagnose_connection_stiffness.py](diagnose_connection_stiffness.py) records energies and analytic force projections, with a finite-difference stiffness from those forces. The required fix must give connection geometry explicit parameter ownership, preserve canonical/fragment parameters, avoid counting bonds twice, and cover score/gradient/packing/Cartesian-minimization paths. Repeated components with different partners cannot share parameters merely because their atom names match.
+
+### 39. P2 — protonation cache grows with every pH and exposes mutable rules
+
+[tmol/ligand/_dimorphite_dl.py:625](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/ligand/_dimorphite_dl.py#L625)
+
+> Can the cache retain the fixed compiled SMARTS rules instead of a fresh set of query molecules for every pH/precision tuple? `maxsize=None` retains every requested combination. It also returns the cached dictionaries and RDKit molecules directly, so modifying a public result changes subsequent calls. Keep compiled queries private and return owned nested state/query objects at public boundaries.
+
+Fixed on the follow-up in both engines. The direct molecule API borrows private read-only queries; public rule results own copies. Six new tests per project cover mutation, 500 distinct pH requests and interleaved states; AtomWorks' complete affected suite has 40 passes. The 500-pH direct-API benchmark reduces tmol retained traced Python allocations from **16.10 MB to 0.065 MB**, with a **3.5%** warm latency increase (0.509→0.527 ms per molecule). AtomWorks avoids recompilation and improves **1.493→0.515 ms** (**2.90×**); its retained traced Python allocation increases from 34 to 44 KB for the bounded rule cache. These are rule-engine measurements, not end-to-end preparation or total native/process-memory claims. See [profile_dimorphite_cache.py](profile_dimorphite_cache.py).
 
 ## Validation record
 

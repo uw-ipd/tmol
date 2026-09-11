@@ -622,7 +622,6 @@ class ProtSubstructFuncs:
         return lines
 
     @staticmethod
-    @functools.lru_cache(maxsize=None)
     def load_protonation_substructs_calc_state_for_ph(
         min_ph: float = 6.4, max_ph: float = 8.4, pka_std_range: float = 1
     ) -> list[dict[str, Any]]:
@@ -642,33 +641,57 @@ class ProtSubstructFuncs:
             A list of substructure dicts, each containing ``"name"``,
             ``"smart"``, ``"mol"``, and ``"prot_states_for_pH"``.
         """
-        subs: list[dict[str, Any]] = []
-
-        for line in ProtSubstructFuncs.load_substructre_smarts_file():
-            line = line.strip()
-            sub: dict[str, Any] = {}
-            if line != "":
-                splits = line.split()
-                sub["name"] = splits[0]
-                sub["smart"] = splits[1]
-                sub["mol"] = Chem.MolFromSmarts(sub["smart"])
-
-                pka_ranges = [splits[i : i + 3] for i in range(2, len(splits) - 1, 3)]
-
-                prot: list[list[Any]] = []
-                for pka_range in pka_ranges:
-                    site = pka_range[0]
-                    std = float(pka_range[2]) * pka_std_range
-                    mean = float(pka_range[1])
-                    protonation_state = ProtSubstructFuncs.define_protonation_state(
-                        mean, std, min_ph, max_ph
-                    )
-
-                    prot.append([site, protonation_state])
-
-                sub["prot_states_for_pH"] = prot
-                subs.append(sub)
+        # Public callers own both the nested state containers and RDKit queries.
+        subs = ProtSubstructFuncs._substructures_for_ph(min_ph, max_ph, pka_std_range)
+        for sub in subs:
+            sub["mol"] = Chem.Mol(sub["mol"])
         return subs
+
+    @staticmethod
+    @functools.lru_cache(maxsize=1)
+    def _compiled_substructures() -> (
+        tuple[tuple[str, str, Chem.Mol, tuple[tuple[str, float, float], ...]], ...]
+    ):
+        """Compile the fixed rule file once, independent of requested pH.
+
+        Queries stay private and are only used for read-only substructure
+        matching. Never retain input molecules or a growing set of pH values.
+        """
+        rules = []
+        for line in ProtSubstructFuncs.load_substructre_smarts_file():
+            fields = line.split()
+            if not fields:
+                continue
+            name, smart = fields[:2]
+            sites = tuple(
+                (fields[i], float(fields[i + 1]), float(fields[i + 2]))
+                for i in range(2, len(fields) - 1, 3)
+            )
+            rules.append((name, smart, Chem.MolFromSmarts(smart), sites))
+        return tuple(rules)
+
+    @staticmethod
+    def _substructures_for_ph(
+        min_ph: float, max_ph: float, pka_std_range: float
+    ) -> list[dict[str, Any]]:
+        """Fresh state containers borrowing private, read-only query molecules."""
+        return [
+            {
+                "name": name,
+                "smart": smart,
+                "mol": query,
+                "prot_states_for_pH": [
+                    [
+                        site,
+                        ProtSubstructFuncs.define_protonation_state(
+                            mean, std * pka_std_range, min_ph, max_ph
+                        ),
+                    ]
+                    for site, mean, std in sites
+                ],
+            }
+            for name, smart, query, sites in ProtSubstructFuncs._compiled_substructures()
+        ]
 
     @staticmethod
     def define_protonation_state(
@@ -1319,9 +1342,7 @@ def protonate_mol_variants(  # noqa: C901
     if prepared is None:
         return []
 
-    subs = ProtSubstructFuncs.load_protonation_substructs_calc_state_for_ph(
-        min_ph, max_ph, pka_precision
-    )
+    subs = ProtSubstructFuncs._substructures_for_ph(min_ph, max_ph, pka_precision)
     sites, mol_used_to_idx_sites = (
         ProtSubstructFuncs.get_prot_sites_and_target_states_from_mol(prepared, subs)
     )

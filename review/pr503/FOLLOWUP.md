@@ -14,7 +14,7 @@ historical evidence, not a claim that the follow-up is complete.
 | Group identity and safety (3–7,9,30,31,33–37) | Real multi-pose/multi-database groups, repeated chi names, jagged/empty counts, early rejection; native parity | Capped anchors, rigid cyclic cores, external attachments and sampled pendant branches tested CPU/CUDA, including packing and two-pose reuse; later masks now constrain geometry and ownership; task-dependent tests recorded below |
 | Sampling budgets/caches (8,14,27) | Explicit budget semantics; task propagation; immutable sampler reuse; actual library/extra/proton counts; reproducible HYP count | Explicit task overrides and actual group/library bounds implemented/tested CPU/CUDA; aggregate/default budget policy and adaptive library expansion remain open |
 | Residue identity/completion (10–12,16,32) | Insertion codes, chain identity, explicit/CCD authority, missing atoms, custom names; realistic scaling | Reader annotation reuse and finite-geometry repair checks pass; AtomWorks parser/converter profiles recorded; broader identity/authority contracts remain open |
-| Content/profile caches (13,20,29) | No serialization aliases; safe object lifetimes, bounded memory; repeated preparation | Content framing and shared bounded weak caches fixed for rotamer/alpha/NA profiles; identity/lifetime/LRU/concurrency tests pass; remaining caches still need audit |
+| Content/profile caches (13,20,29,39) | No serialization aliases; safe object lifetimes, bounded memory; repeated preparation | Content framing and shared bounded weak caches fixed for rotamer/alpha/NA profiles; identity/lifetime/LRU/concurrency tests pass; remaining caches still need audit |
 | Group kinematics/performance (15,17,35) | Profile CPU/GPU; batch invariant work; retain all covalent constraints for tree/cyclic/multiple-anchor topologies | Bounded conformer batches and 32-entry shape caches verified/profiled; independent axes preserve rigid cycles/external boundaries; task-imposed fixed members now constrain axes; correlated ring-pucker sampling remains open |
 | Native maintainability (18) | Shared improper enumeration with unchanged canonical scores and independent analytic/numeric derivatives | Shared helper in all four paths; canonical references, numerical gradients, independent Cartesian reference and group packing pass CPU/CUDA (238323, 238529) |
 | Duplicate work (19) | Removal covered by chemistry regression suite | Existing fix; final suite pending |
@@ -472,3 +472,58 @@ fragment parameters, and test all score/derivative/packing/minimization paths.
 An input distance or inherited hydrogen frame alone is not independently validated
 equilibrium geometry; the source of the generated link parameters must be explicit.
 Do not replace this gate with a zero-gradient check or a frozen-link workaround.
+
+### Connection parameter source exploration
+
+`diagnose_link_mmff_coverage.py` sets every coordinate to NaN before deriving
+bonded chemistry and queries RDKit's MMFF94 bond/angle parameters. All 15
+non-peptide attachment bonds in the source CIFs return parameters: the 14
+anchored-group links probed above plus the free NDG–GAL disaccharide in 1ax2.
+The pair-local and complete connected-group contexts give identical attachment
+bond/angle parameters, endpoint types and hydrogen counts in these fixtures.
+The biotin amide, N-glycosidic and O-glycosidic equilibrium lengths are 1.369,
+1.436 and 1.418 Å respectively. Results are in `results/link-mmff-coverage.json`.
+
+This identifies a possible topology-based source, not an implemented potential
+or independent parameter validation. RDKit's MMFF coefficients have their own
+units and anharmonic energy forms; copying them directly to tmol's harmonic
+terms would be incorrect. See the [RDKit parameter API](https://rdkit.org/docs/source/rdkit.ForceField.rdForceField.html)
+and [version-pinned bond energy implementation](https://github.com/rdkit/rdkit/blob/Release_2026_03_6/Code/ForceField/MMFF/BondStretch.cpp).
+Full partner chemistry, hydrogen-name mapping, retained intrablock geometry,
+exact/default parameter precedence, serialization and one-owner scoring remain
+implementation requirements. In particular, pair-local equivalence in these
+fixtures does not establish equivalence for arbitrary conjugations or cycles.
+
+### Bounded shared rule compilation
+
+Both engines now cache one fixed compiled rule set, independent of pH. State
+containers are created for the current request; the direct molecule path borrows
+private read-only queries. Public rule-loader results own the query molecules
+and nested state lists. No input molecules or pH history are retained. Tmol's
+previous unbounded pH cache and AtomWorks' per-request SMARTS compilation are
+removed. Six new tests pass per project, alongside all 34 AtomWorks identity/
+protonation tests (40 total). The 19-fixture AtomWorks integration rerun passes preparation, construction,
+finite scoring/gradients and rotamer construction on CPU. Its full stage records
+are in `results/atomworks-rule-cache-matrix.json`; this does not revalidate
+Cartesian minimization or the unresolved attachment energies.
+
+Seven alternating-order warm measurement pairs compare 21 molecule/pH cases,
+five repetitions per sample. All 21 ordered chemical/map inventories and all
+rules under 15 pH-range/precision settings match each engine's own baseline.
+AtomWorks improves 1.493→0.515 ms per molecule (2.90×). Tmol changes
+0.509→0.527 ms (3.5% slower); after 500 distinct pH requests its retained traced
+Python allocations fall from 16,104,673 to 64,783 bytes. AtomWorks retains
+33,604→43,598 bytes for its new bounded cache. Tracemalloc excludes native RDKit
+allocations and is not a total-process memory measurement. Raw timings/source
+hashes are in `results/{atomworks,tmol}-dimorphite-cache.json`.
+
+An expanded cross-project contract now covers 33 cases and finds four charge-
+state differences: enamine and vinylogous amide at pH 2 and 7.4. All 33 preserve
+heavy-atom maps. Tmol's additional `Enamine` SMARTS/pKa rule causes the difference;
+its scientific scope/default ownership needs an explicit decision before
+consolidating the rule files. The profiler initially detected the different
+rule files in the baseline snapshot; the reported per-engine benchmarks use
+each engine's own unchanged rules. No rule values were altered in this change.
+
+AtomWorks cache implementation is committed locally as `0e4ffe8f` on
+`review/tmol-pr503-shared-chemistry`; no AtomWorks remote was written.
