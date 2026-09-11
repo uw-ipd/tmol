@@ -1,0 +1,370 @@
+{
+  "parent_commit": "5c8863871d2bf7713138c15a9abb431645929577",
+  "upstream_head": "0593a93b07d80b0302383163d2d98c78e315ab98",
+  "final_sources_sha256": {
+    "tmol/tests/score/hbond/potentials/_compiled.py": "aac0ea810210b287b9ffc28c81aa5fe2aa11a8c211891f345b745b9a18ce12b5",
+    "tmol/tests/score/hbond/potentials/compiled.pybind.cpp": "2b5611a276828568115e9e9ba3e23f3a74d65d48006932383bfd57f387c7c41b",
+    "tmol/tests/score/hbond/potentials/test_potentials.py": "aee6cae692997fcdb74dbf6a629568d22f9ad2ca04ffc3f329b410ed9c1bb202"
+  },
+  "runs": [
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/hbond-point-before.xml",
+      "sha256": "e285e7a69d875530a4a79382cfb28faaf7a1835e39b2fd9ddca04b308bf79e4b",
+      "slurm_job": null,
+      "stage": "Two original xfail tests run with --runxfail",
+      "counts": {
+        "passed": 0,
+        "skipped": 0,
+        "failure": 2,
+        "error": 0
+      },
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "2",
+          "skipped": "0",
+          "tests": "2",
+          "time": "22.703",
+          "timestamp": "2026-09-11T21:42:38.438604+00:00",
+          "hostname": "slurm-login-0"
+        }
+      ],
+      "cases": [
+        {
+          "case": "tmol.tests.score.hbond.potentials.test_potentials::test_hbond_point_scores",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.score.hbond.potentials.test_potentials::test_hbond_point_scores_gradcheck",
+          "outcome": "failure"
+        }
+      ]
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/hbond-point-restored-cpu.xml",
+      "sha256": "5cf4b501e0cb571202aa23dea2bc2f8d91150f359730d6fb72f881e0c9837355",
+      "slurm_job": null,
+      "stage": "Restored host point and component value/gradient tests",
+      "counts": {
+        "passed": 10,
+        "skipped": 0,
+        "failure": 0,
+        "error": 0
+      },
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "10",
+          "time": "41.643",
+          "timestamp": "2026-09-11T21:47:59.100546+00:00",
+          "hostname": "slurm-login-0"
+        }
+      ],
+      "cases": [
+        {
+          "case": "tmol.tests.score.hbond.potentials.test_potentials::test_hbond_point_scores[sp2--2.4]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.potentials.test_potentials::test_hbond_point_scores[sp3--2.0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.potentials.test_potentials::test_hbond_point_scores[ring--2.17]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.potentials.test_potentials::test_hbond_point_scores_gradcheck[sp2--2.4]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.potentials.test_potentials::test_hbond_point_scores_gradcheck[sp3--2.0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.potentials.test_potentials::test_hbond_point_scores_gradcheck[ring--2.17]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.potentials.test_potentials::test_AH_dist_gradcheck",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.potentials.test_potentials::test_AHD_angle_gradcheck",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.potentials.test_potentials::test_BAH_angle_gradcheck",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.potentials.test_potentials::test_sp2_chi_energy_gradcheck",
+          "outcome": "passed"
+        }
+      ]
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/hbond-native-gpu.xml",
+      "sha256": "78c62d904c43ab45c948ea3ef6de638b2abedb413be3e505ffd71383a82d9a15",
+      "slurm_job": 249440,
+      "stage": "Entire HBond directory, host potential bindings and CPU/CUDA annotation, energy, gradient, pair coverage and cache tests",
+      "counts": {
+        "passed": 52,
+        "skipped": 0,
+        "failure": 0,
+        "error": 0
+      },
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "52",
+          "time": "28.859",
+          "timestamp": "2026-09-11T21:48:43.236073+00:00",
+          "hostname": "slurm-h200-interactive-244-105"
+        }
+      ],
+      "cases": [
+        {
+          "case": "tmol.tests.score.hbond.potentials.test_potentials::test_hbond_point_scores[sp2--2.4]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.potentials.test_potentials::test_hbond_point_scores[sp3--2.0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.potentials.test_potentials::test_hbond_point_scores[ring--2.17]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.potentials.test_potentials::test_hbond_point_scores_gradcheck[sp2--2.4]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.potentials.test_potentials::test_hbond_point_scores_gradcheck[sp3--2.0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.potentials.test_potentials::test_hbond_point_scores_gradcheck[ring--2.17]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.potentials.test_potentials::test_AH_dist_gradcheck",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.potentials.test_potentials::test_AHD_angle_gradcheck",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.potentials.test_potentials::test_BAH_angle_gradcheck",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.potentials.test_potentials::test_sp2_chi_energy_gradcheck",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_dependent_term::test_hbond_dep_term_annotate_block_types_smoke[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_dependent_term::test_hbond_dep_term_annotate_block_types_smoke[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_dependent_term::test_hbond_dep_term_annotate_packed_block_types_smoke[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_dependent_term::test_hbond_dep_term_annotate_packed_block_types_smoke[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_dependent_term::test_hbond_dep_term_setup_packed_block_types[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_dependent_term::test_hbond_dep_term_setup_packed_block_types[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_dependent_term::test_hbond_dep_term_setup_ser_block_type[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_dependent_term::test_hbond_dep_term_setup_ser_block_type[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_energy_term::test_smoke[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_energy_term::test_smoke[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_energy_term::test_hbond_in_sfxn[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_energy_term::test_hbond_in_sfxn[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_energy_term::test_annotate_restypes[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_energy_term::test_annotate_restypes[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_energy_term::test_whole_pose_scoring_module_smoke[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_energy_term::test_whole_pose_scoring_module_smoke[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_energy_term.TestHBondEnergyTerm::test_whole_pose_scoring_10[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_energy_term.TestHBondEnergyTerm::test_whole_pose_scoring_10[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_energy_term.TestHBondEnergyTerm::test_whole_pose_scoring_jagged[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_energy_term.TestHBondEnergyTerm::test_whole_pose_scoring_jagged[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_energy_term.TestHBondEnergyTerm::test_whole_pose_scoring_gradcheck[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_energy_term.TestHBondEnergyTerm::test_whole_pose_scoring_gradcheck[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_energy_term.TestHBondEnergyTerm::test_block_scoring_matches_whole_pose_scoring[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_energy_term.TestHBondEnergyTerm::test_block_scoring_matches_whole_pose_scoring[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_energy_term.TestHBondEnergyTerm::test_block_scoring[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_energy_term.TestHBondEnergyTerm::test_block_scoring[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_energy_term.TestHBondEnergyTerm::test_block_scoring_reweighted_gradcheck[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_energy_term.TestHBondEnergyTerm::test_block_scoring_reweighted_gradcheck[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_pair_coverage::test_every_donor_acceptor_pair_is_parameterized",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_hbond_pair_coverage::test_resolved_pair_params_are_finite",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_parameter_cache_lifetime::test_parameter_tables_are_bounded_and_either_owner_can_expire[cpu-chemical-HBondParamResolver]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_parameter_cache_lifetime::test_parameter_tables_are_bounded_and_either_owner_can_expire[cpu-chemical-CompactedHBondDatabase]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_parameter_cache_lifetime::test_parameter_tables_are_bounded_and_either_owner_can_expire[cpu-hbond-HBondParamResolver]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_parameter_cache_lifetime::test_parameter_tables_are_bounded_and_either_owner_can_expire[cpu-hbond-CompactedHBondDatabase]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_parameter_cache_lifetime::test_parameter_tables_are_bounded_and_either_owner_can_expire[cuda-chemical-HBondParamResolver]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_parameter_cache_lifetime::test_parameter_tables_are_bounded_and_either_owner_can_expire[cuda-chemical-CompactedHBondDatabase]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_parameter_cache_lifetime::test_parameter_tables_are_bounded_and_either_owner_can_expire[cuda-hbond-HBondParamResolver]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_parameter_cache_lifetime::test_parameter_tables_are_bounded_and_either_owner_can_expire[cuda-hbond-CompactedHBondDatabase]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_parameter_cache_lifetime::test_equivalent_device_spellings_reuse_parameter_tables[cpu-HBondParamResolver]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_parameter_cache_lifetime::test_equivalent_device_spellings_reuse_parameter_tables[cpu-CompactedHBondDatabase]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_parameter_cache_lifetime::test_equivalent_device_spellings_reuse_parameter_tables[cuda-HBondParamResolver]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.hbond.test_parameter_cache_lifetime::test_equivalent_device_spellings_reuse_parameter_tables[cuda-CompactedHBondDatabase]",
+          "outcome": "passed"
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/hbond-point-before.log",
+      "sha256": "68b319dc7dee1d76be53791dc32b4815b4e64d71778ea181b60444f7f202012c"
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/hbond-point-restored-cpu.log",
+      "sha256": "3dc33eda0a9d8ea77777f0f869155709b3e0ef0fb99728f30d02ba300d40aa5a"
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/hbond-native-249440.log",
+      "sha256": "890ed085cd03a027f09f1eb48a38fa3e56250cb00ae54cc861e23be03c663958"
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/hbond-native.sh",
+      "sha256": "c96e7d8886d64d45398a610427784dc4a54056e33cbd1f980a20848e84d2d14b"
+    }
+  ],
+  "slurm_accounting": "JobID|JobName|State|ExitCode|Elapsed|MaxRSS|NodeList\n249440|tmol-hbond-native|COMPLETED|0:0|00:00:43||slurm-h200-interactive-244-105\n249440.batch|batch|COMPLETED|0:0|00:00:43|2884712K|slurm-h200-interactive-244-105\n",
+  "limits": [
+    "Native point bindings are CPU test adapters; the full directory separately parametrizes energy/annotation/gradient tests on CPU and CUDA.",
+    "Existing expected point values and finite-difference tolerances are unchanged.",
+    "Production kernels and scientific parameter records are unchanged.",
+    "This resolves the full-final-HBond-directory coverage gap noted in nonbonded-validation.json; suites overlap."
+  ]
+}

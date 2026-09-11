@@ -1672,3 +1672,33 @@ paired profiles, cache stress results and terminal Slurm accounting are in
 [results/nonbonded-validation.json](results/nonbonded-validation.json).
 Black, Flake8 and whitespace checks pass. The upstream head remains
 `0593a93b07d80b0302383163d2d98c78e315ab98`; review comments 60–63 cover these findings.
+
+## Restore native hydrogen-bond point-score validation
+
+The two expected-failure point tests also exist in the PR merge base; this is
+an inherited coverage gap, not a new PR regression. Running them with
+`--runxfail` confirms that they fail before evaluating scores or derivatives:
+the global parameter input is a two-dimensional Torch tensor where the native
+adapter expects an Eigen vector, and the raw callable lacks the generalized
+vectorization signature required by `VectorizedOp`.
+
+The test adapter now accepts flat arrays for all parameter structs and declares
+the input/output core dimensions. Its global-parameter caster initializes all
+six native fields, including `max_ha_dis`; that last field is used by neighbor
+search, not the point kernel. A flat NumPy fixture and explicit coordinate
+arguments replace signature introspection. Separate sp2, sp3 and ring cases
+retain the original expected energies (**−2.40, −2.00 and −2.17**, absolute
+tolerance **0.01**) and the existing finite-difference tolerances for all five
+atom-coordinate derivatives. Both expected-failure decorators are removed.
+No production kernel or parameter record changes.
+
+The host native point/component suite passes **10 tests**. Slurm **249440** runs
+the complete hydrogen-bond directory, without overlapping directory/file
+arguments, and passes **52 tests with no skips or expected failures**. This
+includes host point bindings and CPU/CUDA parameter annotation, whole-pose,
+weighted block-pair, pair-coverage and cache tests. The job completed **0:0** in
+**43 seconds**. It closes the final-directory coverage gap recorded above; these
+counts overlap earlier runs. Source/log hashes, case names and terminal
+accounting are in
+[results/hbond-point-validation.json](results/hbond-point-validation.json).
+Black, Flake8 and whitespace checks pass.
