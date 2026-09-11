@@ -491,6 +491,15 @@ class LBFGS_Armijo(Optimizer):
         """Broadcast per-segment values to parameters without indexing one segment."""
         if self._n_segments == 1:
             return segment_values[0]
+        # Repeated CPU copies avoid reading an index for every parameter.
+        # Keep differentiable broadcasts on their original reduction path.
+        if (
+            self._segments_are_dense
+            and segment_values.device.type == "cpu"
+            and segment_values.shape == (self._n_segments,)
+            and not (torch.is_grad_enabled() and segment_values.requires_grad)
+        ):
+            return segment_values.repeat_interleave(self._segment_size)
         return segment_values[self._segment_ids]
 
     def _wrap_closure(self, closure):
