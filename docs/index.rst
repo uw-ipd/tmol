@@ -10,12 +10,12 @@ TMol Documentation
 
 TMol is a tensor-based molecular modeling library for use on GPUs and CPUs.
 
-Ligand preparation (detecting, parameterizing, and scoring non-standard
-residues such as small-molecule ligands) is documented in the
-`ligand preparation guide
-<https://github.com/uw-ipd/tmol/blob/main/tmol/ligand/README.md>`_, which
-covers the CIF/SMILES/mol2 pipeline, the ``strict_ligands`` failure mode, and a
-protein-ligand ddG quickstart.
+Generalized preparation of noncanonical polymers, ligands and covalent
+attachments is described in :ref:`noncanonical-chemistry`. Start with
+:ref:`chemistry-workflows` for scoring, packing and relaxation recipes, and
+:ref:`rosetta-comparison` for inherited methods, implementation differences
+and validation boundaries. These guides identify the feature revision they
+describe; they do not imply that an unmerged feature is in every release.
 
 .. The toctree entry declares the document's location, and children, inside the
   table-of-contents entry. We want two captioned toc constructs on the front,
@@ -31,6 +31,9 @@ protein-ligand ddG quickstart.
   :caption: Notes
 
   architecture
+  noncanonical_chemistry
+  chemistry_workflows
+  rosetta_comparison
   datatypes
   apidoc
 
@@ -46,7 +49,12 @@ Packages
   :name: apidoc
   :hidden:
 
-  apidoc/tmol.system
+  apidoc/tmol.pose
+  apidoc/tmol.chemical
+  apidoc/tmol.ligand
+  apidoc/tmol.pack
+  apidoc/tmol.optimization
+  apidoc/tmol.relax
   apidoc/tmol.score
   apidoc/tmol.database
   apidoc/tmol.kinematics
@@ -54,13 +62,17 @@ Packages
   apidoc/tmol.types
   apidoc/tmol.utility
   apidoc/tmol.io
-  apidoc/tmol.viewer
   apidoc/tmol.support
   apidoc/tmol.extern
 
 .. autosummary::
 
-  tmol.system
+  tmol.pose
+  tmol.chemical
+  tmol.ligand
+  tmol.pack
+  tmol.optimization
+  tmol.relax
   tmol.score
   tmol.database
   tmol.kinematics
@@ -68,11 +80,10 @@ Packages
   tmol.types
   tmol.utility
   tmol.io
-  tmol.viewer
   tmol.support
   tmol.extern
 
-Indicies
+Indices
 ==================
 
 * :ref:`genindex`

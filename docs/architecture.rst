@@ -1,116 +1,98 @@
 .. _architecture:
 
-============
 Architecture
 ============
 
-TMol is roughly divided into two core modules: a high-level description of
-polymeric molecules in `tmol.system` and a low-level, term-specific description
-used `tmol.score`.
+tmol expresses molecular modeling as batched tensor operations integrated with
+PyTorch. The principal representation is ``tmol.pose.PoseStack``. It replaces
+the historical ``tmol.system`` score-graph interface described in older versions
+of this page. Independent structures can have different sizes, sequences and
+chemistries; they do not interact simply because they share a batch.
 
+Representation and setup
+------------------------
 
-These components operate over a shared chemical vocabulary defined in
-`tmol.database.chemical`, with additional term-specific data given in
-`tmol.database.scoring`.
+``PoseStack.coords`` has shape ``[n_poses, max_n_atoms, 3]``. Block-type indices,
+atom offsets and inter-block connections encode each structure's layout.
+A block can represent a polymer residue, a non-polymer ligand, or a connected
+fragment of a larger component. ``PackedBlockTypes`` stores the active block
+types in a shared table indexed by each block occurrence. Chemistry-specific
+annotations are computed once where reusable, then packed into device tensors.
+See `PoseStack`_ and `Packed block types`_.
 
-.. aafig::
+``ParameterDatabase`` separates chemical definitions from score-term parameter
+tables. Preparation returns a new database instead of mutating the input.
+``PoseBuildContext`` groups compatible construction objects for reuse.
+The frozen chemical records coexist with derived caches on refined types and
+packed tables; immutable database does not mean every implementation object
+is immutable. Preserve database identity and configuration when reusing caches.
 
-  +--------+          +---------+
-  |        |          |         |
-  | system +----------o scoring |
-  |        |          |         |
-  +--+-----+          +--+----+-+
-     |                   |    |
-     | +-----------------v-+  |
-     | |                   |  |
-     | | database.scoring  |  |
-     | |                   |  |
-     | +---------+---------+  |
-     |           |            |
-     | +---------v---------+  |
-     | |                   |  |
-     +-> database.chemical <--+
-       |                   |
-       +-------------------+
+The repeated numerical path
+---------------------------
 
+A ``ScoreFunction`` owns weights and energy-term objects. Rendering performs
+block-type, packed-type and pose-topology setup before producing whole-pose,
+block-pair or rotamer scoring modules. Whole-pose scoring returns one weighted
+energy per pose by default; term-resolved and positional outputs support
+diagnostics. Compatible terms reuse low-level functions across these modes.
+Rosetta also shares energy methods between protocols; tmol's difference is the
+tensorized setup and execution contract. See `Score function`_.
 
-`tmol.system` and `tmol.score` are coupled via
-:py:func:`~functools.singledispatch` hooks registered in
-`tmol.system.score_support`.
+Compiled operators expose coordinate derivatives through PyTorch autograd.
+For a learned coordinate generator :math:`x=f_\theta(z)`, differentiable energy
+evaluation provides
 
-Scoring
-=======
+.. math::
 
-Scoring is managed via a "score graph" object, managing the initialization
-of a torch compute graph calculating a setup of score terms for
-a collection model states.
+   \frac{\partial E}{\partial\theta}
+   = \left(\frac{\partial f_\theta}{\partial\theta}\right)^T
+     \frac{\partial E}{\partial x}.
 
-A model is defined over of a set ``n`` of bonded atoms. Each atom is located at
-an atom index, and is defined by a type and coordinate. Atoms may be "null",
-defining no type and a nan coordinate at a given index.  Bonds are defined via
-a set of ``b``` sparse, undirected bonded inter-atom index pairs.
+The coordinate generator must preserve its autograd graph. Chemical typing,
+discrete rotamer selection and the entire FastRelax control flow are not
+thereby differentiable, and higher derivatives require separate validation.
+Coordinate-only changes can reuse a rendered module. Changes to layout,
+topology, active types or score configuration require appropriate setup and
+rerendering.
 
-A score graph operates over a "depth" of ``l`` layers, each containing a single
-model. Models must contain the same number of atoms ``n``, but may have
-differing atom types and null atoms. Bonds are strictly intra-layer, and form
-a disjoint set per-layer inter-atom graphs.
+The LJ/LK CUDA whole-pose kernel uses block-pair work units, bounding-sphere
+culling and 32-atom shared-memory tiles. A 32-thread warp processes a surviving
+block pair and reduces its interaction contributions. CPU and CUDA paths share
+low-level functional expressions with device-specific dispatch; other score
+terms can use different algorithms. This arrangement enables batching and data
+reuse but does not by itself establish a speedup on a particular workload.
+See `LJLK kernel`_.
 
+Kinematics and combinatorial optimization
+-----------------------------------------
 
-.. aafig::
+``FoldForest`` describes polymer, jump, root-jump and chemical edges and is
+expanded into an atom-level ``KinForest``. Dependency-ordered segmented scans
+compose local transforms and propagate derivative information. For transforms
+:math:`T_i`, the frame along a path is
+:math:`X_j=X_0\prod_{i=1}^{j}T_i`; associativity permits a prefix scan within
+each independent segment. Branches are scheduled after their dependencies.
 
-  +---------------------------------------+
-  |                                  --   |
-  | "[n] atom_types"                /  \  |
-  | "[n] coordinates"            +-+    + |
-  | "[b] (a,b) bond indices"    /   \  /  |
-  |                                  --   |
-  +----------------------------------+----+
-                                     |
-                                     |
-  +----------------------------------|----+
-  |                              +---o--+ |
-  |                              +------+ |
-  | "[l] layers"                 +------+ |
-  |                              +------+ |
-  |                              +------+ |
-  +---------------------------------------+
+The convenience ``reasonable_fold_forest`` constructor currently uses host
+NumPy arrays to discover edges, and conjugated-group discovery also walks
+host-side topology. The numerical kinematic operators and portions of schedule
+construction are tensorized/compiled. Do not describe the entire chemistry-to-
+coordinates pipeline as GPU-resident. Cyclic bonds excluded from the kinematic
+spanning tree remain distinct chemical constraints. See `Fold forest`_ and
+`Kinematic kernels`_.
 
-Score calculation is performed on an intra-layer and inter-layer basis.
-Intra-layer scoring is defined over across all interactions (bonded and
-non-bonded) within a layer, yielding ``l`` scores for a single score graph of
-depth ``l``. Inter-layer scoring is defined over all inter-layer non-bonded
-interactions, yielding a ``[i, j]`` pairwise score array for two score graphs
-of depth ``i`` and ``j``.
+Packing builds candidate coordinates and compatible one-/two-block energies
+into a sparse interaction graph. CPU and CUDA annealers search the discrete
+choices. Covalent-group packing adds a common conformer index and reduces the
+group to one representative choice without merging its chemical block records.
+FastRelax alternates packing with minimization under a repulsive-weight
+schedule. See :ref:`chemistry-workflows` for the necessary sampling configuration.
 
-.. note:: `tmol.score` currently only supports intra-layer scoring, and is
-   limited to models of depth 1.
+Related guides
+--------------
 
-The score graph implementation is partitioned into score component classes,
-each covering a logically distinct component of the score function. These
-components include score terms, derived model representations, or support data
-required for score evaluation. Component classes are combined as mixins into
-a `reactive` score graph. At minimum, a valid score graph will include an
-atomic representation, some number of score terms, and a total score property.
+* :ref:`noncanonical-chemistry`: chemical input, preparation and supported scope.
+* :ref:`chemistry-workflows`: API recipes and sampler choices.
+* :ref:`rosetta-comparison`: inherited methods, concrete differences and limits.
 
-.. aafig::
-
-  +------------------------------+
-  |                              |
-  |          +-------+           |
-  |          | Atoms |           |
-  |          ++-----++           |
-  |           |     |            |
-  |        +--+    ++------+     |
-  |        |       |Derived|     |
-  |        v       ++-----++     |
-  |    +----+       |     |      |
-  |    |Term|       v     v      |
-  |    +---++   +----+ +----+    |
-  |        |    |Term| |Term|    |
-  |        v    +--+-+ +--+-+    |
-  |      +-----+   |      |      |
-  |      |Total|<--+------+      |
-  |      +-----+                 |
-  |                              |
-  +------------------------------+
-
+.. include:: _source_links.inc
