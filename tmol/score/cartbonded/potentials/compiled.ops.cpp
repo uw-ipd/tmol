@@ -573,6 +573,7 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
         torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
+        torch::Tensor(),
 
         // Cart-bonded specific parameters
         torch::Tensor(),

@@ -269,20 +269,20 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
           dT_d_pose_coords = result.tensor;
         }));
 
-    return {dT_d_pose_coords, torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
+    return {dT_d_pose_coords, torch::Tensor(), torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(),
 
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),
 
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),
 
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor()};
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor()};
   };
 };
 
@@ -837,14 +837,16 @@ class LKBallRotamerScoreOp
         }));
 
     return {
-        dV_d_pose_coords, torch::Tensor(), torch::Tensor(),   torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(), dV_d_water_coords, torch::Tensor(),
-    };
+        // one entry per forward() parameter; the new
+        // lockstep_group_for_block sits at index 12
+        dV_d_pose_coords, torch::Tensor(), torch::Tensor(), torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(), dV_d_water_coords,
+        torch::Tensor()};
   }
 };
 

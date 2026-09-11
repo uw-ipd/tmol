@@ -536,6 +536,7 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
         torch::Tensor(),  // rot_offset_for_pose
         torch::Tensor(),  // n_rots_for_block
         torch::Tensor(),  // rot_offset_for_block
+        torch::Tensor(),  // lockstep_group_for_block
         torch::Tensor(),  // max_n_rots_per_pose (int)
         torch::Tensor(),  // pose_stack_inter_block_connections
         torch::Tensor(),  // atom_paths_from_conn

@@ -527,7 +527,7 @@ class LJLKRotamerScoreOp
             torch::Tensor(),  torch::Tensor(),
 
             torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor()};
+            torch::Tensor(),  torch::Tensor(), torch::Tensor()};
   }
 };
 

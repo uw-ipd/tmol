@@ -718,7 +718,7 @@ class HBondRotamerScoresOp
             torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
             torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
             torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor()};
+            torch::Tensor(),  torch::Tensor()};
   }
 };
 

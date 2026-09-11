@@ -519,7 +519,7 @@ class ElecRotamerScoreOp
         torch::Tensor(),
 
         torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(),
     };
   }
 };
