@@ -385,7 +385,6 @@ class LBFGS_Armijo(Optimizer):
         state["any_was_reset"] = False
         state["any_inactive"] = False
         self._last_loss_vec = None
-        self._closure_fn = None
 
     def _init_segments(self, segment_ids):
         """Set up the mapping from parameter elements to independent blocks.
@@ -605,6 +604,9 @@ class LBFGS_Armijo(Optimizer):
             state["any_was_reset"] = False
 
         return SimpleNamespace(
+            # Keep the wrapped closure local to this step. Storing it on the
+            # optimizer creates a cycle through the wrapper's self reference.
+            closure=closure,
             # config
             max_iter=max_iter,
             lr=lr,
@@ -811,7 +813,7 @@ class LBFGS_Armijo(Optimizer):
             out=ctx.x,
         )
         if not trial_is_accepted:
-            self._closure_fn()
+            ctx.closure()
         ctx.loss_vec = self._last_loss_vec
         # Keep the normal optimization path asynchronous. The scalar total is
         # only needed for human-readable progress output.
@@ -892,7 +894,6 @@ class LBFGS_Armijo(Optimizer):
             The initial loss, matching the ``Optimizer.step`` convention.
         """
         closure = self._wrap_closure(closure)
-        self._closure_fn = closure
         ctx = self._step_setup(closure)
 
         x = ctx.x

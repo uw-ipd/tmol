@@ -1,7 +1,30 @@
+import weakref
+
 import torch
 import pytest
 
 from tmol.optimization import LBFGS_Armijo
+
+
+def test_lbfgs_releases_closure_after_step(torch_device):
+    x = torch.nn.Parameter(torch.tensor([2.0, -3.0], device=torch_device))
+    optimizer = LBFGS_Armijo([x], max_iter=3)
+    optimizer_ref = weakref.ref(optimizer)
+
+    class Closure:
+        def __call__(self):
+            optimizer_ref().zero_grad()
+            loss = x.square().sum()
+            loss.backward()
+            return loss
+
+    closure = Closure()
+    closure_ref = weakref.ref(closure)
+    optimizer.step(closure)
+    del closure
+    assert closure_ref() is None
+    del optimizer
+    assert optimizer_ref() is None
 
 
 class SimpleLJScore:
