@@ -48,11 +48,15 @@ def independent_minimum_tables(counts, chunk_size, device):
 
 @requires_cuda
 @pytest.mark.parametrize("chunk_size", [7, 16, 32])
-@pytest.mark.parametrize("n_res", [3, 128, 129])
+@pytest.mark.parametrize("n_res", [1, 2, 3, 128, 129])
 def test_cuda_annealer_assignment_cache_boundaries(chunk_size, n_res):
     from tmol.pack.compiled import pack_anneal
 
-    counts = [35, 36, 17] if n_res == 3 else [2] * n_res
+    counts = [2] * n_res
+    if n_res <= 2:
+        counts = [1] * n_res
+    elif n_res == 3:
+        counts = [35, 36, 17]
     inputs = independent_minimum_tables(counts, chunk_size, torch.device("cuda"))
     torch.manual_seed(20260911)
     scores, assignments = pack_anneal(*inputs)

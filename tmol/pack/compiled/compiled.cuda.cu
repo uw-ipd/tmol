@@ -233,7 +233,6 @@ MGPU_DEVICE float warp_wide_sim_annealing(
     float lo_temp,
     int n_outer_iterations,
     int n_inner_iterations,
-    int n_quench_iterations,
     bool quench_on_last_iteration,
     bool quench_lite) {
   float const cooling_factor = 0.35f;
@@ -280,7 +279,7 @@ MGPU_DEVICE float warp_wide_sim_annealing(
     int i_n_inner_iterations = n_inner_iterations;
 
     if (i == n_outer_iterations - 1 && quench_on_last_iteration) {
-      i_n_inner_iterations = n_quench_iterations;
+      i_n_inner_iterations = n_rotamers;
       quench = true;
       temperature = 0.0f;
       // Recover the lowest-energy assignment before quenching. Ranking phases
@@ -709,7 +708,6 @@ struct Annealer {
           low_temp_initial,
           n_outer_iterations_hitemp,
           pose_inner_iterations,
-          n_rotamers,
           false,
           false);
 
@@ -735,7 +733,6 @@ struct Annealer {
               low_temp_initial,
               1,  // quench on the (only) iteration
               n_inner_iterations_hitemp,
-              n_rotamers,
               true,
               true);
       if (g.thread_rank() == 0) {
@@ -801,7 +798,6 @@ struct Annealer {
           low_temp_later,
           n_outer_iterations_lotemp,
           pose_inner_iterations,
-          n_rotamers,
           false,
           false);
 
@@ -823,7 +819,6 @@ struct Annealer {
               low_temp_later,
               1,  // quench on the (only) iteration
               n_inner_iterations_lotemp,
-              n_rotamers,
               true,
               true);
       if (g.thread_rank() == 0) {
@@ -847,7 +842,6 @@ struct Annealer {
       int const source_traj = sorted_lotemp_traj[pose][traj_id];
 
       int const n_res = ig.n_res(pose);
-      int const n_rotamers = ig.n_rotamers(pose);
 
       if (g.thread_rank() == 0) {
         sorted_fullquench_traj[pose][traj_id] = traj_id;
@@ -876,7 +870,6 @@ struct Annealer {
           low_temp_later,
           1,  // quench on the (only) iteration
           n_inner_iterations_lotemp,
-          n_rotamers,
           true,
           false);
       // A greedy quench only accepts improvements, so current is also best.
