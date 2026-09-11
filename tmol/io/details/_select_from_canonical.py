@@ -923,6 +923,16 @@ def _assign_var_inds_for_bt(co, bt):
             bt_is_up_term = True
             if var_name != co.restypes_default_termini_mapping[bt.io_equiv_class][1]:
                 bt_is_non_default_term = True
+
+    # a terminus is a variant of most residues but the whole of a cap: its one
+    #    connection is the chain's, so there is no other end to patch and no
+    #    suffix to read. The missing connection says the same thing, and says
+    #    it for a patched type too. Polymers only -- nothing else has an
+    #    up or a down to be missing.
+    if bt.properties.polymer.is_polymer:
+        bt_is_down_term = bt_is_down_term or "down" not in bt.connection_to_cidx
+        bt_is_up_term = bt_is_up_term or "up" not in bt.connection_to_cidx
+
     term_ind = _map_term_to_int(bt_is_down_term, bt_is_up_term)
     spcase_var_ind = _map_spcase_var_to_int(bt_is_cyd, bt_is_hisd, bt_is_hispos)
     return term_ind, spcase_var_ind, bt_is_non_default_term

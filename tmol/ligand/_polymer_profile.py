@@ -900,7 +900,13 @@ _WILDCARD_GROUPS = (
 def substituted_wildcard_rows(cartbonded_db, canonical, replacement, present):
     """Wildcard rows naming ``canonical`` on this residue, under its own name.
 
-    ``canonical`` is one name or several; a row using any of them is copied.
+    ``canonical`` is one name or several standing in for a single
+    ``replacement`` atom -- what a cap needs, where one atom does the work of
+    several and a row naming two of them therefore describes a different
+    residue. Pass a ``{canonical: replacement}`` mapping instead when the
+    residue has a distinct atom for each: a backbone that connects through an
+    atom of its own naming needs the whole local frame substituted at once, so
+    rows naming several of them are exactly the ones to keep.
 
     The rows spanning a peptide bond are matched by name, so a residue that
     calls the atom something else is passed over. Copying them with the name it
@@ -916,7 +922,13 @@ def substituted_wildcard_rows(cartbonded_db, canonical, replacement, present):
             atom[1:] if atom.startswith("+") else "+" + atom for atom in reversed(atoms)
         )
 
-    names = (canonical,) if isinstance(canonical, str) else tuple(canonical)
+    one_for_many = not isinstance(canonical, dict)
+    if one_for_many:
+        names = (canonical,) if isinstance(canonical, str) else tuple(canonical)
+        mapping = {name: replacement for name in names}
+    else:
+        mapping = dict(canonical)
+        names = tuple(mapping)
 
     def rename(atoms, may_flip):
         # a row naming the atom on the partner's side describes this residue
@@ -926,16 +938,23 @@ def substituted_wildcard_rows(cartbonded_db, canonical, replacement, present):
         matched = [name for name in names if name in atoms]
         if not matched:
             return None
-        # the cap has one atom there, so a row naming two of the atoms it
-        #    stands in for describes a residue it is not
-        if len(matched) > 1:
+        # one atom standing in for several cannot satisfy a row naming two of
+        #    them; a residue with its own atom for each can
+        if one_for_many and len(matched) > 1:
+            return None
+        # a mapping describes one junction frame. A row reaching past it would
+        #    be renamed onto atoms that are not bonded the way the row assumes,
+        #    so take only the rows the frame accounts for entirely.
+        if not one_for_many and any(
+            atom not in mapping for atom in atoms if not atom.startswith("+")
+        ):
             return None
         out = []
         for atom in atoms:
             if atom.startswith("+"):
                 out.append(atom)
-            elif atom in names:
-                out.append(replacement)
+            elif atom in mapping:
+                out.append(mapping[atom])
             elif atom not in present:
                 return None
             else:
@@ -952,6 +971,66 @@ def substituted_wildcard_rows(cartbonded_db, canonical, replacement, present):
             if atoms:
                 rows[group].append((atoms, params))
     return rows
+
+
+def noncanonical_junction_substitutions(atom_array, profile, connection_atoms):
+    """``{canonical: actual}`` for a junction whose atoms are not canonically named.
+
+    cartbonded's wildcard rows describe the peptide bond in terms of an alpha
+    backbone -- CA, C, O on one side and N, H on the other -- and are matched by
+    name. A backbone that connects through an atom of its own naming, such as a
+    gamma peptide bonding through CD, is passed over and its junction ends up
+    with no bond-length or angle term at all. The rows still describe it, in
+    terms of the atoms that actually play those parts: the connection atom, the
+    mainchain atom before it, and the carbonyl oxygen on it.
+
+    Returns one mapping per side that needs one; a canonically named side is
+    left alone, since it already matches.
+    """
+    mainchain = tuple(profile.mainchain_atoms or ())
+    if len(mainchain) < 3:
+        return []
+    names = {str(n) for n in atom_array.atom_name}
+    bonds, _types = atom_array.bonds.get_all_bonds()
+    index = {str(n): i for i, n in enumerate(atom_array.atom_name)}
+    elements = {
+        str(n): str(e) for n, e in zip(atom_array.atom_name, atom_array.element)
+    }
+
+    def bonded(name):
+        return [str(atom_array.atom_name[b]) for b in bonds[index[name]] if b >= 0]
+
+    def attached(name, element, exclude):
+        return next(
+            (
+                nbr
+                for nbr in bonded(name)
+                if elements.get(nbr) == element and nbr not in exclude
+            ),
+            None,
+        )
+
+    subs = []
+    conns = set(connection_atoms or ())
+
+    # upper side: the carbonyl carbon is whatever the chain ends on
+    upper, before = mainchain[-1], mainchain[-2]
+    if upper in conns and upper != "C":
+        oxygen = attached(upper, "O", {before})
+        if oxygen is not None and {upper, before, oxygen} <= names:
+            subs.append({"C": upper, "CA": before, "O": oxygen})
+
+    # lower side: untested by any fixture here, but the rows are symmetric
+    lower, after = mainchain[0], mainchain[1]
+    if lower in conns and lower != "N":
+        hydrogen = attached(lower, "H", set())
+        mapping = {"N": lower, "CA": after}
+        if hydrogen is not None:
+            mapping["H"] = hydrogen
+        if set(mapping.values()) <= names:
+            subs.append(mapping)
+
+    return subs
 
 
 def profile_for_atom_array(

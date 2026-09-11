@@ -1,3 +1,4 @@
+import numpy
 import biotite.structure
 from biotite.structure.io.pdbx import CIFFile, set_structure
 import pytest
@@ -236,3 +237,94 @@ def test_ligand_build_from_mol2_bond_orders(torch_device):
         if {_element(b[0]), _element(b[1])} == {"H", "O"}
     ]
     assert not h_on_o, f"spurious hydroxyl H (carboxylate over-protonation): {h_on_o}"
+
+
+CAP_FIXTURES = ("capped_peptide_ace_nme", "capped_peptide_ace_nh2")
+
+
+@pytest.mark.parametrize("stem", CAP_FIXTURES)
+def test_a_capped_peptide_builds_a_pose_stack(stem, torch_device):
+    """A terminal cap is a whole residue type, not a variant of one.
+
+    Its single connection is the chain's, so it carries no terminus patch to
+    read a name off of, and for NH2 the residue is too small to frame its own
+    hydrogens. Both are resolved against the chain it sits in.
+    """
+    from tmol.database import ParameterDatabase
+    from tmol.io import atom_array_from_cif, pose_stack_from_biotite
+    from tmol.tests.data import data_path
+
+    structure = atom_array_from_cif(data_path("ncaa_fixtures") / f"{stem}.cif")
+    pose_stack = pose_stack_from_biotite(
+        structure,
+        torch_device,
+        prepare_ligands=True,
+        param_db=ParameterDatabase.get_default(),
+    )
+
+    assert pose_stack.n_poses == 1
+    assert int(pose_stack.max_n_blocks) == 3
+    # pose_stack_from_biotite raises on NaN coordinates, so reaching here means
+    #    every atom of the cap was placed
+    real = pose_stack.block_type_ind64[0] >= 0
+    names = [
+        pose_stack.packed_block_types.active_block_types[int(i)].name
+        for i in pose_stack.block_type_ind64[0][real]
+    ]
+    assert names[0] == "ACE"
+    assert names[-1] == ("NME" if stem.endswith("nme") else "NH2")
+
+
+def test_an_amide_cap_places_its_hydrogens_in_the_amide_plane(torch_device):
+    """NH2's hydrogens have no in-residue reference; the partner supplies it."""
+    from tmol.database import ParameterDatabase
+    from tmol.io import atom_array_from_cif, pose_stack_from_biotite
+    from tmol.io._pose_stack_from_biotite import biotite_from_pose_stack
+    from tmol.tests.data import data_path
+
+    structure = atom_array_from_cif(
+        data_path("ncaa_fixtures") / "capped_peptide_ace_nh2.cif"
+    )
+    pose_stack, context = pose_stack_from_biotite(
+        structure,
+        torch_device,
+        prepare_ligands=True,
+        param_db=ParameterDatabase.get_default(),
+        return_context=True,
+    )
+    arr = biotite_from_pose_stack(pose_stack, context.canonical_ordering)
+    names = [str(n) for n in arr.atom_name]
+    resids = [int(r) for r in arr.res_id]
+
+    def coord(resid, name):
+        for i, (r, n) in enumerate(zip(resids, names)):
+            if r == resid and n == name:
+                return arr.coord[i]
+        raise AssertionError(f"{name} not found in residue {resid}")
+
+    last = max(resids)
+    N, H1, H2 = (coord(last, n) for n in ("N", "H1", "H2"))
+    C, CA = (coord(last - 1, n) for n in ("C", "CA"))
+
+    def angle(a, b, c):
+        u, v = a - b, c - b
+        cos = numpy.dot(u, v) / (numpy.linalg.norm(u) * numpy.linalg.norm(v))
+        return numpy.degrees(numpy.arccos(numpy.clip(cos, -1.0, 1.0)))
+
+    def dihedral(p0, p1, p2, p3):
+        b0, b1, b2 = p0 - p1, p2 - p1, p3 - p2
+        b1 = b1 / numpy.linalg.norm(b1)
+        v = b0 - numpy.dot(b0, b1) * b1
+        w = b2 - numpy.dot(b2, b1) * b1
+        return numpy.degrees(
+            numpy.arctan2(numpy.dot(numpy.cross(b1, v), w), numpy.dot(v, w))
+        )
+
+    assert numpy.linalg.norm(N - H1) == pytest.approx(1.02, abs=0.05)
+    assert numpy.linalg.norm(N - H2) == pytest.approx(1.02, abs=0.05)
+    for a, b, c in ((H1, N, H2), (C, N, H1), (C, N, H2)):
+        assert angle(a, b, c) == pytest.approx(120.0, abs=1.0)
+
+    # trans and cis to the partner's own substituent: what makes it planar
+    assert abs(dihedral(CA, C, N, H1)) == pytest.approx(180.0, abs=1.0)
+    assert abs(dihedral(CA, C, N, H2)) == pytest.approx(0.0, abs=1.0)

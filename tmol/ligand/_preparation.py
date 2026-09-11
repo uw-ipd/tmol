@@ -319,6 +319,7 @@ def prepare_polymer_residue(
         profile_for_atom_array,
         _CANONICAL_RING_ATOM,
         ring_nitrogen_angle_atom,
+        noncanonical_junction_substitutions,
         substituted_wildcard_rows,
     )
 
@@ -484,17 +485,29 @@ def prepare_polymer_residue(
     #    calling one of those atoms something else is passed over. Both the
     #    caps and a ring nitrogen whose ring atom is not called CD carry their
     #    own copies of the rows, values and all.
-    substitution = None
+    substitutions = []
     if profile.name == "cap":
         substitution = cap_backbone_substitution(
             atom_array, profile.mainchain_atoms[0], param_db.chemical
         )
+        if substitution is not None:
+            substitutions.append(substitution)
     else:
         ring_atom = ring_nitrogen_angle_atom(atom_array, connection_atoms)
         if ring_atom is not None and ring_atom in kept:
-            substitution = ((_CANONICAL_RING_ATOM,), ring_atom)
+            substitutions.append(((_CANONICAL_RING_ATOM,), ring_atom))
+        # a backbone that connects through an atom of its own naming -- a
+        #    gamma peptide bonding through CD -- is passed over by the rows
+        #    that span the peptide bond unless its own frame is named
+        substitutions.extend(
+            (mapping, None)
+            for mapping in noncanonical_junction_substitutions(
+                atom_array, profile, connection_atoms
+            )
+            if set(mapping.values()) <= kept
+        )
 
-    if substitution is not None:
+    for substitution in substitutions:
         rows = substituted_wildcard_rows(
             param_db.scoring.cartbonded, *substitution, kept
         )
