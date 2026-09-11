@@ -60,9 +60,10 @@ def _sp2_angle_sum(conf, center: int, neighbors: list[int]) -> float | None:
     """Sum of the three bond angles at ``center`` (deg); None if degenerate."""
     cpos = np.asarray(conf.GetAtomPosition(center))
     vecs = [np.asarray(conf.GetAtomPosition(n)) - cpos for n in neighbors]
-    if any(np.linalg.norm(v) == 0 for v in vecs):
+    norms = np.linalg.norm(vecs, axis=1)
+    if not np.all(np.isfinite(norms) & (norms > 0)):
         return None
-    units = [v / np.linalg.norm(v) for v in vecs]
+    units = np.asarray(vecs) / norms[:, None]
     total = 0.0
     for i in range(len(units)):
         for j in range(i + 1, len(units)):
@@ -98,7 +99,7 @@ def _infer_carboxylate_bonds(rw: Chem.RWMol, conf) -> int:
             float(np.linalg.norm(np.asarray(conf.GetAtomPosition(o)) - cpos))
             for o in term_os
         ]
-        if any(d > _CARBOXYL_CO_MAX for d in co_dists):
+        if not all(0 < d <= _CARBOXYL_CO_MAX for d in co_dists):
             continue
         nbrs = [nb.GetIdx() for nb in atom.GetNeighbors()]
         angle_sum = _sp2_angle_sum(conf, c, nbrs)

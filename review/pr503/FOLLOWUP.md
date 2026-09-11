@@ -13,7 +13,7 @@ historical evidence, not a claim that the follow-up is complete.
 | Mixed chirality (2) | Published reference parameters/formula; LL/DD/LD/DL permutation and reflection energies/gradients; whole-pose and packing parity | Rosetta mixed distribution and shared derivatives implemented; independent LL/LD/DL/DD energy/gradient, permutation and reflection checks pass on CPU/CUDA; additional packing parity pending |
 | Group identity and safety (3–7,9,30,31) | Real multi-pose/multi-database groups, repeated chi names, jagged/empty counts, early rejection; native parity | Two-pose reuse, internal geometry and torsion targets checked CPU/CUDA; complete edge inventory added; cyclic/multiple-anchor sampling constraints remain open |
 | Sampling budgets/caches (8,14,27) | Explicit budget semantics; task propagation; immutable sampler reuse; actual library/extra/proton counts; reproducible HYP count | Explicit task overrides and actual group/library bounds implemented/tested CPU/CUDA; aggregate/default budget policy and adaptive library expansion remain open |
-| Residue identity/completion (10–12,16) | Insertion codes, chain identity, explicit/CCD authority, missing atoms, custom names; realistic scaling | Initial unit fixes exist; broader profiling pending |
+| Residue identity/completion (10–12,16,32) | Insertion codes, chain identity, explicit/CCD authority, missing atoms, custom names; realistic scaling | Reader annotation reuse and finite-geometry repair checks pass; AtomWorks parser/converter profiles recorded; broader identity/authority contracts remain open |
 | Content/profile caches (13,20,29) | No serialization aliases; safe object lifetimes, bounded memory; repeated preparation | Content framing and shared bounded weak caches fixed for rotamer/alpha/NA profiles; identity/lifetime/LRU/concurrency tests pass; remaining caches still need audit |
 | Group kinematics/performance (15,17) | Profile CPU/GPU; batch invariant work; retain all covalent constraints for tree/cyclic/multiple-anchor topologies | Bounded conformer batches verified/profiled on CPU/CUDA; cyclic/multiple-anchor topology support remains open |
 | Native maintainability (18) | Shared improper enumeration with unchanged canonical scores and independent analytic/numeric derivatives | Shared helper in all four paths; canonical references, numerical gradients, independent Cartesian reference and group packing pass CPU/CUDA (238323, 238529) |
@@ -260,3 +260,31 @@ information needed for constrained sampling, **not** a claim that cycles or
 multiple external anchors are already sampled safely. Rigid cyclic cores,
 external constraints, duplicate axes and the generic attachment-grid policy
 still need explicit handling and integration tests.
+
+### AtomWorks conversion and missing-geometry correction
+
+The shared-rule audit found that both carboxylate correction implementations
+could rewrite bond orders at unresolved coordinates because comparisons with
+NaN do not reject a threshold. Both now require finite, nondegenerate local
+geometry; valid sites elsewhere in the same molecule still get corrected.
+AtomWorks also resets both oxygen charges consistently. Seven tmol regression
+cases reproduce the old defect; all 18 new and 25 existing ligand-unit cases pass.
+Draft inline comment 32 records the pinned upstream location.
+
+AtomWorks conversion now reads source columns directly and copies only retained
+annotations, while preserving input/output independence. Its explicit false
+coordinate option now works, and automatic coordinates require finite values.
+All 71 affected AtomWorks tests pass; replayed prior methods fail 12 of the new
+cases. All 19 AtomWorks-input preparation/scoring/gradient/rotamer fixtures pass
+again on CPU. Full matrix data is in `results/atomworks-conversion-matrix.json`.
+
+The paired converter measurements show 1.23–1.47× speed ratios for three CCD
+components and all three hydrogen policies. A 3,000-atom synthetic case takes
+30.41→20.94 ms. Adding 32 unused U128 annotation columns demonstrates the copy
+cost: 109.91→21.31 ms and 49.67→0.40 MB traced peak Python allocations. This is
+not native RDKit memory, a typical ligand claim, or an end-to-end tmol speedup.
+Exact molecule inventories match in all 11 paired comparisons. See
+[ATOMWORKS.md](ATOMWORKS.md) for the shared-API recommendation and remaining
+input/converter contracts; reader replacement is still an open gate.
+AtomWorks changes are committed locally at `cdda3c07` on
+`review/tmol-pr503-shared-chemistry`; they have not been pushed to its upstream.

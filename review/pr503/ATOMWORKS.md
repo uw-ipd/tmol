@@ -9,7 +9,7 @@ component name raise before preparation.
 
 This audit used the local `atomworks-dev` checkout at
 `a1bda7edfcf325bc140091889b9745220adb5eba`. The improvements are on the separate
-local branch `review/tmol-pr503-shared-chemistry`, commit `4762d7e5`, in
+local branch `review/tmol-pr503-shared-chemistry`, commit `cdda3c07`, in
 `/mnt/home/kdidi/projects/atomworks-tmol-pr503-review`.
 
 ## Overlap and recommended ownership
@@ -20,7 +20,7 @@ local branch `review/tmol-pr503-shared-chemistry`, commit `4762d7e5`, in
 | CIF component definitions | Both read `chem_comp_atom` / `chem_comp_bond` and resolve dictionary templates | AtomWorks should own shared file chemistry. Its scope/cache correctness fixes are prerequisites for reuse across files. |
 | Polymer identity | tmol rereads `_chem_comp` and creates a private entity flag; AtomWorks already supplies type and polymer annotations | tmol now consumes the existing annotations. Capping and reconstruction of tmol residue types remain in tmol. |
 | Leaving atoms and bond sanitation | Both distinguish unresolved atoms from atoms displaced by covalent attachment | Share generic chemistry in AtomWorks; keep tmol's parameter-generation caps and terminal patches in tmol. The integration exposed and fixed two capping/completion bugs. |
-| RDKit conversion | tmol wraps Biotite `to_mol` and restores source Kekulé/subtype information; AtomWorks has its own converter | Candidate for consolidation after parity tests cover atom maps, explicit charge, aromatic orders, NaNs and stereochemistry. No untested converter swap. |
+| RDKit conversion | tmol wraps Biotite `to_mol` and restores source Kekulé/subtype information; AtomWorks has its own converter | AtomWorks conversion is now faster and avoids copying unused annotations. Retain tmol's source-typing layer until a shared converter explicitly preserves its Kekulé/subtype/atom-map contract. |
 | Protonation / carboxylate correction | AtomWorks contains logic explicitly ported/aligned from tmol | Candidate for a shared chemistry API. AtomWorks' hydrogen placement and tmol's MMFF94 charge/conformer generation have different outputs; they are not interchangeable preparation pipelines. |
 | Histidine identity | AtomWorks ports tmol's tautomer-resolution rules | Share a tested chemical contract. Retain tmol's tensor/native implementation for batched CPU/GPU work. |
 | Scoring, parameter databases, rotamers and fold trees | These implement tmol-specific numerical and sampling contracts | Retain in tmol. Parser reuse does not accelerate its scoring kernels. |
@@ -90,3 +90,38 @@ a second CIF completion or infer an authority policy from installed packages.
 
 See [the executable example](atomworks_example.py). Use the reviewed local
 AtomWorks branch for the fixes above. No remote review comments were posted.
+
+## Conversion and shared-rule follow-up
+
+The RDKit converter now reads columns directly and copies only retained output
+annotations. Input/output independence, hydrogen policies, charges, aromaticity,
+stereochemistry and coordinate inventories pass. It also honors explicit
+`set_coord=False`, and automatic coordinate selection requires all values to be
+finite. Explicit `True` still preserves NaNs. The carboxylate correction copied
+between the projects accepted NaN geometry as evidence for changing bond orders;
+both implementations now reject that local correction. AtomWorks also resets
+both oxygen charges consistently after assigning C(=O)[O-].
+
+All **71 affected AtomWorks tests** and **43 tmol tests** pass. Replaying the old
+methods reproduces 12 AtomWorks and seven tmol failures in the new regressions.
+The 19-fixture AtomWorks input/preparation/scoring/gradient/rotamer CPU matrix
+passes again after these changes. This is additional CPU validation; the earlier
+GPU matrix is not presented as a rerun of this follow-up.
+
+Seven alternating-order warm pairs give **1.23–1.47×** faster conversion for
+ALA, NAD and NAG across keep/remove/infer hydrogen policies, with matching full
+molecule inventories. A synthetic 3,000-atom input takes **30.41→20.94 ms**;
+traced peak Python allocations fall **512,285→402,173 bytes**. With 32 unused
+U128 annotation columns, it takes **109.91→21.31 ms**, and traced peak allocation
+falls **49.67→0.40 MB**. That is an explicit metadata stress case, not a typical
+ligand or total native/process memory claim. Converter gains are separate from
+the parser measurements above and cannot be multiplied into an end-to-end
+speedup. See `results/atomworks-rdkit-conversion.json` and
+`results/atomworks-conversion-tests.json`; the executable profiler lives on the
+local AtomWorks branch at `review/tmol-pr503/profile_rdkit_conversion.py`.
+
+The duplicated Dimorphite rule engine and pre-protonation corrections are good
+candidates for one shared AtomWorks API. The assembled hydrogen-placement and
+tmol charge/conformer-generation pipelines still need separate entry points.
+Package consolidation should pin a released shared contract instead of silently
+selecting different chemistry based on whether AtomWorks happens to be installed.

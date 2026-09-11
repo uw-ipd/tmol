@@ -63,6 +63,7 @@ This measures CIF missing-atom insertion, **not end-to-end packing/scoring accel
 8. **Lifecycle and reproducibility:** Are samplers intended to be reusable across databases/tasks? Are generated chemistry and cache entries bounded in a long-running service? Can users persist the seed, generated parameters, chosen references, warnings, and exact input authority in a build report?
 9. **API and migration:** The PR body says `process_ligands=True`, but the implementation uses `prepare_ligands=True`. Is removing `sample_proton_chi` intentional? Can public docs show the supported CIF, AtomArray, SMILES/mol2, cyclic, and group-packing entry points with executable examples?
 10. **Scale and release:** What canonical-protein load/score/pack baseline is acceptable after eagerly adding mirrored tables and invoking group discovery in scoring setup? Can the PR be split along its existing commit sequence into import/preparation, score corrections, and group packing?
+11. **Shared AtomWorks chemistry:** Can AtomWorks own CIF completion and chemical annotations, with tmol consuming a completed AtomArray? Before replacing the default reader, which author/label identifiers, insertion codes, alternate locations, unresolved residues and CCD authority must be preserved? Can the copied Dimorphite and pre-protonation rules use one versioned shared API, while tmol keeps parameter generation and numerical scoring?
 
 ## Suggested inline comments
 
@@ -315,6 +316,14 @@ Reproduced and fixed. Ring attachments now use a bond-spanning torsion; the samp
 > Could these references be checked against the chemical bond graph? Hydrogen icoors may use another hydrogen on the same centre as a reference. For the lysine/asparagine attachments, that can put the first and fourth torsion atoms on the same moving side, with an unbonded first–second pair. Writing a different phi then does not produce the requested dihedral. A valid placement frame alone does not establish a rotatable four-atom path.
 
 Fixed by selecting a bonded heavy central neighbor and a bonded reference on its opposite side, preserving valid existing references. Tests independently resolve all four atoms through the pose, verify the bonded path, and measure each requested angle from the final rotamer coordinates. This is a geometry correction; the generic three-angle grid is not presented as an independently fitted distribution for every chemistry.
+
+### 32. P1 — missing coordinates must not authorize a bond-order rewrite
+
+[tmol/ligand/_structure_to_smiles.py:101](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/ligand/_structure_to_smiles.py#L101), and the angle test at line 105.
+
+> Can both distance and angle checks require finite, nondegenerate geometry? With a NaN carbon, oxygen or third neighbor, these comparisons can both be false and the code rewrites two single C–O bonds to C(=O)[O-] despite having no geometric evidence. This matters especially now that CIF completion intentionally retains unresolved atoms. Please also check a mixed molecule with one unresolved site and one valid correction site.
+
+Seven regression cases fail when replaying the prior helper methods and pass after the finite-geometry correction. All 18 new geometry and 25 existing ligand-unit tests pass. AtomWorks contains the same copied rule and received the same fix, plus consistent resetting of both oxygen charges. The 19-fixture AtomWorks-to-tmol preparation/scoring/gradient/rotamer matrix passes again on CPU. Geometry checks remain a heuristic for correcting known input encodings, not a replacement for explicit chemical authority.
 
 ## Validation record
 
