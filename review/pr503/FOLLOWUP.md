@@ -19,9 +19,9 @@ historical evidence, not a claim that the follow-up is complete.
 | Native maintainability (18) | Shared improper enumeration with unchanged canonical scores and independent analytic/numeric derivatives | Pending |
 | Duplicate work (19) | Removal covered by chemistry regression suite | Existing fix; final suite pending |
 | Correct test parameters (21) | Prepared database used throughout examples and packing; generated parameter coverage | Existing correction; final audit pending |
-| Terminal caps (22) | ACE/amide caps build intact chains, finite coordinates/gradients, correct bond topology; CPU/GPU packing | ACE/NH2/NME construction, bonds, score/gradient and rotamer construction pass CPU/CUDA; full packing/geometry gate pending |
+| Terminal caps (22) | ACE/amide caps build intact chains, finite coordinates/gradients, correct bond topology; CPU/GPU packing | ACE/NH2/NME construction, bonds, score/gradient and rotamer construction pass CPU/CUDA; amide geometry and actual packing pass CPU/CUDA (237089) |
 | Reference scores (23) | Explain reference differences; independent scoring checks; reproducible pinned structures/parameters | Pending; no blind golden refresh |
-| D geometry (24) | Signed stereocentre volumes and actual library sampling after repacking; reject mislabeled geometry | Pending |
+| D geometry (24) | Signed stereocentre volumes and actual library sampling after repacking; reject mislabeled geometry | Every offered D rotamer and packed result retains signed alpha-centre volume on CPU/CUDA (237089); broader stereocentre coverage remains |
 | Fold trees/fragments (25,26) | Branch-point invariant, fragment restoration/minimize/pack/DDG and multi-pose checks | Existing fixes; final suite pending |
 | Scientific ownership (general 2,7) | Independent potential checks and canonical change audit; sampling/scoring reference separation | Pending |
 | API/authority/reproducibility (general 1,6,8,9) | Executable input-route examples, settings/seed provenance, documented migration and fresh-checkout CI | Pending |
@@ -69,3 +69,26 @@ remaining completion requirements above are still open.
 Initial CUDA profile runs used an unindexed `cuda` device that failed the
 Dunbrack sampler's device-equality assertion; corrected `cuda:0` runs supersede
 those rotamer results. No failed stages are counted as successful measurements.
+
+### Additional sampler checks
+
+Job 237089 passes 29 sampler/stereochemistry/cap tests and actual NH2/NME
+packing on both CPU and CUDA. Excluding unrelated protein/glycan chi records
+from NA annotation reduces the glycan fixtures’ proton sampling tensor by 80%.
+Single-run annotation timings and exact sizes are recorded in
+`results/na-annotation.json`; these timings are diagnostics, not a repeated
+benchmark. HYP’s 18 conformers are two library states times nine expanded
+hydroxyl angles, verified independently on CPU and CUDA (237980). Budget enforcement is still open.
+
+Hydrogen optimization was found to move terminal generated 5CM heavy atoms by
+up to 2.44 Å. Its jump root was O5′, which also carries a terminal proton chi.
+Reference-score updates remain deferred while this geometry defect is corrected
+and tested across modified nucleotides.
+
+Job 237980 passes 73 nucleotide/OptH/NA/noncanonical sampler tests across CPU
+and CUDA, including heavy-atom preservation in every offered proton rotamer
+and actual packing for 5CM, 8OG, PSU, 2OM and TTD fixtures. The generated
+nucleotide jump root now follows the sugar side of its glycosidic torsion,
+with an interior-backbone fallback for unclassified nucleotides. In the 5CM
+diagnostic, the maximum heavy displacement falls from 2.44 Å to 0.0000049 Å.
+Old noncanonical score references are not refreshed by this fix.
