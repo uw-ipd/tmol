@@ -101,7 +101,6 @@ def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=Fals
     from tmol.pack.rotamer._conjugated_groups import (
         collapse_group_energies,
         collapse_group_rotamers,
-        find_conjugated_groups,
     )
 
     pbt = pose_stack.packed_block_types
@@ -113,7 +112,7 @@ def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=Fals
     # a group of covalently joined blocks is one choice, not several: fold its
     #    members onto a representative so the packer cannot pick a conformer
     #    for one that disagrees with its neighbour
-    groups = find_conjugated_groups(pose_stack)
+    groups = rotamer_set.correlated_groups
     collapsed = collapse_group_rotamers(pose_stack, rotamer_set, groups)
     if collapsed is not None:
         collapse, group_of_rot, conformer_of_rot = collapsed

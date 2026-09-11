@@ -78,6 +78,14 @@ class ConformerSampler:
         Tensor[torch.int32][:],  # bt_for_rotamer
         dict,  # anything else the sampler wants to save for later
     ]:
+        """Return counts, considered-block index per rotamer, and sampler data.
+
+        A producer of joint conformers declares ``correlated_gbts`` in its data:
+        a tuple of considered-block-index tuples, one per joint group. Rotamer k
+        must correspond across all members. Merging rejects additional states
+        from other samplers on those blocks. Without a declaration, samples are
+        independent even when their residues are covalently connected.
+        """
         raise NotImplementedError()
 
     def fill_dofs_for_samples(

@@ -1336,3 +1336,86 @@ The default preparer does not yet generate/install these references or local
 chemistry corrections. This is a validated scoring prerequisite, not completion
 of automatic conjugate parameters or independent scientific validation of the
 existing generic amide table. Review comment 49 records the native restriction.
+
+### Coupled local conjugate parameters and explicit sampling correlation
+
+The private `_local_conjugate_params.py` generator now couples the preceding
+connection harmonic model with local physical/lookup types, charge corrections,
+changed local bond/angle parameters, removal of transferred canonical torsions,
+and hydrogen/connection construction. It parameterizes the connected capped
+model and its valence-completed disconnected reference once per unique group.
+It shares the connected-model conversion and mapping with the connection
+generator. Repeated groups, atom-order reversal, renumbering and all-NaN inputs
+produce identical records, with two MMFF preparations per unique capped model.
+
+The implemented charge policy preserves the curated baseline and adds the MMFF
+connected-minus-disconnected change, subtracting charges of removed reference H
+atoms already folded onto their parents by the conjugation patch. This is an
+explicit provisional model, not an independent charge fit. The whole biotin
+group changes by −1; O-/N-glycan groups conserve their total. Biotin LYS CE, NZ
+and retained H change by −0.2029, −0.7771 and −0.08; BTN contributes +0.06.
+LYS NZ becomes Nad, CE retains physical CH2 with a CS2 lookup reference, and its
+retained H keeps physical Hpol with an HN lookup. Remote canonical backbone
+types, charges and icoors remain unchanged in the detailed biotin regression.
+The retained amide H uses the actual partner as its plane reference, with a
+heavy-atom virtual-connection frame that avoids an icoor dependency cycle.
+
+The private installer checks hashes of each input residue's chemistry, effective
+charges and local bonded parameters before modifying a copied database. Reusing
+the identical result is a no-op; changed local baselines raise. Connection
+provenance records the charge policy and baseline hashes, alongside the existing
+RDKit version, capped SMILES and protonation-rule provenance. Generation from a
+database carrying those correction records is rejected, preventing accidental
+reapplication of the delta. The `.tmol` test roundtrips all corrected records and
+reconstructs the private result before installation. The ordinary ligand-bundle
+loader still skips existing base definitions and has **not** been upgraded into
+a general corrected-variant replacement API. Default preparation remains unchanged.
+
+Execution exposed three additional restrictions. Missing-leaf construction
+recognized only `up` and `down`; it now accepts any declared connection name.
+OptH used the last chi as an NHQ flip even when conjugation appended a linkage
+chi; it now uses the amide/ring axis and disables a flip that moves a connection
+atom. Eligibility and sidechain-root lookup share that annotation, allowing
+fallback when no OptH sample is available. Finally, chemical connectivity alone
+incorrectly correlated independent proton samples. Joint producers now declare
+considered-block groups; merging rejects added or overlapping independent states
+before coordinate allocation. Both native pair masks and energy collapse use
+that validated correspondence. Direct declarations reject invalid/duplicate
+members and overlapping single-state groups as well.
+
+Four controlled CPU regressions fail with the pre-fix predicates restored:
+named connection lookup, independent 3/3 and 3/2 counts, and attached ASN's flip.
+See [check_upstream_sampling.py](check_upstream_sampling.py). This replays selected
+Python functions from `77f5d9419` on current fixtures, not an unmodified PR tree.
+The initial coupled CPU run had five failures; the next attempt exposed a native
+backbone-scoring bounds exit because disabled NHQ eligibility still suppressed
+fallback. Slurm 248910 failed in that intermediate state. These logs are retained.
+
+Slurm 248911 completed 0:0 in 7:56 with **141 passes / 8 fixture-specific skips**,
+covering local and generated connection parameters, group/OptH regressions,
+actual conjugated packing, batched kinematics and generic reference ownership on
+CPU/CUDA. After adding installer/provenance checks, Slurm 248965 completed 0:0 in
+1:44: **60 passes / 4 fixture-specific skips**, including the full missing-leaf
+construction/gradient suite. The local final CPU-only run has 17 passes / 10
+skips. These suites overlap; their counts must not be added as unique tests.
+After tightening direct correlation-index validation, Slurm 248997 completed
+0:0 in 1:07 with **53 CPU/CUDA passes and no skips**, including batched group
+kinematics. Source and log hashes plus case inventories are recorded in
+`results/local-conjugate-validation.json`.
+
+[The paired mask profiler](profile_sampling_correlation.py) verifies identical
+joint-sampler masks on all three real fixtures. Seven alternating-order warm
+sets measure old lookup costs of 51–80 µs on CPU and 141–178 µs with CUDA. The
+cached lookup is about 0.05–0.10 µs, with no tensor allocation or device transfer.
+For ten simultaneous consumers, mask storage falls from 3,240→324 bytes (biotin),
+800→80 (O-glycan) and 9,920→992 (N-glycan). These are lookup/storage measurements;
+one-time construction/validation and whole rendering/scoring are outside the
+timed region. The masks and rotamer inventories match exactly. The first profiler
+attempt correctly rejected a 1,024-state budget smaller than one residue's 1,053
+required library/extra-chi states; the successful comparison uses 4,096/2,048.
+
+Remaining gates include independent validation of the combined physical model,
+context-specific terminal corrections, H-adding reactions, three-block terms,
+fragment projection, normal bundle/default-preparation integration and the other
+completion requirements above. A passing finite-score/gradient check is not a
+scientific validation of the fitted parameters. The goal remains active.

@@ -30,7 +30,6 @@ from tmol.numeric import coord_dihedrals
 from tmol.utility.tensor import exclusive_cumsum1d
 
 # Residue categories that get NHQ flip treatment (requires flip_NHQ=True)
-_NQ_FLIP_BASES = frozenset(("ASN", "GLN"))
 _HIS_FLIP_BASES = frozenset(("HIS", "HIS_D"))
 
 
@@ -42,7 +41,8 @@ class OptHSamplerRTCache:
     1. Proton chi sampling (SER/THR/TYR/CYS): samples the terminal (proton)
        chi angle using values from restype definition.
     2. NHQ flip (ASN/GLN/HIS/HIS_D): generates the input conformation plus a
-       180-degree rotation about the last chi angle.
+       180-degree rotation about the terminal amide/ring chi angle, provided
+       it does not move an atom connected to another block.
        HIS additionally generates both protonation states.
     """
 
@@ -311,20 +311,32 @@ class OptHSampler(ConformerSampler):
         nhq_downstream_kfo = numpy.zeros(0, dtype=numpy.int32)
         is_his = base in _HIS_FLIP_BASES
 
-        if base in _NQ_FLIP_BASES or is_his:
-            chi_names = sorted(k for k in rt.torsion_to_uaids if k.startswith("chi"))
-            last_chi = chi_names[-1]
-            nhq_chi_col = len(chi_names) - 1  # 0-based index of the last chi
-            uaids = rt.torsion_to_uaids[last_chi]
-            nhq_chi_atom = int(uaids[2][0])  # 3rd atom = defining atom
-            nhq_chi_4atoms = numpy.array(
-                [int(uaids[k][0]) for k in range(4)], dtype=numpy.int32
-            )
-            # rotamer_kinforest is required to walk downstream atoms; build it
-            # here (idempotent) since the OptHSampler annotation pass runs
-            # before build_rotamers.annotate_restype.
+        flip_chi = {"ASN": "chi2", "GLN": "chi3", "HIS": "chi2", "HIS_D": "chi2"}.get(
+            base
+        )
+        uaids = rt.torsion_to_uaids.get(flip_chi)
+        if uaids is not None and all(u[0] >= 0 for u in uaids):
+            # An attachment may append more chis. The terminal amide/ring flip
+            # retains its own named axis, and cannot move a connection atom
+            # independently of the block bonded to it.
+            nhq_chi_atom = int(uaids[2][0])
             construct_single_residue_kinforest(rt)
             nhq_downstream_kfo = _compute_nhq_downstream_kfo(rt, nhq_chi_atom)
+            connection_nodes = {
+                int(rt.rotamer_kinforest.kinforest_idx[rt.atom_to_idx[c.atom]])
+                for c in rt.connections
+            }
+            if connection_nodes.intersection(nhq_downstream_kfo):
+                nhq_chi_atom = -1
+                nhq_downstream_kfo = numpy.zeros(0, dtype=numpy.int32)
+                is_his = False
+            else:
+                nhq_chi_col = int(flip_chi[3:]) - 1
+                nhq_chi_4atoms = numpy.array(
+                    [int(u[0]) for u in uaids], dtype=numpy.int32
+                )
+        else:
+            is_his = False
 
         # proton chi annotation. A chi that turns heavy atoms is sampled by the
         #    packer alone, so optH never sees it.
@@ -598,11 +610,9 @@ class OptHSampler(ConformerSampler):
 
     @validate_args
     def defines_rotamers_for_rt(self, rt: RefinedResidueType):
-        if any(cs.is_proton for cs in rt.chi_samples):
-            return True
-        if self.flip_NHQ:  # is NHQ if flipNHQ is enabled
-            return rt.base_name in _NQ_FLIP_BASES or rt.base_name in _HIS_FLIP_BASES
-        return False
+        self._annotate_residue_type(rt)
+        cache = rt.opth_sampler_cache
+        return cache.has_proton_chi or (self.flip_NHQ and cache.nhq_chi_col >= 0)
 
     def defines_rotamers_for_bts(
         self, pbt: PackedBlockTypes, bt_inds: Tensor[torch.int64]
@@ -613,13 +623,10 @@ class OptHSampler(ConformerSampler):
     @validate_args
     def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
         """Roots for the chis optH turns: every proton chi, plus the flipped chi."""
+        self._annotate_residue_type(rt)
         chis = [cs.chi_dihedral for cs in rt.chi_samples if cs.is_proton]
-        if self.flip_NHQ and (
-            rt.base_name in _NQ_FLIP_BASES or rt.base_name in _HIS_FLIP_BASES
-        ):
-            chis.append(
-                sorted(k for k in rt.torsion_to_uaids if k.startswith("chi"))[-1]
-            )
+        if self.flip_NHQ and rt.opth_sampler_cache.nhq_chi_col >= 0:
+            chis.append(f"chi{rt.opth_sampler_cache.nhq_chi_col + 1}")
         return sc_roots_for_chis(rt, chis)
 
     def _assert_no_dun_opth_conflict(self, task: "SetPackerTask"):  # noqa: F821

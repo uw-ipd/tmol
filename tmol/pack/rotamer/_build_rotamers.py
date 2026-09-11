@@ -749,6 +749,50 @@ def get_rotamer_origin_data(task: SetPackerTask, gbt_for_rot: Tensor[torch.int32
     )
 
 
+def _correlated_groups_for_samples(task, samples):
+    """Validate producer-declared correspondence before allocating coordinates."""
+    from tmol.pack.rotamer._rotamer_set import CorrelatedBlockGroup
+
+    declarations = [
+        (i, gbts)
+        for i, sample in enumerate(samples)
+        for gbts in sample[2].get("correlated_gbts", ())
+        if gbts
+    ]
+    if not declarations:
+        return ()
+    pose_of = task.cons_bt_pose.cpu().numpy()
+    block_of = task.cons_bt_block.cpu().numpy()
+    counts = numpy.stack([sample[0].cpu().numpy() for sample in samples])
+    total = {}
+    for gbt, count in enumerate(counts.sum(axis=0)):
+        key = int(pose_of[gbt]), int(block_of[gbt])
+        total[key] = total.get(key, 0) + int(count)
+    groups, claimed = [], set()
+    for sampler, gbts in declarations:
+        if len(set(gbts)) != len(gbts) or any(g < 0 or g >= len(pose_of) for g in gbts):
+            raise ValueError("Invalid correlated considered-block indices")
+        poses = {int(pose_of[g]) for g in gbts}
+        blocks = tuple(int(block_of[g]) for g in gbts)
+        if len(poses) != 1 or len(set(blocks)) != len(blocks):
+            raise ValueError(
+                "A correlated group must contain distinct blocks in one pose"
+            )
+        pose = poses.pop()
+        expected = int(counts[sampler, gbts[0]])
+        if expected < 1 or any(int(counts[sampler, g]) != expected for g in gbts):
+            raise ValueError("Correlated members have differing rotamer counts")
+        members = {(pose, block) for block in blocks}
+        if members & claimed or any(total[key] != expected for key in members):
+            raise ValueError(
+                "Independent or overlapping samplers add rotamers to a correlated group"
+            )
+        claimed.update(members)
+        if len(blocks) > 1:
+            groups.append(CorrelatedBlockGroup(pose, blocks))
+    return tuple(groups)
+
+
 def build_rotamers(poses: PoseStack, task: SetPackerTask, chem_db: ChemicalDatabase):
     # step 1: replace the existing PBT in the Pose w/ a new one in case
     #     there will possibly be new block types in the repacked Pose;
@@ -788,6 +832,8 @@ def build_rotamers(poses: PoseStack, task: SetPackerTask, chem_db: ChemicalDatab
     conformer_samples = [
         sampler.create_samples_for_poses(poses, task) for sampler in samplers
     ]
+
+    correlated_groups = _correlated_groups_for_samples(task, conformer_samples)
 
     # Step 5
     (
@@ -915,5 +961,6 @@ def build_rotamers(poses: PoseStack, task: SetPackerTask, chem_db: ChemicalDatab
             block_ind_for_rot=block_ind_for_rot,
             coord_offset_for_rot=n_atoms_offset_for_conformer_torch.to(torch.int32),
             coords=rotamer_coords,
+            correlated_groups=correlated_groups,
         ),
     )

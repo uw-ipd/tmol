@@ -201,7 +201,9 @@ def _context_signature(model, mol, props, heavy_map, locals_):
     return tuple(sorted(atoms))
 
 
-def _model_records(model, candidates_by_site, elements, adjacency, contexts, ph):
+def _model_records(
+    model, candidates_by_site, elements, adjacency, contexts, ph, consumer=None
+):
     locals_by_residue, sites, links, candidates = _model_members(
         model, candidates_by_site
     )
@@ -229,6 +231,8 @@ def _model_records(model, candidates_by_site, elements, adjacency, contexts, ph)
                 elements,
                 adjacency[rt.name],
             )
+    if consumer is not None:
+        consumer(model, mol, props, heavy_map, candidates, mappings, adjacency)
     unmapped = Chem.Mol(mol)
     for atom in unmapped.GetAtoms():
         atom.SetAtomMapNum(0)
@@ -280,7 +284,9 @@ def _model_identity(model):
     )
 
 
-def generate_conjugate_connection_params(atom_array, parameter_database, *, ph=7.4):
+def generate_conjugate_connection_params(
+    atom_array, parameter_database, *, ph=7.4, _model_consumer=None
+):
     """Generate complete two-block bond/angle records for prepared attachments.
 
     Exact patched names remain separate, including terminal combinations. A
@@ -312,7 +318,7 @@ def generate_conjugate_connection_params(atom_array, parameter_database, *, ph=7
         if identity in seen:
             continue
         for record, smiles in _model_records(
-            model, candidates, elements, adjacency, contexts, ph
+            model, candidates, elements, adjacency, contexts, ph, _model_consumer
         ):
             key = (
                 record.block_type1,

@@ -167,21 +167,10 @@ def lockstep_group_for_block(pose_stack, rotamer_set) -> torch.Tensor:
     marked, and only where the group has more than one of them; a group with a
     single sampled block has nothing to stay in step with.
     """
-    n_rots = rotamer_set.n_rots_for_block
-    counts = n_rots.cpu().numpy()
-    out = numpy.full(
-        (pose_stack.n_poses, pose_stack.max_n_blocks),
-        -1,
-        dtype=numpy.int32,
+    if hasattr(rotamer_set, "group_for_block"):
+        return rotamer_set.group_for_block
+    from tmol.pack.rotamer._rotamer_set import correlation_indices
+
+    return correlation_indices(
+        rotamer_set.n_rots_for_block, getattr(rotamer_set, "correlated_groups", ())
     )
-    for gi, group in enumerate(find_conjugated_groups(pose_stack)):
-        sampled = [b for b in group.blocks if counts[group.pose, b] > 1]
-        if len(sampled) < 2:
-            continue
-        if not numpy.all(counts[group.pose, sampled] == counts[group.pose, sampled[0]]):
-            raise ValueError(
-                f"group at anchor {group.anchor} in pose {group.pose} has members "
-                "with differing rotamer counts; they cannot be in lockstep"
-            )
-        out[group.pose, sampled] = gi
-    return torch.as_tensor(out, device=n_rots.device)

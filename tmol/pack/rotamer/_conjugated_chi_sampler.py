@@ -519,14 +519,20 @@ class ConjugatedChiSampler(ChiSampler):
         #    conformers
         emitted.sort()
         gbt_for_rotamer, plan = [], []
+        correlated_gbts = [[] for _ in groups]
         for gbt, gi, owner, n_conf in emitted:
             plan.append((gi, owner, gbt, len(gbt_for_rotamer)))
+            correlated_gbts[gi].append(gbt)
             gbt_for_rotamer.extend([gbt] * n_conf)
 
         return (
             n_rots_for_gbt,
             torch.tensor(gbt_for_rotamer, dtype=torch.int32, device=device),
-            dict(groups=groups, plan=plan),
+            dict(
+                groups=groups,
+                plan=plan,
+                correlated_gbts=tuple(tuple(gbts) for gbts in correlated_gbts),
+            ),
         )
 
     def fill_dofs_for_samples(

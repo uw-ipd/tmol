@@ -1,0 +1,1880 @@
+{
+  "parent_commit": "77f5d94190f4c358fc4cad13b9e97d975c446fb8",
+  "upstream_head": "0f4c3bc426bca78e8681f0b730fa23c3e26ef261",
+  "sources_sha256": {
+    "tmol/io/details/_build_missing_leaf_atoms.py": "a64e978cd26ac84e5b5cdf9fb2a0dc932c3342df5cd4226d1e8be84938361044",
+    "tmol/ligand/_connection_params.py": "395ad70c18dfe8165010da0c94598b06fa59f0cc2126c8646651d4336499a05c",
+    "tmol/pack/_pack_rotamers.py": "4b8a6fa61164561abdf83f7de717520a9a4f7d4b9bbc16cf24252096cb762e11",
+    "tmol/pack/rotamer/_build_rotamers.py": "8c409dd611b1fa94f7f6b95e2edee7d0b636c4b64ace996ac6c1c6905808db4a",
+    "tmol/pack/rotamer/_conformer_sampler.py": "8b21612af4caa5c6e7cb40f74acaab77dc163cb890373eb60ef542a09ebc6198",
+    "tmol/pack/rotamer/_conjugated_chi_sampler.py": "c14922e962a46c3b71eae7812474ce063fb8f2dcf3fe6e80a265cd05b7f877b3",
+    "tmol/pack/rotamer/_opth_sampler.py": "8c85741bc4d8349c3fcbfa277a1bb7043876517da11d42da957ae458d0f646e4",
+    "tmol/pack/rotamer/_rotamer_set.py": "5c000018b0d1cfc31989e8e1929decf468149e3d8a9f240c625557a5247c8841",
+    "tmol/pose/_conjugated_groups.py": "7f61e4d8be1b9d4480e349d3b3df56bcc505307b0532c4575fc3e7cc5061ac67",
+    "tmol/tests/io/details/test_build_missing_leaf_atoms.py": "5ac8445d7f9b3c19d5ce9fff289d84ec49801d92ecf770a0a577e1067fd4fd6a",
+    "tmol/tests/pack/rotamer/test_group_sampling_regressions.py": "e2521170aae6f9527aacb05614dcbc4754452821cbb77808606151692a849124",
+    "tmol/ligand/_local_conjugate_params.py": "78cdcda98d438c627bd5fab4488063b78fb218aad368968296b2e78c8f7810c4",
+    "tmol/tests/ligand/test_local_conjugate_params.py": "d2027655672ace4c391a09c8762330de5bec6ed52c5630a2edebf2935e61371c",
+    "review/pr503/check_upstream_sampling.py": "47526d91a64641f82171e98e55fb7234cb69acd47fa54abaa4a899b63cc45955",
+    "review/pr503/profile_sampling_correlation.py": "2a5d6028112ec403af5ed11f0c5fc5cf9c0b00972ade81c2b7230c2d9f8044c3"
+  },
+  "runs": [
+    {
+      "xml": "/mnt/home/kdidi/tmol-pr503-followup/local-conjugate-tests.xml",
+      "sha256": "f4f87aa6d24ed94a6ad3ff8868fa254cd6877030dd69251ceab66ab5fd0fbe7c",
+      "slurm_job": 248911,
+      "status": "passed_before_installer",
+      "suite": {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "8",
+        "tests": "149",
+        "time": "461.367",
+        "timestamp": "2026-09-11T19:48:23.932628+00:00",
+        "hostname": "slurm-h200-interactive-244-105"
+      },
+      "cases": [
+        {
+          "name": "test_generated_local_parameters_preserve_instance_identity[biotin]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 3.929,
+          "status": "passed"
+        },
+        {
+          "name": "test_biotin_local_changes_and_canonical_ownership[biotin]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.04,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_asparagine_is_not_flipped_independently[biotin]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.001,
+          "status": "skipped"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[biotin-cpu-False]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 2.841,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[biotin-cpu-True]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 4.466,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[biotin-cuda-False]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 3.261,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[biotin-cuda-True]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 3.454,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_local_parameters_preserve_instance_identity[nglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 1.887,
+          "status": "passed"
+        },
+        {
+          "name": "test_biotin_local_changes_and_canonical_ownership[nglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.001,
+          "status": "skipped"
+        },
+        {
+          "name": "test_attached_asparagine_is_not_flipped_independently[nglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.013,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[nglycan-cpu-False]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 1.652,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[nglycan-cpu-True]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 4.424,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[nglycan-cuda-False]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 1.917,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[nglycan-cuda-True]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 3.551,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_local_parameters_preserve_instance_identity[oglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 2.4,
+          "status": "passed"
+        },
+        {
+          "name": "test_biotin_local_changes_and_canonical_ownership[oglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.001,
+          "status": "skipped"
+        },
+        {
+          "name": "test_attached_asparagine_is_not_flipped_independently[oglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.001,
+          "status": "skipped"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[oglycan-cpu-False]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 2.693,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[oglycan-cpu-True]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 6.321,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[oglycan-cuda-False]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 2.933,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[oglycan-cuda-True]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 3.397,
+          "status": "passed"
+        },
+        {
+          "name": "test_harmonic_units_against_rdkit_energy_and_force_curvature[O-Bond]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 0.003,
+          "status": "passed"
+        },
+        {
+          "name": "test_harmonic_units_against_rdkit_energy_and_force_curvature[O-Angle]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_harmonic_units_against_rdkit_energy_and_force_curvature[C#N-Angle]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_records_ignore_coordinates_and_instance_numbering[biotin]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 0.423,
+          "status": "passed"
+        },
+        {
+          "name": "test_reused_residue_name_with_changed_attachment_chemistry_raises[biotin]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 0.012,
+          "status": "passed"
+        },
+        {
+          "name": "test_attachment_hydrogen_inventory_must_match_patched_type[biotin]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 0.008,
+          "status": "passed"
+        },
+        {
+          "name": "test_duplicate_groups_parameterized_once_per_call[biotin]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 0.017,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_record_bundle_preserves_model_provenance[biotin]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 0.786,
+          "status": "passed"
+        },
+        {
+          "name": "test_attachment_bond_order_must_match_patched_type[biotin]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 0.009,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_attachment_energy_and_gradients[biotin-cpu-False]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 0.218,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_attachment_energy_and_gradients[biotin-cpu-True]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 0.213,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_attachment_energy_and_gradients[biotin-cuda-False]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 0.36,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_attachment_energy_and_gradients[biotin-cuda-True]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 0.338,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_records_ignore_coordinates_and_instance_numbering[nglycan]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 1.752,
+          "status": "passed"
+        },
+        {
+          "name": "test_reused_residue_name_with_changed_attachment_chemistry_raises[nglycan]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 0.001,
+          "status": "skipped"
+        },
+        {
+          "name": "test_attachment_hydrogen_inventory_must_match_patched_type[nglycan]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 0.001,
+          "status": "skipped"
+        },
+        {
+          "name": "test_duplicate_groups_parameterized_once_per_call[nglycan]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 0.071,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_record_bundle_preserves_model_provenance[nglycan]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 2.009,
+          "status": "passed"
+        },
+        {
+          "name": "test_attachment_bond_order_must_match_patched_type[nglycan]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 0.027,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_attachment_energy_and_gradients[nglycan-cpu-False]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 0.501,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_attachment_energy_and_gradients[nglycan-cpu-True]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 0.343,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_attachment_energy_and_gradients[nglycan-cuda-False]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 0.502,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_attachment_energy_and_gradients[nglycan-cuda-True]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 0.497,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_records_ignore_coordinates_and_instance_numbering[oglycan]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 1.996,
+          "status": "passed"
+        },
+        {
+          "name": "test_reused_residue_name_with_changed_attachment_chemistry_raises[oglycan]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 0.001,
+          "status": "skipped"
+        },
+        {
+          "name": "test_attachment_hydrogen_inventory_must_match_patched_type[oglycan]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 0.001,
+          "status": "skipped"
+        },
+        {
+          "name": "test_duplicate_groups_parameterized_once_per_call[oglycan]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 0.052,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_record_bundle_preserves_model_provenance[oglycan]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 2.32,
+          "status": "passed"
+        },
+        {
+          "name": "test_attachment_bond_order_must_match_patched_type[oglycan]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 0.026,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_attachment_energy_and_gradients[oglycan-cpu-False]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 2.751,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_attachment_energy_and_gradients[oglycan-cpu-True]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 2.515,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_attachment_energy_and_gradients[oglycan-cuda-False]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 2.804,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_attachment_energy_and_gradients[oglycan-cuda-True]",
+          "classname": "tmol.tests.ligand.test_generated_connection_params",
+          "seconds": 2.752,
+          "status": "passed"
+        },
+        {
+          "name": "test_budget_preserves_owner_when_chi_names_repeat",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.004,
+          "status": "passed"
+        },
+        {
+          "name": "test_independent_library_does_not_remove_child_chi",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_budget_retains_a_proton_placement_and_rejects_oversize_library",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_budget_keeps_correct_residue_and_linkage",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_anchor_library_keeps_identical_block_numbers_in_different_poses[cpu]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.003,
+          "status": "passed"
+        },
+        {
+          "name": "test_anchor_library_keeps_identical_block_numbers_in_different_poses[cuda]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.002,
+          "status": "passed"
+        },
+        {
+          "name": "test_kinforest_cache_is_scoped_to_packed_block_types",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_lockstep_rejects_mismatched_counts_before_native_scoring[cpu]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_lockstep_rejects_mismatched_counts_before_native_scoring[cuda]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.002,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_collapse_accepts_exclusive_end_offset[cpu]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.002,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_collapse_accepts_exclusive_end_offset[cuda]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.002,
+          "status": "passed"
+        },
+        {
+          "name": "test_constrained_library_projection_preserves_first_distinct_states",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.002,
+          "status": "passed"
+        },
+        {
+          "name": "test_topology_cache_separates_external_constraints_and_is_bounded",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.002,
+          "status": "passed"
+        },
+        {
+          "name": "test_independent_samples_on_connected_blocks_are_not_correlated[cpu-counts0]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.002,
+          "status": "passed"
+        },
+        {
+          "name": "test_independent_samples_on_connected_blocks_are_not_correlated[cpu-counts1]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.002,
+          "status": "passed"
+        },
+        {
+          "name": "test_independent_samples_on_connected_blocks_are_not_correlated[cuda-counts0]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_independent_samples_on_connected_blocks_are_not_correlated[cuda-counts1]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_late_independent_sampler_cannot_extend_correlated_members[cpu-extra_counts0]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_late_independent_sampler_cannot_extend_correlated_members[cpu-extra_counts1]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.002,
+          "status": "passed"
+        },
+        {
+          "name": "test_late_independent_sampler_cannot_extend_correlated_members[cuda-extra_counts0]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.002,
+          "status": "passed"
+        },
+        {
+          "name": "test_late_independent_sampler_cannot_extend_correlated_members[cuda-extra_counts1]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_opth_builds_cartesian_product_for_multiple_proton_chis",
+          "classname": "tmol.tests.pack.rotamer.test_opth_sampler",
+          "seconds": 0.002,
+          "status": "passed"
+        },
+        {
+          "name": "test_optH_rotamer_sampler_flipNHQ[cpu]",
+          "classname": "tmol.tests.pack.rotamer.test_opth_sampler",
+          "seconds": 1.121,
+          "status": "passed"
+        },
+        {
+          "name": "test_optH_rotamer_sampler_flipNHQ[cuda]",
+          "classname": "tmol.tests.pack.rotamer.test_opth_sampler",
+          "seconds": 0.647,
+          "status": "passed"
+        },
+        {
+          "name": "test_optH_rotamer_sampler_no_flipNHQ[cpu]",
+          "classname": "tmol.tests.pack.rotamer.test_opth_sampler",
+          "seconds": 0.342,
+          "status": "passed"
+        },
+        {
+          "name": "test_optH_rotamer_sampler_no_flipNHQ[cuda]",
+          "classname": "tmol.tests.pack.rotamer.test_opth_sampler",
+          "seconds": 0.442,
+          "status": "passed"
+        },
+        {
+          "name": "test_every_member_of_a_group_gets_the_same_rotamers[cpu-biotin]",
+          "classname": "tmol.tests.pack.test_conjugated_group_packing",
+          "seconds": 1.305,
+          "status": "passed"
+        },
+        {
+          "name": "test_every_member_of_a_group_gets_the_same_rotamers[cpu-nglycan]",
+          "classname": "tmol.tests.pack.test_conjugated_group_packing",
+          "seconds": 2.812,
+          "status": "passed"
+        },
+        {
+          "name": "test_every_member_of_a_group_gets_the_same_rotamers[cpu-oglycan]",
+          "classname": "tmol.tests.pack.test_conjugated_group_packing",
+          "seconds": 4.785,
+          "status": "passed"
+        },
+        {
+          "name": "test_every_member_of_a_group_gets_the_same_rotamers[cuda-biotin]",
+          "classname": "tmol.tests.pack.test_conjugated_group_packing",
+          "seconds": 1.479,
+          "status": "passed"
+        },
+        {
+          "name": "test_every_member_of_a_group_gets_the_same_rotamers[cuda-nglycan]",
+          "classname": "tmol.tests.pack.test_conjugated_group_packing",
+          "seconds": 2.815,
+          "status": "passed"
+        },
+        {
+          "name": "test_every_member_of_a_group_gets_the_same_rotamers[cuda-oglycan]",
+          "classname": "tmol.tests.pack.test_conjugated_group_packing",
+          "seconds": 4.712,
+          "status": "passed"
+        },
+        {
+          "name": "test_a_group_is_sampled_as_the_product_of_its_parts[cpu]",
+          "classname": "tmol.tests.pack.test_conjugated_group_packing",
+          "seconds": 0.618,
+          "status": "passed"
+        },
+        {
+          "name": "test_a_group_is_sampled_as_the_product_of_its_parts[cuda]",
+          "classname": "tmol.tests.pack.test_conjugated_group_packing",
+          "seconds": 0.779,
+          "status": "passed"
+        },
+        {
+          "name": "test_the_bond_survives_packing[cpu-biotin]",
+          "classname": "tmol.tests.pack.test_conjugated_group_packing",
+          "seconds": 10.734,
+          "status": "passed"
+        },
+        {
+          "name": "test_the_bond_survives_packing[cpu-nglycan]",
+          "classname": "tmol.tests.pack.test_conjugated_group_packing",
+          "seconds": 45.753,
+          "status": "passed"
+        },
+        {
+          "name": "test_the_bond_survives_packing[cpu-oglycan]",
+          "classname": "tmol.tests.pack.test_conjugated_group_packing",
+          "seconds": 83.9,
+          "status": "passed"
+        },
+        {
+          "name": "test_the_bond_survives_packing[cuda-biotin]",
+          "classname": "tmol.tests.pack.test_conjugated_group_packing",
+          "seconds": 2.958,
+          "status": "passed"
+        },
+        {
+          "name": "test_the_bond_survives_packing[cuda-nglycan]",
+          "classname": "tmol.tests.pack.test_conjugated_group_packing",
+          "seconds": 4.807,
+          "status": "passed"
+        },
+        {
+          "name": "test_the_bond_survives_packing[cuda-oglycan]",
+          "classname": "tmol.tests.pack.test_conjugated_group_packing",
+          "seconds": 5.127,
+          "status": "passed"
+        },
+        {
+          "name": "test_the_packers_energy_matches_what_the_pose_scores[cpu-biotin]",
+          "classname": "tmol.tests.pack.test_conjugated_group_packing",
+          "seconds": 10.623,
+          "status": "passed"
+        },
+        {
+          "name": "test_the_packers_energy_matches_what_the_pose_scores[cpu-nglycan]",
+          "classname": "tmol.tests.pack.test_conjugated_group_packing",
+          "seconds": 46.055,
+          "status": "passed"
+        },
+        {
+          "name": "test_the_packers_energy_matches_what_the_pose_scores[cpu-oglycan]",
+          "classname": "tmol.tests.pack.test_conjugated_group_packing",
+          "seconds": 83.919,
+          "status": "passed"
+        },
+        {
+          "name": "test_the_packers_energy_matches_what_the_pose_scores[cuda-biotin]",
+          "classname": "tmol.tests.pack.test_conjugated_group_packing",
+          "seconds": 2.965,
+          "status": "passed"
+        },
+        {
+          "name": "test_the_packers_energy_matches_what_the_pose_scores[cuda-nglycan]",
+          "classname": "tmol.tests.pack.test_conjugated_group_packing",
+          "seconds": 4.917,
+          "status": "passed"
+        },
+        {
+          "name": "test_the_packers_energy_matches_what_the_pose_scores[cuda-oglycan]",
+          "classname": "tmol.tests.pack.test_conjugated_group_packing",
+          "seconds": 5.202,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype0-biotin]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 0.571,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype0-nglycan]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 2.216,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype0-oglycan]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 4.452,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype1-biotin]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 0.61,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype1-nglycan]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 1.844,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype1-oglycan]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 4.418,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype0-biotin]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 0.679,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype0-nglycan]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 1.969,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype0-oglycan]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 4.704,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype1-biotin]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 0.581,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype1-nglycan]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 2.099,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype1-oglycan]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 4.922,
+          "status": "passed"
+        },
+        {
+          "name": "test_reused_sampler_keeps_real_pose_groups_independent[cpu-biotin]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 1.5,
+          "status": "passed"
+        },
+        {
+          "name": "test_reused_sampler_keeps_real_pose_groups_independent[cpu-free]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 1.438,
+          "status": "passed"
+        },
+        {
+          "name": "test_reused_sampler_keeps_real_pose_groups_independent[cpu-cycle]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 1.372,
+          "status": "passed"
+        },
+        {
+          "name": "test_reused_sampler_keeps_real_pose_groups_independent[cpu-external]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 1.522,
+          "status": "passed"
+        },
+        {
+          "name": "test_reused_sampler_keeps_real_pose_groups_independent[cuda-biotin]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 1.666,
+          "status": "passed"
+        },
+        {
+          "name": "test_reused_sampler_keeps_real_pose_groups_independent[cuda-free]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 1.608,
+          "status": "passed"
+        },
+        {
+          "name": "test_reused_sampler_keeps_real_pose_groups_independent[cuda-cycle]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 1.549,
+          "status": "passed"
+        },
+        {
+          "name": "test_reused_sampler_keeps_real_pose_groups_independent[cuda-external]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 1.705,
+          "status": "passed"
+        },
+        {
+          "name": "test_lookup_reference_preserves_canonical_chi_ownership",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.007,
+          "status": "passed"
+        },
+        {
+          "name": "test_intra_improper_uses_physical_center_ownership[Nbb]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.004,
+          "status": "passed"
+        },
+        {
+          "name": "test_intra_improper_uses_physical_center_ownership[Nad]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.004,
+          "status": "passed"
+        },
+        {
+          "name": "test_invalid_reference_is_rejected[missing_type]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.009,
+          "status": "passed"
+        },
+        {
+          "name": "test_invalid_reference_is_rejected[HN]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.006,
+          "status": "passed"
+        },
+        {
+          "name": "test_invalid_reference_is_rejected[C*]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.005,
+          "status": "passed"
+        },
+        {
+          "name": "test_invalid_reference_is_rejected[]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.005,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cpu-False-False-False]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.614,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cpu-False-False-True]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.612,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cpu-False-True-False]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.612,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cpu-False-True-True]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.617,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cpu-True-False-False]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.611,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cpu-True-False-True]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.612,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cpu-True-True-False]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.616,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cpu-True-True-True]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.611,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cuda-False-False-False]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.734,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cuda-False-False-True]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.739,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cuda-False-True-False]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.736,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cuda-False-True-True]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.751,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cuda-True-False-False]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.736,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cuda-True-False-True]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.739,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cuda-True-True-False]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.746,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cuda-True-True-True]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.75,
+          "status": "passed"
+        },
+        {
+          "name": "test_rotamer_attachment_improper_reference[cpu-False]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 1.436,
+          "status": "passed"
+        },
+        {
+          "name": "test_rotamer_attachment_improper_reference[cpu-True]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 1.44,
+          "status": "passed"
+        },
+        {
+          "name": "test_rotamer_attachment_improper_reference[cuda-False]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 1.557,
+          "status": "passed"
+        },
+        {
+          "name": "test_rotamer_attachment_improper_reference[cuda-True]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 1.554,
+          "status": "passed"
+        },
+        {
+          "name": "test_reference_bundle_version_and_roundtrip[False]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.042,
+          "status": "passed"
+        },
+        {
+          "name": "test_reference_bundle_version_and_roundtrip[True]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.04,
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "xml": "/mnt/home/kdidi/tmol-pr503-followup/local-conjugate-final-tests.xml",
+      "sha256": "8a4c985f6bd06cadc6570497d4376ea3147262a41e48459b070c885366007c27",
+      "slurm_job": 248965,
+      "status": "passed_final_installer",
+      "suite": {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "4",
+        "tests": "64",
+        "time": "58.947",
+        "timestamp": "2026-09-11T19:55:46.185721+00:00",
+        "hostname": "slurm-h200-interactive-244-105"
+      },
+      "cases": [
+        {
+          "name": "test_install_checks_baseline_and_does_not_apply_twice[biotin]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 4.019,
+          "status": "passed"
+        },
+        {
+          "name": "test_local_bundle_roundtrip_preserves_correction_and_baseline[biotin]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.182,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_local_parameters_preserve_instance_identity[biotin]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.078,
+          "status": "passed"
+        },
+        {
+          "name": "test_biotin_local_changes_and_canonical_ownership[biotin]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.043,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_asparagine_is_not_flipped_independently[biotin]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.002,
+          "status": "skipped"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[biotin-cpu-False]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 3.089,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[biotin-cpu-True]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 4.384,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[biotin-cuda-False]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 3.265,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[biotin-cuda-True]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 3.308,
+          "status": "passed"
+        },
+        {
+          "name": "test_install_checks_baseline_and_does_not_apply_twice[nglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 1.87,
+          "status": "passed"
+        },
+        {
+          "name": "test_local_bundle_roundtrip_preserves_correction_and_baseline[nglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.621,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_local_parameters_preserve_instance_identity[nglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.281,
+          "status": "passed"
+        },
+        {
+          "name": "test_biotin_local_changes_and_canonical_ownership[nglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.001,
+          "status": "skipped"
+        },
+        {
+          "name": "test_attached_asparagine_is_not_flipped_independently[nglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.012,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[nglycan-cpu-False]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 1.673,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[nglycan-cpu-True]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 5.1,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[nglycan-cuda-False]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 1.955,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[nglycan-cuda-True]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 3.599,
+          "status": "passed"
+        },
+        {
+          "name": "test_install_checks_baseline_and_does_not_apply_twice[oglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 2.245,
+          "status": "passed"
+        },
+        {
+          "name": "test_local_bundle_roundtrip_preserves_correction_and_baseline[oglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.606,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_local_parameters_preserve_instance_identity[oglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.219,
+          "status": "passed"
+        },
+        {
+          "name": "test_biotin_local_changes_and_canonical_ownership[oglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.001,
+          "status": "skipped"
+        },
+        {
+          "name": "test_attached_asparagine_is_not_flipped_independently[oglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.001,
+          "status": "skipped"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[oglycan-cpu-False]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 2.822,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[oglycan-cpu-True]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 8.855,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[oglycan-cuda-False]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 2.98,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[oglycan-cuda-True]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 3.595,
+          "status": "passed"
+        },
+        {
+          "name": "test_leaf_icoor_can_reference_any_declared_connection",
+          "classname": "tmol.tests.io.details.test_build_missing_leaf_atoms",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_build_missing_leaf_atoms[cpu]",
+          "classname": "tmol.tests.io.details.test_build_missing_leaf_atoms",
+          "seconds": 0.137,
+          "status": "passed"
+        },
+        {
+          "name": "test_build_missing_leaf_atoms[cuda]",
+          "classname": "tmol.tests.io.details.test_build_missing_leaf_atoms",
+          "seconds": 0.17,
+          "status": "passed"
+        },
+        {
+          "name": "test_build_missing_leaf_atoms_error_handling[cpu]",
+          "classname": "tmol.tests.io.details.test_build_missing_leaf_atoms",
+          "seconds": 0.017,
+          "status": "passed"
+        },
+        {
+          "name": "test_build_missing_leaf_atoms_error_handling[cuda]",
+          "classname": "tmol.tests.io.details.test_build_missing_leaf_atoms",
+          "seconds": 0.037,
+          "status": "passed"
+        },
+        {
+          "name": "test_build_missing_leaf_atoms_backwards[cpu]",
+          "classname": "tmol.tests.io.details.test_build_missing_leaf_atoms",
+          "seconds": 0.036,
+          "status": "passed"
+        },
+        {
+          "name": "test_build_missing_leaf_atoms_backwards[cuda]",
+          "classname": "tmol.tests.io.details.test_build_missing_leaf_atoms",
+          "seconds": 0.069,
+          "status": "passed"
+        },
+        {
+          "name": "test_coord_sum_gradcheck[cpu]",
+          "classname": "tmol.tests.io.details.test_build_missing_leaf_atoms",
+          "seconds": 0.078,
+          "status": "passed"
+        },
+        {
+          "name": "test_coord_sum_gradcheck[cuda]",
+          "classname": "tmol.tests.io.details.test_build_missing_leaf_atoms",
+          "seconds": 0.19,
+          "status": "passed"
+        },
+        {
+          "name": "test_build_missing_hydrogens_and_oxygens_gradcheck[cpu]",
+          "classname": "tmol.tests.io.details.test_build_missing_leaf_atoms",
+          "seconds": 0.054,
+          "status": "passed"
+        },
+        {
+          "name": "test_build_missing_hydrogens_and_oxygens_gradcheck[cuda]",
+          "classname": "tmol.tests.io.details.test_build_missing_leaf_atoms",
+          "seconds": 0.168,
+          "status": "passed"
+        },
+        {
+          "name": "test_budget_preserves_owner_when_chi_names_repeat",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.004,
+          "status": "passed"
+        },
+        {
+          "name": "test_independent_library_does_not_remove_child_chi",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_budget_retains_a_proton_placement_and_rejects_oversize_library",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_budget_keeps_correct_residue_and_linkage",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_anchor_library_keeps_identical_block_numbers_in_different_poses[cpu]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.002,
+          "status": "passed"
+        },
+        {
+          "name": "test_anchor_library_keeps_identical_block_numbers_in_different_poses[cuda]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.002,
+          "status": "passed"
+        },
+        {
+          "name": "test_kinforest_cache_is_scoped_to_packed_block_types",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_lockstep_rejects_mismatched_counts_before_native_scoring[cpu]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_lockstep_rejects_mismatched_counts_before_native_scoring[cuda]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.002,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_collapse_accepts_exclusive_end_offset[cpu]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.002,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_collapse_accepts_exclusive_end_offset[cuda]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.002,
+          "status": "passed"
+        },
+        {
+          "name": "test_constrained_library_projection_preserves_first_distinct_states",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.002,
+          "status": "passed"
+        },
+        {
+          "name": "test_topology_cache_separates_external_constraints_and_is_bounded",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_independent_samples_on_connected_blocks_are_not_correlated[cpu-counts0]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_independent_samples_on_connected_blocks_are_not_correlated[cpu-counts1]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_independent_samples_on_connected_blocks_are_not_correlated[cuda-counts0]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_independent_samples_on_connected_blocks_are_not_correlated[cuda-counts1]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_late_independent_sampler_cannot_extend_correlated_members[cpu-extra_counts0]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_late_independent_sampler_cannot_extend_correlated_members[cpu-extra_counts1]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_late_independent_sampler_cannot_extend_correlated_members[cuda-extra_counts0]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.002,
+          "status": "passed"
+        },
+        {
+          "name": "test_late_independent_sampler_cannot_extend_correlated_members[cuda-extra_counts1]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_opth_builds_cartesian_product_for_multiple_proton_chis",
+          "classname": "tmol.tests.pack.rotamer.test_opth_sampler",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_optH_rotamer_sampler_flipNHQ[cpu]",
+          "classname": "tmol.tests.pack.rotamer.test_opth_sampler",
+          "seconds": 1.004,
+          "status": "passed"
+        },
+        {
+          "name": "test_optH_rotamer_sampler_flipNHQ[cuda]",
+          "classname": "tmol.tests.pack.rotamer.test_opth_sampler",
+          "seconds": 0.523,
+          "status": "passed"
+        },
+        {
+          "name": "test_optH_rotamer_sampler_no_flipNHQ[cpu]",
+          "classname": "tmol.tests.pack.rotamer.test_opth_sampler",
+          "seconds": 0.355,
+          "status": "passed"
+        },
+        {
+          "name": "test_optH_rotamer_sampler_no_flipNHQ[cuda]",
+          "classname": "tmol.tests.pack.rotamer.test_opth_sampler",
+          "seconds": 0.465,
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "xml": "/mnt/home/kdidi/tmol-pr503-followup/correlation-final-tests.xml",
+      "sha256": "407aeea58a7df5dd3d6323006c4ed6d88958c071ac63cc36cf075c453ad28df3",
+      "slurm_job": 248997,
+      "status": "passed_final_correlation",
+      "suite": {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "53",
+        "time": "51.792",
+        "timestamp": "2026-09-11T19:58:21.426000+00:00",
+        "hostname": "slurm-h200-interactive-244-105"
+      },
+      "cases": [
+        {
+          "name": "test_budget_preserves_owner_when_chi_names_repeat",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.004,
+          "status": "passed"
+        },
+        {
+          "name": "test_independent_library_does_not_remove_child_chi",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_budget_retains_a_proton_placement_and_rejects_oversize_library",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_budget_keeps_correct_residue_and_linkage",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.014,
+          "status": "passed"
+        },
+        {
+          "name": "test_anchor_library_keeps_identical_block_numbers_in_different_poses[cpu]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.639,
+          "status": "passed"
+        },
+        {
+          "name": "test_anchor_library_keeps_identical_block_numbers_in_different_poses[cuda]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.265,
+          "status": "passed"
+        },
+        {
+          "name": "test_kinforest_cache_is_scoped_to_packed_block_types",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.002,
+          "status": "passed"
+        },
+        {
+          "name": "test_lockstep_rejects_mismatched_counts_before_native_scoring[cpu]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.002,
+          "status": "passed"
+        },
+        {
+          "name": "test_lockstep_rejects_mismatched_counts_before_native_scoring[cuda]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.002,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_collapse_accepts_exclusive_end_offset[cpu]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.025,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_collapse_accepts_exclusive_end_offset[cuda]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.067,
+          "status": "passed"
+        },
+        {
+          "name": "test_constrained_library_projection_preserves_first_distinct_states",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.005,
+          "status": "passed"
+        },
+        {
+          "name": "test_topology_cache_separates_external_constraints_and_is_bounded",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_independent_samples_on_connected_blocks_are_not_correlated[cpu-counts0]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_independent_samples_on_connected_blocks_are_not_correlated[cpu-counts1]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_independent_samples_on_connected_blocks_are_not_correlated[cuda-counts0]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_independent_samples_on_connected_blocks_are_not_correlated[cuda-counts1]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_explicit_correlation_rejects_invalid_members[cpu--1-blocks0]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_explicit_correlation_rejects_invalid_members[cpu-1-blocks1]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_explicit_correlation_rejects_invalid_members[cpu-0-blocks2]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_explicit_correlation_rejects_invalid_members[cpu-0-blocks3]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_explicit_correlation_rejects_invalid_members[cpu-0-blocks4]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_explicit_correlation_rejects_invalid_members[cuda--1-blocks0]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_explicit_correlation_rejects_invalid_members[cuda-1-blocks1]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_explicit_correlation_rejects_invalid_members[cuda-0-blocks2]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_explicit_correlation_rejects_invalid_members[cuda-0-blocks3]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_explicit_correlation_rejects_invalid_members[cuda-0-blocks4]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_single_state_groups_cannot_overlap[cpu]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_single_state_groups_cannot_overlap[cuda]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_late_independent_sampler_cannot_extend_correlated_members[cpu-extra_counts0]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_late_independent_sampler_cannot_extend_correlated_members[cpu-extra_counts1]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_late_independent_sampler_cannot_extend_correlated_members[cuda-extra_counts0]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.002,
+          "status": "passed"
+        },
+        {
+          "name": "test_late_independent_sampler_cannot_extend_correlated_members[cuda-extra_counts1]",
+          "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+          "seconds": 0.001,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype0-biotin]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 4.482,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype0-nglycan]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 2.132,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype0-oglycan]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 7.276,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype1-biotin]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 0.612,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype1-nglycan]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 1.934,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype1-oglycan]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 4.561,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype0-biotin]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 1.125,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype0-nglycan]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 2.072,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype0-oglycan]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 6.337,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype1-biotin]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 0.697,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype1-nglycan]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 1.816,
+          "status": "passed"
+        },
+        {
+          "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype1-oglycan]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 4.909,
+          "status": "passed"
+        },
+        {
+          "name": "test_reused_sampler_keeps_real_pose_groups_independent[cpu-biotin]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 1.507,
+          "status": "passed"
+        },
+        {
+          "name": "test_reused_sampler_keeps_real_pose_groups_independent[cpu-free]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 1.461,
+          "status": "passed"
+        },
+        {
+          "name": "test_reused_sampler_keeps_real_pose_groups_independent[cpu-cycle]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 1.397,
+          "status": "passed"
+        },
+        {
+          "name": "test_reused_sampler_keeps_real_pose_groups_independent[cpu-external]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 1.541,
+          "status": "passed"
+        },
+        {
+          "name": "test_reused_sampler_keeps_real_pose_groups_independent[cuda-biotin]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 1.665,
+          "status": "passed"
+        },
+        {
+          "name": "test_reused_sampler_keeps_real_pose_groups_independent[cuda-free]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 1.644,
+          "status": "passed"
+        },
+        {
+          "name": "test_reused_sampler_keeps_real_pose_groups_independent[cuda-cycle]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 1.588,
+          "status": "passed"
+        },
+        {
+          "name": "test_reused_sampler_keeps_real_pose_groups_independent[cuda-external]",
+          "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+          "seconds": 1.746,
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "xml": "/mnt/home/kdidi/tmol-pr503-followup/local-conjugate-install-final-cpu.xml",
+      "sha256": "fa34cb8b3952c7298913c6eb3cfce5526af7f264b337ac525b5f229ab963f691",
+      "slurm_job": null,
+      "status": "passed_final_cpu",
+      "suite": {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "10",
+        "tests": "27",
+        "time": "30.876",
+        "timestamp": "2026-09-11T19:52:39.070010+00:00",
+        "hostname": "slurm-login-0"
+      },
+      "cases": [
+        {
+          "name": "test_install_checks_baseline_and_does_not_apply_twice[biotin]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 4.046,
+          "status": "passed"
+        },
+        {
+          "name": "test_local_bundle_roundtrip_preserves_correction_and_baseline[biotin]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.35,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_local_parameters_preserve_instance_identity[biotin]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.069,
+          "status": "passed"
+        },
+        {
+          "name": "test_biotin_local_changes_and_canonical_ownership[biotin]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.033,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_asparagine_is_not_flipped_independently[biotin]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.001,
+          "status": "skipped"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[biotin-cpu-False]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 2.599,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[biotin-cpu-True]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 3.516,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[biotin-cuda-False]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.001,
+          "status": "skipped"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[biotin-cuda-True]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.001,
+          "status": "skipped"
+        },
+        {
+          "name": "test_install_checks_baseline_and_does_not_apply_twice[nglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 1.779,
+          "status": "passed"
+        },
+        {
+          "name": "test_local_bundle_roundtrip_preserves_correction_and_baseline[nglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.367,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_local_parameters_preserve_instance_identity[nglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.242,
+          "status": "passed"
+        },
+        {
+          "name": "test_biotin_local_changes_and_canonical_ownership[nglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.001,
+          "status": "skipped"
+        },
+        {
+          "name": "test_attached_asparagine_is_not_flipped_independently[nglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.011,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[nglycan-cpu-False]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 1.704,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[nglycan-cpu-True]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 4.223,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[nglycan-cuda-False]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.001,
+          "status": "skipped"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[nglycan-cuda-True]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.001,
+          "status": "skipped"
+        },
+        {
+          "name": "test_install_checks_baseline_and_does_not_apply_twice[oglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 2.071,
+          "status": "passed"
+        },
+        {
+          "name": "test_local_bundle_roundtrip_preserves_correction_and_baseline[oglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.313,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_local_parameters_preserve_instance_identity[oglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.186,
+          "status": "passed"
+        },
+        {
+          "name": "test_biotin_local_changes_and_canonical_ownership[oglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.002,
+          "status": "skipped"
+        },
+        {
+          "name": "test_attached_asparagine_is_not_flipped_independently[oglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.001,
+          "status": "skipped"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[oglycan-cpu-False]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 2.654,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[oglycan-cpu-True]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 6.202,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[oglycan-cuda-False]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.001,
+          "status": "skipped"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[oglycan-cuda-True]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.001,
+          "status": "skipped"
+        }
+      ]
+    }
+  ],
+  "logs": {
+    "/mnt/home/kdidi/tmol-pr503-followup/local-conjugate-first-cpu.log": "eb9f7aabec1825e2512d610fd4f792cd3deeb79eefeefdc81d540e18c4c0347f",
+    "/mnt/home/kdidi/tmol-pr503-followup/local-conjugate-nglycan-opth.log": "e7f8768729110e297c2c2e8aee9e6a42ccfce8d8817c446025aa0d5fff647f99",
+    "/mnt/home/kdidi/tmol-pr503-followup/local-conjugate-nglycan-opth-fixed.log": "afd5acc730a8316411303d104b71a2335891ccabf0b3eb668ea3338269f0b6bc",
+    "/mnt/home/kdidi/tmol-pr503-followup/local-conjugate-fixed-248910.log": "c1371057c62d0d59349d138cd4a13da2becfff38daa548a92135dc8374ba1291",
+    "/mnt/home/kdidi/tmol-pr503-followup/local-conjugate-fixed-248911.log": "6c0571df98fdeff607fd29794241e011f69eee4b25408da99c323c6cbcfeec1d",
+    "/mnt/home/kdidi/tmol-pr503-followup/local-conjugate-install-cpu.log": "26e277f2943a849777c79d75991dffb024f98d0000d4e012673d36fc5c06635d",
+    "/mnt/home/kdidi/tmol-pr503-followup/local-conjugate-install-final-cpu.log": "db7b19f6caa588c7d56e8ac4f75b3026b00e97d8bf2afacbdc476b206fe26324",
+    "/mnt/home/kdidi/tmol-pr503-followup/local-conjugate-final-248965.log": "daa3ee9252d2e2b09a92f04d295e7cc6d9499a0589a1018777a08cf54c294cd1",
+    "/mnt/home/kdidi/tmol-pr503-followup/correlation-final-248997.log": "954fbf17bb6c4aca43eb60eae87387e3f853c8630df3b446ed144da16042b482",
+    "/mnt/home/kdidi/tmol-pr503-followup/sampling-controlled-before-final.log": "6b10046a02cf5113f70361a65937c35642de3aea449cfbcaf01f0836692254ce",
+    "/mnt/home/kdidi/tmol-pr503-followup/sampling-correlation-cpu.log": "2efc8ae2b50de3e379b88b2be1a9e6255175b1c6982674b9f32d92d37ffd837e",
+    "/mnt/home/kdidi/tmol-pr503-followup/sampling-correlation-final-cpu.log": "3b34f5d074a5dfc4ecfde4c42b2d25ca8d1344e36864066ddeb0c8e9e425d0de"
+  },
+  "controlled_before": {
+    "failed": 4,
+    "skipped": 2,
+    "baseline": "77f5d94190f4c358fc4cad13b9e97d975c446fb8",
+    "scope": "selected Python predicates with current fixtures; not pristine upstream"
+  },
+  "limitations": [
+    "Private provisional charge/typing model; not default preparation or independent scientific fit",
+    "Bundle roundtrip reconstructs private result; ordinary loader does not replace existing variant definitions",
+    "Counts overlap between suites",
+    "Mask profiling excludes one-time construction and complete render/scoring",
+    "Initial native exit, test-authoring errors and too-small profiler budget are superseded, not successes"
+  ]
+}

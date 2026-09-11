@@ -191,7 +191,8 @@ def test_lockstep_rejects_mismatched_counts_before_native_scoring(
     monkeypatch.setattr(groups, "find_conjugated_groups", lambda pose: [group])
     pose = SimpleNamespace(n_poses=1, max_n_blocks=2)
     rotamers = SimpleNamespace(
-        n_rots_for_block=torch.tensor([[3, 2]], device=torch_device)
+        n_rots_for_block=torch.tensor([[3, 2]], device=torch_device),
+        correlated_groups=(group,),
     )
     with pytest.raises(ValueError, match="differing rotamer counts"):
         groups.lockstep_group_for_block(pose, rotamers)
@@ -288,3 +289,62 @@ def test_topology_cache_separates_external_constraints_and_is_bounded(monkeypatc
         conjugated.group_sampling_topology(attached, pose)
     assert len(pose.packed_block_types.conjugated_sampling_topology_cache) == 32
     assert conjugated.group_sampling_topology(group, pose) is not free
+
+
+@pytest.mark.parametrize("counts", [[[3, 3]], [[3, 2]]])
+def test_independent_samples_on_connected_blocks_are_not_correlated(
+    monkeypatch, torch_device, counts
+):
+    import tmol.pose._conjugated_groups as groups
+
+    group = ConjugatedGroup(0, (0, 1), ((0, 0, 1, 0),))
+    monkeypatch.setattr(groups, "find_conjugated_groups", lambda pose: [group])
+    pose = SimpleNamespace(n_poses=1, max_n_blocks=2)
+    rots = SimpleNamespace(n_rots_for_block=torch.tensor(counts, device=torch_device))
+    actual = groups.lockstep_group_for_block(pose, rots)
+    torch.testing.assert_close(
+        actual, torch.full((1, 2), -1, dtype=torch.int32, device=torch_device)
+    )
+
+
+@pytest.mark.parametrize(
+    "pose,blocks", [(-1, (0, 1)), (1, (0, 1)), (0, (-1, 0)), (0, (0, 2)), (0, (0, 0))]
+)
+def test_explicit_correlation_rejects_invalid_members(torch_device, pose, blocks):
+    from tmol.pack.rotamer._rotamer_set import CorrelatedBlockGroup, correlation_indices
+
+    counts = torch.ones((1, 2), dtype=torch.int64, device=torch_device)
+    with pytest.raises(ValueError, match="Invalid correlated block"):
+        correlation_indices(counts, (CorrelatedBlockGroup(pose, blocks),))
+
+
+def test_single_state_groups_cannot_overlap(torch_device):
+    from tmol.pack.rotamer._rotamer_set import CorrelatedBlockGroup, correlation_indices
+
+    counts = torch.ones((1, 3), dtype=torch.int64, device=torch_device)
+    with pytest.raises(ValueError, match="multiple correlated groups"):
+        correlation_indices(
+            counts, (CorrelatedBlockGroup(0, (0, 1)), CorrelatedBlockGroup(0, (1, 2)))
+        )
+
+
+@pytest.mark.parametrize("extra_counts", [[1, 1], [0, 1]])
+def test_late_independent_sampler_cannot_extend_correlated_members(
+    torch_device, extra_counts
+):
+    from tmol.pack.rotamer._build_rotamers import _correlated_groups_for_samples
+
+    def tensor(x):
+        return torch.tensor(x, dtype=torch.int32, device=torch_device)
+
+    task = SimpleNamespace(cons_bt_pose=tensor([0, 0]), cons_bt_block=tensor([0, 1]))
+    correlated = (
+        tensor([3, 3]),
+        tensor([0, 0, 0, 1, 1, 1]),
+        {"correlated_gbts": ((0, 1),)},
+    )
+    extra = (tensor(extra_counts), tensor([]), {})
+    with pytest.raises(ValueError, match="Independent or overlapping samplers"):
+        _correlated_groups_for_samples(task, [correlated, extra])
+    groups = _correlated_groups_for_samples(task, [correlated])
+    assert [(g.pose, g.blocks) for g in groups] == [(0, (0, 1))]

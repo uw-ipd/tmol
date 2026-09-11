@@ -9,7 +9,7 @@ Improvement branch: `review/pr503-chemistry-efficiency`
 Review date: 2026-09-11
 
 The six-file update has been reviewed separately. Comments 1–46 retain their
-original `c03c1e745` anchors; comments 47–48 address the updated head. The
+original `c03c1e745` anchors; comments 47–52 address the updated head. The
 fold-forest expectations and HYP count are now corrected upstream. See
 [FOLLOWUP.md](FOLLOWUP.md) for reconciliation and validation details.
 
@@ -480,6 +480,30 @@ Two CPU reproductions reverse the order of two fragment states in one equivalenc
 > Could this gate follow the center's scoring ownership instead of fragment origin? An amide formed between a canonical residue and a ligand is also a three-coordinate center spanning a connection. Even after assigning a compatible Nad/CDp/CS2/HN neighborhood, this predicate drops its improper in all four scoring paths. The central atom's physical type should determine ownership; generic lookup references on its neighbors should not transfer their canonical sidechain torsions to the generic term.
 
 The isolated lysine–biotin reproduction retains just the existing Nad/CDp/CS2/HN table row and explicitly supplies the corrected site types; it is not a claim that default preparation already installs those types. Moving the retained hydrogen out of plane gives exactly zero attachment energy in both whole-pose and block-pair scoring with the fragment gate. This controlled comparison retains the new Python lookup-reference support and isolates the native predicate; it is not an unmodified upstream checkout. The correction checks center ownership in the shared helper and accepts other chemical connections. An optional per-atom `genbonded_type` provides lookup without changing physical atom typing; a LYS chi4 regression guards against transferring its axis to generic scoring. Full automatic local chemistry, charge and hydrogen reconstruction remain separate completion requirements.
+
+### 50. P2 — missing-leaf construction recognizes only polymer connection names
+
+[tmol/io/details/_build_missing_leaf_atoms.py:367](https://github.com/uw-ipd/tmol/blob/0f4c3bc426bca78e8681f0b730fa23c3e26ef261/tmol/io/details/_build_missing_leaf_atoms.py#L367)
+
+> Could this resolve any connection declared by the block type? A retained amide hydrogen needs the bonded partner as its plane reference. An icoor using `conj_NZ` or `conj_ND2` currently takes the atom-name branch and raises `KeyError`, although these are valid connections. The same limitation affects custom connection names outside the conjugation pipeline.
+
+The lookup predates this PR; general chemistry and connection-aware hydrogen construction expose its restriction. A controlled replay of the pre-fix function fails for `conj_NZ`. The branch uses the declared connection index and retains the absent `up`/`down` fallback. The coupled biotin and N-glycan tests exercise actual hydrogen construction using the remote partner, rather than only testing the name lookup.
+
+### 51. P1 — chemical connectivity does not establish conformer correspondence
+
+[tmol/pose/_conjugated_groups.py:143](https://github.com/uw-ipd/tmol/blob/0f4c3bc426bca78e8681f0b730fa23c3e26ef261/tmol/pose/_conjugated_groups.py#L143)
+
+> Could the sampler declare which outputs form a joint conformer, and could merging validate that declaration? OptH independently samples protons on connected residues. Equal counts such as 3/3 do not mean rotamer 0 on one block corresponds to rotamer 0 on the other; these blocks need all nine pairings. Unequal counts must also remain valid for independent sampling. Conversely, a later independent sampler must not append extra states to one member of a declared joint group.
+
+Controlled replay of the pre-fix branch marks independent 3/3 samples as correlated and rejects 3/2 samples. Upstream lacks even that count check. The branch now carries producer-declared considered-block groups through merging, rejects overlapping/additional ownership before coordinate allocation, and uses the validated groups for both pair enumeration and energy collapse. It stores one mask per rotamer set, shared by score terms. Actual joint-sampler masks match the previous implementation on all three fixtures; the lookup profiler reports only this setup stage, not an end-to-end scoring speedup.
+
+### 52. P1 — OptH selects an attachment torsion as an amide flip
+
+[tmol/pack/rotamer/_opth_sampler.py:314](https://github.com/uw-ipd/tmol/blob/0f4c3bc426bca78e8681f0b730fa23c3e26ef261/tmol/pack/rotamer/_opth_sampler.py#L314)
+
+> Can NHQ flips use their actual amide/ring axis and check which atoms it moves? Conjugation appends chi torsions, so the lexicographically last chi can be a cross-block linkage rather than ASN chi2. A terminal amide flip also cannot independently move an atom bonded to a glycan. Eligibility, sidechain roots and sample counts need the same annotation so disabling a flip allows the fallback sampler to supply the current conformation.
+
+The attached ASN fixture fails the controlled pre-fix annotation check. The branch preserves the canonical ASN/GLN/HIS axes and disables a flip when its downstream atoms include a declared connection. During development, inconsistent eligibility after disabling the flip suppressed fallback and exposed a native bounds exit in backbone scoring; that intermediate failure is retained in the validation log and is not counted as a passing test. Eligibility and sidechain roots now use the same annotation.
 
 ## Validation record
 

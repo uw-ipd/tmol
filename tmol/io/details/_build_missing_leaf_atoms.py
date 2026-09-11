@@ -365,12 +365,9 @@ def _annotate_packed_block_types_w_leaf_atom_icoors(pbt: PackedBlockTypes):
 
 
 def _uaid_for_at(bt, icoor_at_name):
-    if icoor_at_name == "up":
-        return (-1, bt.up_connection_ind, 0)
-    elif icoor_at_name == "down":
-        return (-1, bt.down_connection_ind, 0)
-    else:
-        return (bt.atom_to_idx[icoor_at_name], -1, -1)
+    if icoor_at_name in bt.connection_to_cidx or icoor_at_name in ("up", "down"):
+        return (-1, bt.connection_to_cidx.get(icoor_at_name, -1), 0)
+    return (bt.atom_to_idx[icoor_at_name], -1, -1)
 
 
 def _icoor_at_is_leaf(bt, icoor_at_name):
