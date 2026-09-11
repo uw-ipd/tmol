@@ -1103,13 +1103,8 @@ def _annotate_packed_block_types_w_canonical_res_order(
     n_co_io_equiv_classes = co.n_restype_io_equiv_classes
 
     _annotate_packed_block_types_w_conjugations(pbt)
-    for i, bt in enumerate(pbt.active_block_types):
-        # a conjugated form is chosen from the bonds the input declares, never
-        #    by which atoms are present: it differs from its base by a hydrogen
-        #    that a structure need not model, so it would always look the
-        #    better match
-        if pbt.conjugation_atoms_for_bt[i]:
-            continue
+
+    def _add_candidate(i, bt):
         term_ind, spcase_var_ind, bt_is_non_default_term = _assign_var_inds_for_bt(
             co, bt
         )
@@ -1117,6 +1112,30 @@ def _annotate_packed_block_types_w_canonical_res_order(
             spcase_var_ind
         ].append((bt, i))
         bt_is_non_default_terminus[i] = bt_is_non_default_term
+
+    conjugated = []
+    for i, bt in enumerate(pbt.active_block_types):
+        # a conjugated form is chosen from the bonds the input declares, never
+        #    by which atoms are present: it differs from its base by a hydrogen
+        #    that a structure need not model, so it would always look the
+        #    better match
+        if pbt.conjugation_atoms_for_bt[i]:
+            conjugated.append((i, bt))
+            continue
+        _add_candidate(i, bt)
+
+    # a type that exists only in conjugated form -- a ligand fragment, which
+    #    reaches its partner through a chemical bond -- has no base to defer
+    #    to, so it has to stay selectable or its class resolves to nothing
+    for i, bt in conjugated:
+        lists = pbt_io_equiv_class_candidates[bt.io_equiv_class]
+        if any(
+            lists[t][s]
+            for t in range(max_n_termini_types)
+            for s in range(max_n_special_case_aa_variant_types)
+        ):
+            continue
+        _add_candidate(i, bt)
 
     max_n_candidates_for_var_combo = max(
         len(pbt_io_equiv_class_candidates[bt][i][j])
@@ -1198,9 +1217,36 @@ def _apply_conjugated_variants(
         equiv = pbt.active_block_types[bt_ind].io_equiv_class
         return names_for_class[equiv][canonical_atom]
 
+    def is_fragment(bt):
+        # a fragment stands alone as its own equivalence class while naming the
+        #    component it was cut from, which no patched variant does
+        return bt.io_equiv_class == bt.name and bt.base_name != bt.name
+
+    def joins_one_component(pose_ind, res1, res2):
+        """Whether a bond is a cut through one component rather than a conjugation.
+
+        The two pieces of a fragmented ligand are bonded in the input, so the
+        cut reaches here looking like an attachment. It is not one: the
+        fragments carry their own connections and are joined after the pose is
+        built.
+        """
+        bt1_ind = int(block_type_ind64[pose_ind, res1])
+        bt2_ind = int(block_type_ind64[pose_ind, res2])
+        if bt1_ind < 0 or bt2_ind < 0:
+            return False
+        bt1 = pbt.active_block_types[bt1_ind]
+        bt2 = pbt.active_block_types[bt2_ind]
+        return is_fragment(bt1) and is_fragment(bt2) and bt1.base_name == bt2.base_name
+
+    bonds = [
+        bond
+        for bond in covalent_bonds64.cpu().tolist()
+        if not joins_one_component(bond[0], bond[1], bond[3])
+    ]
+
     # the sites each residue is attached at, from the bonds themselves
     sites = {}
-    for pose_ind, res1, atom1, res2, atom2 in covalent_bonds64.cpu().tolist():
+    for pose_ind, res1, atom1, res2, atom2 in bonds:
         for res, atom in ((res1, atom1), (res2, atom2)):
             bt_ind = int(block_type_ind64[pose_ind, res])
             if bt_ind < 0:
@@ -1209,7 +1255,15 @@ def _apply_conjugated_variants(
 
     for (pose_ind, res), atoms in sites.items():
         bt_ind = int(block_type_ind64[pose_ind, res])
-        base = pbt.active_block_types[bt_ind].name
+        bt = pbt.active_block_types[bt_ind]
+        # conjugation adds a connection where the type has none; a type built
+        #    with one already -- a ligand fragment, cut at a bond the input
+        #    also declares -- needs no variant swapped in for that site
+        already = {bt.atoms[at].name for at in bt.ordered_connection_atoms}
+        atoms = atoms - already
+        if not atoms:
+            continue
+        base = bt.name
         key = (base, frozenset(atoms))
         conjugated = pbt.conjugated_bt_for_base_and_atoms.get(key)
         if conjugated is None:
@@ -1221,7 +1275,7 @@ def _apply_conjugated_variants(
         block_type_ind64[pose_ind, res] = conjugated
 
     connections = []
-    for pose_ind, res1, atom1, res2, atom2 in covalent_bonds64.cpu().tolist():
+    for pose_ind, res1, atom1, res2, atom2 in bonds:
         resolved = []
         for res, atom in ((res1, atom1), (res2, atom2)):
             bt = pbt.active_block_types[int(block_type_ind64[pose_ind, res])]

@@ -175,7 +175,9 @@ _NUCLEOTIDES = ("PSU", "RU")
 # cutoff, not of the structure the residue came from. HYP is proline's two,
 # both of which survive, times the three samples of its own hydroxyl chi.
 _EXPECTED_ROTAMERS = {
-    "HYP": 2 * 3,
+    # PRO's two rotamers times the hydroxyl proton chi: three samples, each
+    #    expanded by +/-20 degrees since the product stays under the budget
+    "HYP": 2 * 9,
     "MLE": 4,
     "B3K": 26,
     "BIL": 3,
