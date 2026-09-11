@@ -115,35 +115,18 @@ def impose_top_rotamer_assignments(
     max_n_atoms_arange64 = torch.arange(
         max_n_atoms_per_block, dtype=torch.int64, device=device
     )
-    max_n_atoms_arange64 = max_n_atoms_arange64.view(1, 1, -1).expand(
-        n_poses, max_n_blocks, max_n_atoms_per_block
-    )
-
-    pose_for_atom64 = torch.arange(n_poses, dtype=torch.int64, device=device)
-    pose_for_atom64 = pose_for_atom64.view(-1, 1, 1).expand(
-        n_poses, max_n_blocks, max_n_atoms_per_block
-    )
+    max_n_atoms_arange64 = max_n_atoms_arange64.view(1, 1, -1)
 
     pose_offset_for_atom64 = (
         torch.arange(n_poses, dtype=torch.int64, device=device) * new_max_n_pose_atoms
     )
-    pose_offset_for_atom64 = pose_offset_for_atom64.view(-1, 1, 1).expand(
-        n_poses, max_n_blocks, max_n_atoms_per_block
-    )
-
-    block_for_atom64 = (
-        torch.arange(max_n_blocks, dtype=torch.int64, device=device)
-        .view(1, -1, 1)
-        .expand(n_poses, max_n_blocks, max_n_atoms_per_block)
-    )
+    pose_offset_for_atom64 = pose_offset_for_atom64.view(-1, 1, 1)
 
     pose_coords1d_offset_for_atom64 = (
-        new_n_atoms_offset64[pose_for_atom64, block_for_atom64] + pose_offset_for_atom64
+        new_n_atoms_offset64.unsqueeze(2) + pose_offset_for_atom64
     )
 
-    new_n_atoms_for_atoms_block64 = new_n_atoms_per_block64.unsqueeze(2).expand(
-        n_poses, max_n_blocks, max_n_atoms_per_block
-    )
+    new_n_atoms_for_atoms_block64 = new_n_atoms_per_block64.unsqueeze(2)
     is_pose_atom_real = max_n_atoms_arange64 < new_n_atoms_for_atoms_block64
 
     dst_inds = (pose_coords1d_offset_for_atom64 + max_n_atoms_arange64)[
@@ -157,9 +140,7 @@ def impose_top_rotamer_assignments(
         new_rot_for_block64[is_real_block]
     ]
     rot_coord_offset_for_block64 = rot_coord_offset_for_block32.to(torch.int64)
-    rot_coord_offset_for_atom64 = rot_coord_offset_for_block64.unsqueeze(2).expand(
-        n_poses, max_n_blocks, max_n_atoms_per_block
-    )
+    rot_coord_offset_for_atom64 = rot_coord_offset_for_block64.unsqueeze(2)
     src_inds = (rot_coord_offset_for_atom64 + max_n_atoms_arange64)[is_pose_atom_real]
 
     # now lets copy the coordinates
