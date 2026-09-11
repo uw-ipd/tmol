@@ -829,8 +829,10 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
       && int64_t(n_poses) * max_n_blocks >= 4096
       && shared_compact_block_neighbors.size(0) - 1 >= (1 << 15);
   using PairMode = common::TilePairMode;
-  if (accumulate_derivs) {
-    if (split_pairs) {
+  // Keep the combined latency path for small stacks. Specializing only the
+  // HBond score kernel can slow subsequent terms in this workload range.
+  if (accumulate_derivs || n_rots < 512) {
+    if (accumulate_derivs && split_pairs) {
       auto eval_inter = ([=] TMOL_DEVICE_FUNC(int cta) {
         eval_energies_impl(
             cta,
