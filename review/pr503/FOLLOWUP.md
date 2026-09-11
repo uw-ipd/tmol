@@ -1857,3 +1857,62 @@ are in [results/python-count-validation.json](results/python-count-validation.js
 Black, Flake8 and whitespace checks pass. No performance improvement is claimed
 for this guard; index capacity does not guarantee sufficient workspace or bound
 quadratic pair-energy memory.
+
+## Isolate Dunbrack sampler annotations and remove scalar device lookups
+
+Dunbrack's RT and PBT annotations previously used `hasattr` as their entire cache
+key. Two resolvers with different residue-to-library mappings therefore reused
+the first mapping on shared chemical types. The regression assigns ILE the
+LEU library in a private resolver; both have two chi, and their fresh sampled
+outputs differ. Shared sampling now matches each resolver's fresh annotations
+and outputs exactly in both orders, including repeated returns to an earlier
+sampler and calls without a separate annotation pass.
+
+One current annotation is stored per RT/PBT with a weak resolver-identity key.
+Sampling and backbone-index setup refresh the calling sampler's annotations.
+Resolver data are immutable inputs; changing tables requires a new resolver.
+The sampler's small name/index/chi metadata are read on the host once, replacing
+per-type device-tensor creation and scalar synchronization. RT table indices
+now use their declared Python-integer type instead of scalar tensors. Sampler
+equality also checks the other object's type and resolver identity, instead of
+considering an integer equal merely because its hash matches. A probability
+selection that returned 0.98 on both branches is replaced by that common value.
+
+Four initial regressions fail before the fix. The complete native sampler CPU
+suite passes **38 tests / 36 CUDA skips** before adding direct-sampling variants;
+the final focused identity suite passes **6 tests / 6 CUDA skips**. Slurm
+**249687** passes **294 tests with no skips**, covering all Dunbrack tests,
+noncanonical sampling, explicit budgets, covalent groups and real packing on
+CPU/CUDA. It completes **0:0** in **7:06**, including the paired setup benchmark,
+with **6,646,388 KiB** peak host RSS for the batch step.
+
+Five alternating warm rounds, five samples each, compare sampler construction
+and first RT/PBT annotation against the exact preceding class from `35350d6e3`.
+Every annotation value matches over **230 types / 4,738 atoms**:
+
+| Device | Previous setup | Current setup | Ratio |
+| --- | ---: | ---: | ---: |
+| CPU | 64.738 ms | 9.425 ms | 6.87× |
+| CUDA | 104.047 ms | 10.741 ms | 9.69× |
+
+Database/resolver construction, chemical-object copies, actual sampling and
+scoring are outside these timings. Annotation tensor/array fields total
+**212,846 → 211,006 bytes**, removing 230 scalar tensor IDs; Python lookup
+metadata and allocator overhead are excluded, so this is not a process-memory
+measurement. The profiler initially rejected the intentional scalar-tensor to
+integer representation change; its comparator was corrected before measurement.
+
+Review comment 66 describes the sampler identity issue. Two independent probes
+identify remaining work: the global resolver cache retains a released private
+database and **67,494,320 bytes** of unique derived CPU tensor storage; a polymer
+with three explicit heavy-chi means is advertised as buildable but receives
+zero rotamers because the Python filter requires a library index (comment 67).
+The latter probe checks that its target is allowed in the concrete task and
+that ten other allowed types receive samples. Scoring-term annotation identity
+also remains a separate audit item. No fixes for those three items are claimed
+in this commit.
+
+Source hashes, test inventories, terminal accounting, exact paired profiles and
+the two follow-up probes are in
+[results/dun-sampler-identity-validation.json](results/dun-sampler-identity-validation.json).
+Black, Flake8 and whitespace checks pass. The upstream head remains `0593a93b0`.

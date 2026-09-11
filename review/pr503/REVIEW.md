@@ -11,7 +11,7 @@ Review date: 2026-09-11
 
 Both subsequent six-file updates have been reviewed separately. Comments 1–46
 retain their original `c03c1e745` anchors; comments 47–56 address `0f4c3bc42`,
-and comments 57–65 address `0593a93b0`. The
+and comments 57–67 address `0593a93b0`. The
 fold-forest expectations and HYP count are now corrected upstream. See
 [FOLLOWUP.md](FOLLOWUP.md) for reconciliation and validation details.
 
@@ -612,6 +612,24 @@ Location: [`tmol/pack/rotamer/_na_chi_sampler.py:268`](https://github.com/uw-ipd
 > Could the nucleotide sampler retain wide counts until both each product and the total fit the native index range? Casting here turns a count of `2**32` into zero, which the following empty-result branch accepts. A wrapped positive total can also hide invalid negative counts. Please check the product, total and narrowing before allocating rotamer rows.
 
 The branch keeps counts in int64, bounds invalid combination inputs with an out-of-range sentinel before multiplication, and narrows only after checking index capacity. The shared Python allocation helper now rejects negative counts, oversized individual counts and an oversized total, with one host transfer. Tests inject small count metadata into a real RNA sampler while blocking row allocation; they do not construct gigantic libraries. Existing budget behavior remains independently tested. The realistic default nucleotide products are small; this is an allocation-boundary guard, not evidence that ordinary RNA fixtures need billions of states.
+
+## 66. Key Dunbrack sampler annotations by their parameter source — P1
+
+Locations: [`tmol/pack/rotamer/dunbrack/_dunbrack_chi_sampler.py:102`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/pack/rotamer/dunbrack/_dunbrack_chi_sampler.py#L102) and [`:241`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/pack/rotamer/dunbrack/_dunbrack_chi_sampler.py#L241).
+
+> Could both sampler annotation levels check which parameter resolver produced them? Two resolvers with different residue-to-library mappings currently reuse the first `dun_sampler_cache` on shared chemical types. Repeated sampling then depends on which resolver was used first. Please compare shared-type sampling against fresh annotations in both resolver orders, including returning to an earlier sampler.
+
+This includes an inherited cache assumption; the PR's expanded reference/library machinery makes it particularly relevant. The regression changes ILE's mapping to the two-chi LEU library without mutating the default resolver. Fresh samplers produce distinct results, while stale shared annotations incorrectly preserve the earlier mapping. The branch stores one annotation per RT/PBT with a weak resolver-identity key, and sampling refreshes its own annotations even without a separate setup call. Resolver data remain immutable inputs; publish a new resolver after changing tables.
+
+Small name/index/chi metadata are read on the host once per sampler/resolver, replacing per-residue device-tensor lookups and scalar synchronization. Table IDs in RT metadata now have their declared Python-integer representation. A redundant probability-selection branch is reduced to its common 0.98 value. Sampler equality compares resolver identity only with another sampler, so an integer equal to the object's hash cannot compare equal. The scoring-term annotations and global resolver-cache lifetime are separate audit items; this fix does not claim to resolve them.
+
+## 67. Include polymer types that sample their own heavy chi — P1
+
+Location: [`tmol/pack/rotamer/dunbrack/_dunbrack_chi_sampler.py:447`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/pack/rotamer/dunbrack/_dunbrack_chi_sampler.py#L447).
+
+> Could this selection use the sampler's buildability predicate instead of requiring a library index? `defines_rotamers_for_rt` explicitly accepts amino-acid polymers with their own heavy-chi samples and no Dunbrack library, and the native code has a no-library path. This filter removes those types before the native sampler can enumerate their samples.
+
+A small probe gives an allowed polymer type three explicit chi1 means, clears its library reference, and verifies that the sampler advertises it as buildable. It receives zero rotamers while ten other allowed types receive samples. The concrete task's target mask is checked explicitly. This remains a separate follow-up to the resolver-identity fix; the probe uses a private copy of ILE's valid topology, not a newly fitted chemical parameter set.
 
 ## Validation record
 
