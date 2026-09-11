@@ -707,16 +707,13 @@ class LBFGS_Armijo(Optimizer):
                     old_stps_view = ctx.old_stps_mat[: ctx.history_count]
                 else:
                     # Buffer full, need to reorder: [start:end] + [0:start]
-                    indices = torch.cat(
-                        [
-                            torch.arange(
-                                ctx.history_start, ctx.history_size, device=x.device
-                            ),
-                            torch.arange(0, ctx.history_start, device=x.device),
-                        ]
+                    start = ctx.history_start
+                    old_dirs_view = torch.cat(
+                        (ctx.old_dirs_mat[start:], ctx.old_dirs_mat[:start])
                     )
-                    old_dirs_view = ctx.old_dirs_mat[indices]
-                    old_stps_view = ctx.old_stps_mat[indices]
+                    old_stps_view = torch.cat(
+                        (ctx.old_stps_mat[start:], ctx.old_stps_mat[:start])
+                    )
 
                 grad_pad = self._pad(flat_grad, out=ctx.state["grad_pad"])
                 d.copy_(

@@ -194,3 +194,36 @@ def test_lbfgs_armijo_short_history():
     score_stop = closure()
 
     assert score_start > score_stop
+
+
+def test_lbfgs_armijo_wrapped_segment_histories(torch_device):
+    # Unequal segments exercise padded history rows after a short ring wraps.
+    x = torch.nn.Parameter(
+        torch.linspace(-2, 2, 12, dtype=torch.float64, device=torch_device)
+    )
+    segment_ids = torch.tensor([0] * 7 + [1] * 5, device=torch_device)
+    curvature = torch.tensor(
+        [1, 2, 4, 8, 1, 2, 4, 8, 4, 2, 1, 8],
+        dtype=x.dtype,
+        device=torch_device,
+    )
+    optimizer = LBFGS_Armijo(
+        [x],
+        segment_ids=segment_ids,
+        history_size=2,
+        max_iter=80,
+        rtol=0,
+        atol=0,
+        gradtol=1e-8,
+    )
+
+    def closure():
+        optimizer.zero_grad()
+        terms = curvature * (x - 1).square()
+        energies = torch.stack((terms[:7].sum(), terms[7:].sum()))
+        energies.sum().backward()
+        return energies
+
+    optimizer.step(closure)
+    assert optimizer.state[x]["n_iter"] > 4
+    torch.testing.assert_close(x, torch.ones_like(x), atol=1e-6, rtol=0)
