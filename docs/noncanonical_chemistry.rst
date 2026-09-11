@@ -3,13 +3,16 @@
 Generalized chemistry from mmCIF
 ================================
 
+tmol is designed for scoring, packing and relaxation of arbitrary molecules
+through a shared chemical representation and tensor execution framework.
 The feature branch in `PR 503`_ extends the ligand preparation machinery to
 noncanonical amino acids, modified nucleic acids, peptide-like backbones, and
 covalently attached ligands and glycan trees. These components become ordinary
 blocks in a ``PoseStack`` and can participate in scoring, appropriately
 configured packing, and Cartesian relaxation. The contribution is a common
-construction and execution path across chemistry; it is not a claim that every
-deposited component has an accurate parameterization.
+construction and execution path across chemistry. Metal support is planned as
+an extension of this framework. The version-specific coverage below describes
+the audited implementation; parameter accuracy requires separate validation.
 
 This guide describes commit ``c03c1e745f3bc655948ea12dac44d6c74620358f`` on
 ``dimaio/noncanonicals_through_ligand_pipeline``. PR 503 was open at the time of
@@ -149,7 +152,7 @@ Scope and failure interpretation
      - Default samplers need not explore heavy-atom conformations
    * - Metal-containing unknown components
      - Automatic preparation rejects them
-     - No blanket metal-site claim follows from this pipeline
+     - Support is planned; use the implementing revision when available
 
 ``strict_ligands=True`` raises ``LigandPreparationError`` for detected
 unpreparable components; lenient mode can warn and drop them. Strict

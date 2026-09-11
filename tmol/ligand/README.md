@@ -1,5 +1,9 @@
 # Generalized chemical preparation
 
+tmol targets scoring, packing and relaxation of arbitrary molecules through one
+chemical representation. Metal support is planned; the implementation details
+below describe the current PR #503 snapshot.
+
 PR #503 extends the ligand machinery to supported noncanonical polymer residues,
 modified nucleic acids, covalent ligands and glycan attachments. Use the
 [generalized chemistry guide](../../docs/noncanonical_chemistry.rst),
