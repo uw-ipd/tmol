@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Eigen/Core>
+#include <limits>
 #include <tuple>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
@@ -33,6 +34,38 @@ template <
     typename Real,
     typename Int>
 struct DunbrackChiSampler {
+  // Negative values mark invalid/overflowed counts and survive every later sum.
+  static EIGEN_DEVICE_FUNC Int checked_count_product(Int a, Int b) {
+    if (a < 0 || b < 0) return -1;
+    if constexpr (sizeof(Int) < sizeof(int64_t)) {
+      int64_t const product = int64_t(a) * int64_t(b);
+      return product > std::numeric_limits<Int>::max() ? Int(-1) : Int(product);
+    } else {
+      if (b != 0 && a > std::numeric_limits<Int>::max() / b) return -1;
+      return a * b;
+    }
+  }
+
+  static Int checked_count_offsets(
+      ContextManager& mgr,
+      TView<Int, 1, D> counts,
+      TView<Int, 1, D> offsets) {
+    if (counts.size(0) == 0) return 0;
+    auto add = [] EIGEN_DEVICE_FUNC(Int a, Int b) -> Int {
+      if (a < 0 || b < 0 || a > std::numeric_limits<Int>::max() - b) return -1;
+      return a + b;
+    };
+    Int const total =
+        Dispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+            mgr, counts.data(), offsets.data(), counts.size(0), add);
+    TORCH_CHECK(
+        total >= 0,
+        "Dunbrack sampling count exceeds index capacity ",
+        std::numeric_limits<Int>::max(),
+        " or contains a negative count");
+    return total;
+  }
+
   static auto
   f(ContextManager& mgr,
     TView<Vec<Real, 3>, 1, D> coords,
@@ -180,13 +213,8 @@ struct DunbrackChiSampler {
 
     // Exclusive cumulative sum of n_possible_rotamers_per_restype.
     // Get total number of possible rotamers over all residue types
-    Int const n_possible_rotamers =
-        Dispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
-            mgr,
-            n_possible_rotamers_per_brt.data(),
-            possible_rotamer_offset_for_brt.data(),
-            n_brt,
-            mgpu::plus_t<Int>());
+    Int const n_possible_rotamers = checked_count_offsets(
+        mgr, n_possible_rotamers_per_brt, possible_rotamer_offset_for_brt);
 
     // There are some things we need to know about the ith possible rotamer:
     //   1. What buildable_residue type does it come from?
@@ -371,8 +399,10 @@ struct DunbrackChiSampler {
       Int rottable_set = bubl_and_rottable_set_for_buildable_restype[brt][1];
       // fd  a residue with no rotamer library builds from its own chi samples
       //     alone: one base rotamer, which those samples then expand
-      n_possible_rotamers_per_brt[brt] =
+      int64_t const count =
           rottable_set < 0 ? 1 : n_rotamers_for_tableset[rottable_set];
+      n_possible_rotamers_per_brt[brt] =
+          count < 0 || count > std::numeric_limits<Int>::max() ? Int(-1) : Int(count);
     };
 
     Dispatch<D>::template forall<launch_t>(
@@ -612,7 +642,7 @@ struct DunbrackChiSampler {
         Int ii_expansion =
             non_dunbrack_expansion_counts_for_buildable_restype[brt][ii];
         if (ii_expansion != 0) {
-          n_expansions *= ii_expansion;
+          n_expansions = checked_count_product(n_expansions, ii_expansion);
         }
       }
 
@@ -620,27 +650,20 @@ struct DunbrackChiSampler {
         expansion_dim_prods_for_brt[brt][ii] = n_expansions;
         // for now, only consider +/- 1 standard deviation sampling
         if (chi_expansion_for_buildable_restype[brt][ii]) {
-          n_expansions *= 3;
+          n_expansions = checked_count_product(n_expansions, Int(3));
         }
       }
 
       n_expansions_for_brt[brt] = n_expansions;
-      n_rotamers_to_build_per_brt[brt] *= n_expansions;
+      n_rotamers_to_build_per_brt[brt] = checked_count_product(
+          n_rotamers_to_build_per_brt[brt], n_expansions);
     };
 
     Dispatch<D>::template forall<launch_t>(
         mgr, n_brt, count_expansions_for_brt);
 
-    // Exclusive cumumaltive sum
-    Int const n_rotamers =
-        Dispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
-            mgr,
-            n_rotamers_to_build_per_brt.data(),
-            n_rotamers_to_build_per_brt_offsets.data(),
-            n_brt,
-            mgpu::plus_t<Int>());
-
-    return n_rotamers;
+    return checked_count_offsets(
+        mgr, n_rotamers_to_build_per_brt, n_rotamers_to_build_per_brt_offsets);
   }
 
   static void map_from_rotamer_index_to_brt(

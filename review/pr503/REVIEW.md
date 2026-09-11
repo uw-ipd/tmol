@@ -11,7 +11,7 @@ Review date: 2026-09-11
 
 Both subsequent six-file updates have been reviewed separately. Comments 1–46
 retain their original `c03c1e745` anchors; comments 47–56 address `0f4c3bc42`,
-and comments 57–63 address `0593a93b0`. The
+and comments 57–64 address `0593a93b0`. The
 fold-forest expectations and HYP count are now corrected upstream. See
 [FOLLOWUP.md](FOLLOWUP.md) for reconciliation and validation details.
 
@@ -596,6 +596,14 @@ The shared weak-identity LRU now supports multiple owners. Each resolver retains
 > Could donor/acceptor names be mapped once for the chemical catalog, then gathered for each residue? The two pandas lookups repeat across every block type. LK-ball also transfers its full type table to CPU once per residue. A host catalog prepared once per term would remove this repeated work while retaining configuration-specific tables.
 
 The branch prepares the donor/acceptor catalog once, retains a name-based fallback for unregistered types, and gathers host arrays during annotation. LK-ball transfers its host type table once per term. The paired profiler checks every public annotation array for exact equality against the preceding implementation and reports constructor, annotation and warm-hit costs separately. These standalone-term timings include inherited setup and must not be added together to estimate whole-score-function performance; see the follow-up artifact for measurements and retained-array tradeoffs.
+
+### 64. P2 — native rotamer counts can wrap before allocation checks
+
+[tmol/pack/rotamer/dunbrack/dispatch.impl.hh:604](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/pack/rotamer/dunbrack/dispatch.impl.hh#L604), with the total scan at line 625 and library-size narrowing at [line 364](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/pack/rotamer/dunbrack/dispatch.impl.hh#L364).
+
+> Could products, prefix sums and library-size conversion check the native index range? The count-only helper turns `65536 * 65536` into zero, `3 * 2**30` into a negative count, and four counts of `2**30` into a zero total with negative offsets. A later per-residue budget check cannot recover the true count after it has wrapped. Please cover overflow across scan blocks and reject it before allocating or indexing rotamer arrays.
+
+This arithmetic risk is inherited, but the expanded chemistry and sampling paths still depend on it. The branch propagates an error marker through checked products and both native count scans, then raises before large allocation. It also validates 64-bit library sizes before narrowing. The checks reuse existing buffers and synchronization points. Small-table regressions cover product and total overflow, repeated overflow that would become positive again, negative inputs, empty inputs, exact capacity boundaries, and the public sampler's possible-library stage. Ordinary counts/offsets are compared exactly; the isolated native profiler measures validation overhead rather than claiming a speedup.
 
 ## Validation record
 

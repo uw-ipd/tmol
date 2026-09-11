@@ -1779,3 +1779,49 @@ snapshots, native count-probe results and terminal scheduler accounting are in
 [results/sample-merge-validation.json](results/sample-merge-validation.json).
 Black, Flake8 and whitespace checks pass. The upstream head is still
 `0593a93b07d80b0302383163d2d98c78e315ab98`.
+
+## Check native Dunbrack counts before allocation
+
+The native sampler now checks library-count narrowing, expansion products and
+both exclusive count scans before their results size rotamer arrays. Invalid
+counts propagate an absorbing negative marker through an associative scan;
+the host rejects it at the existing synchronization point. This handles both
+negative wraparound and products/sums that wrap back to zero or positive values.
+The checks reuse the existing count and offset buffers. Valid counts, offsets,
+expansion products and sampled outputs retain their original representation.
+
+This is an inherited arithmetic risk, not a newly introduced PR regression.
+Small count-only fixtures reproduce it without attempting enormous allocations.
+Tests cover the exact int32 boundary, empty and zero counts, invalid library
+counts before public sampler allocation, and errors at the beginning, middle
+and end of a 2,053-row parallel scan. Before the fix, seven initial regressions
+fail. The final focused CPU run passes **21 tests / 21 CUDA skips**. Slurm
+**249675** passes **244 tests with no skips**, covering the complete Dunbrack
+directory plus task budgets, covalent groups and real packing on CPU/CUDA.
+The job completed **0:0** in **7:10**, including the paired native benchmark,
+with **6,980,252 KiB** peak host RSS reported for the batch step.
+
+The benchmark builds the exact preceding header from `0db5eb5d7` in a separate
+native namespace. An overflow witness verifies that the two loaded modules
+actually execute different implementations; all valid output arrays match
+exactly. Five alternating warm rounds give these count-stage medians:
+
+| Buildable types | CPU old → new | CUDA old → new |
+| ---: | ---: | ---: |
+| 1 | 0.691 → 0.672 µs | 33.185 → 32.724 µs |
+| 128 | 1.362 → 1.567 µs | 33.469 → 32.867 µs |
+| 4,096 | 20.917 → 27.361 µs | 35.298 → 34.934 µs |
+
+CUDA performance is effectively unchanged. The largest CPU count stage costs
+about **6.4 µs more (31%)**; this is a safety check, not a sampling speedup.
+Compilation, input construction and count reset are excluded; completion
+synchronization is included. Memory and end-to-end sampling are not measured.
+The initial baseline benchmark failed to compile because its test bridge still
+included the original header; that include was corrected before measurement.
+
+Source hashes, exact test inventories, terminal accounting and complete paired
+profiles are in
+[results/native-count-validation.json](results/native-count-validation.json).
+Review comment 64 describes the upstream locations. Python Black/Flake8 and
+whitespace checks pass. Python/nucleotide count arithmetic, adaptive sampling
+policy and whole-task/pair-energy memory limits remain separate work.
