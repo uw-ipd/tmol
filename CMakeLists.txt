@@ -620,6 +620,12 @@ if(TMOL_BUILD_TESTS)
 
   if(TMOL_HAS_CUDA)
     tmol_add_pybind_cuda_ext(
+      test_torch_context "tmol/tests/utility/tensor" "_torch_context"
+      tmol/tests/utility/tensor/torch_context.pybind.cpp
+      tmol/tests/utility/tensor/torch_context.cuda.cu
+    )
+
+    tmol_add_pybind_cuda_ext(
       test_geom_cuda "tmol/tests/score/common/geom" "_ext_cuda"
       tmol/tests/score/common/geom/geom.cu
     )
