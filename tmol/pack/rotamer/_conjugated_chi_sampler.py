@@ -1,8 +1,8 @@
 """Rotamers for the blocks bonded to an amino acid's sidechain.
 
 A glycan or a ligand joined to a sidechain cannot be sampled a residue at a
-time: the torsion about a linkage bond has its fourth atom in the neighbouring
-residue, so in a single-block kinforest it has nothing to turn. The group --
+time: attachment torsions can have central atoms in different residues, so a
+single-block kinforest cannot turn all of their bonds. The group --
 anchor plus everything bonded to it -- is enumerated as one unit instead, with
 the anchor's own chi coming from its rotamer library and the attached blocks'
 chi from their chi_samples.
@@ -30,6 +30,8 @@ from tmol.pack.rotamer._conformer_sampler import sc_roots_for_chis
 from tmol.pack.rotamer._conjugated_groups import (
     find_conjugated_groups,
     group_sampled_chi,
+    group_atom_context,
+    resolve_group_atom,
 )
 from tmol.pack._packer_task import (
     DEFAULT_CHI_SAMPLE_EXPANDED_LIMIT,
@@ -187,6 +189,7 @@ class ConjugatedChiSampler(ChiSampler):
         out = []
         pbt = pose_stack.packed_block_types
         for group in find_conjugated_groups(pose_stack):
+            block_types, offsets, partners = group_atom_context(group, pose_stack)
             anchor_cols = []
             lib = numpy.empty((1, 0), dtype=numpy.float32)
             entry = (anchor_chi or {}).get((group.pose, group.anchor))
@@ -225,7 +228,14 @@ class ConjugatedChiSampler(ChiSampler):
                     int(pose_stack.block_type_ind[group.pose, group.blocks[owner]])
                 ]
                 uaids = bt.torsion_to_uaids[cs.chi_dihedral]
-                columns.append((owner, cs.chi_dihedral, uaids[1][0], uaids[2][0]))
+                axis = [
+                    resolve_group_atom(u, owner, block_types, offsets, partners)
+                    for u in uaids[1:3]
+                ]
+                if min(axis) < 0:
+                    raise ValueError(f"Cannot resolve group torsion {cs.chi_dihedral}")
+                # Central atoms use group-wide numbering, including connections.
+                columns.append((owner, cs.chi_dihedral, *axis))
                 values = []
                 for value in cs.samples:
                     values.append(value)
@@ -356,8 +366,8 @@ class ConjugatedChiSampler(ChiSampler):
             # phi_c turns about parent->child, so the bond's CHILD carries the
             #    torsion; which of the two that is depends on how this group's
             #    tree runs, not on the order the torsion names them
-            nb = int(kfo_for_atom[int(offsets[owner]) + int(atom_b)])
-            nc = int(kfo_for_atom[int(offsets[owner]) + int(atom_c)])
+            nb = int(kfo_for_atom[int(atom_b)])
+            nc = int(kfo_for_atom[int(atom_c)])
             if parent_of.get(nc) == nb:
                 node = nc
             elif parent_of.get(nb) == nc:

@@ -12,6 +12,8 @@ has to know which blocks move together in order not to enumerate combinations
 the group cannot adopt.
 """
 
+from collections import deque
+
 import attr
 import numpy
 import torch
@@ -33,11 +35,15 @@ class ConjugatedGroup:
     follows the one it is bonded to. ``links`` gives each bond as (parent index
     within ``blocks``, connection on the parent, child index within ``blocks``,
     connection on the child) -- the form block_group_kinforest_data takes.
+    It includes cycle-closing bonds, not only the breadth-first tree.
+    ``external_links`` uses the same format except its third entry is a pose
+    block index outside the group. These bonds constrain which parts can move.
     """
 
     pose: int
     blocks: Tuple[int, ...]
     links: Tuple[Tuple[int, int, int, int], ...]
+    external_links: Tuple[Tuple[int, int, int, int], ...] = ()
 
     @property
     def anchor(self) -> int:
@@ -83,9 +89,9 @@ def find_conjugated_groups(pose_stack: PoseStack) -> List[ConjugatedGroup]:
             blocks = [block]
             links = []
             index_of = {block: 0}
-            queue = [block]
+            queue = deque([block])
             while queue:
-                cur = queue.pop(0)
+                cur = queue.popleft()
                 cur_bt = int(bti[pose, cur])
                 for c in range(int(n_conn[cur_bt])):
                     if not conj[cur_bt, c]:
@@ -94,7 +100,7 @@ def find_conjugated_groups(pose_stack: PoseStack) -> List[ConjugatedGroup]:
                     if partner < 0 or int(bti[pose, partner]) < 0:
                         continue
                     if partner in index_of:
-                        continue  # already in the group; a cycle closes here
+                        continue  # Remaining internal bonds are collected below.
                     index_of[partner] = len(blocks)
                     blocks.append(partner)
                     links.append(
@@ -107,10 +113,35 @@ def find_conjugated_groups(pose_stack: PoseStack) -> List[ConjugatedGroup]:
                     )
                     queue.append(partner)
 
-            if len(blocks) > 1:
+            # Preserve every constraint, including non-conjugation bonds
+            # between members (e.g. a disulfide or polymer bond closing a loop).
+            seen = {
+                tuple(sorted(((blocks[a], ac), (blocks[b], bc))))
+                for a, ac, b, bc in links
+            }
+            external = []
+            for owner, member in enumerate(blocks):
+                member_bt = int(bti[pose, member])
+                for conn in range(int(n_conn[member_bt])):
+                    partner, partner_conn = (int(v) for v in irc[pose, member, conn])
+                    if partner < 0 or int(bti[pose, partner]) < 0:
+                        continue
+                    if partner not in index_of:
+                        external.append((owner, conn, partner, partner_conn))
+                        continue
+                    edge = tuple(sorted(((member, conn), (partner, partner_conn))))
+                    if edge not in seen:
+                        links.append((owner, conn, index_of[partner], partner_conn))
+                        seen.add(edge)
+            if links:
                 claimed.update(blocks)
                 groups.append(
-                    ConjugatedGroup(pose=pose, blocks=tuple(blocks), links=tuple(links))
+                    ConjugatedGroup(
+                        pose=pose,
+                        blocks=tuple(blocks),
+                        links=tuple(links),
+                        external_links=tuple(external),
+                    )
                 )
     return groups
 

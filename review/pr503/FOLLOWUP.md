@@ -11,7 +11,7 @@ historical evidence, not a claim that the follow-up is complete.
 |---|---|---|
 | Import/closure inference (1) | Fresh checkout collection; explicit/inferred closure, padding, breaks and caps on both devices | Existing replacement; extend audit |
 | Mixed chirality (2) | Published reference parameters/formula; LL/DD/LD/DL permutation and reflection energies/gradients; whole-pose and packing parity | Rosetta mixed distribution and shared derivatives implemented; independent LL/LD/DL/DD energy/gradient, permutation and reflection checks pass on CPU/CUDA; additional packing parity pending |
-| Group identity and safety (3–7,9) | Real multi-pose/multi-database groups, repeated chi names, jagged/empty counts, early rejection; native parity | Initial fixes exist; integration/property coverage pending |
+| Group identity and safety (3–7,9,30,31) | Real multi-pose/multi-database groups, repeated chi names, jagged/empty counts, early rejection; native parity | Two-pose reuse, internal geometry and torsion targets checked CPU/CUDA; complete edge inventory added; cyclic/multiple-anchor sampling constraints remain open |
 | Sampling budgets/caches (8,14,27) | Explicit budget semantics; task propagation; immutable sampler reuse; actual library/extra/proton counts; reproducible HYP count | Explicit task overrides and actual group/library bounds implemented/tested CPU/CUDA; aggregate/default budget policy and adaptive library expansion remain open |
 | Residue identity/completion (10–12,16) | Insertion codes, chain identity, explicit/CCD authority, missing atoms, custom names; realistic scaling | Initial unit fixes exist; broader profiling pending |
 | Content/profile caches (13,20,29) | No serialization aliases; safe object lifetimes, bounded memory; repeated preparation | Content framing and shared bounded weak caches fixed for rotamer/alpha/NA profiles; identity/lifetime/LRU/concurrency tests pass; remaining caches still need audit |
@@ -217,3 +217,46 @@ of 30,000 lookups measure 0.098→0.437 µs per lookup: a small absolute cost fo
 lifetime/identity checking, not a lookup speedup. This measures Python cache
 allocation, not process RSS or all ligand preparation memory. See
 `profile_polymer_cache.py` and `results/polymer-cache.json`.
+
+### Chemical geometry of group conformers
+
+Checking only inter-block bonds missed internal ring damage. The original
+O-glycan sampler stretches an NGA C5–O5 bond from 1.443 to 3.768 Å in offered
+conformers. Generated attachment chi at anomeric carbons used a ring bond as
+an independent axis. Such sites now use the bond across the residue boundary;
+central atoms resolve through group connections instead of assuming both are
+local to the chi's owning residue.
+
+A separate frame issue affected lysine/asparagine attachments: a departing
+hydrogen's icoor can reference another hydrogen on the same centre. That is a
+valid placement frame, but may not be a bonded torsion path. References now
+come from the chemical bond graph. Final-rotamer tests independently resolve
+and measure every sampled torsion, check every internal and inter-block bond,
+all bond angles and every four-neighbor stereocentre.
+
+**51 group cases pass on CPU/CUDA** (240633), including full packing and energy
+agreement, scalar/batch kinematics and the new chemical-geometry checks.
+**42 covalent-input/topology cases pass** (240951). These extend the evidence;
+older bond-survival tests and scalar/batch parity alone did not prove internal
+ring integrity. Through AtomWorks, all three fixtures pass the stronger geometry
+checks on CPU and CUDA, plus six full CUDA bond/packing-energy cases (241055).
+`check_group_input_route.py` runs the same assertions with an explicit reader.
+
+Seven alternating-order paired preparation/construction samples replay the
+previous patch and group-coordinate methods from `fa41a727e`, using the same
+current native kernels, input reader and fixed ligand seed. O-glycan's maximum
+internal bond error falls from 2.325 Å to 0.000027 Å (CPU) / 0.000033 Å (CUDA).
+All three fixtures retain identical rotamer counts and coordinate allocation
+sizes. Median preparation and rotamer-construction changes are about 0–1%;
+this correction does not trade away the previous batching improvements. The
+construction timings include fresh per-pose annotation, unlike the earlier
+warm reuse benchmark. See `profile_group_geometry.py` and
+`results/group-geometry-{cpu,cuda}.json`.
+
+Group discovery also retains cycle-closing bonds, internal polymer/disulfide
+edges and all external attachments. Seven topology shapes, each with two poses,
+verify exact internal/external edge inventories on both devices. This is the
+information needed for constrained sampling, **not** a claim that cycles or
+multiple external anchors are already sampled safely. Rigid cyclic cores,
+external constraints, duplicate axes and the generic attachment-grid policy
+still need explicit handling and integration tests.

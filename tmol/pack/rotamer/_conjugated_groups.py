@@ -23,6 +23,36 @@ from tmol.pose._conjugated_groups import (  # noqa: F401
 )
 
 
+def group_atom_context(group, pose_stack):
+    """Local residue types, group atom offsets and connection partners."""
+    pbt = pose_stack.packed_block_types
+    types = [
+        pbt.active_block_types[int(pose_stack.block_type_ind[group.pose, b])]
+        for b in group.blocks
+    ]
+    offsets = numpy.cumsum([0] + [bt.n_atoms for bt in types])
+    partners = {}
+    for a, ac, b, bc in group.links:
+        partners[a, ac] = (b, bc)
+        partners[b, bc] = (a, ac)
+    return types, offsets, partners
+
+
+def resolve_group_atom(uaid, owner, block_types, offsets, partners):
+    """Resolve a torsion atom into the group's concatenated atom numbering."""
+    atom, conn, sep = (int(v) for v in uaid)
+    if conn != -1:
+        partner = partners.get((owner, conn))
+        if partner is None:
+            return -1
+        owner, conn = partner
+        downstream = block_types[owner].atom_downstream_of_conn
+        if not 0 <= sep < downstream.shape[1]:
+            return -1
+        atom = int(downstream[conn, sep])
+    return int(offsets[owner]) + atom if atom >= 0 else -1
+
+
 def group_sampled_chi(
     group, pose_stack, expanded_limit, limit, library_size=1, reserve_current=False
 ):
@@ -46,11 +76,7 @@ def group_sampled_chi(
     from tmol.kinematics import block_group_kinforest_data
     from tmol.pack.rotamer._chi_budget import _budgeted_chi_samples, chi_depths
 
-    pbt = pose_stack.packed_block_types
-    block_types = [
-        pbt.active_block_types[int(pose_stack.block_type_ind[group.pose, b])]
-        for b in group.blocks
-    ]
+    block_types, offsets, partners = group_atom_context(group, pose_stack)
     rkd, offsets = block_group_kinforest_data(block_types, group.links, anchor=0)
 
     entries, depths_in, owners = [], [], []
@@ -63,7 +89,13 @@ def group_sampled_chi(
             entries.append(cs)
             owners.append(i)
             depths_in.append(
-                int(offsets[i]) + bt.torsion_to_uaids[cs.chi_dihedral][2][0]
+                resolve_group_atom(
+                    bt.torsion_to_uaids[cs.chi_dihedral][2],
+                    i,
+                    block_types,
+                    offsets,
+                    partners,
+                )
             )
 
     depths = chi_depths(rkd, depths_in)

@@ -55,6 +55,7 @@ def test_group_budget_keeps_correct_residue_and_linkage(monkeypatch):
     )
     children = [
         SimpleNamespace(
+            n_atoms=1,
             chi_samples=[sample("chi1", values=values)],
             torsion_to_uaids={"chi1": [(0, -1, -1)] * 4},
         )

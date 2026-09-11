@@ -300,6 +300,22 @@ Reproduced in the follow-up branch before the root correction. After correction,
 
 Addressed with one bounded weak-identity cache implementation shared by alpha, nucleotide and rotamer-reference profiles. Real database lifetime, configuration separation, eviction, simulated stale-identity and simultaneous-miss tests pass. All 136 affected preparation/scoring cases pass on CPU/CUDA. A 100-database churn measurement retains zero profile entries instead of 300, with identical profile contents; the small lookup cost is recorded in [FOLLOWUP.md](FOLLOWUP.md).
 
+### 30. P1 — linkage sampling breaks internal sugar-ring bonds
+
+[tmol/ligand/_conjugation_patches.py:122](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/ligand/_conjugation_patches.py#L122), and [group axis handling at line 266](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/pack/rotamer/_conjugated_chi_sampler.py#L266)
+
+> At an anomeric carbon, this central bond can belong to the sugar ring. Turning it as an independent chi opens the ring, even when every inter-block bond remains intact. In the O-glycan fixture, offered NGA conformers stretch C5–O5 from 1.443 Å to 3.768 Å. Can the torsion instead use the actual inter-residue bond at such sites, with both central atoms resolved across connections? Please check every internal bond, bond angle and stereocentre in offered conformers, in addition to inter-block links.
+
+Reproduced and fixed. Ring attachments now use a bond-spanning torsion; the sampler resolves central atoms in group-wide numbering. The paired O-glycan maximum bond error falls from 2.325 Å to 0.000027 Å on CPU and 0.000033 Å on CUDA, with unchanged rotamer counts and coordinate storage. All 51 group geometry/packing/regression cases pass on CPU/CUDA. AtomWorks input also passes the new geometry checks on both devices and full GPU packing checks.
+
+### 31. P1 — a departing hydrogen's icoor is not necessarily a bonded torsion path
+
+[tmol/ligand/_conjugation_patches.py:121](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/ligand/_conjugation_patches.py#L121)
+
+> Could these references be checked against the chemical bond graph? Hydrogen icoors may use another hydrogen on the same centre as a reference. For the lysine/asparagine attachments, that can put the first and fourth torsion atoms on the same moving side, with an unbonded first–second pair. Writing a different phi then does not produce the requested dihedral. A valid placement frame alone does not establish a rotatable four-atom path.
+
+Fixed by selecting a bonded heavy central neighbor and a bonded reference on its opposite side, preserving valid existing references. Tests independently resolve all four atoms through the pose, verify the bonded path, and measure each requested angle from the final rotamer coordinates. This is a geometry correction; the generic three-angle grid is not presented as an independently fitted distribution for every chemistry.
+
 ## Validation record
 
 See [VALIDATION.md](VALIDATION.md) for the initial review commands, counts, environment, examples, and remaining failures; [FOLLOWUP.md](FOLLOWUP.md) records subsequent fixes and validation. All raw run logs were retained separately under `/mnt/home/kdidi/tmol-pr503-results`. No upstream golden score files were regenerated to make tests pass.
