@@ -610,6 +610,10 @@ class LBFGS_Armijo(Optimizer):
             state["was_reset"] = torch.zeros(self._n_segments, **flags)
             state["any_was_reset"] = False
 
+        # State loading casts tensor masks to the parameter's floating dtype.
+        for key in ("converged", "stalled", "needs_reset", "was_reset"):
+            state[key] = state[key].bool()
+
         return SimpleNamespace(
             # Keep the wrapped closure local to this step. Storing it on the
             # optimizer creates a cycle through the wrapper's self reference.
