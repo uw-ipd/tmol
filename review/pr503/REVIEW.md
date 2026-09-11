@@ -365,6 +365,16 @@ The helper now disables independent samplers across owned members, retaining the
 
 Reproduced on follow-up commit `6b7071d54` and fixed: sampler/allowed-type masks are applied before enumeration; every atom of an inactive member constrains the permitted axes; only active members receive correlated rows. Fully disabled groups now produce 1/1/1 fallback counts, and the one-fixed-member diagnostic produces 10/10/1. Tests cover geometry, actual packing/energy, mixed-mask batches, reuse, budgets, rigid members and library-free anchors. See [the reproduction](reproduce_group_task_masks.py) and [FOLLOWUP.md](FOLLOWUP.md). Alternative chemical types and later conflicting samplers remain open.
 
+### 38. P1 — conjugation patches omit connection bond and angle energies
+
+[tmol/ligand/_preparation.py:797](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/ligand/_preparation.py#L797), and [the unmatched-parameter path](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/score/cartbonded/potentials/cartbonded_pose_score.impl.hh#L523).
+
+> Where are bond-length and bond-angle parameters generated for each new connection? This update adds patches and partial charges, but no connection-spanning cartbonded rows. The scorer silently skips paths without a matching row; generic torsion parameters do not replace stretching and bending potentials. Please test a rigid displacement across each attachment, then Cartesian minimization, in addition to packing geometry. Connection icoors describe construction geometry but do not themselves contribute to the score.
+
+The follow-up branch `026475f0e` still reproduces this omission for all **14** attachment bonds in the biotin/N-glycan/O-glycan fixtures (1/7/6 bonds). Rigid-component stretching and perpendicular bending produce cartbonded stiffness below `2e-13` on CPU and CUDA; the same probe gives the expected **369.445 kcal/mol/Å²** for three ordinary peptide-bond controls. Full CPU Cartesian minimization of the biotin atoms, holding the protein fixed, moves the unperturbed amide link from **1.329 to 1.660 Å** while lowering the weighted score from **−84.55 to −93.54**. Starting 0.5 or 1 Å farther out yields final lengths of **2.150 or 2.556 Å**. These are 100-iteration minimization reproductions, not claims of convergence to a global minimum.
+
+CUDA reproduces the full minimization failure: the same three starts finish at **1.658, 2.120 and 2.558 Å** (Slurm 244924). Unresolved. [diagnose_connection_stiffness.py](diagnose_connection_stiffness.py) records energies and analytic force projections, with a finite-difference stiffness from those forces. The required fix must give connection geometry explicit parameter ownership, preserve canonical/fragment parameters, avoid counting bonds twice, and cover score/gradient/packing/Cartesian-minimization paths. Repeated components with different partners cannot share parameters merely because their atom names match.
+
 ## Validation record
 
 See [VALIDATION.md](VALIDATION.md) for the initial review commands, counts, environment, examples, and remaining failures; [FOLLOWUP.md](FOLLOWUP.md) records subsequent fixes and validation. All raw run logs were retained separately under `/mnt/home/kdidi/tmol-pr503-results`. No upstream golden score files were regenerated to make tests pass.

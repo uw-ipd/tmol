@@ -1,0 +1,208 @@
+version: '1.0'
+chemical:
+  residues:
+  - name: HYP
+    base_name: HYP
+    name3: HYP
+    io_equiv_class: HYP
+    atoms:
+    - {name: N, atom_type: Npro}
+    - {name: CA, atom_type: CAbb}
+    - {name: C, atom_type: CObb}
+    - {name: O, atom_type: OCbb}
+    - {name: CB, atom_type: CS2}
+    - {name: CG, atom_type: CSp}
+    - {name: OD1, atom_type: Ohx}
+    - {name: CD, atom_type: CS2}
+    - {name: HC4, atom_type: Hapo}
+    - {name: HC8, atom_type: HC}
+    - {name: HC9, atom_type: HC}
+    - {name: HC10, atom_type: HC}
+    - {name: HO1, atom_type: HO}
+    - {name: HC11, atom_type: HC}
+    - {name: HC12, atom_type: HC}
+    atom_aliases: []
+    bonds:
+    - [N, CA, SINGLE, true]
+    - [CA, C, SINGLE, false]
+    - [CA, CB, SINGLE, true]
+    - [CB, CG, SINGLE, true]
+    - [CG, OD1, SINGLE, false]
+    - [CG, CD, SINGLE, true]
+    - [N, CD, SINGLE, true]
+    - [CA, HC4, SINGLE, false]
+    - [CB, HC8, SINGLE, false]
+    - [CB, HC9, SINGLE, false]
+    - [CG, HC10, SINGLE, false]
+    - [OD1, HO1, SINGLE, false]
+    - [CD, HC11, SINGLE, false]
+    - [CD, HC12, SINGLE, false]
+    - [C, O, DOUBLE, false]
+    connections:
+    - name: down
+      atom: N
+      type: AROMATIC
+    - name: up
+      atom: C
+      type: AROMATIC
+    torsions:
+    - name: phi
+      a: {atom: null, connection: down, bond_sep_from_conn: 0}
+      b: {atom: N}
+      c: {atom: CA}
+      d: {atom: C}
+    - name: psi
+      a: {atom: N}
+      b: {atom: CA}
+      c: {atom: C}
+      d: {atom: null, connection: up, bond_sep_from_conn: 0}
+    - name: omega
+      a: {atom: CA}
+      b: {atom: C}
+      c: {atom: null, connection: up, bond_sep_from_conn: 0}
+      d: {atom: null, connection: up, bond_sep_from_conn: 1}
+    - name: chi1
+      a: {atom: N}
+      b: {atom: CA}
+      c: {atom: CB}
+      d: {atom: CG}
+    - name: chi2
+      a: {atom: CA}
+      b: {atom: CB}
+      c: {atom: CG}
+      d: {atom: CD}
+    - name: chi3
+      a: {atom: CB}
+      b: {atom: CG}
+      c: {atom: CD}
+      d: {atom: N}
+    - name: chi4
+      a: {atom: CD}
+      b: {atom: CG}
+      c: {atom: OD1}
+      d: {atom: HO1}
+    icoors:
+    - {name: N, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: N, grand_parent: CA,
+      great_grand_parent: C}
+    - {name: CA, phi: 0.000000 deg, theta: 180.000000 deg, d: 1.45687, parent: N,
+      grand_parent: N, great_grand_parent: N}
+    - {name: C, phi: 0.000000 deg, theta: 71.968338 deg, d: 1.52934, parent: CA, grand_parent: N,
+      great_grand_parent: N}
+    - {name: up, phi: 149.999985 deg, theta: 63.800007 deg, d: 1.32868, parent: C,
+      grand_parent: CA, great_grand_parent: N}
+    - {name: CD, phi: 120.387364 deg, theta: 69.528839 deg, d: 1.44383, parent: N,
+      grand_parent: CA, great_grand_parent: C}
+    - {name: O, phi: 142.304351 deg, theta: 56.484039 deg, d: 1.22519, parent: C,
+      grand_parent: CA, great_grand_parent: N}
+    - {name: CB, phi: -118.726601 deg, theta: 73.173828 deg, d: 1.53023, parent: CA,
+      grand_parent: N, great_grand_parent: C}
+    - {name: CG, phi: -17.729281 deg, theta: 73.359962 deg, d: 1.52405, parent: CD,
+      grand_parent: N, great_grand_parent: CA}
+    - {name: OD1, phi: 144.821193 deg, theta: 67.273109 deg, d: 1.41707, parent: CG,
+      grand_parent: CD, great_grand_parent: N}
+    - {name: HC11, phi: 124.552235 deg, theta: 68.599884 deg, d: 1.09765, parent: CD,
+      grand_parent: N, great_grand_parent: CG}
+    - {name: HC12, phi: -118.400232 deg, theta: 73.403351 deg, d: 1.10128, parent: CD,
+      grand_parent: N, great_grand_parent: CG}
+    - {name: HC8, phi: -120.341679 deg, theta: 67.954605 deg, d: 1.09777, parent: CB,
+      grand_parent: CA, great_grand_parent: CG}
+    - {name: HC9, phi: 119.623416 deg, theta: 66.868561 deg, d: 1.10537, parent: CB,
+      grand_parent: CA, great_grand_parent: CG}
+    - {name: HC10, phi: -119.037475 deg, theta: 69.108269 deg, d: 1.09732, parent: CG,
+      grand_parent: CD, great_grand_parent: CB}
+    - {name: HO1, phi: 70.889878 deg, theta: 71.935776 deg, d: 0.97192, parent: OD1,
+      grand_parent: CG, great_grand_parent: CD}
+    - {name: HC4, phi: 119.795933 deg, theta: 68.349884 deg, d: 1.1084, parent: CA,
+      grand_parent: N, great_grand_parent: C}
+    - {name: down, phi: 140.699091 deg, theta: 62.712273 deg, d: 1.37444, parent: N,
+      grand_parent: CA, great_grand_parent: CD}
+    properties:
+      is_canonical: false
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha_aa
+        mainchain_atoms:
+        - N
+        - CA
+        - C
+        sidechain_chirality: l
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples:
+    - chi_dihedral: chi4
+      samples:
+      - 60.0
+      - -60.0
+      - 180.0
+      expansions:
+      - 20.0
+      is_proton: true
+    default_jump_connection_atom: CA
+    hydrogens_regenerated: true
+    is_ligand_fragment: false
+    rama_reference: PRO
+    dunbrack_reference: PRO
+    na_base_reference: null
+    reference_mirrored: false
+    one_letter_code: null
+elec:
+  atom_charge_parameters: [{res: HYP, atom: N, charge: -0.6602}, {res: HYP, atom: CA,
+      charge: 0.3611}, {res: HYP, atom: C, charge: 0.569}, {res: HYP, atom: O, charge: -0.57},
+    {res: HYP, atom: CB, charge: 0.0}, {res: HYP, atom: CG, charge: 0.28}, {res: HYP,
+      atom: OD1, charge: -0.68}, {res: HYP, atom: CD, charge: 0.3001}, {res: HYP,
+      atom: HC4, charge: 0.0}, {res: HYP, atom: HC8, charge: 0.0}, {res: HYP, atom: HC9,
+      charge: 0.0}, {res: HYP, atom: HC10, charge: 0.0}, {res: HYP, atom: HO1, charge: 0.4},
+    {res: HYP, atom: HC11, charge: 0.0}, {res: HYP, atom: HC12, charge: 0.0}]
+cartbonded:
+  residue_params:
+    HYP:
+      length_parameters: [{atm1: N, atm2: CA, x0: 1.4568696022033691, K: 300.0, type: 0},
+        {atm1: CA, atm2: C, x0: 1.5293370627833451, K: 300.0, type: 0}, {atm1: C,
+          atm2: O, x0: 1.2251928061261168, K: 300.0, type: 0}, {atm1: CA, atm2: CB,
+          x0: 1.530231749123687, K: 300.0, type: 0}, {atm1: CB, atm2: CG, x0: 1.5328654263397536,
+          K: 300.0, type: 0}, {atm1: CG, atm2: OD1, x0: 1.4170703925765387, K: 300.0,
+          type: 0}, {atm1: CG, atm2: CD, x0: 1.5240447118442755, K: 300.0, type: 0},
+        {atm1: N, atm2: CD, x0: 1.4438349953760434, K: 300.0, type: 0}, {atm1: CA,
+          atm2: HC4, x0: 1.1084044089809184, K: 300.0, type: 0}, {atm1: CB, atm2: HC8,
+          x0: 1.0977647070438783, K: 300.0, type: 0}, {atm1: CB, atm2: HC9, x0: 1.1053739050478673,
+          K: 300.0, type: 0}, {atm1: CG, atm2: HC10, x0: 1.0973163727253408, K: 300.0,
+          type: 0}, {atm1: OD1, atm2: HO1, x0: 0.9719195669785083, K: 300.0, type: 0},
+        {atm1: CD, atm2: HC11, x0: 1.0976464376849453, K: 300.0, type: 0}, {atm1: CD,
+          atm2: HC12, x0: 1.1012787668757271, K: 300.0, type: 0}]
+      angle_parameters: [{atm1: CA, atm2: N, atm3: CD, x0: 1.9280854856466416, K: 80.0,
+          type: 1}, {atm1: N, atm2: CA, atm3: C, x0: 1.8855082275515473, K: 80.0,
+          type: 1}, {atm1: N, atm2: CA, atm3: CB, x0: 1.864468452653017, K: 80.0,
+          type: 1}, {atm1: N, atm2: CA, atm3: HC4, x0: 1.9486621935953319, K: 80.0,
+          type: 1}, {atm1: C, atm2: CA, atm3: CB, x0: 1.9260789380726842, K: 80.0,
+          type: 1}, {atm1: C, atm2: CA, atm3: HC4, x0: 1.9017779156789938, K: 80.0,
+          type: 1}, {atm1: CB, atm2: CA, atm3: HC4, x0: 1.9366563641574939, K: 80.0,
+          type: 1}, {atm1: CA, atm2: C, atm3: O, x0: 2.15576024473444, K: 80.0, type: 1},
+        {atm1: CA, atm2: CB, atm3: CG, x0: 1.83346963871799, K: 80.0, type: 1}, {
+          atm1: CA, atm2: CB, atm3: HC8, x0: 1.9555611183249388, K: 80.0, type: 1},
+        {atm1: CA, atm2: CB, atm3: HC9, x0: 1.974516120996529, K: 80.0, type: 1},
+        {atm1: CG, atm2: CB, atm3: HC8, x0: 1.9333888847669032, K: 80.0, type: 1},
+        {atm1: CG, atm2: CB, atm3: HC9, x0: 1.9144830519792702, K: 80.0, type: 1},
+        {atm1: HC8, atm2: CB, atm3: HC9, x0: 1.853741820170189, K: 80.0, type: 1},
+        {atm1: CB, atm2: CG, atm3: OD1, x0: 1.9128798252684813, K: 80.0, type: 1},
+        {atm1: CB, atm2: CG, atm3: CD, x0: 1.8139276694945208, K: 80.0, type: 1},
+        {atm1: CB, atm2: CG, atm3: HC10, x0: 1.9329444206874102, K: 80.0, type: 1},
+        {atm1: OD1, atm2: CG, atm3: CD, x0: 1.9674553788383378, K: 80.0, type: 1},
+        {atm1: OD1, atm2: CG, atm3: HC10, x0: 1.900285375748725, K: 80.0, type: 1},
+        {atm1: CD, atm2: CG, atm3: HC10, x0: 1.9354258795281423, K: 80.0, type: 1},
+        {atm1: CG, atm2: OD1, atm3: HO1, x0: 1.886076438402394, K: 80.0, type: 1},
+        {atm1: CG, atm2: CD, atm3: N, x0: 1.8612196774363998, K: 80.0, type: 1}, {
+          atm1: CG, atm2: CD, atm3: HC11, x0: 1.9839015954022223, K: 80.0, type: 1},
+        {atm1: CG, atm2: CD, atm3: HC12, x0: 1.933637126430512, K: 80.0, type: 1},
+        {atm1: N, atm2: CD, atm3: HC11, x0: 1.9442987828707765, K: 80.0, type: 1},
+        {atm1: N, atm2: CD, atm3: HC12, x0: 1.8604624335910422, K: 80.0, type: 1},
+        {atm1: HC11, atm2: CD, atm3: HC12, x0: 1.8770817188429554, K: 80.0, type: 1}]
+      torsion_parameters: []
+      improper_parameters: []
+      hxltorsion_parameters: []

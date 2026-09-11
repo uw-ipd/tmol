@@ -1,0 +1,5018 @@
+{
+  "runs": {
+    "score-audit-baseline-cuda": {
+      "git_head": "96ff844e82ecb7dff0958d6b419e7aa2a946694a",
+      "python": "3.12.3",
+      "torch": "2.13.0+cu132",
+      "numpy": "2.1.0",
+      "rdkit": "2026.03.6",
+      "openbabel": "3.1.0",
+      "device": "cuda:0",
+      "seed": 20250828,
+      "runs": [
+        {
+          "backbone": "alpha_aa",
+          "repeat": 0,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -38.98065948486328,
+            "fa_ljrep": 23.95624351501465,
+            "fa_lk": 32.70353317260742,
+            "fa_elec": 1.4241453409194946,
+            "hbond": 0.0,
+            "cart_lengths": 4.918201446533203,
+            "cart_angles": 67.94078063964844,
+            "cart_torsions": 0.5149981379508972,
+            "cart_impropers": 0.5457764267921448,
+            "cart_hxltorsions": 5.039809226989746,
+            "disulfide": 0.0,
+            "rama": -17.302486419677734,
+            "omega": -2.352137804031372,
+            "dunbrack_rot": 9.1878662109375,
+            "dunbrack_rotdev": 19.246225357055664,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 40.47494125366211,
+            "lk_ball": 10.749117851257324,
+            "lk_bridge": 0.04309343174099922,
+            "lk_bridge_uncpl": 0.7903679013252258,
+            "ref": -14.895784378051758,
+            "gen_torsions": -0.9318379163742065,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HYP:nterm",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "ILE",
+            "THR",
+            "GLY",
+            "ALA",
+            "ARG",
+            "GLY",
+            "LEU",
+            "ALA",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY:cterm"
+          ]
+        },
+        {
+          "backbone": "alpha_aa",
+          "repeat": 0,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -38.9704475402832,
+            "fa_ljrep": 24.14518165588379,
+            "fa_lk": 32.70352554321289,
+            "fa_elec": 1.5368707180023193,
+            "hbond": 0.0,
+            "cart_lengths": 4.917844772338867,
+            "cart_angles": 67.94023895263672,
+            "cart_torsions": 0.3117677867412567,
+            "cart_impropers": 0.5457764863967896,
+            "cart_hxltorsions": 2.300875186920166,
+            "disulfide": 0.0,
+            "rama": -17.30251121520996,
+            "omega": -2.3520126342773438,
+            "dunbrack_rot": 9.18786334991455,
+            "dunbrack_rotdev": 19.246238708496094,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 40.474937438964844,
+            "lk_ball": 10.694106101989746,
+            "lk_bridge": 0.00924439076334238,
+            "lk_bridge_uncpl": 0.19024336338043213,
+            "ref": -14.895784378051758,
+            "gen_torsions": -1.4783918857574463,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HYP:nterm",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "ILE",
+            "THR",
+            "GLY",
+            "ALA",
+            "ARG",
+            "GLY",
+            "LEU",
+            "ALA",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY:cterm"
+          ]
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "repeat": 0,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -196.99940490722656,
+            "fa_ljrep": 121.25975799560547,
+            "fa_lk": 157.73464965820312,
+            "fa_elec": -61.0664176940918,
+            "hbond": -28.142667770385742,
+            "cart_lengths": 247.8071746826172,
+            "cart_angles": 53.82172775268555,
+            "cart_torsions": 3.7980313301086426,
+            "cart_impropers": 6.925427436828613,
+            "cart_hxltorsions": 1.3346590995788574,
+            "disulfide": 0.0,
+            "rama": 5.814332962036133,
+            "omega": 4.502141952514648,
+            "dunbrack_rot": 22.718624114990234,
+            "dunbrack_rotdev": 24.38241958618164,
+            "dunbrack_semirot": 19.450368881225586,
+            "lk_ball_iso": 184.41342163085938,
+            "lk_ball": 75.4642562866211,
+            "lk_bridge": 0.06382258236408234,
+            "lk_bridge_uncpl": 0.7948606014251709,
+            "ref": -5.804053783416748,
+            "gen_torsions": 46.2713737487793,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HMR:nterm",
+            "MET",
+            "LYS",
+            "B3Q",
+            "ILE",
+            "GLU",
+            "B3D",
+            "LYS",
+            "LEU",
+            "B3E",
+            "GLU",
+            "ILE",
+            "B3L",
+            "SER",
+            "LYS",
+            "B3L",
+            "TYR",
+            "HIS_POS",
+            "BIL",
+            "GLU",
+            "ASN",
+            "B3E",
+            "LEU",
+            "ALA",
+            "HMR",
+            "ILE",
+            "LYS",
+            "B3K",
+            "LEU",
+            "LEU",
+            "BAL:cterm"
+          ]
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "repeat": 0,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -197.01177978515625,
+            "fa_ljrep": 121.25979614257812,
+            "fa_lk": 157.7346649169922,
+            "fa_elec": -61.08707809448242,
+            "hbond": -28.14266586303711,
+            "cart_lengths": 247.80726623535156,
+            "cart_angles": 53.82173156738281,
+            "cart_torsions": 3.4131343364715576,
+            "cart_impropers": 6.925436973571777,
+            "cart_hxltorsions": 0.716978132724762,
+            "disulfide": 0.0,
+            "rama": 5.814333915710449,
+            "omega": 4.5021491050720215,
+            "dunbrack_rot": 22.718624114990234,
+            "dunbrack_rotdev": 24.382427215576172,
+            "dunbrack_semirot": 19.450368881225586,
+            "lk_ball_iso": 184.4134063720703,
+            "lk_ball": 75.34285736083984,
+            "lk_bridge": 0.06382258236408234,
+            "lk_bridge_uncpl": 0.7948606014251709,
+            "ref": -5.804053783416748,
+            "gen_torsions": 46.2713508605957,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HMR:nterm",
+            "MET",
+            "LYS",
+            "B3Q",
+            "ILE",
+            "GLU",
+            "B3D",
+            "LYS",
+            "LEU",
+            "B3E",
+            "GLU",
+            "ILE",
+            "B3L",
+            "SER",
+            "LYS",
+            "B3L",
+            "TYR",
+            "HIS_POS",
+            "BIL",
+            "GLU",
+            "ASN",
+            "B3E",
+            "LEU",
+            "ALA",
+            "HMR",
+            "ILE",
+            "LYS",
+            "B3K",
+            "LEU",
+            "LEU",
+            "BAL:cterm"
+          ]
+        },
+        {
+          "backbone": "dna",
+          "repeat": 0,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -48.97815704345703,
+            "fa_ljrep": 44.27186965942383,
+            "fa_lk": 10.134068489074707,
+            "fa_elec": 0.43421876430511475,
+            "hbond": 0.0,
+            "cart_lengths": 11.300167083740234,
+            "cart_angles": 42.209617614746094,
+            "cart_torsions": 12.219160079956055,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 11.102426528930664,
+            "lk_ball": -1.0109336376190186,
+            "lk_bridge": 0.02508801594376564,
+            "lk_bridge_uncpl": 0.5630521178245544,
+            "ref": 0.0,
+            "gen_torsions": 4.520727157592773,
+            "na_torsion": 233.18289184570312,
+            "na_torsion_well": 38.35997772216797
+          },
+          "block_types": [
+            "5CM:na5prime",
+            "DG",
+            "DT",
+            "DA",
+            "5CM",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "dna",
+          "repeat": 0,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -49.40187072753906,
+            "fa_ljrep": 49.61445999145508,
+            "fa_lk": 10.771644592285156,
+            "fa_elec": -1.2901917695999146,
+            "hbond": 0.0,
+            "cart_lengths": 253.7313995361328,
+            "cart_angles": 113.72533416748047,
+            "cart_torsions": 12.219144821166992,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 11.625301361083984,
+            "lk_ball": -0.5012748837471008,
+            "lk_bridge": 0.027975954115390778,
+            "lk_bridge_uncpl": 0.6950370073318481,
+            "ref": 0.0,
+            "gen_torsions": 4.520735740661621,
+            "na_torsion": 201.21495056152344,
+            "na_torsion_well": 44.220733642578125
+          },
+          "block_types": [
+            "5CM:na5prime",
+            "DG",
+            "DT",
+            "DA",
+            "5CM",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "nonstandard_na",
+          "repeat": 0,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -129.66607666015625,
+            "fa_ljrep": 123.98280334472656,
+            "fa_lk": 50.62530517578125,
+            "fa_elec": -6.690077781677246,
+            "hbond": 0.0,
+            "cart_lengths": 42.68035888671875,
+            "cart_angles": 101.8108901977539,
+            "cart_torsions": 12.911046981811523,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 55.43657684326172,
+            "lk_ball": 0.5202690362930298,
+            "lk_bridge": 0.06700586527585983,
+            "lk_bridge_uncpl": 1.4723951816558838,
+            "ref": 0.0,
+            "gen_torsions": 40.21653366088867,
+            "na_torsion": 31.47650718688965,
+            "na_torsion_well": 4.703481197357178
+          },
+          "block_types": [
+            "DG:na5prime",
+            "DC",
+            "DA",
+            "DC",
+            "DG",
+            "DA",
+            "DA",
+            "TTD",
+            "DA",
+            "DA",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "nonstandard_na",
+          "repeat": 0,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -129.57618713378906,
+            "fa_ljrep": 123.98219299316406,
+            "fa_lk": 50.62530517578125,
+            "fa_elec": -7.383322238922119,
+            "hbond": 0.0,
+            "cart_lengths": 42.680213928222656,
+            "cart_angles": 101.8108901977539,
+            "cart_torsions": 12.910957336425781,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 55.43656921386719,
+            "lk_ball": 0.5202785730361938,
+            "lk_bridge": 0.0670056939125061,
+            "lk_bridge_uncpl": 1.4723988771438599,
+            "ref": 0.0,
+            "gen_torsions": 40.216468811035156,
+            "na_torsion": 31.476516723632812,
+            "na_torsion_well": 4.703482627868652
+          },
+          "block_types": [
+            "DG:na5prime",
+            "DC",
+            "DA",
+            "DC",
+            "DG",
+            "DA",
+            "DA",
+            "TTD",
+            "DA",
+            "DA",
+            "DG:na3prime"
+          ]
+        }
+      ]
+    },
+    "score-audit-candidate-cpu": {
+      "git_head": "026475f0e4808b227cde92d3f62bae6f6a1375f9",
+      "python": "3.12.13",
+      "torch": "2.8.0+cpu",
+      "numpy": "2.5.3",
+      "rdkit": "2026.03.6",
+      "openbabel": "3.1.0",
+      "device": "cpu",
+      "seed": 20250828,
+      "runs": [
+        {
+          "backbone": "alpha_aa",
+          "repeat": 0,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -39.00383758544922,
+            "fa_ljrep": 25.563232421875,
+            "fa_lk": 32.70353317260742,
+            "fa_elec": 1.440407156944275,
+            "hbond": 0.0,
+            "cart_lengths": 5.124112606048584,
+            "cart_angles": 67.89120483398438,
+            "cart_torsions": 0.5149940252304077,
+            "cart_impropers": 0.5457887649536133,
+            "cart_hxltorsions": 5.039809226989746,
+            "disulfide": 0.0,
+            "rama": -17.302490234375,
+            "omega": -2.3495023250579834,
+            "dunbrack_rot": 9.1878662109375,
+            "dunbrack_rotdev": 19.24623680114746,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 40.474945068359375,
+            "lk_ball": 10.744058609008789,
+            "lk_bridge": 0.041228488087654114,
+            "lk_bridge_uncpl": 0.7590119242668152,
+            "ref": -14.895784378051758,
+            "gen_torsions": -1.035997748374939,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HYP:nterm",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "ILE",
+            "THR",
+            "GLY",
+            "ALA",
+            "ARG",
+            "GLY",
+            "LEU",
+            "ALA",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY:cterm"
+          ]
+        },
+        {
+          "backbone": "alpha_aa",
+          "repeat": 0,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -38.99140167236328,
+            "fa_ljrep": 25.744041442871094,
+            "fa_lk": 32.703529357910156,
+            "fa_elec": 1.5479462146759033,
+            "hbond": 0.0,
+            "cart_lengths": 5.124349594116211,
+            "cart_angles": 67.89129638671875,
+            "cart_torsions": 0.3117542862892151,
+            "cart_impropers": 0.5457580089569092,
+            "cart_hxltorsions": 2.3008742332458496,
+            "disulfide": 0.0,
+            "rama": -17.302499771118164,
+            "omega": -2.3484952449798584,
+            "dunbrack_rot": 9.187865257263184,
+            "dunbrack_rotdev": 19.246280670166016,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 40.474937438964844,
+            "lk_ball": 10.694096565246582,
+            "lk_bridge": 0.009243857115507126,
+            "lk_bridge_uncpl": 0.19023483991622925,
+            "ref": -14.895784378051758,
+            "gen_torsions": -1.479101538658142,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HYP:nterm",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "ILE",
+            "THR",
+            "GLY",
+            "ALA",
+            "ARG",
+            "GLY",
+            "LEU",
+            "ALA",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY:cterm"
+          ]
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "repeat": 0,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -197.2432861328125,
+            "fa_ljrep": 122.34365844726562,
+            "fa_lk": 157.63978576660156,
+            "fa_elec": -61.1767578125,
+            "hbond": -28.13156509399414,
+            "cart_lengths": 247.56582641601562,
+            "cart_angles": 51.101585388183594,
+            "cart_torsions": 3.7980453968048096,
+            "cart_impropers": 6.925457000732422,
+            "cart_hxltorsions": 1.3346577882766724,
+            "disulfide": 0.0,
+            "rama": 5.81434965133667,
+            "omega": 4.502179145812988,
+            "dunbrack_rot": 22.718629837036133,
+            "dunbrack_rotdev": 24.38249969482422,
+            "dunbrack_semirot": 19.450366973876953,
+            "lk_ball_iso": 184.5955352783203,
+            "lk_ball": 75.46586608886719,
+            "lk_bridge": 0.06382226943969727,
+            "lk_bridge_uncpl": 0.7948567867279053,
+            "ref": -5.80405330657959,
+            "gen_torsions": 44.77052688598633,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HMR:nterm",
+            "MET",
+            "LYS",
+            "B3Q",
+            "ILE",
+            "GLU",
+            "B3D",
+            "LYS",
+            "LEU",
+            "B3E",
+            "GLU",
+            "ILE",
+            "B3L",
+            "SER",
+            "LYS",
+            "B3L",
+            "TYR",
+            "HIS_POS",
+            "BIL",
+            "GLU",
+            "ASN",
+            "B3E",
+            "LEU",
+            "ALA",
+            "HMR",
+            "ILE",
+            "LYS",
+            "B3K",
+            "LEU",
+            "LEU",
+            "BAL:cterm"
+          ]
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "repeat": 0,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -197.25564575195312,
+            "fa_ljrep": 122.34370422363281,
+            "fa_lk": 157.63978576660156,
+            "fa_elec": -61.197410583496094,
+            "hbond": -28.13156509399414,
+            "cart_lengths": 247.56581115722656,
+            "cart_angles": 51.10158157348633,
+            "cart_torsions": 3.4131271839141846,
+            "cart_impropers": 6.925457000732422,
+            "cart_hxltorsions": 0.7169773578643799,
+            "disulfide": 0.0,
+            "rama": 5.81434965133667,
+            "omega": 4.502179145812988,
+            "dunbrack_rot": 22.718629837036133,
+            "dunbrack_rotdev": 24.38249969482422,
+            "dunbrack_semirot": 19.450366973876953,
+            "lk_ball_iso": 184.5955352783203,
+            "lk_ball": 75.3444595336914,
+            "lk_bridge": 0.06382226943969727,
+            "lk_bridge_uncpl": 0.7948567867279053,
+            "ref": -5.80405330657959,
+            "gen_torsions": 44.77052688598633,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HMR:nterm",
+            "MET",
+            "LYS",
+            "B3Q",
+            "ILE",
+            "GLU",
+            "B3D",
+            "LYS",
+            "LEU",
+            "B3E",
+            "GLU",
+            "ILE",
+            "B3L",
+            "SER",
+            "LYS",
+            "B3L",
+            "TYR",
+            "HIS_POS",
+            "BIL",
+            "GLU",
+            "ASN",
+            "B3E",
+            "LEU",
+            "ALA",
+            "HMR",
+            "ILE",
+            "LYS",
+            "B3K",
+            "LEU",
+            "LEU",
+            "BAL:cterm"
+          ]
+        },
+        {
+          "backbone": "dna",
+          "repeat": 0,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -48.97913360595703,
+            "fa_ljrep": 44.29155731201172,
+            "fa_lk": 10.134069442749023,
+            "fa_elec": 0.4342484176158905,
+            "hbond": 0.0,
+            "cart_lengths": 10.861820220947266,
+            "cart_angles": 41.92369079589844,
+            "cart_torsions": 12.219131469726562,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 11.10242748260498,
+            "lk_ball": -1.0111877918243408,
+            "lk_bridge": 0.02508804015815258,
+            "lk_bridge_uncpl": 0.5630515813827515,
+            "ref": 0.0,
+            "gen_torsions": 4.521371364593506,
+            "na_torsion": 233.18289184570312,
+            "na_torsion_well": 38.35997772216797
+          },
+          "block_types": [
+            "5CM:na5prime",
+            "DG",
+            "DT",
+            "DA",
+            "5CM",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "dna",
+          "repeat": 0,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -48.994876861572266,
+            "fa_ljrep": 44.291770935058594,
+            "fa_lk": 10.134056091308594,
+            "fa_elec": -0.1618329882621765,
+            "hbond": 0.0,
+            "cart_lengths": 10.861780166625977,
+            "cart_angles": 41.92372131347656,
+            "cart_torsions": 12.219149589538574,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 11.102417945861816,
+            "lk_ball": -1.0111815929412842,
+            "lk_bridge": 0.02508818916976452,
+            "lk_bridge_uncpl": 0.5630526542663574,
+            "ref": 0.0,
+            "gen_torsions": 4.521373748779297,
+            "na_torsion": 233.18310546875,
+            "na_torsion_well": 38.35997772216797
+          },
+          "block_types": [
+            "5CM:na5prime",
+            "DG",
+            "DT",
+            "DA",
+            "5CM",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "nonstandard_na",
+          "repeat": 0,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -129.66355895996094,
+            "fa_ljrep": 123.85820770263672,
+            "fa_lk": 50.625308990478516,
+            "fa_elec": -6.689560413360596,
+            "hbond": 0.0,
+            "cart_lengths": 43.18159103393555,
+            "cart_angles": 102.82372283935547,
+            "cart_torsions": 12.910895347595215,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 55.436580657958984,
+            "lk_ball": 0.5202683210372925,
+            "lk_bridge": 0.06700582057237625,
+            "lk_bridge_uncpl": 1.4723947048187256,
+            "ref": 0.0,
+            "gen_torsions": 40.212425231933594,
+            "na_torsion": 31.47650909423828,
+            "na_torsion_well": 4.7034807205200195
+          },
+          "block_types": [
+            "DG:na5prime",
+            "DC",
+            "DA",
+            "DC",
+            "DG",
+            "DA",
+            "DA",
+            "TTD",
+            "DA",
+            "DA",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "nonstandard_na",
+          "repeat": 0,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -129.57371520996094,
+            "fa_ljrep": 123.85774993896484,
+            "fa_lk": 50.62531661987305,
+            "fa_elec": -7.382784843444824,
+            "hbond": 0.0,
+            "cart_lengths": 43.1817512512207,
+            "cart_angles": 102.82363891601562,
+            "cart_torsions": 12.91088581085205,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 55.436580657958984,
+            "lk_ball": 0.5202667713165283,
+            "lk_bridge": 0.06700596213340759,
+            "lk_bridge_uncpl": 1.4723953008651733,
+            "ref": 0.0,
+            "gen_torsions": 40.21244812011719,
+            "na_torsion": 31.47652816772461,
+            "na_torsion_well": 4.703482151031494
+          },
+          "block_types": [
+            "DG:na5prime",
+            "DC",
+            "DA",
+            "DC",
+            "DG",
+            "DA",
+            "DA",
+            "TTD",
+            "DA",
+            "DA",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "alpha_aa",
+          "repeat": 1,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -39.00383758544922,
+            "fa_ljrep": 25.563232421875,
+            "fa_lk": 32.70353317260742,
+            "fa_elec": 1.440407156944275,
+            "hbond": 0.0,
+            "cart_lengths": 5.124112606048584,
+            "cart_angles": 67.89120483398438,
+            "cart_torsions": 0.5149940252304077,
+            "cart_impropers": 0.5457887649536133,
+            "cart_hxltorsions": 5.039809226989746,
+            "disulfide": 0.0,
+            "rama": -17.302490234375,
+            "omega": -2.3495023250579834,
+            "dunbrack_rot": 9.1878662109375,
+            "dunbrack_rotdev": 19.24623680114746,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 40.474945068359375,
+            "lk_ball": 10.744058609008789,
+            "lk_bridge": 0.041228488087654114,
+            "lk_bridge_uncpl": 0.7590119242668152,
+            "ref": -14.895784378051758,
+            "gen_torsions": -1.035997748374939,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HYP:nterm",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "ILE",
+            "THR",
+            "GLY",
+            "ALA",
+            "ARG",
+            "GLY",
+            "LEU",
+            "ALA",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY:cterm"
+          ]
+        },
+        {
+          "backbone": "alpha_aa",
+          "repeat": 1,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -38.99140167236328,
+            "fa_ljrep": 25.744041442871094,
+            "fa_lk": 32.703529357910156,
+            "fa_elec": 1.5479462146759033,
+            "hbond": 0.0,
+            "cart_lengths": 5.124349594116211,
+            "cart_angles": 67.89129638671875,
+            "cart_torsions": 0.3117542862892151,
+            "cart_impropers": 0.5457580089569092,
+            "cart_hxltorsions": 2.3008742332458496,
+            "disulfide": 0.0,
+            "rama": -17.302499771118164,
+            "omega": -2.3484952449798584,
+            "dunbrack_rot": 9.187865257263184,
+            "dunbrack_rotdev": 19.246280670166016,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 40.474937438964844,
+            "lk_ball": 10.694096565246582,
+            "lk_bridge": 0.009243857115507126,
+            "lk_bridge_uncpl": 0.19023483991622925,
+            "ref": -14.895784378051758,
+            "gen_torsions": -1.479101538658142,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HYP:nterm",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "ILE",
+            "THR",
+            "GLY",
+            "ALA",
+            "ARG",
+            "GLY",
+            "LEU",
+            "ALA",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY:cterm"
+          ]
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "repeat": 1,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -197.2432861328125,
+            "fa_ljrep": 122.34365844726562,
+            "fa_lk": 157.63978576660156,
+            "fa_elec": -61.1767578125,
+            "hbond": -28.13156509399414,
+            "cart_lengths": 247.56582641601562,
+            "cart_angles": 51.101585388183594,
+            "cart_torsions": 3.7980453968048096,
+            "cart_impropers": 6.925457000732422,
+            "cart_hxltorsions": 1.3346577882766724,
+            "disulfide": 0.0,
+            "rama": 5.81434965133667,
+            "omega": 4.502179145812988,
+            "dunbrack_rot": 22.718629837036133,
+            "dunbrack_rotdev": 24.38249969482422,
+            "dunbrack_semirot": 19.450366973876953,
+            "lk_ball_iso": 184.5955352783203,
+            "lk_ball": 75.46586608886719,
+            "lk_bridge": 0.06382226943969727,
+            "lk_bridge_uncpl": 0.7948567867279053,
+            "ref": -5.80405330657959,
+            "gen_torsions": 44.77052688598633,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HMR:nterm",
+            "MET",
+            "LYS",
+            "B3Q",
+            "ILE",
+            "GLU",
+            "B3D",
+            "LYS",
+            "LEU",
+            "B3E",
+            "GLU",
+            "ILE",
+            "B3L",
+            "SER",
+            "LYS",
+            "B3L",
+            "TYR",
+            "HIS_POS",
+            "BIL",
+            "GLU",
+            "ASN",
+            "B3E",
+            "LEU",
+            "ALA",
+            "HMR",
+            "ILE",
+            "LYS",
+            "B3K",
+            "LEU",
+            "LEU",
+            "BAL:cterm"
+          ]
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "repeat": 1,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -197.25564575195312,
+            "fa_ljrep": 122.34370422363281,
+            "fa_lk": 157.63978576660156,
+            "fa_elec": -61.197410583496094,
+            "hbond": -28.13156509399414,
+            "cart_lengths": 247.56581115722656,
+            "cart_angles": 51.10158157348633,
+            "cart_torsions": 3.4131271839141846,
+            "cart_impropers": 6.925457000732422,
+            "cart_hxltorsions": 0.7169773578643799,
+            "disulfide": 0.0,
+            "rama": 5.81434965133667,
+            "omega": 4.502179145812988,
+            "dunbrack_rot": 22.718629837036133,
+            "dunbrack_rotdev": 24.38249969482422,
+            "dunbrack_semirot": 19.450366973876953,
+            "lk_ball_iso": 184.5955352783203,
+            "lk_ball": 75.3444595336914,
+            "lk_bridge": 0.06382226943969727,
+            "lk_bridge_uncpl": 0.7948567867279053,
+            "ref": -5.80405330657959,
+            "gen_torsions": 44.77052688598633,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HMR:nterm",
+            "MET",
+            "LYS",
+            "B3Q",
+            "ILE",
+            "GLU",
+            "B3D",
+            "LYS",
+            "LEU",
+            "B3E",
+            "GLU",
+            "ILE",
+            "B3L",
+            "SER",
+            "LYS",
+            "B3L",
+            "TYR",
+            "HIS_POS",
+            "BIL",
+            "GLU",
+            "ASN",
+            "B3E",
+            "LEU",
+            "ALA",
+            "HMR",
+            "ILE",
+            "LYS",
+            "B3K",
+            "LEU",
+            "LEU",
+            "BAL:cterm"
+          ]
+        },
+        {
+          "backbone": "dna",
+          "repeat": 1,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -48.97913360595703,
+            "fa_ljrep": 44.29155731201172,
+            "fa_lk": 10.134069442749023,
+            "fa_elec": 0.4342484176158905,
+            "hbond": 0.0,
+            "cart_lengths": 10.861820220947266,
+            "cart_angles": 41.92369079589844,
+            "cart_torsions": 12.219131469726562,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 11.10242748260498,
+            "lk_ball": -1.0111877918243408,
+            "lk_bridge": 0.02508804015815258,
+            "lk_bridge_uncpl": 0.5630515813827515,
+            "ref": 0.0,
+            "gen_torsions": 4.521371364593506,
+            "na_torsion": 233.18289184570312,
+            "na_torsion_well": 38.35997772216797
+          },
+          "block_types": [
+            "5CM:na5prime",
+            "DG",
+            "DT",
+            "DA",
+            "5CM",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "dna",
+          "repeat": 1,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -48.994876861572266,
+            "fa_ljrep": 44.291770935058594,
+            "fa_lk": 10.134056091308594,
+            "fa_elec": -0.1618329882621765,
+            "hbond": 0.0,
+            "cart_lengths": 10.861780166625977,
+            "cart_angles": 41.92372131347656,
+            "cart_torsions": 12.219149589538574,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 11.102417945861816,
+            "lk_ball": -1.0111815929412842,
+            "lk_bridge": 0.02508818916976452,
+            "lk_bridge_uncpl": 0.5630526542663574,
+            "ref": 0.0,
+            "gen_torsions": 4.521373748779297,
+            "na_torsion": 233.18310546875,
+            "na_torsion_well": 38.35997772216797
+          },
+          "block_types": [
+            "5CM:na5prime",
+            "DG",
+            "DT",
+            "DA",
+            "5CM",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "nonstandard_na",
+          "repeat": 1,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -129.66355895996094,
+            "fa_ljrep": 123.85820770263672,
+            "fa_lk": 50.625308990478516,
+            "fa_elec": -6.689560413360596,
+            "hbond": 0.0,
+            "cart_lengths": 43.18159103393555,
+            "cart_angles": 102.82372283935547,
+            "cart_torsions": 12.910895347595215,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 55.436580657958984,
+            "lk_ball": 0.5202683210372925,
+            "lk_bridge": 0.06700582057237625,
+            "lk_bridge_uncpl": 1.4723947048187256,
+            "ref": 0.0,
+            "gen_torsions": 40.212425231933594,
+            "na_torsion": 31.47650909423828,
+            "na_torsion_well": 4.7034807205200195
+          },
+          "block_types": [
+            "DG:na5prime",
+            "DC",
+            "DA",
+            "DC",
+            "DG",
+            "DA",
+            "DA",
+            "TTD",
+            "DA",
+            "DA",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "nonstandard_na",
+          "repeat": 1,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -129.57371520996094,
+            "fa_ljrep": 123.85774993896484,
+            "fa_lk": 50.62531661987305,
+            "fa_elec": -7.382784843444824,
+            "hbond": 0.0,
+            "cart_lengths": 43.1817512512207,
+            "cart_angles": 102.82363891601562,
+            "cart_torsions": 12.91088581085205,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 55.436580657958984,
+            "lk_ball": 0.5202667713165283,
+            "lk_bridge": 0.06700596213340759,
+            "lk_bridge_uncpl": 1.4723953008651733,
+            "ref": 0.0,
+            "gen_torsions": 40.21244812011719,
+            "na_torsion": 31.47652816772461,
+            "na_torsion_well": 4.703482151031494
+          },
+          "block_types": [
+            "DG:na5prime",
+            "DC",
+            "DA",
+            "DC",
+            "DG",
+            "DA",
+            "DA",
+            "TTD",
+            "DA",
+            "DA",
+            "DG:na3prime"
+          ]
+        }
+      ]
+    },
+    "score-audit-candidate-cuda": {
+      "git_head": "026475f0e4808b227cde92d3f62bae6f6a1375f9",
+      "python": "3.12.3",
+      "torch": "2.13.0+cu132",
+      "numpy": "2.1.0",
+      "rdkit": "2026.03.6",
+      "openbabel": "3.1.0",
+      "device": "cuda:0",
+      "seed": 20250828,
+      "runs": [
+        {
+          "backbone": "alpha_aa",
+          "repeat": 0,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -38.980655670166016,
+            "fa_ljrep": 23.95624351501465,
+            "fa_lk": 32.70353317260742,
+            "fa_elec": 1.4241448640823364,
+            "hbond": 0.0,
+            "cart_lengths": 4.918201446533203,
+            "cart_angles": 67.9407730102539,
+            "cart_torsions": 0.5149981379508972,
+            "cart_impropers": 0.5457764267921448,
+            "cart_hxltorsions": 5.039809226989746,
+            "disulfide": 0.0,
+            "rama": -17.302486419677734,
+            "omega": -2.352137804031372,
+            "dunbrack_rot": 9.1878662109375,
+            "dunbrack_rotdev": 19.246225357055664,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 40.474945068359375,
+            "lk_ball": 10.749120712280273,
+            "lk_bridge": 0.04309342801570892,
+            "lk_bridge_uncpl": 0.7903679013252258,
+            "ref": -14.895784378051758,
+            "gen_torsions": -0.9318379163742065,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HYP:nterm",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "ILE",
+            "THR",
+            "GLY",
+            "ALA",
+            "ARG",
+            "GLY",
+            "LEU",
+            "ALA",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY:cterm"
+          ]
+        },
+        {
+          "backbone": "alpha_aa",
+          "repeat": 0,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -38.9704475402832,
+            "fa_ljrep": 24.145179748535156,
+            "fa_lk": 32.703529357910156,
+            "fa_elec": 1.5368704795837402,
+            "hbond": 0.0,
+            "cart_lengths": 4.917844772338867,
+            "cart_angles": 67.94023132324219,
+            "cart_torsions": 0.3117677867412567,
+            "cart_impropers": 0.5457764267921448,
+            "cart_hxltorsions": 2.300875186920166,
+            "disulfide": 0.0,
+            "rama": -17.30251121520996,
+            "omega": -2.3520126342773438,
+            "dunbrack_rot": 9.18786334991455,
+            "dunbrack_rotdev": 19.246238708496094,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 40.474937438964844,
+            "lk_ball": 10.694108009338379,
+            "lk_bridge": 0.00924439076334238,
+            "lk_bridge_uncpl": 0.19024336338043213,
+            "ref": -14.895784378051758,
+            "gen_torsions": -1.4783918857574463,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HYP:nterm",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "ILE",
+            "THR",
+            "GLY",
+            "ALA",
+            "ARG",
+            "GLY",
+            "LEU",
+            "ALA",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY:cterm"
+          ]
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "repeat": 0,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -196.99940490722656,
+            "fa_ljrep": 121.25975799560547,
+            "fa_lk": 157.73468017578125,
+            "fa_elec": -61.06641387939453,
+            "hbond": -28.142667770385742,
+            "cart_lengths": 247.8071746826172,
+            "cart_angles": 53.82173538208008,
+            "cart_torsions": 3.7980310916900635,
+            "cart_impropers": 6.925426959991455,
+            "cart_hxltorsions": 1.3346590995788574,
+            "disulfide": 0.0,
+            "rama": 5.814332962036133,
+            "omega": 4.502141952514648,
+            "dunbrack_rot": 22.718624114990234,
+            "dunbrack_rotdev": 24.38241958618164,
+            "dunbrack_semirot": 19.450368881225586,
+            "lk_ball_iso": 184.41342163085938,
+            "lk_ball": 75.4642562866211,
+            "lk_bridge": 0.06382258236408234,
+            "lk_bridge_uncpl": 0.7948606014251709,
+            "ref": -5.804053783416748,
+            "gen_torsions": 46.2713737487793,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HMR:nterm",
+            "MET",
+            "LYS",
+            "B3Q",
+            "ILE",
+            "GLU",
+            "B3D",
+            "LYS",
+            "LEU",
+            "B3E",
+            "GLU",
+            "ILE",
+            "B3L",
+            "SER",
+            "LYS",
+            "B3L",
+            "TYR",
+            "HIS_POS",
+            "BIL",
+            "GLU",
+            "ASN",
+            "B3E",
+            "LEU",
+            "ALA",
+            "HMR",
+            "ILE",
+            "LYS",
+            "B3K",
+            "LEU",
+            "LEU",
+            "BAL:cterm"
+          ]
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "repeat": 0,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -197.01174926757812,
+            "fa_ljrep": 121.25979614257812,
+            "fa_lk": 157.73464965820312,
+            "fa_elec": -61.08707046508789,
+            "hbond": -28.142667770385742,
+            "cart_lengths": 247.80726623535156,
+            "cart_angles": 53.82173156738281,
+            "cart_torsions": 3.4131340980529785,
+            "cart_impropers": 6.925436496734619,
+            "cart_hxltorsions": 0.716978132724762,
+            "disulfide": 0.0,
+            "rama": 5.814333915710449,
+            "omega": 4.5021491050720215,
+            "dunbrack_rot": 22.718624114990234,
+            "dunbrack_rotdev": 24.382427215576172,
+            "dunbrack_semirot": 19.450368881225586,
+            "lk_ball_iso": 184.4134063720703,
+            "lk_ball": 75.34284210205078,
+            "lk_bridge": 0.06382258236408234,
+            "lk_bridge_uncpl": 0.7948606014251709,
+            "ref": -5.804053783416748,
+            "gen_torsions": 46.2713508605957,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HMR:nterm",
+            "MET",
+            "LYS",
+            "B3Q",
+            "ILE",
+            "GLU",
+            "B3D",
+            "LYS",
+            "LEU",
+            "B3E",
+            "GLU",
+            "ILE",
+            "B3L",
+            "SER",
+            "LYS",
+            "B3L",
+            "TYR",
+            "HIS_POS",
+            "BIL",
+            "GLU",
+            "ASN",
+            "B3E",
+            "LEU",
+            "ALA",
+            "HMR",
+            "ILE",
+            "LYS",
+            "B3K",
+            "LEU",
+            "LEU",
+            "BAL:cterm"
+          ]
+        },
+        {
+          "backbone": "dna",
+          "repeat": 0,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -48.97815704345703,
+            "fa_ljrep": 44.27186965942383,
+            "fa_lk": 10.134068489074707,
+            "fa_elec": 0.43421876430511475,
+            "hbond": 0.0,
+            "cart_lengths": 11.300167083740234,
+            "cart_angles": 42.209617614746094,
+            "cart_torsions": 12.219160079956055,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 11.102426528930664,
+            "lk_ball": -1.0109336376190186,
+            "lk_bridge": 0.02508801594376564,
+            "lk_bridge_uncpl": 0.5630521178245544,
+            "ref": 0.0,
+            "gen_torsions": 4.520727157592773,
+            "na_torsion": 233.18289184570312,
+            "na_torsion_well": 38.35997772216797
+          },
+          "block_types": [
+            "5CM:na5prime",
+            "DG",
+            "DT",
+            "DA",
+            "5CM",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "dna",
+          "repeat": 0,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -48.99393081665039,
+            "fa_ljrep": 44.272335052490234,
+            "fa_lk": 10.134066581726074,
+            "fa_elec": -0.16203147172927856,
+            "hbond": 0.0,
+            "cart_lengths": 11.300212860107422,
+            "cart_angles": 42.20954513549805,
+            "cart_torsions": 12.21914005279541,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 11.102432250976562,
+            "lk_ball": -1.0109329223632812,
+            "lk_bridge": 0.025088105350732803,
+            "lk_bridge_uncpl": 0.5630567073822021,
+            "ref": 0.0,
+            "gen_torsions": 4.520730495452881,
+            "na_torsion": 233.18289184570312,
+            "na_torsion_well": 38.359962463378906
+          },
+          "block_types": [
+            "5CM:na5prime",
+            "DG",
+            "DT",
+            "DA",
+            "5CM",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "nonstandard_na",
+          "repeat": 0,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -129.66607666015625,
+            "fa_ljrep": 123.98280334472656,
+            "fa_lk": 50.62530517578125,
+            "fa_elec": -6.690077781677246,
+            "hbond": 0.0,
+            "cart_lengths": 42.68035888671875,
+            "cart_angles": 101.8108901977539,
+            "cart_torsions": 12.911046981811523,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 55.43657684326172,
+            "lk_ball": 0.5202685594558716,
+            "lk_bridge": 0.06700586527585983,
+            "lk_bridge_uncpl": 1.4723951816558838,
+            "ref": 0.0,
+            "gen_torsions": 40.21653366088867,
+            "na_torsion": 31.47650718688965,
+            "na_torsion_well": 4.703481197357178
+          },
+          "block_types": [
+            "DG:na5prime",
+            "DC",
+            "DA",
+            "DC",
+            "DG",
+            "DA",
+            "DA",
+            "TTD",
+            "DA",
+            "DA",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "nonstandard_na",
+          "repeat": 0,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -129.57620239257812,
+            "fa_ljrep": 123.98223876953125,
+            "fa_lk": 50.625308990478516,
+            "fa_elec": -7.383328437805176,
+            "hbond": 0.0,
+            "cart_lengths": 42.68022155761719,
+            "cart_angles": 101.8109130859375,
+            "cart_torsions": 12.910965919494629,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 55.43658447265625,
+            "lk_ball": 0.5202783346176147,
+            "lk_bridge": 0.06700576841831207,
+            "lk_bridge_uncpl": 1.47239351272583,
+            "ref": 0.0,
+            "gen_torsions": 40.216514587402344,
+            "na_torsion": 31.476512908935547,
+            "na_torsion_well": 4.703482627868652
+          },
+          "block_types": [
+            "DG:na5prime",
+            "DC",
+            "DA",
+            "DC",
+            "DG",
+            "DA",
+            "DA",
+            "TTD",
+            "DA",
+            "DA",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "alpha_aa",
+          "repeat": 1,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -38.98065948486328,
+            "fa_ljrep": 23.95624351501465,
+            "fa_lk": 32.703529357910156,
+            "fa_elec": 1.4241448640823364,
+            "hbond": 0.0,
+            "cart_lengths": 4.918200492858887,
+            "cart_angles": 67.94078826904297,
+            "cart_torsions": 0.5149981379508972,
+            "cart_impropers": 0.5457764267921448,
+            "cart_hxltorsions": 5.039809226989746,
+            "disulfide": 0.0,
+            "rama": -17.302486419677734,
+            "omega": -2.352137804031372,
+            "dunbrack_rot": 9.1878662109375,
+            "dunbrack_rotdev": 19.246225357055664,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 40.47494125366211,
+            "lk_ball": 10.749120712280273,
+            "lk_bridge": 0.04309342801570892,
+            "lk_bridge_uncpl": 0.7903679013252258,
+            "ref": -14.895784378051758,
+            "gen_torsions": -0.9318379163742065,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HYP:nterm",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "ILE",
+            "THR",
+            "GLY",
+            "ALA",
+            "ARG",
+            "GLY",
+            "LEU",
+            "ALA",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY:cterm"
+          ]
+        },
+        {
+          "backbone": "alpha_aa",
+          "repeat": 1,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -38.9704475402832,
+            "fa_ljrep": 24.14518165588379,
+            "fa_lk": 32.70352554321289,
+            "fa_elec": 1.5368707180023193,
+            "hbond": 0.0,
+            "cart_lengths": 4.917844772338867,
+            "cart_angles": 67.94023895263672,
+            "cart_torsions": 0.3117677867412567,
+            "cart_impropers": 0.5457764267921448,
+            "cart_hxltorsions": 2.300875186920166,
+            "disulfide": 0.0,
+            "rama": -17.30251121520996,
+            "omega": -2.3520126342773438,
+            "dunbrack_rot": 9.18786334991455,
+            "dunbrack_rotdev": 19.246238708496094,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 40.474945068359375,
+            "lk_ball": 10.694108009338379,
+            "lk_bridge": 0.00924439076334238,
+            "lk_bridge_uncpl": 0.19024336338043213,
+            "ref": -14.895784378051758,
+            "gen_torsions": -1.4783918857574463,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HYP:nterm",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "ILE",
+            "THR",
+            "GLY",
+            "ALA",
+            "ARG",
+            "GLY",
+            "LEU",
+            "ALA",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY:cterm"
+          ]
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "repeat": 1,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -196.99940490722656,
+            "fa_ljrep": 121.25975799560547,
+            "fa_lk": 157.7346649169922,
+            "fa_elec": -61.066410064697266,
+            "hbond": -28.142667770385742,
+            "cart_lengths": 247.80718994140625,
+            "cart_angles": 53.82173156738281,
+            "cart_torsions": 3.7980313301086426,
+            "cart_impropers": 6.925427436828613,
+            "cart_hxltorsions": 1.3346590995788574,
+            "disulfide": 0.0,
+            "rama": 5.814332962036133,
+            "omega": 4.502141952514648,
+            "dunbrack_rot": 22.718624114990234,
+            "dunbrack_rotdev": 24.38241958618164,
+            "dunbrack_semirot": 19.450368881225586,
+            "lk_ball_iso": 184.41343688964844,
+            "lk_ball": 75.46426391601562,
+            "lk_bridge": 0.06382258236408234,
+            "lk_bridge_uncpl": 0.7948606014251709,
+            "ref": -5.804053783416748,
+            "gen_torsions": 46.2713737487793,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HMR:nterm",
+            "MET",
+            "LYS",
+            "B3Q",
+            "ILE",
+            "GLU",
+            "B3D",
+            "LYS",
+            "LEU",
+            "B3E",
+            "GLU",
+            "ILE",
+            "B3L",
+            "SER",
+            "LYS",
+            "B3L",
+            "TYR",
+            "HIS_POS",
+            "BIL",
+            "GLU",
+            "ASN",
+            "B3E",
+            "LEU",
+            "ALA",
+            "HMR",
+            "ILE",
+            "LYS",
+            "B3K",
+            "LEU",
+            "LEU",
+            "BAL:cterm"
+          ]
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "repeat": 1,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -197.0117645263672,
+            "fa_ljrep": 121.2597885131836,
+            "fa_lk": 157.73464965820312,
+            "fa_elec": -61.08708572387695,
+            "hbond": -28.142669677734375,
+            "cart_lengths": 247.80726623535156,
+            "cart_angles": 53.82173156738281,
+            "cart_torsions": 3.4131343364715576,
+            "cart_impropers": 6.925436496734619,
+            "cart_hxltorsions": 0.716978132724762,
+            "disulfide": 0.0,
+            "rama": 5.814333915710449,
+            "omega": 4.5021491050720215,
+            "dunbrack_rot": 22.718624114990234,
+            "dunbrack_rotdev": 24.382427215576172,
+            "dunbrack_semirot": 19.450368881225586,
+            "lk_ball_iso": 184.41343688964844,
+            "lk_ball": 75.34285736083984,
+            "lk_bridge": 0.06382258236408234,
+            "lk_bridge_uncpl": 0.7948606014251709,
+            "ref": -5.804053783416748,
+            "gen_torsions": 46.2713508605957,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HMR:nterm",
+            "MET",
+            "LYS",
+            "B3Q",
+            "ILE",
+            "GLU",
+            "B3D",
+            "LYS",
+            "LEU",
+            "B3E",
+            "GLU",
+            "ILE",
+            "B3L",
+            "SER",
+            "LYS",
+            "B3L",
+            "TYR",
+            "HIS_POS",
+            "BIL",
+            "GLU",
+            "ASN",
+            "B3E",
+            "LEU",
+            "ALA",
+            "HMR",
+            "ILE",
+            "LYS",
+            "B3K",
+            "LEU",
+            "LEU",
+            "BAL:cterm"
+          ]
+        },
+        {
+          "backbone": "dna",
+          "repeat": 1,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -48.97815704345703,
+            "fa_ljrep": 44.27186965942383,
+            "fa_lk": 10.134068489074707,
+            "fa_elec": 0.43421876430511475,
+            "hbond": 0.0,
+            "cart_lengths": 11.300167083740234,
+            "cart_angles": 42.209617614746094,
+            "cart_torsions": 12.219160079956055,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 11.102426528930664,
+            "lk_ball": -1.0109336376190186,
+            "lk_bridge": 0.02508801594376564,
+            "lk_bridge_uncpl": 0.5630521178245544,
+            "ref": 0.0,
+            "gen_torsions": 4.520727157592773,
+            "na_torsion": 233.18289184570312,
+            "na_torsion_well": 38.35997772216797
+          },
+          "block_types": [
+            "5CM:na5prime",
+            "DG",
+            "DT",
+            "DA",
+            "5CM",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "dna",
+          "repeat": 1,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -48.99393081665039,
+            "fa_ljrep": 44.272335052490234,
+            "fa_lk": 10.134066581726074,
+            "fa_elec": -0.16203147172927856,
+            "hbond": 0.0,
+            "cart_lengths": 11.300212860107422,
+            "cart_angles": 42.20954513549805,
+            "cart_torsions": 12.219139099121094,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 11.102432250976562,
+            "lk_ball": -1.0109329223632812,
+            "lk_bridge": 0.025088105350732803,
+            "lk_bridge_uncpl": 0.5630567073822021,
+            "ref": 0.0,
+            "gen_torsions": 4.520730495452881,
+            "na_torsion": 233.18289184570312,
+            "na_torsion_well": 38.359962463378906
+          },
+          "block_types": [
+            "5CM:na5prime",
+            "DG",
+            "DT",
+            "DA",
+            "5CM",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "nonstandard_na",
+          "repeat": 1,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -129.66607666015625,
+            "fa_ljrep": 123.98280334472656,
+            "fa_lk": 50.62530517578125,
+            "fa_elec": -6.690077781677246,
+            "hbond": 0.0,
+            "cart_lengths": 42.68035888671875,
+            "cart_angles": 101.8108901977539,
+            "cart_torsions": 12.911046981811523,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 55.43657684326172,
+            "lk_ball": 0.5202685594558716,
+            "lk_bridge": 0.06700586527585983,
+            "lk_bridge_uncpl": 1.4723951816558838,
+            "ref": 0.0,
+            "gen_torsions": 40.21653366088867,
+            "na_torsion": 31.47650718688965,
+            "na_torsion_well": 4.703481197357178
+          },
+          "block_types": [
+            "DG:na5prime",
+            "DC",
+            "DA",
+            "DC",
+            "DG",
+            "DA",
+            "DA",
+            "TTD",
+            "DA",
+            "DA",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "nonstandard_na",
+          "repeat": 1,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -129.57620239257812,
+            "fa_ljrep": 123.98223876953125,
+            "fa_lk": 50.625308990478516,
+            "fa_elec": -7.383328437805176,
+            "hbond": 0.0,
+            "cart_lengths": 42.68022155761719,
+            "cart_angles": 101.81090545654297,
+            "cart_torsions": 12.910966873168945,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 55.43658447265625,
+            "lk_ball": 0.5202783346176147,
+            "lk_bridge": 0.06700576841831207,
+            "lk_bridge_uncpl": 1.47239351272583,
+            "ref": 0.0,
+            "gen_torsions": 40.216514587402344,
+            "na_torsion": 31.476512908935547,
+            "na_torsion_well": 4.703482627868652
+          },
+          "block_types": [
+            "DG:na5prime",
+            "DC",
+            "DA",
+            "DC",
+            "DG",
+            "DA",
+            "DA",
+            "TTD",
+            "DA",
+            "DA",
+            "DG:na3prime"
+          ]
+        }
+      ]
+    },
+    "score-audit-container-cpu": {
+      "git_head": "026475f0e4808b227cde92d3f62bae6f6a1375f9",
+      "python": "3.12.3",
+      "torch": "2.13.0+cu132",
+      "numpy": "2.1.0",
+      "rdkit": "2026.03.6",
+      "openbabel": "3.1.0",
+      "device": "cpu",
+      "seed": 20250828,
+      "runs": [
+        {
+          "backbone": "alpha_aa",
+          "repeat": 0,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -38.980655670166016,
+            "fa_ljrep": 23.95624351501465,
+            "fa_lk": 32.70353317260742,
+            "fa_elec": 1.4241505861282349,
+            "hbond": 0.0,
+            "cart_lengths": 4.918203830718994,
+            "cart_angles": 67.9407730102539,
+            "cart_torsions": 0.5149940252304077,
+            "cart_impropers": 0.5457887649536133,
+            "cart_hxltorsions": 5.039809226989746,
+            "disulfide": 0.0,
+            "rama": -17.302490234375,
+            "omega": -2.3495023250579834,
+            "dunbrack_rot": 9.1878662109375,
+            "dunbrack_rotdev": 19.24623680114746,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 40.474945068359375,
+            "lk_ball": 10.749120712280273,
+            "lk_bridge": 0.043093420565128326,
+            "lk_bridge_uncpl": 0.7903677821159363,
+            "ref": -14.895784378051758,
+            "gen_torsions": -0.9318369626998901,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HYP:nterm",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "ILE",
+            "THR",
+            "GLY",
+            "ALA",
+            "ARG",
+            "GLY",
+            "LEU",
+            "ALA",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY:cterm"
+          ]
+        },
+        {
+          "backbone": "alpha_aa",
+          "repeat": 0,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -38.97043228149414,
+            "fa_ljrep": 24.144990921020508,
+            "fa_lk": 32.703529357910156,
+            "fa_elec": 1.5368220806121826,
+            "hbond": 0.0,
+            "cart_lengths": 4.918464183807373,
+            "cart_angles": 67.94086456298828,
+            "cart_torsions": 0.3117542862892151,
+            "cart_impropers": 0.5457580089569092,
+            "cart_hxltorsions": 2.3008742332458496,
+            "disulfide": 0.0,
+            "rama": -17.302499771118164,
+            "omega": -2.3484952449798584,
+            "dunbrack_rot": 9.187865257263184,
+            "dunbrack_rotdev": 19.246280670166016,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 40.474937438964844,
+            "lk_ball": 10.694096565246582,
+            "lk_bridge": 0.009244016371667385,
+            "lk_bridge_uncpl": 0.19023746252059937,
+            "ref": -14.895784378051758,
+            "gen_torsions": -1.4783912897109985,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HYP:nterm",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "ILE",
+            "THR",
+            "GLY",
+            "ALA",
+            "ARG",
+            "GLY",
+            "LEU",
+            "ALA",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY:cterm"
+          ]
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "repeat": 0,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -196.99940490722656,
+            "fa_ljrep": 121.25956726074219,
+            "fa_lk": 157.73468017578125,
+            "fa_elec": -61.066429138183594,
+            "hbond": -28.142642974853516,
+            "cart_lengths": 247.80755615234375,
+            "cart_angles": 53.82170104980469,
+            "cart_torsions": 3.7980453968048096,
+            "cart_impropers": 6.925457000732422,
+            "cart_hxltorsions": 1.3346577882766724,
+            "disulfide": 0.0,
+            "rama": 5.81434965133667,
+            "omega": 4.502179145812988,
+            "dunbrack_rot": 22.718629837036133,
+            "dunbrack_rotdev": 24.38249969482422,
+            "dunbrack_semirot": 19.450368881225586,
+            "lk_ball_iso": 184.41342163085938,
+            "lk_ball": 75.4642562866211,
+            "lk_bridge": 0.06382226943969727,
+            "lk_bridge_uncpl": 0.7948567867279053,
+            "ref": -5.80405330657959,
+            "gen_torsions": 46.27137756347656,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HMR:nterm",
+            "MET",
+            "LYS",
+            "B3Q",
+            "ILE",
+            "GLU",
+            "B3D",
+            "LYS",
+            "LEU",
+            "B3E",
+            "GLU",
+            "ILE",
+            "B3L",
+            "SER",
+            "LYS",
+            "B3L",
+            "TYR",
+            "HIS_POS",
+            "BIL",
+            "GLU",
+            "ASN",
+            "B3E",
+            "LEU",
+            "ALA",
+            "HMR",
+            "ILE",
+            "LYS",
+            "B3K",
+            "LEU",
+            "LEU",
+            "BAL:cterm"
+          ]
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "repeat": 0,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -197.01177978515625,
+            "fa_ljrep": 121.25961303710938,
+            "fa_lk": 157.73468017578125,
+            "fa_elec": -61.08707809448242,
+            "hbond": -28.142642974853516,
+            "cart_lengths": 247.8075408935547,
+            "cart_angles": 53.82169723510742,
+            "cart_torsions": 3.4131271839141846,
+            "cart_impropers": 6.925457000732422,
+            "cart_hxltorsions": 0.7169773578643799,
+            "disulfide": 0.0,
+            "rama": 5.81434965133667,
+            "omega": 4.502179145812988,
+            "dunbrack_rot": 22.718629837036133,
+            "dunbrack_rotdev": 24.38249969482422,
+            "dunbrack_semirot": 19.450368881225586,
+            "lk_ball_iso": 184.41342163085938,
+            "lk_ball": 75.34284973144531,
+            "lk_bridge": 0.06382226943969727,
+            "lk_bridge_uncpl": 0.7948567867279053,
+            "ref": -5.80405330657959,
+            "gen_torsions": 46.27137756347656,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HMR:nterm",
+            "MET",
+            "LYS",
+            "B3Q",
+            "ILE",
+            "GLU",
+            "B3D",
+            "LYS",
+            "LEU",
+            "B3E",
+            "GLU",
+            "ILE",
+            "B3L",
+            "SER",
+            "LYS",
+            "B3L",
+            "TYR",
+            "HIS_POS",
+            "BIL",
+            "GLU",
+            "ASN",
+            "B3E",
+            "LEU",
+            "ALA",
+            "HMR",
+            "ILE",
+            "LYS",
+            "B3K",
+            "LEU",
+            "LEU",
+            "BAL:cterm"
+          ]
+        },
+        {
+          "backbone": "dna",
+          "repeat": 0,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -48.97816467285156,
+            "fa_ljrep": 44.271873474121094,
+            "fa_lk": 10.134069442749023,
+            "fa_elec": 0.4342232346534729,
+            "hbond": 0.0,
+            "cart_lengths": 11.300168991088867,
+            "cart_angles": 42.2095947265625,
+            "cart_torsions": 12.219131469726562,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 11.10242748260498,
+            "lk_ball": -1.0109299421310425,
+            "lk_bridge": 0.02508804015815258,
+            "lk_bridge_uncpl": 0.5630515813827515,
+            "ref": 0.0,
+            "gen_torsions": 4.520730018615723,
+            "na_torsion": 233.18289184570312,
+            "na_torsion_well": 38.35997772216797
+          },
+          "block_types": [
+            "5CM:na5prime",
+            "DG",
+            "DT",
+            "DA",
+            "5CM",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "dna",
+          "repeat": 0,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -48.9939079284668,
+            "fa_ljrep": 44.2720832824707,
+            "fa_lk": 10.134056091308594,
+            "fa_elec": -0.16201502084732056,
+            "hbond": 0.0,
+            "cart_lengths": 11.300132751464844,
+            "cart_angles": 42.2095947265625,
+            "cart_torsions": 12.219149589538574,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 11.102417945861816,
+            "lk_ball": -1.0109238624572754,
+            "lk_bridge": 0.02508818916976452,
+            "lk_bridge_uncpl": 0.5630526542663574,
+            "ref": 0.0,
+            "gen_torsions": 4.5207319259643555,
+            "na_torsion": 233.18310546875,
+            "na_torsion_well": 38.35997772216797
+          },
+          "block_types": [
+            "5CM:na5prime",
+            "DG",
+            "DT",
+            "DA",
+            "5CM",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "nonstandard_na",
+          "repeat": 0,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -129.66607666015625,
+            "fa_ljrep": 123.9828109741211,
+            "fa_lk": 50.625308990478516,
+            "fa_elec": -6.690088272094727,
+            "hbond": 0.0,
+            "cart_lengths": 42.680362701416016,
+            "cart_angles": 101.81085968017578,
+            "cart_torsions": 12.910895347595215,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 55.436580657958984,
+            "lk_ball": 0.5202683806419373,
+            "lk_bridge": 0.06700582057237625,
+            "lk_bridge_uncpl": 1.4723947048187256,
+            "ref": 0.0,
+            "gen_torsions": 40.216522216796875,
+            "na_torsion": 31.47650909423828,
+            "na_torsion_well": 4.7034807205200195
+          },
+          "block_types": [
+            "DG:na5prime",
+            "DC",
+            "DA",
+            "DC",
+            "DG",
+            "DA",
+            "DA",
+            "TTD",
+            "DA",
+            "DA",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "nonstandard_na",
+          "repeat": 0,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -129.5762176513672,
+            "fa_ljrep": 123.98235321044922,
+            "fa_lk": 50.62531661987305,
+            "fa_elec": -7.383313179016113,
+            "hbond": 0.0,
+            "cart_lengths": 42.680511474609375,
+            "cart_angles": 101.810791015625,
+            "cart_torsions": 12.91088581085205,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 55.436580657958984,
+            "lk_ball": 0.5202667713165283,
+            "lk_bridge": 0.06700596213340759,
+            "lk_bridge_uncpl": 1.4723953008651733,
+            "ref": 0.0,
+            "gen_torsions": 40.21654510498047,
+            "na_torsion": 31.47652816772461,
+            "na_torsion_well": 4.703482151031494
+          },
+          "block_types": [
+            "DG:na5prime",
+            "DC",
+            "DA",
+            "DC",
+            "DG",
+            "DA",
+            "DA",
+            "TTD",
+            "DA",
+            "DA",
+            "DG:na3prime"
+          ]
+        }
+      ]
+    },
+    "score-audit-pinned": {
+      "git_head": "026475f0e4808b227cde92d3f62bae6f6a1375f9",
+      "python": "3.12.13",
+      "torch": "2.8.0+cpu",
+      "numpy": "2.5.3",
+      "rdkit": "2026.03.6",
+      "openbabel": "3.1.0",
+      "device": "cpu",
+      "seed": 20250828,
+      "replay": null,
+      "runs": [
+        {
+          "backbone": "alpha_aa",
+          "repeat": 0,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -39.00383758544922,
+            "fa_ljrep": 25.563232421875,
+            "fa_lk": 32.70353317260742,
+            "fa_elec": 1.440407156944275,
+            "hbond": 0.0,
+            "cart_lengths": 5.124112606048584,
+            "cart_angles": 67.89120483398438,
+            "cart_torsions": 0.5149940252304077,
+            "cart_impropers": 0.5457887649536133,
+            "cart_hxltorsions": 5.039809226989746,
+            "disulfide": 0.0,
+            "rama": -17.302490234375,
+            "omega": -2.3495023250579834,
+            "dunbrack_rot": 9.1878662109375,
+            "dunbrack_rotdev": 19.24623680114746,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 40.474945068359375,
+            "lk_ball": 10.744058609008789,
+            "lk_bridge": 0.041228488087654114,
+            "lk_bridge_uncpl": 0.7590119242668152,
+            "ref": -14.895784378051758,
+            "gen_torsions": -1.035997748374939,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HYP:nterm",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "ILE",
+            "THR",
+            "GLY",
+            "ALA",
+            "ARG",
+            "GLY",
+            "LEU",
+            "ALA",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY:cterm"
+          ]
+        },
+        {
+          "backbone": "alpha_aa",
+          "repeat": 0,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -38.99140167236328,
+            "fa_ljrep": 25.744041442871094,
+            "fa_lk": 32.703529357910156,
+            "fa_elec": 1.5479462146759033,
+            "hbond": 0.0,
+            "cart_lengths": 5.124349594116211,
+            "cart_angles": 67.89129638671875,
+            "cart_torsions": 0.3117542862892151,
+            "cart_impropers": 0.5457580089569092,
+            "cart_hxltorsions": 2.3008742332458496,
+            "disulfide": 0.0,
+            "rama": -17.302499771118164,
+            "omega": -2.3484952449798584,
+            "dunbrack_rot": 9.187865257263184,
+            "dunbrack_rotdev": 19.246280670166016,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 40.474937438964844,
+            "lk_ball": 10.694096565246582,
+            "lk_bridge": 0.009243857115507126,
+            "lk_bridge_uncpl": 0.19023483991622925,
+            "ref": -14.895784378051758,
+            "gen_torsions": -1.479101538658142,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HYP:nterm",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "ILE",
+            "THR",
+            "GLY",
+            "ALA",
+            "ARG",
+            "GLY",
+            "LEU",
+            "ALA",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY:cterm"
+          ]
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "repeat": 0,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -197.2432861328125,
+            "fa_ljrep": 122.34365844726562,
+            "fa_lk": 157.63978576660156,
+            "fa_elec": -61.1767578125,
+            "hbond": -28.13156509399414,
+            "cart_lengths": 247.56582641601562,
+            "cart_angles": 51.101585388183594,
+            "cart_torsions": 3.7980453968048096,
+            "cart_impropers": 6.925457000732422,
+            "cart_hxltorsions": 1.3346577882766724,
+            "disulfide": 0.0,
+            "rama": 5.81434965133667,
+            "omega": 4.502179145812988,
+            "dunbrack_rot": 22.718629837036133,
+            "dunbrack_rotdev": 24.38249969482422,
+            "dunbrack_semirot": 19.450366973876953,
+            "lk_ball_iso": 184.5955352783203,
+            "lk_ball": 75.46586608886719,
+            "lk_bridge": 0.06382226943969727,
+            "lk_bridge_uncpl": 0.7948567867279053,
+            "ref": -5.80405330657959,
+            "gen_torsions": 44.77052688598633,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HMR:nterm",
+            "MET",
+            "LYS",
+            "B3Q",
+            "ILE",
+            "GLU",
+            "B3D",
+            "LYS",
+            "LEU",
+            "B3E",
+            "GLU",
+            "ILE",
+            "B3L",
+            "SER",
+            "LYS",
+            "B3L",
+            "TYR",
+            "HIS_POS",
+            "BIL",
+            "GLU",
+            "ASN",
+            "B3E",
+            "LEU",
+            "ALA",
+            "HMR",
+            "ILE",
+            "LYS",
+            "B3K",
+            "LEU",
+            "LEU",
+            "BAL:cterm"
+          ]
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "repeat": 0,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -197.25564575195312,
+            "fa_ljrep": 122.34370422363281,
+            "fa_lk": 157.63978576660156,
+            "fa_elec": -61.197410583496094,
+            "hbond": -28.13156509399414,
+            "cart_lengths": 247.56581115722656,
+            "cart_angles": 51.10158157348633,
+            "cart_torsions": 3.4131271839141846,
+            "cart_impropers": 6.925457000732422,
+            "cart_hxltorsions": 0.7169773578643799,
+            "disulfide": 0.0,
+            "rama": 5.81434965133667,
+            "omega": 4.502179145812988,
+            "dunbrack_rot": 22.718629837036133,
+            "dunbrack_rotdev": 24.38249969482422,
+            "dunbrack_semirot": 19.450366973876953,
+            "lk_ball_iso": 184.5955352783203,
+            "lk_ball": 75.3444595336914,
+            "lk_bridge": 0.06382226943969727,
+            "lk_bridge_uncpl": 0.7948567867279053,
+            "ref": -5.80405330657959,
+            "gen_torsions": 44.77052688598633,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HMR:nterm",
+            "MET",
+            "LYS",
+            "B3Q",
+            "ILE",
+            "GLU",
+            "B3D",
+            "LYS",
+            "LEU",
+            "B3E",
+            "GLU",
+            "ILE",
+            "B3L",
+            "SER",
+            "LYS",
+            "B3L",
+            "TYR",
+            "HIS_POS",
+            "BIL",
+            "GLU",
+            "ASN",
+            "B3E",
+            "LEU",
+            "ALA",
+            "HMR",
+            "ILE",
+            "LYS",
+            "B3K",
+            "LEU",
+            "LEU",
+            "BAL:cterm"
+          ]
+        },
+        {
+          "backbone": "dna",
+          "repeat": 0,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -48.97913360595703,
+            "fa_ljrep": 44.29155731201172,
+            "fa_lk": 10.134069442749023,
+            "fa_elec": 0.4342484176158905,
+            "hbond": 0.0,
+            "cart_lengths": 10.861820220947266,
+            "cart_angles": 41.92369079589844,
+            "cart_torsions": 12.219131469726562,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 11.10242748260498,
+            "lk_ball": -1.0111877918243408,
+            "lk_bridge": 0.02508804015815258,
+            "lk_bridge_uncpl": 0.5630515813827515,
+            "ref": 0.0,
+            "gen_torsions": 4.521371364593506,
+            "na_torsion": 233.18289184570312,
+            "na_torsion_well": 38.35997772216797
+          },
+          "block_types": [
+            "5CM:na5prime",
+            "DG",
+            "DT",
+            "DA",
+            "5CM",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "dna",
+          "repeat": 0,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -48.994876861572266,
+            "fa_ljrep": 44.291770935058594,
+            "fa_lk": 10.134056091308594,
+            "fa_elec": -0.1618329882621765,
+            "hbond": 0.0,
+            "cart_lengths": 10.861780166625977,
+            "cart_angles": 41.92372131347656,
+            "cart_torsions": 12.219149589538574,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 11.102417945861816,
+            "lk_ball": -1.0111815929412842,
+            "lk_bridge": 0.02508818916976452,
+            "lk_bridge_uncpl": 0.5630526542663574,
+            "ref": 0.0,
+            "gen_torsions": 4.521373748779297,
+            "na_torsion": 233.18310546875,
+            "na_torsion_well": 38.35997772216797
+          },
+          "block_types": [
+            "5CM:na5prime",
+            "DG",
+            "DT",
+            "DA",
+            "5CM",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "nonstandard_na",
+          "repeat": 0,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -129.66355895996094,
+            "fa_ljrep": 123.85820770263672,
+            "fa_lk": 50.625308990478516,
+            "fa_elec": -6.689560413360596,
+            "hbond": 0.0,
+            "cart_lengths": 43.18159103393555,
+            "cart_angles": 102.82372283935547,
+            "cart_torsions": 12.910895347595215,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 55.436580657958984,
+            "lk_ball": 0.5202683210372925,
+            "lk_bridge": 0.06700582057237625,
+            "lk_bridge_uncpl": 1.4723947048187256,
+            "ref": 0.0,
+            "gen_torsions": 40.212425231933594,
+            "na_torsion": 31.47650909423828,
+            "na_torsion_well": 4.7034807205200195
+          },
+          "block_types": [
+            "DG:na5prime",
+            "DC",
+            "DA",
+            "DC",
+            "DG",
+            "DA",
+            "DA",
+            "TTD",
+            "DA",
+            "DA",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "nonstandard_na",
+          "repeat": 0,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -129.57371520996094,
+            "fa_ljrep": 123.85774993896484,
+            "fa_lk": 50.62531661987305,
+            "fa_elec": -7.382784843444824,
+            "hbond": 0.0,
+            "cart_lengths": 43.1817512512207,
+            "cart_angles": 102.82363891601562,
+            "cart_torsions": 12.91088581085205,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 55.436580657958984,
+            "lk_ball": 0.5202667713165283,
+            "lk_bridge": 0.06700596213340759,
+            "lk_bridge_uncpl": 1.4723953008651733,
+            "ref": 0.0,
+            "gen_torsions": 40.21244812011719,
+            "na_torsion": 31.47652816772461,
+            "na_torsion_well": 4.703482151031494
+          },
+          "block_types": [
+            "DG:na5prime",
+            "DC",
+            "DA",
+            "DC",
+            "DG",
+            "DA",
+            "DA",
+            "TTD",
+            "DA",
+            "DA",
+            "DG:na3prime"
+          ]
+        }
+      ]
+    },
+    "score-audit-replay-cuda": {
+      "git_head": "026475f0e4808b227cde92d3f62bae6f6a1375f9",
+      "python": "3.12.3",
+      "torch": "2.13.0+cu132",
+      "numpy": "2.1.0",
+      "rdkit": "2026.03.6",
+      "openbabel": "3.1.0",
+      "device": "cuda:0",
+      "seed": 20250828,
+      "replay": "/mnt/home/kdidi/tmol-pr503-followup/score-audit-pinned",
+      "runs": [
+        {
+          "backbone": "alpha_aa",
+          "repeat": 0,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -39.003841400146484,
+            "fa_ljrep": 25.563232421875,
+            "fa_lk": 32.70353317260742,
+            "fa_elec": 1.440399169921875,
+            "hbond": 0.0,
+            "cart_lengths": 5.124110221862793,
+            "cart_angles": 67.89122772216797,
+            "cart_torsions": 0.5150015950202942,
+            "cart_impropers": 0.5457763671875,
+            "cart_hxltorsions": 5.039809226989746,
+            "disulfide": 0.0,
+            "rama": -17.302486419677734,
+            "omega": -2.352137804031372,
+            "dunbrack_rot": 9.1878662109375,
+            "dunbrack_rotdev": 19.246225357055664,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 40.47494125366211,
+            "lk_ball": 10.744053840637207,
+            "lk_bridge": 0.0412285178899765,
+            "lk_bridge_uncpl": 0.7590124607086182,
+            "ref": -14.895784378051758,
+            "gen_torsions": -1.0359982252120972,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HYP:nterm",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "ILE",
+            "THR",
+            "GLY",
+            "ALA",
+            "ARG",
+            "GLY",
+            "LEU",
+            "ALA",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY:cterm"
+          ]
+        },
+        {
+          "backbone": "alpha_aa",
+          "repeat": 0,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -38.991397857666016,
+            "fa_ljrep": 25.74404525756836,
+            "fa_lk": 32.703529357910156,
+            "fa_elec": 1.5479432344436646,
+            "hbond": 0.0,
+            "cart_lengths": 5.124345302581787,
+            "cart_angles": 67.89128875732422,
+            "cart_torsions": 0.31177663803100586,
+            "cart_impropers": 0.5457533001899719,
+            "cart_hxltorsions": 2.3008742332458496,
+            "disulfide": 0.0,
+            "rama": -17.30249786376953,
+            "omega": -2.350062370300293,
+            "dunbrack_rot": 9.187865257263184,
+            "dunbrack_rotdev": 19.24629020690918,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 40.47492599487305,
+            "lk_ball": 10.694098472595215,
+            "lk_bridge": 0.009243865497410297,
+            "lk_bridge_uncpl": 0.1902349889278412,
+            "ref": -14.895784378051758,
+            "gen_torsions": -1.4791016578674316,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HYP:nterm",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "ILE",
+            "THR",
+            "GLY",
+            "ALA",
+            "ARG",
+            "GLY",
+            "LEU",
+            "ALA",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY:cterm"
+          ]
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "repeat": 0,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -197.24330139160156,
+            "fa_ljrep": 122.3436508178711,
+            "fa_lk": 157.6397705078125,
+            "fa_elec": -61.17677307128906,
+            "hbond": -28.131572723388672,
+            "cart_lengths": 247.56582641601562,
+            "cart_angles": 51.101600646972656,
+            "cart_torsions": 3.7980034351348877,
+            "cart_impropers": 6.925473213195801,
+            "cart_hxltorsions": 1.3346577882766724,
+            "disulfide": 0.0,
+            "rama": 5.8143510818481445,
+            "omega": 4.502093315124512,
+            "dunbrack_rot": 22.718626022338867,
+            "dunbrack_rotdev": 24.382474899291992,
+            "dunbrack_semirot": 19.450366973876953,
+            "lk_ball_iso": 184.5955810546875,
+            "lk_ball": 75.46587371826172,
+            "lk_bridge": 0.06382226198911667,
+            "lk_bridge_uncpl": 0.7948567867279053,
+            "ref": -5.804053783416748,
+            "gen_torsions": 44.77052307128906,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HMR:nterm",
+            "MET",
+            "LYS",
+            "B3Q",
+            "ILE",
+            "GLU",
+            "B3D",
+            "LYS",
+            "LEU",
+            "B3E",
+            "GLU",
+            "ILE",
+            "B3L",
+            "SER",
+            "LYS",
+            "B3L",
+            "TYR",
+            "HIS_POS",
+            "BIL",
+            "GLU",
+            "ASN",
+            "B3E",
+            "LEU",
+            "ALA",
+            "HMR",
+            "ILE",
+            "LYS",
+            "B3K",
+            "LEU",
+            "LEU",
+            "BAL:cterm"
+          ]
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "repeat": 0,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -197.2556915283203,
+            "fa_ljrep": 122.34369659423828,
+            "fa_lk": 157.63978576660156,
+            "fa_elec": -61.19742965698242,
+            "hbond": -28.131568908691406,
+            "cart_lengths": 247.56581115722656,
+            "cart_angles": 51.101600646972656,
+            "cart_torsions": 3.413085460662842,
+            "cart_impropers": 6.925472736358643,
+            "cart_hxltorsions": 0.7169773578643799,
+            "disulfide": 0.0,
+            "rama": 5.8143510818481445,
+            "omega": 4.502093315124512,
+            "dunbrack_rot": 22.718626022338867,
+            "dunbrack_rotdev": 24.382474899291992,
+            "dunbrack_semirot": 19.450366973876953,
+            "lk_ball_iso": 184.59556579589844,
+            "lk_ball": 75.34446716308594,
+            "lk_bridge": 0.06382226198911667,
+            "lk_bridge_uncpl": 0.7948567867279053,
+            "ref": -5.804053783416748,
+            "gen_torsions": 44.77052307128906,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HMR:nterm",
+            "MET",
+            "LYS",
+            "B3Q",
+            "ILE",
+            "GLU",
+            "B3D",
+            "LYS",
+            "LEU",
+            "B3E",
+            "GLU",
+            "ILE",
+            "B3L",
+            "SER",
+            "LYS",
+            "B3L",
+            "TYR",
+            "HIS_POS",
+            "BIL",
+            "GLU",
+            "ASN",
+            "B3E",
+            "LEU",
+            "ALA",
+            "HMR",
+            "ILE",
+            "LYS",
+            "B3K",
+            "LEU",
+            "LEU",
+            "BAL:cterm"
+          ]
+        },
+        {
+          "backbone": "dna",
+          "repeat": 0,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -48.9791259765625,
+            "fa_ljrep": 44.29155731201172,
+            "fa_lk": 10.134068489074707,
+            "fa_elec": 0.43424463272094727,
+            "hbond": 0.0,
+            "cart_lengths": 10.861818313598633,
+            "cart_angles": 41.92371368408203,
+            "cart_torsions": 12.21915054321289,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 11.102426528930664,
+            "lk_ball": -1.01118803024292,
+            "lk_bridge": 0.02508801594376564,
+            "lk_bridge_uncpl": 0.5630521178245544,
+            "ref": 0.0,
+            "gen_torsions": 4.521366596221924,
+            "na_torsion": 233.18289184570312,
+            "na_torsion_well": 38.35997772216797
+          },
+          "block_types": [
+            "5CM:na5prime",
+            "DG",
+            "DT",
+            "DA",
+            "5CM",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "dna",
+          "repeat": 0,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -48.994873046875,
+            "fa_ljrep": 44.291770935058594,
+            "fa_lk": 10.134056091308594,
+            "fa_elec": -0.1618354320526123,
+            "hbond": 0.0,
+            "cart_lengths": 10.861781120300293,
+            "cart_angles": 41.923744201660156,
+            "cart_torsions": 12.21915054321289,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 11.102418899536133,
+            "lk_ball": -1.0111814737319946,
+            "lk_bridge": 0.02508818544447422,
+            "lk_bridge_uncpl": 0.5630526542663574,
+            "ref": 0.0,
+            "gen_torsions": 4.52136754989624,
+            "na_torsion": 233.18313598632812,
+            "na_torsion_well": 38.35997772216797
+          },
+          "block_types": [
+            "5CM:na5prime",
+            "DG",
+            "DT",
+            "DA",
+            "5CM",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "nonstandard_na",
+          "repeat": 0,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -129.66354370117188,
+            "fa_ljrep": 123.85820007324219,
+            "fa_lk": 50.62530517578125,
+            "fa_elec": -6.689549446105957,
+            "hbond": 0.0,
+            "cart_lengths": 43.18159484863281,
+            "cart_angles": 102.82373809814453,
+            "cart_torsions": 12.911046981811523,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 55.43657684326172,
+            "lk_ball": 0.5202690362930298,
+            "lk_bridge": 0.06700586527585983,
+            "lk_bridge_uncpl": 1.4723951816558838,
+            "ref": 0.0,
+            "gen_torsions": 40.212440490722656,
+            "na_torsion": 31.47650718688965,
+            "na_torsion_well": 4.703481197357178
+          },
+          "block_types": [
+            "DG:na5prime",
+            "DC",
+            "DA",
+            "DC",
+            "DG",
+            "DA",
+            "DA",
+            "TTD",
+            "DA",
+            "DA",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "nonstandard_na",
+          "repeat": 0,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -129.57369995117188,
+            "fa_ljrep": 123.85771179199219,
+            "fa_lk": 50.62532043457031,
+            "fa_elec": -7.382782936096191,
+            "hbond": 0.0,
+            "cart_lengths": 43.1817512512207,
+            "cart_angles": 102.82369995117188,
+            "cart_torsions": 12.910945892333984,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 55.43657684326172,
+            "lk_ball": 0.5202672481536865,
+            "lk_bridge": 0.06700598448514938,
+            "lk_bridge_uncpl": 1.4723953008651733,
+            "ref": 0.0,
+            "gen_torsions": 40.21245574951172,
+            "na_torsion": 31.476531982421875,
+            "na_torsion_well": 4.703482151031494
+          },
+          "block_types": [
+            "DG:na5prime",
+            "DC",
+            "DA",
+            "DC",
+            "DG",
+            "DA",
+            "DA",
+            "TTD",
+            "DA",
+            "DA",
+            "DG:na3prime"
+          ]
+        }
+      ]
+    },
+    "score-audit-replay-container-cpu": {
+      "git_head": "026475f0e4808b227cde92d3f62bae6f6a1375f9",
+      "python": "3.12.3",
+      "torch": "2.13.0+cu132",
+      "numpy": "2.1.0",
+      "rdkit": "2026.03.6",
+      "openbabel": "3.1.0",
+      "device": "cpu",
+      "seed": 20250828,
+      "replay": "/mnt/home/kdidi/tmol-pr503-followup/score-audit-pinned",
+      "runs": [
+        {
+          "backbone": "alpha_aa",
+          "repeat": 0,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -39.00383758544922,
+            "fa_ljrep": 25.563232421875,
+            "fa_lk": 32.70353317260742,
+            "fa_elec": 1.440407156944275,
+            "hbond": 0.0,
+            "cart_lengths": 5.124112606048584,
+            "cart_angles": 67.89120483398438,
+            "cart_torsions": 0.5149940252304077,
+            "cart_impropers": 0.5457887649536133,
+            "cart_hxltorsions": 5.039809226989746,
+            "disulfide": 0.0,
+            "rama": -17.302490234375,
+            "omega": -2.3495023250579834,
+            "dunbrack_rot": 9.1878662109375,
+            "dunbrack_rotdev": 19.24623680114746,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 40.474945068359375,
+            "lk_ball": 10.744058609008789,
+            "lk_bridge": 0.041228488087654114,
+            "lk_bridge_uncpl": 0.7590119242668152,
+            "ref": -14.895784378051758,
+            "gen_torsions": -1.035997748374939,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HYP:nterm",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "ILE",
+            "THR",
+            "GLY",
+            "ALA",
+            "ARG",
+            "GLY",
+            "LEU",
+            "ALA",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY:cterm"
+          ]
+        },
+        {
+          "backbone": "alpha_aa",
+          "repeat": 0,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -38.99140167236328,
+            "fa_ljrep": 25.744041442871094,
+            "fa_lk": 32.703529357910156,
+            "fa_elec": 1.5479462146759033,
+            "hbond": 0.0,
+            "cart_lengths": 5.124349594116211,
+            "cart_angles": 67.89129638671875,
+            "cart_torsions": 0.3117542862892151,
+            "cart_impropers": 0.5457580089569092,
+            "cart_hxltorsions": 2.3008742332458496,
+            "disulfide": 0.0,
+            "rama": -17.302499771118164,
+            "omega": -2.3484952449798584,
+            "dunbrack_rot": 9.187865257263184,
+            "dunbrack_rotdev": 19.246280670166016,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 40.474937438964844,
+            "lk_ball": 10.694096565246582,
+            "lk_bridge": 0.009243857115507126,
+            "lk_bridge_uncpl": 0.19023483991622925,
+            "ref": -14.895784378051758,
+            "gen_torsions": -1.479101538658142,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HYP:nterm",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "ILE",
+            "THR",
+            "GLY",
+            "ALA",
+            "ARG",
+            "GLY",
+            "LEU",
+            "ALA",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY",
+            "PRO",
+            "HYP",
+            "GLY:cterm"
+          ]
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "repeat": 0,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -197.2432861328125,
+            "fa_ljrep": 122.34365844726562,
+            "fa_lk": 157.63978576660156,
+            "fa_elec": -61.1767578125,
+            "hbond": -28.13156509399414,
+            "cart_lengths": 247.56582641601562,
+            "cart_angles": 51.101585388183594,
+            "cart_torsions": 3.7980453968048096,
+            "cart_impropers": 6.925457000732422,
+            "cart_hxltorsions": 1.3346577882766724,
+            "disulfide": 0.0,
+            "rama": 5.81434965133667,
+            "omega": 4.502179145812988,
+            "dunbrack_rot": 22.718629837036133,
+            "dunbrack_rotdev": 24.38249969482422,
+            "dunbrack_semirot": 19.450368881225586,
+            "lk_ball_iso": 184.5955352783203,
+            "lk_ball": 75.46586608886719,
+            "lk_bridge": 0.06382226943969727,
+            "lk_bridge_uncpl": 0.7948567867279053,
+            "ref": -5.80405330657959,
+            "gen_torsions": 44.77052688598633,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HMR:nterm",
+            "MET",
+            "LYS",
+            "B3Q",
+            "ILE",
+            "GLU",
+            "B3D",
+            "LYS",
+            "LEU",
+            "B3E",
+            "GLU",
+            "ILE",
+            "B3L",
+            "SER",
+            "LYS",
+            "B3L",
+            "TYR",
+            "HIS_POS",
+            "BIL",
+            "GLU",
+            "ASN",
+            "B3E",
+            "LEU",
+            "ALA",
+            "HMR",
+            "ILE",
+            "LYS",
+            "B3K",
+            "LEU",
+            "LEU",
+            "BAL:cterm"
+          ]
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "repeat": 0,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -197.25564575195312,
+            "fa_ljrep": 122.34370422363281,
+            "fa_lk": 157.63978576660156,
+            "fa_elec": -61.197410583496094,
+            "hbond": -28.13156509399414,
+            "cart_lengths": 247.56581115722656,
+            "cart_angles": 51.10158157348633,
+            "cart_torsions": 3.4131271839141846,
+            "cart_impropers": 6.925457000732422,
+            "cart_hxltorsions": 0.7169773578643799,
+            "disulfide": 0.0,
+            "rama": 5.81434965133667,
+            "omega": 4.502179145812988,
+            "dunbrack_rot": 22.718629837036133,
+            "dunbrack_rotdev": 24.38249969482422,
+            "dunbrack_semirot": 19.450368881225586,
+            "lk_ball_iso": 184.5955352783203,
+            "lk_ball": 75.3444595336914,
+            "lk_bridge": 0.06382226943969727,
+            "lk_bridge_uncpl": 0.7948567867279053,
+            "ref": -5.80405330657959,
+            "gen_torsions": 44.77052688598633,
+            "na_torsion": 0.0,
+            "na_torsion_well": 0.0
+          },
+          "block_types": [
+            "HMR:nterm",
+            "MET",
+            "LYS",
+            "B3Q",
+            "ILE",
+            "GLU",
+            "B3D",
+            "LYS",
+            "LEU",
+            "B3E",
+            "GLU",
+            "ILE",
+            "B3L",
+            "SER",
+            "LYS",
+            "B3L",
+            "TYR",
+            "HIS_POS",
+            "BIL",
+            "GLU",
+            "ASN",
+            "B3E",
+            "LEU",
+            "ALA",
+            "HMR",
+            "ILE",
+            "LYS",
+            "B3K",
+            "LEU",
+            "LEU",
+            "BAL:cterm"
+          ]
+        },
+        {
+          "backbone": "dna",
+          "repeat": 0,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -48.97913360595703,
+            "fa_ljrep": 44.29155731201172,
+            "fa_lk": 10.134069442749023,
+            "fa_elec": 0.4342484176158905,
+            "hbond": 0.0,
+            "cart_lengths": 10.861820220947266,
+            "cart_angles": 41.92369079589844,
+            "cart_torsions": 12.219131469726562,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 11.10242748260498,
+            "lk_ball": -1.0111877918243408,
+            "lk_bridge": 0.02508804015815258,
+            "lk_bridge_uncpl": 0.5630515813827515,
+            "ref": 0.0,
+            "gen_torsions": 4.521371364593506,
+            "na_torsion": 233.18289184570312,
+            "na_torsion_well": 38.35997772216797
+          },
+          "block_types": [
+            "5CM:na5prime",
+            "DG",
+            "DT",
+            "DA",
+            "5CM",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "dna",
+          "repeat": 0,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -48.994876861572266,
+            "fa_ljrep": 44.291770935058594,
+            "fa_lk": 10.134056091308594,
+            "fa_elec": -0.1618329882621765,
+            "hbond": 0.0,
+            "cart_lengths": 10.861780166625977,
+            "cart_angles": 41.92372131347656,
+            "cart_torsions": 12.219149589538574,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 11.102417945861816,
+            "lk_ball": -1.0111815929412842,
+            "lk_bridge": 0.02508818916976452,
+            "lk_bridge_uncpl": 0.5630526542663574,
+            "ref": 0.0,
+            "gen_torsions": 4.521373748779297,
+            "na_torsion": 233.18310546875,
+            "na_torsion_well": 38.35997772216797
+          },
+          "block_types": [
+            "5CM:na5prime",
+            "DG",
+            "DT",
+            "DA",
+            "5CM",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "nonstandard_na",
+          "repeat": 0,
+          "opt_h": false,
+          "scores": {
+            "fa_ljatr": -129.66355895996094,
+            "fa_ljrep": 123.85820770263672,
+            "fa_lk": 50.625308990478516,
+            "fa_elec": -6.689560413360596,
+            "hbond": 0.0,
+            "cart_lengths": 43.18159103393555,
+            "cart_angles": 102.82372283935547,
+            "cart_torsions": 12.910895347595215,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 55.436580657958984,
+            "lk_ball": 0.5202683210372925,
+            "lk_bridge": 0.06700582057237625,
+            "lk_bridge_uncpl": 1.4723947048187256,
+            "ref": 0.0,
+            "gen_torsions": 40.212425231933594,
+            "na_torsion": 31.47650909423828,
+            "na_torsion_well": 4.7034807205200195
+          },
+          "block_types": [
+            "DG:na5prime",
+            "DC",
+            "DA",
+            "DC",
+            "DG",
+            "DA",
+            "DA",
+            "TTD",
+            "DA",
+            "DA",
+            "DG:na3prime"
+          ]
+        },
+        {
+          "backbone": "nonstandard_na",
+          "repeat": 0,
+          "opt_h": true,
+          "scores": {
+            "fa_ljatr": -129.57371520996094,
+            "fa_ljrep": 123.85774993896484,
+            "fa_lk": 50.62531661987305,
+            "fa_elec": -7.382784843444824,
+            "hbond": 0.0,
+            "cart_lengths": 43.1817512512207,
+            "cart_angles": 102.82363891601562,
+            "cart_torsions": 12.91088581085205,
+            "cart_impropers": 0.0,
+            "cart_hxltorsions": 0.0,
+            "disulfide": 0.0,
+            "rama": 0.0,
+            "omega": 0.0,
+            "dunbrack_rot": 0.0,
+            "dunbrack_rotdev": 0.0,
+            "dunbrack_semirot": 0.0,
+            "lk_ball_iso": 55.436580657958984,
+            "lk_ball": 0.5202667713165283,
+            "lk_bridge": 0.06700596213340759,
+            "lk_bridge_uncpl": 1.4723953008651733,
+            "ref": 0.0,
+            "gen_torsions": 40.21244812011719,
+            "na_torsion": 31.47652816772461,
+            "na_torsion_well": 4.703482151031494
+          },
+          "block_types": [
+            "DG:na5prime",
+            "DC",
+            "DA",
+            "DC",
+            "DG",
+            "DA",
+            "DA",
+            "TTD",
+            "DA",
+            "DA",
+            "DG:na3prime"
+          ]
+        }
+      ]
+    }
+  },
+  "comparisons": [
+    {
+      "left": "score-audit-candidate-cpu",
+      "right": "score-audit-candidate-cpu",
+      "right_repeat": 1,
+      "classes": [
+        {
+          "backbone": "alpha_aa",
+          "changed_parameter_fields": 0,
+          "examples": [],
+          "largest_raw_coordinate_differences": [
+            [
+              0.0,
+              "9:THR:OG1"
+            ],
+            [
+              0.0,
+              "9:THR:O"
+            ],
+            [
+              0.0,
+              "9:THR:N"
+            ]
+          ],
+          "identical_atom_inventory": true
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "changed_parameter_fields": 0,
+          "examples": [],
+          "largest_raw_coordinate_differences": [
+            [
+              0.0,
+              "9:B3E:OF2"
+            ],
+            [
+              0.0,
+              "9:B3E:OF1"
+            ],
+            [
+              0.0,
+              "9:B3E:O"
+            ]
+          ],
+          "identical_atom_inventory": true
+        },
+        {
+          "backbone": "dna",
+          "changed_parameter_fields": 0,
+          "examples": [],
+          "largest_raw_coordinate_differences": [
+            [
+              0.0,
+              "5:DG:na3prime:P"
+            ],
+            [
+              0.0,
+              "5:DG:na3prime:OP2"
+            ],
+            [
+              0.0,
+              "5:DG:na3prime:OP1"
+            ]
+          ],
+          "identical_atom_inventory": true
+        },
+        {
+          "backbone": "nonstandard_na",
+          "changed_parameter_fields": 0,
+          "examples": [],
+          "largest_raw_coordinate_differences": [
+            [
+              0.0,
+              "9:DA:P"
+            ],
+            [
+              0.0,
+              "9:DA:OP2"
+            ],
+            [
+              0.0,
+              "9:DA:OP1"
+            ]
+          ],
+          "identical_atom_inventory": true
+        }
+      ]
+    },
+    {
+      "left": "score-audit-candidate-cuda",
+      "right": "score-audit-candidate-cuda",
+      "right_repeat": 1,
+      "classes": [
+        {
+          "backbone": "alpha_aa",
+          "changed_parameter_fields": 0,
+          "examples": [],
+          "largest_raw_coordinate_differences": [
+            [
+              0.0,
+              "9:THR:OG1"
+            ],
+            [
+              0.0,
+              "9:THR:O"
+            ],
+            [
+              0.0,
+              "9:THR:N"
+            ]
+          ],
+          "identical_atom_inventory": true
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "changed_parameter_fields": 0,
+          "examples": [],
+          "largest_raw_coordinate_differences": [
+            [
+              0.0,
+              "9:B3E:OF2"
+            ],
+            [
+              0.0,
+              "9:B3E:OF1"
+            ],
+            [
+              0.0,
+              "9:B3E:O"
+            ]
+          ],
+          "identical_atom_inventory": true
+        },
+        {
+          "backbone": "dna",
+          "changed_parameter_fields": 0,
+          "examples": [],
+          "largest_raw_coordinate_differences": [
+            [
+              0.0,
+              "5:DG:na3prime:P"
+            ],
+            [
+              0.0,
+              "5:DG:na3prime:OP2"
+            ],
+            [
+              0.0,
+              "5:DG:na3prime:OP1"
+            ]
+          ],
+          "identical_atom_inventory": true
+        },
+        {
+          "backbone": "nonstandard_na",
+          "changed_parameter_fields": 0,
+          "examples": [],
+          "largest_raw_coordinate_differences": [
+            [
+              0.0,
+              "9:DA:P"
+            ],
+            [
+              0.0,
+              "9:DA:OP2"
+            ],
+            [
+              0.0,
+              "9:DA:OP1"
+            ]
+          ],
+          "identical_atom_inventory": true
+        }
+      ]
+    },
+    {
+      "left": "score-audit-candidate-cuda",
+      "right": "score-audit-baseline-cuda",
+      "right_repeat": 0,
+      "classes": [
+        {
+          "backbone": "alpha_aa",
+          "changed_parameter_fields": 0,
+          "examples": [],
+          "largest_raw_coordinate_differences": [
+            [
+              0.0,
+              "9:THR:OG1"
+            ],
+            [
+              0.0,
+              "9:THR:O"
+            ],
+            [
+              0.0,
+              "9:THR:N"
+            ]
+          ],
+          "identical_atom_inventory": true
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "changed_parameter_fields": 0,
+          "examples": [],
+          "largest_raw_coordinate_differences": [
+            [
+              0.0,
+              "9:B3E:OF2"
+            ],
+            [
+              0.0,
+              "9:B3E:OF1"
+            ],
+            [
+              0.0,
+              "9:B3E:O"
+            ]
+          ],
+          "identical_atom_inventory": true
+        },
+        {
+          "backbone": "dna",
+          "changed_parameter_fields": 6,
+          "examples": [
+            [
+              "/chemical/5CM/default_jump_connection_atom",
+              "C1'",
+              "O5'"
+            ],
+            [
+              "/chemical/5CM:na3prime/default_jump_connection_atom",
+              "C1'",
+              "O5'"
+            ],
+            [
+              "/chemical/5CM:na5prime/default_jump_connection_atom",
+              "C1'",
+              "O5'"
+            ],
+            [
+              "/chemical/5CM:na5prime:na3prime/default_jump_connection_atom",
+              "C1'",
+              "O5'"
+            ],
+            [
+              "/chemical/5CM:na5primephos/default_jump_connection_atom",
+              "C1'",
+              "O5'"
+            ],
+            [
+              "/chemical/5CM:na5primephos:na3prime/default_jump_connection_atom",
+              "C1'",
+              "O5'"
+            ]
+          ],
+          "largest_raw_coordinate_differences": [
+            [
+              0.0,
+              "5:DG:na3prime:P"
+            ],
+            [
+              0.0,
+              "5:DG:na3prime:OP2"
+            ],
+            [
+              0.0,
+              "5:DG:na3prime:OP1"
+            ]
+          ],
+          "identical_atom_inventory": true
+        },
+        {
+          "backbone": "nonstandard_na",
+          "changed_parameter_fields": 6,
+          "examples": [
+            [
+              "/chemical/TTD/default_jump_connection_atom",
+              "PB",
+              "O5'"
+            ],
+            [
+              "/chemical/TTD:na3prime/default_jump_connection_atom",
+              "PB",
+              "O5'"
+            ],
+            [
+              "/chemical/TTD:na5prime/default_jump_connection_atom",
+              "PB",
+              "O5'"
+            ],
+            [
+              "/chemical/TTD:na5prime:na3prime/default_jump_connection_atom",
+              "PB",
+              "O5'"
+            ],
+            [
+              "/chemical/TTD:na5primephos/default_jump_connection_atom",
+              "PB",
+              "O5'"
+            ],
+            [
+              "/chemical/TTD:na5primephos:na3prime/default_jump_connection_atom",
+              "PB",
+              "O5'"
+            ]
+          ],
+          "largest_raw_coordinate_differences": [
+            [
+              0.0,
+              "9:DA:P"
+            ],
+            [
+              0.0,
+              "9:DA:OP2"
+            ],
+            [
+              0.0,
+              "9:DA:OP1"
+            ]
+          ],
+          "identical_atom_inventory": true
+        }
+      ]
+    },
+    {
+      "left": "score-audit-candidate-cpu",
+      "right": "score-audit-candidate-cuda",
+      "right_repeat": 0,
+      "classes": [
+        {
+          "backbone": "alpha_aa",
+          "changed_parameter_fields": 198,
+          "examples": [
+            [
+              "/cartbonded/HYP/angle_parameters/0/x0",
+              1.9280854856466416,
+              1.9296744271052222
+            ],
+            [
+              "/cartbonded/HYP/angle_parameters/1/x0",
+              1.8855082275515473,
+              1.8653616082999536
+            ],
+            [
+              "/cartbonded/HYP/angle_parameters/2/x0",
+              1.864468452653017,
+              1.8655600751986432
+            ],
+            [
+              "/cartbonded/HYP/angle_parameters/3/x0",
+              1.9486621935953319,
+              1.9530717245146165
+            ],
+            [
+              "/cartbonded/HYP/angle_parameters/4/x0",
+              1.9260789380726842,
+              1.9225023731309387
+            ],
+            [
+              "/cartbonded/HYP/angle_parameters/5/x0",
+              1.9017779156789938,
+              1.9063025341052646
+            ],
+            [
+              "/cartbonded/HYP/angle_parameters/6/x0",
+              1.9366563641574939,
+              1.9490133599593353
+            ],
+            [
+              "/cartbonded/HYP/angle_parameters/7/x0",
+              2.15576024473444,
+              2.1560243208302263
+            ]
+          ],
+          "largest_raw_coordinate_differences": [
+            [
+              0.03202996402978897,
+              "3:HYP:HC12"
+            ],
+            [
+              0.032027777284383774,
+              "18:HYP:HC12"
+            ],
+            [
+              0.032027386128902435,
+              "27:HYP:HC12"
+            ]
+          ],
+          "identical_atom_inventory": true
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "changed_parameter_fields": 2129,
+          "examples": [
+            [
+              "/cartbonded/B3D/angle_parameters/0/x0",
+              2.2734273768779336,
+              2.2749985858248807
+            ],
+            [
+              "/cartbonded/B3D/angle_parameters/1/x0",
+              2.0039038284654076,
+              2.0001105913411195
+            ],
+            [
+              "/cartbonded/B3D/angle_parameters/2/x0",
+              2.005759862520002,
+              2.0080422256273995
+            ],
+            [
+              "/cartbonded/B3D/angle_parameters/3/x0",
+              1.8749601201661072,
+              1.8801450374127764
+            ],
+            [
+              "/cartbonded/B3D/angle_parameters/4/x0",
+              1.8894830010191428,
+              1.8891558475923074
+            ],
+            [
+              "/cartbonded/B3D/angle_parameters/5/x0",
+              1.9373500170952702,
+              1.9386072714135154
+            ],
+            [
+              "/cartbonded/B3D/angle_parameters/6/x0",
+              1.9524919520186343,
+              1.951623275399547
+            ],
+            [
+              "/cartbonded/B3D/angle_parameters/7/x0",
+              1.9518560510490952,
+              1.9483648531075786
+            ]
+          ],
+          "largest_raw_coordinate_differences": [
+            [
+              7.213990211486816,
+              "0:HMR:nterm:HN5"
+            ],
+            [
+              6.925250053405762,
+              "0:HMR:nterm:HN6"
+            ],
+            [
+              6.447960376739502,
+              "0:HMR:nterm:NH2"
+            ]
+          ],
+          "identical_atom_inventory": true
+        },
+        {
+          "backbone": "dna",
+          "changed_parameter_fields": 631,
+          "examples": [
+            [
+              "/cartbonded/5CM/angle_parameters/0/x0",
+              2.0887103690440765,
+              2.084842709828234
+            ],
+            [
+              "/cartbonded/5CM/angle_parameters/1/x0",
+              2.0791569893630863,
+              2.08111122388387
+            ],
+            [
+              "/cartbonded/5CM/angle_parameters/2/x0",
+              2.1135969661685916,
+              2.115458937862831
+            ],
+            [
+              "/cartbonded/5CM/angle_parameters/3/x0",
+              1.9572251103872087,
+              1.9580087928465328
+            ],
+            [
+              "/cartbonded/5CM/angle_parameters/4/x0",
+              1.8913122823385262,
+              1.8906934166349771
+            ],
+            [
+              "/cartbonded/5CM/angle_parameters/5/x0",
+              1.9241433270460493,
+              1.918368630224917
+            ],
+            [
+              "/cartbonded/5CM/angle_parameters/6/x0",
+              1.8619076645662602,
+              1.866368244120449
+            ],
+            [
+              "/cartbonded/5CM/angle_parameters/7/x0",
+              1.941436342196838,
+              1.940606178878941
+            ]
+          ],
+          "largest_raw_coordinate_differences": [
+            [
+              0.004304029513150454,
+              "4:5CM:HC13"
+            ],
+            [
+              0.004303976893424988,
+              "0:5CM:na5prime:HC13"
+            ],
+            [
+              0.004128522239625454,
+              "4:5CM:HC2"
+            ]
+          ],
+          "identical_atom_inventory": true
+        },
+        {
+          "backbone": "nonstandard_na",
+          "changed_parameter_fields": 1304,
+          "examples": [
+            [
+              "/cartbonded/TTD/angle_parameters/0/x0",
+              2.100591302202022,
+              2.103288585172157
+            ],
+            [
+              "/cartbonded/TTD/angle_parameters/1/x0",
+              1.927211846269811,
+              1.9230215465979033
+            ],
+            [
+              "/cartbonded/TTD/angle_parameters/2/x0",
+              1.9132739514528208,
+              1.9196259827557263
+            ],
+            [
+              "/cartbonded/TTD/angle_parameters/3/x0",
+              2.0907689349521417,
+              2.098783240450504
+            ],
+            [
+              "/cartbonded/TTD/angle_parameters/4/x0",
+              1.9349953243457256,
+              1.9569280611395554
+            ],
+            [
+              "/cartbonded/TTD/angle_parameters/5/x0",
+              1.865854369748001,
+              1.852984998095636
+            ],
+            [
+              "/cartbonded/TTD/angle_parameters/6/x0",
+              1.9407245557690826,
+              1.9465353981541773
+            ],
+            [
+              "/cartbonded/TTD/angle_parameters/7/x0",
+              1.9036829572183591,
+              1.891089830989677
+            ]
+          ],
+          "largest_raw_coordinate_differences": [
+            [
+              0.023985259234905243,
+              "7:TTD:HC2"
+            ],
+            [
+              0.018513353541493416,
+              "7:TTD:HC1"
+            ],
+            [
+              0.016197610646486282,
+              "7:TTD:HC8"
+            ]
+          ],
+          "identical_atom_inventory": true
+        }
+      ]
+    },
+    {
+      "left": "score-audit-container-cpu",
+      "right": "score-audit-candidate-cuda",
+      "right_repeat": 0,
+      "classes": [
+        {
+          "backbone": "alpha_aa",
+          "changed_parameter_fields": 0,
+          "examples": [],
+          "largest_raw_coordinate_differences": [
+            [
+              7.62939453125e-06,
+              "20:PRO:HB2"
+            ],
+            [
+              1.9073486328125e-06,
+              "0:HYP:nterm:HC12"
+            ],
+            [
+              9.5367431640625e-07,
+              "13:GLY:HA3"
+            ]
+          ],
+          "identical_atom_inventory": true
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "changed_parameter_fields": 0,
+          "examples": [],
+          "largest_raw_coordinate_differences": [
+            [
+              7.200083018688019e-06,
+              "0:HMR:nterm:HN4"
+            ],
+            [
+              6.67572021484375e-06,
+              "3:B3Q:HN2"
+            ],
+            [
+              6.325959930109093e-06,
+              "25:ILE:HG12"
+            ]
+          ],
+          "identical_atom_inventory": true
+        },
+        {
+          "backbone": "dna",
+          "changed_parameter_fields": 0,
+          "examples": [],
+          "largest_raw_coordinate_differences": [
+            [
+              1.9073486328125e-06,
+              "4:5CM:HC3"
+            ],
+            [
+              1.9073486328125e-06,
+              "4:5CM:HC1"
+            ],
+            [
+              1.9073486328125e-06,
+              "2:DT:H3"
+            ]
+          ],
+          "identical_atom_inventory": true
+        },
+        {
+          "backbone": "nonstandard_na",
+          "changed_parameter_fields": 0,
+          "examples": [],
+          "largest_raw_coordinate_differences": [
+            [
+              1.9073486328125e-06,
+              "7:TTD:HC17"
+            ],
+            [
+              1.9073486328125e-06,
+              "7:TTD:HC1"
+            ],
+            [
+              2.384185791015625e-07,
+              "7:TTD:HC6"
+            ]
+          ],
+          "identical_atom_inventory": true
+        }
+      ]
+    },
+    {
+      "left": "score-audit-pinned",
+      "right": "score-audit-replay-cuda",
+      "right_repeat": 0,
+      "classes": [
+        {
+          "backbone": "alpha_aa",
+          "changed_parameter_fields": 218,
+          "examples": [
+            [
+              "/chemical/HYP/bonds/2/0",
+              "C",
+              "CA"
+            ],
+            [
+              "/chemical/HYP/bonds/2/1",
+              "O",
+              "CB"
+            ],
+            [
+              "/chemical/HYP/bonds/2/2",
+              "DOUBLE",
+              "SINGLE"
+            ],
+            [
+              "/chemical/HYP/bonds/2/3",
+              false,
+              true
+            ],
+            [
+              "/chemical/HYP/bonds/3/0",
+              "CA",
+              "CB"
+            ],
+            [
+              "/chemical/HYP/bonds/3/1",
+              "CB",
+              "CG"
+            ],
+            [
+              "/chemical/HYP/bonds/4/0",
+              "CB",
+              "CG"
+            ],
+            [
+              "/chemical/HYP/bonds/4/1",
+              "CG",
+              "OD1"
+            ]
+          ],
+          "largest_raw_coordinate_differences": [
+            [
+              0.0,
+              "9:THR:OG1"
+            ],
+            [
+              0.0,
+              "9:THR:O"
+            ],
+            [
+              0.0,
+              "9:THR:N"
+            ]
+          ],
+          "identical_atom_inventory": true
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "changed_parameter_fields": 2318,
+          "examples": [
+            [
+              "/chemical/B3D/bonds/7/0",
+              "C",
+              "CG"
+            ],
+            [
+              "/chemical/B3D/bonds/7/1",
+              "O",
+              "HC1"
+            ],
+            [
+              "/chemical/B3D/bonds/7/2",
+              "DOUBLE",
+              "SINGLE"
+            ],
+            [
+              "/chemical/B3D/bonds/8/1",
+              "HC1",
+              "HC2"
+            ],
+            [
+              "/chemical/B3D/bonds/9/0",
+              "CG",
+              "CA"
+            ],
+            [
+              "/chemical/B3D/bonds/9/1",
+              "HC2",
+              "HC3"
+            ],
+            [
+              "/chemical/B3D/bonds/10/0",
+              "CA",
+              "N"
+            ],
+            [
+              "/chemical/B3D/bonds/10/1",
+              "HC3",
+              "HN1"
+            ]
+          ],
+          "largest_raw_coordinate_differences": [
+            [
+              0.0,
+              "9:B3E:OF2"
+            ],
+            [
+              0.0,
+              "9:B3E:OF1"
+            ],
+            [
+              0.0,
+              "9:B3E:O"
+            ]
+          ],
+          "identical_atom_inventory": true
+        },
+        {
+          "backbone": "dna",
+          "changed_parameter_fields": 995,
+          "examples": [
+            [
+              "/chemical/5CM/bonds/8/1",
+              "OP1",
+              "OP2"
+            ],
+            [
+              "/chemical/5CM/bonds/8/2",
+              "DOUBLE",
+              "SINGLE"
+            ],
+            [
+              "/chemical/5CM/bonds/9/0",
+              "P",
+              "C4'"
+            ],
+            [
+              "/chemical/5CM/bonds/9/1",
+              "OP2",
+              "O4'"
+            ],
+            [
+              "/chemical/5CM/bonds/9/3",
+              false,
+              true
+            ],
+            [
+              "/chemical/5CM/bonds/10/0",
+              "C4'",
+              "C1'"
+            ],
+            [
+              "/chemical/5CM/bonds/11/0",
+              "C1'",
+              "C5"
+            ],
+            [
+              "/chemical/5CM/bonds/11/1",
+              "O4'",
+              "C5A"
+            ]
+          ],
+          "largest_raw_coordinate_differences": [
+            [
+              0.0,
+              "5:DG:na3prime:P"
+            ],
+            [
+              0.0,
+              "5:DG:na3prime:OP2"
+            ],
+            [
+              0.0,
+              "5:DG:na3prime:OP1"
+            ]
+          ],
+          "identical_atom_inventory": true
+        },
+        {
+          "backbone": "nonstandard_na",
+          "changed_parameter_fields": 2089,
+          "examples": [
+            [
+              "/chemical/TTD/bonds/0/1",
+              "OP1",
+              "OP2"
+            ],
+            [
+              "/chemical/TTD/bonds/0/2",
+              "DOUBLE",
+              "SINGLE"
+            ],
+            [
+              "/chemical/TTD/bonds/1/1",
+              "OP2",
+              "O5'"
+            ],
+            [
+              "/chemical/TTD/bonds/2/0",
+              "P",
+              "O5'"
+            ],
+            [
+              "/chemical/TTD/bonds/2/1",
+              "O5'",
+              "C5'"
+            ],
+            [
+              "/chemical/TTD/bonds/3/0",
+              "O5'",
+              "C5'"
+            ],
+            [
+              "/chemical/TTD/bonds/3/1",
+              "C5'",
+              "C4R"
+            ],
+            [
+              "/chemical/TTD/bonds/4/0",
+              "C5'",
+              "C4R"
+            ]
+          ],
+          "largest_raw_coordinate_differences": [
+            [
+              0.0,
+              "9:DA:P"
+            ],
+            [
+              0.0,
+              "9:DA:OP2"
+            ],
+            [
+              0.0,
+              "9:DA:OP1"
+            ]
+          ],
+          "identical_atom_inventory": true
+        }
+      ]
+    },
+    {
+      "left": "score-audit-pinned",
+      "right": "score-audit-replay-container-cpu",
+      "right_repeat": 0,
+      "classes": [
+        {
+          "backbone": "alpha_aa",
+          "changed_parameter_fields": 218,
+          "examples": [
+            [
+              "/chemical/HYP/bonds/2/0",
+              "C",
+              "CA"
+            ],
+            [
+              "/chemical/HYP/bonds/2/1",
+              "O",
+              "CB"
+            ],
+            [
+              "/chemical/HYP/bonds/2/2",
+              "DOUBLE",
+              "SINGLE"
+            ],
+            [
+              "/chemical/HYP/bonds/2/3",
+              false,
+              true
+            ],
+            [
+              "/chemical/HYP/bonds/3/0",
+              "CA",
+              "CB"
+            ],
+            [
+              "/chemical/HYP/bonds/3/1",
+              "CB",
+              "CG"
+            ],
+            [
+              "/chemical/HYP/bonds/4/0",
+              "CB",
+              "CG"
+            ],
+            [
+              "/chemical/HYP/bonds/4/1",
+              "CG",
+              "OD1"
+            ]
+          ],
+          "largest_raw_coordinate_differences": [
+            [
+              0.0,
+              "9:THR:OG1"
+            ],
+            [
+              0.0,
+              "9:THR:O"
+            ],
+            [
+              0.0,
+              "9:THR:N"
+            ]
+          ],
+          "identical_atom_inventory": true
+        },
+        {
+          "backbone": "nonstandard_aa",
+          "changed_parameter_fields": 2318,
+          "examples": [
+            [
+              "/chemical/B3D/bonds/7/0",
+              "C",
+              "CG"
+            ],
+            [
+              "/chemical/B3D/bonds/7/1",
+              "O",
+              "HC1"
+            ],
+            [
+              "/chemical/B3D/bonds/7/2",
+              "DOUBLE",
+              "SINGLE"
+            ],
+            [
+              "/chemical/B3D/bonds/8/1",
+              "HC1",
+              "HC2"
+            ],
+            [
+              "/chemical/B3D/bonds/9/0",
+              "CG",
+              "CA"
+            ],
+            [
+              "/chemical/B3D/bonds/9/1",
+              "HC2",
+              "HC3"
+            ],
+            [
+              "/chemical/B3D/bonds/10/0",
+              "CA",
+              "N"
+            ],
+            [
+              "/chemical/B3D/bonds/10/1",
+              "HC3",
+              "HN1"
+            ]
+          ],
+          "largest_raw_coordinate_differences": [
+            [
+              0.0,
+              "9:B3E:OF2"
+            ],
+            [
+              0.0,
+              "9:B3E:OF1"
+            ],
+            [
+              0.0,
+              "9:B3E:O"
+            ]
+          ],
+          "identical_atom_inventory": true
+        },
+        {
+          "backbone": "dna",
+          "changed_parameter_fields": 995,
+          "examples": [
+            [
+              "/chemical/5CM/bonds/8/1",
+              "OP1",
+              "OP2"
+            ],
+            [
+              "/chemical/5CM/bonds/8/2",
+              "DOUBLE",
+              "SINGLE"
+            ],
+            [
+              "/chemical/5CM/bonds/9/0",
+              "P",
+              "C4'"
+            ],
+            [
+              "/chemical/5CM/bonds/9/1",
+              "OP2",
+              "O4'"
+            ],
+            [
+              "/chemical/5CM/bonds/9/3",
+              false,
+              true
+            ],
+            [
+              "/chemical/5CM/bonds/10/0",
+              "C4'",
+              "C1'"
+            ],
+            [
+              "/chemical/5CM/bonds/11/0",
+              "C1'",
+              "C5"
+            ],
+            [
+              "/chemical/5CM/bonds/11/1",
+              "O4'",
+              "C5A"
+            ]
+          ],
+          "largest_raw_coordinate_differences": [
+            [
+              0.0,
+              "5:DG:na3prime:P"
+            ],
+            [
+              0.0,
+              "5:DG:na3prime:OP2"
+            ],
+            [
+              0.0,
+              "5:DG:na3prime:OP1"
+            ]
+          ],
+          "identical_atom_inventory": true
+        },
+        {
+          "backbone": "nonstandard_na",
+          "changed_parameter_fields": 2089,
+          "examples": [
+            [
+              "/chemical/TTD/bonds/0/1",
+              "OP1",
+              "OP2"
+            ],
+            [
+              "/chemical/TTD/bonds/0/2",
+              "DOUBLE",
+              "SINGLE"
+            ],
+            [
+              "/chemical/TTD/bonds/1/1",
+              "OP2",
+              "O5'"
+            ],
+            [
+              "/chemical/TTD/bonds/2/0",
+              "P",
+              "O5'"
+            ],
+            [
+              "/chemical/TTD/bonds/2/1",
+              "O5'",
+              "C5'"
+            ],
+            [
+              "/chemical/TTD/bonds/3/0",
+              "O5'",
+              "C5'"
+            ],
+            [
+              "/chemical/TTD/bonds/3/1",
+              "C5'",
+              "C4R"
+            ],
+            [
+              "/chemical/TTD/bonds/4/0",
+              "C5'",
+              "C4R"
+            ]
+          ],
+          "largest_raw_coordinate_differences": [
+            [
+              0.0,
+              "9:DA:P"
+            ],
+            [
+              0.0,
+              "9:DA:OP2"
+            ],
+            [
+              0.0,
+              "9:DA:OP1"
+            ]
+          ],
+          "identical_atom_inventory": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,937 @@
+[
+  {
+    "fixture": "biotin",
+    "kind": "conjugation",
+    "blocks": [
+      45,
+      80
+    ],
+    "atoms": [
+      "NZ",
+      "C11"
+    ],
+    "distance": 1.3293358496953005,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 9.018773086597074,
+            "dE_ddelta": 2.220446049250313e-16
+          },
+          {
+            "delta": 0.0,
+            "energy": 9.018773086597081,
+            "dE_ddelta": 3.3306690738754696e-15
+          },
+          {
+            "delta": 0.1,
+            "energy": 9.018773086597083,
+            "dE_ddelta": 1.5543122344752192e-15
+          }
+        ],
+        "stiffness": 6.661338147750939e-15
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 71.21723561784631,
+            "dE_ddelta": -7.105427357601002e-15
+          },
+          {
+            "delta": 0.0,
+            "energy": 71.21723561784631,
+            "dE_ddelta": -7.105427357601002e-15
+          },
+          {
+            "delta": 0.1,
+            "energy": 71.21723561784631,
+            "dE_ddelta": 0.0
+          }
+        ],
+        "stiffness": 3.552713678800501e-14
+      }
+    }
+  },
+  {
+    "fixture": "biotin",
+    "kind": "peptide_control",
+    "blocks": [
+      0,
+      1
+    ],
+    "atoms": [
+      "C",
+      "N"
+    ],
+    "distance": 1.331865537363326,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 10.748311456361032,
+            "dE_ddelta": -35.76763406385051
+          },
+          {
+            "delta": 0.0,
+            "energy": 9.018773086597081,
+            "dE_ddelta": 1.1768666685712477
+          },
+          {
+            "delta": 0.1,
+            "energy": 10.983684790075316,
+            "dE_ddelta": 38.121367400993094
+          }
+        ],
+        "stiffness": 369.445007324218
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 71.38477567396686,
+            "dE_ddelta": -3.4930595516678125
+          },
+          {
+            "delta": 0.0,
+            "energy": 71.21723561784631,
+            "dE_ddelta": 0.14494525561850935
+          },
+          {
+            "delta": 0.1,
+            "energy": 71.41121381795578,
+            "dE_ddelta": 3.706877918291916
+          }
+        ],
+        "stiffness": 35.99968734979864
+      }
+    }
+  },
+  {
+    "fixture": "oglycan",
+    "kind": "conjugation",
+    "blocks": [
+      11,
+      14
+    ],
+    "atoms": [
+      "OG1",
+      "C1"
+    ],
+    "distance": 1.427078614612166,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 11.34931063528848,
+            "dE_ddelta": 5.329070518200751e-15
+          },
+          {
+            "delta": 0.0,
+            "energy": 11.34931063528846,
+            "dE_ddelta": 5.329070518200751e-15
+          },
+          {
+            "delta": 0.1,
+            "energy": 11.349310635288397,
+            "dE_ddelta": 8.881784197001252e-15
+          }
+        ],
+        "stiffness": 1.7763568394002505e-14
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 56.81796661653872,
+            "dE_ddelta": -7.105427357601002e-15
+          },
+          {
+            "delta": 0.0,
+            "energy": 56.81796661653872,
+            "dE_ddelta": -7.105427357601002e-15
+          },
+          {
+            "delta": 0.1,
+            "energy": 56.81796661653872,
+            "dE_ddelta": -7.105427357601002e-15
+          }
+        ],
+        "stiffness": 0.0
+      }
+    }
+  },
+  {
+    "fixture": "oglycan",
+    "kind": "conjugation",
+    "blocks": [
+      14,
+      19
+    ],
+    "atoms": [
+      "O3",
+      "C1"
+    ],
+    "distance": 1.4002010029091723,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 11.34931063528846,
+            "dE_ddelta": 1.7763568394002505e-15
+          },
+          {
+            "delta": 0.0,
+            "energy": 11.34931063528846,
+            "dE_ddelta": 1.7763568394002505e-15
+          },
+          {
+            "delta": 0.1,
+            "energy": 11.34931063528846,
+            "dE_ddelta": 1.7763568394002505e-15
+          }
+        ],
+        "stiffness": 0.0
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 56.81796661653872,
+            "dE_ddelta": 3.552713678800501e-15
+          },
+          {
+            "delta": 0.0,
+            "energy": 56.81796661653872,
+            "dE_ddelta": 3.552713678800501e-15
+          },
+          {
+            "delta": 0.1,
+            "energy": 56.81796661653872,
+            "dE_ddelta": 3.552713678800501e-15
+          }
+        ],
+        "stiffness": 0.0
+      }
+    }
+  },
+  {
+    "fixture": "oglycan",
+    "kind": "conjugation",
+    "blocks": [
+      14,
+      15
+    ],
+    "atoms": [
+      "O6",
+      "C1"
+    ],
+    "distance": 1.3794978814367136,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 11.34931063528848,
+            "dE_ddelta": -8.881784197001252e-15
+          },
+          {
+            "delta": 0.0,
+            "energy": 11.34931063528846,
+            "dE_ddelta": -1.7763568394002505e-15
+          },
+          {
+            "delta": 0.1,
+            "energy": 11.349310635288415,
+            "dE_ddelta": -7.105427357601002e-15
+          }
+        ],
+        "stiffness": 8.881784197001252e-15
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 56.8179666165387,
+            "dE_ddelta": 0.0
+          },
+          {
+            "delta": 0.0,
+            "energy": 56.81796661653872,
+            "dE_ddelta": -1.4210854715202004e-14
+          },
+          {
+            "delta": 0.1,
+            "energy": 56.81796661653872,
+            "dE_ddelta": -7.105427357601002e-15
+          }
+        ],
+        "stiffness": -3.552713678800501e-14
+      }
+    }
+  },
+  {
+    "fixture": "oglycan",
+    "kind": "conjugation",
+    "blocks": [
+      15,
+      18
+    ],
+    "atoms": [
+      "O3",
+      "C1"
+    ],
+    "distance": 1.4043186215634682,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 11.34931063528846,
+            "dE_ddelta": -1.7763568394002505e-15
+          },
+          {
+            "delta": 0.0,
+            "energy": 11.34931063528846,
+            "dE_ddelta": -1.7763568394002505e-15
+          },
+          {
+            "delta": 0.1,
+            "energy": 11.34931063528846,
+            "dE_ddelta": -1.7763568394002505e-15
+          }
+        ],
+        "stiffness": 0.0
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 56.81796661653872,
+            "dE_ddelta": -1.7763568394002505e-15
+          },
+          {
+            "delta": 0.0,
+            "energy": 56.81796661653872,
+            "dE_ddelta": -1.7763568394002505e-15
+          },
+          {
+            "delta": 0.1,
+            "energy": 56.81796661653872,
+            "dE_ddelta": -1.7763568394002505e-15
+          }
+        ],
+        "stiffness": 0.0
+      }
+    }
+  },
+  {
+    "fixture": "oglycan",
+    "kind": "conjugation",
+    "blocks": [
+      15,
+      16
+    ],
+    "atoms": [
+      "O4",
+      "C1"
+    ],
+    "distance": 1.3901654582183607,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 11.349310635288449,
+            "dE_ddelta": -3.552713678800501e-15
+          },
+          {
+            "delta": 0.0,
+            "energy": 11.34931063528846,
+            "dE_ddelta": -7.105427357601002e-15
+          },
+          {
+            "delta": 0.1,
+            "energy": 11.34931063528847,
+            "dE_ddelta": 0.0
+          }
+        ],
+        "stiffness": 1.7763568394002505e-14
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 56.81796661653874,
+            "dE_ddelta": 1.4210854715202004e-14
+          },
+          {
+            "delta": 0.0,
+            "energy": 56.81796661653872,
+            "dE_ddelta": 1.0658141036401503e-14
+          },
+          {
+            "delta": 0.1,
+            "energy": 56.81796661653868,
+            "dE_ddelta": 3.552713678800501e-15
+          }
+        ],
+        "stiffness": -5.3290705182007514e-14
+      }
+    }
+  },
+  {
+    "fixture": "oglycan",
+    "kind": "conjugation",
+    "blocks": [
+      16,
+      17
+    ],
+    "atoms": [
+      "O3",
+      "C2"
+    ],
+    "distance": 1.4512080777769085,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 11.34931063528848,
+            "dE_ddelta": 3.552713678800501e-15
+          },
+          {
+            "delta": 0.0,
+            "energy": 11.34931063528846,
+            "dE_ddelta": 3.552713678800501e-15
+          },
+          {
+            "delta": 0.1,
+            "energy": 11.349310635288408,
+            "dE_ddelta": 0.0
+          }
+        ],
+        "stiffness": -1.7763568394002505e-14
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 56.81796661653871,
+            "dE_ddelta": -5.329070518200751e-15
+          },
+          {
+            "delta": 0.0,
+            "energy": 56.81796661653872,
+            "dE_ddelta": -8.881784197001252e-15
+          },
+          {
+            "delta": 0.1,
+            "energy": 56.81796661653872,
+            "dE_ddelta": 0.0
+          }
+        ],
+        "stiffness": 2.6645352591003757e-14
+      }
+    }
+  },
+  {
+    "fixture": "oglycan",
+    "kind": "peptide_control",
+    "blocks": [
+      0,
+      1
+    ],
+    "atoms": [
+      "C",
+      "N"
+    ],
+    "distance": 1.331990839848117,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 13.074219767311416,
+            "dE_ddelta": -35.721341686440375
+          },
+          {
+            "delta": 0.0,
+            "energy": 11.34931063528846,
+            "dE_ddelta": 1.2231590459826691
+          },
+          {
+            "delta": 0.1,
+            "energy": 13.318851576507896,
+            "dE_ddelta": 38.16765977840573
+          }
+        ],
+        "stiffness": 369.4450073242305
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 58.16491836791357,
+            "dE_ddelta": -26.750190720015173
+          },
+          {
+            "delta": 0.0,
+            "energy": 56.81796661653872,
+            "dE_ddelta": -0.08420358133264116
+          },
+          {
+            "delta": 0.1,
+            "energy": 58.14791585412943,
+            "dE_ddelta": 26.576964755961015
+          }
+        ],
+        "stiffness": 266.6357773798809
+      }
+    }
+  },
+  {
+    "fixture": "nglycan",
+    "kind": "conjugation",
+    "blocks": [
+      16,
+      239
+    ],
+    "atoms": [
+      "ND2",
+      "C1"
+    ],
+    "distance": 1.452801296798313,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 24.63416377842025,
+            "dE_ddelta": 2.6645352591003757e-15
+          },
+          {
+            "delta": 0.0,
+            "energy": 24.634163778420234,
+            "dE_ddelta": -8.881784197001252e-16
+          },
+          {
+            "delta": 0.1,
+            "energy": 24.63416377842021,
+            "dE_ddelta": 6.217248937900877e-15
+          }
+        ],
+        "stiffness": 1.7763568394002505e-14
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 254.3631749741446,
+            "dE_ddelta": -7.105427357601002e-15
+          },
+          {
+            "delta": 0.0,
+            "energy": 254.36317497414467,
+            "dE_ddelta": 0.0
+          },
+          {
+            "delta": 0.1,
+            "energy": 254.36317497414464,
+            "dE_ddelta": 3.552713678800501e-15
+          }
+        ],
+        "stiffness": 5.3290705182007514e-14
+      }
+    }
+  },
+  {
+    "fixture": "nglycan",
+    "kind": "conjugation",
+    "blocks": [
+      239,
+      245
+    ],
+    "atoms": [
+      "O3",
+      "C1"
+    ],
+    "distance": 1.3989846665562626,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 24.634163778420238,
+            "dE_ddelta": -1.7763568394002505e-15
+          },
+          {
+            "delta": 0.0,
+            "energy": 24.634163778420234,
+            "dE_ddelta": -8.881784197001252e-16
+          },
+          {
+            "delta": 0.1,
+            "energy": 24.63416377842023,
+            "dE_ddelta": 0.0
+          }
+        ],
+        "stiffness": 8.881784197001252e-15
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 254.36317497414464,
+            "dE_ddelta": 0.0
+          },
+          {
+            "delta": 0.0,
+            "energy": 254.36317497414464,
+            "dE_ddelta": 0.0
+          },
+          {
+            "delta": 0.1,
+            "energy": 254.36317497414467,
+            "dE_ddelta": 0.0
+          }
+        ],
+        "stiffness": 0.0
+      }
+    }
+  },
+  {
+    "fixture": "nglycan",
+    "kind": "conjugation",
+    "blocks": [
+      239,
+      240
+    ],
+    "atoms": [
+      "O4",
+      "C1"
+    ],
+    "distance": 1.3847792547844335,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 24.63416377842022,
+            "dE_ddelta": 7.105427357601002e-15
+          },
+          {
+            "delta": 0.0,
+            "energy": 24.634163778420234,
+            "dE_ddelta": -7.105427357601002e-15
+          },
+          {
+            "delta": 0.1,
+            "energy": 24.634163778420245,
+            "dE_ddelta": 0.0
+          }
+        ],
+        "stiffness": -3.552713678800501e-14
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 254.36317497414467,
+            "dE_ddelta": 7.105427357601002e-15
+          },
+          {
+            "delta": 0.0,
+            "energy": 254.36317497414464,
+            "dE_ddelta": 3.552713678800501e-15
+          },
+          {
+            "delta": 0.1,
+            "energy": 254.36317497414464,
+            "dE_ddelta": -3.552713678800501e-15
+          }
+        ],
+        "stiffness": -5.3290705182007514e-14
+      }
+    }
+  },
+  {
+    "fixture": "nglycan",
+    "kind": "conjugation",
+    "blocks": [
+      240,
+      241
+    ],
+    "atoms": [
+      "O4",
+      "C1"
+    ],
+    "distance": 1.3884985330840074,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 24.634163778420227,
+            "dE_ddelta": -1.7763568394002505e-15
+          },
+          {
+            "delta": 0.0,
+            "energy": 24.634163778420234,
+            "dE_ddelta": -1.7763568394002505e-15
+          },
+          {
+            "delta": 0.1,
+            "energy": 24.634163778420252,
+            "dE_ddelta": -1.7763568394002505e-15
+          }
+        ],
+        "stiffness": 0.0
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 254.36317497414458,
+            "dE_ddelta": -3.552713678800501e-15
+          },
+          {
+            "delta": 0.0,
+            "energy": 254.36317497414464,
+            "dE_ddelta": 3.552713678800501e-15
+          },
+          {
+            "delta": 0.1,
+            "energy": 254.36317497414464,
+            "dE_ddelta": -8.881784197001252e-15
+          }
+        ],
+        "stiffness": -2.6645352591003757e-14
+      }
+    }
+  },
+  {
+    "fixture": "nglycan",
+    "kind": "conjugation",
+    "blocks": [
+      241,
+      242
+    ],
+    "atoms": [
+      "O2",
+      "C1"
+    ],
+    "distance": 1.3781401738411043,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 24.634163778420238,
+            "dE_ddelta": -4.440892098500626e-16
+          },
+          {
+            "delta": 0.0,
+            "energy": 24.634163778420234,
+            "dE_ddelta": 4.440892098500626e-16
+          },
+          {
+            "delta": 0.1,
+            "energy": 24.634163778420234,
+            "dE_ddelta": 4.440892098500626e-16
+          }
+        ],
+        "stiffness": 4.440892098500626e-15
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 254.36317497414464,
+            "dE_ddelta": -5.329070518200751e-15
+          },
+          {
+            "delta": 0.0,
+            "energy": 254.36317497414464,
+            "dE_ddelta": -3.552713678800501e-15
+          },
+          {
+            "delta": 0.1,
+            "energy": 254.36317497414464,
+            "dE_ddelta": -3.552713678800501e-15
+          }
+        ],
+        "stiffness": 8.881784197001252e-15
+      }
+    }
+  },
+  {
+    "fixture": "nglycan",
+    "kind": "conjugation",
+    "blocks": [
+      241,
+      243
+    ],
+    "atoms": [
+      "O3",
+      "C1"
+    ],
+    "distance": 1.3924805340606583,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 24.63416377842023,
+            "dE_ddelta": 4.440892098500626e-16
+          },
+          {
+            "delta": 0.0,
+            "energy": 24.63416377842023,
+            "dE_ddelta": -8.881784197001252e-16
+          },
+          {
+            "delta": 0.1,
+            "energy": 24.634163778420234,
+            "dE_ddelta": 1.7763568394002505e-15
+          }
+        ],
+        "stiffness": 6.661338147750939e-15
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 254.36317497414464,
+            "dE_ddelta": 0.0
+          },
+          {
+            "delta": 0.0,
+            "energy": 254.36317497414464,
+            "dE_ddelta": 0.0
+          },
+          {
+            "delta": 0.1,
+            "energy": 254.36317497414464,
+            "dE_ddelta": 0.0
+          }
+        ],
+        "stiffness": 0.0
+      }
+    }
+  },
+  {
+    "fixture": "nglycan",
+    "kind": "conjugation",
+    "blocks": [
+      241,
+      244
+    ],
+    "atoms": [
+      "O6",
+      "C1"
+    ],
+    "distance": 1.3960855311996354,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 24.634163778420238,
+            "dE_ddelta": -1.7763568394002505e-15
+          },
+          {
+            "delta": 0.0,
+            "energy": 24.634163778420238,
+            "dE_ddelta": -1.7763568394002505e-15
+          },
+          {
+            "delta": 0.1,
+            "energy": 24.634163778420227,
+            "dE_ddelta": -8.881784197001252e-16
+          }
+        ],
+        "stiffness": 4.440892098500626e-15
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 254.36317497414464,
+            "dE_ddelta": 1.7763568394002505e-15
+          },
+          {
+            "delta": 0.0,
+            "energy": 254.36317497414464,
+            "dE_ddelta": 1.7763568394002505e-15
+          },
+          {
+            "delta": 0.1,
+            "energy": 254.36317497414464,
+            "dE_ddelta": 1.7763568394002505e-15
+          }
+        ],
+        "stiffness": 0.0
+      }
+    }
+  },
+  {
+    "fixture": "nglycan",
+    "kind": "peptide_control",
+    "blocks": [
+      0,
+      1
+    ],
+    "atoms": [
+      "C",
+      "N"
+    ],
+    "distance": 1.3286223414800498,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 26.48352040086932,
+            "dE_ddelta": -36.96581659070141
+          },
+          {
+            "delta": 0.0,
+            "energy": 24.634163778420234,
+            "dE_ddelta": -0.021315858279592703
+          },
+          {
+            "delta": 0.1,
+            "energy": 26.47925722921333,
+            "dE_ddelta": 36.923184874142336
+          }
+        ],
+        "stiffness": 369.4450073242187
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 254.81553696481646,
+            "dE_ddelta": -9.35445828042183
+          },
+          {
+            "delta": 0.0,
+            "energy": 254.36317497414467,
+            "dE_ddelta": 0.347956259919286
+          },
+          {
+            "delta": 0.1,
+            "energy": 254.88227547863121,
+            "dE_ddelta": 9.96506268851438
+          }
+        ],
+        "stiffness": 96.59760484468104
+      }
+    }
+  }
+]

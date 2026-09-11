@@ -24,6 +24,7 @@ historical evidence, not a claim that the follow-up is complete.
 | D geometry (24) | Signed stereocentre volumes and actual library sampling after repacking; reject mislabeled geometry | Every offered D rotamer and packed result retains signed alpha-centre volume on CPU/CUDA (237089); broader stereocentre coverage remains |
 | Fold trees/fragments (25,26) | Branch-point invariant, fragment restoration/minimize/pack/DDG and multi-pose checks | Existing fixes; final suite pending |
 | Scientific ownership (general 2,7) | Independent potential checks and canonical change audit; sampling/scoring reference separation | Pending |
+| Connection bonded potentials (38) | Every declared attachment has explicit length/angle energy ownership; independent stretching/bending forces; parameter persistence; no double counting; packing and Cartesian minimization | New failure: all 14 glycan/biotin attachments have zero cartbonded stiffness on CPU/CUDA; ordinary peptide controls pass; full minimization stretches the biotin bond |
 | API/authority/reproducibility (general 1,6,8,9) | Executable input-route examples, settings/seed provenance, documented migration and fresh-checkout CI | Pending |
 | Workload scale/release (general 4,5,10) | Explicit matrix of chemistry/topology/input/batch/stage/backend coverage; paired profiles/timings/memory, no masked regressions | Paired baseline/candidate 19-fixture CPU/CUDA matrices recorded; larger-scale and full-stage matrix pending |
 
@@ -402,3 +403,72 @@ identity failures before, zero after; the azidoethane charge mismatch at pH 2
 also disappears. See [ATOMWORKS.md](ATOMWORKS.md). This closes another prerequisite
 for API consolidation; tmol still retains its vendored engine until the shared
 dependency/version and public ownership contract are established.
+
+### Noncanonical reference audit and fixed-input replay
+
+The current standalone CPU run has two failures (DNA and beta peptide), with
+HYP and TTD matching the old references. Repeated preparation at seed 20250828
+within each environment produces exactly the same generated chemical/cartbonded
+records and input coordinates. Across the standalone and container environments,
+198 HYP, 2,129 beta-peptide, 631 modified-DNA and 1,304 TTD parameter fields change.
+Those include generated equilibrium geometry and icoors. Unresolved HMR sidechain
+placement can differ by over 7 Å. CPU and CUDA in the same container have identical
+generated parameters, with raw reconstruction differences below 0.000008 Å.
+
+Replaying the standalone run's existing `.tmol` parameter export plus exact
+coordinates in the container removes that preparation variable. Across 192
+per-term comparisons (four classes, raw and OptH coordinates, 24 score types),
+the largest CPU difference is 0.00000191. The largest CUDA difference is 0.002636
+in the HYP omega term; all remain within the existing score-test tolerance.
+The replay asserts full atom identity before applying saved coordinates.
+
+The baseline/candidate CUDA preparation records differ only in the six patched
+jump-atom fields for each modified nucleotide. Their raw coordinates are identical.
+The current DNA OptH result keeps heavy atoms fixed, reducing `cart_lengths` from
+the broken-geometry reference near 253 to approximately 11. This change is covered
+by the earlier independent heavy-atom invariants. The old beta-peptide reference
+near 663 LJ repulsion remains unreproduced; the available checkout produces about
+121–122 in these environments. Its historical generated inputs and environment
+were not recorded, so the audit does not claim an exact reconstruction of that
+number. Old goldens remain unchanged.
+
+Scripts: `diagnose_noncanonical_scores.py` supports generated runs and `--replay`
+of exported parameters/coordinates. Slurm 244280 compares baseline/candidate and
+container CPU/CUDA generation; 244831 replays identical inputs. The standalone
+score test, raw comparisons and replay records are kept with this audit.
+
+### Missing connection stiffness: next implementation gate
+
+The parameter-ownership audit found that conjugation patches add chemical
+connections and charges but no matching cross-connection bond/angle energy rows.
+The unmatched native cartbonded lookup skips these paths. Generic bonded scoring
+supplies torsions, not a replacement bond-length or bond-angle term.
+
+At follow-up `026475f0e`, all 14 attachment bonds in the three existing fixtures
+(one biotin, seven N-glycan and six O-glycan) have effectively zero stretching and
+bending stiffness on CPU and CUDA. Three normal peptide-bond controls return
+369.445 kcal/mol/Å² and nonzero angle response. `diagnose_connection_stiffness.py`
+uses a rigid connected component after cutting one graph bridge, preserving every
+other bond. It differentiates the energy analytically and differences projected
+forces at ±0.1 Å. The optional biotin experiment invokes the real full-score
+Cartesian minimizer for 100 iterations on the ligand coordinates, keeping the
+protein fixed. The unperturbed 1.329 Å link lengthens to 1.660 Å; displaced starts
+end at 2.150 and 2.556 Å, each with a lower score.
+
+CUDA reproduces the full minimization behavior at 1.658, 2.120 and 2.558 Å
+(244924). Seeded stretching/bending probes on CPU and CUDA are recorded in
+`results/connection-stiffness-{cpu,cuda}.json` (CUDA 244891); full minimization
+records are in `results/connection-minimize-{cpu,cuda}.json`. The fixed-input
+score replay includes all 13 exported parameter/coordinate/score files with
+SHA-256 checksums in `fixtures/noncanonical-score-replay/`. Raw scores and
+parameter/coordinate comparisons are in `results/noncanonical-score-audit.json`.
+All four Slurm audit jobs completed successfully; they are diagnostics exposing
+the missing potential, not a passing suite establishing that it is repaired.
+
+This is independent of the passing packing-geometry checks: those retain bond
+geometry through kinematics. The next change must supply actual bonded potentials
+with explicit chemistry/connection ownership, preserve existing canonical and
+fragment parameters, and test all score/derivative/packing/minimization paths.
+An input distance or inherited hydrogen frame alone is not independently validated
+equilibrium geometry; the source of the generated link parameters must be explicit.
+Do not replace this gate with a zero-gradient check or a frozen-link workaround.
