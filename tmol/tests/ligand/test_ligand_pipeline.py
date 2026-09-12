@@ -104,7 +104,7 @@ class TestFullPipeline:
         ligands = detect_nonstandard_residues(
             cif_184l_with_i4b, canonical_ordering_for_biotite()
         )
-        i4b = next(l for l in ligands if l.res_name == "I4B")
+        i4b = next(ligand for ligand in ligands if ligand.res_name == "I4B")
         prep = _prepare_ligand_via_smiles(i4b, ph=7.4)
 
         n_before = len(param_db.chemical.residues)
@@ -394,31 +394,22 @@ class TestCovalentDetection:
         )
         return atoms, chem_comp_types_from_cif(self._GLYCAN_CIF)
 
-    def test_polymer_linking_residue_spatial_fallback_retained(self) -> None:
-        """Glycans (saccharides) are still flagged via the spatial fallback.
-
-        A glycan is a branched entity rather than a polymer one, so the file
-        does not number it along a sequence; the type it declares is what says
-        it links.
-        """
+    def test_polymer_contacts_require_an_explicit_bond(self) -> None:
+        """A linking component type does not make a close contact covalent."""
         atoms, declared = self._glycan()
         assert declared == {"NAG": "D-SACCHARIDE, BETA LINKING"}
-
-        linked = _residue_names_with_cross_residue_bonds(
-            atoms, chem_comp_types=declared
-        )
-        assert "NAG" in linked
-
-    def test_proximity_alone_flags_nothing(self) -> None:
-        """Nothing is inferred from proximity where the input declares nothing.
-
-        The spatial pass exists for a file whose linkages are not in its bond
-        table, and it is gated because a binding-pocket contact sits at the same
-        distance as a covalent bond. Reading the same atoms without the types
-        the file declares leaves nothing to gate it on, and nothing is claimed.
-        """
-        atoms, _declared = self._glycan()
         assert _residue_names_with_cross_residue_bonds(atoms) == frozenset()
+        starts = struc.get_residue_starts(atoms, add_exclusive_stop=True)
+        first = next(
+            i for i in range(starts[0], starts[1]) if atoms.atom_name[i] == "C1"
+        )
+        second = next(
+            i for i in range(starts[1], starts[2]) if atoms.atom_name[i] == "O4"
+        )
+        atoms.bonds.add_bond(first, second, struc.BondType.SINGLE)
+        assert _residue_names_with_cross_residue_bonds(atoms) == frozenset({"NAG"})
+        atoms.coord[:] = 0
+        assert _residue_names_with_cross_residue_bonds(atoms) == frozenset({"NAG"})
 
 
 _YANJING_BTN_DIR = Path(

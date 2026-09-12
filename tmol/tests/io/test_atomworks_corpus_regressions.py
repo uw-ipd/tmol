@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import numpy as np
+import biotite.structure as struc
 import biotite.structure.io.pdbx as pdbx
 import pytest
 import torch
@@ -18,28 +19,112 @@ from tmol.score import beta2016_score_function
 DATA = Path(__file__).parents[1] / "data" / "atomworks_regressions"
 
 
-def test_macrocycle_cap_prepares_without_renaming_its_reference_frame():
+def test_terminal_nucleoside_keeps_its_backbone_and_minimizes(torch_device):
+    pose, context = pose_stack_from_cif(
+        DATA / "terminal_nucleotide_145d.cif",
+        torch_device,
+        prepare_ligands=True,
+        ligand_seed=20260909,
+        no_optH=True,
+        return_context=True,
+    )
+    assert int((pose.block_type_ind >= 0).sum()) == 24
+    types = [
+        pose.packed_block_types.active_block_types[int(i)]
+        for i in pose.block_type_ind[0]
+    ]
+    assert all(bt.properties.polymer.backbone_type == "dna" for bt in types)
+    assert types[0].name == "MCY:na5prime"
+    # Four six-residue strands: proximity between strands adds no conjugations.
+    assert int((pose.inter_residue_connections[..., 0] >= 0).sum()) == 40
+    assert not any("conj_" in bt.name for bt in types)
+    _score_and_minimize(pose, context)
+
+
+def _score_and_minimize(pose, context):
+    from tmol.optimization import CartesianSfxnNetwork, LBFGS_Armijo
+
+    assert torch.isfinite(pose.coords[pose.real_atoms]).all()
+    score = beta2016_score_function(pose.device, param_db=context.parameter_database)
+    network = CartesianSfxnNetwork(score, pose)
+    initial = network().detach()
+    optimizer = LBFGS_Armijo(
+        network.parameters(), max_iter=10, segment_ids=network.segment_ids
+    )
+
+    def closure():
+        optimizer.zero_grad()
+        energy = network()
+        energy.sum().backward()
+        assert torch.isfinite(energy).all()
+        assert torch.isfinite(network.masked_coords.grad).all()
+        return energy
+
+    optimizer.step(closure)
+    assert torch.all(closure().detach() < initial)
+    return initial
+
+
+@pytest.mark.parametrize("reader", ["tmol", "atomworks"])
+def test_macrocycle_preserves_every_bond_across_residue_order(reader, torch_device):
     from tmol.io import build_context_from_biotite, pose_stack_from_biotite
 
-    array = atom_array_from_cif(DATA / "macrocycle_1xvk.cif")
-    # Free magnesium is outside this organic-topology regression's scope.
-    array = array[np.char.upper(array.element) != "MG"]
+    array = atom_array_from_cif(DATA / "macrocycle_1xvk.cif", reader=reader)
+    # Free magnesium is deferred; waters follow the constructor's usual policy.
+    array = array[(np.char.upper(array.element) != "MG") & (array.res_name != "HOH")]
     context = build_context_from_biotite(
-        array, torch.device("cpu"), prepare_ligands=True, ligand_seed=20260909
+        array, torch_device, prepare_ligands=True, ligand_seed=20260909
     )
     residue = next(r for r in context.restype_set.residue_types if r.name == "QUI")
     assert {"N1", "C2", "O1"} <= set(residue.atom_to_idx)
     assert np.isfinite(residue.compute_ideal_coords()).all()
-    # Preparation now succeeds; the remaining port/chain classification must
-    # identify the affected residues rather than emit an empty candidate error.
-    with pytest.raises(RuntimeError) as error:
-        pose_stack_from_biotite(
-            array, torch.device("cpu"), context=context, no_optH=True
+    starts = struc.get_residue_starts(array, add_exclusive_stop=True)
+    assert len(starts) - 1 == 18
+    atom_res = np.repeat(np.arange(18), np.diff(starts))
+    expected = {
+        frozenset(
+            (
+                (int(atom_res[a]), str(array.atom_name[a])),
+                (int(atom_res[b]), str(array.atom_name[b])),
+            )
         )
-    message = str(error.value)
-    assert "No block type candidates for pose=0 residue=11 MVA" in message
-    assert "No block type candidates for pose=0 residue=17 QUI" in message
-    assert "prepared polymer connections" in message
+        for a, b, _ in array.bonds.as_array()
+        if atom_res[a] != atom_res[b]
+    }
+    assert len(expected) == 18
+    energies = []
+    for order in (np.arange(18), np.arange(18)[::-1]):
+        indices = np.concatenate([np.arange(starts[i], starts[i + 1]) for i in order])
+        pose = pose_stack_from_biotite(
+            array[indices], torch_device, context=context, no_optH=True
+        )
+        types = [
+            pose.packed_block_types.active_block_types[int(i)]
+            for i in pose.block_type_ind[0]
+        ]
+        actual = set()
+        for block, connections in enumerate(
+            pose.inter_residue_connections[0].cpu().tolist()
+        ):
+            for conn, (partner, port) in enumerate(connections):
+                if partner >= 0:
+                    actual.add(
+                        frozenset(
+                            (
+                                (
+                                    int(order[block]),
+                                    types[block].connections[conn].atom,
+                                ),
+                                (
+                                    int(order[partner]),
+                                    types[partner].connections[port].atom,
+                                ),
+                            )
+                        )
+                    )
+        assert actual == expected
+        energies.append(_score_and_minimize(pose, context))
+    torch.testing.assert_close(energies[0], energies[1], atol=0.002, rtol=1e-5)
 
 
 def test_unknown_heavy_atom_is_not_silently_deleted():

@@ -289,10 +289,11 @@ def test_reference_bundle_version_and_roundtrip(tmp_path, default_database, in_p
         )
     path = tmp_path / "refs.tmol"
     write_params_file(prep, path, format="tmol")
-    assert yaml.safe_load(path.read_text())["version"] == "3.0"
+    assert yaml.safe_load(path.read_text())["version"] == "5.0"
     loaded = load_params_file(path)[0]
     assert loaded.residue_type.atoms == prep.residue_type.atoms
     assert loaded.adds_patches == prep.adds_patches
+    assert loaded.atom_type_elements == prep.atom_type_elements
     with pytest.raises(ValueError, match="cannot preserve genbonded_type"):
         write_params_file(prep, tmp_path / "refs.params", format="rosetta")
     assert not (tmp_path / "refs.params").exists()

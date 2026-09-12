@@ -63,5 +63,14 @@
     "transformation": "gzip decompression only",
     "sha256": "45817c082d2ed97a519d0e15530658c7d48e6291ae9492ff38f663d60d2e94a7",
     "bytes": 134935
+  },
+  {
+    "fixture": "terminal_nucleotide_145d.cif",
+    "source": "https://files.rcsb.org/download/145D.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO tests",
+    "retrieved": "2026-09-12",
+    "transformation": "gzip decompression only",
+    "sha256": "9b0821b2d3ac56ff21b6fdb558013f17b3468019105c0ee0ef3681087c4dee66",
+    "bytes": 125361
   }
 ]

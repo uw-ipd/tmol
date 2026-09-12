@@ -177,13 +177,14 @@ def atom_array_from_cif(
             cannot be read, so unresolved atoms are not added either.
         extra_fields: Further ``atom_site`` columns to keep, alongside the
             ``label_entity_id`` this always reads.
-        reader: ``"tmol"`` preserves author identifiers and supports file-only
-            chemistry. ``"atomworks"`` uses the optional ``tmol[atomworks]``
-            dependency for parsing, bond sanitation and NaN completion, with
-            AtomWorks' label identifiers and alternate-location selection.
-            It also supports compressed and binary CIF. That route requires
+        reader: Both bonded routes use AtomWorks parsing and bond sanitation.
+            ``"tmol"`` restores author identifiers and applies tmol's legacy
+            completion policy. ``"atomworks"`` uses label identifiers and
+            AtomWorks NaN completion. Both rebuild supplied hydrogens except
+            observed histidine ring protons used for tautomer selection.
+            AtomWorks also supports compressed and binary CIF. Its label route requires
             ``use_ccd=True`` and ``include_bonds=True``; extra fields are not
-            supported across the released AtomWorks completion API.
+            supported across the AtomWorks completion API.
 
     Returns:
         A biotite AtomArray.
@@ -196,17 +197,24 @@ def atom_array_from_cif(
             )
         from tmol.io._atomworks_reader import read_cif
 
-        return read_cif(cif_path, model=model)
+        return read_cif(cif_path, model=model)[0]
     if reader != "tmol":
         raise ValueError(f"Unknown CIF reader {reader!r}; choose 'tmol' or 'atomworks'")
-    cif = pdbx.CIFFile.read(str(cif_path))
-    block = cif[next(iter(cif.keys()))]
-    fields = ["label_entity_id", *(extra_fields or [])]
-    array = pdbx.get_structure(
-        cif, model=model, include_bonds=include_bonds, extra_fields=fields
-    )
-    if isinstance(array, struc.AtomArrayStack):
-        array = array[0]
+    if include_bonds:
+        from tmol.io._atomworks_reader import read_cif
+
+        array, block = read_cif(
+            cif_path, model=model, author_fields=True, extra_fields=extra_fields
+        )
+    else:
+        cif = pdbx.CIFFile.read(str(cif_path))
+        block = cif[next(iter(cif.keys()))]
+        array = pdbx.get_structure(
+            cif,
+            model=model,
+            include_bonds=False,
+            extra_fields=["label_entity_id", *(extra_fields or [])],
+        )
     array = _with_polymer_entity_flag(array, block)
     array = _with_component_type_annotation(array, block)
     if not include_bonds:

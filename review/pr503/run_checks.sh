@@ -19,19 +19,8 @@ python -m pytest -v --tb=short --durations=20 --junitxml="$results/tests.xml" \
     tmol/tests/ligand \
     tmol/tests/test_covalent_components.py \
     tmol/tests/test_cyclic_peptide.py \
-    tmol/tests/io/test_cif_completion.py \
-    tmol/tests/io/test_atomworks_reader.py \
-    tmol/tests/io/test_model_input_tutorial.py \
-    tmol/tests/io/test_atomworks_corpus_regressions.py \
-    tmol/tests/io/test_filtered_covalent_partners.py \
-    tmol/tests/io/test_pose_stack_from_biotite.py \
-    tmol/tests/io/details/test_cyclic_search.py \
-    tmol/tests/io/details/test_build_missing_leaf_atoms.py \
-    tmol/tests/io/details/test_find_disulfides.py \
-    tmol/tests/io/details/test_his_taut_resolution.py \
-    tmol/tests/io/details/test_atomworks_histidine_parity.py \
-    tmol/tests/io/details/test_left_justify_canonical_form.py \
-    tmol/tests/io/details/test_select_from_canonical.py \
+    tmol/tests/io \
+    tmol/tests/chemical/test_patch.py \
     tmol/tests/kinematics/test_fold_forest.py \
     tmol/tests/pose/test_util.py \
     tmol/tests/pack/test_conjugated_group_packing.py \
@@ -46,7 +35,7 @@ python -m pytest -v --tb=short --durations=20 --junitxml="$results/tests.xml" \
     tmol/tests/score/test_torsion_ownership.py \
     tmol/tests/score/backbone_torsion/test_mirrored_tables.py \
     tmol/tests/score/backbone_torsion/test_symmetric_gly.py \
-    tmol/tests/score/genbonded/test_genbonded_energy_term.py \
+    tmol/tests/score/genbonded \
     tmol/tests/score/cartbonded \
     tmol/tests/score/disulfide
 status=$?

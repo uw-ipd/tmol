@@ -523,10 +523,12 @@ def _template_array(structure):
     return structure
 
 
-def _covalent_bonds_for_poses(bonds, n_poses, torch_device):
-    """Stamp one [res1, atom1, res2, atom2] table with each pose's index."""
+def _bonds_for_poses(bonds, n_poses, torch_device):
+    """Prefix each bond row with its pose index."""
     if bonds.shape[0] == 0:
-        return torch.zeros((0, 5), dtype=torch.int64, device=torch_device)
+        return torch.zeros(
+            (0, bonds.shape[1] + 1), dtype=torch.int64, device=torch_device
+        )
     repeated = numpy.tile(bonds, (n_poses, 1))
     pose_column = numpy.repeat(numpy.arange(n_poses), bonds.shape[0])
     return torch.tensor(
@@ -539,26 +541,24 @@ def _covalent_bonds_for_poses(bonds, n_poses, torch_device):
 def _covalent_bonds_from_biotite(
     array, co, atom_res_inds, restype_for_res, valid_atom_mask, valid_atom_inds
 ):
-    """Cross-residue bonds the input declares that no other channel carries.
+    """Declared cross-residue bonds, including nonsequential polymer links.
 
-    Backbone links and disulfides are left out: the first reach the pose
-    through the sequential connection logic, the second through
-    find_disulfides. Both are recognized from the canonical ordering rather
-    than by atom name, so a modified residue's backbone is excluded too.
+    Disulfides use the dedicated variant-selection channel, preserving declared
+    bonds even when the sulfur coordinates are unresolved or far apart.
     """
     if array.bonds is None:
-        return numpy.zeros((0, 4), dtype=numpy.int64)
+        return numpy.zeros((0, 4), dtype=numpy.int64), numpy.zeros(
+            (0, 2), dtype=numpy.int64
+        )
 
     atom_canonical_ind = numpy.full(array.array_length(), -1, dtype=numpy.int64)
     atom_canonical_ind[valid_atom_mask] = valid_atom_inds
 
-    conn_inds = co.polymer_conn_inds
-    down_atom = numpy.array(conn_inds.down_atom_for_co_restype, dtype=numpy.int64)
-    up_atom = numpy.array(conn_inds.up_atom_for_co_restype, dtype=numpy.int64)
     cys_classes = frozenset(co.cys_inds.cys_co_aa_inds)
     sg_atom = co.cys_inds.sg_atom_for_co_cys
 
     found = []
+    disulfides = []
     for atom1, atom2, _order in array.bonds.as_array():
         res1, res2 = int(atom_res_inds[atom1]), int(atom_res_inds[atom2])
         if res1 == res2:
@@ -568,25 +568,22 @@ def _covalent_bonds_from_biotite(
         if canonical1 < 0 or canonical2 < 0:
             continue
         restype1, restype2 = restype_for_res[res1], restype_for_res[res2]
-        is_backbone = (
-            canonical1 == up_atom[restype1] and canonical2 == down_atom[restype2]
-        ) or (canonical2 == up_atom[restype2] and canonical1 == down_atom[restype1])
-        if is_backbone:
-            continue
         if (
             canonical1 == sg_atom
             and canonical2 == sg_atom
             and restype1 in cys_classes
             and restype2 in cys_classes
         ):
+            disulfides.append(tuple(sorted((res1, res2))))
             continue
         if res1 > res2:
             res1, canonical1, res2, canonical2 = res2, canonical2, res1, canonical1
         found.append((res1, canonical1, res2, canonical2))
 
-    if not found:
-        return numpy.zeros((0, 4), dtype=numpy.int64)
-    return numpy.array(sorted(set(found)), dtype=numpy.int64)
+    return (
+        numpy.array(sorted(set(found)), dtype=numpy.int64).reshape(-1, 4),
+        numpy.array(sorted(set(disulfides)), dtype=numpy.int64).reshape(-1, 2),
+    )
 
 
 def _res_names_for_structure(
@@ -991,7 +988,7 @@ def canonical_form_from_biotite(
             - chain_labels: Original chain identifiers from the structure
             - atom_occupancy: Optional tensor of atom occupancy values
             - atom_b_factor: Optional tensor of atom B-factor values
-            - disulfides: None (not handled in this conversion)
+            - disulfides: Explicit cysteine sulfur bonds, including unresolved SG
             - res_not_connected: Tensor describing whether two consecutive residues
               should be treated as chemically bonded.
 
@@ -1027,7 +1024,7 @@ def canonical_form_from_biotite(
         biotite_name_for_atom,
         biotite_structure.element,
     )
-    covalent_bonds_np = _covalent_bonds_from_biotite(
+    covalent_bonds_np, disulfides_np = _covalent_bonds_from_biotite(
         _template_array(biotite_structure),
         co,
         atom_res_inds,
@@ -1106,11 +1103,9 @@ def canonical_form_from_biotite(
         residue_insertion_codes=biotite_insertion_codes.astype(object),
         atom_occupancy=biotite_occupancy,
         atom_b_factor=biotite_b_factors,
-        disulfides=None,
+        disulfides=_bonds_for_poses(disulfides_np, n_poses, torch_device),
         res_not_connected=res_not_connected,
-        covalent_bonds=_covalent_bonds_for_poses(
-            covalent_bonds_np, n_poses, torch_device
-        ),
+        covalent_bonds=_bonds_for_poses(covalent_bonds_np, n_poses, torch_device),
     )
 
 

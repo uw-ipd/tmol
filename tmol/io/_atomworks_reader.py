@@ -9,11 +9,17 @@ from atomworks.io.config import ParseConfig
 from atomworks.io.parser import parse
 
 
-def read_cif(path, *, model=1):
+def read_cif(path, *, model=1, author_fields=False, extra_fields=None):
+    """Parse bonds before selecting author identifiers; return atoms and CIF data.
+
+    Author identifiers are restored on observed atoms before tmol's legacy
+    completion policy runs. Label identifiers use AtomWorks completion directly.
+    """
     if model is None or model < 1:
         raise ValueError("The AtomWorks CIF reader requires a positive model number")
     options = dict(
         model=model,
+        add_missing_atoms=not author_fields,
         build_assembly=None,
         remove_ccds=[],
         remove_waters=False,
@@ -25,6 +31,18 @@ def read_cif(path, *, model=1):
         add_id_and_entity_annotations=False,
         keep_cif_block=True,
     )
+    author_annotations = {
+        "atom_name": "auth_atom_id",
+        "res_name": "auth_comp_id",
+        "chain_id": "auth_asym_id",
+        "res_id": "auth_seq_id",
+    }
+    if author_fields:
+        options["extra_fields"] = list(
+            dict.fromkeys(
+                [*author_annotations.values(), "label_entity_id", *(extra_fields or [])]
+            )
+        )
     result = parse(
         path,
         config=ParseConfig(
@@ -36,6 +54,24 @@ def read_cif(path, *, model=1):
     array = result["asym_unit"]
     if array.coord.ndim == 3:
         array = array[0]
+    block = result["cif_block"]
+    if author_fields:
+        for target, source in author_annotations.items():
+            if source in array.get_annotation_categories():
+                array.set_annotation(target, array.get_annotation(source).copy())
+        retained = {
+            "chain_id",
+            "res_id",
+            "ins_code",
+            "res_name",
+            "hetero",
+            "atom_name",
+            "element",
+            "label_entity_id",
+            *(extra_fields or []),
+        }
+        for name in set(array.get_annotation_categories()) - retained:
+            array.del_annotation(name)
     is_h = np.isin(np.char.upper(array.element), ["H", "D"])
     observed_his_h = (
         np.isin(array.res_name, ["HIS", "HIS_D", "DHIS"])
@@ -43,13 +79,13 @@ def read_cif(path, *, model=1):
         & np.isfinite(array.coord).all(axis=-1)
     )
     array = array[~is_h | observed_his_h]
-    block = result["cif_block"]
-    _check_observed_heavy_atom_names(block, array, model)
+    if not author_fields:
+        _check_observed_heavy_atom_names(block, array, model)
 
     # Consume chemical types from the already parsed category.
     from tmol.io._cif import _with_component_type_annotation
 
-    return _with_component_type_annotation(array, block)
+    return _with_component_type_annotation(array, block), block
 
 
 def _check_observed_heavy_atom_names(block, array, model):

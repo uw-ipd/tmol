@@ -510,11 +510,10 @@ def pattern_namemaps(variant, resgraph, patchgraph, res=None):
         ):
             return []
         return [namemap]
-    atoms_match = (
-        lambda x, y: ("element" not in y)
-        or ("element" not in x)
-        or x["element"] == y["element"]
-    )
+
+    def atoms_match(x, y):
+        return "element" not in y or "element" not in x or x["element"] == y["element"]
+
     gm = iso.GraphMatcher(resgraph, patchgraph, node_match=atoms_match)
     _added, modded, _deleted = get_modified_atoms(variant)
 
@@ -528,6 +527,32 @@ def pattern_namemaps(variant, resgraph, patchgraph, res=None):
             unique.append(mod_i)
             namemaps.append(namemap)
     return namemaps
+
+
+def _patch_preserves_torsion_support(res, variant, namemap, deleted):
+    """A combination must retain the references of its connected torsions."""
+    atoms = ({a.name for a in res.atoms} - set(deleted)) | {
+        a.name for a in variant.add_atoms
+    }
+    connections = ({c.name for c in res.connections} - set(deleted)) | {
+        c.name for c in variant.add_connections
+    }
+    for torsion in variant.add_torsions:
+        for ref in (torsion.a, torsion.b, torsion.c, torsion.d):
+            if ref.atom is not None and namemap.get(ref.atom, ref.atom) not in atoms:
+                return False
+            if (
+                ref.connection is not None
+                and namemap.get(ref.connection, ref.connection) not in connections
+            ):
+                return False
+    for torsion in res.torsions:
+        refs = (torsion.a, torsion.b, torsion.c, torsion.d)
+        if any(ref.connection in connections for ref in refs) and any(
+            ref.atom is not None and ref.atom not in atoms for ref in refs
+        ):
+            return False
+    return True
 
 
 # apply a patch to a rawresidue
@@ -572,6 +597,9 @@ def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
 
         # 0. check if we've already modified any of these atoms
         if set(modded) & set(newmark):
+            continue
+
+        if not _patch_preserves_torsion_support(res, variant, namemap, deleted):
             continue
 
         newres = attr.evolve(res, name=res.name + ":" + variant.display_name)

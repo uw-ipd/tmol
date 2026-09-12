@@ -659,9 +659,7 @@ def detect_nonstandard_residues(
     results: list[NonStandardResidueInfo] = []
     polymer_names = polymer_entity_residues(atom_array)
 
-    cross_residue_atoms, cross_residue_partners = _cross_residue_bond_atoms(
-        atom_array, chem_comp_types=chem_comp_types
-    )
+    cross_residue_atoms, cross_residue_partners = _cross_residue_bond_atoms(atom_array)
     covalently_linked_names = frozenset(
         res_name for _chain, _res_id, res_name in cross_residue_atoms
     )
@@ -860,10 +858,8 @@ def polymer_entity_residues(atom_array: struc.AtomArray) -> Optional[frozenset[s
     return frozenset(str(n).strip() for n in names[numbered])
 
 
-def _cross_residue_bond_atoms(  # noqa: C901
+def _cross_residue_bond_atoms(
     atom_array: struc.AtomArray,
-    spatial_cutoff: float = 1.8,
-    chem_comp_types: Optional[dict] = None,
 ) -> tuple[dict[tuple, frozenset[str]], dict[tuple, dict[str, frozenset[tuple]]]]:
     """Atoms of each residue instance that bond to a different residue.
 
@@ -881,17 +877,10 @@ def _cross_residue_bond_atoms(  # noqa: C901
     chain) also count as cross-residue bonds. Used to flag ligands that are
     covalently attached to a polymer or to other ligand instances.
 
-    Detection runs two passes:
-    1. Explicit bonds in ``atom_array.bonds`` (if present). Authoritative for
-       any residue type.
-    2. Heavy-atom spatial proximity within ``spatial_cutoff`` Å. This catches
-       covalent attachments missing from the bond table for residues the input
-       file places in a polymer entity (modified amino acids/nucleotides,
-       glycans) when files lack ``_struct_conn`` records. Non-polymer ligands
-       are deliberately *not* flagged by proximity: tight binding-pocket
-       contacts, hydrogen bonds, and clashes in unminimized models routinely
-       fall below a covalent-bond distance and would otherwise be misread as
-       covalent attachments and silently discarded.
+    Use the supplied bond graph, independent of coordinates and component type.
+    Readers own polymer/link inference. Preparation must not turn close contacts
+    into covalent links or generate unused conjugation types from those contacts.
+    Supply explicit connectivity before preparation when a file omits link data.
     """
     chain_ids = atom_array.chain_id if hasattr(atom_array, "chain_id") else None
     res_ids = atom_array.res_id
@@ -933,34 +922,6 @@ def _cross_residue_bond_atoms(  # noqa: C901
                 _record(a, b)
                 _record(b, a)
 
-    polymer_names = polymer_entity_residues(atom_array)
-
-    def _is_polymer(name: str) -> bool:
-        if polymer_names is not None:
-            return name in polymer_names
-        return is_polymer_linking_component_type(
-            get_chem_comp_type(name, chem_comp_types)
-        )
-
-    if len(atom_array) > 1:
-        # an atom the structure did not resolve has no position to be near
-        heavy_mask = (np.char.strip(atom_array.element.astype(str)) != "H") & ~np.isnan(
-            atom_array.coord
-        ).any(axis=-1)
-        if heavy_mask.any():
-            from scipy.spatial import cKDTree
-
-            heavy_indices = np.nonzero(heavy_mask)[0]
-            tree = cKDTree(atom_array.coord[heavy_mask])
-            for i, j in tree.query_pairs(spatial_cutoff, output_type="ndarray"):
-                a = int(heavy_indices[i])
-                b = int(heavy_indices[j])
-                if not _spans_residues(a, b):
-                    continue
-                for idx, other in ((a, b), (b, a)):
-                    if _is_polymer(res_names[idx].strip()):
-                        _record(idx, other)
-
     return (
         {key: frozenset(names) for key, names in linked.items()},
         {
@@ -972,13 +933,9 @@ def _cross_residue_bond_atoms(  # noqa: C901
 
 def _residue_names_with_cross_residue_bonds(
     atom_array: struc.AtomArray,
-    spatial_cutoff: float = 1.8,
-    chem_comp_types: Optional[dict] = None,
 ) -> frozenset[str]:
     """Names of the residues that have at least one bond to a different residue."""
     return frozenset(
         res_name
-        for _chain, _res_id, res_name in _cross_residue_bond_atoms(
-            atom_array, spatial_cutoff, chem_comp_types
-        )[0]
+        for _chain, _res_id, res_name in _cross_residue_bond_atoms(atom_array)[0]
     )

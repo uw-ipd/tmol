@@ -1037,12 +1037,12 @@ def profile_for_atom_array(
     # a sugar has no backbone; its attachments carry its topology instead
     if is_carbohydrate(atom_array, connection_atoms):
         return None
+    # Recognize the sugar before peptide end completion: a terminal nucleotide
+    # can carry a base amine that is unrelated to its polymer backbone.
+    kind = na_backbone_kind(atom_array, connection_atoms)
+    if kind is not None:
+        return na_profile(chemdb, kind)
     if connection_atoms and len(connection_atoms) == 1:
-        # a nucleotide seen only at a 5' terminus has one connection and no
-        #    phosphate, which is a chain member rather than a cap
-        completed = completed_connection_atoms(atom_array, connection_atoms)
-        if na_backbone_kind(atom_array, completed) is not None:
-            return na_profile(chemdb, na_backbone_kind(atom_array, completed))
         known = next(iter(connection_atoms))
         # nothing to continue the chain with: this residue terminates it
         if not _chain_end_candidates(atom_array, known):
@@ -1050,9 +1050,6 @@ def profile_for_atom_array(
     connection_atoms = completed_connection_atoms(atom_array, connection_atoms)
     if alpha_backbone_atoms(atom_array, connection_atoms) is not None:
         return alpha_profile(chemdb)
-    kind = na_backbone_kind(atom_array, connection_atoms)
-    if kind is not None:
-        return na_profile(chemdb, kind)
     path = mainchain_path(atom_array, connection_atoms)
     if path is not None and len(path) >= 3:
         _adj, _double, element = _heavy_adjacency(atom_array)

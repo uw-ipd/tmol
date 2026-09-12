@@ -3,11 +3,47 @@
 import biotite.structure as struc
 import numpy as np
 import pytest
+import torch
 
 from tmol.io._pose_stack_from_biotite import (
     _filter_supported_atoms_and_connectivity,
     canonical_ordering_for_biotite,
 )
+
+
+@pytest.mark.parametrize("unresolved", [False, True])
+def test_declared_disulfide_survives_missing_or_distant_sulfur(
+    unresolved, torch_device
+):
+    from biotite.structure.info import residue
+    from tmol.io import pose_stack_from_biotite
+    from tmol.score import beta2016_score_function
+
+    first = residue("CYS")
+    first = first[first.element != "H"]
+    first.chain_id[:] = "A"
+    second = first.copy()
+    second.chain_id[:] = "B"
+    second.coord += 15
+    array = first + second
+    sulfur = np.flatnonzero(array.atom_name == "SG")
+    array.bonds.add_bond(*sulfur, struc.BondType.SINGLE)
+    if unresolved:
+        array.coord[sulfur[1]] = np.nan
+    pose = pose_stack_from_biotite(array, torch_device, no_optH=True)
+    assert int((pose.inter_residue_connections[..., 0] >= 0).sum()) == 2
+    types = [
+        pose.packed_block_types.active_block_types[int(i)]
+        for i in pose.block_type_ind[0]
+    ]
+    assert all(bt.base_name == "CYD" and "HG" not in bt.atom_to_idx for bt in types)
+    coords = pose.coords.detach().clone().requires_grad_()
+    energy = beta2016_score_function(torch_device).render_whole_pose_scoring_module(
+        pose
+    )(coords)
+    energy.sum().backward()
+    assert torch.isfinite(energy).all()
+    assert torch.isfinite(coords.grad).all()
 
 
 def cysteine_pair(bond, *, chains=("A", "A"), missing=True):

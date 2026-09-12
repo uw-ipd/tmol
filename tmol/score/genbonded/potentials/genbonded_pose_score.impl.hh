@@ -43,11 +43,6 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 // Must match MAX_HIER_DEPTH in genbonded_energy_term.py.
 #define GB_MAX_HIER_DEPTH 4
 
-// Bond-type encoding for the central bond in inter-block torsion hash keys.
-// 0 = wildcard ('~') — matches any bond type.
-// Must match BOND_CHAR_TO_INT["~"] in genbonded_energy_term.py.
-#define GB_BOND_WILDCARD 0
-
 // ---------------------------------------------------------------------------
 // Helper: convert block-local atom indices to global rot_coord indices.
 // Entries that are -1 (sentinels for missing atoms) are preserved as -1.
@@ -87,64 +82,30 @@ TMOL_DEVICE_FUNC void accumulate_torsion_result(
 }
 
 // ---------------------------------------------------------------------------
-// inter_block_torsion_lookup
-//
-// Given atom-type hierarchy indices for 4 atoms (each a Vec<Int,3> of
-// hierarchy levels from most specific to least specific), and the bond type
-// integer for the central bond, try all GB_MAX_HIER_DEPTH^4 combinations and
-// return the best (lowest total hierarchy score) matching entry.
-//
-// For each combination, the specific bond type is tried first; if not found
-// and bond_type_int is not already wildcard (GB_BOND_WILDCARD=0), the lookup
-// is retried with the wildcard key.
-//
-// hash_keys layout: Vec<Int,6> = [t1, t2, t3, t4, bond_type, val_idx]
-// This matches hash_lookup<Int, 5, D>.
-//
-// Returns val_idx >= 0 if a match was found, -1 otherwise.
-// ---------------------------------------------------------------------------
+// Parameter indices are ranked by database multiplicity and source order.
+// Both directions and concrete bond bins are already in the shared CPU index.
 template <typename Int, tmol::Device D>
 TMOL_DEVICE_FUNC int inter_block_torsion_lookup(
     Vec<Int, GB_MAX_HIER_DEPTH> h1,
     Vec<Int, GB_MAX_HIER_DEPTH> h2,
     Vec<Int, GB_MAX_HIER_DEPTH> h3,
     Vec<Int, GB_MAX_HIER_DEPTH> h4,
-    Int bond_type_int,
+    Int bond_bin,
     TView<Vec<Int, 6>, 1, D> hash_keys) {
-  int best_val_idx = -1;
-  int best_score = 999;
-
-  for (int i = 0; i < GB_MAX_HIER_DEPTH && h1[i] != -1; i++) {
-    for (int j = 0; j < GB_MAX_HIER_DEPTH && h2[j] != -1; j++) {
-      for (int k = 0; k < GB_MAX_HIER_DEPTH && h3[k] != -1; k++) {
-        for (int l = 0; l < GB_MAX_HIER_DEPTH && h4[l] != -1; l++) {
-          int const score = i + j + k + l;
-          if (score >= best_score) continue;
-
-          Vec<Int, 5> key;
-          key[0] = h1[i];
-          key[1] = h2[j];
-          key[2] = h3[k];
-          key[3] = h4[l];
-          key[4] = bond_type_int;
-
-          int val_idx = hash_lookup<Int, 5, D>(key, hash_keys);
-
-          // If specific bond type not found, retry with wildcard.
-          if (val_idx < 0 && bond_type_int != GB_BOND_WILDCARD) {
-            key[4] = GB_BOND_WILDCARD;
-            val_idx = hash_lookup<Int, 5, D>(key, hash_keys);
-          }
-
-          if (val_idx >= 0 && score < best_score) {
-            best_score = score;
-            best_val_idx = val_idx;
-          }
+  int best = -1;
+  for (int i = 0; i < GB_MAX_HIER_DEPTH && h1[i] != -1; ++i) {
+    for (int j = 0; j < GB_MAX_HIER_DEPTH && h2[j] != -1; ++j) {
+      for (int k = 0; k < GB_MAX_HIER_DEPTH && h3[k] != -1; ++k) {
+        for (int l = 0; l < GB_MAX_HIER_DEPTH && h4[l] != -1; ++l) {
+          Vec<Int, 5> key = {h1[i], h2[j], h3[k], h4[l], bond_bin};
+          int value = hash_lookup<Int, 5, D>(key, hash_keys);
+          if (value >= 0 && (best < 0 || value < best)) best = value;
+          if (best == 0) return best;
         }
       }
     }
   }
-  return best_val_idx;
+  return best;
 }
 
 template <typename Int, tmol::Device D>
@@ -295,6 +256,8 @@ TMOL_DEVICE_FUNC int inter_block_torsion_parameter(
     Int coord_offset1,
     Int coord_offset2,
     Int bond_type,
+    Int local_bond_type1,
+    Int local_bond_type2,
     bool conn_claimed,
     TView<Vec<Int, 4>, 2, D> atom_type_hierarchy,
     TView<Int, 2, D> atom_is_rosetta,
@@ -401,7 +364,7 @@ TMOL_DEVICE_FUNC int inter_block_torsion_parameter(
       hierarchy[1],
       hierarchy[2],
       hierarchy[3],
-      bond_type,
+      len_a == 3 ? local_bond_type1 : (len_b == 3 ? local_bond_type2 : bond_type),
       torsion_hash_keys);
 }
 
@@ -436,7 +399,7 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::forward(
     TView<Vec<Real, 5>, 1, D> gen_intra_params,
     TView<Vec<Int, 4>, 2, D> gen_atom_type_hierarchy,
     TView<Int, 2, D> gen_atom_is_rosetta,
-    TView<Int, 2, D> gen_connection_bond_types,
+    TView<Int, 3, D> gen_connection_bond_bins,
     TView<Int, 2, D> gen_conn_scored_elsewhere,
     TView<Int, 2, D> gen_source_atom_index,
     TView<Int, 1, D> gen_source_block_type_index,
@@ -597,7 +560,7 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::forward(
 
       // Bond type of the central inter-block bond (from block1's connection).
       Int const bond_type_int =
-          gen_connection_bond_types[block_type1][conn_ind1];
+          gen_connection_bond_bins[block_type1][conn_ind1][0];
       bool const conn_claimed =
           gen_conn_scored_elsewhere[block_type1][conn_ind1]
           || gen_conn_scored_elsewhere[block_type2][conn_ind2];
@@ -637,6 +600,8 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::forward(
               rot_coord_offset1,
               rot_coord_offset2,
               bond_type_int,
+              gen_connection_bond_bins[block_type1][conn_ind1][path_A_idx + 1],
+              gen_connection_bond_bins[block_type2][conn_ind2][path_B_idx + 1],
               conn_claimed,
               gen_atom_type_hierarchy,
               gen_atom_is_rosetta,
@@ -749,7 +714,7 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::backward(
     TView<Vec<Real, 5>, 1, D> gen_intra_params,
     TView<Vec<Int, 4>, 2, D> gen_atom_type_hierarchy,
     TView<Int, 2, D> gen_atom_is_rosetta,
-    TView<Int, 2, D> gen_connection_bond_types,
+    TView<Int, 3, D> gen_connection_bond_bins,
     TView<Int, 2, D> gen_conn_scored_elsewhere,
     TView<Int, 2, D> gen_source_atom_index,
     TView<Int, 1, D> gen_source_block_type_index,
@@ -881,7 +846,7 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::backward(
       int const rot_coord_offset2 = rot_coord_offset[rot_ind2];
 
       Int const bond_type_int =
-          gen_connection_bond_types[block_type1][conn_ind1];
+          gen_connection_bond_bins[block_type1][conn_ind1][0];
       bool const conn_claimed =
           gen_conn_scored_elsewhere[block_type1][conn_ind1]
           || gen_conn_scored_elsewhere[block_type2][conn_ind2];
@@ -912,6 +877,8 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::backward(
               rot_coord_offset1,
               rot_coord_offset2,
               bond_type_int,
+              gen_connection_bond_bins[block_type1][conn_ind1][path_A_idx + 1],
+              gen_connection_bond_bins[block_type2][conn_ind2][path_B_idx + 1],
               conn_claimed,
               gen_atom_type_hierarchy,
               gen_atom_is_rosetta,
@@ -1015,7 +982,7 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
     TView<Vec<Real, 5>, 1, D> gen_intra_params,
     TView<Vec<Int, 4>, 2, D> gen_atom_type_hierarchy,
     TView<Int, 2, D> gen_atom_is_rosetta,
-    TView<Int, 2, D> gen_connection_bond_types,
+    TView<Int, 3, D> gen_connection_bond_bins,
     TView<Int, 2, D> gen_conn_scored_elsewhere,
     TView<Int, 2, D> gen_source_atom_index,
     TView<Int, 1, D> gen_source_block_type_index,
@@ -1229,7 +1196,7 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
       int const block_type2 = block_type_ind_for_rot[rot_ind2];
       int const rot_coord_offset2 = rot_coord_offset[rot_ind2];
       Int const bond_type_int =
-          gen_connection_bond_types[block_type1][conn_ind1];
+          gen_connection_bond_bins[block_type1][conn_ind1][0];
       bool const conn_claimed =
           gen_conn_scored_elsewhere[block_type1][conn_ind1]
           || gen_conn_scored_elsewhere[block_type2][conn_ind2];
@@ -1255,6 +1222,8 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
               rot_coord_offset1,
               rot_coord_offset2,
               bond_type_int,
+              gen_connection_bond_bins[block_type1][conn_ind1][path_A_idx + 1],
+              gen_connection_bond_bins[block_type2][conn_ind2][path_B_idx + 1],
               conn_claimed,
               gen_atom_type_hierarchy,
               gen_atom_is_rosetta,
@@ -1359,7 +1328,7 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::backward(
     TView<Vec<Real, 5>, 1, D> gen_intra_params,
     TView<Vec<Int, 4>, 2, D> gen_atom_type_hierarchy,
     TView<Int, 2, D> gen_atom_is_rosetta,
-    TView<Int, 2, D> gen_connection_bond_types,
+    TView<Int, 3, D> gen_connection_bond_bins,
     TView<Int, 2, D> gen_conn_scored_elsewhere,
     TView<Int, 2, D> gen_source_atom_index,
     TView<Int, 1, D> gen_source_block_type_index,
@@ -1468,7 +1437,7 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::backward(
       int const block_type2 = block_type_ind_for_rot[rot_ind2];
       int const rot_coord_offset2 = rot_coord_offset[rot_ind2];
       Int const bond_type_int =
-          gen_connection_bond_types[block_type1][conn_ind1];
+          gen_connection_bond_bins[block_type1][conn_ind1][0];
       bool const conn_claimed =
           gen_conn_scored_elsewhere[block_type1][conn_ind1]
           || gen_conn_scored_elsewhere[block_type2][conn_ind2];
@@ -1494,6 +1463,8 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::backward(
               rot_coord_offset1,
               rot_coord_offset2,
               bond_type_int,
+              gen_connection_bond_bins[block_type1][conn_ind1][path_A_idx + 1],
+              gen_connection_bond_bins[block_type2][conn_ind2][path_B_idx + 1],
               conn_claimed,
               gen_atom_type_hierarchy,
               gen_atom_is_rosetta,
@@ -1552,7 +1523,6 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::backward(
 
 #undef Real3
 #undef GB_MAX_HIER_DEPTH
-#undef GB_BOND_WILDCARD
 
 }  // namespace potentials
 }  // namespace genbonded

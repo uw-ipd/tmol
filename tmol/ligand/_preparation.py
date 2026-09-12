@@ -717,7 +717,10 @@ def _polymer_connection_atoms(res_name, lig, canonical_ordering, chemdb):
     A canonical residue reports its own down and up connections; anything else
     is asked for its backbone, which a sugar or a free ligand does not have.
     """
-    from tmol.ligand._polymer_profile import profile_for_atom_array
+    from tmol.ligand._polymer_profile import (
+        _chain_end_candidates,
+        profile_for_atom_array,
+    )
 
     classes = canonical_ordering.restype_io_equiv_classes
     if res_name in classes:
@@ -735,12 +738,25 @@ def _polymer_connection_atoms(res_name, lig, canonical_ordering, chemdb):
     if lig is None:
         return frozenset()
     profile = profile_for_atom_array(lig.atom_array, lig.connection_atom_names, chemdb)
-    if profile is None or not profile.mainchain_atoms:
+    if profile is None and len(lig.connection_atom_names or ()) > 2:
+        elements = dict(zip(lig.atom_array.atom_name, lig.atom_array.element))
+        pairs = {
+            frozenset((nitrogen, carbonyl))
+            for nitrogen in lig.connection_atom_names
+            if elements[nitrogen] == "N"
+            for carbonyl in _chain_end_candidates(lig.atom_array, nitrogen)
+            if carbonyl in lig.connection_atom_names
+        }
+        # Sidechain crosslinks do not erase an unambiguous peptide backbone.
+        # Resolve every partner from its chemistry, independently of loop order.
+        if len(pairs) == 1:
+            profile = profile_for_atom_array(lig.atom_array, pairs.pop(), chemdb)
+    if profile is None:
         return frozenset()
-    return frozenset((profile.mainchain_atoms[0], profile.mainchain_atoms[-1]))
+    return frozenset(atom for _, atom in profile.connections)
 
 
-def conjugation_atoms(lig, ligands_by_name, canonical_ordering, chemdb):
+def conjugation_atoms(lig, polymer_ports):
     """This residue's attachments that do not land on a polymer chain.
 
     A cap attaches to its neighbour's backbone; a conjugated ligand or a glycan
@@ -754,13 +770,7 @@ def conjugation_atoms(lig, ligands_by_name, canonical_ordering, chemdb):
     conjugations = set()
     for atom, far_side in partners.items():
         if not any(
-            partner_atom
-            in _polymer_connection_atoms(
-                partner_name,
-                ligands_by_name.get(partner_name),
-                canonical_ordering,
-                chemdb,
-            )
+            partner_atom in polymer_ports[partner_name]
             for partner_name, partner_atom in far_side
         ):
             conjugations.add(atom)
@@ -829,7 +839,7 @@ def _with_conjugation(prep, atoms, chemdb, lengths):
     )
 
 
-def canonical_conjugation_sites(ligands, ligands_by_name, canonical_ordering, chemdb):
+def canonical_conjugation_sites(ligands, polymer_ports, canonical_ordering):
     """``{residue name: {atom: (component, its attaching atom)}}`` where a
     prepared component attaches to a residue the database already knows.
 
@@ -849,12 +859,7 @@ def canonical_conjugation_sites(ligands, ligands_by_name, canonical_ordering, ch
             for partner_name, partner_atom in partners:
                 if partner_name not in known:
                     continue
-                if partner_atom in _polymer_connection_atoms(
-                    partner_name,
-                    ligands_by_name.get(partner_name),
-                    canonical_ordering,
-                    chemdb,
-                ):
+                if partner_atom in polymer_ports[partner_name]:
                     continue
                 sites.setdefault(partner_name, {})[partner_atom] = (
                     lig,
@@ -910,11 +915,16 @@ def _canonical_conjugation_parameters(
     for res_name, partners in sorted(sites.items()):
         atoms = set(partners)
         residue_type = next(
-            (r for r in param_db.chemical.residues if r.name == res_name), None
+            (
+                r
+                for r in param_db.chemical.residues
+                if r.io_equiv_class == res_name and r.name == r.base_name
+            ),
+            None,
         )
         if residue_type is None:
             continue
-        base = charges_for_database_residue(param_db, res_name)
+        base = charges_for_database_residue(param_db, residue_type.name)
         distances = {atom: lengths.get((res_name, atom)) for atom in atoms}
         hydrogens = (
             _site_hydrogen_counts(atom_array, res_name, partners, ph)
@@ -1211,11 +1221,21 @@ def prepare_ligands(  # noqa: C901
     prepared_ligands: list[tuple[NonStandardResidueInfo, LigandPreparation]] = []
     prepared_polymers: list[LigandPreparation] = []
     ligands_by_name = {lig.res_name: lig for lig in ligands}
+    partner_names = {
+        name
+        for lig in ligands
+        for partners in (lig.connection_partners or {}).values()
+        for name, _atom in partners
+    }
+    polymer_ports = {
+        name: _polymer_connection_atoms(
+            name, ligands_by_name.get(name), canonical_ordering, param_db.chemical
+        )
+        for name in partner_names
+    }
     bond_lengths = _bond_lengths_by_site(atom_array)
     for lig in ligands:
-        conjugations = conjugation_atoms(
-            lig, ligands_by_name, canonical_ordering, param_db.chemical
-        )
+        conjugations = conjugation_atoms(lig, polymer_ports)
         is_polymer = _routes_to_polymer_path(lig, param_db.chemical, conjugations)
         reason = _ligand_unsupported_reason(lig, supported_elements, is_polymer)
         if reason:
@@ -1310,9 +1330,7 @@ def prepare_ligands(  # noqa: C901
         _assert_fragment_names_available(param_db, fragment_preparations)
         partner_patches, partner_charges = _canonical_conjugation_parameters(
             param_db,
-            canonical_conjugation_sites(
-                ligands, ligands_by_name, canonical_ordering, param_db.chemical
-            ),
+            canonical_conjugation_sites(ligands, polymer_ports, canonical_ordering),
             bond_lengths,
             atom_array,
             ph,
