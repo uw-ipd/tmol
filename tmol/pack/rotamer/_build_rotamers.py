@@ -372,7 +372,7 @@ def update_nodes(
             numpy.cumsum(lengths) - lengths, lengths
         )
         source = n_nodes_offset_for_rot[rotamer] + starts[rotamer] + within_rotamer
-        values = nodes_orig[source].copy()
+        values = nodes_orig[source]
         non_root = values != 0
         values[non_root] += n_atoms_offset_for_rot[rotamer[non_root]]
         nodes[output_offset : output_offset + count] = values
@@ -425,23 +425,15 @@ def construct_scans_for_conformers(
     natomsPerGen = atomStartsStack[1:, :] - atomStartsStack[:-1, :]
     natomsPerGen[natomsPerGen < 0] = 0
 
-    cumsumAtomStarts = numpy.cumsum(natomsPerGen, axis=1)
-    atomStartsOffsets = numpy.concatenate(
-        (
-            numpy.zeros(natomsPerGen.shape[0], dtype=numpy.int64).reshape(-1, 1),
-            cumsumAtomStarts[:, :-1],
-        ),
-        axis=1,
-    )
+    atomStartsOffsets = numpy.cumsum(natomsPerGen, axis=1)
+    atomStartsOffsets -= natomsPerGen
 
     ngenStack = numpy.swapaxes(
         pbt.rotamer_kinforest.n_scans_per_gen[block_type_ind_for_conf], 0, 1
     )
     ngenStack[ngenStack < 0] = 0
-    ngenStackCumsum = numpy.cumsum(ngenStack.reshape(-1), axis=0)
-
     scanStarts = update_scan_starts(
-        ngenStackCumsum[-1],
+        ngenStack.sum(),
         atomStartsOffsets,
         scanStartsStack,
         genStartsStack,
