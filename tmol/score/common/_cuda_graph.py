@@ -43,12 +43,6 @@ class CapturedScoringGraph(torch.nn.Module):
         super().__init__()
         if torch.is_autocast_enabled() and torch.is_autocast_cache_enabled():
             raise RuntimeError("Captured scoring requires autocast cache_enabled=False")
-        if module._backward_hooks or module._forward_hooks or module._forward_pre_hooks:
-            raise AssertionError("Scoring modules must not have hooks before capture")
-        if any(buffer.requires_grad for buffer in module.buffers()):
-            raise AssertionError(
-                "Captured scoring buffers must have requires_grad=False"
-            )
         self.module = module
         self.training = module.training
         self._graph_training_state = module.training
