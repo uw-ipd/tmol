@@ -166,9 +166,10 @@ def _setup_for_leaf_atom_coord_building(
     pose_stack_atom_is_missing = torch.zeros(
         (n_poses, max_n_ats), dtype=torch.bool, device=device
     )
-    pose_stack_atom_is_missing[pose_at_is_real] = block_leaf_atom_is_missing[
-        real_block_atoms
-    ]
+    # Ancestor selection must see missing non-leaf atoms too. Otherwise a
+    # missing CB looks available to HA's primary frame and its backup is never
+    # tried. The separate leaf mask still controls which atoms this pass builds.
+    pose_stack_atom_is_missing[pose_at_is_real] = block_atom_missing[real_block_atoms]
 
     # Create block_has_missing_atoms tensor: True for blocks that have any missing non-leaf atoms
     block_has_missing_atoms = torch.any(non_leaf_atom_is_missing, dim=2)
@@ -409,6 +410,7 @@ def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):  # noqa: C
         setattr(bt, "leaf_atom_icoor_ann", ann)
         return
     cap_phi_offsets = {}
+    torsion_defining_atoms = set(bt.ordered_torsions[:, 3, 0])
     for j, at in enumerate(bt.atoms):
         atname = at.name
         j_icoor_ind = bt.icoors_index[atname]
@@ -481,7 +483,20 @@ def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):  # noqa: C
             # is specifically for building the OXT atom on a cterm residue
             # when the O atom is given but OXT is not.
             seen_backup = set()
-            while _icoor_at_is_leaf(bt, j_icoor.great_grand_parent):
+            while True:
+                reference = j_icoor.great_grand_parent
+                candidate = bt.icoors[bt.icoors_index[reference]]
+                # HA can reference an unresolved non-leaf CB. Its fixed CB
+                # dihedral uses the same CA-N axis, so composing the two phi
+                # offsets supplies an independent C reference. A sampled
+                # torsion must not be replaced by its ideal dihedral.
+                fixed_axis = (
+                    candidate.parent == bt.icoors[j_icoor_ind].parent
+                    and candidate.grand_parent == bt.icoors[j_icoor_ind].grand_parent
+                    and bt.atom_to_idx.get(reference, -1) not in torsion_defining_atoms
+                )
+                if not (_icoor_at_is_leaf(bt, reference) or fixed_axis):
+                    break
                 ggp_ind_backup = bt.icoors_index[j_icoor.great_grand_parent]
                 if ggp_ind_backup in seen_backup:
                     break

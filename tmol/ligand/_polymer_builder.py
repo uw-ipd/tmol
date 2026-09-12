@@ -470,24 +470,21 @@ def _icoor_order(profile, bonds, adj, kept, hydrogens):
     mainchain = icoor_mainchain(profile, kept)
     roots = sidechain_roots(profile, bonds, adj, kept, hydrogens)
 
-    placed = list(mainchain)
+    placed = set(mainchain)
     order = list(mainchain) + ([up_name] if up_name else [])
     # the rest of the backbone: what hangs off the mainchain, and then onward
-    #    through backbone atoms, since a nucleotide's sugar reaches further
-    #    from the mainchain than a carbonyl oxygen does
-    backbone = set(mainchain) | {n for n, _t in profile.backbone_types}
+    #    through every non-sidechain branch. A cap can carry a whole aromatic
+    #    substituent beyond its carbonyl; backbone typing is not a boundary
+    #    on the atom tree's traversal.
     queue = deque(mainchain)
     while queue:
         current = queue.popleft()
         for nbr in sorted(adj.get(current, ())):
             if nbr not in kept or nbr in placed or nbr in hydrogens or nbr in roots:
                 continue
-            if current not in backbone:
-                continue
-            placed.append(nbr)
+            placed.add(nbr)
             order.append(nbr)
-            if nbr in backbone:
-                queue.append(nbr)
+            queue.append(nbr)
 
     # sidechain heavy atoms, breadth first from each root
     sidechain = []

@@ -1,0 +1,58 @@
+[
+  {
+    "fixture": "schiff_base_double_bond.cif",
+    "source": "tests/io/utils/schiff_base_double_bond.cif",
+    "source_repository": "atomworks-dev",
+    "source_commit": "a1bda7edfcf325bc140091889b9745220adb5eba",
+    "sha256": "d8189d050ea7fb6b6115e777d3d839e43c067bc5030fe6e1b9cff7d928e701c6",
+    "bytes": 2212
+  },
+  {
+    "fixture": "acetylated_peptide_1j8z.cif",
+    "source": "tests/io/test_outputs/1j8z_new.cif",
+    "source_repository": "atomworks-dev",
+    "source_commit": "a1bda7edfcf325bc140091889b9745220adb5eba",
+    "sha256": "9c0786170d901b7b707a4ef0e5464dd5fc59ac96356586488200cfc7d655bb8d",
+    "bytes": 10760
+  },
+  {
+    "fixture": "unknown_heavy_atom_1a8o.cif",
+    "source": "tests/data/io/1a8o_modified.cif",
+    "source_repository": "atomworks-dev",
+    "source_commit": "a1bda7edfcf325bc140091889b9745220adb5eba",
+    "sha256": "5a65ac91ce4576b2312f125797f958b6a214f38662a76727f8dc9bc16b0ca3a8",
+    "bytes": 93523
+  },
+  {
+    "fixture": "conditional_generation.cif",
+    "source": "tests/data/io/example_conditional_generation_output.cif",
+    "source_repository": "atomworks-dev",
+    "source_commit": "a1bda7edfcf325bc140091889b9745220adb5eba",
+    "sha256": "24f16680dc476f3f443c52c3ca599ed49de78d717676961da644ab2f487881ce",
+    "bytes": 41146
+  },
+  {
+    "fixture": "unresolved_unl.cif",
+    "source": "tests/data/io/test_unl_ligand_with_bonds.cif",
+    "source_repository": "atomworks-dev",
+    "source_commit": "a1bda7edfcf325bc140091889b9745220adb5eba",
+    "sha256": "58b815ae5b5b3e73ebe573ec53ca419cbda929241a7003d8a66c1941321816d0",
+    "bytes": 4720
+  },
+  {
+    "fixture": "modified_components_6q9t.cif",
+    "source": "tests/io/test_outputs/6q9t_new.cif",
+    "source_repository": "atomworks-dev",
+    "source_commit": "a1bda7edfcf325bc140091889b9745220adb5eba",
+    "sha256": "cea6903ba6a8966b9cb210282b4274c4b32fd5e42e6425edb5a4661fdfb81604",
+    "bytes": 224351
+  },
+  {
+    "fixture": "plp_enzyme_7mkv.cif",
+    "source": "tests/data/io/interactions/7MKV_UstD_2_dimer.cif",
+    "source_repository": "atomworks-dev",
+    "source_commit": "a1bda7edfcf325bc140091889b9745220adb5eba",
+    "sha256": "2da84bb3255e8783c69321f4d98542f9b43dc833aa9011050b3c160a39e028e8",
+    "bytes": 497933
+  }
+]

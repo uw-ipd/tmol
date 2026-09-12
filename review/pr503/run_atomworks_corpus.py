@@ -81,7 +81,6 @@ def trial(args):  # noqa: C901 - keep stage/error recording in one diagnostic tr
     import biotite.structure as struc
     from tmol.io import pose_stack_from_biotite
     from tmol.io._pose_stack_from_biotite import build_context_from_biotite
-    from tmol.ligand import chem_comp_types_from_cif
     from tmol.optimization import CartesianSfxnNetwork, LBFGS_Armijo
     from tmol.score import beta2016_score_function
     from profile_workloads import read_structure
@@ -109,7 +108,40 @@ def trial(args):  # noqa: C901 - keep stage/error recording in one diagnostic tr
             "normalize", lambda: normalize(Path(args.case), output.with_suffix(".cif"))
         )
         array = mark("read", lambda: read_structure(path, args.reader))
-        comp_types = mark("component_types", lambda: chem_comp_types_from_cif(path))
+        # Both public readers now carry component types from their parsed block.
+        comp_types = None
+        if args.exclude_free_metals:
+            from tmol.ligand._detect import _METAL_SYMBOLS
+
+            boundaries = struc.get_residue_starts(array, add_exclusive_stop=True)
+            keep = np.ones(len(array), dtype=bool)
+            removed = []
+            bonds = (
+                array.bonds.as_array()
+                if array.bonds is not None
+                else np.empty((0, 3), int)
+            )
+            for first, stop in zip(boundaries[:-1], boundaries[1:]):
+                if (
+                    stop - first != 1
+                    or str(array.element[first]).capitalize() not in _METAL_SYMBOLS
+                ):
+                    continue
+                incident = bonds[(bonds[:, :2] == first).any(axis=1)]
+                if len(incident) and np.any(
+                    incident[:, 2] != int(struc.BondType.COORDINATION)
+                ):
+                    continue
+                keep[first] = False
+                removed.append(
+                    dict(
+                        chain=str(array.chain_id[first]),
+                        residue=int(array.res_id[first]),
+                        component=str(array.res_name[first]),
+                    )
+                )
+            row["diagnostic_free_metal_exclusions"] = removed
+            array = array[keep]
         starts = struc.get_residue_starts(array, add_exclusive_stop=True)
         row["input"] = dict(
             atoms=len(array),
@@ -354,6 +386,8 @@ def main(args):
                 "--max-iter",
                 str(args.max_iter),
             ]
+            if args.exclude_free_metals:
+                command.append("--exclude-free-metals")
             with result.with_suffix(".log").open("w") as log:
                 try:
                     completed = subprocess.run(
@@ -405,5 +439,10 @@ if __name__ == "__main__":
     parser.add_argument("--timeout", type=int, default=300)
     parser.add_argument("--case")
     parser.add_argument("--reader", choices=("tmol", "atomworks"))
+    parser.add_argument(
+        "--exclude-free-metals",
+        action="store_true",
+        help="Diagnostic only: exclude monatomic metals without covalent bonds; retain metal-containing ligands",
+    )
     args = parser.parse_args()
     raise SystemExit(0 if (trial(args) if args.case else main(args)) else 1)

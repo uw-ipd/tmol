@@ -211,6 +211,7 @@ def atom_array_from_cif(
     use_ccd: bool = True,
     include_bonds: bool = True,
     extra_fields=None,
+    reader: str = "tmol",
 ):
     """A structure's atoms, including the ones its density did not resolve.
 
@@ -231,10 +232,28 @@ def atom_array_from_cif(
             cannot be read, so unresolved atoms are not added either.
         extra_fields: Further ``atom_site`` columns to keep, alongside the
             ``label_entity_id`` this always reads.
+        reader: ``"tmol"`` preserves author identifiers and supports file-only
+            chemistry. ``"atomworks"`` uses the optional ``tmol[atomworks]``
+            dependency for parsing, bond sanitation and NaN completion, with
+            AtomWorks' label identifiers and alternate-location selection.
+            It also supports compressed and binary CIF. That route requires
+            ``use_ccd=True`` and ``include_bonds=True``; extra fields are not
+            supported across the released AtomWorks completion API.
 
     Returns:
         A biotite AtomArray.
     """
+    if reader == "atomworks":
+        if not use_ccd or not include_bonds or extra_fields:
+            raise ValueError(
+                "The AtomWorks reader requires use_ccd=True, include_bonds=True "
+                "and no extra_fields. Use reader='tmol' for those input policies."
+            )
+        from tmol.io._atomworks_reader import read_cif
+
+        return read_cif(cif_path, model=model)
+    if reader != "tmol":
+        raise ValueError(f"Unknown CIF reader {reader!r}; choose 'tmol' or 'atomworks'")
     cif = pdbx.CIFFile.read(str(cif_path))
     block = cif[next(iter(cif.keys()))]
     fields = ["label_entity_id", *(extra_fields or [])]
@@ -244,11 +263,39 @@ def atom_array_from_cif(
     if isinstance(array, struc.AtomArrayStack):
         array = array[0]
     array = _with_polymer_entity_flag(array, block)
+    array = _with_component_type_annotation(array, block)
     if not include_bonds:
         return array
     return with_unresolved_atoms(
         array, component_chemistry_from_block(block), use_ccd=use_ccd
     )
+
+
+def _with_component_type_annotation(array, block):
+    """Carry declared component types from the already parsed CIF into preparation."""
+    if "chem_comp" not in block:
+        return array
+    category = block["chem_comp"]
+    if "id" not in category or "type" not in category:
+        return array
+    declared = {
+        str(name).strip().upper(): str(kind).strip().upper()
+        for name, kind in zip(
+            category["id"].as_array(str), category["type"].as_array(str)
+        )
+        if str(kind).strip() not in ("", ".", "?")
+    }
+    previous = getattr(array, "chem_comp_type", np.full(array.array_length(), ""))
+    array.set_annotation(
+        "chem_comp_type",
+        np.array(
+            [
+                declared.get(str(name).upper(), str(old))
+                for name, old in zip(array.res_name, previous)
+            ]
+        ),
+    )
+    return array
 
 
 def _with_polymer_entity_flag(atom_array, block):
@@ -433,7 +480,9 @@ def _placeholder_atoms(atom_array, begin, missing, template):
     return extra
 
 
-def pose_stack_from_cif(cif_path, device, *, use_ccd: bool = True, **kwargs):
+def pose_stack_from_cif(
+    cif_path, device, *, use_ccd: bool = True, reader: str = "tmol", **kwargs
+):
     """Construct a PoseStack from an mmCIF file.
 
     Reads the structure with :func:`atom_array_from_cif`, so the residues carry
@@ -441,12 +490,11 @@ def pose_stack_from_cif(cif_path, device, *, use_ccd: bool = True, **kwargs):
     for pose construction to rebuild. Further keyword arguments are passed to
     :func:`tmol.io.pose_stack_from_biotite`.
     """
-    from tmol.ligand import chem_comp_types_from_cif
     from tmol.io._pose_stack_from_biotite import pose_stack_from_biotite
 
-    kwargs.setdefault("chem_comp_types", chem_comp_types_from_cif(cif_path))
+    array = atom_array_from_cif(cif_path, use_ccd=use_ccd, reader=reader)
     return pose_stack_from_biotite(
-        atom_array_from_cif(cif_path, use_ccd=use_ccd),
+        array,
         device,
         use_ccd=use_ccd,
         **kwargs,

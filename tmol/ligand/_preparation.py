@@ -958,9 +958,13 @@ def _routes_to_polymer_path(
         return True
     if is_polymer_linking_component_type(lig.component_type):
         return True
+    backbone_connections = (
+        (lig.connection_atom_names - (conjugations or frozenset()))
+        if lig.connection_atom_names is not None
+        else None
+    )
     return (
-        profile_for_atom_array(lig.atom_array, lig.connection_atom_names, chemdb)
-        is not None
+        profile_for_atom_array(lig.atom_array, backbone_connections, chemdb) is not None
     )
 
 
@@ -1226,7 +1230,13 @@ def prepare_ligands(  # noqa: C901
                     canonical_ordering,
                     param_db,
                     ph=ph,
-                    connection_atoms=lig.connection_atom_names,
+                    # An attached sidechain (e.g. BCX's disulfide SG) does
+                    # not change the polymer backbone's two endpoints.
+                    connection_atoms=(
+                        lig.connection_atom_names - conjugations
+                        if lig.connection_atom_names is not None
+                        else None
+                    ),
                     use_ccd=use_ccd,
                     seed=seed,
                 )

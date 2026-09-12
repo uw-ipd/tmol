@@ -57,27 +57,7 @@ def task_for(pose, database, device):
 
 
 def read_structure(path, reader):
-    if reader == "tmol":
-        return atom_array_from_cif(path)
-    from atomworks.io.parser import parse
-    from atomworks.io.config import ParseConfig
-
-    config = ParseConfig(
-        model=1,
-        build_assembly=None,
-        remove_ccds=(),
-        remove_waters=False,
-        fix_arginines=False,
-        fix_ligands_at_symmetry_centers=False,
-        long_bond_policy="keep",
-        struct_conn_distance_policy="keep",
-        add_bond_types_from_struct_conn=("covale", "disulf"),
-        hydrogen_policy="remove",
-        ccd_mirror_path=None,
-        add_id_and_entity_annotations=False,
-    )
-    array = parse(path, config=config)["asym_unit"]
-    return array[0] if array.coord.ndim == 3 else array
+    return atom_array_from_cif(path, reader=reader)
 
 
 def measure(path, device, args, output):

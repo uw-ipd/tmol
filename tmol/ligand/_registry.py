@@ -295,8 +295,11 @@ def _applied_patch(chemdb, base, variant):
     """
     present = {a.name for a in variant.atoms}
     absent = {a.name for a in base.atoms} - present
+    suffixes = set(variant.name[len(base.name) + 1 :].split(":"))
     best = None
     for patch in chemdb.variants:
+        if patch.display_name not in suffixes or not patch.applies_to.matches(base):
+            continue
         names = {a.name for a in patch.add_atoms}
         if not names <= present:
             continue

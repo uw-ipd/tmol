@@ -1,0 +1,54 @@
+"""Exercise the optional shared parser without duplicating CIF completion."""
+
+from pathlib import Path
+
+import numpy as np
+import pytest
+import torch
+
+from tmol.io import atom_array_from_cif, pose_stack_from_cif
+from tmol.score import beta2016_score_function
+
+pytest.importorskip("atomworks")
+
+DATA = Path(__file__).parents[1] / "data"
+
+
+def test_atomworks_completion_preserves_entirely_unresolved_ligand():
+    array = atom_array_from_cif(
+        DATA / "atomworks_regressions/unresolved_unl.cif", reader="atomworks"
+    )
+    ligand = array[array.res_name == "UNL"]
+    assert len(ligand) == 28
+    assert np.isnan(ligand.coord).all()
+    assert ligand.bonds.get_bond_count() > 0
+
+
+def test_label_template_substitution_cannot_silently_erase_unknown_atom():
+    with pytest.raises(ValueError, match="XYZ"):
+        atom_array_from_cif(
+            DATA / "atomworks_regressions/unknown_heavy_atom_1a8o.cif",
+            reader="atomworks",
+        )
+
+
+@pytest.mark.parametrize(
+    "fixture", ["capped_peptide_ace_nh2.cif", "beta_peptide_3c3g.cif"]
+)
+def test_shared_parser_builds_and_scores_general_chemistry(fixture):
+    pose, context = pose_stack_from_cif(
+        DATA / "ncaa_fixtures" / fixture,
+        torch.device("cpu"),
+        reader="atomworks",
+        prepare_ligands=True,
+        ligand_seed=20260909,
+        no_optH=True,
+        return_context=True,
+    )
+    assert torch.isfinite(pose.coords[pose.real_atoms]).all()
+    score = beta2016_score_function(pose.device, param_db=context.parameter_database)
+    coords = pose.coords.detach().clone().requires_grad_()
+    energy = score.render_whole_pose_scoring_module(pose)(coords)
+    energy.sum().backward()
+    assert torch.isfinite(energy).all()
+    assert torch.isfinite(coords.grad).all()

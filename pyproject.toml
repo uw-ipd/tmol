@@ -63,6 +63,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Shared CIF parsing/completion. The native reader remains available for
+# author identifiers and strict file-only chemical authority (use_ccd=False).
+atomworks = [
+    "atomworks>=2.2.1,<3",
+]
 # OpenBabel powers the SMILES -> 3D mol2 ligand-preparation path (conformer
 # search + MMFF94 charges). The CIF/mol2 paths use RDKit and do not need it;
 # it is imported lazily by ligand preparation, so it stays an

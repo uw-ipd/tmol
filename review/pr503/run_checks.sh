@@ -20,8 +20,12 @@ python -m pytest -v --tb=short --durations=20 --junitxml="$results/tests.xml" \
     tmol/tests/test_covalent_components.py \
     tmol/tests/test_cyclic_peptide.py \
     tmol/tests/io/test_cif_completion.py \
+    tmol/tests/io/test_atomworks_reader.py \
+    tmol/tests/io/test_atomworks_corpus_regressions.py \
+    tmol/tests/io/test_filtered_covalent_partners.py \
     tmol/tests/io/test_pose_stack_from_biotite.py \
     tmol/tests/io/details/test_cyclic_search.py \
+    tmol/tests/io/details/test_build_missing_leaf_atoms.py \
     tmol/tests/io/details/test_find_disulfides.py \
     tmol/tests/io/details/test_his_taut_resolution.py \
     tmol/tests/io/details/test_left_justify_canonical_form.py \

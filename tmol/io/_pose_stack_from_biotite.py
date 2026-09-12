@@ -479,7 +479,7 @@ def biotite_from_pose_stack(
     return structure
 
 
-def _map_atoms_to_canonical(co, atom_res_inds, res_names, atom_names):
+def _map_atoms_to_canonical(co, atom_res_inds, res_names, atom_names, elements):
     """Map Biotite atom names to canonical ordering indices.
 
     Returns (valid_atom_mask, valid_atom_inds, valid_res_inds).
@@ -487,14 +487,25 @@ def _map_atoms_to_canonical(co, atom_res_inds, res_names, atom_names):
 
     atom_inds = []
     valid = []
-    unmapped: dict[str, list[str]] = {}
+    unmapped = set()
     for i, (resname, atname) in enumerate(zip(res_names, atom_names)):
         mapping = co.restypes_atom_index_mapping.get(resname, {})
         idx = mapping.get(atname, -1)
         atom_inds.append(idx)
         valid.append(idx >= 0)
-        if idx < 0:
-            unmapped.setdefault(resname, []).append(atname)
+        if idx < 0 and str(elements[i]).strip().upper() not in ("H", "D"):
+            unmapped.add((int(atom_res_inds[i]), str(resname), str(atname)))
+
+    if unmapped:
+        details = ", ".join(
+            f"{resname} at residue index {res}: {name}"
+            for res, resname, name in sorted(unmapped)
+        )
+        raise ValueError(
+            "Heavy atoms are absent from the selected chemical definitions: "
+            f"{details}. Supply a matching chemical definition or correct the "
+            "input atom names; these atoms cannot be silently discarded."
+        )
 
     valid_atom_mask = numpy.array(valid)
     atom_inds_arr = numpy.array(atom_inds)
@@ -586,6 +597,73 @@ def _res_names_for_structure(
     return biotite_structure.res_name
 
 
+def _validate_filtered_covalent_partners(array, co, atom_res, valid_res, res_names):
+    """Allow sequential backbone gaps, but not a dangling chemical partner.
+
+    This runs only when a non-water residue is removed. Complete structures
+    and ordinary water filtering need no extra bond-table scan.
+    """
+    if array.bonds is None:
+        return
+    removed = ~valid_res & (res_names != "HOH")
+    if not numpy.any(removed):
+        return
+    bonds = array.bonds.as_array()
+    if not len(bonds):
+        return
+    ends = atom_res[bonds[:, :2]]
+    crosses = (removed[ends[:, 0]] & valid_res[ends[:, 1]]) | (
+        removed[ends[:, 1]] & valid_res[ends[:, 0]]
+    )
+    type_indices = {name: i for i, name in enumerate(co.restype_io_equiv_classes)}
+    connections = co.polymer_conn_inds
+    for first, second, order in bonds[crosses]:
+        if order == biotite.structure.BondType.COORDINATION:
+            continue
+        first_res, second_res = atom_res[[first, second]]
+        # Orient the candidate in input residue order, preserving insertion codes.
+        if first_res > second_res:
+            first, second = second, first
+            first_res, second_res = second_res, first_res
+        first_name, second_name = array.res_name[[first, second]]
+        first_type = type_indices.get(first_name)
+        second_type = type_indices.get(second_name)
+        if (
+            second_res == first_res + 1
+            and array.chain_id[first] == array.chain_id[second]
+            and first_type is not None
+            and second_type is not None
+        ):
+            first_atom = co.restypes_atom_index_mapping[first_name].get(
+                array.atom_name[first], -1
+            )
+            second_atom = co.restypes_atom_index_mapping[second_name].get(
+                array.atom_name[second], -1
+            )
+            if (
+                first_atom >= 0
+                and second_atom >= 0
+                and first_atom == connections.up_atom_for_co_restype[first_type]
+                and second_atom == connections.down_atom_for_co_restype[second_type]
+            ):
+                continue
+
+        def label(index):
+            return (
+                f"{array.res_name[index]} {array.chain_id[index]}:"
+                f"{array.res_id[index]}{array.ins_code[index]}"
+                f"/{array.atom_name[index]}"
+            )
+
+        raise ValueError(
+            "Cannot discard an incomplete or unsupported residue while retaining "
+            "its covalent partner: declared bond "
+            f"{label(first)} -- {label(second)} would be lost. "
+            "Supply the required backbone coordinates/chemical definition, or "
+            "explicitly select a complete covalent component before construction."
+        )
+
+
 def _filter_supported_atoms_and_connectivity(  # noqa: C901
     biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
     co: CanonicalOrdering,
@@ -642,7 +720,11 @@ def _filter_supported_atoms_and_connectivity(  # noqa: C901
             )
             valid_res[i] = False
 
-    valid_atoms = valid_res[get_all_residue_positions(biotite_structure)]
+    atom_res = get_all_residue_positions(biotite_structure)
+    _validate_filtered_covalent_partners(
+        _template_array(biotite_structure), co, atom_res, valid_res, biotite_residues
+    )
+    valid_atoms = valid_res[atom_res]
 
     # A kept residue whose neighbor was dropped has an unknown connection on
     # that side; the ends of the kept set are termini, so they are marked after
@@ -943,6 +1025,7 @@ def canonical_form_from_biotite(
         atom_res_inds,
         biotite_res_name_for_atom,
         biotite_name_for_atom,
+        biotite_structure.element,
     )
     covalent_bonds_np = _covalent_bonds_from_biotite(
         _template_array(biotite_structure),
