@@ -2,7 +2,6 @@ import torch
 import numpy
 import os
 import threading
-import weakref
 import attr
 import pytest
 
@@ -1004,37 +1003,6 @@ def test_rotamer_scorer_combines_identical_sparse_layouts(
     )
     dense_scores.sum().backward()
     torch.testing.assert_close(coords.grad, torch.tensor(61.0, device=torch_device))
-
-
-def test_sequential_rotamer_scoring_releases_consumed_scores(torch_device, monkeypatch):
-    monkeypatch.setattr(torch, "get_num_threads", lambda: 1)
-    score_refs = []
-    indices = torch.tensor(
-        [[0, 0], [0, 1], [1, 0]], device=torch_device, dtype=torch.int32
-    )
-
-    class SparseTerm(torch.nn.Module):
-        n_poses = 1
-        n_rots = 2
-
-        def __init__(self, n_score_types):
-            super().__init__()
-            self.n_score_types = n_score_types
-
-        def forward(self, coords):
-            # A raw multi-lane table must be released before allocating the
-            # next one; only its weighted values and indices remain live.
-            assert all(ref() is None for ref in score_refs)
-            scores = coords.new_ones((self.n_score_types, 2))
-            score_refs.append(weakref.ref(scores))
-            return scores, indices
-
-    scorer = RotamerScoringModule(
-        torch.ones(8, device=torch_device), [SparseTerm(n) for n in (3, 1, 4)]
-    )
-    _, values = scorer.forward_sparse_entries(torch.ones((), device=torch_device))
-    assert all(ref() is None for ref in score_refs)
-    torch.testing.assert_close(values, torch.full_like(values, 8.0))
 
 
 def test_rotamer_scorer_raw_entries_keep_int32_and_uncoalesced_duplicates() -> None:

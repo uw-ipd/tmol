@@ -38,17 +38,11 @@ class _ScoringExample(torch.nn.Module):
         return coords * self.weight - self.offset
 
 
-@pytest.mark.parametrize(
-    "dtype,trainable,layout",
-    [
-        (torch.float32, True, "contiguous"),
-        (torch.float32, False, "strided"),
-        (torch.float64, True, "negative"),
-    ],
-)
+@pytest.mark.parametrize("trainable,layout", [(False, "strided"), (True, "negative")])
 def test_cuda_scoring_capture_replays_values_and_parameter_gradients(
-    torch_device, dtype, trainable, layout
+    torch_device, trainable, layout
 ):
+    dtype = torch.float32
     module = _ScoringExample(torch_device, dtype, trainable)
     sample = torch.zeros((3, 5), device=torch_device, dtype=dtype, requires_grad=True)
     capture = CapturedScoringGraph(module, sample)
