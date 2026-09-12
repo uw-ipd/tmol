@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 from types import SimpleNamespace
 from typing import Any
 
@@ -742,9 +743,12 @@ class LBFGS_Armijo(Optimizer):
                     flat_grad,
                     out=None if self._segments_are_dense else ctx.state["grad_pad"],
                 )
-                d.copy_(
-                    self._unpad(lbfgs_two_loop(grad_pad, old_dirs_view, old_stps_view))
-                )
+                with torch.inference_mode() if grad_pad.is_cuda else nullcontext():
+                    d.copy_(
+                        self._unpad(
+                            lbfgs_two_loop(grad_pad, old_dirs_view, old_stps_view)
+                        )
+                    )
 
         self._restart_failed_segments(ctx)
         self._freeze_converged(ctx)
