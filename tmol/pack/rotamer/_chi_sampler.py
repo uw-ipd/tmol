@@ -7,7 +7,6 @@ from tmol.types import (
     Tensor,
     validate_args,
 )
-from tmol.utility.tensor import exclusive_cumsum1d, stretch
 from tmol.chemical import RefinedResidueType
 from tmol.pose import (
     PackedBlockTypes,
@@ -166,175 +165,42 @@ def create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler(
     # A sampler with no states need not have an ownership fingerprint at all.
     if conf_inds_for_sampler.numel() == 0:
         return conf_inds_for_sampler, conf_inds_for_sampler
-    # we want to copy from the orig_dofs tensor into the
-    # rot_dofs tensor for the "mainchain" atoms in the
-    # original residues into the appropriate positions
-    # for the rotamers thta we are building at those
-    # residues. This requires a good deal of reindexing.
-
     pbt = poses.packed_block_types
-    n_rots_for_sampler = sampler_gbt_for_rotamer.shape[0]
+    fingerprints = pbt.mc_fingerprints
+    if fingerprints.atom_mapping.shape[1] == 0:
+        empty = conf_inds_for_sampler[:0]
+        return empty, empty
+    from tmol.pack.rotamer._build_rotamers import _kinforest_device_indices
 
-    # This could 100% be pre-computed
-    pbts_sampler_ind = pbt.mc_fingerprints.sampler_mapping[sampler_name]
-
-    orig_block_type_ind = (
-        poses.block_type_ind[poses.block_type_ind != -1].view(-1).to(torch.int64)
-    )
-
-    # consider making this an argument and passing in
-    poses_res_to_real_poses_res = torch.full(
-        (poses.block_type_ind.shape[0] * poses.block_type_ind.shape[1],),
-        -1,
-        dtype=torch.int64,
-        device=poses.device,
-    )
-    poses_res_to_real_poses_res[poses.block_type_ind.view(-1) != -1] = torch.arange(
-        orig_block_type_ind.shape[0], dtype=torch.int64, device=poses.device
-    )
-
-    # get the residue index for each rotamer
-    res_ind_for_gbt = task.global_block_ind_for_considered_block_types
-
-    gbt_for_samplers_rots = gbt_for_rot[conf_inds_for_sampler]
-    res_ind_for_samplers_rots = res_ind_for_gbt[gbt_for_samplers_rots]
-    real_res_ind_for_samplers_rots = poses_res_to_real_poses_res[
-        res_ind_for_samplers_rots
+    kfo = _kinforest_device_indices(pbt, pbt.device)
+    flat_types = poses.block_type_ind.reshape(-1).long()
+    counts = pbt.n_atoms[flat_types.clamp_min(0)].long()
+    counts = torch.where(flat_types >= 0, counts, 0)
+    source_offsets = torch.cumsum(counts, 0) - counts
+    considered = gbt_for_rot[conf_inds_for_sampler]
+    source_residues = task.global_block_ind_for_considered_block_types[considered]
+    source_types = flat_types[source_residues]
+    target_types = block_type_ind_for_rot[conf_inds_for_sampler]
+    source_fingerprints = fingerprints.source_fingerprint[source_types]
+    source_atoms = fingerprints.source_atom_mapping[source_types]
+    source_local = kfo[source_types[:, None], source_atoms.clamp_min(0)]
+    source_local.masked_fill_(source_atoms < 0, -1)
+    del source_atoms
+    target_atoms = fingerprints.atom_mapping[
+        fingerprints.sampler_mapping[sampler_name],
+        source_fingerprints.clamp_min(0),
+        target_types,
     ]
-    block_type_ind_for_samplers_rots = block_type_ind_for_rot[conf_inds_for_sampler]
-
-    # look up which mainchain fingerprint each
-    # original residue should use
-
-    mcfp = pbt.mc_fingerprints
-
-    orig_res_mcfp = mcfp.source_fingerprint[orig_block_type_ind]
-    orig_res_mcfp_for_samplers_rots = orig_res_mcfp[real_res_ind_for_samplers_rots]
-
-    # now lets find the kinforest-ordered indices of the
-    # mainchain atoms for the rotamers that represents
-    # the destination for the dofs we're copying
-    max_n_mcfp_atoms = mcfp.atom_mapping.shape[3]
-
-    samplers_rots_mcfp_at_inds_rto = mcfp.atom_mapping[
-        pbts_sampler_ind,
-        orig_res_mcfp_for_samplers_rots,
-        block_type_ind_for_samplers_rots,
-        :,
-    ].view(-1)
-
-    is_samplers_rots_mcfp_at_inds_rto_real = samplers_rots_mcfp_at_inds_rto != -1
-    real_samplers_rots_mcfp_at_inds_rto = samplers_rots_mcfp_at_inds_rto[
-        is_samplers_rots_mcfp_at_inds_rto_real
-    ]
-
-    real_samplers_rots_block_type_ind_for_mcfp_ats = stretch(
-        block_type_ind_for_samplers_rots, max_n_mcfp_atoms
-    )[is_samplers_rots_mcfp_at_inds_rto_real]
-
-    samplers_rots_mcfp_at_inds_kto = torch.full_like(samplers_rots_mcfp_at_inds_rto, -1)
-    samplers_rots_mcfp_at_inds_kto[is_samplers_rots_mcfp_at_inds_rto_real] = (
-        torch.tensor(
-            pbt.rotamer_kinforest.kinforest_idx[
-                real_samplers_rots_block_type_ind_for_mcfp_ats.cpu().numpy(),
-                real_samplers_rots_mcfp_at_inds_rto.cpu().numpy(),
-            ],
-            dtype=torch.int64,
-            device=pbt.device,
-        )
+    target_local = kfo[target_types[:, None], target_atoms.clamp_min(0)]
+    target_local.masked_fill_(target_atoms < 0, -1)
+    del target_atoms
+    present = (
+        (source_fingerprints[:, None] >= 0) & (source_local >= 0) & (target_local >= 0)
     )
-
-    is_samplers_rots_mcfp_at_inds_kto_real = samplers_rots_mcfp_at_inds_kto != -1
-    n_dof_atoms_offset_for_samplers_rot = n_dof_atoms_offset_for_rot[
-        conf_inds_for_sampler
-    ]
-    samplers_rots_mcfp_at_inds_kto[
-        is_samplers_rots_mcfp_at_inds_kto_real
-    ] += n_dof_atoms_offset_for_samplers_rot[
-        torch.div(  # to do: replace with expand
-            torch.arange(
-                n_rots_for_sampler * max_n_mcfp_atoms,
-                dtype=torch.int64,
-                device=poses.device,
-            ),
-            max_n_mcfp_atoms,
-            rounding_mode="trunc",
-        )[is_samplers_rots_mcfp_at_inds_kto_real]
-    ]
-
-    # now get the indices in the orig_dofs array for the atoms to copy from.
-    # The steps:
-    # 1. get the mainchain atom indices for each of the original residues
-    #    in residue-type order (rto)
-    # 2. sample 1. for each rotamer
-    # 3. find the real subset of these atoms
-    # 4. note the residue index for each of these real atoms
-    # 5. remap these to kinforest order (kto)
-    # 6. increment the indices with the original-residue dof-index offsets
-
-    # orig_mcfp_at_inds_for_orig_rto:
-    # 1. these are the mainchain fingerprint atoms from the original
-    #    residues on the pose
-    # 2. they are stored in residue-type order (rto)
-    # 3. they are indexed by original residue index
-
-    orig_mcfp_at_inds_rto = mcfp.source_atom_mapping[orig_block_type_ind, :].view(-1)
-
-    real_orig_block_type_ind_for_orig_mcfp_ats = stretch(
-        orig_block_type_ind, max_n_mcfp_atoms
-    )[orig_mcfp_at_inds_rto != -1]
-
-    orig_dof_atom_offset = exclusive_cumsum1d(pbt.n_atoms[orig_block_type_ind]).to(
-        torch.int64
-    )
-
-    orig_mcfp_at_inds_kto = torch.full_like(orig_mcfp_at_inds_rto, -1)
-    orig_mcfp_at_inds_kto[orig_mcfp_at_inds_rto != -1] = (
-        torch.tensor(
-            pbt.rotamer_kinforest.kinforest_idx[
-                real_orig_block_type_ind_for_orig_mcfp_ats.cpu().numpy(),
-                orig_mcfp_at_inds_rto[orig_mcfp_at_inds_rto != -1].cpu().numpy(),
-            ],
-            dtype=torch.int64,
-            device=pbt.device,
-        )
-        + orig_dof_atom_offset[
-            torch.floor_divide(  # to do: replace w/ expand
-                torch.arange(
-                    orig_block_type_ind.shape[0] * max_n_mcfp_atoms,
-                    dtype=torch.int64,
-                    device=pbt.device,
-                ),
-                max_n_mcfp_atoms,
-            )
-        ][orig_mcfp_at_inds_rto != -1]
-    )
-
-    orig_mcfp_at_inds_kto = orig_mcfp_at_inds_kto.view(
-        orig_block_type_ind.shape[0], max_n_mcfp_atoms
-    )
-
-    orig_mcfp_at_inds_for_samplers_rots_kto = orig_mcfp_at_inds_kto[
-        real_res_ind_for_samplers_rots, :
-    ].view(-1)
-
-    # pare down the subset to those where the mc atom is present for
-    # both the original block type and the alternate block type;
-    # take the subset and also increment the indices of all the atoms
-    # by one to take into account the virtual root atom at the origin
-
-    both_present = torch.logical_and(
-        samplers_rots_mcfp_at_inds_kto != -1,
-        orig_mcfp_at_inds_for_samplers_rots_kto != -1,
-    )
-
-    # add one for the virtual root
-    samplers_rots_mcfp_at_inds_kto = samplers_rots_mcfp_at_inds_kto[both_present] + 1
-    orig_mcfp_at_inds_for_samplers_rots_kto = (
-        orig_mcfp_at_inds_for_samplers_rots_kto[both_present] + 1
-    )
-
-    return samplers_rots_mcfp_at_inds_kto, orig_mcfp_at_inds_for_samplers_rots_kto
+    # Both DOF arrays reserve their first row for the virtual root.
+    source_local.add_(source_offsets[source_residues, None] + 1)
+    target_local.add_(n_dof_atoms_offset_for_rot[conf_inds_for_sampler, None] + 1)
+    return target_local[present], source_local[present]
 
 
 @validate_args

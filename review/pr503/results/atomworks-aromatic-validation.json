@@ -1,0 +1,279 @@
+{
+  "parent_commit": "0e4ffe8f597ec6f13658464497bf140542ac0590",
+  "source_sha256": {
+    "src/atomworks/io/tools/rdkit.py": "a387109c60e9ee67be9c2d7b50dc05a532a382b405bbf703ac4a80b97ea1004a",
+    "tests/io/tools/test_rdkit_conversion_contract.py": "fab5683bd6de8097fcc10df3175e3c1dc059f3d17ce2e7a029574871e7b3da5e"
+  },
+  "runs": [
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/atomworks-aromatic-before.xml",
+      "sha256": "3bf58008d98d8c2e5b6e56972974d5488fdbc16952406bc4ea7b0f6598f57189",
+      "counts": {
+        "passed": 0,
+        "failure": 6,
+        "error": 0,
+        "skipped": 0
+      },
+      "cases": [
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_plain_aromatic_bonds_preserve_chemical_identity[False-c1ccccc1]",
+          "outcome": "failure"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_plain_aromatic_bonds_preserve_chemical_identity[False-c1ccncc1]",
+          "outcome": "failure"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_plain_aromatic_bonds_preserve_chemical_identity[False-c1ccc2ccccc2c1]",
+          "outcome": "failure"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_plain_aromatic_bonds_preserve_chemical_identity[True-c1ccccc1]",
+          "outcome": "failure"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_plain_aromatic_bonds_preserve_chemical_identity[True-c1ccncc1]",
+          "outcome": "failure"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_plain_aromatic_bonds_preserve_chemical_identity[True-c1ccc2ccccc2c1]",
+          "outcome": "failure"
+        }
+      ]
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/atomworks-aromatic-after.xml",
+      "sha256": "91368feb6a7455a503a16e9f44e1ac75ed4a5cce08e61cfd58e952b638588e18",
+      "counts": {
+        "passed": 48,
+        "failure": 0,
+        "error": 0,
+        "skipped": 0
+      },
+      "cases": [
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_conversion_keeps_source_and_output_independent[N[C@@H](C)C(=O)O-keep]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_conversion_keeps_source_and_output_independent[N[C@@H](C)C(=O)O-remove]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_conversion_keeps_source_and_output_independent[N[C@@H](C)C(=O)O-infer]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_conversion_keeps_source_and_output_independent[c1ccncc1-keep]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_conversion_keeps_source_and_output_independent[c1ccncc1-remove]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_conversion_keeps_source_and_output_independent[c1ccncc1-infer]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_conversion_keeps_source_and_output_independent[C[N+](C)(C)C-keep]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_conversion_keeps_source_and_output_independent[C[N+](C)(C)C-remove]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_conversion_keeps_source_and_output_independent[C[N+](C)(C)C-infer]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_conversion_keeps_source_and_output_independent[[Na+].[Cl-]-keep]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_conversion_keeps_source_and_output_independent[[Na+].[Cl-]-remove]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_conversion_keeps_source_and_output_independent[[Na+].[Cl-]-infer]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_coordinate_policy_is_explicit[None-1.0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_coordinate_policy_is_explicit[None-nan]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_coordinate_policy_is_explicit[None-inf]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_coordinate_policy_is_explicit[False-1.0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_coordinate_policy_is_explicit[False-nan]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_coordinate_policy_is_explicit[False-inf]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_coordinate_policy_is_explicit[True-1.0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_coordinate_policy_is_explicit[True-nan]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_coordinate_policy_is_explicit[True-inf]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_empty_array_conversion",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_conversion_preserves_enantiomer",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_plain_aromatic_bonds_preserve_chemical_identity[False-c1ccccc1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_plain_aromatic_bonds_preserve_chemical_identity[False-c1ccncc1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_plain_aromatic_bonds_preserve_chemical_identity[False-c1ccc2ccccc2c1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_plain_aromatic_bonds_preserve_chemical_identity[True-c1ccccc1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_plain_aromatic_bonds_preserve_chemical_identity[True-c1ccncc1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit_conversion_contract::test_plain_aromatic_bonds_preserve_chemical_identity[True-c1ccc2ccccc2c1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit::test_smiles_to_rdkit_to_atom_array[C1=NC(=C2C(=N1)N(C=N2)C3C(C(C(O3)COP(=O)(O)O)O)O)N]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit::test_smiles_to_rdkit_to_atom_array[C1=CC=CC=C1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit::test_smiles_to_rdkit_to_atom_array[c1cc(c[n+](c1)[C@H]2[C@@H]([C@@H]([C@H](O2)CO[P@@](=O)([O-])O[P@@](=O)(O)OC[C@@H]3[C@H]([C@H]([C@@H](O3)n4cnc5c4ncnc5N)O)O)O)O)C(=O)N]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit::test_smiles_to_atom_array_to_rdkit[C1=NC(=C2C(=N1)N(C=N2)C3C(C(C(O3)COP(=O)(O)O)O)O)N]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit::test_smiles_to_atom_array_to_rdkit[C1=CC=CC=C1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit::test_smiles_to_atom_array_to_rdkit[c1cc(c[n+](c1)[C@H]2[C@@H]([C@@H]([C@H](O2)CO[P@@](=O)([O-])O[P@@](=O)(O)OC[C@@H]3[C@H]([C@H]([C@@H](O3)n4cnc5c4ncnc5N)O)O)O)O)C(=O)N]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit::test_atom_array_rdkit_interconversion[test_atom_array0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit::test_atom_array_rdkit_interconversion[test_atom_array1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit::test_fixing_molecules",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit::test_fingerprints",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit::test_chirality_detection_from_ccd",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit::test_chirality_detection_from_smiles",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit::test_chriality_in_spoofed_rdkit_molecules",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit::test_atom_array_to_rdkit_bond_inference[35N]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit::test_atom_array_to_rdkit_bond_inference[GDP]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit::test_atom_array_to_rdkit_bond_inference[ATP]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit::test_atom_array_to_rdkit_bond_inference[SAM]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit::test_atom_array_to_rdkit_bond_inference[FMN]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tests.io.tools.test_rdkit::test_nhyd_with_explicit_hydrogens",
+          "outcome": "passed"
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/atomworks-aromatic-after.log",
+      "sha256": "5614bd77db2c3ddbf06758b34bf33826e0bc145a23990437828c016a10e93290"
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/atomworks-aromatic-after.xml",
+      "sha256": "91368feb6a7455a503a16e9f44e1ac75ed4a5cce08e61cfd58e952b638588e18"
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/atomworks-aromatic-before.log",
+      "sha256": "4811272bdcbe35ca437dc411289bdfb4e620b5119b9ed3bae61a8bf1fee7b30d"
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/atomworks-aromatic-before.xml",
+      "sha256": "3bf58008d98d8c2e5b6e56972974d5488fdbc16952406bc4ea7b0f6598f57189"
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/atomworks-aromatic-probe.log",
+      "sha256": "d7944d9d8c87378dd4269dc0156129249f44cf06cb8cfa798d74bcf65edc0d70"
+    }
+  ],
+  "limits": [
+    "Single inbound bond-type mapping addition, with no change to explicit Kekule source orders, inverse conversion, normalization or identifier policies.",
+    "Tests cover benzene, pyridine and naphthalene with both repair settings, checking chemical identity, aromatic bonds, atom count, coordinates and source ownership.",
+    "No speedup or complete tmol converter replacement is claimed."
+  ],
+  "atomworks_commit": "adcbfd760897a0059ef7dff813da91720c0f4b26",
+  "atomworks_checkout": "/mnt/home/kdidi/projects/atomworks-tmol-pr503-review",
+  "published": false
+}

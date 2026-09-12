@@ -11,7 +11,7 @@ Review date: 2026-09-12
 
 Both subsequent six-file updates have been reviewed separately. Comments 1–46
 retain their original `c03c1e745` anchors; comments 47–56 address `0f4c3bc42`,
-and comments 57–70 address `0593a93b0`. The
+and comments 57–71 address `0593a93b0`. The
 fold-forest expectations and HYP count are now corrected upstream. See
 [FOLLOWUP.md](FOLLOWUP.md) for reconciliation and validation details.
 
@@ -666,3 +666,13 @@ Location: [`tmol/score/dunbrack/_dunbrack_energy_term.py:91`](https://github.com
 This is an inherited scoring-cache assumption, separate from sampler and global resolver caching. Nine regressions reproduce wrong energies on shared types or stale RT annotations after direct PBT setup. Remapping ILE to the two-chi LEU library or removing its lookup is compared with independently annotated fresh jagged poses, in both orders and whole-pose/block-pair modes. The follow-up keeps one weak resolver-keyed annotation per RT/PBT, refreshes the caller at render time and retains each rendered module's tensor arguments. Tests also compare coordinate gradients, permit owner expiry without invalidating a rendered scorer, reject duplicate lookup names and prohibit per-residue device-scalar reads.
 
 Small lookup metadata are copied to the host once per term; whole annotation tables are assembled there before one transfer per field. All 2,760 RT fields and 12 packed tensor fields match exactly over 230 default types; packed storage remains 76,360 bytes. The complete scoring/resolver CPU suite passes 25 tests (25 CUDA skips). Slurm 249931 passes 119 CPU/CUDA cases, including mirror-image scoring, D repacking and noncanonical/conjugated-group packing. See [results/dun-scoring-validation.json](results/dun-scoring-validation.json) for source stages, scheduler preemption/restart accounting and setup performance limits.
+
+## 71. Keep DOF-copy indexing on device and repair its source oracle — P2
+
+Location: [`tmol/pack/rotamer/_chi_sampler.py:155`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/pack/rotamer/_chi_sampler.py#L155), repeated host lookups at [line 237](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/pack/rotamer/_chi_sampler.py#L237) and [line 295](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/pack/rotamer/_chi_sampler.py#L295), source test at [line 974](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/tests/pack/rotamer/test_build_rotamers.py#L974).
+
+> Could this copy plan use one shared device copy of the residue-to-kinforest atom map? It currently transfers per-conformer index arrays to the CPU for NumPy lookup, then copies the result back. The source assertion also compares `src_gold` with itself; please compare it with actual source indices and build considered-type IDs from the concrete task.
+
+The follow-up uses direct device gathers, masks missing atoms, releases unused atom-index arrays before the next gather and adds offsets in place to newly gathered buffers. Its KFO table is shared with existing chi correction. The production code is 123 lines shorter. Both old fixtures used invalid assumptions about considered-type IDs; correcting those inputs and the source oracle makes named source atoms and offsets independently checked. The old implementation and the new one both pass those corrected oracles before benchmarking. New checks cover selected/reversed conformer order, empty states without annotations, no retained regions, absence of explicit GPU-to-CPU index transfer and shared table identity.
+
+The final CPU suite passes 44 tests (39 CUDA skips). Slurm 250036 passes 436 broad CPU/CUDA cases, and 250127 passes all five mirror-image/D-repacking cases. Final paired latency and allocated-memory measurements use the corrected fixtures; the earlier prototype measurements use different fixture mappings and are kept separate. See [results/dof-copy-validation.json](results/dof-copy-validation.json). This is an index-construction optimization, not a whole-packer speed claim.

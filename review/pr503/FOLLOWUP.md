@@ -2135,3 +2135,74 @@ failures, test inventories, complete timings and scheduler accounting are in
 [results/dun-scoring-validation.json](results/dun-scoring-validation.json).
 Black, Flake8 and whitespace checks pass. Independent DOF-copy prototypes remain
 outside production until their shared-table integration is checked separately.
+
+## Build DOF-copy plans on the tensor device
+
+The mainchain DOF-copy planner now gathers source/destination KFO atom indices
+on the device instead of repeatedly round-tripping conformer-index arrays
+through NumPy. Original-residue offsets use an int64 prefix sum over the flat
+pose layout, with zero contribution from padded blocks. Explicit masks preserve
+missing-source/destination behavior and selected conformer order. Atom-index
+arrays are released before the next gather, and offsets are added in place to
+freshly gathered tensors. The first vectorized prototype used more temporary
+memory; these lifetime changes reduce its peak before integration.
+
+One cached KFO table is shared with existing chi correction. For the default PBT
+it is **66,240 bytes**, with identical tensor identity in both paths; this adds
+no duplicate table to the normal rotamer-building path. The two production
+files are **123 lines shorter**. Chi assignment, actual DOF transfer and scoring
+kernels are outside this change.
+
+The legacy source assertion compared its expected array with itself. Turning it
+into a real comparison exposed invalid fixture inputs: considered-type IDs
+0..4 were treated as five physical residues, while those IDs actually belonged
+to alternative types for the first residue. The second fixture also constructed
+IDs/types by position instead of the task mappings. Both now use actual
+considered/allowed entries. Source and destination atoms, source offsets and
+both conformers per residue are checked independently. The previous and new
+implementations both pass these corrected oracles. The intermediate failed
+assertions are fixture-repair evidence, not claimed production correctness bugs.
+
+New tests check subselected/reversed conformer order, empty selection without
+pose annotations, no retained regions, no explicit `.cpu()` index transfer and
+sharing of the device KFO table. Final CPU validation passes **44 tests / 39 CUDA
+skips**. The earlier isolated final prototype passes 75 CPU/CUDA cases, before
+these stronger fixture/oracle changes and shared-table integration.
+
+Slurm **250036** passes **436 tests without skips**, covering all Dunbrack,
+nucleic-acid and OptH sampling, noncanonical rotamers, task budgets, covalent
+groups, geometry and real packing. It completes **0:0** in **00:12:00**, with
+batch peak host RSS **5706724K**. Job **250127** separately passes all **five**
+mirror-image scoring and D-repacking checks, completing **0:0** in
+**00:00:35**, with batch peak host RSS **3495836K**.
+
+The broad job initially queued in `hpc-mid` with a several-day estimate, then
+in `hpc-high`. Spare capacity was available on the extra H200 node through
+`hpc-low`, so the same job used that partition with a 30-minute limit. Its
+1-GPU/4-CPU/32-GiB request stayed unchanged. No other jobs were modified.
+
+Five alternating rounds of five samples compare the exact previous planner
+from `5060998cf` with the final implementation. Inputs are two corrected
+real-chemistry fixtures, then repeated synthetically for larger conformer counts.
+All source/destination indices and their order match exactly before timing.
+
+| Conformers | Copy pairs | CPU previous → current | CUDA previous → current | Extra CUDA peak, previous → current |
+| ---: | ---: | ---: | ---: | ---: |
+| 10 | 60 | 0.351 → 0.109 ms | 0.984 → 0.304 ms | 15,872 → 9,728 B |
+| 10,000 | 60,000 | 2.928 → 1.360 ms | 1.560 → 0.328 ms | 5,946,880 → 4,005,376 B |
+| 36 | 234 | 0.344 → 0.112 ms | 0.980 → 0.300 ms | 32,768 → 19,456 B |
+| 36,000 | 234,000 | 12.192 → 6.166 ms | 2.610 → 0.324 ms | 22,110,208 → 14,440,448 B |
+
+The first device-table construction is excluded. CUDA peak means additional
+allocated tensors above prepared inputs, including outputs and temporaries;
+it excludes allocator reservations, host metadata, source coordinates and
+process RSS. These are index-construction measurements, excluding actual
+sampling, DOF transfer and scoring. No whole-packer speedup is claimed. Prototype
+profiles used the old fixture mappings and must not be substituted for these
+final comparisons.
+
+Comment 71 records the inherited host-lookup cost and ineffective source test.
+Exact sources, intermediate stages, test inventories, paired profiles and
+scheduler accounting are in [results/dof-copy-validation.json](results/dof-copy-validation.json).
+Black, Flake8 and whitespace checks pass. The separate local AtomWorks aromatic
+input fix is documented in [ATOMWORKS.md](ATOMWORKS.md).

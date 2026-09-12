@@ -907,15 +907,23 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(
             break
     annotate_everything(default_database.chemical, samplers, pbt)
 
-    gbt_for_rot = torch.tensor(
-        [0, 0, 1, 1, 2, 2, 3, 3, 4, 4], dtype=torch.int64, device=torch_device
-    )
+    # Considered-type IDs include disallowed alternatives. Locate the actual
+    # LEU entry at each physical residue instead of treating IDs 0..4 as residues.
+    leu_gbts = torch.nonzero(
+        (task.cons_bt_block_type == leu_ind) & task.is_cons_bt_allowed,
+        as_tuple=True,
+    )[0]
+    assert leu_gbts.numel() == 5
+    gbt_for_rot = leu_gbts.repeat_interleave(2)
     block_type_ind_for_rot = torch.full(
         (10,), leu_ind, dtype=torch.int64, device=torch_device
     )
 
     conf_inds_for_dun_sampler = torch.arange(10, dtype=torch.int64, device=torch_device)
-    sampler_n_rots_for_gbt = torch.full((5,), 2, dtype=torch.int32, device=torch_device)
+    sampler_n_rots_for_gbt = torch.zeros_like(
+        task.cons_bt_block_type, dtype=torch.int32
+    )
+    sampler_n_rots_for_gbt[leu_gbts] = 2
     sampler_gbt_for_rotamer = gbt_for_rot.to(torch.int32)
 
     n_dof_atoms_offset_for_rot = (
@@ -971,7 +979,9 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(
 
     src_gold = src_fpats_kto + src_dof_offsets + 1
 
-    numpy.testing.assert_equal(src_gold, src_gold)
+    # Two conformers copy each source residue's six named backbone atoms.
+    src_gold = numpy.repeat(src_gold.reshape(5, 6), 2, axis=0).reshape(-1)
+    numpy.testing.assert_equal(src_gold, src.cpu().numpy())
 
 
 def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
@@ -984,17 +994,6 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
 
-    gbt_for_rot_list = []
-    count_gbt = 0
-
-    for i in range(3):
-        for j in range(poses.max_n_blocks):
-            for k in range(task.per_block_is_block_type_allowed.shape[2]):
-                if task.per_block_is_block_type_allowed[i, j, k]:
-                    gbt_for_rot_list.append(count_gbt)
-                    gbt_for_rot_list.append(count_gbt)
-                count_gbt += 1
-
     fixed_sampler = FixedAAChiSampler()
     task.add_conformer_sampler(dun_sampler)
     task.add_conformer_sampler(fixed_sampler)
@@ -1004,17 +1003,14 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
     pbt = poses.packed_block_types
     annotate_everything(default_database.chemical, samplers, pbt)
 
-    gbt_for_rot = torch.tensor(gbt_for_rot_list, dtype=torch.int64, device=torch_device)
-
-    block_type_ind_for_rot = torch.remainder(
-        torch.floor_divide(torch.arange(36, dtype=torch.int64, device=torch_device), 2),
-        6,
-    )
-
+    gbt_for_rot = task.allowed_cons_bt.repeat_interleave(2)
+    block_type_ind_for_rot = task.cons_bt_block_type[gbt_for_rot]
+    assert gbt_for_rot.numel() == 36
     conf_inds_for_dun_sampler = torch.arange(36, dtype=torch.int64, device=torch_device)
-    sampler_n_rots_for_gbt = torch.full(
-        (18,), 2, dtype=torch.int32, device=torch_device
+    sampler_n_rots_for_gbt = torch.zeros_like(
+        task.cons_bt_block_type, dtype=torch.int32
     )
+    sampler_n_rots_for_gbt[task.allowed_cons_bt] = 2
     sampler_gbt_for_rotamer = gbt_for_rot.to(torch.int32)
 
     n_dof_atoms_offset_for_rot = exclusive_cumsum1d(pbt.n_atoms[block_type_ind_for_rot])

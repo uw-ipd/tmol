@@ -110,6 +110,19 @@ def _build_ring_chi_phi_c_corrections(pbt):
     return corrections
 
 
+def _kinforest_device_indices(pbt, device):
+    """One RTO-to-KFO device table shared by DOF copying and chi correction."""
+    if not hasattr(pbt, "_kinforest_device_indices"):
+        object.__setattr__(
+            pbt,
+            "_kinforest_device_indices",
+            torch.as_tensor(
+                pbt.rotamer_kinforest.kinforest_idx, dtype=torch.int64, device=device
+            ),
+        )
+    return pbt._kinforest_device_indices
+
+
 def _chi4_and_kfo_device_tables(pbt, device):
     """Device copies of the per-atom chi table and the RTO -> KFO atom map."""
     if not hasattr(pbt, "_chi4_kfo_device_tables"):
@@ -117,9 +130,7 @@ def _chi4_and_kfo_device_tables(pbt, device):
             torch.as_tensor(_build_chi4_by_defining_atom(pbt), device=device).to(
                 torch.int64
             ),
-            torch.as_tensor(pbt.rotamer_kinforest.kinforest_idx, device=device).to(
-                torch.int64
-            ),
+            _kinforest_device_indices(pbt, device),
         )
         object.__setattr__(pbt, "_chi4_kfo_device_tables", tables)
     return pbt._chi4_kfo_device_tables

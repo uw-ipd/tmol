@@ -9,7 +9,7 @@ component name raise before preparation.
 
 This audit used the local `atomworks-dev` checkout at
 `a1bda7edfcf325bc140091889b9745220adb5eba`. The improvements are on the separate
-local branch `review/tmol-pr503-shared-chemistry`, commit `0e4ffe8f`, in
+local branch `review/tmol-pr503-shared-chemistry`, commit `adcbfd76`, in
 `/mnt/home/kdidi/projects/atomworks-tmol-pr503-review`.
 
 ## Overlap and recommended ownership
@@ -191,3 +191,22 @@ AtomArray to tmol. This is a compatibility rerun, with single stage timing
 samples; it does not establish a new speed ratio or validate full packing and
 all generated parameters. Source hashes, package versions and fixture results
 are in `results/upstream-059-validation.json`.
+
+
+## Plain aromatic input compatibility
+
+The shared converter also needs to accept Biotite's plain `BondType.AROMATIC`,
+which tmol already accepts. AtomWorks handled only the explicit aromatic
+single/double/triple encodings and raised `KeyError: 9` on a benzene ring with
+plain aromatic bonds. The local AtomWorks branch now adds that one missing
+inbound mapping, without changing explicit Kekule orders or inverse conversion.
+Six before-fix failures cover benzene, pyridine and naphthalene with repair
+both enabled and disabled. All **48 conversion and related RDKit tests pass**,
+including chemical identity, aromatic bond counts, coordinates and input
+ownership. This is a compatibility fix, with no speed claim. Tmol's subtype
+metadata, source-aromatic flags and repair policy still need an explicit shared
+contract before replacing its converter wholesale.
+
+The AtomWorks change is committed locally as `adcbfd76` and has not been
+pushed. Source hashes, exact test inventories and raw logs are recorded in
+[results/atomworks-aromatic-validation.json](results/atomworks-aromatic-validation.json).
