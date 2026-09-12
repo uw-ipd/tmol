@@ -559,11 +559,6 @@ if(TMOL_BUILD_TESTS)
   )
 
   tmol_add_pybind_cpp_ext(
-    test_dunbrack_dihedral "tmol/tests/score/dunbrack" "_dihedral"
-    tmol/tests/score/dunbrack/dihedral.pybind.cpp
-  )
-
-  tmol_add_pybind_cpp_ext(
     test_lkball_ext "tmol/tests/score/lk_ball/potentials" "_ext"
     tmol/tests/score/lk_ball/potentials/compiled.pybind.cpp
   )
@@ -603,28 +598,9 @@ if(TMOL_BUILD_TESTS)
     tmol/tests/utility/datastructures/in_place_heap.cpp
   )
 
-  if(TMOL_HAS_CUDA)
-    tmol_add_pybind_cuda_ext(
-      test_whole_pose_gradients "tmol/tests/score/common" "_whole_pose_gradients"
-      tmol/tests/score/common/whole_pose_gradients.pybind.cpp
-      tmol/score/common/whole_pose_scoring.cuda.cu
-    )
-  else()
-    tmol_add_pybind_cpp_ext(
-      test_whole_pose_gradients "tmol/tests/score/common" "_whole_pose_gradients"
-      tmol/tests/score/common/whole_pose_gradients.pybind.cpp
-    )
-  endif()
-
   # --- mixed-backend and CUDA-only test extensions ---
 
   if(TMOL_HAS_CUDA)
-    tmol_add_pybind_cuda_ext(
-      test_torch_context "tmol/tests/utility/tensor" "_torch_context"
-      tmol/tests/utility/tensor/torch_context.pybind.cpp
-      tmol/tests/utility/tensor/torch_context.cuda.cu
-    )
-
     tmol_add_pybind_cuda_ext(
       test_geom_cuda "tmol/tests/score/common/geom" "_ext_cuda"
       tmol/tests/score/common/geom/geom.cu

@@ -524,6 +524,55 @@ def test_whole_pose_gradients_respect_per_pose_upstream_weights(
     )
 
 
+@pytest.mark.parametrize("device_index", [0, 1])
+def test_cuda_term_gradients_accept_strided_lane_weights(ubq_pdb, device_index):
+    if torch.cuda.device_count() <= device_index:
+        pytest.skip("Requested CUDA device is unavailable")
+    original_device = torch.cuda.current_device()
+    torch_device = torch.device("cuda", device_index)
+    with torch.cuda.device(torch_device):
+        one = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+        pose = PoseStackBuilder.from_poses([one, one], torch_device)
+        scorer = _non_memoized_beta2016(torch_device).render_whole_pose_scoring_module(
+            pose
+        )
+    stream = torch.cuda.Stream(device=torch_device)
+    stream.wait_stream(torch.cuda.current_stream(torch_device))
+    tested_widths = set()
+
+    for term in scorer.term_modules:
+        with torch.cuda.stream(stream):
+            coords = pose.coords.detach().clone().requires_grad_(True)
+            scores = term(coords)
+            if not scores.requires_grad:
+                continue
+            backing = torch.linspace(
+                -1, 1, 2 * scores.numel(), device=torch_device, dtype=scores.dtype
+            )
+            upstream = backing[::2].view_as(scores)
+            (actual,) = torch.autograd.grad(scores, coords, upstream, allow_unused=True)
+        if actual is None:
+            continue
+        stream.synchronize()
+
+        with torch.cuda.device(torch_device):
+            reference_coords = pose.coords.detach().clone().requires_grad_(True)
+            reference_scores = term(reference_coords)
+            (expected,) = torch.autograd.grad(
+                reference_scores,
+                reference_coords,
+                upstream,
+                create_graph=True,
+                allow_unused=True,
+            )
+        assert expected is not None
+        torch.testing.assert_close(actual, expected, rtol=5e-5, atol=5e-5)
+        tested_widths.add(scores.shape[0])
+
+    assert tested_widths == {1, 2, 3, 4, 5}
+    assert torch.cuda.current_device() == original_device
+
+
 def test_zero_weight_does_not_construct_energy_term(default_database, torch_device):
     sfxn = ScoreFunction(default_database, torch_device)
 
