@@ -10,7 +10,9 @@ from urllib.request import urlretrieve
 
 TUTORIAL_REF = "master"
 RAW_BASE = f"https://raw.githubusercontent.com/uw-ipd/tmol/{TUTORIAL_REF}"
-TMOL_RELEASE = "0.1.56"
+# Advance only after the release wheels have been published and exercised.
+# The source project's next version may not have downloadable wheels yet.
+TMOL_RELEASE = "0.1.55"
 RELEASE_WHEEL_TORCH_MINOR = "2.11"
 RELEASE_WHEEL_CUDA = "12.8"
 RELEASE_WHEEL_PYTHONS = frozenset({(3, 12), (3, 13)})
@@ -51,13 +53,17 @@ def _pip_install(requirements: list[str], torch_version: str) -> None:
 
 def setup_colab(fixtures: list[str]) -> None:
     """Install the matching TMol wheel and download tutorial fixtures."""
-    gpu_probe = subprocess.run(
-        ["nvidia-smi"],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    if gpu_probe.returncode != 0:
+    try:
+        gpu_probe = subprocess.run(
+            ["nvidia-smi"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        gpu_available = gpu_probe.returncode == 0
+    except FileNotFoundError:
+        gpu_available = False
+    if not gpu_available:
         raise RuntimeError(
             "This tutorial requires a Colab GPU runtime. Choose "
             "'Runtime > Change runtime type > T4 GPU', reconnect, and run again."

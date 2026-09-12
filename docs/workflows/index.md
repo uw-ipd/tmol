@@ -57,6 +57,11 @@ corresponding Tutorials for deeper analysis.
     <span class="docs-card-title">DNA and RNA</span>
     <span class="docs-card-description">Score nucleic acids, sample glycosidic chi, and construct local base-substitution tasks.</span>
   </a>
+  <a class="docs-card" href="extending_tmol.html">
+    <span class="docs-card-kicker">Customize</span>
+    <span class="docs-card-title">Extend chemistry, kinematics, and packing</span>
+    <span class="docs-card-description">Choose a stable extension surface, preserve immutable contexts, inspect candidates, and validate local effects.</span>
+  </a>
 </nav>
 ```
 
@@ -92,6 +97,7 @@ nucleic_acids
 :maxdepth: 2
 :caption: Develop and benchmark
 
+extending_tmol
 ../user_guide/benchmarking
 ../user_guide/development
 ```

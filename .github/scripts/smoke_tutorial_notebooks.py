@@ -23,6 +23,9 @@ TUTORIAL_NOTEBOOKS = (
     "08_nucleic_acids.ipynb",
     "09_protein_interface_hotspot_scan.ipynb",
     "10_ligand_pose_sensitivity.ipynb",
+    "11_extending_chemistry_and_scoring.ipynb",
+    "12_explicit_foldforests_and_torsions.ipynb",
+    "13_extending_the_packer.ipynb",
 )
 TUTORIAL_REF = "master"
 KERNEL_STARTUP_TIMEOUT = 180
@@ -44,8 +47,12 @@ def _validate_tutorial_entrypoints(notebook, path: Path) -> None:
         raise ValueError(f"{path} is missing its guarded Colab bootstrap")
     if notebook.metadata.get("accelerator") != "GPU":
         raise ValueError(f"{path} does not request a Colab GPU runtime")
-    if f"blob/{TUTORIAL_REF}/docs/tutorial/" not in markdown:
-        raise ValueError(f"{path} does not use the durable Colab URL")
+    colab_url = (
+        "https://colab.research.google.com/github/uw-ipd/tmol/"
+        f"blob/{TUTORIAL_REF}/docs/tutorial/{path.name}"
+    )
+    if colab_url not in markdown:
+        raise ValueError(f"{path} does not link to its own notebook in Colab")
     if f"{TUTORIAL_REF}/docs/tutorial/colab_setup.py" not in code:
         raise ValueError(f"{path} does not use the current tutorial bootstrap")
 
@@ -139,7 +146,7 @@ def main() -> int:
         "notebooks",
         nargs="*",
         type=Path,
-        help="Notebook paths (defaults to the ten published tutorials when present)",
+        help="Notebook paths (defaults to all thirteen published tutorials)",
     )
     parser.add_argument(
         "--timeout",
@@ -179,15 +186,7 @@ def main() -> int:
         paths = args.notebooks
     else:
         tutorial_dir = Path("docs/tutorial")
-        paths = [
-            tutorial_dir / name
-            for name in TUTORIAL_NOTEBOOKS
-            if (tutorial_dir / name).is_file()
-        ]
-
-    if not paths:
-        print("No tutorial notebooks are present; nothing to execute.")
-        return 0
+        paths = [tutorial_dir / name for name in TUTORIAL_NOTEBOOKS]
 
     missing = [path for path in paths if not path.is_file()]
     if missing:

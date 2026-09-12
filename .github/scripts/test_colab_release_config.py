@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import ast
 import importlib.util
+import json
 import sys
 import tomllib
 from pathlib import Path
 
 import pytest
 import yaml
+from packaging.version import Version
 
 ROOT = Path(__file__).parents[2]
 
@@ -44,8 +47,9 @@ def test_colab_selects_the_published_wheel_for_each_supported_python():
     assert module.RELEASE_WHEEL_TORCH_MINOR == "2.11"
     assert module.RELEASE_WHEEL_CUDA == "12.8"
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-    release = project["project"]["version"]
-    assert module.TMOL_RELEASE == release
+    # Colab needs published wheels; the source version can be unreleased.
+    release = module.TMOL_RELEASE
+    assert Version(release) <= Version(project["project"]["version"])
     assert (
         project["tool"]["scikit-build"]["cmake"]["define"]["CMAKE_CUDA_ARCHITECTURES"][
             "default"
@@ -70,7 +74,9 @@ def test_colab_selects_the_published_wheel_for_each_supported_python():
     for notebook_path in sorted((ROOT / "docs/tutorial").glob("[0-9][0-9]_*.ipynb")):
         notebook = notebook_path.read_text(encoding="utf-8")
         assert "install_tutorial_source" not in notebook
-        assert "/uw-ipd/tmol/blob/master/docs/tutorial/" in notebook
+        assert (
+            f"/uw-ipd/tmol/blob/master/docs/tutorial/{notebook_path.name}" in notebook
+        )
         assert "kdidi/sphinx-docs-refactor" not in notebook
 
 
@@ -84,6 +90,46 @@ def test_colab_pip_install_constrains_active_torch(monkeypatch):
 
     monkeypatch.setattr(module.subprocess, "check_call", check_call)
     module._pip_install(["numpy>=1.24"], "2.11.0+cu128")
+
+
+def test_colab_without_nvidia_smi_explains_how_to_select_a_gpu(monkeypatch):
+    module = _load_colab_setup()
+
+    def missing_command(*args, **kwargs):
+        raise FileNotFoundError("nvidia-smi")
+
+    monkeypatch.setattr(module.subprocess, "run", missing_command)
+    with pytest.raises(RuntimeError, match="Change runtime type > T4 GPU"):
+        module.setup_colab([])
+
+
+def test_colab_declares_the_repository_files_used_by_each_tutorial():
+    for path in sorted((ROOT / "docs/tutorial").glob("[0-9][0-9]_*.ipynb")):
+        notebook = json.loads(path.read_text(encoding="utf-8"))
+        code = "\n".join(
+            "".join(cell["source"])
+            for cell in notebook["cells"]
+            if cell["cell_type"] == "code"
+        )
+        nodes = list(ast.walk(ast.parse(code)))
+        declared = set()
+        for node in nodes:
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == "setup_colab"
+            ):
+                declared.update(ast.literal_eval(node.args[0]))
+        referenced = {
+            node.value
+            for node in nodes
+            if isinstance(node, ast.Constant)
+            and isinstance(node.value, str)
+            and node.value.startswith("tmol/tests/data/")
+            and (ROOT / node.value).is_file()
+        }
+        assert referenced <= declared, (path.name, referenced - declared)
+        assert all((ROOT / fixture).is_file() for fixture in declared)
 
 
 def test_release_matrix_drives_publish_smoke_and_manifest():

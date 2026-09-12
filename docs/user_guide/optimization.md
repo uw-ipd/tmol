@@ -9,6 +9,8 @@ depth.
 > - **Deep tutorials:** {doc}`05 — Minimization, Constraints, and Kinematics
 >   </tutorial/05_minimization_constraints_kinematics>` and
 >   {doc}`06 — FastRelax </tutorial/06_fast_relax>`.
+> - **Advanced extension tutorial:** {doc}`12 — Explicit FoldForests and
+>   Coordinate Control </tutorial/12_explicit_foldforests_and_torsions>`.
 > - **Related workflows:** {doc}`Ligand preparation </user_guide/ligands>` and
 >   {doc}`Nucleic acids </workflows/nucleic_acids>`; for CPU execution, see
 >   {doc}`CPU threading </user_guide/cpu_threading>`.
