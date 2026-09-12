@@ -707,6 +707,7 @@ class DunbrackChiSampler(ChiSampler):
             self.dun_param_resolver.sampling_db.rotameric_bb_start,
             self.dun_param_resolver.sampling_db.rotameric_bb_step,
             self.dun_param_resolver.sampling_db.rotameric_bb_periodicity,
+            self.dun_param_resolver.sampling_db.rotameric_bb_source_start,
             self.dun_param_resolver.sampling_db.rotameric_bb_is_mirrored,
             self.dun_param_resolver.sampling_db.semirotameric_tables,
             self.dun_param_resolver.sampling_db.semirot_table_sizes,

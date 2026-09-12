@@ -125,6 +125,7 @@ class SamplingDunbrackDatabaseView(ConvertAttrs):
     rotameric_bb_start: Tensor[torch.float][:, :]
     rotameric_bb_step: Tensor[torch.float][:, :]
     rotameric_bb_periodicity: Tensor[torch.float][:, :]
+    rotameric_bb_source_start: Tensor[torch.float][:, :]
     rotameric_bb_is_mirrored: Tensor[torch.bool][:]
 
     rotameric_rotind2tableind: Tensor[torch.int32][:]
@@ -221,7 +222,10 @@ class DunbrackParamResolver(ValidateAttrs):
         sr_coeffs, sr_sizes, sr_strides = cls._calc_semirot_coeffs(dun_database, device)
 
         sr_start, sr_step, sr_periodicity = cls._create_semirot_periodicity(
-            dun_database, device
+            dun_database,
+            device,
+            rot_bb_start[len(dun_database.rotameric_libraries) :],
+            rot_bb_step[len(dun_database.rotameric_libraries) :],
         )
         sr_tableset_offsets = cls._create_semirot_offsets(dun_database, device)
 
@@ -272,6 +276,9 @@ class DunbrackParamResolver(ValidateAttrs):
             rotameric_bb_start=rot_bb_start,
             rotameric_bb_step=rot_bb_step,
             rotameric_bb_periodicity=rot_bb_per,
+            rotameric_bb_source_start=cls._create_rot_source_starts(
+                all_rotlibs, rot_bb_start, device
+            ),
             rotameric_bb_is_mirrored=torch.tensor(
                 [
                     getattr(lib.rotameric_data, "backbone_is_mirrored", False)
@@ -465,6 +472,23 @@ class DunbrackParamResolver(ValidateAttrs):
         return rotameric_bb_start, rotameric_bb_step, rotameric_bb_periodicity
 
     @classmethod
+    def _create_rot_source_starts(cls, all_rotlibs, target_starts, device):
+        data = [lib.rotameric_data for lib in all_rotlibs]
+        sources = [getattr(d, "backbone_source_start", None) for d in data]
+        if all(
+            s is None or s is d.backbone_dihedral_start for s, d in zip(sources, data)
+        ):
+            return target_starts
+        return torch.tensor(
+            [
+                list(d.backbone_dihedral_start if s is None else s)
+                for s, d in zip(sources, data)
+            ],
+            dtype=torch.float32,
+            device=device,
+        ) * (numpy.pi / 180)
+
+    @classmethod
     def _create_rotind2tableinds(cls, dun_database, device):
         """
         rotameric_rotind2tableind: a mapping based on the rotameric chi for a residue
@@ -628,14 +652,15 @@ class DunbrackParamResolver(ValidateAttrs):
         return _pack_spline_coefficients(semirot_coeffs, 3, device)
 
     @classmethod
-    def _create_semirot_periodicity(cls, dun_database, device):
+    def _create_semirot_periodicity(
+        cls, dun_database, device, backbone_start, backbone_step
+    ):
         semirot_start = torch.zeros(
             (len(dun_database.semi_rotameric_libraries), 3),
             dtype=torch.float,
             device=device,
         )
-        semirot_start[:, 0] = -1 * numpy.pi
-        semirot_start[:, 1] = -1 * numpy.pi
+        semirot_start[:, :2] = backbone_start
         semirot_start[:, 2] = (
             torch.tensor(
                 [x.non_rot_chi_start for x in dun_database.semi_rotameric_libraries],
@@ -651,8 +676,7 @@ class DunbrackParamResolver(ValidateAttrs):
             dtype=torch.float,
             device=device,
         )
-        semirot_step[:, 0] = 10 * numpy.pi / 180
-        semirot_step[:, 1] = 10 * numpy.pi / 180
+        semirot_step[:, :2] = backbone_step
         semirot_step[:, 2] = (
             torch.tensor(
                 [x.non_rot_chi_step for x in dun_database.semi_rotameric_libraries],

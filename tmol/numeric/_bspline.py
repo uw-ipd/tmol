@@ -76,7 +76,8 @@ class BSplineInterpolation:
 
         # we only implement the python interface for CPU
         assert coords.device == torch.device("cpu")
-        coeffs = coords.clone()
+        # The in-place coefficient filter walks a contiguous buffer.
+        coeffs = coords.clone(memory_format=torch.contiguous_format)
 
         input_shape = coords.shape
         if len(input_shape) == 2:

@@ -11,7 +11,7 @@ Review date: 2026-09-12
 
 Both subsequent six-file updates have been reviewed separately. Comments 1–46
 retain their original `c03c1e745` anchors; comments 47–56 address `0f4c3bc42`,
-and comments 57–78 address `0593a93b0`. The
+and comments 57–81 address `0593a93b0`. The
 fold-forest expectations and HYP count are now corrected upstream. See
 [FOLLOWUP.md](FOLLOWUP.md) for reconciliation and validation details.
 
@@ -82,6 +82,8 @@ This measures CIF missing-atom insertion, **not end-to-end packing/scoring accel
 15. **Mirror sampling contract:** Should paired L/D structures receive one-to-one reflected conformer sets, including terminal defaults, probability truncation and extra-chi sampling? Which equivalent-atom permutations are allowed, and what grid-boundary convention makes the probability-ordering tables agree with their reflected counterparts? Matching scores and preserving D chirality do not establish this.
 
 16. **Achiral glycine model:** Is `with_symmetric_gly()` intended to symmetrize the complete model or only select backbone tables? The two alpha-hydrogen ideal lengths and bonded targets differ, which breaks exact reflection after rebuilding equivalent hydrogens. Also, a reflection-invariant omega potential can retain backbone dependence; what supports replacing it with a uniformly trans table? The follow-up preserves the default parameter files and makes the hydrogen averaging opt-in.
+
+17. **Private library grids:** Are custom backbone origins, anisotropic spacing and smaller periodic tables supported? Can that contract be checked through both scoring and sampling, including serialized reflected libraries and mixtures of differently sized tables? These cases expose inherited layout assumptions that default 36×36 grids conceal.
 
 ## Suggested inline comments
 
@@ -765,3 +767,30 @@ Location: [`tmol/score/dunbrack/_params.py:605`](https://github.com/uw-ipd/tmol/
 These are inherited full-database assumptions exposed by private/minimal chemistry. Five pre-fix cases fail; semirotameric-only controls pass. The follow-up shares lookup construction, creates rank-correct empty tensors and true empty offsets, handles empty prefix sums, and constructs empty dihedral tensors with native-compatible strides. It introduces no dummy tables or dihedrals. Whole-pose/block-pair energies and weighted coordinate gradients match the full database restricted to the same mappings, including exactly zero outputs for an unmapped term. Public explicit-chi coordinate construction also works with no statistical library, including gapped chi numbering.
 
 All 50 default resolver tensor fields and three lookup DataFrames match the preceding implementation on CPU/CUDA. Derived tensor storage is 374,345 bytes for LEU-only, 1,308,573 for PHE-only, and zero for no libraries; these are deliberately different reference sets, not automatic pruning of a full model. The full default remains 67,494,212 bytes, 144 fewer because two views can share integer offsets. Slurm 250598 passes 297 CPU/CUDA cases (one intentional CPU annealer skip); the separately added public-construction cases pass eight CPU/CUDA tests in 250599. See [check_empty_dunbrack_database.py](check_empty_dunbrack_database.py) and [results/empty-dunbrack-libraries.json](results/empty-dunbrack-libraries.json).
+
+
+## 79. Register reflected grids at their actual coordinates — P2
+
+Location: [`tmol/database/scoring/_mirrored_dunbrack.py:84`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/database/scoring/_mirrored_dunbrack.py#L84), related semirotameric origins at [`_params.py:614`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/score/dunbrack/_params.py#L614).
+
+> Could the reflected table carry the reflected grid origin, and could semirotameric scoring use its declared backbone origins and spacing? Rounding `-2*start/step` while retaining `start` relabels points when reflection does not land on the original grid. Independently, a circular reindexing of an equivalent PHE table changes the score because its backbone grid is hardcoded to −180°/10°.
+
+The follow-up permutes the existing data and sets the reflected origin to `-start-c*step`, where `c` is the integer permutation shift. It retains the source origin for discrete sampling-cell selection, including missing-angle defaults, and persists that metadata through serialization. Default aligned grids reuse their existing origin storage. Reindexing preserves whole-pose/block-pair scores and weighted coordinate gradients; custom origins and rectangular 20°/30° grids satisfy mirror checks. This is a metadata correction without resampling or a scientific refit. See [results/grid-registration-validation.json](results/grid-registration-validation.json).
+
+
+## 80. Read each table's metadata and respect padded spline strides — P2
+
+Location: [`tmol/pack/rotamer/dunbrack/dispatch.impl.hh:484`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/pack/rotamer/dunbrack/dispatch.impl.hh#L484). Related inherited interpolation code: [`tmol/numeric/bspline_compiled/bspline.hh:392`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/numeric/bspline_compiled/bspline.hh#L392).
+
+> Could these access the selected metadata row directly, and could interpolation use the supplied tensor strides? A vector view's stride is measured in vectors, but the current pointer arithmetic applies it after converting to a scalar pointer. Square grids conceal the wrong row/axis selection. Interpolation then derives contiguous strides from logical sizes even though differently sized tables are packed with padding.
+
+These are inherited assumptions exposed by generalized libraries. The follow-up uses `table_metadata[index].data()` at all Dunbrack scoring/sampling call sites and uses actual strides in spline interpolation. Fitting creates a contiguous owned coefficient buffer, as its in-place filter requires. Independent 2D/3D/4D tests compare padded and transposed coefficients against contiguous values and derivatives exactly. Mixed default/custom score tables and rectangular native sampling exercise the integration. The stride and metadata fixes must be applied together: making interpolation respect previously misaddressed strides exposes failures even with default tables. No score golden was refreshed for these fixes.
+
+
+## 81. Correct periodic fitting for small spline grids — P2
+
+Related inherited location, outside the PR's changed lines: [`tmol/numeric/bspline_compiled/bspline.hh:98`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/numeric/bspline_compiled/bspline.hh#L98). This is a general review comment or a separate numeric fix, not an inline comment on the PR diff.
+
+> Can the short-period anticausal initialization stop before re-reading its own accumulator? The last entry is already included as the initial term. Iterating through it again both uses a partially modified value and advances the denominator to the wrong pole power. On small grids, interpolation consequently misses the supplied grid values.
+
+After correcting layout handling, three independent 2D/3D/4D tests still fail on 5–8-point axes. Iterating over the other `N-1` entries gives the periodic denominator `1-pole**N` and restores the grid-point interpolation checks. The large-grid truncation branch is unchanged. All three issues and their separately failing intermediate stages are recorded in [results/grid-registration-validation.json](results/grid-registration-validation.json); default parameter tensors are independently checked for exact equality.

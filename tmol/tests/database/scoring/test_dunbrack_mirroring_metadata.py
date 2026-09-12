@@ -21,13 +21,23 @@ def test_legacy_binary_defaults_to_original_backbone_orientation():
     libraries = (*database.rotameric_libraries, *database.semi_rotameric_libraries)
     assert libraries
     assert all(lib.rotameric_data.backbone_is_mirrored is False for lib in libraries)
+    assert all(lib.rotameric_data.backbone_source_start is None for lib in libraries)
 
 
 @pytest.mark.parametrize("semi", [False, True])
-def test_double_reflection_restores_all_library_data(default_database, semi):
+@pytest.mark.parametrize("custom_origin", [False, True])
+def test_double_reflection_restores_all_library_data(
+    default_database, semi, custom_origin
+):
     db = default_database.scoring.dun
     library = (db.semi_rotameric_libraries if semi else db.rotameric_libraries)[0]
     original = library.rotameric_data
+    if custom_origin:
+        original = attr.evolve(
+            original,
+            backbone_dihedral_start=original.backbone_dihedral_start
+            + torch.tensor([1.25, -2.0]),
+        )
     mirrored = mirror_rotameric_data(original)
     restored = mirror_rotameric_data(mirrored)
     assert mirrored.backbone_is_mirrored is True
@@ -40,11 +50,21 @@ def test_double_reflection_restores_all_library_data(default_database, semi):
         )
 
 
+@pytest.mark.parametrize("custom_origin", [False, True])
 def test_reflection_follows_renamed_libraries_through_serialization(
-    default_database, tmp_path, torch_device
+    default_database, tmp_path, torch_device, custom_origin
 ):
     db = default_database.scoring.dun
     ordinary = db.rotameric_libraries[0]
+    if custom_origin:
+        ordinary = attr.evolve(
+            ordinary,
+            rotameric_data=attr.evolve(
+                ordinary.rotameric_data,
+                backbone_dihedral_start=ordinary.rotameric_data.backbone_dihedral_start
+                + torch.tensor([1.25, -2.0]),
+            ),
+        )
     reflected = attr.evolve(
         ordinary,
         table_name="private_rotamers",
@@ -68,12 +88,27 @@ def test_reflection_follows_renamed_libraries_through_serialization(
     assert [
         lib.rotameric_data.backbone_is_mirrored for lib in loaded.rotameric_libraries
     ] == [True, False]
+    torch.testing.assert_close(
+        loaded.rotameric_libraries[0].rotameric_data.backbone_source_start,
+        ordinary.rotameric_data.backbone_dihedral_start,
+        rtol=0,
+        atol=0,
+    )
     resolver = DunbrackParamResolver.from_database(loaded, torch_device)
     assert resolver.sampling_db.rotameric_bb_is_mirrored.tolist() == [
         True,
         False,
         False,
     ]
+    starts = resolver.sampling_db.rotameric_bb_source_start
+    torch.testing.assert_close(starts[0], starts[1], rtol=0, atol=0)
+    torch.testing.assert_close(
+        starts[0],
+        ordinary.rotameric_data.backbone_dihedral_start.to(torch_device)
+        * (torch.pi / 180),
+        rtol=0,
+        atol=0,
+    )
 
 
 def test_mirrored_mean_coefficients_use_the_reflected_angular_branch(default_database):

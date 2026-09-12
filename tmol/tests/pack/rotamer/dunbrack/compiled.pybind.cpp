@@ -46,6 +46,7 @@ void bind_dispatch(pybind11::module& m) {
       "rotameric_bb_start"_a,
       "rotameric_bb_step"_a,
       "rotameric_bb_periodicity"_a,
+      "rotameric_bb_source_start"_a,
       "rotameric_bb_is_mirrored"_a,
       "n_rotamers_for_tableset_offsets"_a,
       "sorted_rotamer_2_rotamer"_a,
@@ -111,6 +112,7 @@ void bind_dispatch(pybind11::module& m) {
       "rotameric_bb_start"_a,
       "rotameric_bb_step"_a,
       "rotameric_bb_periodicity"_a,
+      "rotameric_bb_source_start"_a,
       "rotameric_bb_is_mirrored"_a,
 
       "sorted_rotamer_2_rotamer"_a,

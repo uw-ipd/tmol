@@ -95,7 +95,9 @@ struct ndspline {
       }
       line[N - 1] *= -pole;
     } else {
-      for (int i = 0; i < N; ++i) {
+      // Stop before the last entry: it is the accumulator and has already
+      // been included once. After N-1 terms, zn is pole^N.
+      for (int i = 0; i < N - 1; ++i) {
         line[N - 1] += zn * line[i];
         zn *= pole;
       }
@@ -358,7 +360,8 @@ struct ndspline {
     RealN dinterp_dX = RealN::Constant(0.0);
 
     Int nprods = 1;
-    Int stride, pt_indexer, idx_ij, idx_box_i, idx_i;
+    Int pt_indexer, idx_box_i, idx_i;
+    int64_t idx_ij;
     IntN idx;
     RealN frac;
 
@@ -381,7 +384,6 @@ struct ndspline {
       weight = 1;
       dweight = RealN::Constant(1.0);
 
-      stride = 1;
       pt_indexer = pt;
       idx_ij = 0;
 
@@ -389,8 +391,7 @@ struct ndspline {
         idx_box_i = pt_indexer % (DEGREE + 1);
         idx_i = (idx[dim] + idx_box_i) % coeffs.size(dim);
         if (idx_i < 0) idx_i += coeffs.size(dim);
-        idx_ij += stride * idx_i;
-        stride *= coeffs.size(dim);
+        idx_ij += coeffs.stride(dim) * idx_i;
         weight *= wts(dim, idx_box_i);
 
         for (int d_dim = 0; d_dim < NDIM; ++d_dim) {

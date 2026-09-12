@@ -14,7 +14,7 @@ import torch
 from tmol.database import ParameterDatabase
 from tmol.score.dunbrack import DunbrackParamResolver
 
-BASELINE = "2fb707386"
+BASELINE = "3709b04f0"
 SOURCE = "tmol/score/dunbrack/_params.py"
 
 
@@ -45,7 +45,7 @@ def main():
     checked = 0
     for name in ("scoring_db", "scoring_db_aux", "sampling_db"):
         left, right = getattr(before, name), getattr(after, name)
-        for field in attr.fields(type(right)):
+        for field in attr.fields(type(left)):
             torch.testing.assert_close(
                 getattr(left, field.name), getattr(right, field.name), rtol=0, atol=0
             )
@@ -56,10 +56,13 @@ def main():
         "semirotameric_table_indices",
     ):
         pandas.testing.assert_frame_equal(getattr(before, name), getattr(after, name))
-    # Integer offsets are now born in the dtype their views consume, allowing
-    # the sampling/scoring views to share them instead of casting twice.
+    # Aligned default grids need no separate source-frame storage.
+    assert (
+        after.sampling_db.rotameric_bb_source_start
+        is after.sampling_db.rotameric_bb_start
+    )
     default_sizes = {"before": storage_bytes(before), "after": storage_bytes(after)}
-    assert default_sizes["after"] <= default_sizes["before"]
+    assert default_sizes["after"] == default_sizes["before"]
     sizes = {"complete_default": storage_bytes(after)}
     for label, residue in (
         ("rotameric_LEU_only", "LEU"),
@@ -99,6 +102,7 @@ def main():
         "torch": torch.__version__,
         "default_tensor_fields_exact": checked,
         "default_lookup_dataframes_exact": 3,
+        "default_source_grid_reuses_target_storage": True,
         "default_storage_bytes": default_sizes,
         "unique_derived_tensor_storage_bytes": sizes,
         "limits": "Derived resolver tensor storage only, deduplicated across views. Excludes source library tensors, parameter database, Python metadata, allocator overhead and temporary peaks. Smaller databases deliberately omit unrelated scoring/sampling references; no automatic pruning or timing improvement is claimed.",

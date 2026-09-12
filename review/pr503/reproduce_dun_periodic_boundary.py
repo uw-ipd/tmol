@@ -38,6 +38,7 @@ for phi, psi in ((-math.pi, 0), (math.pi, 0), (0, -math.pi), (0, math.pi)):
         d.rotameric_bb_start,
         d.rotameric_bb_step,
         d.rotameric_bb_periodicity,
+        d.rotameric_bb_source_start,
         d.rotameric_bb_is_mirrored,
         d.n_rotamers_for_tableset_offsets,
         sorted_lookup,

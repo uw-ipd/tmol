@@ -2460,3 +2460,61 @@ separate failure stages, storage audits and accounting are in
 [results/empty-dunbrack-libraries.json](results/empty-dunbrack-libraries.json).
 Comment 78 is corrected. Custom grid registration and the broader completion
 requirements remain open.
+
+
+## Register custom Dunbrack grids and honor native table layouts
+
+A circular reindexing of an equivalent semirotameric table now preserves its
+score and coordinate gradients. Scoring consumes the declared backbone origins
+and spacing. Reflected libraries retain the same data samples, with origins
+adjusted to match their actual reflected coordinates; an optional persisted
+source origin keeps discrete sampling-cell selection in the original frame.
+Default and empty libraries reuse their packed origin tensor, adding no tensor
+storage for this metadata.
+
+Extending the tests to 20°/30° rectangular grids exposed two inherited native
+assumptions. The Dunbrack code converted vector metadata pointers to scalar
+pointers before applying a vector stride, selecting the wrong axis/row. It now
+uses the selected metadata row directly. The shared spline interpolator now
+uses actual tensor strides, so padding between differently sized tables is
+respected; its coefficient fitter creates the contiguous owned buffer required
+by the in-place algorithm. These changes belong together: respecting the old,
+misaddressed strides alone also breaks default-grid comparisons.
+
+Small-grid tests then exposed a separate periodic recurrence error: the
+anticausal initialization re-read its own accumulator and used the wrong pole
+power in the denominator. Summing the other `N-1` terms corrects the short-grid
+branch. The large-grid truncation branch is unchanged. Independent 2D/3D/4D
+tests compare padded/transposed interpolation values and derivatives exactly
+and recover the original values at small-grid points. No score golden was
+refreshed.
+
+The final integrated CPU run passes **34 cases / eight CUDA skips**. All
+**50 previous default parameter tensors and three lookup DataFrames** remain
+exactly equal. Default derived storage remains **67,494,212 bytes**; the new
+sampling source-origin field aliases existing storage. Custom origins can
+require two additional float32 values per installed library, outside this
+zero-overhead default case. Coordinate metadata still has float32 precision.
+
+A paired CPU benchmark of dense spline evaluation, including output allocation,
+finds the stride-correctness version about **8% slower for 10,000 2D points**
+(0.567 → 0.613 ms), and about **1% slower for 3D** (3.341 → 3.382 ms). Values and
+derivatives agree exactly. These are seven alternating warm rounds, excluding
+construction/compilation; they are not whole-pose or CUDA timings. A separate
+index-precomputation prototype is being evaluated before any performance claim
+or integration.
+
+Slurm **250626** passes **382 CPU/CUDA cases / one intentional CPU annealer
+skip**, including numerical scoring references/gradients, backbone torsions,
+all-grid sampling, full-atom mirror interaction tables, actual single-position
+CUDA packing and conjugated groups. It completes with **0:0**, **11:55**, and
+**8,796,496 KiB** batch peak RSS (including native compilation). The separate
+CUDA parameter audit also confirms exact default values and unchanged storage.
+
+Comments 79–81 and question 17 cover these issues. Exact source hashes, evolving
+before/after test sets, the initially over-amplified gradient oracle, failed
+intermediate native layouts, storage audits and benchmark samples are in
+[results/grid-registration-validation.json](results/grid-registration-validation.json).
+The coarser tables are synthetic validation inputs, not refitted statistical
+libraries. Broader chemistry coverage and independent parameter validation
+remain separate requirements.

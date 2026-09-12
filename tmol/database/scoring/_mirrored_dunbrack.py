@@ -71,12 +71,11 @@ def mirror_wells(wells: torch.Tensor, n_per_column: torch.Tensor) -> torch.Tenso
 
 
 def reflect(table: torch.Tensor, dims, start, step) -> torch.Tensor:
-    """Reflect a periodic table through the origin along ``dims``.
+    """Permute reflected points onto the grid from ``reflected_grid_start``.
 
-    Bin k covers start + k*step, so the bin holding -x is (c - k) modulo the
-    number of bins, with c = -2*start/step. Grids differ in registration
-    between the backbone and the non-rotameric chi, so the shift is derived
-    rather than assumed.
+    Point k moves to (c - k) modulo the number of bins, where c is the nearest
+    integer to -2*start/step. Changing the target origin to -start-c*step
+    preserves the exact reflected coordinates even for nonaligned grids.
     """
     out = table
     for dim, dim_start, dim_step in zip(dims, start, step):
@@ -84,6 +83,11 @@ def reflect(table: torch.Tensor, dims, start, step) -> torch.Tensor:
         c = int(round(-2.0 * float(dim_start) / float(dim_step)))
         out = torch.roll(torch.flip(out, (dim,)), (c - n + 1) % n, dims=dim)
     return out
+
+
+def reflected_grid_start(start, step):
+    """Choose the exact reflected origin nearest the original origin."""
+    return -start - round(-2.0 * start / step) * step
 
 
 def _backbone_dims(data: RotamericDataForAA):
@@ -98,6 +102,14 @@ def _backbone_dims(data: RotamericDataForAA):
 
 def mirror_rotameric_data(data: RotamericDataForAA) -> RotamericDataForAA:
     dims, start, step = _backbone_dims(data)
+    target_start = [reflected_grid_start(s, d) for s, d in zip(start, step)]
+    # The default aligned grids retain the same tensor and physical origin.
+    target_start = (
+        data.backbone_dihedral_start
+        if target_start == start
+        else data.backbone_dihedral_start.new_tensor(target_start)
+    )
+    was_mirrored = getattr(data, "backbone_is_mirrored", False)
     # the rotamer table and its aliases share one count per chi, or an alias
     #    will redirect onto a well tuple that no row carries
     counts = wells_per_chi(data)
@@ -105,7 +117,9 @@ def mirror_rotameric_data(data: RotamericDataForAA) -> RotamericDataForAA:
     alias = data.rotamer_alias
     return attr.evolve(
         data,
-        backbone_is_mirrored=not getattr(data, "backbone_is_mirrored", False),
+        backbone_is_mirrored=not was_mirrored,
+        backbone_dihedral_start=target_start,
+        backbone_source_start=None if was_mirrored else data.backbone_dihedral_start,
         rotamers=mirror_wells(data.rotamers, counts),
         rotamer_probabilities=reflect(data.rotamer_probabilities, dims, start, step),
         rotamer_means=-reflect(data.rotamer_means, dims, start, step),
@@ -154,7 +168,9 @@ def mirror_semi_rotameric_library(
     return SemiRotamericAADunbrackLibrary(
         table_name=d_table_name(library.table_name),
         rotameric_data=mirror_rotameric_data(data),
-        non_rot_chi_start=library.non_rot_chi_start,
+        non_rot_chi_start=reflected_grid_start(
+            library.non_rot_chi_start, library.non_rot_chi_step
+        ),
         non_rot_chi_step=library.non_rot_chi_step,
         non_rot_chi_period=library.non_rot_chi_period,
         rotameric_chi_rotamers=mirror_wells(

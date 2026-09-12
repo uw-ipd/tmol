@@ -38,6 +38,7 @@ struct DunbrackChiSampler {
   static EIGEN_DEVICE_FUNC void backbone_lookup_coordinate(
       Real dihedral,
       Real start,
+      Real source_start,
       Real step,
       Real period,
       Real& coordinate,
@@ -52,7 +53,7 @@ struct DunbrackChiSampler {
     } else if (mirrored) {
       dihedral = -dihedral;
     }
-    Real wrapped = dihedral - start;
+    Real wrapped = dihedral - (mirrored ? source_start : start);
     while (wrapped < 0) wrapped += period;
     while (wrapped >= period) wrapped -= period;
     coordinate = wrapped / step;
@@ -65,7 +66,7 @@ struct DunbrackChiSampler {
       // Select the source cell first: independently flooring the reflected
       // coordinate chooses the adjacent cell, and ceil is unstable at grid
       // boundaries because the two coordinate calculations round separately.
-      Int const origin = Int(std::round(-2 * start / step));
+      Int const origin = Int(std::round(-(source_start + start) / step));
       coordinate = Real(origin) - coordinate;
       while (coordinate < 0) coordinate += n_bins;
       while (coordinate >= n_bins) coordinate -= n_bins;
@@ -121,6 +122,7 @@ struct DunbrackChiSampler {
     TView<Vec<Real, 2>, 1, D> rotameric_bb_start,          // ntable-set entries
     TView<Vec<Real, 2>, 1, D> rotameric_bb_step,           // ntable-set entries
     TView<Vec<Real, 2>, 1, D> rotameric_bb_periodicity,    // ntable-set entries
+    TView<Vec<Real, 2>, 1, D> rotameric_bb_source_start,
     TView<bool, 1, D> rotameric_bb_is_mirrored,
     TView<Real, 4, D> /*semirotameric_tables*/,            // n-semirot-tabset
     TView<Vec<int64_t, 3>, 1, D> /*semirot_table_sizes*/,  // n-semirot-tabset
@@ -162,6 +164,9 @@ struct DunbrackChiSampler {
     TORCH_CHECK(
         rotameric_bb_is_mirrored.size(0) == rotameric_bb_start.size(0),
         "Dunbrack reflection metadata must cover every table set");
+    TORCH_CHECK(
+        rotameric_bb_source_start.size(0) == rotameric_bb_start.size(0),
+        "Dunbrack source origins must cover every table set");
     // construct the list of chi for the rotamers that should be built
     // in 7 stages.
     // 1. State which AAs at which positions
@@ -308,6 +313,7 @@ struct DunbrackChiSampler {
         rotameric_bb_start,
         rotameric_bb_step,
         rotameric_bb_periodicity,
+        rotameric_bb_source_start,
         rotameric_bb_is_mirrored,
         n_rotamers_for_tableset_offsets,
         sorted_rotamer_2_rotamer,
@@ -396,6 +402,7 @@ struct DunbrackChiSampler {
         rotameric_bb_start,
         rotameric_bb_step,
         rotameric_bb_periodicity,
+        rotameric_bb_source_start,
         rotameric_bb_is_mirrored,
 
         sorted_rotamer_2_rotamer,
@@ -494,6 +501,7 @@ struct DunbrackChiSampler {
       TView<Vec<Real, 2>, 1, D> rotameric_bb_start,
       TView<Vec<Real, 2>, 1, D> rotameric_bb_step,
       TView<Vec<Real, 2>, 1, D> rotameric_bb_periodicity,
+      TView<Vec<Real, 2>, 1, D> rotameric_bb_source_start,
       TView<bool, 1, D> rotameric_bb_is_mirrored,
       TView<Int, 1, D> n_rotamers_for_tableset_offsets,
       TView<int64_t, 3, D> sorted_rotamer_2_rotamer,
@@ -529,6 +537,7 @@ struct DunbrackChiSampler {
         backbone_lookup_coordinate(
             backbone_dihedrals[2 * bbi + ii],
             rotameric_bb_start[table_set][ii],
+            rotameric_bb_source_start[table_set][ii],
             rotameric_bb_step[table_set][ii],
             rotameric_bb_periodicity[table_set][ii],
             bbdihe[ii],
@@ -555,10 +564,8 @@ struct DunbrackChiSampler {
       TensorAccessor<Real, 2, D> rotprob_slice(
           rotameric_prob_tables.data()
               + rot_table_ind * rotameric_prob_tables.stride(0),
-          rotprob_table_sizes.data()->data()
-              + rot_table_ind * rotprob_table_sizes.stride(0),
-          rotprob_table_strides.data()->data()
-              + rot_table_ind * rotprob_table_strides.stride(0));
+          rotprob_table_sizes[rot_table_ind].data(),
+          rotprob_table_strides[rot_table_ind].data());
       auto prob_and_derivs =
           tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
               rotprob_slice, bbdihe);
@@ -738,6 +745,7 @@ struct DunbrackChiSampler {
       TView<Vec<Real, 2>, 1, D> rotameric_bb_start,
       TView<Vec<Real, 2>, 1, D> rotameric_bb_step,
       TView<Vec<Real, 2>, 1, D> rotameric_bb_periodicity,
+      TView<Vec<Real, 2>, 1, D> rotameric_bb_source_start,
       TView<bool, 1, D> rotameric_bb_is_mirrored,
 
       TView<int64_t, 3, D> sorted_rotamer_2_rotamer,
@@ -792,6 +800,7 @@ struct DunbrackChiSampler {
           backbone_lookup_coordinate(
               backbone_dihedrals[2 * res + ii],
               rotameric_bb_start[table_set][ii],
+              rotameric_bb_source_start[table_set][ii],
               rotameric_bb_step[table_set][ii],
               rotameric_bb_periodicity[table_set][ii],
               bbdihe[ii],
@@ -840,10 +849,8 @@ struct DunbrackChiSampler {
           TensorAccessor<Real, 2, D> rotmean_slice(
               rotameric_mean_tables.data()
                   + (rot_table_start + ii) * rotameric_mean_tables.stride(0),
-              rotmean_table_sizes.data()->data()
-                  + (rot_table_start + ii) * rotmean_table_sizes.stride(0),
-              rotmean_table_strides.data()->data()
-                  + (rot_table_start + ii) * rotmean_table_strides.stride(0));
+              rotmean_table_sizes[rot_table_start + ii].data(),
+              rotmean_table_strides[rot_table_start + ii].data());
 
           auto mean_and_derivs =
               tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
@@ -854,10 +861,8 @@ struct DunbrackChiSampler {
             TensorAccessor<Real, 2, D> rotsdev_slice(
                 rotameric_sdev_tables.data()
                     + (rot_table_start + ii) * rotameric_sdev_tables.stride(0),
-                rotmean_table_sizes.data()->data()
-                    + (rot_table_start + ii) * rotmean_table_sizes.stride(0),
-                rotmean_table_strides.data()->data()
-                    + (rot_table_start + ii) * rotmean_table_strides.stride(0));
+                rotmean_table_sizes[rot_table_start + ii].data(),
+                rotmean_table_strides[rot_table_start + ii].data());
             auto sdev_and_derivs =
                 tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::
                     interpolate(rotsdev_slice, bbdihe);

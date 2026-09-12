@@ -1,23 +1,83 @@
-"""Native reflected lookup agrees at every default grid point and adjacent ULP."""
+"""Native reflected lookup agrees at every grid point and adjacent ULP."""
 
+import attr
 import pytest
 import torch
 
+from tmol.database.scoring._mirrored_dunbrack import with_mirrored_libraries
 from tmol.score.dunbrack import DunbrackParamResolver
 from tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler import get_compiled
 
 
 @pytest.mark.parametrize("stage", ["probability", "chi"])
+@pytest.mark.parametrize("custom_origin", [False, True])
 def test_reflected_grid_points_neighbors_and_missing_axes(
-    default_database, torch_device, stage
+    default_database, torch_device, stage, custom_origin
 ):
-    resolver = DunbrackParamResolver.from_database(
-        default_database.scoring.dun, torch_device
-    )
+    database = default_database.scoring.dun
+    if custom_origin:
+
+        def shift(lib):
+            data = lib.rotameric_data
+            return attr.evolve(
+                lib,
+                rotameric_data=attr.evolve(
+                    data,
+                    backbone_dihedral_start=data.backbone_dihedral_start
+                    + torch.tensor([1.25, -2.0]),
+                    backbone_dihedral_step=data.backbone_dihedral_step
+                    * torch.tensor([2, 3]),
+                    rotamer_probabilities=data.rotamer_probabilities[:, ::2, ::3],
+                    rotamer_means=data.rotamer_means[:, ::2, ::3],
+                    rotamer_stdvs=data.rotamer_stdvs[:, ::2, ::3],
+                    prob_sorted_rot_inds=data.prob_sorted_rot_inds[::2, ::3],
+                ),
+                **(
+                    {
+                        "nonrotameric_chi_probabilities": lib.nonrotameric_chi_probabilities[
+                            :, ::2, ::3
+                        ]
+                    }
+                    if hasattr(lib, "nonrotameric_chi_probabilities")
+                    else {}
+                ),
+            )
+
+        original_names = {
+            lib.table_name
+            for lib in (
+                *database.rotameric_libraries,
+                *database.semi_rotameric_libraries,
+            )
+            if not lib.rotameric_data.backbone_is_mirrored
+        }
+        database = attr.evolve(
+            database,
+            dun_lookup=tuple(
+                row
+                for row in database.dun_lookup
+                if row.dun_table_name in original_names
+            ),
+            rotameric_libraries=tuple(
+                shift(lib)
+                for lib in database.rotameric_libraries
+                if lib.table_name in original_names
+            ),
+            semi_rotameric_libraries=tuple(
+                shift(lib)
+                for lib in database.semi_rotameric_libraries
+                if lib.table_name in original_names
+            ),
+        )
+        database = with_mirrored_libraries(
+            database,
+            {row.residue_name: "D" + row.residue_name for row in database.dun_lookup},
+        )
+    resolver = DunbrackParamResolver.from_database(database, torch_device)
     data = resolver.sampling_db
     libraries = (
-        *default_database.scoring.dun.rotameric_libraries,
-        *default_database.scoring.dun.semi_rotameric_libraries,
+        *database.rotameric_libraries,
+        *database.semi_rotameric_libraries,
     )
     table_by_name = {lib.table_name: i for i, lib in enumerate(libraries)}
     compiled = get_compiled()
@@ -67,6 +127,7 @@ def test_reflected_grid_points_neighbors_and_missing_axes(
                     data.rotameric_bb_start,
                     data.rotameric_bb_step,
                     data.rotameric_bb_periodicity,
+                    data.rotameric_bb_source_start,
                     data.rotameric_bb_is_mirrored,
                     data.n_rotamers_for_tableset_offsets,
                     data.sorted_rotamer_2_rotamer,
@@ -89,6 +150,7 @@ def test_reflected_grid_points_neighbors_and_missing_axes(
                     data.rotameric_bb_start,
                     data.rotameric_bb_step,
                     data.rotameric_bb_periodicity,
+                    data.rotameric_bb_source_start,
                     data.rotameric_bb_is_mirrored,
                     data.sorted_rotamer_2_rotamer,
                     data.nchi_for_table_set,
@@ -117,7 +179,11 @@ def test_reflected_grid_points_neighbors_and_missing_axes(
             left = torch.stack((torch.cos(left), torch.sin(left)))
             right = torch.stack((torch.cos(right), -torch.sin(right)))
         torch.testing.assert_close(
-            left, right, atol=2e-5, rtol=1e-5, msg=library.table_name
+            left,
+            right,
+            atol=2e-5,
+            rtol=1e-5,
+            msg=lambda message: f"{library.table_name}: {message}",
         )
         checked += 1
     assert checked == 18

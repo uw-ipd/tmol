@@ -39,6 +39,7 @@ struct DunbrackChiSampler {
       TView<Vec<Real, 2>, 1, D> rotameric_bb_start,        // ntable-set entries
       TView<Vec<Real, 2>, 1, D> rotameric_bb_step,         // ntable-set entries
       TView<Vec<Real, 2>, 1, D> rotameric_bb_periodicity,  // ntable-set entries
+      TView<Vec<Real, 2>, 1, D> rotameric_bb_source_start,
       TView<bool, 1, D> rotameric_bb_is_mirrored,
       TView<Real, 4, D> semirotameric_tables,              // n-semirot-tabset
       TView<Vec<int64_t, 3>, 1, D> semirot_table_sizes,    // n-semirot-tabset
@@ -97,6 +98,7 @@ struct DunbrackChiSampler {
       TView<Vec<Real, 2>, 1, D> rotameric_bb_start,
       TView<Vec<Real, 2>, 1, D> rotameric_bb_step,
       TView<Vec<Real, 2>, 1, D> rotameric_bb_periodicity,
+      TView<Vec<Real, 2>, 1, D> rotameric_bb_source_start,
       TView<bool, 1, D> rotameric_bb_is_mirrored,
       TView<Int, 1, D> n_rotamers_for_tableset_offsets,
       TView<int64_t, 3, D> sorted_rotamer_2_rotamer,
@@ -143,6 +145,7 @@ struct DunbrackChiSampler {
       TView<Vec<Real, 2>, 1, D> rotameric_bb_start,
       TView<Vec<Real, 2>, 1, D> rotameric_bb_step,
       TView<Vec<Real, 2>, 1, D> rotameric_bb_periodicity,
+      TView<Vec<Real, 2>, 1, D> rotameric_bb_source_start,
       TView<bool, 1, D> rotameric_bb_is_mirrored,
 
       TView<int64_t, 3, D> sorted_rotamer_2_rotamer,
