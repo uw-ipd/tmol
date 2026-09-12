@@ -62,3 +62,30 @@ def test_shared_parser_builds_and_scores_general_chemistry(fixture):
     energy.sum().backward()
     assert torch.isfinite(energy).all()
     assert torch.isfinite(coords.grad).all()
+
+
+@pytest.mark.parametrize("state", ["HD1", "HE2", "both", "none"])
+def test_reader_preserves_observed_histidine_tautomer_evidence(tmp_path, state):
+    from biotite.structure import info
+    from biotite.structure.io import pdbx
+
+    source = info.residue("HIS")
+    source.chain_id[:] = "A"
+    source.res_id[:] = 1
+    removed = {"HD1": ["HE2"], "HE2": ["HD1"], "both": [], "none": ["HD1", "HE2"]}[
+        state
+    ]
+    source = source[~np.isin(source.atom_name, removed)]
+    file = pdbx.CIFFile()
+    pdbx.set_structure(file, source)
+    path = tmp_path / "histidine.cif"
+    file.write(path)
+    parsed = atom_array_from_cif(path, reader="atomworks")
+    for name in ("HD1", "HE2"):
+        observed = source.atom_name == name
+        retained = parsed.atom_name == name
+        assert bool(retained.any()) == bool(observed.any())
+        if observed.any():
+            np.testing.assert_allclose(
+                parsed.coord[retained], source.coord[observed], atol=0.001
+            )

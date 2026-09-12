@@ -507,29 +507,10 @@ def _normalize_radical_oxygens(smiles: str) -> str:
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return smiles
-    changed = False
-    for atom in mol.GetAtoms():
-        if (
-            atom.GetSymbol() == "O"
-            and atom.GetDegree() == 1
-            and atom.GetTotalNumHs() == 0
-            and atom.GetFormalCharge() == 0
-            and atom.GetNumRadicalElectrons() > 0
-        ):
-            atom.SetFormalCharge(-1)
-            atom.SetNumRadicalElectrons(0)
-            changed = True
-    if not changed:
-        return smiles
-    try:
-        Chem.SanitizeMol(mol)
-    except Exception:
-        logger.warning(
-            "Radical-oxygen normalization failed to sanitize SMILES %r; " "using input",
-            smiles,
-        )
-        return smiles
-    return Chem.MolToSmiles(mol)
+    from atomworks.io.tools.protonation import normalize_radical_oxygens
+
+    fixed = normalize_radical_oxygens(mol)
+    return smiles if fixed is mol else Chem.MolToSmiles(fixed)
 
 
 def _dimorphite_protonate_smiles(

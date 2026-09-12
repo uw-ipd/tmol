@@ -26,12 +26,15 @@ def run(baseline):
     root = Path(__file__).resolve().parents[2]
     old = load(Path(baseline) / "tmol/io/_cif.py", "baseline_cif")
     new = load(root / "tmol/io/_cif.py", "candidate_cif")
-    template = new._component_array(
-        "ZZZ",
-        ["C1", "C2", "C3"],
-        ["C"] * 3,
-        [("C1", "C2", 1), ("C2", "C3", 1)],
-    )
+    template = struc.AtomArray(3)
+    template.chain_id[:] = "A"
+    template.res_id[:] = 1
+    template.res_name[:] = "ZZZ"
+    template.hetero[:] = True
+    template.atom_name[:] = ["C1", "C2", "C3"]
+    template.element[:] = "C"
+    template.coord[:] = np.nan
+    template.bonds = struc.BondList(3, np.array([[0, 1, 1], [1, 2, 1]]))
     results = []
     for count in (100, 500, 2000):
         pieces = []

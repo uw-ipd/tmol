@@ -1,27 +1,17 @@
 """AtomWorks owns parsing and completion; tmol consumes its chemical annotations.
 
-This adapter supports the released keyword API and the local ParseConfig API.
-No fallback to a different reader or force-field preparation is implicit.
+The parser supplies chemical identity and missing atoms. Observed histidine
+ring protons remain available to tmol's coordinate-based tautomer selection.
 """
 
-import inspect
-
 import numpy as np
+from atomworks.io.config import ParseConfig
+from atomworks.io.parser import parse
 
 
 def read_cif(path, *, model=1):
     if model is None or model < 1:
         raise ValueError("The AtomWorks CIF reader requires a positive model number")
-    try:
-        from atomworks.io.parser import parse
-    except ModuleNotFoundError as error:
-        if error.name != "atomworks":
-            raise
-        raise ImportError(
-            "The AtomWorks CIF reader requires the optional dependency: "
-            "install 'tmol[atomworks]'."
-        ) from error
-
     options = dict(
         model=model,
         build_assembly=None,
@@ -30,35 +20,33 @@ def read_cif(path, *, model=1):
         fix_arginines=False,
         fix_ligands_at_symmetry_centers=False,
         add_bond_types_from_struct_conn=["covale", "disulf"],
-        hydrogen_policy="remove",
+        hydrogen_policy="keep",
         ccd_mirror_path=None,
         add_id_and_entity_annotations=False,
         keep_cif_block=True,
     )
-    if "config" in inspect.signature(parse).parameters:
-        from atomworks.io.config import ParseConfig
-
-        result = parse(
-            path,
-            config=ParseConfig(
-                **options,
-                long_bond_policy="keep",
-                struct_conn_distance_policy="keep",
-            ),
-        )
-    else:
-        # Released 2.x infers a +1 charge on an acetyl carbon after attaching
-        # its amide partner. Keep the template charges instead of that obsolete
-        # valence heuristic; tmol subsequently owns protonation/MMFF charges.
-        result = parse(path, **options, fix_formal_charges=False)
+    result = parse(
+        path,
+        config=ParseConfig(
+            **options,
+            long_bond_policy="keep",
+            struct_conn_distance_policy="keep",
+        ),
+    )
     array = result["asym_unit"]
     if array.coord.ndim == 3:
         array = array[0]
+    is_h = np.isin(np.char.upper(array.element), ["H", "D"])
+    observed_his_h = (
+        np.isin(array.res_name, ["HIS", "HIS_D", "DHIS"])
+        & np.isin(array.atom_name, ["HD1", "HE2", "HN"])
+        & np.isfinite(array.coord).all(axis=-1)
+    )
+    array = array[~is_h | observed_his_h]
     block = result["cif_block"]
     _check_observed_heavy_atom_names(block, array, model)
 
-    # Reuse the parsed category, including on older releases that do not
-    # annotate chem_comp_type. Do not read the file again during preparation.
+    # Consume chemical types from the already parsed category.
     from tmol.io._cif import _with_component_type_annotation
 
     return _with_component_type_annotation(array, block)

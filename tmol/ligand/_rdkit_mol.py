@@ -10,7 +10,10 @@ so this module does not protonate or recompute chemistry.
 import logging
 
 import biotite.structure as struc
-from biotite.interface.rdkit import to_mol
+from atomworks.io.tools.rdkit import (
+    BIOTITE_BOND_TYPE_TO_RDKIT,
+    atom_array_to_rdkit,
+)
 from rdkit import Chem
 
 from tmol.ligand._detect import NonStandardResidueInfo, _strip_metals
@@ -18,54 +21,8 @@ from tmol.ligand._detect import NonStandardResidueInfo, _strip_metals
 logger = logging.getLogger(__name__)
 
 
-# Map biotite BondType -> the RDKit bond order we want
-_BIOTITE_TO_RDKIT_BOND_ORDER = {
-    int(struc.BondType.SINGLE): Chem.BondType.SINGLE,
-    int(struc.BondType.DOUBLE): Chem.BondType.DOUBLE,
-    int(struc.BondType.TRIPLE): Chem.BondType.TRIPLE,
-    int(struc.BondType.QUADRUPLE): Chem.BondType.QUADRUPLE,
-    int(struc.BondType.AROMATIC_SINGLE): Chem.BondType.SINGLE,
-    int(struc.BondType.AROMATIC_DOUBLE): Chem.BondType.DOUBLE,
-    int(struc.BondType.AROMATIC_TRIPLE): Chem.BondType.TRIPLE,
-    int(struc.BondType.AROMATIC): Chem.BondType.AROMATIC,
-}
-
 _SOURCE_KEKULE_PROP = "_tmol_source_kekule"
 _SOURCE_AROMATIC_PROP = "_tmol_source_aromatic"
-
-
-def _restore_kekule_bonds(mol: Chem.Mol, atom_array: struc.AtomArray) -> None:
-    """Overwrite ``mol`` bond orders from the source biotite bond table.
-
-    Sets the ``_SOURCE_KEKULE_PROP`` molecule property to ``"1"`` when
-    the source carried explicit Kekulé bond orders for at least one
-    ring bond — that flag drives the conditional Kekulé typing later.
-    Mutates ``mol`` in place.
-    """
-    if atom_array.bonds is None:
-        return
-    saw_kekule = False
-    # Only count biotite's AROMATIC_SINGLE / AROMATIC_DOUBLE — those mark
-    # ring bonds whose source carried Kekulé orders. Plain SINGLE /
-    # DOUBLE bonds appear for non-ring chain edges in every molecule and
-    # would falsely trigger Kekulé typing.
-    kekule_orders = {
-        int(struc.BondType.AROMATIC_SINGLE),
-        int(struc.BondType.AROMATIC_DOUBLE),
-        int(struc.BondType.AROMATIC_TRIPLE),
-    }
-    for a, b, raw_type in atom_array.bonds.as_array():
-        rdkit_type = _BIOTITE_TO_RDKIT_BOND_ORDER.get(int(raw_type))
-        if rdkit_type is None:
-            continue
-        bond = mol.GetBondBetweenAtoms(int(a), int(b))
-        if bond is None:
-            continue
-        bond.SetBondType(rdkit_type)
-        if int(raw_type) in kekule_orders:
-            saw_kekule = True
-    if saw_kekule:
-        mol.SetProp(_SOURCE_KEKULE_PROP, "1")
 
 
 _SOURCE_SUBTYPE_PROP = "_tmol_source_subtype"
@@ -183,7 +140,7 @@ def source_subtype(atom: Chem.Atom) -> str:
 def source_carried_kekule(mol: Chem.Mol) -> bool:
     """True iff the source molecule was constructed with Kekulé bond orders.
 
-    Set by :func:`_restore_kekule_bonds` when the input AtomArray carried
+    Set when the input AtomArray carried
     explicit ``SINGLE`` / ``DOUBLE`` (or biotite's ``AROMATIC_SINGLE`` /
     ``AROMATIC_DOUBLE``) ring bonds — typical for mol2 files written
     with ``C.2`` (sp2). SMILES inputs come through with only
@@ -205,7 +162,7 @@ def _remove_hs_tolerant(mol: Chem.Mol) -> Chem.Mol:
     Kekulization can fail mid-pipeline for ligands with formal-charge
     nitrogens or unusual ring patterns. Falling back to ``sanitize=False``
     preserves the bond orders we already set (e.g. by
-    :func:`_restore_kekule_bonds`); running ``sanitize_tolerant`` here
+    the shared AtomWorks converter); running ``sanitize_tolerant`` here
     instead silently rewrites DOUBLE bonds back to SINGLE via the cleanup
     pass.
     """
@@ -345,7 +302,7 @@ def rdkit_mol_from_ligand_atom_array(
 
     raw_types = [int(t) for _, _, t in atom_array.bonds.as_array()]
     unsupported = sorted(
-        set(t for t in raw_types if t not in _BIOTITE_TO_RDKIT_BOND_ORDER)
+        set(t for t in raw_types if t not in BIOTITE_BOND_TYPE_TO_RDKIT)
     )
     if unsupported:
         logger.warning(
@@ -369,13 +326,33 @@ def rdkit_mol_from_ligand_atom_array(
         )
 
     try:
-        mol = to_mol(atom_array)
+        mol = atom_array_to_rdkit(
+            atom_array,
+            set_coord=True,
+            hydrogen_policy="keep",
+            allow_implicit_hydrogens=not any(
+                str(e).upper() in ("H", "D") for e in atom_array.element
+            ),
+            annotations_to_keep=[],
+            sanitize=False,
+            attempt_fixing_corrupted_molecules=False,
+            infer_bonds=False,
+        )
     except Exception as exc:
         raise ValueError(
             f"{res_name}: failed to read explicit ligand bond chemistry "
             f"from input ({exc}). Provide a CIF with explicit bond orders."
         ) from exc
-    _restore_kekule_bonds(mol, atom_array)
+    if any(
+        t
+        in (
+            int(struc.BondType.AROMATIC_SINGLE),
+            int(struc.BondType.AROMATIC_DOUBLE),
+            int(struc.BondType.AROMATIC_TRIPLE),
+        )
+        for t in raw_types
+    ):
+        mol.SetProp(_SOURCE_KEKULE_PROP, "1")
     mol = normalize_cumulated_azide(mol)
     normalize_non_ring_aromatic_bonds(mol)
     _apply_source_subtypes(mol, atom_array)

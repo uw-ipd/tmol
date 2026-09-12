@@ -28,6 +28,7 @@ python -m pytest -v --tb=short --durations=20 --junitxml="$results/tests.xml" \
     tmol/tests/io/details/test_build_missing_leaf_atoms.py \
     tmol/tests/io/details/test_find_disulfides.py \
     tmol/tests/io/details/test_his_taut_resolution.py \
+    tmol/tests/io/details/test_atomworks_histidine_parity.py \
     tmol/tests/io/details/test_left_justify_canonical_form.py \
     tmol/tests/io/details/test_select_from_canonical.py \
     tmol/tests/kinematics/test_fold_forest.py \

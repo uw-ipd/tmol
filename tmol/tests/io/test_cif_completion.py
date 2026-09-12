@@ -7,9 +7,16 @@ from tmol.io import _cif
 
 
 def component():
-    return _cif._component_array(
-        "ZZZ", ["C1", "C2", "C3"], ["C"] * 3, [("C1", "C2", 1), ("C2", "C3", 1)]
-    )
+    array = struc.AtomArray(3)
+    array.atom_name = np.array(["C1", "C2", "C3"])
+    array.element[:] = "C"
+    array.res_name[:] = "ZZZ"
+    array.chain_id[:] = "A"
+    array.res_id[:] = 1
+    array.hetero[:] = True
+    array.coord[:] = np.nan
+    array.bonds = struc.BondList(3, np.array([[0, 1, 1], [1, 2, 1]], dtype=np.uint32))
+    return array
 
 
 def test_insertion_codes_keep_missing_atoms_local():

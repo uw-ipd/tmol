@@ -22,13 +22,6 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-_BOND_ORDERS = {
-    "SING": struc.BondType.SINGLE,
-    "DOUB": struc.BondType.DOUBLE,
-    "TRIP": struc.BondType.TRIPLE,
-    "QUAD": struc.BondType.QUADRUPLE,
-}
-
 
 def component_chemistry_from_cif(cif_path) -> dict:
     """The complete chemistry a CIF declares for each component it names.
@@ -53,94 +46,46 @@ def component_chemistry_from_cif(cif_path) -> dict:
 
 
 def component_chemistry_from_block(block) -> dict:
-    """The declared chemistry of one CIF block; see the path form above."""
-    if "chem_comp_atom" not in block:
-        return {}
-    atoms = block["chem_comp_atom"]
-    if "comp_id" not in atoms or "atom_id" not in atoms:
-        return {}
+    """Read authored component chemistry without dictionary supplementation."""
+    from atomworks.io.utils.ccd import build_ccd_entries_from_cif_block
 
-    comp = np.char.strip(atoms["comp_id"].as_array(str))
-    name = np.char.strip(atoms["atom_id"].as_array(str))
-    element = (
-        np.char.strip(atoms["type_symbol"].as_array(str))
-        if "type_symbol" in atoms
-        else np.full(len(name), "", dtype="U4")
-    )
-    bonds = _authored_bonds(block)
-
-    entries: dict[str, struc.AtomArray] = {}
-    for comp_id in sorted(set(str(c) for c in comp)):
-        if not comp_id:
-            continue
-        mask = comp == comp_id
-        names = [str(n) for n in name[mask]]
-        if len(names) > 1 and comp_id not in bonds:
-            logger.warning(
-                "%s: the file declares %d atoms but bonds none of them, so "
-                "its chemistry cannot be read from the file; falling back "
-                "to the component dictionary",
-                comp_id,
-                len(names),
-            )
-            continue
-        entries[comp_id] = _component_array(
-            comp_id, names, [str(e) for e in element[mask]], bonds.get(comp_id, ())
+    entries = build_ccd_entries_from_cif_block(block, supplement_from_ccd=False)
+    for array in entries.values():
+        # Preserve the legacy template contract; structure-level metadata is
+        # attached separately before parameter preparation.
+        for name in set(array.get_annotation_categories()) - {
+            "chain_id",
+            "res_id",
+            "ins_code",
+            "res_name",
+            "hetero",
+            "atom_name",
+            "element",
+        }:
+            array.del_annotation(name)
+        array.coord[:] = np.nan
+        array.chain_id[:] = "A"
+        array.res_id[:] = 1
+        array.hetero[:] = True
+        array.element = np.array(
+            [
+                str(e) or _element_from_name(str(n))
+                for n, e in zip(array.atom_name, array.element)
+            ],
+            dtype="U4",
         )
+        bonds = array.bonds.as_array()
+        aromatic = np.isin(
+            bonds[:, 2],
+            [
+                struc.BondType.AROMATIC_SINGLE,
+                struc.BondType.AROMATIC_DOUBLE,
+                struc.BondType.AROMATIC_TRIPLE,
+            ],
+        )
+        bonds[aromatic, 2] = struc.BondType.AROMATIC
+        array.bonds = struc.BondList(len(array), bonds)
     return entries
-
-
-def _authored_bonds(block) -> dict:
-    """``{comp_id: [(name_a, name_b, BondType), ...]}`` from ``chem_comp_bond``."""
-    if "chem_comp_bond" not in block:
-        return {}
-    category = block["chem_comp_bond"]
-    required = ("comp_id", "atom_id_1", "atom_id_2")
-    if any(field not in category for field in required):
-        return {}
-    comp = np.char.strip(category["comp_id"].as_array(str))
-    first = np.char.strip(category["atom_id_1"].as_array(str))
-    second = np.char.strip(category["atom_id_2"].as_array(str))
-    order = (
-        np.char.upper(np.char.strip(category["value_order"].as_array(str)))
-        if "value_order" in category
-        else np.full(len(comp), "SING", dtype="U8")
-    )
-    aromatic = (
-        np.char.strip(category["pdbx_aromatic_flag"].as_array(str)) == "Y"
-        if "pdbx_aromatic_flag" in category
-        else np.zeros(len(comp), dtype=bool)
-    )
-    bonds: dict[str, list] = {}
-    for c, a, b, o, aro in zip(comp, first, second, order, aromatic):
-        kind = (
-            struc.BondType.AROMATIC
-            if aro
-            else _BOND_ORDERS.get(str(o)[:4], struc.BondType.SINGLE)
-        )
-        bonds.setdefault(str(c), []).append((str(a), str(b), int(kind)))
-    return bonds
-
-
-def _component_array(comp_id, names, elements, bonds) -> struc.AtomArray:
-    """One component as an AtomArray with its bonds and no coordinates."""
-    array = struc.AtomArray(len(names))
-    array.coord = np.full((len(names), 3), np.nan, dtype=np.float32)
-    array.atom_name = np.array(names, dtype="U16")
-    array.element = np.array(
-        [e if e else _element_from_name(n) for n, e in zip(names, elements)], dtype="U4"
-    )
-    array.res_name = np.array([comp_id] * len(names), dtype="U8")
-    array.chain_id = np.array(["A"] * len(names), dtype="U4")
-    array.res_id = np.array([1] * len(names), dtype=np.int32)
-    array.hetero = np.array([True] * len(names), dtype=bool)
-    index = {n: i for i, n in enumerate(names)}
-    table = struc.BondList(len(names))
-    for a, b, kind in bonds:
-        if a in index and b in index:
-            table.add_bond(index[a], index[b], kind)
-    array.bonds = table
-    return array
 
 
 def _element_from_name(name: str) -> str:
