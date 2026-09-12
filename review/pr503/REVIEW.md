@@ -703,3 +703,11 @@ Location: [`tmol/pack/rotamer/dunbrack/dispatch.impl.hh:457`](https://github.com
 > Could both sampling paths share a periodic-coordinate helper that maps the upper endpoint back into the valid bin range? With the actual float32 starts, steps and periods, phi or psi at +π produces `wrap == period`, bypasses this strict `>` loop, and selects bin 36 in a 36-bin table. The probability interpolator is periodic, but the sorted-index lookup happens first and is not wrapped.
 
 [reproduce_dun_periodic_boundary.py](reproduce_dun_periodic_boundary.py) proves the wrong index safely on CPU and CUDA (Slurm 250349): it pads the lookup to 37×37 and puts a different valid PHE rotamer in the extra row/column. Equivalent −π/+π phi inputs then return approximately 0.752777/0.081837 instead of the same probability; psi returns 0.220622/0.024137. The normal database has only 36×36 bins. No actual out-of-bounds read or crash is executed by this guarded diagnostic. The same unchecked index arithmetic appears in chi reconstruction. This inherited endpoint defect is open and should be covered together with, but separately from, D/L cell-reflection semantics. Evidence is retained in [results/chi-assignment-validation.json](results/chi-assignment-validation.json).
+
+
+Comment 74 follow-up: both native paths now share a helper with an exclusive
+upper endpoint and a guard against division rounding up to the bin count.
+Four probability/chi × phi/psi regressions fail before and pass after the fix.
+The CPU native suite passes 51 tests (49 CUDA skips), and Slurm 250352 passes
+188 CPU/CUDA cases. See [results/periodic-lookup-validation.json](results/periodic-lookup-validation.json).
+Comment 73's reflected-cell and terminal-default behavior remains open.

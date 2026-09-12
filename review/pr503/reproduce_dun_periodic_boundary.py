@@ -52,7 +52,11 @@ print(
         dict(
             device=str(device),
             results=results,
-            limits="Guarded oversized 37x37 lookup with valid sentinel rotamer indices: proves bin 36 is selected without executing an out-of-bounds access. Real source table has 36x36 rows.",
+            periodic_lookup_agrees=(
+                results[0]["probability"] == results[1]["probability"]
+                and results[2]["probability"] == results[3]["probability"]
+            ),
+            limits="Guarded oversized 37x37 lookup with valid sentinel rotamer indices makes forbidden bin 36 observable without executing an out-of-bounds access. Real source table has 36x36 rows. Endpoint probabilities must agree on each axis.",
         ),
         indent=2,
     )

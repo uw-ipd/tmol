@@ -34,6 +34,23 @@ template <
     typename Real,
     typename Int>
 struct DunbrackChiSampler {
+  static EIGEN_DEVICE_FUNC void backbone_lookup_coordinate(
+      Real dihedral,
+      Real start,
+      Real step,
+      Real period,
+      Real& coordinate,
+      Int& bin) {
+    Real wrapped = dihedral - start;
+    while (wrapped < 0) wrapped += period;
+    while (wrapped >= period) wrapped -= period;
+    coordinate = wrapped / step;
+    // Division can round a value just below the endpoint up to the bin count.
+    Int const n_bins = Int(period / step + Real(0.5));
+    if (coordinate >= n_bins) coordinate = 0;
+    bin = Int(coordinate);
+  }
+
   // Negative values mark invalid/overflowed counts and survive every later sum.
   static EIGEN_DEVICE_FUNC Int checked_count_product(Int a, Int b) {
     if (a < 0 || b < 0) return -1;
@@ -484,24 +501,16 @@ struct DunbrackChiSampler {
         return;
       }
 
-      // Caclulate the phi/psi bin indices
-      // This needs to be turned into a function...
-      Vec<Real, 2> bbdihe, bbstep;
+      Vec<Real, 2> bbdihe;
       Vec<Int, 2> bin_index;
       for (int ii = 0; ii < 2; ++ii) {
-        Real wrap_iidihe = backbone_dihedrals[2 * bbi + ii]
-                           - rotameric_bb_start[table_set][ii];
-        while (wrap_iidihe < 0) {
-          wrap_iidihe += 2 * M_PI;
-        }
-        Real ii_period = rotameric_bb_periodicity[table_set][ii];
-        while (wrap_iidihe > ii_period) {
-          wrap_iidihe -= ii_period;
-        }
-
-        bbstep[ii] = rotameric_bb_step[table_set][ii];
-        bbdihe[ii] = wrap_iidihe / bbstep[ii];
-        bin_index[ii] = int(bbdihe[ii]);
+        backbone_lookup_coordinate(
+            backbone_dihedrals[2 * bbi + ii],
+            rotameric_bb_start[table_set][ii],
+            rotameric_bb_step[table_set][ii],
+            rotameric_bb_periodicity[table_set][ii],
+            bbdihe[ii],
+            bin_index[ii]);
       }
 
       // Look up the index of the rotamer: we know where the rotamer is in
@@ -749,25 +758,19 @@ struct DunbrackChiSampler {
       //     to read it at: every chi comes from the residue's own samples
       bool const has_library = table_set >= 0;
 
-      Vec<Real, 2> bbdihe, bbstep;
+      Vec<Real, 2> bbdihe;
       Vec<Int, 2> bin_index;
       bbdihe[0] = bbdihe[1] = 0;
       bin_index[0] = bin_index[1] = 0;
       if (has_library) {
         for (int ii = 0; ii < 2; ++ii) {
-          Real wrap_iidihe = backbone_dihedrals[2 * res + ii]
-                             - rotameric_bb_start[table_set][ii];
-          while (wrap_iidihe < 0) {
-            wrap_iidihe += 2 * M_PI;
-          }
-          Real ii_period = rotameric_bb_periodicity[table_set][ii];
-          while (wrap_iidihe > ii_period) {
-            wrap_iidihe -= ii_period;
-          }
-
-          bbstep[ii] = rotameric_bb_step[table_set][ii];
-          bbdihe[ii] = wrap_iidihe / bbstep[ii];
-          bin_index[ii] = int(bbdihe[ii]);
+          backbone_lookup_coordinate(
+              backbone_dihedrals[2 * res + ii],
+              rotameric_bb_start[table_set][ii],
+              rotameric_bb_step[table_set][ii],
+              rotameric_bb_periodicity[table_set][ii],
+              bbdihe[ii],
+              bin_index[ii]);
         }
       }
 

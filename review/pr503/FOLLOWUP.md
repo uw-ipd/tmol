@@ -2293,3 +2293,28 @@ probability ordering and chi reconstruction contain the same index arithmetic.
 Comment 74 and [reproduce_dun_periodic_boundary.py](reproduce_dun_periodic_boundary.py)
 record this additional open defect; it is not fixed by the chi-assignment
 optimization.
+
+
+## Wrap sampling endpoints in one native helper
+
+Both Dunbrack sampling stages now call one periodic-coordinate helper. It uses
+an exclusive upper endpoint and also wraps a coordinate that rounds up to the
+bin count during division. It uses the supplied period for either direction,
+removing the separate hardcoded negative-angle wrap. Ordinary canonical
+sampling remains covered by the existing numerical reference tests.
+
+Four guarded regressions fail before the change: phi/psi endpoints in both
+probability selection and chi reconstruction. They pass after it. The full
+native Dunbrack CPU suite passes **51 tests / 49 CUDA skips**; Slurm **250352**
+passes **188 CPU/CUDA tests**, including noncanonical sampling, construction,
+mirror energies/gradients and D repacking, with **0:0**, **4:54** elapsed and
+batch peak RSS **6,351,556 KiB**. The updated standalone diagnostic reports
+endpoint agreement explicitly. No performance gain is claimed for this fix.
+
+The initial attempted float64 cases were unsupported by the float32-only test
+bindings; those four binding errors are kept separate from the four reproduced
+product failures. Exact test inventories and source hashes are in
+[results/periodic-lookup-validation.json](results/periodic-lookup-validation.json).
+Comment 74 is now corrected on the follow-up branch. The separate L/D
+conformer-set tests still fail at both default and expanded chi settings;
+periodic wrapping alone does not complete mirror-image packing support.
