@@ -16,6 +16,7 @@ want a complete walkthrough rather than a lookup table.
 | Preserve chain gaps and disconnected regions | {doc}`Tutorial 01 <01_working_with_tmol>`; {doc}`Tutorial 05 <05_minimization_constraints_kinematics>` | Keep internal gaps disconnected rather than silently turning them into chemical termini. |
 | Batch heterogeneous poses | {doc}`GPU batching workflow </workflows/gpu_batching>`; {doc}`Tutorial 02 <02_gpu_batching>` | Use `PoseStackBuilder.from_poses()` for compatible chemistry. |
 | Export Biotite, one PDB, or multiple models | {doc}`Structure I/O workflow </workflows/structure_io>`; {doc}`Tutorial 01 <01_working_with_tmol>` | PDB is not a lossless replacement for CIF plus authoritative ligand chemistry. |
+| Build a stable chemistry subset or inspect packed block-type metadata | {doc}`Advanced Tutorial 11 <11_extending_chemistry_and_scoring>` | Keep the source `ParameterDatabase` immutable; a subset is only safe when the complete input alphabet is known. |
 
 ## Kinematics and minimization
 
@@ -26,6 +27,8 @@ want a complete walkthrough rather than a lookup table.
 | Select named torsions and jumps | {doc}`Optimization workflow </user_guide/optimization>`; {doc}`Tutorial 05 <05_minimization_constraints_kinematics>` | Configure a `MoveMap`; see the {doc}`kinematics API </api/kinematics>`. |
 | Run Cartesian or kinematic minimization | {doc}`Optimization workflow </user_guide/optimization>`; {doc}`Tutorial 05 <05_minimization_constraints_kinematics>` | The coordinate models differ. Compare only with matched masks, weights, budgets, and stopping checks. |
 | Run Cartesian, kinematic, or batched FastRelax | {doc}`Optimization workflow </user_guide/optimization>`; {doc}`Tutorial 06 <06_fast_relax>` | `fast_relax()` defaults to Cartesian minimization and accepts a compatible kinematic minimizer. It is a smaller Rosetta-inspired routine, not protocol parity. |
+| Couple chains with an explicit jump or construct a dandelion forest | {doc}`Advanced Tutorial 12 <12_explicit_foldforests_and_torsions>` | Validate edge coverage and contiguous ordinary-jump indices before coordinate operations. |
+| Perturb rigid-body jump DOFs or assign named torsions | {doc}`Advanced Tutorial 12 <12_explicit_foldforests_and_torsions>` | These are coordinate transformations, not docking, minimization, or idealization protocols. |
 
 ## Scoring and constraints
 
@@ -37,6 +40,7 @@ want a complete walkthrough rather than a lookup table.
 | Map a protein interface and test selected alanine substitutions | {doc}`Protein-interface workflow </workflows/protein_interfaces>`; {doc}`Case Study 09 <09_protein_interface_hotspot_scan>` | Compose author-label masks, both block-pair orientations, and matched local-repacking tasks. Report one-complex score changes, not thermodynamic ΔΔG. |
 | Reweight an interface differentiably | {doc}`Tutorial 03 <03_scoring_and_analysis>` | Apply an explicit analytical weight tensor before summing and backpropagating. |
 | Add distance, coordinate, or torsion constraints | {doc}`Optimization workflow </user_guide/optimization>`; {doc}`Tutorial 05 <05_minimization_constraints_kinematics>` | See the {doc}`constraint API </api/score_terms>`. `constrain_all_ca()` is protein-specific; main-chain restraints follow block declarations. |
+| Construct a focused score function or derive modified score parameters | {doc}`Advanced Tutorial 11 <11_extending_chemistry_and_scoring>` | Change weights to alter term contributions; derive a new immutable database only when changing the underlying parameter model. |
 
 ## Packing, design, and preparation
 
@@ -46,6 +50,7 @@ want a complete walkthrough rather than a lookup table.
 | Optimize polar-hydrogen chis or build supported side chains | {doc}`Structure I/O workflow </workflows/structure_io>`; {doc}`Tutorial 01 <01_working_with_tmol>` | Use normal preparation or explicitly configure the relevant sampler. |
 | Add extra χ sampling | {doc}`Packing workflow </workflows/packing>`; {doc}`Tutorial 04 <04_packing_and_mutation_scan>` | TMol χ indices are zero-based: `0` is χ1 and `1` is χ2. |
 | Run regional design or a small mutation-score experiment | {doc}`Packing workflow </workflows/packing>`; {doc}`Tutorial 04 <04_packing_and_mutation_scan>` | Compose explicit task masks. TMol has no built-in Rosetta resfile, selector, or mutation-scan protocol layer. |
+| Subclass `PackerPalette`, audit rotamer candidates, or export a rotamer ensemble | {doc}`Advanced Tutorial 13 <13_extending_the_packer>` | Candidate enumeration is deterministic for a fixed task; annealing is a separate stochastic assignment search. |
 | Prepare and inject ligand parameters | {doc}`Ligand workflow </user_guide/ligands>`; {doc}`Tutorial 07 <07_ligand_and_params>` | Start from authoritative CIF/MOL2 chemistry. The Rosetta `.params` writer is syntactic and experimental. |
 | Score controlled ligand-pose decoys and locally refine diagnostic states | {doc}`Case Study 10 <10_ligand_pose_sensitivity>` | Reuse one ligand-aware context, batch matched rigid-body decoys, and report pose sensitivity rather than docking or binding affinity. |
 | Score or pack DNA/RNA | {doc}`Nucleic-acid workflow </workflows/nucleic_acids>`; {doc}`Tutorial 08 <08_nucleic_acids>` | Sugar-pucker sampling and full RosettaDNA/RNA protocols are not implemented. |

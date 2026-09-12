@@ -7,6 +7,8 @@ scoring. Use the tutorial for a step-by-step analysis workflow.
 >   </quickstart>`.
 > - **Deep tutorial:** {doc}`03 — Scoring and Analysis
 >   </tutorial/03_scoring_and_analysis>`.
+> - **Advanced extension tutorial:** {doc}`11 — Extending Chemistry and
+>   Scoring Contexts </tutorial/11_extending_chemistry_and_scoring>`.
 > - **Related workflows:** {doc}`Optimization </user_guide/optimization>` and
 >   {doc}`Ligand preparation </user_guide/ligands>`.
 > - **API reference:** {doc}`Scoring </api/score>` and

@@ -1,0 +1,1957 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Tutorial 11 — Extending Chemistry and Scoring Contexts &#8212; TMol</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=0a30a683" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../_static/scripts/fontawesome.js?digest=cb8930eaaf36d9849b67"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
+
+    <script src="../_static/documentation_options.js?v=9d458db5"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script>let toggleHintShow = 'show code';</script>
+    <script>let toggleHintHide = 'hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'tutorial/11_extending_chemistry_and_scoring';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/tutorial/11_extending_chemistry_and_scoring.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Tutorial 12 — Explicit FoldForests and Coordinate Control" href="12_explicit_foldforests_and_torsions.html" />
+    <link rel="prev" title="Case Study 10 — Ligand Pose Sensitivity and Local Rescue" href="10_ligand_pose_sensitivity.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.56" />
+  
+    
+    <script src="../_static/searchtools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script src="../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TMol</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../agent_skills.html">
+    Agent skills
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../api_reference.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../agent_skills.html">
+    Agent skills
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../api_reference.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Core interactive tutorials</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="01_working_with_tmol.html">Tutorial 01 — Working with TMol</a></li>
+<li class="toctree-l1"><a class="reference internal" href="02_gpu_batching.html">Tutorial 02 — GPU Batching with TMol</a></li>
+<li class="toctree-l1"><a class="reference internal" href="03_scoring_and_analysis.html">Tutorial 03 — Scoring and Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="04_packing_and_mutation_scan.html">Tutorial 04 — Packing and a Small Mutation Scan</a></li>
+<li class="toctree-l1"><a class="reference internal" href="05_minimization_constraints_kinematics.html">Tutorial 05 — Minimization, Constraints, and Kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="06_fast_relax.html">Tutorial 06 — FastRelax</a></li>
+<li class="toctree-l1"><a class="reference internal" href="07_ligand_and_params.html">Tutorial 07 — Ligands and Parameter Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="08_nucleic_acids.html">Tutorial 08 — Working with DNA and RNA</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Integrated case studies</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="09_protein_interface_hotspot_scan.html">Case Study 09 — Map and Test a Protein Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="10_ligand_pose_sensitivity.html">Case Study 10 — Ligand Pose Sensitivity and Local Rescue</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Advanced extension recipes</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Tutorial 11 — Extending Chemistry and Scoring Contexts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="12_explicit_foldforests_and_torsions.html">Tutorial 12 — Explicit FoldForests and Coordinate Control</a></li>
+<li class="toctree-l1"><a class="reference internal" href="13_extending_the_packer.html">Tutorial 13 — Extending the Packer and Inspecting Rotamers</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="recipe_index.html">Task index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rosetta_crosswalk.html">Rosetta-to-TMol crosswalk</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../examples_index.html" class="nav-link">Examples</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Tutorial 11 — Extending Chemistry and Scoring Contexts</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="Tutorial-11-—-Extending-Chemistry-and-Scoring-Contexts">
+<h1>Tutorial 11 — Extending Chemistry and Scoring Contexts<a class="headerlink" href="#Tutorial-11-—-Extending-Chemistry-and-Scoring-Contexts" title="Link to this heading">#</a></h1>
+<p><a class="reference external" href="https://colab.research.google.com/github/uw-ipd/tmol/blob/master/docs/tutorial/11_extending_chemistry_and_scoring.ipynb"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a></p>
+<p>TMol separates chemical identity, packed device metadata, coordinate interchange, and scoring parameters. This advanced tutorial makes those layers explicit, builds a stable chemistry subset, and measures the effect of changing one Cartesian bonded parameter without mutating the process-wide default database.</p>
+<section id="Learning-objectives">
+<h2>Learning objectives<a class="headerlink" href="#Learning-objectives" title="Link to this heading">#</a></h2>
+<p>By the end, you will be able to:</p>
+<ul class="simple">
+<li><p>distinguish <code class="docutils literal notranslate"><span class="pre">ParameterDatabase</span></code>, <code class="docutils literal notranslate"><span class="pre">ResidueTypeSet</span></code>, <code class="docutils literal notranslate"><span class="pre">PackedBlockTypes</span></code>, and <code class="docutils literal notranslate"><span class="pre">CanonicalOrdering</span></code>;</p></li>
+<li><p>create a reproducible chemical subset and use it to build a pose;</p></li>
+<li><p>construct focused score functions with explicit weights;</p></li>
+<li><p>derive a modified immutable scoring database and verify its local effect;</p></li>
+<li><p>decide when a custom database is appropriate instead of a task- or score-weight change.</p></li>
+</ul>
+</section>
+<section id="Before-you-begin">
+<h2>Before you begin<a class="headerlink" href="#Before-you-begin" title="Link to this heading">#</a></h2>
+<p>Complete <a class="reference internal" href="01_working_with_tmol.html"><span class="doc">Working with TMol</span></a>, <a class="reference internal" href="03_scoring_and_analysis.html"><span class="doc">Scoring and Analysis</span></a>, and <a class="reference internal" href="07_ligand_and_params.html"><span class="doc">Ligands and Parameter Files</span></a> first. This notebook is for developers extending TMol’s model rather than ordinary structure scoring. A smaller packed type set is an engineering choice, not a new force field, and changing a bonded spring constant creates a different model whose results require independent validation.</p>
+</section>
+<section id="Setup">
+<h2>Setup<a class="headerlink" href="#Setup" title="Link to this heading">#</a></h2>
+<p><strong>Run in Colab:</strong> Use the badge above, select <strong>Runtime → Change runtime type → T4 GPU</strong>, then <strong>Runtime → Run all</strong>. The setup installs TMol and downloads any listed fixtures; allow extra time for installation and the first calculation. For local execution, follow the <a class="reference internal" href="../installation.html"><span class="doc">installation guide</span></a> and use a kernel with TMol installed.</p>
+<p>No external structures are downloaded. The examples build a five-residue peptide from sequence using the chemistry shipped with the currently installed TMol release. The setup reports exact package versions and uses the selected CPU or CUDA device.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">google.colab</span>  <span class="c1"># noqa: F401</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">IN_COLAB</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">IN_COLAB</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="k">if</span> <span class="n">IN_COLAB</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">urllib.request</span><span class="w"> </span><span class="kn">import</span> <span class="n">urlopen</span>
+
+    <span class="n">exec</span><span class="p">(</span>
+        <span class="n">urlopen</span><span class="p">(</span>
+            <span class="s2">"https://raw.githubusercontent.com/uw-ipd/tmol/"</span>
+            <span class="s2">"master/docs/tutorial/colab_setup.py"</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span>
+        <span class="nb">globals</span><span class="p">(),</span>
+    <span class="p">)</span>
+    <span class="n">setup_colab</span><span class="p">([])</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nbinput collapse-code docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">attrs</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">IPython.display</span><span class="w"> </span><span class="kn">import</span> <span class="n">display</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">tmol</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">ResidueTypeSet</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.scoring</span><span class="w"> </span><span class="kn">import</span> <span class="n">CartBondedDatabase</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackedBlockTypes</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreFunction</span><span class="p">,</span> <span class="n">ScoreType</span><span class="p">,</span> <span class="n">beta2016_score_function</span>
+
+<span class="n">SEED</span> <span class="o">=</span> <span class="mi">20260910</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">SEED</span><span class="p">)</span>
+<span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="n">SEED</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">manual_seed_all</span><span class="p">(</span><span class="n">SEED</span><span class="p">)</span>
+
+<span class="n">device</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cuda"</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">current_device</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span>
+    <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">)</span>
+<span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">show_table</span><span class="p">(</span><span class="n">frame</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Use a sortable table in rendered docs, with a pandas fallback."""</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">itables</span><span class="w"> </span><span class="kn">import</span> <span class="n">show</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">display</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">show</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span>
+
+
+<span class="n">environment_frame</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"TMol"</span><span class="p">,</span> <span class="s2">"version"</span><span class="p">:</span> <span class="n">tmol</span><span class="o">.</span><span class="n">__version__</span><span class="p">},</span>
+        <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"PyTorch"</span><span class="p">,</span> <span class="s2">"version"</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">},</span>
+        <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"device"</span><span class="p">,</span> <span class="s2">"version"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">device</span><span class="p">)},</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+<span class="n">show_table</span><span class="p">(</span><span class="n">environment_frame</span><span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<!--| quarto-html-table-processing: none -->
+<table id="itables_25310011_6282_4500_9e3f_aec3a27e4543" hidden="hidden">
+  <tbody>
+    <tr>
+      <td style="vertical-align:middle; text-align:left"><a href=https://itables.org/><svg class="main-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+width="64" viewBox="0 0 500 400" style="font-family: 'Droid Sans', sans-serif;">
+    <g style="fill:var(--itables-logo-paper,#d9d7fc)">
+        <path d="M100,400H500V357H100Z" />
+        <path d="M100,300H400V257H100Z" />
+        <path d="M0,200H400V157H0Z" />
+        <path d="M100,100H500V57H100Z" />
+        <path d="M100,350H500V307H100Z" />
+        <path d="M100,250H400V207H100Z" />
+        <path d="M0,150H400V107H0Z" />
+        <path d="M100,50H500V7H100Z" />
+    </g>
+    <g style="fill:var(--itables-logo-ink,#1a1366);stroke:var(--itables-logo-ink,#1a1366);">
+   <rect x="100" y="7" width="400" height="43">
+    <animate
+      attributeName="width"
+      values="0;400;0"
+      dur="5s"
+      repeatCount="indefinite" />
+      <animate
+      attributeName="x"
+      values="100;100;500"
+      dur="5s"
+      repeatCount="indefinite" />
+  </rect>
+        <rect x="0" y="107" width="400" height="43">
+    <animate
+      attributeName="width"
+      values="0;400;0"
+      dur="3.5s"
+      repeatCount="indefinite" />
+    <animate
+      attributeName="x"
+      values="0;0;400"
+      dur="3.5s"
+      repeatCount="indefinite" />
+  </rect>
+        <rect x="100" y="207" width="300" height="43">
+    <animate
+      attributeName="width"
+      values="0;300;0"
+      dur="3s"
+      repeatCount="indefinite" />
+    <animate
+      attributeName="x"
+      values="100;100;400"
+      dur="3s"
+      repeatCount="indefinite" />
+  </rect>
+        <rect x="100" y="307" width="400" height="43">
+    <animate
+      attributeName="width"
+      values="0;400;0"
+      dur="4s"
+      repeatCount="indefinite" />
+      <animate
+      attributeName="x"
+      values="100;100;500"
+      dur="4s"
+      repeatCount="indefinite" />
+  </rect>
+        <g style="fill:transparent;stroke-width:8; stroke-linejoin:round" rx="5">
+            <g transform="translate(45 50) rotate(-45)">
+                <circle r="33" cx="0" cy="0" />
+                <rect x="-8" y="32" width="16" height="30" />
+            </g>
+
+            <g transform="translate(450 152)">
+                <polyline points="-15,-20 -35,-20 -35,40 25,40 25,20" />
+                <rect x="-15" y="-40" width="60" height="60" />
+            </g>
+
+            <g transform="translate(50 352)">
+                <polygon points="-35,-5 0,-40 35,-5" />
+                <polygon points="-35,10 0,45 35,10" />
+            </g>
+
+            <g transform="translate(75 250)">
+                <polyline points="-30,30 -60,0 -30,-30" />
+                <polyline points="0,30 -30,0 0,-30" />
+            </g>
+
+            <g transform="translate(425 250) rotate(180)">
+                <polyline points="-30,30 -60,0 -30,-30" />
+                <polyline points="0,30 -30,0 0,-30" />
+            </g>
+        </g>
+    </g>
+</svg>
+</a>
+        Loading ITables v2.9.1 from the internet...
+        (need <a href=https://itables.org/troubleshooting.html>help</a>?)
+      </td>
+    </tr>
+  </tbody>
+</table>
+<div id="itables_25310011_6282_4500_9e3f_aec3a27e4543_fallback"><table style="border-collapse:collapse"><thead>    <tr style="text-align: right;">
+      <th style="border:1px solid #ddd;padding:8px"><sup><noscript><span title="JavaScript not allowed. Please trust this notebook to get interactive tables.">🔒</span></noscript><a href=https://itables.org/fallbacks/static_preview.html title="ITables v2.9.1 static preview">ⓘ</a></sup>component</th>
+      <th style="border:1px solid #ddd;padding:8px">version</th>
+    </tr></thead><tbody>
+<tr><td style="border:1px solid #ddd;padding:8px">TMol</td><td style="border:1px solid #ddd;padding:8px">0.1.56</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">PyTorch</td><td style="border:1px solid #ddd;padding:8px">2.14.0+cpu</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">device</td><td style="border:1px solid #ddd;padding:8px">cpu</td></tr>
+</tbody></table></div><script>document.getElementById("itables_25310011_6282_4500_9e3f_aec3a27e4543")?.removeAttribute("hidden");document.getElementById("itables_25310011_6282_4500_9e3f_aec3a27e4543_fallback")?.setAttribute("hidden", "hidden");</script>
+<link href="https://www.unpkg.com/dt_for_itables@2.5.8/dt_bundle.css" rel="stylesheet">
+<script type="module">
+    import { ITable, jQuery as $ } from 'https://www.unpkg.com/dt_for_itables@2.5.8/dt_bundle.js';
+
+    document.querySelectorAll("#itables_25310011_6282_4500_9e3f_aec3a27e4543:not(.dataTable)").forEach(table => {
+        if (!(table instanceof HTMLTableElement))
+            return;
+
+        let dt_args = {
+          "classes": ["display", "nowrap", "compact"],
+          "data_json": "[[\"TMol\", \"0.1.56\"], [\"PyTorch\", \"2.14.0+cpu\"], [\"device\", \"cpu\"]]",
+          "layout": {"bottomEnd": null, "bottomStart": null, "topEnd": null, "topStart": null},
+          "order": [],
+          "style": {"caption-side": "bottom", "margin": "auto", "table-layout": "auto", "width": "auto"},
+          "table_html": "<table><thead>\n    <tr style=\"text-align: right;\">\n      \n      <th>component</th>\n      <th>version</th>\n    </tr>\n  </thead></table>",
+          "text_in_header_can_be_selected": true
+        };
+        new ITable(table, dt_args);
+    });
+</script></div>
+</div>
+</section>
+<section id="Follow-the-data-model-from-chemistry-to-a-score">
+<h2>Follow the data model from chemistry to a score<a class="headerlink" href="#Follow-the-data-model-from-chemistry-to-a-score" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">ParameterDatabase</span></code> is the immutable source of chemical and scoring parameters. <code class="docutils literal notranslate"><span class="pre">ResidueTypeSet</span></code> refines base residue records with variants such as termini. <code class="docutils literal notranslate"><span class="pre">PackedBlockTypes</span></code> moves a chosen, ordered set of those refined types onto one device and becomes the cache shared by poses and score terms. <code class="docutils literal notranslate"><span class="pre">CanonicalOrdering</span></code> instead defines stable external tensor indices for residue-equivalence classes and atoms.</p>
+<p>A <code class="docutils literal notranslate"><span class="pre">ScoreFunction</span></code> owns weights and energy-term options. Rendering it for a <code class="docutils literal notranslate"><span class="pre">PoseStack</span></code> prepares topology-dependent tensors; coordinate tensors can then change without rebuilding the chemical layout. The diagram is an ownership map, not a runtime call graph.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">10.5</span><span class="p">,</span> <span class="mf">4.6</span><span class="p">))</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_axis_off</span><span class="p">()</span>
+<span class="n">boxes</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"ParameterDatabase</span><span class="se">\n</span><span class="s2">chemical + scoring parameters"</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.58</span><span class="p">),</span>
+    <span class="s2">"ResidueTypeSet</span><span class="se">\n</span><span class="s2">refined variants"</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.34</span><span class="p">,</span> <span class="mf">0.78</span><span class="p">),</span>
+    <span class="s2">"CanonicalOrdering</span><span class="se">\n</span><span class="s2">external tensor indices"</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.34</span><span class="p">,</span> <span class="mf">0.28</span><span class="p">),</span>
+    <span class="s2">"PackedBlockTypes</span><span class="se">\n</span><span class="s2">device metadata + caches"</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.63</span><span class="p">,</span> <span class="mf">0.78</span><span class="p">),</span>
+    <span class="s2">"PoseStack</span><span class="se">\n</span><span class="s2">topology + coordinates"</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.63</span><span class="p">,</span> <span class="mf">0.28</span><span class="p">),</span>
+    <span class="s2">"ScoreFunction → rendered scorer</span><span class="se">\n</span><span class="s2">weights + prepared terms"</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.84</span><span class="p">,</span> <span class="mf">0.53</span><span class="p">),</span>
+<span class="p">}</span>
+<span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="ow">in</span> <span class="n">boxes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
+        <span class="n">x</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">,</span>
+        <span class="n">label</span><span class="p">,</span>
+        <span class="n">transform</span><span class="o">=</span><span class="n">ax</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
+        <span class="n">ha</span><span class="o">=</span><span class="s2">"center"</span><span class="p">,</span>
+        <span class="n">va</span><span class="o">=</span><span class="s2">"center"</span><span class="p">,</span>
+        <span class="n">bbox</span><span class="o">=</span><span class="p">{</span><span class="s2">"boxstyle"</span><span class="p">:</span> <span class="s2">"round,pad=0.55"</span><span class="p">,</span> <span class="s2">"fc"</span><span class="p">:</span> <span class="s2">"#eef4ff"</span><span class="p">,</span> <span class="s2">"ec"</span><span class="p">:</span> <span class="s2">"#315a9b"</span><span class="p">},</span>
+    <span class="p">)</span>
+<span class="n">arrows</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">((</span><span class="mf">0.18</span><span class="p">,</span> <span class="mf">0.61</span><span class="p">),</span> <span class="p">(</span><span class="mf">0.27</span><span class="p">,</span> <span class="mf">0.76</span><span class="p">)),</span>
+    <span class="p">((</span><span class="mf">0.18</span><span class="p">,</span> <span class="mf">0.55</span><span class="p">),</span> <span class="p">(</span><span class="mf">0.27</span><span class="p">,</span> <span class="mf">0.32</span><span class="p">)),</span>
+    <span class="p">((</span><span class="mf">0.45</span><span class="p">,</span> <span class="mf">0.78</span><span class="p">),</span> <span class="p">(</span><span class="mf">0.53</span><span class="p">,</span> <span class="mf">0.78</span><span class="p">)),</span>
+    <span class="p">((</span><span class="mf">0.44</span><span class="p">,</span> <span class="mf">0.31</span><span class="p">),</span> <span class="p">(</span><span class="mf">0.54</span><span class="p">,</span> <span class="mf">0.31</span><span class="p">)),</span>
+    <span class="p">((</span><span class="mf">0.64</span><span class="p">,</span> <span class="mf">0.69</span><span class="p">),</span> <span class="p">(</span><span class="mf">0.64</span><span class="p">,</span> <span class="mf">0.40</span><span class="p">)),</span>
+    <span class="p">((</span><span class="mf">0.75</span><span class="p">,</span> <span class="mf">0.31</span><span class="p">),</span> <span class="p">(</span><span class="mf">0.80</span><span class="p">,</span> <span class="mf">0.47</span><span class="p">)),</span>
+    <span class="p">((</span><span class="mf">0.74</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">),</span> <span class="p">(</span><span class="mf">0.81</span><span class="p">,</span> <span class="mf">0.60</span><span class="p">)),</span>
+<span class="p">]</span>
+<span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="ow">in</span> <span class="n">arrows</span><span class="p">:</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="s2">""</span><span class="p">,</span> <span class="n">xy</span><span class="o">=</span><span class="n">end</span><span class="p">,</span> <span class="n">xytext</span><span class="o">=</span><span class="n">start</span><span class="p">,</span> <span class="n">xycoords</span><span class="o">=</span><span class="s2">"axes fraction"</span><span class="p">,</span> <span class="n">arrowprops</span><span class="o">=</span><span class="p">{</span><span class="s2">"arrowstyle"</span><span class="p">:</span> <span class="s2">"-&gt;"</span><span class="p">,</span> <span class="s2">"lw"</span><span class="p">:</span> <span class="mf">1.8</span><span class="p">,</span> <span class="s2">"color"</span><span class="p">:</span> <span class="s2">"#315a9b"</span><span class="p">})</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">"TMol chemistry, interchange, pose, and scoring layers"</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorial_11_extending_chemistry_and_scoring_5_0.png" src="../_images/tutorial_11_extending_chemistry_and_scoring_5_0.png" />
+</div>
+</div>
+</section>
+<section id="Inspect-the-default-refined-chemistry">
+<h2>Inspect the default refined chemistry<a class="headerlink" href="#Inspect-the-default-refined-chemistry" title="Link to this heading">#</a></h2>
+<p>The raw database contains base residue definitions and named patches. Refinement materializes usable block types such as terminal amino acids and nucleic-acid termini. Counting refined types by polymer backbone makes it clear why a general-purpose packed set is larger than the twenty canonical amino acids.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">parameter_db</span> <span class="o">=</span> <span class="n">ParameterDatabase</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
+<span class="n">residue_type_set</span> <span class="o">=</span> <span class="n">ResidueTypeSet</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">parameter_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">chemistry_family</span><span class="p">(</span><span class="n">residue_type</span><span class="p">):</span>
+    <span class="n">polymer</span> <span class="o">=</span> <span class="n">residue_type</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">polymer</span><span class="o">.</span><span class="n">is_polymer</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"non-polymer"</span>
+    <span class="k">if</span> <span class="n">polymer</span><span class="o">.</span><span class="n">backbone_type</span> <span class="o">==</span> <span class="s2">"alpha"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"protein"</span>
+    <span class="k">if</span> <span class="n">polymer</span><span class="o">.</span><span class="n">backbone_type</span> <span class="o">==</span> <span class="s2">"dna"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"DNA"</span>
+    <span class="k">if</span> <span class="n">polymer</span><span class="o">.</span><span class="n">backbone_type</span> <span class="o">==</span> <span class="s2">"rna"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"RNA"</span>
+    <span class="k">return</span> <span class="n">polymer</span><span class="o">.</span><span class="n">backbone_type</span> <span class="ow">or</span> <span class="s2">"other polymer"</span>
+
+
+<span class="n">inventory_frame</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s2">"block_type"</span><span class="p">:</span> <span class="n">residue_type</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="s2">"name3"</span><span class="p">:</span> <span class="n">residue_type</span><span class="o">.</span><span class="n">name3</span><span class="p">,</span>
+            <span class="s2">"family"</span><span class="p">:</span> <span class="n">chemistry_family</span><span class="p">(</span><span class="n">residue_type</span><span class="p">),</span>
+            <span class="s2">"atoms"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">residue_type</span><span class="o">.</span><span class="n">atoms</span><span class="p">),</span>
+            <span class="s2">"torsions"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">residue_type</span><span class="o">.</span><span class="n">torsions</span><span class="p">),</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">residue_type</span> <span class="ow">in</span> <span class="n">residue_type_set</span><span class="o">.</span><span class="n">residue_types</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+<span class="n">family_counts</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">inventory_frame</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"family"</span><span class="p">,</span> <span class="n">as_index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">size</span><span class="p">()</span>
+    <span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"size"</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">"size"</span><span class="p">:</span> <span class="s2">"refined_block_types"</span><span class="p">})</span>
+<span class="p">)</span>
+<span class="n">show_table</span><span class="p">(</span><span class="n">family_counts</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">7.5</span><span class="p">,</span> <span class="mf">3.8</span><span class="p">))</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">barh</span><span class="p">(</span>
+    <span class="n">family_counts</span><span class="p">[</span><span class="s2">"family"</span><span class="p">][::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+    <span class="n">family_counts</span><span class="p">[</span><span class="s2">"refined_block_types"</span><span class="p">][::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+    <span class="n">color</span><span class="o">=</span><span class="s2">"#4c78a8"</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
+    <span class="n">xlabel</span><span class="o">=</span><span class="s2">"number of refined block types"</span><span class="p">,</span>
+    <span class="n">title</span><span class="o">=</span><span class="s2">"Default chemistry after variant refinement"</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.25</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<!--| quarto-html-table-processing: none -->
+<table id="itables_545557e7_2169_43bc_a677_9c5bb0fc9617" hidden="hidden">
+  <tbody>
+    <tr>
+      <td style="vertical-align:middle; text-align:left"><a href=https://itables.org/><svg class="main-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+width="64" viewBox="0 0 500 400" style="font-family: 'Droid Sans', sans-serif;">
+    <g style="fill:var(--itables-logo-paper,#d9d7fc)">
+        <path d="M100,400H500V357H100Z" />
+        <path d="M100,300H400V257H100Z" />
+        <path d="M0,200H400V157H0Z" />
+        <path d="M100,100H500V57H100Z" />
+        <path d="M100,350H500V307H100Z" />
+        <path d="M100,250H400V207H100Z" />
+        <path d="M0,150H400V107H0Z" />
+        <path d="M100,50H500V7H100Z" />
+    </g>
+    <g style="fill:var(--itables-logo-ink,#1a1366);stroke:var(--itables-logo-ink,#1a1366);">
+   <rect x="100" y="7" width="400" height="43">
+    <animate
+      attributeName="width"
+      values="0;400;0"
+      dur="5s"
+      repeatCount="indefinite" />
+      <animate
+      attributeName="x"
+      values="100;100;500"
+      dur="5s"
+      repeatCount="indefinite" />
+  </rect>
+        <rect x="0" y="107" width="400" height="43">
+    <animate
+      attributeName="width"
+      values="0;400;0"
+      dur="3.5s"
+      repeatCount="indefinite" />
+    <animate
+      attributeName="x"
+      values="0;0;400"
+      dur="3.5s"
+      repeatCount="indefinite" />
+  </rect>
+        <rect x="100" y="207" width="300" height="43">
+    <animate
+      attributeName="width"
+      values="0;300;0"
+      dur="3s"
+      repeatCount="indefinite" />
+    <animate
+      attributeName="x"
+      values="100;100;400"
+      dur="3s"
+      repeatCount="indefinite" />
+  </rect>
+        <rect x="100" y="307" width="400" height="43">
+    <animate
+      attributeName="width"
+      values="0;400;0"
+      dur="4s"
+      repeatCount="indefinite" />
+      <animate
+      attributeName="x"
+      values="100;100;500"
+      dur="4s"
+      repeatCount="indefinite" />
+  </rect>
+        <g style="fill:transparent;stroke-width:8; stroke-linejoin:round" rx="5">
+            <g transform="translate(45 50) rotate(-45)">
+                <circle r="33" cx="0" cy="0" />
+                <rect x="-8" y="32" width="16" height="30" />
+            </g>
+
+            <g transform="translate(450 152)">
+                <polyline points="-15,-20 -35,-20 -35,40 25,40 25,20" />
+                <rect x="-15" y="-40" width="60" height="60" />
+            </g>
+
+            <g transform="translate(50 352)">
+                <polygon points="-35,-5 0,-40 35,-5" />
+                <polygon points="-35,10 0,45 35,10" />
+            </g>
+
+            <g transform="translate(75 250)">
+                <polyline points="-30,30 -60,0 -30,-30" />
+                <polyline points="0,30 -30,0 0,-30" />
+            </g>
+
+            <g transform="translate(425 250) rotate(180)">
+                <polyline points="-30,30 -60,0 -30,-30" />
+                <polyline points="0,30 -30,0 0,-30" />
+            </g>
+        </g>
+    </g>
+</svg>
+</a>
+        Loading ITables v2.9.1 from the internet...
+        (need <a href=https://itables.org/troubleshooting.html>help</a>?)
+      </td>
+    </tr>
+  </tbody>
+</table>
+<div id="itables_545557e7_2169_43bc_a677_9c5bb0fc9617_fallback"><table style="border-collapse:collapse"><thead>    <tr style="text-align: right;">
+      <th style="border:1px solid #ddd;padding:8px"><sup><noscript><span title="JavaScript not allowed. Please trust this notebook to get interactive tables.">🔒</span></noscript><a href=https://itables.org/fallbacks/static_preview.html title="ITables v2.9.1 static preview">ⓘ</a></sup></th>
+      <th style="border:1px solid #ddd;padding:8px">family</th>
+      <th style="border:1px solid #ddd;padding:8px">refined_block_types</th>
+    </tr></thead><tbody>
+<tr><td style="border:1px solid #ddd;padding:8px">3</td><td style="border:1px solid #ddd;padding:8px">protein</td><td style="border:1px solid #ddd;padding:8px">92</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">0</td><td style="border:1px solid #ddd;padding:8px">DNA</td><td style="border:1px solid #ddd;padding:8px">24</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">1</td><td style="border:1px solid #ddd;padding:8px">RNA</td><td style="border:1px solid #ddd;padding:8px">24</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">2</td><td style="border:1px solid #ddd;padding:8px">non-polymer</td><td style="border:1px solid #ddd;padding:8px">2</td></tr>
+</tbody></table></div><script>document.getElementById("itables_545557e7_2169_43bc_a677_9c5bb0fc9617")?.removeAttribute("hidden");document.getElementById("itables_545557e7_2169_43bc_a677_9c5bb0fc9617_fallback")?.setAttribute("hidden", "hidden");</script>
+<link href="https://www.unpkg.com/dt_for_itables@2.5.8/dt_bundle.css" rel="stylesheet">
+<script type="module">
+    import { ITable, jQuery as $ } from 'https://www.unpkg.com/dt_for_itables@2.5.8/dt_bundle.js';
+
+    document.querySelectorAll("#itables_545557e7_2169_43bc_a677_9c5bb0fc9617:not(.dataTable)").forEach(table => {
+        if (!(table instanceof HTMLTableElement))
+            return;
+
+        let dt_args = {
+          "classes": ["display", "nowrap", "compact"],
+          "data_json": "[[3, \"protein\", 92], [0, \"DNA\", 24], [1, \"RNA\", 24], [2, \"non-polymer\", 2]]",
+          "layout": {"bottomEnd": null, "bottomStart": null, "topEnd": null, "topStart": null},
+          "order": [],
+          "style": {"caption-side": "bottom", "margin": "auto", "table-layout": "auto", "width": "auto"},
+          "table_html": "<table><thead>\n    <tr style=\"text-align: right;\">\n      <th></th>\n      <th>family</th>\n      <th>refined_block_types</th>\n    </tr>\n  </thead></table>",
+          "text_in_header_can_be_selected": true
+        };
+        new ITable(table, dt_args);
+    });
+</script></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorial_11_extending_chemistry_and_scoring_7_1.png" src="../_images/tutorial_11_extending_chemistry_and_scoring_7_1.png" />
+</div>
+</div>
+<p><strong>Expected observations.</strong> Protein block types dominate the refined inventory because base residues acquire compatible terminal and other variants. These are chemical alternatives, not additional sequence positions. Code that assumes one packed type per one-letter amino-acid code will fail on termini, protonation variants, nucleic acids, and non-polymers.</p>
+</section>
+<section id="Build-a-stable,-explicit-chemistry-subset">
+<h2>Build a stable, explicit chemistry subset<a class="headerlink" href="#Build-a-stable,-explicit-chemistry-subset" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">create_stable_subset()</span></code> selects base residue names and named variants while preserving a deterministic order as the source database grows. The complete scoring database is retained, but only the requested chemistry is refined and packed. This is useful for a controlled application with a known alphabet; it is unsafe when incoming structures may contain chemistry outside that alphabet.</p>
+<p>The example keeps ALA, GLY, SER, and PRO plus protein termini. It then builds <code class="docutils literal notranslate"><span class="pre">AGSPA</span></code>, proving that the subset contains every internal and terminal type required by that sequence.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">subset_db</span> <span class="o">=</span> <span class="n">parameter_db</span><span class="o">.</span><span class="n">create_stable_subset</span><span class="p">(</span>
+    <span class="n">desired_names</span><span class="o">=</span><span class="p">[</span><span class="s2">"ALA"</span><span class="p">,</span> <span class="s2">"GLY"</span><span class="p">,</span> <span class="s2">"SER"</span><span class="p">,</span> <span class="s2">"PRO"</span><span class="p">],</span>
+    <span class="n">desired_variants</span><span class="o">=</span><span class="p">[</span><span class="s2">"nterm"</span><span class="p">,</span> <span class="s2">"cterm"</span><span class="p">],</span>
+<span class="p">)</span>
+<span class="n">subset_restype_set</span> <span class="o">=</span> <span class="n">ResidueTypeSet</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">subset_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">)</span>
+<span class="n">subset_pbt</span> <span class="o">=</span> <span class="n">PackedBlockTypes</span><span class="o">.</span><span class="n">from_restype_list</span><span class="p">(</span>
+    <span class="n">subset_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">,</span>
+    <span class="n">subset_restype_set</span><span class="p">,</span>
+    <span class="n">subset_restype_set</span><span class="o">.</span><span class="n">residue_types</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">subset_ordering</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">CanonicalOrdering</span><span class="o">.</span><span class="n">from_chemdb</span><span class="p">(</span><span class="n">subset_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">)</span>
+<span class="n">peptide</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">extended_pose_stack_from_sequences</span><span class="p">(</span>
+    <span class="s2">"AGSPA"</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">param_db</span><span class="o">=</span><span class="n">subset_db</span>
+<span class="p">)</span>
+
+<span class="n">subset_frame</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s2">"context"</span><span class="p">:</span> <span class="s2">"default refined chemistry"</span><span class="p">,</span>
+            <span class="s2">"refined_types"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">residue_type_set</span><span class="o">.</span><span class="n">residue_types</span><span class="p">),</span>
+            <span class="s2">"packed_types"</span><span class="p">:</span> <span class="n">tmol</span><span class="o">.</span><span class="n">default_packed_block_types</span><span class="p">(</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span>
+            <span class="s2">"canonical_equivalence_classes"</span><span class="p">:</span> <span class="n">tmol</span><span class="o">.</span><span class="n">default_canonical_ordering</span><span class="p">()</span><span class="o">.</span><span class="n">n_restype_io_equiv_classes</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+            <span class="s2">"context"</span><span class="p">:</span> <span class="s2">"AGSP subset"</span><span class="p">,</span>
+            <span class="s2">"refined_types"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">subset_restype_set</span><span class="o">.</span><span class="n">residue_types</span><span class="p">),</span>
+            <span class="s2">"packed_types"</span><span class="p">:</span> <span class="n">subset_pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span>
+            <span class="s2">"canonical_equivalence_classes"</span><span class="p">:</span> <span class="n">subset_ordering</span><span class="o">.</span><span class="n">n_restype_io_equiv_classes</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+<span class="n">show_table</span><span class="p">(</span><span class="n">subset_frame</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"pose block types:"</span><span class="p">,</span> <span class="p">[</span><span class="n">peptide</span><span class="o">.</span><span class="n">block_type</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">peptide</span><span class="o">.</span><span class="n">max_n_blocks</span><span class="p">)])</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">peptide_viewer</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">peptide</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">720</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">380</span><span class="p">)</span>
+    <span class="n">peptide_viewer</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+<span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"Interactive peptide viewer unavailable:"</span><span class="p">,</span> <span class="n">exc</span><span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<!--| quarto-html-table-processing: none -->
+<table id="itables_6c824b24_e39e_469a_ab95_5ac6b4576607" hidden="hidden">
+  <tbody>
+    <tr>
+      <td style="vertical-align:middle; text-align:left"><a href=https://itables.org/><svg class="main-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+width="64" viewBox="0 0 500 400" style="font-family: 'Droid Sans', sans-serif;">
+    <g style="fill:var(--itables-logo-paper,#d9d7fc)">
+        <path d="M100,400H500V357H100Z" />
+        <path d="M100,300H400V257H100Z" />
+        <path d="M0,200H400V157H0Z" />
+        <path d="M100,100H500V57H100Z" />
+        <path d="M100,350H500V307H100Z" />
+        <path d="M100,250H400V207H100Z" />
+        <path d="M0,150H400V107H0Z" />
+        <path d="M100,50H500V7H100Z" />
+    </g>
+    <g style="fill:var(--itables-logo-ink,#1a1366);stroke:var(--itables-logo-ink,#1a1366);">
+   <rect x="100" y="7" width="400" height="43">
+    <animate
+      attributeName="width"
+      values="0;400;0"
+      dur="5s"
+      repeatCount="indefinite" />
+      <animate
+      attributeName="x"
+      values="100;100;500"
+      dur="5s"
+      repeatCount="indefinite" />
+  </rect>
+        <rect x="0" y="107" width="400" height="43">
+    <animate
+      attributeName="width"
+      values="0;400;0"
+      dur="3.5s"
+      repeatCount="indefinite" />
+    <animate
+      attributeName="x"
+      values="0;0;400"
+      dur="3.5s"
+      repeatCount="indefinite" />
+  </rect>
+        <rect x="100" y="207" width="300" height="43">
+    <animate
+      attributeName="width"
+      values="0;300;0"
+      dur="3s"
+      repeatCount="indefinite" />
+    <animate
+      attributeName="x"
+      values="100;100;400"
+      dur="3s"
+      repeatCount="indefinite" />
+  </rect>
+        <rect x="100" y="307" width="400" height="43">
+    <animate
+      attributeName="width"
+      values="0;400;0"
+      dur="4s"
+      repeatCount="indefinite" />
+      <animate
+      attributeName="x"
+      values="100;100;500"
+      dur="4s"
+      repeatCount="indefinite" />
+  </rect>
+        <g style="fill:transparent;stroke-width:8; stroke-linejoin:round" rx="5">
+            <g transform="translate(45 50) rotate(-45)">
+                <circle r="33" cx="0" cy="0" />
+                <rect x="-8" y="32" width="16" height="30" />
+            </g>
+
+            <g transform="translate(450 152)">
+                <polyline points="-15,-20 -35,-20 -35,40 25,40 25,20" />
+                <rect x="-15" y="-40" width="60" height="60" />
+            </g>
+
+            <g transform="translate(50 352)">
+                <polygon points="-35,-5 0,-40 35,-5" />
+                <polygon points="-35,10 0,45 35,10" />
+            </g>
+
+            <g transform="translate(75 250)">
+                <polyline points="-30,30 -60,0 -30,-30" />
+                <polyline points="0,30 -30,0 0,-30" />
+            </g>
+
+            <g transform="translate(425 250) rotate(180)">
+                <polyline points="-30,30 -60,0 -30,-30" />
+                <polyline points="0,30 -30,0 0,-30" />
+            </g>
+        </g>
+    </g>
+</svg>
+</a>
+        Loading ITables v2.9.1 from the internet...
+        (need <a href=https://itables.org/troubleshooting.html>help</a>?)
+      </td>
+    </tr>
+  </tbody>
+</table>
+<div id="itables_6c824b24_e39e_469a_ab95_5ac6b4576607_fallback"><table style="border-collapse:collapse"><thead>    <tr style="text-align: right;">
+      <th style="border:1px solid #ddd;padding:8px"><sup><noscript><span title="JavaScript not allowed. Please trust this notebook to get interactive tables.">🔒</span></noscript><a href=https://itables.org/fallbacks/static_preview.html title="ITables v2.9.1 static preview">ⓘ</a></sup>context</th>
+      <th style="border:1px solid #ddd;padding:8px">refined_types</th>
+      <th style="border:1px solid #ddd;padding:8px">packed_types</th>
+      <th style="border:1px solid #ddd;padding:8px">canonical_equivalence_classes</th>
+    </tr></thead><tbody>
+<tr><td style="border:1px solid #ddd;padding:8px">default refined chemistry</td><td style="border:1px solid #ddd;padding:8px">142</td><td style="border:1px solid #ddd;padding:8px">142</td><td style="border:1px solid #ddd;padding:8px">30</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">AGSP subset</td><td style="border:1px solid #ddd;padding:8px">16</td><td style="border:1px solid #ddd;padding:8px">16</td><td style="border:1px solid #ddd;padding:8px">4</td></tr>
+</tbody></table></div><script>document.getElementById("itables_6c824b24_e39e_469a_ab95_5ac6b4576607")?.removeAttribute("hidden");document.getElementById("itables_6c824b24_e39e_469a_ab95_5ac6b4576607_fallback")?.setAttribute("hidden", "hidden");</script>
+<link href="https://www.unpkg.com/dt_for_itables@2.5.8/dt_bundle.css" rel="stylesheet">
+<script type="module">
+    import { ITable, jQuery as $ } from 'https://www.unpkg.com/dt_for_itables@2.5.8/dt_bundle.js';
+
+    document.querySelectorAll("#itables_6c824b24_e39e_469a_ab95_5ac6b4576607:not(.dataTable)").forEach(table => {
+        if (!(table instanceof HTMLTableElement))
+            return;
+
+        let dt_args = {
+          "classes": ["display", "nowrap", "compact"],
+          "data_json": "[[\"default refined chemistry\", 142, 142, 30], [\"AGSP subset\", 16, 16, 4]]",
+          "layout": {"bottomEnd": null, "bottomStart": null, "topEnd": null, "topStart": null},
+          "order": [],
+          "style": {"caption-side": "bottom", "margin": "auto", "table-layout": "auto", "width": "auto"},
+          "table_html": "<table><thead>\n    <tr style=\"text-align: right;\">\n      \n      <th>context</th>\n      <th>refined_types</th>\n      <th>packed_types</th>\n      <th>canonical_equivalence_classes</th>\n    </tr>\n  </thead></table>",
+          "text_in_header_can_be_selected": true
+        };
+        new ITable(table, dt_args);
+    });
+</script></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+pose block types: [&#39;ALA:nterm&#39;, &#39;GLY&#39;, &#39;SER&#39;, &#39;PRO&#39;, &#39;ALA:cterm&#39;]
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div id="3dmolviewer_1789224808925667"  style="position: relative; width: 720px; height: 380px;">
+        <p id="3dmolwarning_1789224808925667" style="background-color:#ffcccc;color:black">3Dmol.js failed to load for some reason.  Please check your browser console for error messages.<br></p>
+        </div>
+<script>
+
+var loadScriptAsync = function(uri){
+  return new Promise((resolve, reject) => {
+    //this is to ignore the existence of requirejs amd
+    var savedexports, savedmodule;
+    if (typeof exports !== 'undefined') savedexports = exports;
+    else exports = {}
+    if (typeof module !== 'undefined') savedmodule = module;
+    else module = {}
+
+    var tag = document.createElement('script');
+    tag.src = uri;
+    tag.async = true;
+    tag.onload = () => {
+        exports = savedexports;
+        module = savedmodule;
+        resolve();
+    };
+  var firstScriptTag = document.getElementsByTagName('script')[0];
+  firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+});
+};
+
+if(typeof $3Dmolpromise === 'undefined') {
+$3Dmolpromise = null;
+  $3Dmolpromise = loadScriptAsync('https://cdn.jsdelivr.net/npm/3dmol@2.5.5/build/3Dmol-min.js');
+}
+
+var viewer_1789224808925667 = null;
+var warn = document.getElementById("3dmolwarning_1789224808925667");
+if(warn) {
+    warn.parentNode.removeChild(warn);
+}
+$3Dmolpromise.then(function() {
+viewer_1789224808925667 = $3Dmol.createViewer(document.getElementById("3dmolviewer_1789224808925667"),{backgroundColor:"white"});
+viewer_1789224808925667.zoomTo();
+    viewer_1789224808925667.addModel("MODEL 1\nATOM      1  N   ALA A   1       0.000  -0.000   0.000  1.00 30.00\nATOM      2  CA  ALA A   1       1.458   0.000   0.000  1.00 30.00\nATOM      3  C   ALA A   1       2.009   1.420   0.000  1.00 30.00\nATOM      4  O   ALA A   1       1.540   2.278  -0.748  1.00 30.00\nATOM      5  CB  ALA A   1       1.988  -0.773  -1.199  1.00 30.00\nATOM      6  HA  ALA A   1       1.797  -0.490   0.913  1.00 30.00\nATOM      7  HB1 ALA A   1       3.078  -0.764  -1.185  1.00 30.00\nATOM      8  HB2 ALA A   1       1.633  -1.802  -1.154  1.00 30.00\nATOM      9  HB3 ALA A   1       1.633  -0.307  -2.117  1.00 30.00\nATOM     10  H1  ALA A   1      -0.334  -0.943  -0.000  1.00 30.00\nATOM     11  H2  ALA A   1      -0.334   0.471   0.816  1.00 30.00\nATOM     12  H3  ALA A   1      -0.334   0.471  -0.816  1.00 30.00\nATOM     13  N   GLY A   2       3.007   1.662   0.843  1.00 30.00\nATOM     14  CA  GLY A   2       3.624   2.980   0.942  1.00 30.00\nATOM     15  C   GLY A   2       5.143   2.875   0.976  1.00 30.00\nATOM     16  O   GLY A   2       5.702   2.041   1.688  1.00 30.00\nATOM     17  H   GLY A   2       3.347   0.914   1.431  1.00 30.00\nATOM     18  HA2 GLY A   2       3.316   3.590   0.093  1.00 30.00\nATOM     19  HA3 GLY A   2       3.270   3.480   1.842  1.00 30.00\nATOM     20  N   SER A   3       5.807   3.727   0.202  1.00 30.00\nATOM     21  CA  SER A   3       7.264   3.732   0.142  1.00 30.00\nATOM     22  C   SER A   3       7.813   5.151   0.211  1.00 30.00\nATOM     23  O   SER A   3       7.313   6.054  -0.459  1.00 30.00\nATOM     24  CB  SER A   3       7.736   3.059  -1.132  1.00 30.00\nATOM     25  OG  SER A   3       6.650   2.618  -1.900  1.00 30.00\nATOM     26  H   SER A   3       5.289   4.388  -0.359  1.00 30.00\nATOM     27  HA  SER A   3       7.647   3.174   0.998  1.00 30.00\nATOM     28  HB2 SER A   3       8.336   3.760  -1.713  1.00 30.00\nATOM     29  HB3 SER A   3       8.375   2.213  -0.881  1.00 30.00\nATOM     30  HG  SER A   3       5.862   2.862  -1.408  1.00 30.00\nATOM     31  N   PRO A   4       8.845   5.342   1.027  1.00 30.00\nATOM     32  CA  PRO A   4       9.464   6.652   1.185  1.00 30.00\nATOM     33  C   PRO A   4      10.984   6.551   1.150  1.00 30.00\nATOM     34  O   PRO A   4      11.572   5.674   1.783  1.00 30.00\nATOM     35  CB  PRO A   4       8.960   7.108   2.558  1.00 30.00\nATOM     36  CG  PRO A   4       8.772   5.840   3.318  1.00 30.00\nATOM     37  CD  PRO A   4       8.330   4.843   2.280  1.00 30.00\nATOM     38  HA  PRO A   4       9.103   7.321   0.390  1.00 30.00\nATOM     39  HB2 PRO A   4       9.695   7.780   3.024  1.00 30.00\nATOM     40  HB3 PRO A   4       8.027   7.680   2.445  1.00 30.00\nATOM     41  HG2 PRO A   4       9.712   5.549   3.811  1.00 30.00\nATOM     42  HG3 PRO A   4       8.026   5.981   4.114  1.00 30.00\nATOM     43  HD2 PRO A   4       8.761   3.857   2.511  1.00 30.00\nATOM     44  HD3 PRO A   4       7.232   4.792   2.264  1.00 30.00\nATOM     45  N   ALA A   5      11.615   7.453   0.406  1.00 30.00\nATOM     46  CA  ALA A   5      13.068   7.467   0.287  1.00 30.00\nATOM     47  C   ALA A   5      13.618   8.881   0.425  1.00 30.00\nATOM     48  CB  ALA A   5      13.496   6.860  -1.041  1.00 30.00\nATOM     49  H   ALA A   5      11.074   8.147  -0.090  1.00 30.00\nATOM     50  HA  ALA A   5      13.480   6.867   1.099  1.00 30.00\nATOM     51  HB1 ALA A   5      14.584   6.878  -1.115  1.00 30.00\nATOM     52  HB2 ALA A   5      13.145   5.830  -1.100  1.00 30.00\nATOM     53  HB3 ALA A   5      13.068   7.437  -1.859  1.00 30.00\nATOM     54  O   ALA A   5      13.752   9.369   1.513  1.00 30.00\nATOM     55  OXT ALA A   5      13.919   9.506  -0.554  1.00 30.00\nTER\nENDMDL\n","pdb");
+    viewer_1789224808925667.setBackgroundColor("white");
+    viewer_1789224808925667.setStyle({},{"cartoon": {"color": "spectrum"}});
+    viewer_1789224808925667.addStyle({"not": {"hetflag": true}},{"stick": {"radius": 0.08, "opacity": 0.55}});
+    viewer_1789224808925667.setStyle({"hetflag": true},{"stick": {"colorscheme": "orangeCarbon", "radius": 0.22}});
+    viewer_1789224808925667.setHoverable({},true,"function(atom,viewer) {\n        if(!atom.label) {\n            atom.label = viewer.addLabel(\n                atom.chain + ':' + atom.resn + '(' + atom.resi + '):' +\n                atom.atom + '(idx' + atom.serial + ')',\n                {position: atom, backgroundColor:\"white\", fontColor:\"black\"}\n            );\n        }\n    }","function(atom,viewer) {\n        if(atom.label) {\n            viewer.removeLabel(atom.label);\n            delete atom.label;\n        }\n    }");
+    viewer_1789224808925667.zoomTo();
+viewer_1789224808925667.render();
+});
+</script></div>
+</div>
+<p><strong>Expected observations.</strong> The subset packs far fewer types but still builds a chemically complete terminated peptide. The interactive viewer shows coordinates generated from the subset’s ideal internal geometry. The viewer does not validate the energy model, and an extended pose is not a folded structure.</p>
+</section>
+<section id="Separate-score-weights-from-score-parameters">
+<h2>Separate score weights from score parameters<a class="headerlink" href="#Separate-score-weights-from-score-parameters" title="Link to this heading">#</a></h2>
+<p>Use weights when an existing energy term should contribute differently. Use a modified <code class="docutils literal notranslate"><span class="pre">ParameterDatabase</span></code> only when the term’s underlying model changes. The focused score function below gives only Cartesian bond-length energy a nonzero weight. Cartesian length, angle, torsion, improper, and hydroxyl-torsion lanes share one implementation term, so rendering it exposes all five lanes even when four weights are zero. Setting every lane owned by a term to zero removes that implementation term.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">beta</span> <span class="o">=</span> <span class="n">beta2016_score_function</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">param_db</span><span class="o">=</span><span class="n">subset_db</span><span class="p">)</span>
+<span class="n">focused</span> <span class="o">=</span> <span class="n">ScoreFunction</span><span class="p">(</span><span class="n">subset_db</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+<span class="n">focused</span><span class="o">.</span><span class="n">set_weight</span><span class="p">(</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">cart_lengths</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+
+<span class="n">weight_rows</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">score_type</span> <span class="ow">in</span> <span class="n">beta</span><span class="o">.</span><span class="n">all_score_types</span><span class="p">():</span>
+    <span class="n">weight</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">beta</span><span class="o">.</span><span class="n">get_weight</span><span class="p">(</span><span class="n">score_type</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">weight</span> <span class="o">!=</span> <span class="mf">0.0</span><span class="p">:</span>
+        <span class="n">weight_rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="p">{</span><span class="s2">"score_type"</span><span class="p">:</span> <span class="n">score_type</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">"beta2016_weight"</span><span class="p">:</span> <span class="n">weight</span><span class="p">}</span>
+        <span class="p">)</span>
+<span class="n">weight_frame</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">weight_rows</span><span class="p">)</span>
+<span class="n">weight_frame</span><span class="p">[</span><span class="s2">"focused_cart_length_weight"</span><span class="p">]</span> <span class="o">=</span> <span class="n">weight_frame</span><span class="p">[</span><span class="s2">"score_type"</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+    <span class="p">{</span><span class="s2">"cart_lengths"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">}</span>
+<span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+<span class="n">show_table</span><span class="p">(</span><span class="n">weight_frame</span><span class="p">)</span>
+<span class="n">focused_nonzero</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">score_type</span>
+    <span class="k">for</span> <span class="n">score_type</span> <span class="ow">in</span> <span class="n">focused</span><span class="o">.</span><span class="n">all_score_types</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">focused</span><span class="o">.</span><span class="n">get_weight</span><span class="p">(</span><span class="n">score_type</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span> <span class="o">!=</span> <span class="mf">0.0</span>
+<span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"focused rendered score lanes:"</span><span class="p">,</span> <span class="p">[</span><span class="n">st</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">st</span> <span class="ow">in</span> <span class="n">focused</span><span class="o">.</span><span class="n">all_score_types</span><span class="p">()])</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"focused nonzero weights:"</span><span class="p">,</span> <span class="p">[</span><span class="n">st</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">st</span> <span class="ow">in</span> <span class="n">focused_nonzero</span><span class="p">])</span>
+<span class="k">assert</span> <span class="n">focused_nonzero</span> <span class="o">==</span> <span class="p">[</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">cart_lengths</span><span class="p">]</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<!--| quarto-html-table-processing: none -->
+<table id="itables_43504b0a_c2eb_4fe1_8733_712b041f425a" hidden="hidden">
+  <tbody>
+    <tr>
+      <td style="vertical-align:middle; text-align:left"><a href=https://itables.org/><svg class="main-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+width="64" viewBox="0 0 500 400" style="font-family: 'Droid Sans', sans-serif;">
+    <g style="fill:var(--itables-logo-paper,#d9d7fc)">
+        <path d="M100,400H500V357H100Z" />
+        <path d="M100,300H400V257H100Z" />
+        <path d="M0,200H400V157H0Z" />
+        <path d="M100,100H500V57H100Z" />
+        <path d="M100,350H500V307H100Z" />
+        <path d="M100,250H400V207H100Z" />
+        <path d="M0,150H400V107H0Z" />
+        <path d="M100,50H500V7H100Z" />
+    </g>
+    <g style="fill:var(--itables-logo-ink,#1a1366);stroke:var(--itables-logo-ink,#1a1366);">
+   <rect x="100" y="7" width="400" height="43">
+    <animate
+      attributeName="width"
+      values="0;400;0"
+      dur="5s"
+      repeatCount="indefinite" />
+      <animate
+      attributeName="x"
+      values="100;100;500"
+      dur="5s"
+      repeatCount="indefinite" />
+  </rect>
+        <rect x="0" y="107" width="400" height="43">
+    <animate
+      attributeName="width"
+      values="0;400;0"
+      dur="3.5s"
+      repeatCount="indefinite" />
+    <animate
+      attributeName="x"
+      values="0;0;400"
+      dur="3.5s"
+      repeatCount="indefinite" />
+  </rect>
+        <rect x="100" y="207" width="300" height="43">
+    <animate
+      attributeName="width"
+      values="0;300;0"
+      dur="3s"
+      repeatCount="indefinite" />
+    <animate
+      attributeName="x"
+      values="100;100;400"
+      dur="3s"
+      repeatCount="indefinite" />
+  </rect>
+        <rect x="100" y="307" width="400" height="43">
+    <animate
+      attributeName="width"
+      values="0;400;0"
+      dur="4s"
+      repeatCount="indefinite" />
+      <animate
+      attributeName="x"
+      values="100;100;500"
+      dur="4s"
+      repeatCount="indefinite" />
+  </rect>
+        <g style="fill:transparent;stroke-width:8; stroke-linejoin:round" rx="5">
+            <g transform="translate(45 50) rotate(-45)">
+                <circle r="33" cx="0" cy="0" />
+                <rect x="-8" y="32" width="16" height="30" />
+            </g>
+
+            <g transform="translate(450 152)">
+                <polyline points="-15,-20 -35,-20 -35,40 25,40 25,20" />
+                <rect x="-15" y="-40" width="60" height="60" />
+            </g>
+
+            <g transform="translate(50 352)">
+                <polygon points="-35,-5 0,-40 35,-5" />
+                <polygon points="-35,10 0,45 35,10" />
+            </g>
+
+            <g transform="translate(75 250)">
+                <polyline points="-30,30 -60,0 -30,-30" />
+                <polyline points="0,30 -30,0 0,-30" />
+            </g>
+
+            <g transform="translate(425 250) rotate(180)">
+                <polyline points="-30,30 -60,0 -30,-30" />
+                <polyline points="0,30 -30,0 0,-30" />
+            </g>
+        </g>
+    </g>
+</svg>
+</a>
+        Loading ITables v2.9.1 from the internet...
+        (need <a href=https://itables.org/troubleshooting.html>help</a>?)
+      </td>
+    </tr>
+  </tbody>
+</table>
+<div id="itables_43504b0a_c2eb_4fe1_8733_712b041f425a_fallback"><table style="border-collapse:collapse"><thead>    <tr style="text-align: right;">
+      <th style="border:1px solid #ddd;padding:8px"><sup><noscript><span title="JavaScript not allowed. Please trust this notebook to get interactive tables.">🔒</span></noscript><a href=https://itables.org/fallbacks/static_preview.html title="ITables v2.9.1 static preview">ⓘ</a></sup>score_type</th>
+      <th style="border:1px solid #ddd;padding:8px">beta2016_weight</th>
+      <th style="border:1px solid #ddd;padding:8px">focused_cart_length_weight</th>
+    </tr></thead><tbody>
+<tr><td style="border:1px solid #ddd;padding:8px">fa_ljatr</td><td style="border:1px solid #ddd;padding:8px">1.00</td><td style="border:1px solid #ddd;padding:8px">0.0</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">fa_ljrep</td><td style="border:1px solid #ddd;padding:8px">0.55</td><td style="border:1px solid #ddd;padding:8px">0.0</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">fa_lk</td><td style="border:1px solid #ddd;padding:8px">1.00</td><td style="border:1px solid #ddd;padding:8px">0.0</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">fa_elec</td><td style="border:1px solid #ddd;padding:8px">1.00</td><td style="border:1px solid #ddd;padding:8px">0.0</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">hbond</td><td style="border:1px solid #ddd;padding:8px">1.00</td><td style="border:1px solid #ddd;padding:8px">0.0</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">cart_lengths</td><td style="border:1px solid #ddd;padding:8px">0.50</td><td style="border:1px solid #ddd;padding:8px">1.0</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">cart_angles</td><td style="border:1px solid #ddd;padding:8px">0.50</td><td style="border:1px solid #ddd;padding:8px">0.0</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">cart_torsions</td><td style="border:1px solid #ddd;padding:8px">0.50</td><td style="border:1px solid #ddd;padding:8px">0.0</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">cart_impropers</td><td style="border:1px solid #ddd;padding:8px">0.50</td><td style="border:1px solid #ddd;padding:8px">0.0</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">cart_hxltorsions</td><td style="border:1px solid #ddd;padding:8px">0.50</td><td style="border:1px solid #ddd;padding:8px">0.0</td></tr>
+</tbody><tfoot><tr><td colspan="3" style="border:none;padding:8px;text-align:center">(14 more rows not shown)</td></tr></tfoot></table></div><script>document.getElementById("itables_43504b0a_c2eb_4fe1_8733_712b041f425a")?.removeAttribute("hidden");document.getElementById("itables_43504b0a_c2eb_4fe1_8733_712b041f425a_fallback")?.setAttribute("hidden", "hidden");</script>
+<link href="https://www.unpkg.com/dt_for_itables@2.5.8/dt_bundle.css" rel="stylesheet">
+<script type="module">
+    import { ITable, jQuery as $ } from 'https://www.unpkg.com/dt_for_itables@2.5.8/dt_bundle.js';
+
+    document.querySelectorAll("#itables_43504b0a_c2eb_4fe1_8733_712b041f425a:not(.dataTable)").forEach(table => {
+        if (!(table instanceof HTMLTableElement))
+            return;
+
+        let dt_args = {
+          "classes": ["display", "nowrap", "compact"],
+          "columnDefs": [{"render": "function (data, type, row, meta) { return type === 'sort' || type === 'type' ? data[1] : data[0]; }", "targets": [1, 2]}],
+          "data_json": "[[\"fa_ljatr\", [\"1.00\", 1.0], [\"0.0\", 0.0]], [\"fa_ljrep\", [\"0.55\", 0.550000011920929], [\"0.0\", 0.0]], [\"fa_lk\", [\"1.00\", 1.0], [\"0.0\", 0.0]], [\"fa_elec\", [\"1.00\", 1.0], [\"0.0\", 0.0]], [\"hbond\", [\"1.00\", 1.0], [\"0.0\", 0.0]], [\"cart_lengths\", [\"0.50\", 0.5], [\"1.0\", 1.0]], [\"cart_angles\", [\"0.50\", 0.5], [\"0.0\", 0.0]], [\"cart_torsions\", [\"0.50\", 0.5], [\"0.0\", 0.0]], [\"cart_impropers\", [\"0.50\", 0.5], [\"0.0\", 0.0]], [\"cart_hxltorsions\", [\"0.50\", 0.5], [\"0.0\", 0.0]], [\"disulfide\", [\"1.25\", 1.25], [\"0.0\", 0.0]], [\"rama\", [\"0.50\", 0.5], [\"0.0\", 0.0]], [\"omega\", [\"0.48\", 0.47999998927116394], [\"0.0\", 0.0]], [\"dunbrack_rot\", [\"0.76\", 0.7599999904632568], [\"0.0\", 0.0]], [\"dunbrack_rotdev\", [\"0.69\", 0.6899999976158142], [\"0.0\", 0.0]], [\"dunbrack_semirot\", [\"0.78\", 0.7799999713897705], [\"0.0\", 0.0]], [\"lk_ball_iso\", [\"-0.38\", -0.3799999952316284], [\"0.0\", 0.0]], [\"lk_ball\", [\"0.92\", 0.9200000166893005], [\"0.0\", 0.0]], [\"lk_bridge\", [\"-0.33\", -0.33000001311302185], [\"0.0\", 0.0]], [\"lk_bridge_uncpl\", [\"-0.33\", -0.33000001311302185], [\"0.0\", 0.0]], [\"ref\", [\"1.00\", 1.0], [\"0.0\", 0.0]], [\"gen_torsions\", [\"1.00\", 1.0], [\"0.0\", 0.0]], [\"na_torsion\", [\"1.00\", 1.0], [\"0.0\", 0.0]], [\"na_torsion_well\", [\"1.00\", 1.0], [\"0.0\", 0.0]]]",
+          "keys_to_be_evaluated": [["columnDefs", 0, "render"]],
+          "layout": {"bottomEnd": "paging", "bottomStart": "info", "topEnd": "search", "topStart": "pageLength"},
+          "order": [],
+          "style": {"caption-side": "bottom", "margin": "auto", "table-layout": "auto", "width": "auto"},
+          "table_html": "<table><thead>\n    <tr style=\"text-align: right;\">\n      \n      <th>score_type</th>\n      <th>beta2016_weight</th>\n      <th>focused_cart_length_weight</th>\n    </tr>\n  </thead></table>",
+          "text_in_header_can_be_selected": true
+        };
+        new ITable(table, dt_args);
+    });
+</script></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+focused rendered score lanes: [&#39;cart_lengths&#39;, &#39;cart_angles&#39;, &#39;cart_torsions&#39;, &#39;cart_impropers&#39;, &#39;cart_hxltorsions&#39;]
+focused nonzero weights: [&#39;cart_lengths&#39;]
+</pre></div></div>
+</div>
+</section>
+<section id="Change-one-immutable-Cartesian-bonded-parameter">
+<h2>Change one immutable Cartesian bonded parameter<a class="headerlink" href="#Change-one-immutable-Cartesian-bonded-parameter" title="Link to this heading">#</a></h2>
+<p>This extension-level example doubles the spring constant for the intraproline N–CD bond. <code class="docutils literal notranslate"><span class="pre">attrs.evolve()</span></code> and <code class="docutils literal notranslate"><span class="pre">CartBondedDatabase.from_cartres_dict()</span></code> create new immutable database layers; the shared default remains untouched.</p>
+<p>To isolate the change, the code displaces only the internal proline CD atom and compares two score functions containing only <code class="docutils literal notranslate"><span class="pre">cart_lengths</span></code>. Plotting relative energies removes any constant offset. This is a sensitivity test of one implementation change—not parameter fitting, physical calibration, or evidence that the altered model is better.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cart_db</span> <span class="o">=</span> <span class="n">subset_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">cartbonded</span>
+<span class="n">pro_params</span> <span class="o">=</span> <span class="n">cart_db</span><span class="o">.</span><span class="n">residue_params</span><span class="p">[</span><span class="s2">"PRO"</span><span class="p">]</span>
+<span class="n">parameter_index</span><span class="p">,</span> <span class="n">original_n_cd</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+    <span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">parameter</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">parameter</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pro_params</span><span class="o">.</span><span class="n">length_parameters</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">{</span><span class="n">parameter</span><span class="o">.</span><span class="n">atm1</span><span class="p">,</span> <span class="n">parameter</span><span class="o">.</span><span class="n">atm2</span><span class="p">}</span> <span class="o">==</span> <span class="p">{</span><span class="s2">"N"</span><span class="p">,</span> <span class="s2">"CD"</span><span class="p">}</span>
+<span class="p">)</span>
+<span class="n">strengthened_n_cd</span> <span class="o">=</span> <span class="n">attrs</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">original_n_cd</span><span class="p">,</span> <span class="n">K</span><span class="o">=</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">original_n_cd</span><span class="o">.</span><span class="n">K</span><span class="p">)</span>
+<span class="n">strengthened_lengths</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">pro_params</span><span class="o">.</span><span class="n">length_parameters</span><span class="p">)</span>
+<span class="n">strengthened_lengths</span><span class="p">[</span><span class="n">parameter_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">strengthened_n_cd</span>
+<span class="n">strengthened_pro</span> <span class="o">=</span> <span class="n">attrs</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+    <span class="n">pro_params</span><span class="p">,</span> <span class="n">length_parameters</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">strengthened_lengths</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">strengthened_residue_params</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">cart_db</span><span class="o">.</span><span class="n">residue_params</span><span class="p">)</span>
+<span class="n">strengthened_residue_params</span><span class="p">[</span><span class="s2">"PRO"</span><span class="p">]</span> <span class="o">=</span> <span class="n">strengthened_pro</span>
+<span class="n">strengthened_cart_db</span> <span class="o">=</span> <span class="n">CartBondedDatabase</span><span class="o">.</span><span class="n">from_cartres_dict</span><span class="p">(</span>
+    <span class="n">cartres_dict</span><span class="o">=</span><span class="n">strengthened_residue_params</span>
+<span class="p">)</span>
+<span class="n">strengthened_scoring_db</span> <span class="o">=</span> <span class="n">attrs</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+    <span class="n">subset_db</span><span class="o">.</span><span class="n">scoring</span><span class="p">,</span> <span class="n">cartbonded</span><span class="o">=</span><span class="n">strengthened_cart_db</span>
+<span class="p">)</span>
+<span class="n">strengthened_db</span> <span class="o">=</span> <span class="n">attrs</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">subset_db</span><span class="p">,</span> <span class="n">scoring</span><span class="o">=</span><span class="n">strengthened_scoring_db</span><span class="p">)</span>
+
+<span class="n">standard_cart</span> <span class="o">=</span> <span class="n">ScoreFunction</span><span class="p">(</span><span class="n">subset_db</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+<span class="n">standard_cart</span><span class="o">.</span><span class="n">set_weight</span><span class="p">(</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">cart_lengths</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+<span class="n">strengthened_cart</span> <span class="o">=</span> <span class="n">ScoreFunction</span><span class="p">(</span><span class="n">strengthened_db</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+<span class="n">strengthened_cart</span><span class="o">.</span><span class="n">set_weight</span><span class="p">(</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">cart_lengths</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+<span class="n">standard_scorer</span> <span class="o">=</span> <span class="n">standard_cart</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">peptide</span><span class="p">)</span>
+<span class="n">strengthened_scorer</span> <span class="o">=</span> <span class="n">strengthened_cart</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">peptide</span><span class="p">)</span>
+
+<span class="n">pro_block</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+    <span class="n">index</span>
+    <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">peptide</span><span class="o">.</span><span class="n">max_n_blocks</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">peptide</span><span class="o">.</span><span class="n">block_type</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span><span class="o">.</span><span class="n">name3</span> <span class="o">==</span> <span class="s2">"PRO"</span>
+<span class="p">)</span>
+<span class="n">pro_type</span> <span class="o">=</span> <span class="n">peptide</span><span class="o">.</span><span class="n">block_type</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">pro_block</span><span class="p">)</span>
+<span class="n">pro_offset</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">peptide</span><span class="o">.</span><span class="n">block_coord_offset64</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">pro_block</span><span class="p">])</span>
+<span class="n">pro_cd</span> <span class="o">=</span> <span class="n">pro_offset</span> <span class="o">+</span> <span class="n">pro_type</span><span class="o">.</span><span class="n">atom_to_idx</span><span class="p">[</span><span class="s2">"CD"</span><span class="p">]</span>
+
+<span class="n">displacement_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.50</span><span class="p">,</span> <span class="mi">11</span><span class="p">)</span>
+<span class="n">scan_rows</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">displaced_coords</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="k">for</span> <span class="n">displacement</span> <span class="ow">in</span> <span class="n">displacement_values</span><span class="p">:</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">peptide</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+    <span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">pro_cd</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span><span class="n">displacement</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">displacement</span> <span class="o">==</span> <span class="n">displacement_values</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="n">displaced_coords</span> <span class="o">=</span> <span class="n">coords</span>
+    <span class="n">scan_rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s2">"CD_x_displacement_A"</span><span class="p">:</span> <span class="n">displacement</span><span class="p">,</span>
+            <span class="s2">"standard_cart_lengths"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">standard_scorer</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()[</span><span class="mi">0</span><span class="p">]),</span>
+            <span class="s2">"strengthened_cart_lengths"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">strengthened_scorer</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()[</span><span class="mi">0</span><span class="p">]),</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+
+<span class="n">scan_frame</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">scan_rows</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"standard_cart_lengths"</span><span class="p">,</span> <span class="s2">"strengthened_cart_lengths"</span><span class="p">]:</span>
+    <span class="n">scan_frame</span><span class="p">[</span><span class="sa">f</span><span class="s2">"relative_</span><span class="si">{</span><span class="n">column</span><span class="si">}</span><span class="s2">"</span><span class="p">]</span> <span class="o">=</span> <span class="n">scan_frame</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="o">-</span> <span class="n">scan_frame</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">show_table</span><span class="p">(</span><span class="n">scan_frame</span><span class="o">.</span><span class="n">iloc</span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">]])</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">7.5</span><span class="p">,</span> <span class="mf">4.5</span><span class="p">))</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+    <span class="n">scan_frame</span><span class="p">[</span><span class="s2">"CD_x_displacement_A"</span><span class="p">],</span>
+    <span class="n">scan_frame</span><span class="p">[</span><span class="s2">"relative_standard_cart_lengths"</span><span class="p">],</span>
+    <span class="n">marker</span><span class="o">=</span><span class="s2">"o"</span><span class="p">,</span>
+    <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">"default K=</span><span class="si">{</span><span class="n">original_n_cd</span><span class="o">.</span><span class="n">K</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+    <span class="n">scan_frame</span><span class="p">[</span><span class="s2">"CD_x_displacement_A"</span><span class="p">],</span>
+    <span class="n">scan_frame</span><span class="p">[</span><span class="s2">"relative_strengthened_cart_lengths"</span><span class="p">],</span>
+    <span class="n">marker</span><span class="o">=</span><span class="s2">"o"</span><span class="p">,</span>
+    <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">"modified K=</span><span class="si">{</span><span class="n">strengthened_n_cd</span><span class="o">.</span><span class="n">K</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
+    <span class="n">xlabel</span><span class="o">=</span><span class="s2">"proline CD displacement along x (Å)"</span><span class="p">,</span>
+    <span class="n">ylabel</span><span class="o">=</span><span class="s2">"relative cart_lengths score"</span><span class="p">,</span>
+    <span class="n">title</span><span class="o">=</span><span class="s2">"A one-parameter sensitivity experiment"</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.25</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+<span class="k">assert</span> <span class="n">parameter_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">cartbonded</span><span class="o">.</span><span class="n">residue_params</span><span class="p">[</span><span class="s2">"PRO"</span><span class="p">]</span><span class="o">.</span><span class="n">length_parameters</span> <span class="o">!=</span> <span class="n">strengthened_pro</span><span class="o">.</span><span class="n">length_parameters</span>
+<span class="k">assert</span> <span class="n">scan_frame</span><span class="p">[</span><span class="s2">"relative_strengthened_cart_lengths"</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">scan_frame</span><span class="p">[</span><span class="s2">"relative_standard_cart_lengths"</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<!--| quarto-html-table-processing: none -->
+<table id="itables_f3b44672_83f8_479c_b016_8880745ea1fc" hidden="hidden">
+  <tbody>
+    <tr>
+      <td style="vertical-align:middle; text-align:left"><a href=https://itables.org/><svg class="main-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+width="64" viewBox="0 0 500 400" style="font-family: 'Droid Sans', sans-serif;">
+    <g style="fill:var(--itables-logo-paper,#d9d7fc)">
+        <path d="M100,400H500V357H100Z" />
+        <path d="M100,300H400V257H100Z" />
+        <path d="M0,200H400V157H0Z" />
+        <path d="M100,100H500V57H100Z" />
+        <path d="M100,350H500V307H100Z" />
+        <path d="M100,250H400V207H100Z" />
+        <path d="M0,150H400V107H0Z" />
+        <path d="M100,50H500V7H100Z" />
+    </g>
+    <g style="fill:var(--itables-logo-ink,#1a1366);stroke:var(--itables-logo-ink,#1a1366);">
+   <rect x="100" y="7" width="400" height="43">
+    <animate
+      attributeName="width"
+      values="0;400;0"
+      dur="5s"
+      repeatCount="indefinite" />
+      <animate
+      attributeName="x"
+      values="100;100;500"
+      dur="5s"
+      repeatCount="indefinite" />
+  </rect>
+        <rect x="0" y="107" width="400" height="43">
+    <animate
+      attributeName="width"
+      values="0;400;0"
+      dur="3.5s"
+      repeatCount="indefinite" />
+    <animate
+      attributeName="x"
+      values="0;0;400"
+      dur="3.5s"
+      repeatCount="indefinite" />
+  </rect>
+        <rect x="100" y="207" width="300" height="43">
+    <animate
+      attributeName="width"
+      values="0;300;0"
+      dur="3s"
+      repeatCount="indefinite" />
+    <animate
+      attributeName="x"
+      values="100;100;400"
+      dur="3s"
+      repeatCount="indefinite" />
+  </rect>
+        <rect x="100" y="307" width="400" height="43">
+    <animate
+      attributeName="width"
+      values="0;400;0"
+      dur="4s"
+      repeatCount="indefinite" />
+      <animate
+      attributeName="x"
+      values="100;100;500"
+      dur="4s"
+      repeatCount="indefinite" />
+  </rect>
+        <g style="fill:transparent;stroke-width:8; stroke-linejoin:round" rx="5">
+            <g transform="translate(45 50) rotate(-45)">
+                <circle r="33" cx="0" cy="0" />
+                <rect x="-8" y="32" width="16" height="30" />
+            </g>
+
+            <g transform="translate(450 152)">
+                <polyline points="-15,-20 -35,-20 -35,40 25,40 25,20" />
+                <rect x="-15" y="-40" width="60" height="60" />
+            </g>
+
+            <g transform="translate(50 352)">
+                <polygon points="-35,-5 0,-40 35,-5" />
+                <polygon points="-35,10 0,45 35,10" />
+            </g>
+
+            <g transform="translate(75 250)">
+                <polyline points="-30,30 -60,0 -30,-30" />
+                <polyline points="0,30 -30,0 0,-30" />
+            </g>
+
+            <g transform="translate(425 250) rotate(180)">
+                <polyline points="-30,30 -60,0 -30,-30" />
+                <polyline points="0,30 -30,0 0,-30" />
+            </g>
+        </g>
+    </g>
+</svg>
+</a>
+        Loading ITables v2.9.1 from the internet...
+        (need <a href=https://itables.org/troubleshooting.html>help</a>?)
+      </td>
+    </tr>
+  </tbody>
+</table>
+<div id="itables_f3b44672_83f8_479c_b016_8880745ea1fc_fallback"><table style="border-collapse:collapse"><thead>    <tr style="text-align: right;">
+      <th style="border:1px solid #ddd;padding:8px"><sup><noscript><span title="JavaScript not allowed. Please trust this notebook to get interactive tables.">🔒</span></noscript><a href=https://itables.org/fallbacks/static_preview.html title="ITables v2.9.1 static preview">ⓘ</a></sup></th>
+      <th style="border:1px solid #ddd;padding:8px">CD_x_displacement_A</th>
+      <th style="border:1px solid #ddd;padding:8px">standard_cart_lengths</th>
+      <th style="border:1px solid #ddd;padding:8px">strengthened_cart_lengths</th>
+      <th style="border:1px solid #ddd;padding:8px">relative_standard_cart_lengths</th>
+      <th style="border:1px solid #ddd;padding:8px">relative_strengthened_cart_lengths</th>
+    </tr></thead><tbody>
+<tr><td style="border:1px solid #ddd;padding:8px">0</td><td style="border:1px solid #ddd;padding:8px">0.00</td><td style="border:1px solid #ddd;padding:8px">0.619415</td><td style="border:1px solid #ddd;padding:8px">0.671397</td><td style="border:1px solid #ddd;padding:8px">0.000000</td><td style="border:1px solid #ddd;padding:8px">0.000000</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">2</td><td style="border:1px solid #ddd;padding:8px">0.10</td><td style="border:1px solid #ddd;padding:8px">1.490060</td><td style="border:1px solid #ddd;padding:8px">1.722591</td><td style="border:1px solid #ddd;padding:8px">0.870645</td><td style="border:1px solid #ddd;padding:8px">1.051194</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">5</td><td style="border:1px solid #ddd;padding:8px">0.25</td><td style="border:1px solid #ddd;padding:8px">5.258342</td><td style="border:1px solid #ddd;padding:8px">5.847937</td><td style="border:1px solid #ddd;padding:8px">4.638927</td><td style="border:1px solid #ddd;padding:8px">5.176540</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">10</td><td style="border:1px solid #ddd;padding:8px">0.50</td><td style="border:1px solid #ddd;padding:8px">16.821926</td><td style="border:1px solid #ddd;padding:8px">17.758917</td><td style="border:1px solid #ddd;padding:8px">16.202511</td><td style="border:1px solid #ddd;padding:8px">17.087520</td></tr>
+</tbody></table></div><script>document.getElementById("itables_f3b44672_83f8_479c_b016_8880745ea1fc")?.removeAttribute("hidden");document.getElementById("itables_f3b44672_83f8_479c_b016_8880745ea1fc_fallback")?.setAttribute("hidden", "hidden");</script>
+<link href="https://www.unpkg.com/dt_for_itables@2.5.8/dt_bundle.css" rel="stylesheet">
+<script type="module">
+    import { ITable, jQuery as $ } from 'https://www.unpkg.com/dt_for_itables@2.5.8/dt_bundle.js';
+
+    document.querySelectorAll("#itables_f3b44672_83f8_479c_b016_8880745ea1fc:not(.dataTable)").forEach(table => {
+        if (!(table instanceof HTMLTableElement))
+            return;
+
+        let dt_args = {
+          "classes": ["display", "nowrap", "compact"],
+          "columnDefs": [{"render": "function (data, type, row, meta) { return type === 'sort' || type === 'type' ? data[1] : data[0]; }", "targets": [1, 2, 3, 4, 5]}],
+          "data_json": "[[0, [\"0.00\", 0.0], [\"0.619415\", 0.6194148063659668], [\"0.671397\", 0.67139732837677], [\"0.000000\", 0.0], [\"0.000000\", 0.0]], [2, [\"0.10\", 0.1], [\"1.490060\", 1.4900598526000977], [\"1.722591\", 1.7225914001464844], [\"0.870645\", 0.8706450462341309], [\"1.051194\", 1.0511940717697144]], [5, [\"0.25\", 0.25], [\"5.258342\", 5.258342266082764], [\"5.847937\", 5.847937107086182], [\"4.638927\", 4.638927459716797], [\"5.176540\", 5.176539778709412]], [10, [\"0.50\", 0.5], [\"16.821926\", 16.82192611694336], [\"17.758917\", 17.7589168548584], [\"16.202511\", 16.202511310577393], [\"17.087520\", 17.08751952648163]]]",
+          "keys_to_be_evaluated": [["columnDefs", 0, "render"]],
+          "layout": {"bottomEnd": null, "bottomStart": null, "topEnd": null, "topStart": null},
+          "order": [],
+          "style": {"caption-side": "bottom", "margin": "auto", "table-layout": "auto", "width": "auto"},
+          "table_html": "<table><thead>\n    <tr style=\"text-align: right;\">\n      <th></th>\n      <th>CD_x_displacement_A</th>\n      <th>standard_cart_lengths</th>\n      <th>strengthened_cart_lengths</th>\n      <th>relative_standard_cart_lengths</th>\n      <th>relative_strengthened_cart_lengths</th>\n    </tr>\n  </thead></table>",
+          "text_in_header_can_be_selected": true
+        };
+        new ITable(table, dt_args);
+    });
+</script></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorial_11_extending_chemistry_and_scoring_15_1.png" src="../_images/tutorial_11_extending_chemistry_and_scoring_15_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">displaced_peptide</span> <span class="o">=</span> <span class="n">attrs</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">peptide</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">displaced_coords</span><span class="p">)</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">display</span><span class="p">(</span>
+        <span class="n">tmol</span><span class="o">.</span><span class="n">switchable_view</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">"ideal input"</span><span class="p">:</span> <span class="n">peptide</span><span class="p">,</span>
+                <span class="s2">"CD displaced by 0.50 Å"</span><span class="p">:</span> <span class="n">displaced_peptide</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="n">notes</span><span class="o">=</span><span class="p">{</span>
+                <span class="s2">"ideal input"</span><span class="p">:</span> <span class="s2">"Subset-built AGSPA peptide"</span><span class="p">,</span>
+                <span class="s2">"CD displaced by 0.50 Å"</span><span class="p">:</span> <span class="s2">"Only the internal proline CD coordinate was translated"</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="n">width</span><span class="o">=</span><span class="mi">720</span><span class="p">,</span>
+            <span class="n">height</span><span class="o">=</span><span class="mi">380</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+<span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"Interactive comparison unavailable:"</span><span class="p">,</span> <span class="n">exc</span><span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div class="tmol-switchable-view" id="tmol-switch-10a12d77fa524f549a1d65be3e4509a2" style="max-width:720px">
+  <label>Structure: <select id="tmol-switch-10a12d77fa524f549a1d65be3e4509a2-select"><option value="0">ideal input</option><option value="1">CD displaced by 0.50 Å</option></select></label>
+  <div style="position:relative;width:100%;height:412px">
+
+<section id="tmol-switch-10a12d77fa524f549a1d65be3e4509a2-panel-0" class="tmol-switch-panel"
+         style="position:absolute;inset:0;visibility:visible">
+  <div class="tmol-viewer-note">Subset-built AGSPA peptide</div>
+  <div id="3dmolviewer_17892248092998497"  style="position: relative; width: 720px; height: 380px;">
+        <p id="3dmolwarning_17892248092998497" style="background-color:#ffcccc;color:black">3Dmol.js failed to load for some reason.  Please check your browser console for error messages.<br></p>
+        </div>
+<script>
+
+var loadScriptAsync = function(uri){
+  return new Promise((resolve, reject) => {
+    //this is to ignore the existence of requirejs amd
+    var savedexports, savedmodule;
+    if (typeof exports !== 'undefined') savedexports = exports;
+    else exports = {}
+    if (typeof module !== 'undefined') savedmodule = module;
+    else module = {}
+
+    var tag = document.createElement('script');
+    tag.src = uri;
+    tag.async = true;
+    tag.onload = () => {
+        exports = savedexports;
+        module = savedmodule;
+        resolve();
+    };
+  var firstScriptTag = document.getElementsByTagName('script')[0];
+  firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+});
+};
+
+if(typeof $3Dmolpromise === 'undefined') {
+$3Dmolpromise = null;
+  $3Dmolpromise = loadScriptAsync('https://cdn.jsdelivr.net/npm/3dmol@2.5.5/build/3Dmol-min.js');
+}
+
+var viewer_17892248092998497 = null;
+var warn = document.getElementById("3dmolwarning_17892248092998497");
+if(warn) {
+    warn.parentNode.removeChild(warn);
+}
+$3Dmolpromise.then(function() {
+viewer_17892248092998497 = $3Dmol.createViewer(document.getElementById("3dmolviewer_17892248092998497"),{backgroundColor:"white"});
+viewer_17892248092998497.zoomTo();
+    viewer_17892248092998497.addModel("MODEL 1\nATOM      1  N   ALA A   1       0.000  -0.000   0.000  1.00 30.00\nATOM      2  CA  ALA A   1       1.458   0.000   0.000  1.00 30.00\nATOM      3  C   ALA A   1       2.009   1.420   0.000  1.00 30.00\nATOM      4  O   ALA A   1       1.540   2.278  -0.748  1.00 30.00\nATOM      5  CB  ALA A   1       1.988  -0.773  -1.199  1.00 30.00\nATOM      6  HA  ALA A   1       1.797  -0.490   0.913  1.00 30.00\nATOM      7  HB1 ALA A   1       3.078  -0.764  -1.185  1.00 30.00\nATOM      8  HB2 ALA A   1       1.633  -1.802  -1.154  1.00 30.00\nATOM      9  HB3 ALA A   1       1.633  -0.307  -2.117  1.00 30.00\nATOM     10  H1  ALA A   1      -0.334  -0.943  -0.000  1.00 30.00\nATOM     11  H2  ALA A   1      -0.334   0.471   0.816  1.00 30.00\nATOM     12  H3  ALA A   1      -0.334   0.471  -0.816  1.00 30.00\nATOM     13  N   GLY A   2       3.007   1.662   0.843  1.00 30.00\nATOM     14  CA  GLY A   2       3.624   2.980   0.942  1.00 30.00\nATOM     15  C   GLY A   2       5.143   2.875   0.976  1.00 30.00\nATOM     16  O   GLY A   2       5.702   2.041   1.688  1.00 30.00\nATOM     17  H   GLY A   2       3.347   0.914   1.431  1.00 30.00\nATOM     18  HA2 GLY A   2       3.316   3.590   0.093  1.00 30.00\nATOM     19  HA3 GLY A   2       3.270   3.480   1.842  1.00 30.00\nATOM     20  N   SER A   3       5.807   3.727   0.202  1.00 30.00\nATOM     21  CA  SER A   3       7.264   3.732   0.142  1.00 30.00\nATOM     22  C   SER A   3       7.813   5.151   0.211  1.00 30.00\nATOM     23  O   SER A   3       7.313   6.054  -0.459  1.00 30.00\nATOM     24  CB  SER A   3       7.736   3.059  -1.132  1.00 30.00\nATOM     25  OG  SER A   3       6.650   2.618  -1.900  1.00 30.00\nATOM     26  H   SER A   3       5.289   4.388  -0.359  1.00 30.00\nATOM     27  HA  SER A   3       7.647   3.174   0.998  1.00 30.00\nATOM     28  HB2 SER A   3       8.336   3.760  -1.713  1.00 30.00\nATOM     29  HB3 SER A   3       8.375   2.213  -0.881  1.00 30.00\nATOM     30  HG  SER A   3       5.862   2.862  -1.408  1.00 30.00\nATOM     31  N   PRO A   4       8.845   5.342   1.027  1.00 30.00\nATOM     32  CA  PRO A   4       9.464   6.652   1.185  1.00 30.00\nATOM     33  C   PRO A   4      10.984   6.551   1.150  1.00 30.00\nATOM     34  O   PRO A   4      11.572   5.674   1.783  1.00 30.00\nATOM     35  CB  PRO A   4       8.960   7.108   2.558  1.00 30.00\nATOM     36  CG  PRO A   4       8.772   5.840   3.318  1.00 30.00\nATOM     37  CD  PRO A   4       8.330   4.843   2.280  1.00 30.00\nATOM     38  HA  PRO A   4       9.103   7.321   0.390  1.00 30.00\nATOM     39  HB2 PRO A   4       9.695   7.780   3.024  1.00 30.00\nATOM     40  HB3 PRO A   4       8.027   7.680   2.445  1.00 30.00\nATOM     41  HG2 PRO A   4       9.712   5.549   3.811  1.00 30.00\nATOM     42  HG3 PRO A   4       8.026   5.981   4.114  1.00 30.00\nATOM     43  HD2 PRO A   4       8.761   3.857   2.511  1.00 30.00\nATOM     44  HD3 PRO A   4       7.232   4.792   2.264  1.00 30.00\nATOM     45  N   ALA A   5      11.615   7.453   0.406  1.00 30.00\nATOM     46  CA  ALA A   5      13.068   7.467   0.287  1.00 30.00\nATOM     47  C   ALA A   5      13.618   8.881   0.425  1.00 30.00\nATOM     48  CB  ALA A   5      13.496   6.860  -1.041  1.00 30.00\nATOM     49  H   ALA A   5      11.074   8.147  -0.090  1.00 30.00\nATOM     50  HA  ALA A   5      13.480   6.867   1.099  1.00 30.00\nATOM     51  HB1 ALA A   5      14.584   6.878  -1.115  1.00 30.00\nATOM     52  HB2 ALA A   5      13.145   5.830  -1.100  1.00 30.00\nATOM     53  HB3 ALA A   5      13.068   7.437  -1.859  1.00 30.00\nATOM     54  O   ALA A   5      13.752   9.369   1.513  1.00 30.00\nATOM     55  OXT ALA A   5      13.919   9.506  -0.554  1.00 30.00\nTER\nENDMDL\n","pdb");
+    viewer_17892248092998497.setBackgroundColor("white");
+    viewer_17892248092998497.setStyle({},{"cartoon": {"color": "spectrum"}});
+    viewer_17892248092998497.addStyle({"not": {"hetflag": true}},{"stick": {"radius": 0.08, "opacity": 0.55}});
+    viewer_17892248092998497.setStyle({"hetflag": true},{"stick": {"colorscheme": "orangeCarbon", "radius": 0.22}});
+    viewer_17892248092998497.setHoverable({},true,"function(atom,viewer) {\n        if(!atom.label) {\n            atom.label = viewer.addLabel(\n                atom.chain + ':' + atom.resn + '(' + atom.resi + '):' +\n                atom.atom + '(idx' + atom.serial + ')',\n                {position: atom, backgroundColor:\"white\", fontColor:\"black\"}\n            );\n        }\n    }","function(atom,viewer) {\n        if(atom.label) {\n            viewer.removeLabel(atom.label);\n            delete atom.label;\n        }\n    }");
+    viewer_17892248092998497.zoomTo();
+viewer_17892248092998497.render();
+});
+</script>
+</section>
+<section id="tmol-switch-10a12d77fa524f549a1d65be3e4509a2-panel-1" class="tmol-switch-panel"
+         style="position:absolute;inset:0;visibility:hidden">
+  <div class="tmol-viewer-note">Only the internal proline CD coordinate was translated</div>
+  <div id="3dmolviewer_1789224809302569"  style="position: relative; width: 720px; height: 380px;">
+        <p id="3dmolwarning_1789224809302569" style="background-color:#ffcccc;color:black">3Dmol.js failed to load for some reason.  Please check your browser console for error messages.<br></p>
+        </div>
+<script>
+
+var loadScriptAsync = function(uri){
+  return new Promise((resolve, reject) => {
+    //this is to ignore the existence of requirejs amd
+    var savedexports, savedmodule;
+    if (typeof exports !== 'undefined') savedexports = exports;
+    else exports = {}
+    if (typeof module !== 'undefined') savedmodule = module;
+    else module = {}
+
+    var tag = document.createElement('script');
+    tag.src = uri;
+    tag.async = true;
+    tag.onload = () => {
+        exports = savedexports;
+        module = savedmodule;
+        resolve();
+    };
+  var firstScriptTag = document.getElementsByTagName('script')[0];
+  firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+});
+};
+
+if(typeof $3Dmolpromise === 'undefined') {
+$3Dmolpromise = null;
+  $3Dmolpromise = loadScriptAsync('https://cdn.jsdelivr.net/npm/3dmol@2.5.5/build/3Dmol-min.js');
+}
+
+var viewer_1789224809302569 = null;
+var warn = document.getElementById("3dmolwarning_1789224809302569");
+if(warn) {
+    warn.parentNode.removeChild(warn);
+}
+$3Dmolpromise.then(function() {
+viewer_1789224809302569 = $3Dmol.createViewer(document.getElementById("3dmolviewer_1789224809302569"),{backgroundColor:"white"});
+viewer_1789224809302569.zoomTo();
+    viewer_1789224809302569.addModel("MODEL 1\nATOM      1  N   ALA A   1       0.000  -0.000   0.000  1.00 30.00\nATOM      2  CA  ALA A   1       1.458   0.000   0.000  1.00 30.00\nATOM      3  C   ALA A   1       2.009   1.420   0.000  1.00 30.00\nATOM      4  O   ALA A   1       1.540   2.278  -0.748  1.00 30.00\nATOM      5  CB  ALA A   1       1.988  -0.773  -1.199  1.00 30.00\nATOM      6  HA  ALA A   1       1.797  -0.490   0.913  1.00 30.00\nATOM      7  HB1 ALA A   1       3.078  -0.764  -1.185  1.00 30.00\nATOM      8  HB2 ALA A   1       1.633  -1.802  -1.154  1.00 30.00\nATOM      9  HB3 ALA A   1       1.633  -0.307  -2.117  1.00 30.00\nATOM     10  H1  ALA A   1      -0.334  -0.943  -0.000  1.00 30.00\nATOM     11  H2  ALA A   1      -0.334   0.471   0.816  1.00 30.00\nATOM     12  H3  ALA A   1      -0.334   0.471  -0.816  1.00 30.00\nATOM     13  N   GLY A   2       3.007   1.662   0.843  1.00 30.00\nATOM     14  CA  GLY A   2       3.624   2.980   0.942  1.00 30.00\nATOM     15  C   GLY A   2       5.143   2.875   0.976  1.00 30.00\nATOM     16  O   GLY A   2       5.702   2.041   1.688  1.00 30.00\nATOM     17  H   GLY A   2       3.347   0.914   1.431  1.00 30.00\nATOM     18  HA2 GLY A   2       3.316   3.590   0.093  1.00 30.00\nATOM     19  HA3 GLY A   2       3.270   3.480   1.842  1.00 30.00\nATOM     20  N   SER A   3       5.807   3.727   0.202  1.00 30.00\nATOM     21  CA  SER A   3       7.264   3.732   0.142  1.00 30.00\nATOM     22  C   SER A   3       7.813   5.151   0.211  1.00 30.00\nATOM     23  O   SER A   3       7.313   6.054  -0.459  1.00 30.00\nATOM     24  CB  SER A   3       7.736   3.059  -1.132  1.00 30.00\nATOM     25  OG  SER A   3       6.650   2.618  -1.900  1.00 30.00\nATOM     26  H   SER A   3       5.289   4.388  -0.359  1.00 30.00\nATOM     27  HA  SER A   3       7.647   3.174   0.998  1.00 30.00\nATOM     28  HB2 SER A   3       8.336   3.760  -1.713  1.00 30.00\nATOM     29  HB3 SER A   3       8.375   2.213  -0.881  1.00 30.00\nATOM     30  HG  SER A   3       5.862   2.862  -1.408  1.00 30.00\nATOM     31  N   PRO A   4       8.845   5.342   1.027  1.00 30.00\nATOM     32  CA  PRO A   4       9.464   6.652   1.185  1.00 30.00\nATOM     33  C   PRO A   4      10.984   6.551   1.150  1.00 30.00\nATOM     34  O   PRO A   4      11.572   5.674   1.783  1.00 30.00\nATOM     35  CB  PRO A   4       8.960   7.108   2.558  1.00 30.00\nATOM     36  CG  PRO A   4       8.772   5.840   3.318  1.00 30.00\nATOM     37  CD  PRO A   4       8.830   4.843   2.280  1.00 30.00\nATOM     38  HA  PRO A   4       9.103   7.321   0.390  1.00 30.00\nATOM     39  HB2 PRO A   4       9.695   7.780   3.024  1.00 30.00\nATOM     40  HB3 PRO A   4       8.027   7.680   2.445  1.00 30.00\nATOM     41  HG2 PRO A   4       9.712   5.549   3.811  1.00 30.00\nATOM     42  HG3 PRO A   4       8.026   5.981   4.114  1.00 30.00\nATOM     43  HD2 PRO A   4       8.761   3.857   2.511  1.00 30.00\nATOM     44  HD3 PRO A   4       7.232   4.792   2.264  1.00 30.00\nATOM     45  N   ALA A   5      11.615   7.453   0.406  1.00 30.00\nATOM     46  CA  ALA A   5      13.068   7.467   0.287  1.00 30.00\nATOM     47  C   ALA A   5      13.618   8.881   0.425  1.00 30.00\nATOM     48  CB  ALA A   5      13.496   6.860  -1.041  1.00 30.00\nATOM     49  H   ALA A   5      11.074   8.147  -0.090  1.00 30.00\nATOM     50  HA  ALA A   5      13.480   6.867   1.099  1.00 30.00\nATOM     51  HB1 ALA A   5      14.584   6.878  -1.115  1.00 30.00\nATOM     52  HB2 ALA A   5      13.145   5.830  -1.100  1.00 30.00\nATOM     53  HB3 ALA A   5      13.068   7.437  -1.859  1.00 30.00\nATOM     54  O   ALA A   5      13.752   9.369   1.513  1.00 30.00\nATOM     55  OXT ALA A   5      13.919   9.506  -0.554  1.00 30.00\nTER\nENDMDL\n","pdb");
+    viewer_1789224809302569.setBackgroundColor("white");
+    viewer_1789224809302569.setStyle({},{"cartoon": {"color": "spectrum"}});
+    viewer_1789224809302569.addStyle({"not": {"hetflag": true}},{"stick": {"radius": 0.08, "opacity": 0.55}});
+    viewer_1789224809302569.setStyle({"hetflag": true},{"stick": {"colorscheme": "orangeCarbon", "radius": 0.22}});
+    viewer_1789224809302569.setHoverable({},true,"function(atom,viewer) {\n        if(!atom.label) {\n            atom.label = viewer.addLabel(\n                atom.chain + ':' + atom.resn + '(' + atom.resi + '):' +\n                atom.atom + '(idx' + atom.serial + ')',\n                {position: atom, backgroundColor:\"white\", fontColor:\"black\"}\n            );\n        }\n    }","function(atom,viewer) {\n        if(atom.label) {\n            viewer.removeLabel(atom.label);\n            delete atom.label;\n        }\n    }");
+    viewer_1789224809302569.zoomTo();
+viewer_1789224809302569.render();
+});
+</script>
+</section>
+  </div>
+</div>
+<script>
+(() => {
+  const root = document.getElementById("tmol-switch-10a12d77fa524f549a1d65be3e4509a2");
+  const select = document.getElementById("tmol-switch-10a12d77fa524f549a1d65be3e4509a2-select");
+  const panels = root.querySelectorAll('.tmol-switch-panel');
+  select.addEventListener('change', () => {
+    panels.forEach((panel, index) => {
+      panel.style.visibility = index === Number(select.value) ? 'visible' : 'hidden';
+    });
+    window.dispatchEvent(new Event('resize'));
+  });
+})();
+</script></div>
+</div>
+<p><strong>Expected observations.</strong> The modified curve rises more steeply because only the selected spring constant changed. The switcher confirms that the coordinate experiment is local. The absolute curve includes all bond-length deviations in the peptide, so the difference between curves—not either absolute value—is the cleanest diagnostic of this parameter change.</p>
+</section>
+<section id="Extension-checklist">
+<h2>Extension checklist<a class="headerlink" href="#Extension-checklist" title="Link to this heading">#</a></h2>
+<p>Before shipping a custom database:</p>
+<ol class="arabic simple">
+<li><p>Keep the source database immutable and construct a derived object.</p></li>
+<li><p>Build the smallest pose that exercises the modified chemistry.</p></li>
+<li><p>Compare changed and unchanged parameters explicitly.</p></li>
+<li><p>Test values and coordinate gradients on CPU and CUDA.</p></li>
+<li><p>Validate complete scientific workflows separately from local unit tests.</p></li>
+<li><p>Record the parameter provenance and never label TMol score units as kcal/mol.</p></li>
+</ol>
+</section>
+<section id="Exercises">
+<h2>Exercises<a class="headerlink" href="#Exercises" title="Link to this heading">#</a></h2>
+<ol class="arabic simple">
+<li><p>Add VAL to the stable subset and verify that <code class="docutils literal notranslate"><span class="pre">AGSPV</span></code> builds without changing the existing packed-type order.</p></li>
+<li><p>Change the focused score function to contain <code class="docutils literal notranslate"><span class="pre">cart_angles</span></code> instead of <code class="docutils literal notranslate"><span class="pre">cart_lengths</span></code>; perturb an angle-defining coordinate and plot the response.</p></li>
+<li><p>Repeat the N–CD scan with gradients enabled and compare <code class="docutils literal notranslate"><span class="pre">dE/dx</span></code> between the two parameterizations.</p></li>
+</ol>
+</section>
+<section id="References">
+<h2>References<a class="headerlink" href="#References" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="01_working_with_tmol.html"><span class="doc">Tutorial 01 — Working with TMol</span></a></p></li>
+<li><p><a class="reference internal" href="03_scoring_and_analysis.html"><span class="doc">Tutorial 03 — Scoring and Analysis</span></a></p></li>
+<li><p><a class="reference internal" href="07_ligand_and_params.html"><span class="doc">Tutorial 07 — Ligands and Parameter Files</span></a></p></li>
+<li><p><a class="reference internal" href="../api/database.html"><span class="doc">Database API</span></a></p></li>
+<li><p><a class="reference internal" href="../api/pose.html"><span class="doc">Pose API</span></a></p></li>
+<li><p><a class="reference internal" href="../api/score.html"><span class="doc">Score API</span></a></p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<p><a class="reference download internal" download="" href="../_downloads/df8e68a02df7e025016917805453d770/11_extending_chemistry_and_scoring.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">this</span> <span class="pre">notebook</span></code></a></p>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="10_ligand_pose_sensitivity.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Case Study 10 — Ligand Pose Sensitivity and Local Rescue</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="12_explicit_foldforests_and_torsions.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Tutorial 12 — Explicit FoldForests and Coordinate Control</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Learning-objectives">Learning objectives</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Before-you-begin">Before you begin</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Setup">Setup</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Follow-the-data-model-from-chemistry-to-a-score">Follow the data model from chemistry to a score</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Inspect-the-default-refined-chemistry">Inspect the default refined chemistry</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Build-a-stable,-explicit-chemistry-subset">Build a stable, explicit chemistry subset</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Separate-score-weights-from-score-parameters">Separate score weights from score parameters</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Change-one-immutable-Cartesian-bonded-parameter">Change one immutable Cartesian bonded parameter</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Extension-checklist">Extension checklist</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Exercises">Exercises</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#References">References</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="../_sources/tutorial/11_extending_chemistry_and_scoring.ipynb.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.21.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

@@ -7,6 +7,8 @@ develops local repacking and explicitly scoped mutation or design experiments.
 >   same parameter database.
 > - **Deep tutorial:** {doc}`04 — Packing and Mutation Scan
 >   </tutorial/04_packing_and_mutation_scan>`.
+> - **Advanced extension tutorial:** {doc}`13 — Extending the Packer and
+>   Inspecting Rotamers </tutorial/13_extending_the_packer>`.
 > - **Related workflows:** {doc}`Optimization </user_guide/optimization>` and
 >   {doc}`Nucleic acids </workflows/nucleic_acids>`; for CPU execution, see
 >   {doc}`CPU threading </user_guide/cpu_threading>`.
