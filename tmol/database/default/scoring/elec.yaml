@@ -785,6 +785,12 @@ atom_charge_parameters:
   - { *r: VRT, *a: A2, *e: 0.00000 }
   - { *r: VRT, *a: A3, *e: 0.00000 }
 
+  # Preserve HOH's historical zero electrostatics explicitly. This is not a
+  # fitted water charge model; missing records for other residues must raise.
+  - { *r: HOH, *a: O,  *e: 0.00000 }
+  - { *r: HOH, *a: H1, *e: 0.00000 }
+  - { *r: HOH, *a: H2, *e: 0.00000 }
+
   # DNA partial charges, from the Rosetta nucleic/dna .params files
   - { *r: DA   ,*a: P    , *e:  1.50000 }
   - { *r: DA   ,*a: OP2  , *e: -0.78000 }

@@ -3047,3 +3047,41 @@ records hashes, diagnostics and paired timings. Review comment 89 distinguishes
 the inherited scoring fallback from this PR's expanded type-registration paths.
 Physical parameter ranges, other scoring families' fallback policies and the
 pending attachment model are outside the completed scope of this stage.
+
+## Explicit charge coverage (2026-09-12)
+
+Electrostatics no longer silently zeroes a residue whose entire charge table is
+absent. Missing tables use the same atom-specific `KeyError` as missing individual
+records. Used charges are checked after float32 conversion; non-finite values
+raise before scoring. Patch precedence, explicit zero charges and tolerance for
+unused invalid rows are unchanged.
+
+The default inventory audit found exactly one residue using the missing-table
+fallback: HOH. Its three historical zeros are now explicit database records.
+All charge arrays for the 230 default residue types / 4,738 atoms are exactly
+unchanged. This does not introduce or scientifically validate a water model.
+
+Six behavioral regressions fail on the parent, along with a seventh test requiring
+the new explicit HOH records; an explicit-zero/unused-row control passes. The final
+CPU suite passes 44 tests / 43 skips. An earlier command referenced a nonexistent
+database test path and collected no tests; that error is retained separately.
+Slurm 251056 passes 267 CPU/CUDA cases / 7 skips, exits 0:0 in 3:49, and records
+5,513,168 KiB MaxRSS. Coverage includes charge/annotation reuse, native energies
+and derivatives, generated ligands, batch identity, guarded replacements,
+coupled attachments, serialization and public entry paths.
+
+A native two-alanine diagnostic demonstrates the prior failure on CPU and CUDA:
+removing all ALA records changes electrostatics from about −0.6708 to zero and
+makes every coordinate derivative zero. The current setup rejects that input.
+Complete-table control energies and every gradient component are exact between
+the preceding and current lookup on each device. All 19 current optional
+AtomWorks workflows also pass on CPU through rotamer construction.
+
+Host validation costs about 2.6 microseconds for one alanine and 0.62 ms across
+the complete 230-type catalog in nine alternating warm rounds. Python allocation
+peaks change by roughly 400 bytes. These are charge-lookup measurements, not
+full setup or kernel timings; the forward and backward kernels have no new work.
+The simple check runs once when each block's parameter annotation is built.
+See [results/charge-coverage-validation.json](results/charge-coverage-validation.json)
+and review comment 90. Other parameter families and scientific model choices
+remain separate from these coverage checks.

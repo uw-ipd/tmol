@@ -55,9 +55,7 @@ class ElecParamResolver(ValidateAttrs):
 
     def get_partial_charges_for_block(self, block_type: RefinedResidueType):
         res, variants = self._lookup_order(block_type.name)
-        if res not in self.partial_charges:
-            return numpy.zeros(len(block_type.atoms), dtype=numpy.float32)
-        residue_charges = self.partial_charges[res]
+        residue_charges = self.partial_charges.get(res, {})
 
         def lookup_charge(atm):
             charges = residue_charges.get(atm.name, {})
@@ -68,11 +66,22 @@ class ElecParamResolver(ValidateAttrs):
                 f"Elec charge for atom {block_type.name},{atm.name} not found"
             )
 
-        return numpy.fromiter(
-            (lookup_charge(atom) for atom in block_type.atoms),
-            dtype=numpy.float32,
-            count=len(block_type.atoms),
-        )
+        with numpy.errstate(over="ignore"):
+            charges = numpy.fromiter(
+                (lookup_charge(atom) for atom in block_type.atoms),
+                dtype=numpy.float32,
+                count=len(block_type.atoms),
+            )
+        invalid = ~numpy.isfinite(charges)
+        if numpy.any(invalid):
+            atoms = ", ".join(
+                block_type.atoms[i].name for i in numpy.flatnonzero(invalid)
+            )
+            raise ValueError(
+                f"Elec charges for {block_type.name} atoms {atoms} are non-finite "
+                "in float32"
+            )
+        return charges
 
     def get_bonded_path_length_mapping_for_block(self, block_type: RefinedResidueType):
         """remap bonded path length for a residue block"""

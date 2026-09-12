@@ -142,6 +142,13 @@ Unused incomplete entries remain allowed, as do finite zero-valued virtual-atom
 parameters. These checks establish coverage and finiteness, not a scientific
 fit or validation of parameter ranges. The low-level padding sentinel is unchanged.
 
+Electrostatics requires an applicable finite charge for every real atom, using
+the existing exact-variant, individual-patch, then base lookup order. An entirely
+missing residue table now raises the same missing-atom error as a partial table.
+An intentionally uncharged residue must supply explicit zeros. The default HOH
+records now store their historical zeros explicitly; they are not a fitted water
+charge model. Unused rows do not impose coverage requirements on a pose.
+
 Rosetta `.params` continues to reference external atom-type definitions and
 cannot carry this element map. Use `.tmol` to preserve the declaration in the
 bundle. The version-5 reader rejects element metadata mislabeled as an older

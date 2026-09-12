@@ -11,7 +11,7 @@ Review date: 2026-09-12
 
 Both subsequent six-file updates have been reviewed separately. Comments 1–46
 retain their original `c03c1e745` anchors; comments 47–56 address `0f4c3bc42`,
-and comments 57–89 address `0593a93b0`. The
+and comments 57–90 address `0593a93b0`. The
 fold-forest expectations and HYP count are now corrected upstream. See
 [FOLLOWUP.md](FOLLOWUP.md) for reconciliation and validation details.
 
@@ -884,3 +884,14 @@ The final H200 suite passes 273 CPU/CUDA cases / 11 skips, and the current AtomW
 Fourteen regressions initially fail on parent `9ceaeeb1f`: unknown chemical types, missing/non-finite LJLK rows, float32 overflow and reuse of previously valid packed annotations. The follow-up shares real-atom index validation, checks all five LJLK fields in their kernel representation on the host, and validates used types before scoring. Unused incomplete types, finite zero-valued virtual types and the low-level NaN sentinel remain supported. The expanded tests cover each float field and an empty parameter table. Reused LJLK annotations include the scoring database identity, so a changed table cannot bypass validation.
 
 Packed setup also reuses the validated block indices and heavy-atom lists instead of resolving them again. On CPU, warm packed annotation for the 230-type default catalog changes from 7.55 to 2.79 ms, with traced Python peak allocation changing from 382,047 to 312,444 bytes. Resolver construction increases from 2.228 to 2.326 ms because it now checks coverage; its traced allocation peak is essentially unchanged. These are setup measurements, not scoring or full-workflow speedups. All default LJLK tensor fields match the parent exactly. See [results/parameter-coverage-validation.json](results/parameter-coverage-validation.json) for final CPU/CUDA and workflow results. Coverage and finiteness do not establish parameter provenance, valid physical ranges or scientific accuracy.
+
+
+## 90. Require explicit charges instead of silently zeroing an unknown residue — P1
+
+[`tmol/score/elec/_params.py:53`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/score/elec/_params.py#L53). This inherited fallback is relevant to the PR's new generated and reusable charge bundles.
+
+> Why does a missing atom charge raise while an entirely missing residue charge table returns zero? Removing every alanine charge record changes the native electrostatic score of a two-alanine pose from −0.6708 to zero and removes every coordinate derivative without reporting incomplete parameters. A real residue should require an applicable finite charge for each atom; an intentionally uncharged residue should carry explicit zeros. Patch lookup precedence should remain unchanged.
+
+Six behavioral regressions fail on parent `b1c4834d8`, covering a missing residue table, non-finite/float32-overflow charges and reused packed annotations. A seventh initially failing test requires explicit water records. HOH is the only default residue whose charges previously came from the missing-table fallback. The follow-up stores its same three zeros explicitly; this preserves existing behavior and does not introduce a fitted water model. All charges across the 230 default types match the preceding implementation exactly.
+
+The corrected lookup raises the existing missing-atom `KeyError` for absent residue tables and gives a residue/atom error for non-finite used charges. Unused invalid rows and explicitly zeroed residues remain supported. Native complete-table CPU energies and every gradient component are exact. Charge lookup adds about 2.6 microseconds for alanine and 0.62 ms for all 230 types in the focused benchmark; the check runs during annotation, with no added forward/backward kernel work. See [results/charge-coverage-validation.json](results/charge-coverage-validation.json) for the final CPU/CUDA checks. This establishes required charge coverage, not the scientific validity or neutrality of a charge model.
