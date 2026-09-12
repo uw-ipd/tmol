@@ -10,7 +10,7 @@ historical evidence, not a claim that the follow-up is complete.
 | Area | Required evidence | Status |
 |---|---|---|
 | Import/closure inference (1) | Fresh checkout collection; explicit/inferred closure, padding, breaks and caps on both devices | Existing replacement; extend audit |
-| Mixed chirality (2) | Published reference parameters/formula; LL/DD/LD/DL permutation and reflection energies/gradients; whole-pose and packing parity | Rosetta mixed distribution and shared derivatives implemented; independent LL/LD/DL/DD energy/gradient, permutation and reflection checks pass on CPU/CUDA; additional packing parity pending |
+| Mixed chirality (2) | Published reference parameters/formula; LL/DD/LD/DL permutation and reflection energies/gradients; whole-pose and packing parity | Rosetta mixed distribution and shared derivatives implemented; independent LL/LD/DL/DD energy/gradient, permutation and reflection checks pass on CPU/CUDA; per-term whole-pose/block-pair reflected gradients also pass CPU/CUDA; full mirror packing exposes unequal conformer sets (comments 73, diagnostic below) |
 | Group identity and safety (3–7,9,30,31,33–37) | Real multi-pose/multi-database groups, repeated chi names, jagged/empty counts, early rejection; native parity | Capped anchors, rigid cyclic cores, external attachments and sampled pendant branches tested CPU/CUDA, including packing and two-pose reuse; later masks now constrain geometry and ownership; task-dependent tests recorded below |
 | Sampling budgets/caches (8,14,27) | Explicit budget semantics; task propagation; immutable sampler reuse; actual library/extra/proton counts; reproducible HYP count | Explicit task overrides and actual group/library bounds implemented/tested CPU/CUDA; aggregate/default budget policy and adaptive library expansion remain open |
 | Residue identity/completion (10–12,16,32) | Insertion codes, chain identity, explicit/CCD authority, missing atoms, custom names; realistic scaling | Reader annotation reuse and finite-geometry repair checks pass; AtomWorks parser/converter profiles recorded; broader identity/authority contracts remain open |
@@ -2206,3 +2206,90 @@ Exact sources, intermediate stages, test inventories, paired profiles and
 scheduler accounting are in [results/dof-copy-validation.json](results/dof-copy-validation.json).
 Black, Flake8 and whitespace checks pass. The separate local AtomWorks aromatic
 input fix is documented in [ATOMWORKS.md](ATOMWORKS.md).
+
+## Keep chi assignment on device; extend mirror-image validation
+
+Chi assignment now selects present chi entries once and gathers their residue
+KFO indices and ring offsets on the tensor device. It reuses the KFO table from
+DOF copying and measured-chi correction. Ring corrections retain one float32
+device tensor instead of their previous host array. The two production files
+are 19 lines shorter; ordinary chi still receive their later coordinate-based
+correction, and ring-closing chi keep their precomputed ideal-geometry offset.
+
+An independent dihedral-projection oracle checks the nonzero PRO ring offset,
+reordered conformers, gapped/strided chi columns, all-missing chi, zero columns,
+zero rows and every untouched DOF. Index assignment cannot call `.cpu()` in the
+focused checks. Three initial failures were malformed chained assignments in
+the new test fixture, corrected before final validation; they were not product
+failures. Final CPU validation passes **33 tests / 32 CUDA skips**. Slurm
+**250227 passes 446 CPU/CUDA tests**, including broad sampler, group, geometry
+and actual packing coverage. The final temporary-lifetime version is separately
+validated by Slurm **250330**, which passes **137 tests**.
+
+Paired measurements load the exact preceding assignment function and host ring
+builder from `458feb22d`. All DOFs match exactly on real ILE/PRO inputs, then on
+1,000 synthetic repetitions. Five alternating rounds each contain ten samples;
+CUDA is synchronized around timing.
+
+| Sampled conformers | Assigned chi | CPU previous → current | CUDA previous → current | Extra CUDA peak, previous → current |
+| ---: | ---: | ---: | ---: | ---: |
+| 3 | 8 | 0.098 → 0.050 ms | 0.293 → 0.136 ms | 4,608 → 3,072 B |
+| 3,000 | 8,000 | 0.677 → 0.389 ms | 0.407 → 0.141 ms | 358,400 → 320,512 B |
+
+The first device implementation increased the large-case CUDA temporary peak
+from 358,400 to 480,256 bytes. Releasing row/column indices and conformer offsets
+as soon as they are consumed, adding offsets in place and subtracting corrections
+in the fresh sample gather produces the final measurements above. An extra
+assertion verifies that the source chi samples remain unchanged.
+
+The retained ring table is 228 bytes for this three-type fixture; the table
+scales with residue types/atoms, not conformer count. This moves its retained
+storage from host to device on CUDA. The KFO tensor is shared with normal
+rotamer construction. First table creation is excluded from timing and peak
+measurements. Peaks report additional allocated CUDA tensors above warmed
+tables and prepared inputs, not reserved/process memory. No whole-packer speed
+or total-memory improvement is claimed.
+
+The mirror suite now checks every score term's reflected coordinate gradient,
+finite values and energy agreement in both whole-pose and block-pair modes.
+Nonuniform pair weights prevent cancellation from hiding mismatched pair
+contributions. Prepared atom names and exact coordinate reflection are checked
+first. CPU passes five cases (four CUDA skips); Slurm **250251 passes all nine**
+CPU/CUDA mirror cases, including the pre-existing D-repacking check.
+
+**Mirror-image packing remains unvalidated.** The new
+[check_mirror_packing.py](check_mirror_packing.py) diagnostic finds **1,308 L versus
+1,265 D conformers** for the exact paired `6dmz_mod` fixtures on both CPU and CUDA.
+Fifteen residue/type groups differ in count. Ten further equal-count groups
+contain nonmatching named heavy-atom conformers under one-to-one assignment.
+Hydrogen-name discrepancies are reported separately because chemically
+identical hydrogens can exchange names under reflection. These are open
+sampling/packing findings; a completed diagnostic process is not a passed gate.
+
+The native sampler floors both L and D backbone lookup coordinates, while the
+mirrored sorted-probability table reflects grid points. For interior points,
+this selects adjacent source cells after reflection. A private diagnostic that
+shifts only the mirrored ordering cells removes 14 of the 15 count mismatches,
+leaving the N-terminal ARG at 51 L versus 17 D states. The native missing-torsion
+fallbacks are always −60° phi / +60° psi. The cell shift is **not integrated**:
+a complete fix must cover exact bin boundaries, periodic wrapping, terminal
+fallbacks, mixed chirality/design, geometry and packing energy tables.
+
+Slurm 250256 produces the same failing structured mirror-packing diagnostic on
+CUDA. Source hashes, intermediate failures, complete test inventories, timings,
+CPU/CUDA diagnostic groups and terminal scheduler accounting are in
+[results/chi-assignment-validation.json](results/chi-assignment-validation.json).
+Black, Flake8 and whitespace checks pass. Review comments 72–74 distinguish the
+completed assignment optimization from the unresolved mirror-packing gate.
+
+The periodic-boundary audit also reproduces selection of forbidden bin 36 at
++π on CPU/CUDA. The float32 wrapped value equals the period, so the strict `>`
+loop does not reduce it before indexing the 36-bin sorted table. A guarded
+37×37 diagnostic assigns a valid but different rotamer to the extra row/column,
+proving the wrong lookup without an actual out-of-bounds read. Equivalent phi
+−π/+π yields probabilities 0.752777/0.081837; equivalent psi yields
+0.220622/0.024137. Slurm 250349 completes this diagnostic in 13 seconds. Both
+probability ordering and chi reconstruction contain the same index arithmetic.
+Comment 74 and [reproduce_dun_periodic_boundary.py](reproduce_dun_periodic_boundary.py)
+record this additional open defect; it is not fixed by the chi-assignment
+optimization.

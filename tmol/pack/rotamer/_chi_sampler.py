@@ -217,49 +217,28 @@ def assign_chi_dofs_from_samples(
 ):
     assert chi_atoms.shape == chi.shape
 
-    n_rots_for_sampler = sampler_gbt_for_rotamer.shape[0]
-
-    max_n_chi_atoms = chi_atoms.shape[1]
-    real_atoms = chi_atoms.view(-1) != -1
-
-    sampler_rot_ind_for_real_atom = torch.floor_divide(  # to do: replace w/ expand
-        torch.arange(
-            max_n_chi_atoms * n_rots_for_sampler, dtype=torch.int64, device=pbt.device
-        ),
-        max_n_chi_atoms,
-    )[real_atoms]
-    global_rot_ind_for_real_atom = conf_inds_for_sampler[sampler_rot_ind_for_real_atom]
-
-    block_type_ind_for_rot_atom = (
-        block_type_ind_for_rot[global_rot_ind_for_real_atom].cpu().numpy()
+    if chi_atoms.numel() == 0:
+        return
+    from tmol.pack.rotamer._build_rotamers import (
+        _build_ring_chi_phi_c_corrections,
+        _kinforest_device_indices,
     )
 
-    rot_chi_atoms_kto = torch.tensor(
-        pbt.rotamer_kinforest.kinforest_idx[
-            block_type_ind_for_rot_atom, chi_atoms.view(-1)[real_atoms].cpu().numpy()
-        ],
-        dtype=torch.int64,
-        device=pbt.device,
-    )
-
-    # increment with the atom offsets for the source rotamer and by
-    # one to include the virtual root
-    rot_chi_atoms_kto += (
-        n_dof_atoms_offset_for_rot[global_rot_ind_for_real_atom].to(torch.int64) + 1
-    )
-
-    # A ring-closing chi cannot be measured from the built coordinates, so it
-    # carries a precomputed offset; every other chi is corrected by measurement
-    # and its entry here is zero.
-    from tmol.pack.rotamer import _build_ring_chi_phi_c_corrections
-
-    corrections = torch.tensor(
-        _build_ring_chi_phi_c_corrections(pbt)[
-            block_type_ind_for_rot_atom, chi_atoms.view(-1)[real_atoms].cpu().numpy()
-        ],
-        dtype=rot_dofs_kto.dtype,
-        device=pbt.device,
-    )
-
-    # overwrite the "downstream torsion" for the atoms that control each chi
-    rot_dofs_kto[rot_chi_atoms_kto, 3] = chi.view(-1)[real_atoms] - corrections
+    rows, columns = torch.nonzero(chi_atoms != -1, as_tuple=True)
+    atoms = chi_atoms[rows, columns]
+    values = chi[rows, columns]
+    conformers = conf_inds_for_sampler[rows]
+    del rows, columns
+    types = block_type_ind_for_rot[conformers]
+    offsets = n_dof_atoms_offset_for_rot[conformers]
+    del conformers
+    destinations = _kinforest_device_indices(pbt, pbt.device)[types, atoms]
+    # Both DOF arrays reserve their first row for the virtual root.
+    destinations.add_(offsets).add_(1)
+    del offsets
+    # Ring-closing chi retain their ideal-geometry offset; ordinary chi have
+    # zero offset here and are corrected by coordinate measurement later.
+    corrections = _build_ring_chi_phi_c_corrections(pbt)[types, atoms]
+    # These are fresh gathers, so input samples and static tables stay intact.
+    values.sub_(corrections)
+    rot_dofs_kto[destinations, 3] = values

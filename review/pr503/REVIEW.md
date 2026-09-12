@@ -11,7 +11,7 @@ Review date: 2026-09-12
 
 Both subsequent six-file updates have been reviewed separately. Comments 1–46
 retain their original `c03c1e745` anchors; comments 47–56 address `0f4c3bc42`,
-and comments 57–71 address `0593a93b0`. The
+and comments 57–74 address `0593a93b0`. The
 fold-forest expectations and HYP count are now corrected upstream. See
 [FOLLOWUP.md](FOLLOWUP.md) for reconciliation and validation details.
 
@@ -79,9 +79,11 @@ This measures CIF missing-atom insertion, **not end-to-end packing/scoring accel
 
 14. **Junction parameter scope:** Can renamed junctions carry explicit chemical roles, including the partner frame, rather than borrowing rows through atom names alone? How should both ends being renamed, carbonyl oxygen versus hydroxyl, N-substitution, retained hydrogens, and non-peptide polymers be covered? The new `0593a93b0` helper maps nucleotide phosphate to peptide nitrogen; single-frame substitution also leaves the remote atom names canonical. A connection-specific parameter contract would make the supported scope explicit.
 
+15. **Mirror sampling contract:** Should paired L/D structures receive one-to-one reflected conformer sets, including terminal defaults, probability truncation and extra-chi sampling? Which equivalent-atom permutations are allowed, and what grid-boundary convention makes the probability-ordering tables agree with their reflected counterparts? Matching scores and preserving D chirality do not establish this.
+
 ## Suggested inline comments
 
-Each item gives an upstream location, suggested comment, and what this branch does about it. “Reproduced” means exercised against PR code with only the missing import dependency supplied, not merely inferred from source.
+Each item gives an upstream location, suggested comment, and what this branch does about it. For the initial review, “reproduced” means exercised against PR code with only the missing import dependency supplied. Later follow-up comments identify their tested branch/stage in the linked source manifests; they are not claims that an untouched upstream checkout ran successfully.
 
 ### 1. P0 — missing module prevents test collection
 
@@ -676,3 +678,28 @@ Location: [`tmol/pack/rotamer/_chi_sampler.py:155`](https://github.com/uw-ipd/tm
 The follow-up uses direct device gathers, masks missing atoms, releases unused atom-index arrays before the next gather and adds offsets in place to newly gathered buffers. Its KFO table is shared with existing chi correction. The production code is 123 lines shorter. Both old fixtures used invalid assumptions about considered-type IDs; correcting those inputs and the source oracle makes named source atoms and offsets independently checked. The old implementation and the new one both pass those corrected oracles before benchmarking. New checks cover selected/reversed conformer order, empty states without annotations, no retained regions, absence of explicit GPU-to-CPU index transfer and shared table identity.
 
 The final CPU suite passes 44 tests (39 CUDA skips). Slurm 250036 passes 436 broad CPU/CUDA cases, and 250127 passes all five mirror-image/D-repacking cases. Final paired latency and allocated-memory measurements use the corrected fixtures; the earlier prototype measurements use different fixture mappings and are kept separate. See [results/dof-copy-validation.json](results/dof-copy-validation.json). This is an index-construction optimization, not a whole-packer speed claim.
+
+
+## 72. Keep chi assignment and ring-offset lookup on the tensor device — P2
+
+Location: [`tmol/pack/rotamer/_chi_sampler.py:367`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/pack/rotamer/_chi_sampler.py#L367), repeated chi-index copies at [line 373](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/pack/rotamer/_chi_sampler.py#L373) and [line 392](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/pack/rotamer/_chi_sampler.py#L392).
+
+> Could this assignment reuse the shared device KFO map and cache one device copy of the static ring offsets? It currently copies the selected block types and the chi-atom indices to the host three times per call, then transfers the gathered results back. A single sparse selection also removes the full arange/division temporary and supports noncontiguous chi columns.
+
+The follow-up preserves exact old/new DOF outputs on the paired profile inputs, with independent PRO ring-offset and untouched-DOF checks. It reduces the two production files by 19 lines. CPU passes 33 tests (32 CUDA skips); Slurm 250227 passes 446 broad CPU/CUDA cases. Paired latency, additional CUDA allocation peaks, persistent-table tradeoffs and stage limits are recorded in [FOLLOWUP.md](FOLLOWUP.md) and [results/chi-assignment-validation.json](results/chi-assignment-validation.json). This is an assignment-stage optimization, not a whole-packer speed claim.
+
+## 73. Validate reflected conformer sets, terminal defaults and probability ordering — P1
+
+Location: [`tmol/pack/rotamer/dunbrack/dispatch.impl.hh:210`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/pack/rotamer/dunbrack/dispatch.impl.hh#L210), bin selection at [line 463](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/pack/rotamer/dunbrack/dispatch.impl.hh#L463) and [line 736](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/pack/rotamer/dunbrack/dispatch.impl.hh#L736), coverage at [`test_mirror_image_scoring.py:83`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/tests/score/test_mirror_image_scoring.py#L83).
+
+> Could the mirror test compare the offered conformer sets and packing energy tables, with chirality-aware missing-torsion defaults and consistent reflected bin boundaries? On the follow-up branch, the exact L/D fixture pair receives 1,308 versus 1,265 conformers on both CPU and CUDA. Fifteen residue/type groups differ in count; another ten equal-count groups have nonmatching named heavy-atom conformers. Keeping the final structure D does not detect these omissions.
+
+These counts use the follow-up branch’s 0.98 coverage for both library classes; they are not a rerun of the untouched upstream defaults. The anchored bin/default logic is unchanged. The native sampler uses the same −60°/+60° fallback for missing L and D backbone angles. Its floor-based ordering-cell lookup also conflicts with reflecting the sorted tables as grid points. An isolated shift of only the D ordering cells removes 14 of 15 count mismatches, leaving terminal ARG at 51 L / 17 D states; this diagnostic does not settle exact boundary conventions and is not integrated as a fix. New per-term whole-pose/block-pair energy and reflected-gradient tests pass on CPU/CUDA (Slurm 250251: nine cases), but the full packing gate remains false. [check_mirror_packing.py](check_mirror_packing.py) uses one-to-one assignment, retains unmatched counts, and distinguishes named heavy-atom geometry from unclassified hydrogen permutations. The structured CUDA diagnostic is Slurm 250256; see [results/chi-assignment-validation.json](results/chi-assignment-validation.json). This is a newly exposed open defect, not a claimed completed correction.
+
+## 74. Wrap the positive periodic endpoint before sorted-table indexing — P1
+
+Location: [`tmol/pack/rotamer/dunbrack/dispatch.impl.hh:457`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/pack/rotamer/dunbrack/dispatch.impl.hh#L457) and the repeated logic at [line 730](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/pack/rotamer/dunbrack/dispatch.impl.hh#L730).
+
+> Could both sampling paths share a periodic-coordinate helper that maps the upper endpoint back into the valid bin range? With the actual float32 starts, steps and periods, phi or psi at +π produces `wrap == period`, bypasses this strict `>` loop, and selects bin 36 in a 36-bin table. The probability interpolator is periodic, but the sorted-index lookup happens first and is not wrapped.
+
+[reproduce_dun_periodic_boundary.py](reproduce_dun_periodic_boundary.py) proves the wrong index safely on CPU and CUDA (Slurm 250349): it pads the lookup to 37×37 and puts a different valid PHE rotamer in the extra row/column. Equivalent −π/+π phi inputs then return approximately 0.752777/0.081837 instead of the same probability; psi returns 0.220622/0.024137. The normal database has only 36×36 bins. No actual out-of-bounds read or crash is executed by this guarded diagnostic. The same unchecked index arithmetic appears in chi reconstruction. This inherited endpoint defect is open and should be covered together with, but separately from, D/L cell-reflection semantics. Evidence is retained in [results/chi-assignment-validation.json](results/chi-assignment-validation.json).

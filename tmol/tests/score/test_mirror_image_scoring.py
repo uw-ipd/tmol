@@ -16,6 +16,7 @@ that selects the symmetrized glycine tables.
 
 import numpy
 import pytest
+import torch
 
 
 from tmol.database import ParameterDatabase
@@ -173,3 +174,56 @@ def _alpha_volumes(pose):
                 coords[p], int(pose.block_coord_offset[p, b]), types[ind]
             )
     return result
+
+
+@pytest.mark.parametrize("block_pairs", [False, True])
+def test_mirror_image_per_term_gradients(symmetric_gly_db, torch_device, block_pairs):
+    """Reflection reverses each coordinate gradient, including weighted pairs."""
+    poses = [
+        _pose(f"{MIRROR_PAIR}_{side}", symmetric_gly_db, torch_device)
+        for side in ("l", "d")
+    ]
+    # Fixture atom order alone is insufficient: preparation can reorder atoms.
+    for block in range(poses[0].max_n_blocks):
+        names = [
+            tuple(
+                atom.name
+                for atom in pose.packed_block_types.active_block_types[
+                    int(pose.block_type_ind[0, block])
+                ].atoms
+            )
+            for pose in poses
+        ]
+        assert names[0] == names[1]
+    torch.testing.assert_close(poses[0].coords, -poses[1].coords, rtol=0, atol=0)
+    sfxn = beta2016_score_function(torch_device, param_db=symmetric_gly_db)
+    render = (
+        sfxn.render_block_pair_scoring_module
+        if block_pairs
+        else sfxn.render_whole_pose_scoring_module
+    )
+    evaluated = []
+    for pose in poses:
+        coords = pose.coords.detach().clone().requires_grad_(True)
+        energies = render(pose).unweighted_scores(coords)
+        pair_weights = torch.linspace(
+            0.5, 1.5, energies[0].numel(), device=torch_device
+        ).reshape(energies[0].shape)
+        gradients = [
+            torch.autograd.grad((term * pair_weights).sum(), coords, retain_graph=True)[
+                0
+            ]
+            for term in energies
+        ]
+        evaluated.append((energies.detach(), gradients))
+    for index, score_type in enumerate(sfxn.all_score_types()):
+        left_e, left_g = evaluated[0][0][index], evaluated[0][1][index]
+        right_e, right_g = evaluated[1][0][index], evaluated[1][1][index]
+        assert torch.isfinite(left_e).all() and torch.isfinite(right_e).all()
+        assert torch.isfinite(left_g).all() and torch.isfinite(right_g).all()
+        torch.testing.assert_close(
+            left_e, right_e, rtol=5e-5, atol=1e-4, msg=str(score_type)
+        )
+        torch.testing.assert_close(
+            left_g, -right_g, rtol=2e-5, atol=2e-4, msg=str(score_type)
+        )

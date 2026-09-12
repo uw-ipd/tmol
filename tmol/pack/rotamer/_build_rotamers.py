@@ -106,6 +106,8 @@ def _build_ring_chi_phi_c_corrections(pbt):
                 rt.rotamer_kinforest.dofs_ideal[kfo, 3]
             )
 
+    # Retain only the device table; sampled conformers never need a host lookup.
+    corrections = torch.as_tensor(corrections, device=pbt.device)
     object.__setattr__(pbt, "_ring_chi_phi_c_corrections", corrections)
     return corrections
 
