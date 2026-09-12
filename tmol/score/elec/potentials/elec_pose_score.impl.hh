@@ -1316,8 +1316,7 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   assert(block_type_intra_repr_path_distance.size(1) == max_n_block_atoms);
   assert(block_type_intra_repr_path_distance.size(2) == max_n_block_atoms);
 
-  auto dV_dcoords_t = TPack<Vec<Real, 3>, 2, D>::zeros({1, n_atoms});
-  auto dV_dcoords = dV_dcoords_t.view;
+  auto dV_dcoords_t = TPack<Vec<Real, 3>, 2, D>::empty({1, 0});
 
   TPack<Int, 2, D> dispatch_indices_t;
   if (shared_dispatch_indices.size(0) == 3) {
@@ -1501,14 +1500,9 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         store_calculated_energies);
   });
 
-  // Evaluate the prepared rotamer-pair dispatch list.
-  if (compute_derivs) {
-    DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-        mgr, dispatch_indices.size(1), eval_energies_by_block);
-  } else {
-    DeviceDispatch<D>::template foreach_independent_workgroup<launch_t>(
-        mgr, dispatch_indices.size(1), eval_energies_by_block);
-  }
+  // Each pair writes its own score; backward recomputes its derivatives.
+  DeviceDispatch<D>::template foreach_independent_workgroup<launch_t>(
+      mgr, dispatch_indices.size(1), eval_energies_by_block);
 
   return {output_t, dV_dcoords_t, dispatch_indices_t};
 }  // namespace potentials
