@@ -11,7 +11,7 @@ Review date: 2026-09-12
 
 Both subsequent six-file updates have been reviewed separately. Comments 1–46
 retain their original `c03c1e745` anchors; comments 47–56 address `0f4c3bc42`,
-and comments 57–83 address `0593a93b0`. The
+and comments 57–84 address `0593a93b0`. The
 fold-forest expectations and HYP count are now corrected upstream. See
 [FOLLOWUP.md](FOLLOWUP.md) for reconciliation and validation details.
 
@@ -814,3 +814,14 @@ Related inherited registration location: [`tmol/pack/_packer_task.py:424`](https
 > Can registration preserve one entry per sampler object and combine its enabled regions? Adding the same object for masks A and B appends it twice but overwrites its identity-to-column lookup. Both sampling calls then read B: A's residues disappear and B's residues receive duplicate conformers. Disabling that object also addresses only its latest column. A palette that returns a reusable sampler list exposes another alias: adding a sampler mutates the palette's list.
 
 The follow-up owns the task's list, deduplicates defaults by object identity, and unions masks when an existing sampler is enabled again. Enabling it everywhere fills its existing mask column. Equal but distinct sampler objects remain independent. Repeated registration does not grow the mask tensor or duplicate downstream sampling/allocation. Five CPU regressions fail before the change: four expose wrong sampling multiplicities and the distinct-instance control exposes palette-list mutation. Tests use actual IncludeCurrent sampling on a ragged two-pose batch and check the expected per-residue counts, then exercise disabling/re-enabling without mask reallocation. This is an inherited API defect relevant to reusable group-packing configuration, not a claim that the PR introduced registration itself. See [results/sampler-registration-validation.json](results/sampler-registration-validation.json).
+
+
+## 84. Reject unresolved or ambiguous library mappings before fitting — P2
+
+Related inherited location: [`tmol/score/dunbrack/_params.py:283`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/score/dunbrack/_params.py#L283). This is a general review comment on a lookup contract used by the expanded private/mirrored libraries.
+
+> Can the resolver validate declared targets and name uniqueness before preparing tensors? `get_indexer` turns a misspelled or omitted target table into `-1`, which scoring interprets as an unsupported residue and silently omits. Duplicate residue keys are rejected only by later consumers, after expensive table preparation, while duplicate table names produce a pandas-specific error. Deliberately omitting a residue's lookup row is a different case and should remain supported.
+
+The follow-up validates residue-key uniqueness, table-name uniqueness across both families and every declared target before the first derived tensor helper. It builds one mapping and derives each family's local indices from that mapping, eliminating repeated conversion and indexing. Per-family `-1` entries, empty families and many residue aliases sharing one table remain valid. Six new invalid-input cases fail before the fix; an independent reordered-alias oracle preserves the intended family indices.
+
+The CPU scoring suite passes 50 cases / 49 CUDA skips. Slurm 250855 passes 247 CPU/CUDA cases / one intentional CPU annealer skip, including sampling, mirrored libraries and packing. All 51 default tensor fields and three lookup DataFrames are exact on CPU and CUDA; derived tensor storage is unchanged. Default lookup construction improves 0.664 → 0.288 ms; a synthetic 10,040-row alias case improves 8.365 → 1.898 ms. These are metadata timings, excluding fitting and scoring. Traced peak memory falls in both cases, but retained Python memory rises slightly for the large case because uniqueness validation caches the index's lookup engine. See [results/dun-lookup-validation.json](results/dun-lookup-validation.json).

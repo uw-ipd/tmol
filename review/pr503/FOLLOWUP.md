@@ -2625,3 +2625,43 @@ including task registration, rotamer construction, explicit budgets, group
 masks, conjugation geometry and packing/scoring energy agreement. It completes
 with **0:0**, **8:03**, and **4,836,384 KiB** batch peak RSS. Black, Flake8 and
 whitespace checks pass. The latest upstream head remains `0593a93b0`.
+
+
+## Validate and reuse Dunbrack library lookup metadata
+
+The resolver now rejects declared missing table targets and duplicate residue
+or library names before the first derived tensor allocation. Table names must
+be unique across both families. Many residue aliases may share one library;
+intentionally uncovered residues and empty families remain supported. A single
+validated mapping supplies global and family-local indices, replacing three
+conversions/index lookups. Consumer guards remain for manually supplied resolver
+metadata.
+
+Six invalid-input CPU cases fail before the fix; the reordered alias control
+passes. The final CPU suite passes **50 tests / 49 CUDA skips**. Slurm **250855**
+passes **247 CPU/CUDA cases / one intentional CPU annealer skip** and the
+separate default-storage audit, completing **0:0**, **2:32**, with
+**4,948,108 KiB** batch peak RSS. The gate includes score values/gradients,
+sampling, absent families, custom grids, mirrored libraries and mirror packing.
+All **51 default tensor fields and three lookup DataFrames** are exact on both
+devices, with unchanged **67,494,212-byte** derived tensor storage.
+
+Seven alternating warm metadata-only rounds measure:
+
+| Lookup rows | Before | After | Speedup | Traced peak before → after |
+|---|---:|---:|---:|---:|
+| Default 40 | 0.664 ms | 0.288 ms | 2.30× | 31,604 → 20,934 bytes |
+| 10,040 (synthetic aliases) | 8.365 ms | 1.898 ms | 4.41× | 3,010,401 → 1,233,689 bytes |
+
+Fixture creation, imports, fitting and scoring are excluded. Tracemalloc does
+not measure all native/process/device memory. Retained traced memory for the
+large case increases **751,664 → 787,342 bytes** because validation caches index
+uniqueness; default retained memory decreases **24,488 → 15,206 bytes**. No
+universal memory reduction or full-application timing improvement is claimed.
+The existing table-equality audit now accepts an explicit baseline commit.
+
+Comment 84, [profile_dun_lookup.py](profile_dun_lookup.py) and
+[results/dun-lookup-validation.json](results/dun-lookup-validation.json) preserve
+the source hashes, failing and passing cases, raw samples and scheduler record.
+The latest upstream API check still reports `0593a93b0`. Broader chemical
+parameter coverage and release/workflow gates remain open.

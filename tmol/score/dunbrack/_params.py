@@ -1,5 +1,4 @@
 import attr
-import cattr
 
 import numpy
 import pandas
@@ -183,11 +182,15 @@ class DunbrackParamResolver(ValidateAttrs):
             )
         ]
 
-        all_table_indices = cls._create_all_table_indices(
-            [x.table_name for x in all_rotlibs], dun_database.dun_lookup
+        (
+            all_table_indices,
+            rotameric_table_indices,
+            semirotameric_table_indices,
+        ) = cls._create_table_indices(
+            [x.table_name for x in all_rotlibs],
+            dun_database.dun_lookup,
+            len(dun_database.rotameric_libraries),
         )
-        rotameric_table_indices = cls._create_rotameric_indices(dun_database)
-        semirotameric_table_indices = cls._create_semirotameric_indices(dun_database)
         nchi_for_table_set = cls._create_nchi_for_table_set(all_rotlibs, device)
 
         prob_table_nrots, prob_table_offsets = cls._create_prob_table_offsets(
@@ -312,30 +315,30 @@ class DunbrackParamResolver(ValidateAttrs):
         )
 
     @classmethod
-    def _create_all_table_indices(cls, all_table_names, dun_lookup):
-        # all_table_names = [x.table_name for x in all_rotlibs]
+    def _create_table_indices(cls, all_table_names, dun_lookup, n_rotameric):
+        """Validate declared references once, then derive family-local indices."""
         all_table_lookup = pandas.DataFrame.from_records(
-            cattr.unstructure(dun_lookup), columns=("dun_table_name", "residue_name")
+            [(row.dun_table_name, row.residue_name) for row in dun_lookup],
+            columns=("dun_table_name", "residue_name"),
         ).set_index("residue_name")
+        if not all_table_lookup.index.is_unique:
+            raise ValueError("Dunbrack residue lookup names must be unique")
         dun_indices = pandas.Index(all_table_names)
-        all_table_lookup.dun_table_name = dun_indices.get_indexer(
-            all_table_lookup.dun_table_name
-        )
-        return all_table_lookup
+        if not dun_indices.is_unique:
+            raise ValueError("Dunbrack table names must be unique across families")
+        indices = dun_indices.get_indexer(all_table_lookup.dun_table_name)
+        if numpy.any(indices < 0):
+            missing = all_table_lookup.loc[indices < 0, "dun_table_name"].to_dict()
+            raise ValueError(f"Dunbrack lookup references missing tables: {missing}")
 
-    @classmethod
-    def _create_rotameric_indices(cls, dun_database):
-        return cls._create_all_table_indices(
-            [x.table_name for x in dun_database.rotameric_libraries],
-            dun_database.dun_lookup,
+        all_table_lookup.dun_table_name = indices
+        rotameric = all_table_lookup.copy()
+        rotameric.dun_table_name = numpy.where(indices < n_rotameric, indices, -1)
+        semirotameric = all_table_lookup.copy()
+        semirotameric.dun_table_name = numpy.where(
+            indices >= n_rotameric, indices - n_rotameric, -1
         )
-
-    @classmethod
-    def _create_semirotameric_indices(cls, dun_database):
-        return cls._create_all_table_indices(
-            [x.table_name for x in dun_database.semi_rotameric_libraries],
-            dun_database.dun_lookup,
-        )
+        return all_table_lookup, rotameric, semirotameric
 
     @classmethod
     def _create_nchi_for_table_set(cls, all_rotlibs, device):

@@ -31,12 +31,15 @@ def storage_bytes(resolver):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--baseline", default=BASELINE)
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     device = torch.device("cuda:0" if args.device == "cuda" else "cpu")
     module = importlib.import_module("tmol.score.dunbrack._params")
-    source = subprocess.check_output(["git", "show", f"{BASELINE}:{SOURCE}"], text=True)
+    source = subprocess.check_output(
+        ["git", "show", f"{args.baseline}:{SOURCE}"], text=True
+    )
     namespace = dict(vars(module))
     exec(compile(source, "previous_dunbrack_resolver", "exec"), namespace)
     database = ParameterDatabase.get_default().scoring.dun
@@ -92,7 +95,7 @@ def main():
         sizes[label] = storage_bytes(resolver)
     result = {
         "baseline_commit": subprocess.check_output(
-            ["git", "rev-parse", BASELINE], text=True
+            ["git", "rev-parse", args.baseline], text=True
         ).strip(),
         "baseline_source_sha256": hashlib.sha256(source.encode()).hexdigest(),
         "candidate_source_sha256": hashlib.sha256(
