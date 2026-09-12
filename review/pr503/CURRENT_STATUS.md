@@ -1,30 +1,34 @@
-# Review checkpoint: 2026-09-12
+# Review checkpoint: shared AtomWorks implementation
 
-Frank's latest fetched #503 head is `0593a93b07d80b0302383163d2d98c78e315ab98`,
-already an ancestor of this branch. Production at `01159dd7a` completed the
-broad and corpus runs. The final extra reader rejection test passes locally
-and with published AtomWorks; it does not change production behavior.
+Frank's latest fetched #503 head remains `0593a93b07d80b0302383163d2d98c78e315ab98`,
+already merged. The shared-production checkpoint is tmol `75e02157b` and
+AtomWorks `774056c7` based on latest dev `59afb1e2`.
 
-- Broad selection: 1,459 passed, 15 skipped, eight existing noncanonical score
-  reference failures. All 18 CPU and 18 CUDA examples pass.
-- Original local corpus: tmol 14 pass / 2 partial / 17 fail; AtomWorks 9 / 2 / 22.
-- Explicit free-metal-excluded diagnostic: tmol 16 / 6 / 11; AtomWorks 10 / 7 / 16.
-- Released AtomWorks 2.2.1 matrix: 18 of 19 pass scoring/gradient/rotamer checks;
-  observed 8OG OP2 deletion is rejected. Five reader tests pass in both versions.
-- Numerical passes do not imply convergence or physical validation. Four
-  original-input trials converged; 6mub retains glycan-link geometry alerts.
+[AtomWorks PR #349](https://github.com/baker-laboratory/atomworks-dev/pull/349)
+is open as a draft, targeting `dev`. Tmol now requires that immutable companion
+revision and removes duplicate protonation, repair, converter and CIF-category
+implementations. It preserves its own scientific rules and observed HIS ring H.
 
-See [CORPUS_FINDINGS.md](CORPUS_FINDINGS.md),
-[results/atomworks-corpus-validation.json](results/atomworks-corpus-validation.json),
-and [INPUT_CONTRACT.md](INPUT_CONTRACT.md). The review has 100 recorded findings
-with implemented fixes or explicit remaining limitations. Draft PR text is
-prepared in [PR_DESCRIPTION.md](PR_DESCRIPTION.md); no PR has been published yet.
+- AtomWorks chemistry/adjacent suites: 180 passed; final affected selection: 74 passed.
+- Prior tmol engine versus shared engine with tmol rules: 774 mapped-state comparisons match.
+- All six existing native HIS coordinate fixtures match the AtomWorks selector.
+- Tmol reader/HIS/CIF selection: 23 passed.
+- Final committed-implementation checks: **46 tmol tests and 34 AtomWorks histidine tests passed** (overlapping selections, not additional unique coverage).
+- Slurm 252647 completed: 1,468 passed, 15 skipped, 10 failed. Eight are inherited score references; the stale mock is now fixed/passing; one unchanged-scorer CUDA repeat assertion remains intermittent. All 18 CPU/18 CUDA examples pass.
+- Slurm 252648 completed all 132 corpus trials. Both modes keep all pre-sharing pass/partial/fail outcomes; only four trials per mode report convergence.
 
-The user's latest instruction expands implementation: reuse as much current
-AtomWorks code as practical and remove duplicated tmol code, with companion PRs
-to AtomWorks `dev` if needed. A new isolated worktree
-`/mnt/home/kdidi/projects/atomworks-dev-tmol-shared-input` starts from fetched
-`origin/dev` at `59afb1e2`. The older tested companion branch `adcbfd76` and
-original fixture checkout remain preserved. Consolidation and its final
-validation/publication are still in progress; the optional reader is an
-implemented migration step, not completion of the all-file/tensor unification.
+See [PROTONATION_AUDIT.md](PROTONATION_AUDIT.md) and the per-comparison result
+artifact. There are 108 recorded findings, including dependency/follow-up issues
+that were not introduced by Frank. The tmol PR description includes the completed reruns and every problem/fix
+disposition and efficiency change.
+
+Historical production `01159dd7a` validation remains recorded: 1,459 passed,
+15 skipped, eight noncanonical score-reference failures, and 18 CPU/18 GPU
+examples passing. Those counts are not claimed for the new shared checkpoint.
+Default attachment model selection, noncanonical golden provenance, certain
+incomplete inputs and 8OG leaving-branch ambiguity remain explicit limitations.
+Metals are deferred. A numerical minimization pass does not imply convergence.
+
+The temporary AtomWorks pin requires authenticated Git access and must become
+a public released dependency before package publication. Full file/tensor API
+unification and removal of model-specific wrappers remain design proposals.

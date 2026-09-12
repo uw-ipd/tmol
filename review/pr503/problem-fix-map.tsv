@@ -30,14 +30,14 @@ id	status	resolution
 29	Fixed; bounded retention	Share bounded weak-identity caches across alpha, nucleotide and rotamer-reference profiles, with expiry, eviction and simultaneous-miss checks.
 30	Fixed	Use actual connection-spanning axes for sugar-ring attachments and resolve central atoms in group-wide numbering.
 31	Fixed	Derive attachment torsion frames from bonded heavy-atom paths and verify requested Cartesian dihedrals.
-32	Fixed in tmol; companion AtomWorks fix separate	Require finite, nondegenerate geometry before carboxyl bond-order correction; unresolved atoms cannot authorize a chemical rewrite.
+32	Fixed and shared	Import the AtomWorks finite/nondegenerate carboxylate correction; unresolved atoms cannot authorize a bond-order rewrite.
 33	Fixed	Recognize polymer anchors from declared polymer properties after both terminal ports are patched away.
 34	Fixed	Generate existing generic non-ring heavy-chi samples for movable internal branches of conjugated ligands.
 35	Fixed for preserving current constraints	Retain every internal/external edge; restrict axes with bridge/subtree checks, project constrained library coordinates and deduplicate; keep the current conformer when nothing can move.
 36	Fixed	Disable independent samplers on every group-owned member, retaining the intentional library-free primary-anchor exception; 51 rejects later conflicting ownership.
 37	Fixed within supported chemical types	Apply sampler/task/allowed-type masks before enumeration and use fixed members as geometric constraints; emit joint rows only for active members.
 38	Backend and opt-in prototype implemented; default unresolved	Add explicit connection bond/angle records, shared sparse native evaluation, provenance and persistence. A private capped-MMFF generator restores tested attachment stiffness; it is not enabled as the default scientific model.
-39	Fixed; bounded rules	Retain one private compiled SMARTS inventory instead of a query set per pH; return owned public rule objects. Companion AtomWorks changes are separate.
+39	Fixed and shared	Use AtomWorks bounded compiled rule-provider ownership with tmol scientific data; no per-pH query retention and owned mutable public results.
 40	Fixed	Recompute cartbonded content identity on parameter injection so reused poses score the new fit.
 41	Fixed	Persist canonical-partner patches/charges, explicit connection records and provenance; reload them even when base residues already exist, preserving numeric geometry and bond order.
 42	Fixed and optimized	Register one reusable YAML flow-mapping class instead of retaining one class per exported atom/parameter row.
@@ -96,6 +96,14 @@ id	status	resolution
 95	Fixed	Require the actual variant suffix and patch applicability to the base type. LLP terminal OXT receives the correct charge; native whole-file 7MKV scoring and minimization pass.
 96	Fixed for identified conjugations	Exclude conjugation endpoints from chemistry-derived backbone profiling and use the same filtered ports in polymer preparation. BCX N/C remains a peptide backbone while SG remains connected as a disulfide.
 97	Fixed in shared construction	Pass the complete missing-atom mask and compose a valid fixed-frame backup without replacing a sampled torsion. Conditional-generation N/CA/C inputs with unresolved CB now build finite HA coordinates, scores and derivatives.
-98	Simplified and integrated	Reuse chemical-type annotations from the parsed block. Add tmol[atomworks] and a public reader option shared by examples/profiling, supporting published and local parser APIs without duplicate completion.
+98	Shared required dependency	Reuse parsed chemical-type annotations and the current AtomWorks ParseConfig reader; delegate authored CIF chemistry too. The immutable companion pin requires a release before public package publication.
 99	Open companion issue; guarded in tmol	8OG OP2 is observed but deleted together with OP3. Reject the loss and propose port-specific branch selection plus atom provenance. Do not bypass the guard or claim the parser chemistry is fixed in this tmol PR.
-100	Shared-reader route works; native policy open	AtomWorks explicitly removes input hydrogens before preparation; metal-excluded 1IZC scores/minimizes. Native handling of observed hydrogens without bonds needs an explicit rebuilding policy or earlier actionable error.
+100	Shared-reader route works; native policy open	The shared tmol reader removes ligand H before preparation while preserving observed HIS ring H; metal-excluded 1IZC scores/minimizes. Native handling of observed H without bonds still needs an explicit rebuilding policy or earlier actionable error.
+101	Fixed with explicit scientific policy	Use one AtomWorks engine with tmol rule ordering/pKa data, pH/precision and variant budget; 774 mapped-state comparisons match the pre-sharing tmol engine. The inherited conjugated-amide/aniline vendor self-test discrepancy remains a documented scientific-rule review item.
+102	Fixed in AtomWorks #349	Resolve finite HIS/DHIS evidence before H removal, enforce ring H counts and charges before AddHs, and preserve cross-residue bonds and repeated/assembly identity.
+103	Fixed in AtomWorks #349	Restore reaction-source atom properties, input order and conformer coordinates before returning sanitized molecular variants.
+104	Fixed in AtomWorks #349	Retain molecular fallback states instead of reconstructing them from SMILES; exercise invalid-final-state fallback identity.
+105	Fixed in tmol adapter	Preserve finite input histidine ring H through AtomWorks parsing so native tautomer selection receives the observed evidence.
+106	Simplified in AtomWorks #349	Remove redundant template graph rematching and consume the identity-preserving protonated molecule directly.
+107	Shared and optimized	Use AtomWorks RDKit conversion with explicit H/coordinate controls, owned retained annotations and bulk conformer positions; remove tmol bond-map/restoration duplication.
+108	Shared with explicit authority	Use AtomWorks authored-CIF chemistry without CCD supplementation; preserve tmol template semantics and remove the second component/bond-category parser.

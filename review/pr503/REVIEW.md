@@ -1,6 +1,8 @@
 # Review of tmol PR #503
 
-The final complex-input audit adds findings 92–100 in
+The shared protonation/dependency audit adds findings 101–108 in
+[PROTONATION_AUDIT.md](PROTONATION_AUDIT.md), including six direct comparisons
+against the existing native histidine fixtures. The complex-input audit adds findings 92–100 in
 [CORPUS_FINDINGS.md](CORPUS_FINDINGS.md). The proposed shared file/tensor input
 contract and PR #380 review are in [INPUT_CONTRACT.md](INPUT_CONTRACT.md).
 

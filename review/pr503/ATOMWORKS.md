@@ -1,42 +1,44 @@
 # AtomWorks reuse audit
 
-## Current integration decision (2026-09-12)
+## Current integration decision (2026-09-12, shared implementation)
 
-The branch now provides `tmol[atomworks]` (`atomworks>=2.2.1,<3`) and an
-explicit `reader="atomworks"` option on `atom_array_from_cif` and
-`pose_stack_from_cif`. AtomWorks owns parsing/completion in that route; tmol
-consumes the completed AtomArray and reuses its parsed chemical-component
-category without another file read. The adapter supports both the published
-keyword API and the local ParseConfig API. Tmol still owns parameter generation,
-packing and numerical scoring. The native reader remains the default during
-contract migration.
+AtomWorks is now a core dependency pinned to `774056c7`, the implementation in
+[AtomWorks PR #349](https://github.com/baker-laboratory/atomworks-dev/pull/349),
+based on latest `dev` `59afb1e2`. Tmol imports the shared Dimorphite engine,
+source-chemistry repairs, RDKit converter and authored CIF category builder.
+It retains its exact scientific rule data, source typing, force-field preparation
+and native tensor/GPU scoring. The empty `tmol[atomworks]` extra is a compatibility
+alias. The immutable development dependency requires authenticated Git access;
+a released dependency is required before public package publication.
 
-The proposed end state agrees with the two-frontends design: files through
-AtomWorks, and direct differentiable tensors through a prepared mapping core.
-Atom14, atom37 and backbone4 should be named layout presets; explicit mappings
-must support additional supplied atoms, including RoseTTAFold2 hydrogens.
-Model-specific wrappers can delegate and then be deprecated. This generic API
-and removal of the old wrappers are **proposals, not implemented changes**.
-See [INPUT_CONTRACT.md](INPUT_CONTRACT.md) for the worktree comparison, PR #380
-review and executed mapping/autograd checks.
+The AtomWorks reader consumes the current ParseConfig API. It preserves finite
+HIS ring hydrogens so tmol can select the observed tautomer; unobserved template
+hydrogens and other hydrogens are removed before parameter preparation. The
+native CIF path also delegates authored chemical-category parsing, while
+preserving its strict file-only authority and author-name contract. It remains
+the default until complete identifier/leaving-group/provenance policy is shared.
 
-Published AtomWorks 2.2.1 pins Biotite 1.4.0. The final CPU integration matrix
-passes preparation, scoring, gradients and rotamer construction on 18 of 19 PR
-fixtures. The 8OG case is rejected because completion removes observed OP2.
-Five focused released-reader regressions pass, including capped and beta
-peptides. The adapter disables the published parser's obsolete formal-charge
-heuristic, which otherwise assigns +1 to an acetyl carbon after attachment.
-It also rejects lost source heavy-atom names: this prevents published AtomWorks
-from silently dropping the unknown label `XYZ` in the modified 1a8o fixture.
-That file has an author atom name `CG`; tmol's native author-name path preserves
-the coordinate and must not be described as losing this atom.
+[PROTONATION_AUDIT.md](PROTONATION_AUDIT.md) records the actual differences and
+fixes: explicit rule providers/budgets, finite HIS evidence, ring H/charge
+consistency, whole-array bond preservation, reaction atom order/properties and
+conformers, and molecular fallback. There are 774 matching ordered mapped-state
+comparisons under tmol's policy. AtomWorks' default data still differs, and its
+formal charges are not tmol's force-field partial charges.
 
-The heavy-atom check compares component/name inventories. It is conservative
-about aliases and leaving-group removal and is not proof of per-residue atom
-or bond preservation. A shared parser contract needs explicit atom provenance
-and transformation records before replacing every existing input route.
-Dependency resolution and released integration were tested through a Python
-3.12 overlay; this was not a clean installation test of all tmol extras.
+The current converter's isolated 20-/200-atom cases are about 1.9×/1.8× faster
+than latest-dev baseline conversion. A 3,000-atom/32-unused-annotation case
+changes 58.920 → 14.116 ms and Python-traced peak 49.261 → 0.176 MB. These are
+microbenchmarks, not end-to-end scoring speedups or native-memory measurements.
+
+The proposed all-file frontend and shared direct tensor API remain documented
+in [INPUT_CONTRACT.md](INPUT_CONTRACT.md). Atom14/atom37/backbone4 presets and
+retirement of model-specific wrappers are still proposals, not changes claimed
+by this PR. Direct tensor coordinate gradients and source ordering must survive.
+
+The pre-sharing released-AtomWorks 2.2.1 matrix (18/19 numerical passes and five
+reader tests) applies to tmol `01159dd7a` only. It does not establish compatibility
+of the new required APIs with that release. The old adapter's version dispatch
+and obsolete formal-charge workaround have been removed.
 
 The remainder records the earlier local AtomWorks audit and companion changes.
 

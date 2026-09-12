@@ -3166,3 +3166,66 @@ validation/publication are still in progress; the optional reader is an
 implemented migration step, not completion of the all-file/tensor unification.
 
 The PR text enumerates every problem and disposition; findings 92–100 add covalent-partner filtering, heavy-atom identity, 4SO scaffold traversal, LLP patch scope, BCX backbone ports, missing-ancestor/HA completion, shared parser metadata reuse, leaving-branch selection and incomplete hydrogen connectivity. Seven unchanged AtomWorks fixtures with provenance are committed as tmol regressions. The native modified-1a8o author CG coordinate survives; earlier suspicion of native XYZ loss was disproved. The remaining parser loss is specifically the label-name route. Source and generated-file inventories remain available under this review directory.
+
+
+## Shared chemistry and full protonation audit (2026-09-12)
+
+The user requested exact protonation/HIS comparison before publishing. Current
+AtomWorks dev was fetched at 59afb1e2; the older local histidine integration had
+not reached dev. The companion is now 774056c7 in AtomWorks PR #349, and tmol
+production sharing is 75e02157b. The old companion/source fixtures are preserved.
+
+See PROTONATION_AUDIT.md for policy distinctions, new findings 101–108 and exact
+validation scope. The expanded AST fixture comparison has 258 parseable SMILES
+literals and 774 pH comparisons, all equal to the old tmol engine under tmol's
+provider. AtomWorks defaults differ on five comparisons. Matching canonical
+mapped products initially missed reaction-induced atom reordering/property loss;
+stronger order/coordinate/property checks exposed it, and the shared engine now
+restores source correspondence. Molecular fallback also keeps geometry.
+
+AtomWorks exposes an input HIS policy, enforces ring H and charges before AddHs,
+preserves global covalent bonds, handles finite evidence/aliases/DHIS, and tests
+repeated/full-structure preparation. The tmol reader now preserves observed HIS
+ring H. Default AW pH policy and force-field-specific tmol partial charges remain
+distinct. The helper-only older suite passed 11 tests despite its integration
+problems; those passes are not presented as evidence of correct full preparation.
+
+Current tests: 180 AtomWorks chemistry/adjacent passes, 74 affected post-review
+passes, 82 tmol protonation/geometry/ligand passes with six skips, and 23 reader/
+HIS/CIF passes. A prior shared-CIF/nonstandard-backbone run had 79 passes/four
+skips. Raw XML hashes and exact per-SMILES comparisons are in results/.
+
+Slurm 252647 and 252648 rerun the broad CPU/GPU/examples and both corpus modes
+at the shared checkpoint. Results are reported after completion. These runs
+supersede the pre-sharing production evidence for current compatibility claims.
+
+
+### Final shared-checkpoint outcomes
+
+Slurm 252647 completed in 22:05: 1,493 cases, 1,468 passed, 15 skipped and ten
+failed. The stale converter mock now targets the shared function, retaining
+its assertions (one targeted pass). Eight existing noncanonical reference
+failures remain. The last failure is the SAME unchanged CUDA scorer repeated:
+0.0020751953125 absolute / 1.3799543694403837e-6 relative score drift versus
+rtol 1.3e-6. It is not a difference between original/reloaded parameter bundles.
+Isolated Slurm 252649 passes; no tolerance or golden was changed, and the
+full-run failure is retained. All 18 CPU and 18 CUDA examples pass.
+
+Slurm 252648 completed in 25:25. Both 66-trial modes retain every previous
+pass/partial/fail outcome: original tmol 14/2/17 and AW 9/2/22; explicit
+free-metal exclusion tmol 16/6/11 and AW 10/7/16. Both modes have four converged
+trials, zero reported stalls and four trials with connection-length alerts.
+Finite/nonincreasing energy is not evidence that unsupported inputs or the
+default attachment model are solved. Full current results and provenance are
+in results/shared-broad-validation.json and results/shared-corpus-validation.json.
+
+Core dependency resolution via uv succeeds, selecting the immutable AW
+companion and Biotite 1.6.0. This does not establish a clean installation of all
+extras. The development dependency requires authenticated Git access and must
+become a released dependency before public package publication.
+
+Legacy vendor self-tests fail at the same secondary-aniline/protection rule
+assertion in old tmol, latest AW dev and the shared engine. The standalone
+harness is fail-fast; no claim is made that all subsequent built-in assertions
+passed. The fixed policy's mapped-state comparisons match, and its inherited
+scientific-rule discrepancy is documented rather than refitted silently.

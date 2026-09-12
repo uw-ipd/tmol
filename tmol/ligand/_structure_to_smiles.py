@@ -26,7 +26,7 @@ import logging
 
 from biotite.structure import AtomArray
 from rdkit import Chem
-from atomworks.io.tools.protonation import (
+from atomworks.io.tools.protonation import (  # noqa: F401 (compatibility exports)
     correct_carboxylate_bond_orders as apply_geometry_bond_corrections,
     _infer_carboxylate_bonds,
     _sp2_angle_sum,
