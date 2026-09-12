@@ -16,7 +16,8 @@ from tmol.tests.pack.test_conjugated_group_packing import FIXTURES
 
 
 @pytest.mark.parametrize("fixture", sorted(FIXTURES))
-def test_conjugate_params_roundtrip(tmp_path, fixture, torch_device):
+@pytest.mark.parametrize("bundle_copies", [1, 2])
+def test_conjugate_params_roundtrip(tmp_path, fixture, torch_device, bundle_copies):
     array = atom_array_from_cif(
         data_path("covalent_fixtures", FIXTURES[fixture] + ".cif")
     )
@@ -25,7 +26,15 @@ def test_conjugate_params_roundtrip(tmp_path, fixture, torch_device):
     prepared, _ = prepare_ligands(
         array, param_db=base, seed=20250828, params_output=str(path)
     )
-    loaded, _ = prepare_ligands(array, param_db=base, params_files=[str(path)])
+    # Distinct files with overlapping definitions must coalesce too; simply
+    # avoiding repeated reads of one path does not establish that contract.
+    paths = [path]
+    for i in range(1, bundle_copies):
+        other = tmp_path / f"conjugate_{i}.tmol"
+        other.write_bytes(path.read_bytes())
+        paths.append(other)
+    loaded, _ = prepare_ligands(array, param_db=base, params_files=paths)
+    assert len(loaded.chemical.residues) == len(prepared.chemical.residues)
     before = {r.name: r for r in prepared.chemical.residues}
     after = {r.name: r for r in loaded.chemical.residues}
     assert before.keys() == after.keys()

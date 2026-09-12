@@ -499,6 +499,14 @@ def write_params_file(
     """
     is_list = isinstance(preparation, (list, tuple))
     preps = list(preparation) if is_list else [preparation]
+    from tmol.ligand._registry import (
+        _additional_cartbonded_params,
+        _merge_partial_charges,
+        _merge_named_parameters,
+        _unique_preparations,
+    )
+
+    definitions = _unique_preparations(preps)
     fmt = str(format).lower()
     if fmt == "rosetta":
         if any(p.baseline_sha256 is not None for p in preps):
@@ -514,7 +522,7 @@ def write_params_file(
             )
         if is_list:
             out_dir = Path(path)
-            for prep in preps:
+            for prep in definitions:
                 _write_rosetta_params_file(
                     prep.residue_type,
                     out_dir / f"{prep.residue_type.name}.params",
@@ -524,28 +532,20 @@ def write_params_file(
             prep = preps[0]
             _write_rosetta_params_file(prep.residue_type, path, prep.partial_charges)
     elif fmt == "tmol":
-        from tmol.ligand._registry import _additional_cartbonded_params
-
         charges = {p.residue_type.name: p.partial_charges for p in preps}
         cartbonded = {p.residue_type.name: p.cartbonded_params for p in preps}
-        cartbonded.update(_additional_cartbonded_params(preps))
-        for prep in preps:
-            charges.update(prep.variant_partial_charges or {})
-        replacements = [p for p in preps if p.baseline_sha256 is not None]
+        extra_cart = _additional_cartbonded_params(preps)
+        cartbonded.update(extra_cart)
+        shared_charges = _merge_partial_charges(
+            p.variant_partial_charges or {} for p in preps
+        )
+        charges.update(shared_charges)
+        replacements = [p for p in definitions if p.baseline_sha256 is not None]
         replacement_names = {p.residue_type.name for p in replacements}
         baseline_charges = {
-            n: q
-            for p in preps
-            for n, q in (p.variant_partial_charges or {}).items()
-            if n in replacement_names
+            n: q for n, q in shared_charges.items() if n in replacement_names
         }
-        baseline_cart = {
-            n: c
-            for n, c in _additional_cartbonded_params(preps).items()
-            if n in replacement_names
-        }
-        if replacements and len({p.residue_type.name for p in preps}) != len(preps):
-            raise ValueError("Replacement bundles require unique residue definitions")
+        baseline_cart = {n: c for n, c in extra_cart.items() if n in replacement_names}
         # Complete explicit replacements supersede old patch metadata in a
         # combined bundle, independently of preparation order.
         charges.update({p.residue_type.name: p.partial_charges for p in replacements})
@@ -554,10 +554,15 @@ def write_params_file(
         )
         _write_tmol_params_file(
             path,
-            [p.residue_type for p in preps],
+            [p.residue_type for p in definitions],
             charges,
             cartbonded,
-            patches=[v for p in preps for v in p.adds_patches],
+            patches=list(
+                _merge_named_parameters(
+                    ((v.name, v) for p in preps for v in p.adds_patches),
+                    "patch definitions",
+                ).values()
+            ),
             connection_params=tuple(
                 dict.fromkeys(record for p in preps for record in p.connection_params)
             ),

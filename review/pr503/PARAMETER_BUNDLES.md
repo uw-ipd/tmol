@@ -95,3 +95,23 @@ timing. The shared installer hashes the completed bonded database once instead
 of twice. Python traced allocation measurements are not process RSS or GPU
 memory. See [results/parameter-replacement-validation.json](results/parameter-replacement-validation.json)
 for the executable checks, timings and remaining limitations.
+
+## Multiple sources
+
+A batch now coalesces identical complete definitions before residue patching.
+Definitions of one name that disagree on chemistry, charges, bonded records or
+replacement baseline are rejected. This applies to contradictions within the
+batch even when a residue of that name is already installed; a single ordinary
+existing definition is still skipped as before. Intentional exact updates use
+the explicit replacement contract above.
+
+Shared patches retain source order. Compatible atom-type element maps and
+per-atom charge assignments merge; contradictory assignments are rejected.
+Disjoint charge assignments for the same residue survive export. Updating a
+shared charge map does not mutate the input preparation's dictionaries.
+
+The file APIs read each normalized supplied `Path` once per batch (including
+mixed string/`Path` spellings of the same path). Distinct paths are read and
+checked independently. There is no persistent file cache, so a later batch
+reads the file again. Overlapping distinct files are covered through public
+preparation and native scoring/gradient checks.

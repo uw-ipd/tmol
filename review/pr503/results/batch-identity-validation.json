@@ -1,0 +1,215 @@
+{
+  "date_utc": "2026-09-12T06:06:19.965799+00:00",
+  "parent_commit": "c8efb34ca2c3efe78cb4acb9bd69b5d8137eca5b",
+  "upstream_head": "0593a93b07d80b0302383163d2d98c78e315ab98",
+  "upstream_check": "Fresh API/fetch/explicit merge: already up to date.",
+  "source_sha256": {
+    "tmol/ligand/_registry.py": "a97f3ddbad3b387ae18a667c4312b517f8f5f7f1104172d7ea3f36bee417f7aa",
+    "tmol/ligand/_params_file.py": "9bc12470a9bf70e2f0e7b61d276da3853b5a4583b3beb76fb7301fe73c820aee",
+    "tmol/ligand/_params_io.py": "db55d48edcf7b1d8d8c25cf3cd17793371fd7a8b362df4e7b37dd8aea147d4e4",
+    "tmol/ligand/_preparation.py": "6c8c8516f761d2a13205e981470dffda37ba33014ef1439cb55791d30eb6ecf1",
+    "tmol/tests/ligand/test_preparation_batch_identity.py": "54cf8e2c8a1b1fcb737465a46ad74b9057fecf627d3bdcb27d31b4316a96c432",
+    "tmol/tests/ligand/test_conjugate_params_roundtrip.py": "3083849e4725b9fae66985efebda9cfeb9a9a4a3c5b019eefc4db55ffc9e0c9f",
+    "review/pr503/profile_parameter_batches.py": "bdfba4bdb1d82689be64619b0ddce59ae2dff8e456d9c6e5661a15a2f2b968c5"
+  },
+  "contract": [
+    "One matching complete definition per name, before patching.",
+    "Conflicting core definitions rejected even for an already installed name; single ordinary existing definitions retain skip behavior.",
+    "Shared charge entries merge by residue/atom, conflicting values reject before database filtering or YAML loss.",
+    "Compatible atom-type element maps merge before strict resolution; conflicts reject.",
+    "Frozen input preparations and their mutable nested maps remain unchanged.",
+    "Export coalesces matching definitions and preserves disjoint shared metadata in source order.",
+    "Each supplied Path is read once per batch; distinct files checked independently; no persistent file cache.",
+    "Guarded replacements validate conflicting original metadata even when already installed."
+  ],
+  "before": {
+    "core_regressions": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/batch-identity-before-cpu.xml",
+      "sha256": "8863a47e730d673cfc681ab78e20323d53624203554466793d0e56975402eeae",
+      "passed": 0,
+      "failed": [
+        "test_repeated_new_preparation_has_one_identity[2]",
+        "test_repeated_new_preparation_has_one_identity[20]",
+        "test_repeated_files_and_repeated_export_have_one_identity",
+        "test_conflicting_batch_definitions_fail_before_injection[False-residue]",
+        "test_conflicting_batch_definitions_fail_before_injection[False-charges]",
+        "test_conflicting_batch_definitions_fail_before_injection[False-bonded]",
+        "test_conflicting_batch_definitions_fail_before_injection[True-residue]",
+        "test_conflicting_batch_definitions_fail_before_injection[True-charges]",
+        "test_conflicting_batch_definitions_fail_before_injection[True-bonded]",
+        "test_disjoint_shared_charges_on_duplicate_preps_are_preserved",
+        "test_conflicting_shared_charges_fail_even_when_one_matches_database[False]",
+        "test_conflicting_shared_charges_fail_even_when_one_matches_database[True]",
+        "test_duplicate_yaml_charge_rows_cannot_hide_a_conflict",
+        "test_element_maps_merge_across_duplicate_sources",
+        "test_conflicting_atom_type_elements_are_rejected"
+      ],
+      "skipped": 0
+    },
+    "followup_input_mutation": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/batch-identity-mutation-before.xml",
+      "sha256": "60781ca60f9aa8e1ec05f6c4295038e158e6a0e41e846d1f32a8fa031cb4ed95",
+      "passed": 0,
+      "failed": [
+        "test_merging_shared_charges_does_not_mutate_reusable_preparations"
+      ],
+      "skipped": 0
+    }
+  },
+  "intermediate": {
+    "first_implementation": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/batch-identity-after-cpu.xml",
+      "sha256": "1e5646e14380b1db9fe9fa08011f645923992e8f9e1ec968d139b55904422baa",
+      "passed": 12,
+      "failed": [
+        "test_repeated_files_and_repeated_export_have_one_identity",
+        "test_disjoint_shared_charges_on_duplicate_preps_are_preserved",
+        "test_duplicate_yaml_charge_rows_cannot_hide_a_conflict"
+      ],
+      "skipped": 0
+    },
+    "reason": "Fixed helper import accidentally placed only under TYPE_CHECKING; changed charge oracle to compare effective entries and equal record count, since disjoint input order can change harmless entry order."
+  },
+  "tests": {
+    "cpu": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/batch-identity-final-cpu.xml",
+      "sha256": "95a45a283cb2eb3d01493f9c0766b8068ae5582faf011d75f1ae7690f784a5a9",
+      "passed": 124,
+      "failed": [],
+      "skipped": 11
+    },
+    "gpu": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/batch-identity-gpu.xml",
+      "sha256": "440d80035022dc9782af25c5596639084b9da9849604211719d6f2612c89fe33",
+      "passed": 233,
+      "failed": [],
+      "skipped": 8
+    },
+    "distinct_file_native": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/batch-distinct-native-gpu.xml",
+      "sha256": "ca8262023708cee35be5653072a0af9dbfaf92a1df5ec00888a53c19c23458e9",
+      "passed": 12,
+      "failed": [],
+      "skipped": 0
+    }
+  },
+  "validation_scope": "Final production code passes full listed CPU/H200 suites. Native test subsequently strengthened from repeated same path to distinct overlapping files; all 12 cases of that final test pass in separate H200 job, including CPU/CUDA. This is targeted validation, not a full-repository clean run.",
+  "scheduler": "JobID|State|ExitCode|Elapsed|MaxRSS\n250976|COMPLETED|0:0|00:03:25|\n250976.batch|COMPLETED|0:0|00:03:25|5030900K\n250977|COMPLETED|0:0|00:01:20|\n250977.batch|COMPLETED|0:0|00:01:20|2986464K\n",
+  "benchmark": {
+    "baseline": "c8efb34ca",
+    "repeats": 7,
+    "cases": {
+      "1": {
+        "old_added_definitions": 1,
+        "new_added_definitions": 1,
+        "old": {
+          "median_ms": 9.350959211587906,
+          "samples_ms": [
+            9.314913302659988,
+            9.296956472098827,
+            9.49760153889656,
+            9.365781210362911,
+            9.599105454981327,
+            9.30127315223217,
+            9.350959211587906
+          ],
+          "python_retained_bytes": 147309,
+          "python_peak_bytes": 1979560
+        },
+        "new": {
+          "median_ms": 9.42563358694315,
+          "samples_ms": [
+            9.328956715762615,
+            12.136228382587433,
+            9.42563358694315,
+            9.28067322820425,
+            9.293531998991966,
+            9.450320154428482,
+            9.828715585172176
+          ],
+          "python_retained_bytes": 147205,
+          "python_peak_bytes": 1979768
+        }
+      },
+      "20": {
+        "old_added_definitions": 20,
+        "new_added_definitions": 1,
+        "old": {
+          "median_ms": 60.129894874989986,
+          "samples_ms": [
+            60.54035946726799,
+            60.1108456030488,
+            59.9750904366374,
+            60.88090594857931,
+            60.55474001914263,
+            59.670617803931236,
+            60.129894874989986
+          ],
+          "python_retained_bytes": 437392,
+          "python_peak_bytes": 2476678
+        },
+        "new": {
+          "median_ms": 9.595961309969425,
+          "samples_ms": [
+            9.849436581134796,
+            9.588850662112236,
+            9.595961309969425,
+            9.58674680441618,
+            9.791909717023373,
+            9.96458064764738,
+            9.49539802968502
+          ],
+          "python_retained_bytes": 147189,
+          "python_peak_bytes": 1979920
+        }
+      },
+      "100": {
+        "old_added_definitions": 100,
+        "new_added_definitions": 1,
+        "old": {
+          "median_ms": 277.7721779420972,
+          "samples_ms": [
+            274.79937486350536,
+            277.7721779420972,
+            278.94574124366045,
+            277.5414986535907,
+            286.10803559422493,
+            278.68387196213007,
+            272.8236438706517
+          ],
+          "python_retained_bytes": 1647432,
+          "python_peak_bytes": 4568174
+        },
+        "new": {
+          "median_ms": 9.74966399371624,
+          "samples_ms": [
+            9.811137802898884,
+            9.723755531013012,
+            9.7963260486722,
+            9.726909920573235,
+            9.875675663352013,
+            9.724115952849388,
+            9.74966399371624
+          ],
+          "python_retained_bytes": 147189,
+          "python_peak_bytes": 1980560
+        }
+      }
+    }
+  },
+  "benchmark_raw_sha256": "a13aa68bcbcc00f9051d216f6e6c00eec77ddabbe54e00b82c3a04f31e6faba1",
+  "benchmark_scope": {
+    "method": "Pinned old loader and batch injector AST from parent; same file/current database, parsing included. Current helper dependencies unchanged for the ordinary benchmark input.",
+    "correctness": "Named residue maps and affected scoring records equal; all unaffected scoring fields share identity. Old duplicate inventory intentionally differs, and added definition counts are reported.",
+    "timing": "Seven warm calls per case, garbage collection outside timed region; shared CPU host, no CPU affinity.",
+    "memory": "Extra Python tracemalloc peak/retained allocation, not RSS or GPU memory.",
+    "limitations": "Repeated identical-file benchmark; not a claim of comparable speedup for distinct files, generation, scoring or packing.",
+    "failed_initial_attempt": "Broad attrs ScoringDatabase equality tried to convert a pandas DataFrame to bool; replaced with exact affected-record equality and unchanged-field object identity before timing."
+  },
+  "remaining": [
+    "Default attachment model choice remains pending.",
+    "Missing default connection stiffness and old noncanonical reference failures remain open.",
+    "AtomWorks default integration and protonation-policy differences remain open.",
+    "Custom atom-type element-map export is not added by this stage."
+  ]
+}

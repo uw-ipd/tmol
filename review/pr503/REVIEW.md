@@ -11,7 +11,7 @@ Review date: 2026-09-12
 
 Both subsequent six-file updates have been reviewed separately. Comments 1–46
 retain their original `c03c1e745` anchors; comments 47–56 address `0f4c3bc42`,
-and comments 57–86 address `0593a93b0`. The
+and comments 57–87 address `0593a93b0`. The
 fold-forest expectations and HYP count are now corrected upstream. See
 [FOLLOWUP.md](FOLLOWUP.md) for reconciliation and validation details.
 
@@ -849,3 +849,16 @@ In the final synthetic 12,000-conformer test with an unrelated 1,024-atom type, 
 This is an API/design extension, not a claim that ordinary duplicate definitions should overwrite existing types. The follow-up adds explicit guarded replacements in `.tmol` version 4; older readers reject that version. Versions 1–3 retain their existing addition semantics. The private coupled generator and ordinary bundle injector now share one installation path. The guard normalizes declared scalar types and NumPy/Python strings so serialization does not change baseline identity. Patch order is preserved when loading shared metadata.
 
 Biotin, N-glycan and O-glycan tests cover fresh/prepared/corrected databases, reversed bundle order, changed baselines, missing records, conflicting connections, exact built coordinates, and native scores/gradients. The bonded database is built and hashed once instead of twice. [PARAMETER_BUNDLES.md](PARAMETER_BUNDLES.md) explains the API, format and fingerprint scope; [results/parameter-replacement-validation.json](results/parameter-replacement-validation.json) records validation and installation-only performance. This does not choose a default attachment force field or validate the provisional MMFF charge model.
+
+
+## 87. Coalesce repeated batch definitions and reject contradictory sources — P1
+
+[`tmol/ligand/_registry.py:399`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/ligand/_registry.py#L399), with charge collection at [`tmol/ligand/_registry.py:452`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/ligand/_registry.py#L452).
+
+> Can a batch establish one definition per residue name before patching and injection? `existing_names` excludes names newly added by the same batch, so overlapping files append the same residue repeatedly. Conflicting core definitions can then leave duplicate chemical rows but last-source charge/bonded records. Shared charge maps also replace one another by residue name, and atom-type element selection depends on source order. Identical definitions should coalesce; conflicting definitions or atom-charge assignments should raise; compatible disjoint metadata should merge.
+
+Fifteen regressions fail on parent `c8efb34ca`: repeated preparations/files, conflicting core definitions, disjoint/conflicting shared charges, conflicting YAML charge rows and complementary/conflicting element maps. The follow-up checks complete definitions once per name while retaining all sources' shared metadata in order. Repeated paths are parsed once within a batch; distinct files are still read and checked. Export emits one matching definition and combines disjoint atom-charge entries. Conflicts fail even when the target already exists.
+
+The audit also found a **follow-up regression**, not an upstream claim: merging additional charge deltas could mutate a frozen preparation's nested dictionary. A separately failing input-immutability test now passes after copying only the map being updated. Guarded replacements validate contradictory original metadata before filtering values unnecessary for an already corrected target.
+
+The final CPU suite passes 124 cases / 11 CUDA skips. Slurm 250976 passes 233 CPU/CUDA cases / 8 skips; an additional 12-case H200 run checks distinct overlapping files through public preparation, exact named inventories, pose construction, scoring and gradients for all three attachment fixtures. In a repeated-file benchmark, 100 copies previously added 100 definitions and took 277.772 ms; the corrected batch adds one and takes 9.750 ms. A single file is essentially unchanged (9.351 versus 9.426 ms). This measures duplicate-input parsing/installation, not general preparation or scoring performance. See [results/batch-identity-validation.json](results/batch-identity-validation.json).

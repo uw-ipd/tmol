@@ -1114,10 +1114,9 @@ def prepare_ligands(  # noqa: C901
 
     params_preparations: list[LigandPreparation] = []
     if params_files:
-        from tmol.ligand._params_file import load_params_file
+        from tmol.ligand._params_file import _load_params_files
 
-        for params_file in params_files:
-            params_preparations.extend(load_params_file(params_file))
+        params_preparations = _load_params_files(params_files)
         param_db = inject_ligand_preparations(
             param_db,
             params_preparations,

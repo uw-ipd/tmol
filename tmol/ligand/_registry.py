@@ -367,6 +367,56 @@ def terminus_charge_entries(param_db, patched_chemdb, residue_type) -> dict:
     return entries
 
 
+def _unique_preparations(preparations):
+    """One complete definition per name; shared metadata stays on its sources."""
+    unique = {}
+    fields = ("residue_type", "partial_charges", "cartbonded_params", "baseline_sha256")
+    for prep in preparations:
+        name = prep.residue_type.name
+        previous = unique.get(name)
+        if previous is None:
+            unique[name] = prep
+        elif any(getattr(previous, f) != getattr(prep, f) for f in fields):
+            raise ValueError(f"Conflicting residue preparations: {name}")
+    return list(unique.values())
+
+
+def _merge_named_parameters(pairs, kind):
+    merged = {}
+    for name, value in pairs:
+        if name in merged and merged[name] != value:
+            raise ValueError(f"Conflicting {kind}: {name}")
+        merged[name] = value
+    return merged
+
+
+def _merge_partial_charges(mappings):
+    return _charges_from_rows(
+        (res, atom, charge)
+        for mapping in mappings
+        for res, charges in mapping.items()
+        for atom, charge in charges.items()
+    )
+
+
+def _charges_from_rows(rows):
+    """Stream named charges into one map, rejecting conflicting duplicates."""
+    merged = {}
+    for res, atom, charge in rows:
+        charges = merged.setdefault(res, {})
+        if atom in charges and charges[atom] != charge:
+            raise ValueError(f"Conflicting partial charges: {(res, atom)}")
+        charges[atom] = charge
+    return merged
+
+
+def _batch_atom_type_elements(preparations):
+    return _merge_named_parameters(
+        (item for p in preparations for item in (p.atom_type_elements or {}).items()),
+        "atom type elements",
+    )
+
+
 def _additional_cartbonded_params(preparations):
     """Collect shared records, rejecting contradictory definitions in one bundle."""
     # For guarded replacements, shared records describe the original baseline;
@@ -430,6 +480,10 @@ def inject_ligand_preparations(
 
     # Check existing targets before any bundle metadata can reset their charges.
     validate_replacements(param_db, replacements, allow_missing=True)
+    # Conflicting source metadata is invalid even when an installed target
+    # makes that metadata unnecessary for this particular database.
+    _merge_partial_charges(p.variant_partial_charges or {} for p in preparations)
+    _additional_cartbonded_params(preparations)
     existing_names = {r.name for r in param_db.chemical.residues}
     protected = {p.residue_type.name for p in replacements} & existing_names
     additions = [
@@ -453,11 +507,12 @@ def inject_ligand_preparations(
     ]
     extended = _inject_additions(param_db, additions, strict_atom_types)
     atom_types = {}
+    elements = _batch_atom_type_elements(preparations)
     for prep in replacements:
         for at in collect_new_atom_types(
             extended.chemical,
             prep.residue_type,
-            atom_type_elements=prep.atom_type_elements,
+            atom_type_elements=elements,
             strict_atom_types=strict_atom_types,
         ):
             atom_types[at.name] = at
@@ -475,12 +530,10 @@ def _inject_additions(param_db, preparations, strict_atom_types):
     if not preparations:
         return param_db
 
+    unique = _unique_preparations(p for p in preparations if p.baseline_sha256 is None)
+    elements = _batch_atom_type_elements(preparations)
     existing_names = {r.name for r in param_db.chemical.residues}
-    new_preps = [
-        p
-        for p in preparations
-        if p.baseline_sha256 is None and p.residue_type.name not in existing_names
-    ]
+    new_preps = [p for p in unique if p.residue_type.name not in existing_names]
     known_variants = {v.name: v for v in param_db.chemical.variants}
     variants = []
     for prep in preparations:
@@ -494,12 +547,18 @@ def _inject_additions(param_db, preparations, strict_atom_types):
     old_charges = {
         (p.res, p.atom): p.charge for p in param_db.scoring.elec.atom_charge_parameters
     }
-    extra_charges = {}
-    for prep in preparations:
-        for name, charges in (prep.variant_partial_charges or {}).items():
-            for atom, charge in charges.items():
-                if old_charges.get((name, atom)) != charge:
-                    extra_charges.setdefault(name, {})[atom] = charge
+    shared_charges = _merge_partial_charges(
+        p.variant_partial_charges or {} for p in preparations
+    )
+    extra_charges = {
+        name: changed
+        for name, charges in shared_charges.items()
+        if (
+            changed := {
+                a: q for a, q in charges.items() if old_charges.get((name, a)) != q
+            }
+        )
+    }
     known_connections = set(param_db.scoring.cartbonded.connection_params)
     connections = tuple(
         dict.fromkeys(
@@ -529,7 +588,7 @@ def _inject_additions(param_db, preparations, strict_atom_types):
         for at in collect_new_atom_types(
             param_db.chemical,
             prep.residue_type,
-            atom_type_elements=prep.atom_type_elements,
+            atom_type_elements=elements,
             strict_atom_types=strict_atom_types,
         ):
             if at.name in seen_at:
@@ -553,7 +612,8 @@ def _inject_additions(param_db, preparations, strict_atom_types):
         else {}
     )
     for name, delta in extra_charges.items():
-        charges.setdefault(name, {}).update(delta)
+        # The initial maps may be owned by reusable frozen preparations.
+        charges[name] = {**charges.get(name, {}), **delta}
     return inject_residue_params(
         param_db,
         residue_types=[p.residue_type for p in new_preps],

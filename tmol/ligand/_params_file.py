@@ -176,7 +176,7 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
     legacy flat schema (top-level ``residues:`` etc.) raise a
     ``ValueError`` pointing at the migration.
     """
-    from tmol.ligand._registry import LigandPreparation
+    from tmol.ligand._registry import LigandPreparation, _charges_from_rows
 
     path = Path(path)
     with path.open() as f:
@@ -280,10 +280,13 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
     if additional_cart and not residues:
         raise ValueError("A params bundle with bonded parameters must define a residue")
 
-    charges_by_res: dict[str, dict[str, float]] = {}
-    for item in elec.get("atom_charge_parameters") or []:
-        pc = cattr.structure(item, PartialCharges)
-        charges_by_res.setdefault(pc.res, {})[pc.atom] = pc.charge
+    charge_rows = (
+        cattr.structure(item, PartialCharges)
+        for item in elec.get("atom_charge_parameters") or ()
+    )
+    charges_by_res = _charges_from_rows(
+        (pc.res, pc.atom, pc.charge) for pc in charge_rows
+    )
 
     variant_charges_by_res: dict[str, dict[str, dict[str, float]]] = {}
     if baseline_charges:
@@ -373,6 +376,15 @@ def inject_params_file(
     )
 
 
+def _load_params_files(paths):
+    """Read each supplied path once within a batch, preserving source order."""
+    return [
+        prep
+        for path in dict.fromkeys(Path(p) for p in paths)
+        for prep in load_params_file(path)
+    ]
+
+
 def inject_params_files(
     param_db: ParameterDatabase,
     paths: list[str | Path],
@@ -382,9 +394,6 @@ def inject_params_files(
     """Load multiple ``.tmol`` files and inject them in one shot."""
     from tmol.ligand._registry import inject_ligand_preparations
 
-    preps: list = []
-    for path in paths:
-        preps.extend(load_params_file(path))
     return inject_ligand_preparations(
-        param_db, preps, strict_atom_types=strict_atom_types
+        param_db, _load_params_files(paths), strict_atom_types=strict_atom_types
     )

@@ -2866,3 +2866,69 @@ Rosetta/Hahnbeom reference source remains pending. Three-block angles,
 context-specific type identity, default attachment stiffness and the existing
 noncanonical score-reference failures remain open. This stage improves safe
 parameter delivery without choosing or independently validating that model.
+
+## Parameter identity across multiple input bundles — 2026-09-12
+
+The fresh upstream fetch/API/merge check still finds `0593a93b0`, already merged.
+This stage audits the ordinary batch collector alongside guarded replacements.
+It previously filtered only names already present before the batch, so repeated
+new definitions were patched and appended repeatedly. Charges/bonded records
+could come from different last-source definitions, while element resolution
+used whichever source appeared first.
+
+The collector now checks complete residue definitions, charges, bonded records
+and replacement baselines for agreement by name, then patches each new ordinary
+definition once. All sources retain their shared metadata. Shared charge maps
+merge by atom; conflicting assignments fail before filtering values equal to
+the existing database. The reader also rejects contradictory duplicate YAML
+charge rows. Compatible element mappings merge before strict resolution.
+Writers emit one matching definition and preserve disjoint charge maps.
+Batch file loading is shared by both public entry paths and reads each supplied
+`Path` once, with no persistent file cache.
+
+Fifteen initial regressions fail on parent `c8efb34ca`. A separate audit of the
+follow-up collector reproduces mutation of a frozen preparation's nested charge
+map when disjoint metadata is merged. Copying only the updated map fixes that
+regression. This mutation is identified as a follow-up defect, not an upstream
+finding. Guarded bundles also reject contradictory baseline metadata even when
+an already installed target would otherwise hide it by filtering it out.
+
+The CPU suite passes **124 tests / 11 CUDA skips**. H200 Slurm **250976** passes
+**233 CPU/CUDA tests / 8 skips**, completes **0:0** in **3:25**, batch MaxRSS
+**5,030,900 KiB**. The native round-trip test was then strengthened to use
+**distinct overlapping files**, rather than repeated spellings of one path.
+All **12 CPU/CUDA cases** of that final test pass in Slurm **250977**, **0:0**,
+**1:20**, batch MaxRSS **2,986,464 KiB**. They cover biotin, N-glycans and
+O-glycans through public preparation, unique residue inventories, exact
+coordinates and score/gradient comparison. Input-path deduplication alone
+cannot satisfy the distinct-file test.
+
+[profile_parameter_batches.py](profile_parameter_batches.py) measures file
+parsing plus injection, with one ordinary prepared ligand and seven warm calls
+per case. Both implementations receive the same file and default database;
+the old loader/collector are extracted from the pinned parent. Named residue
+maps and scoring records are checked before timing, while the invalid old
+duplicate inventory is reported explicitly:
+
+| Copies of one path | Old/new added definitions | Old time | New time | Old/new extra Python peak |
+| --- | ---: | ---: | ---: | ---: |
+| 1 | 1 / 1 | 9.351 ms | 9.426 ms | 1,979,560 / 1,979,768 B |
+| 20 | 20 / 1 | 60.130 ms | 9.596 ms | 2,476,678 / 1,979,920 B |
+| 100 | 100 / 1 | 277.772 ms | 9.750 ms | 4,568,174 / 1,980,560 B |
+
+Single-file cost is essentially unchanged. At 100 repeated paths, retained
+traced Python allocation falls from **1,647,432 to 147,189 bytes**. These are
+repeated-input parsing/installation measurements, not speedups for distinct
+files, parameter generation, scoring or packing, and not process/GPU memory.
+An initial benchmark assertion used unsupported broad pandas-containing
+`ScoringDatabase` equality; it was replaced with exact affected-record checks
+and unchanged-field identity before any reported timing was accepted.
+
+Formatting, lint, whitespace and source-hash checks pass. Comment **87** adds
+the pinned batch-identity finding; the review has **87 draft comments and
+17 general questions**, with nothing posted upstream.
+[results/batch-identity-validation.json](results/batch-identity-validation.json)
+records all stages, test scope, source hashes, scheduler outcomes and raw
+benchmark samples. The default attachment model, score-reference failures and
+AtomWorks integration decisions remain open; custom atom-type element-map
+export is not implemented by this stage.
