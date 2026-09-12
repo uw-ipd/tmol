@@ -1313,7 +1313,9 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   assert(max_n_interblock_bonds <= MAX_N_CONN);
 
   bool const accumulate_derivs = compute_derivs;
-  auto dV_dcoords_t = TPack<Vec<Real, 3>, 2, Dev>::zeros({1, n_atoms});
+  auto dV_dcoords_t = accumulate_derivs
+                          ? TPack<Vec<Real, 3>, 2, Dev>::zeros({1, n_atoms})
+                          : TPack<Vec<Real, 3>, 2, Dev>::empty({1, 0});
   auto dV_dcoords = dV_dcoords_t.view;
 
   TPack<Int, 2, Dev> dispatch_indices_t;

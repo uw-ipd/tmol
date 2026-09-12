@@ -1,4 +1,4 @@
-"""Pairwise rotamer derivatives are computed during backward."""
+"""Rotamer scoring avoids derivative storage when it is not needed."""
 
 import gc
 
@@ -12,14 +12,21 @@ from tmol.score.cartbonded import CartBondedEnergyTerm
 from tmol.score.genbonded import GenBondedEnergyTerm
 from tmol.score.dunbrack import DunbrackEnergyTerm
 from tmol.score.elec import ElecEnergyTerm
+from tmol.score.hbond import HBondEnergyTerm
 
 
 @pytest.mark.parametrize(
     "term_class",
-    [CartBondedEnergyTerm, GenBondedEnergyTerm, DunbrackEnergyTerm, ElecEnergyTerm],
+    [
+        CartBondedEnergyTerm,
+        GenBondedEnergyTerm,
+        DunbrackEnergyTerm,
+        ElecEnergyTerm,
+        HBondEnergyTerm,
+    ],
 )
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
-def test_rotamer_forward_defers_pair_derivatives(
+def test_rotamer_forward_avoids_unused_gradient_storage(
     term_class, dtype, ubq_pdb, default_database, torch_device
 ):
     if torch_device.type != "cuda":
@@ -60,6 +67,9 @@ def test_rotamer_forward_defers_pair_derivatives(
             gc.enable()
     torch.testing.assert_close(inferred, scored)
     torch.testing.assert_close(inferred_indices, scored_indices, rtol=0, atol=0)
-    assert gradient_peak <= inference_peak, (inference_peak, gradient_peak)
+    if term_class is HBondEnergyTerm:
+        assert inference_peak < gradient_peak, (inference_peak, gradient_peak)
+    else:
+        assert gradient_peak <= inference_peak, (inference_peak, gradient_peak)
     (gradient,) = torch.autograd.grad(scored.sum(), tracked)
     assert torch.isfinite(gradient).all()
