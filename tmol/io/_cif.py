@@ -157,6 +157,7 @@ def atom_array_from_cif(
     include_bonds: bool = True,
     extra_fields=None,
     reader: str = "tmol",
+    hydrogen_policy: str = "rebuild",
 ):
     """A structure's atoms, including the ones its density did not resolve.
 
@@ -180,11 +181,14 @@ def atom_array_from_cif(
         reader: Both bonded routes use AtomWorks parsing and bond sanitation.
             ``"tmol"`` restores author identifiers and applies tmol's legacy
             completion policy. ``"atomworks"`` uses label identifiers and
-            AtomWorks NaN completion. Both rebuild supplied hydrogens except
-            observed histidine ring protons used for tautomer selection.
+            AtomWorks NaN completion.
             AtomWorks also supports compressed and binary CIF. Its label route requires
             ``use_ccd=True`` and ``include_bonds=True``; extra fields are not
             supported across the AtomWorks completion API.
+        hydrogen_policy: ``"rebuild"`` discards supplied hydrogens except observed
+            histidine ring protons used for tautomer selection. ``"preserve"``
+            retains them and requires compatible hydrogen names/connectivity.
+            Applies to bonded reading; without bonds the raw coordinates are kept.
 
     Returns:
         A biotite AtomArray.
@@ -197,14 +201,18 @@ def atom_array_from_cif(
             )
         from tmol.io._atomworks_reader import read_cif
 
-        return read_cif(cif_path, model=model)[0]
+        return read_cif(cif_path, model=model, hydrogen_policy=hydrogen_policy)[0]
     if reader != "tmol":
         raise ValueError(f"Unknown CIF reader {reader!r}; choose 'tmol' or 'atomworks'")
     if include_bonds:
         from tmol.io._atomworks_reader import read_cif
 
         array, block = read_cif(
-            cif_path, model=model, author_fields=True, extra_fields=extra_fields
+            cif_path,
+            model=model,
+            author_fields=True,
+            extra_fields=extra_fields,
+            hydrogen_policy=hydrogen_policy,
         )
     else:
         cif = pdbx.CIFFile.read(str(cif_path))
@@ -434,7 +442,13 @@ def _placeholder_atoms(atom_array, begin, missing, template):
 
 
 def pose_stack_from_cif(
-    cif_path, device, *, use_ccd: bool = True, reader: str = "tmol", **kwargs
+    cif_path,
+    device,
+    *,
+    use_ccd: bool = True,
+    reader: str = "tmol",
+    hydrogen_policy: str = "rebuild",
+    **kwargs,
 ):
     """Construct a PoseStack from an mmCIF file.
 
@@ -445,7 +459,9 @@ def pose_stack_from_cif(
     """
     from tmol.io._pose_stack_from_biotite import pose_stack_from_biotite
 
-    array = atom_array_from_cif(cif_path, use_ccd=use_ccd, reader=reader)
+    array = atom_array_from_cif(
+        cif_path, use_ccd=use_ccd, reader=reader, hydrogen_policy=hydrogen_policy
+    )
     return pose_stack_from_biotite(
         array,
         device,

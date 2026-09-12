@@ -28,11 +28,15 @@ FIXTURE_DIR = data_path("ncaa_fixtures")
 MIRROR_PAIR = "6dmz_mod"
 
 
-def _pose(stem, param_db, torch_device):
+def _pose(stem, param_db, torch_device, hydrogen_policy="preserve"):
     # hydrogen placement must not be optimized: optH would break the mirror
     # symmetry it is being used to measure
     return pose_stack_from_cif(
-        FIXTURE_DIR / f"{stem}.cif", torch_device, param_db=param_db, no_optH=True
+        FIXTURE_DIR / f"{stem}.cif",
+        torch_device,
+        param_db=param_db,
+        no_optH=True,
+        hydrogen_policy=hydrogen_policy,
     )
 
 
@@ -52,16 +56,23 @@ def _scores_by_term(pose_stack, sfxn):
 
 def test_mirror_image_coordinates_are_exact_negations() -> None:
     """The fixtures are a mirror pair, so the comparison means what it says."""
-    left = atom_array_from_cif(FIXTURE_DIR / f"{MIRROR_PAIR}_l.cif")
-    right = atom_array_from_cif(FIXTURE_DIR / f"{MIRROR_PAIR}_d.cif")
+    left = atom_array_from_cif(
+        FIXTURE_DIR / f"{MIRROR_PAIR}_l.cif", hydrogen_policy="preserve"
+    )
+    right = atom_array_from_cif(
+        FIXTURE_DIR / f"{MIRROR_PAIR}_d.cif", hydrogen_policy="preserve"
+    )
     assert left.array_length() == right.array_length()
     numpy.testing.assert_allclose(left.coord, -right.coord, atol=1e-4)
     assert list(left.atom_name) == list(right.atom_name)
 
 
-def test_mirror_image_scores_identically(symmetric_gly_db, torch_device) -> None:
-    left = _pose(f"{MIRROR_PAIR}_l", symmetric_gly_db, torch_device)
-    right = _pose(f"{MIRROR_PAIR}_d", symmetric_gly_db, torch_device)
+@pytest.mark.parametrize("hydrogen_policy", ["preserve", "rebuild"])
+def test_mirror_image_scores_identically(
+    symmetric_gly_db, torch_device, hydrogen_policy
+) -> None:
+    left = _pose(f"{MIRROR_PAIR}_l", symmetric_gly_db, torch_device, hydrogen_policy)
+    right = _pose(f"{MIRROR_PAIR}_d", symmetric_gly_db, torch_device, hydrogen_policy)
     sfxn = beta2016_score_function(torch_device, param_db=symmetric_gly_db)
 
     left_scores = _scores_by_term(left, sfxn)

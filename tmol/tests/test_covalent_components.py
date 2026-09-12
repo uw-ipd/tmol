@@ -8,6 +8,7 @@ to make of it.
 
 import pytest
 import torch
+import biotite.structure as struc
 
 from tmol.database import ParameterDatabase
 from tmol.io import atom_array_from_cif, default_canonical_ordering
@@ -156,21 +157,52 @@ def test_free_oligosaccharide_still_prepares():
     assert {"NDG", "GAL"} <= built
 
 
-def declared_covalent_bonds(atom_array):
-    return canonical_form_from_biotite(
-        atom_array, torch.device("cpu"), co=default_canonical_ordering()
-    ).covalent_bonds
+def assert_canonical_bonds_match_source(atom_array, ordering):
+    form = canonical_form_from_biotite(atom_array, torch.device("cpu"), co=ordering)
+    residue = struc.get_residue_positions(atom_array, range(len(atom_array)))
+
+    def source_atom(index):
+        return (
+            str(atom_array.chain_id[index]),
+            str(atom_array.res_id[index]),
+            str(atom_array.ins_code[index]),
+            str(atom_array.res_name[index]),
+            str(atom_array.atom_name[index]),
+        )
+
+    expected = {
+        frozenset((source_atom(a), source_atom(b)))
+        for a, b, _ in atom_array.bonds.as_array()
+        if residue[a] != residue[b]
+    }
+
+    def canonical_atom(res, atom):
+        name = ordering.restype_io_equiv_classes[int(form.res_types[0, res])]
+        atom_name = ordering.restypes_ordered_atom_names[name][atom]
+        return (
+            str(form.chain_labels[0, res]),
+            str(form.res_labels[0, res]),
+            str(form.residue_insertion_codes[0, res]),
+            name,
+            atom_name,
+        )
+
+    actual = {
+        frozenset((canonical_atom(a, ai), canonical_atom(b, bi)))
+        for _, a, ai, b, bi in form.covalent_bonds.tolist()
+    }
+    for _, a, b in form.disulfides.tolist():
+        sg = ordering.cys_inds.sg_atom_for_co_cys
+        actual.add(frozenset((canonical_atom(a, sg), canonical_atom(b, sg))))
+    assert expected
+    assert actual == expected
 
 
 @pytest.mark.parametrize("stem", ["cyclic_peptide_1jbl", "1UBQ"])
-def test_backbone_and_disulfide_bonds_are_not_declared(stem):
-    """Only bonds no other channel carries reach the covalent table.
-
-    1JBL supplies both exclusions that matter: a disulfide, and a backbone
-    link between residues that are not adjacent by index.
-    """
+def test_backbone_and_disulfide_bonds_preserve_the_complete_source_graph(stem):
+    """Preserve every declared edge, including 1JBL's nonsequential backbone."""
     atom_array = atom_array_from_cif(data_path("cif", stem + ".cif"))
-    assert declared_covalent_bonds(atom_array).shape[0] == 0
+    assert_canonical_bonds_match_source(atom_array, default_canonical_ordering())
 
 
 @pytest.mark.parametrize("fixture", sorted(FIXTURES))
@@ -185,10 +217,7 @@ def test_attachment_bonds_reach_canonical_form(fixture):
     _prepared, ordering = prepare_ligands(
         structure(stem), param_db=ParameterDatabase.get_default(), seed=_CONFORMER_SEED
     )
-    bonds = canonical_form_from_biotite(
-        structure(stem), torch.device("cpu"), co=ordering
-    ).covalent_bonds
-    assert bonds.shape[0] == len(EXPECTED_LINKS[stem])
+    assert_canonical_bonds_match_source(structure(stem), ordering)
 
 
 # canonical residues a component attaches to, and the atom it attaches at

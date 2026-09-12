@@ -525,6 +525,8 @@ def _template_array(structure):
 
 def _bonds_for_poses(bonds, n_poses, torch_device):
     """Prefix each bond row with its pose index."""
+    if bonds is None:
+        return None
     if bonds.shape[0] == 0:
         return torch.zeros(
             (0, bonds.shape[1] + 1), dtype=torch.int64, device=torch_device
@@ -547,9 +549,7 @@ def _covalent_bonds_from_biotite(
     bonds even when the sulfur coordinates are unresolved or far apart.
     """
     if array.bonds is None:
-        return numpy.zeros((0, 4), dtype=numpy.int64), numpy.zeros(
-            (0, 2), dtype=numpy.int64
-        )
+        return numpy.zeros((0, 4), dtype=numpy.int64), None
 
     atom_canonical_ind = numpy.full(array.array_length(), -1, dtype=numpy.int64)
     atom_canonical_ind[valid_atom_mask] = valid_atom_inds

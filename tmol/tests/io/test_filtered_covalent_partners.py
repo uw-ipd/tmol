@@ -11,10 +11,8 @@ from tmol.io._pose_stack_from_biotite import (
 )
 
 
-@pytest.mark.parametrize("unresolved", [False, True])
-def test_declared_disulfide_survives_missing_or_distant_sulfur(
-    unresolved, torch_device
-):
+@pytest.mark.parametrize("source", ["distant", "unresolved", "no_bond_table"])
+def test_disulfide_input_authority_through_scoring(source, torch_device):
     from biotite.structure.info import residue
     from tmol.io import pose_stack_from_biotite
     from tmol.score import beta2016_score_function
@@ -28,8 +26,11 @@ def test_declared_disulfide_survives_missing_or_distant_sulfur(
     array = first + second
     sulfur = np.flatnonzero(array.atom_name == "SG")
     array.bonds.add_bond(*sulfur, struc.BondType.SINGLE)
-    if unresolved:
+    if source == "unresolved":
         array.coord[sulfur[1]] = np.nan
+    elif source == "no_bond_table":
+        array.bonds = None
+        array.coord[sulfur[1]] = array.coord[sulfur[0]] + [2.03, 0, 0]
     pose = pose_stack_from_biotite(array, torch_device, no_optH=True)
     assert int((pose.inter_residue_connections[..., 0] >= 0).sum()) == 2
     types = [

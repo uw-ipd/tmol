@@ -14,6 +14,46 @@ pytest.importorskip("atomworks")
 DATA = Path(__file__).parents[1] / "data"
 
 
+@pytest.mark.parametrize("reader", ["tmol", "atomworks"])
+def test_file_hydrogen_policy_through_scoring(tmp_path, ubq_pdb, reader):
+    from biotite.structure.io import pdbx
+    from tmol.io import (
+        biotite_from_pose_stack,
+        pose_stack_from_pdb,
+        pose_stack_from_biotite,
+    )
+
+    device = torch.device("cpu")
+    source = biotite_from_pose_stack(pose_stack_from_pdb(ubq_pdb, device))
+    index = np.flatnonzero((source.res_name == "ALA") & (source.element == "H"))[0]
+    source.coord[index] += [0.2, 0.1, -0.1]
+    file = pdbx.CIFFile()
+    pdbx.set_structure(file, source)
+    path = tmp_path / "hydrogens.cif"
+    file.write(path)
+    for policy in ("preserve", "rebuild"):
+        array = atom_array_from_cif(path, reader=reader, hydrogen_policy=policy)
+        selected = (
+            (array.res_id == source.res_id[index])
+            & (array.atom_name == source.atom_name[index])
+            & (array.chain_id == source.chain_id[index])
+        )
+        if policy == "preserve":
+            np.testing.assert_allclose(
+                array.coord[selected], source.coord[index][None], atol=0.001
+            )
+        else:
+            assert not np.isfinite(array.coord[selected]).all(axis=-1).any()
+        pose = pose_stack_from_biotite(array, device, no_optH=True)
+        coords = pose.coords.detach().clone().requires_grad_()
+        energy = beta2016_score_function(device).render_whole_pose_scoring_module(pose)(
+            coords
+        )
+        energy.sum().backward()
+        assert torch.isfinite(energy).all()
+        assert torch.isfinite(coords.grad).all()
+
+
 def test_atomworks_completion_preserves_entirely_unresolved_ligand():
     array = atom_array_from_cif(
         DATA / "atomworks_regressions/unresolved_unl.cif", reader="atomworks"

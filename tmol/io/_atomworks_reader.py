@@ -9,7 +9,9 @@ from atomworks.io.config import ParseConfig
 from atomworks.io.parser import parse
 
 
-def read_cif(path, *, model=1, author_fields=False, extra_fields=None):
+def read_cif(
+    path, *, model=1, author_fields=False, extra_fields=None, hydrogen_policy="rebuild"
+):
     """Parse bonds before selecting author identifiers; return atoms and CIF data.
 
     Author identifiers are restored on observed atoms before tmol's legacy
@@ -17,6 +19,8 @@ def read_cif(path, *, model=1, author_fields=False, extra_fields=None):
     """
     if model is None or model < 1:
         raise ValueError("The AtomWorks CIF reader requires a positive model number")
+    if hydrogen_policy not in ("preserve", "rebuild"):
+        raise ValueError("hydrogen_policy must be 'preserve' or 'rebuild'")
     options = dict(
         model=model,
         add_missing_atoms=not author_fields,
@@ -74,11 +78,12 @@ def read_cif(path, *, model=1, author_fields=False, extra_fields=None):
             array.del_annotation(name)
     is_h = np.isin(np.char.upper(array.element), ["H", "D"])
     observed_his_h = (
-        np.isin(array.res_name, ["HIS", "HIS_D", "DHIS"])
+        np.isin(array.res_name, ["HIS", "HIS_D", "DHI", "DHIS", "DHIS_D"])
         & np.isin(array.atom_name, ["HD1", "HE2", "HN"])
         & np.isfinite(array.coord).all(axis=-1)
     )
-    array = array[~is_h | observed_his_h]
+    if hydrogen_policy == "rebuild":
+        array = array[~is_h | observed_his_h]
     if not author_fields:
         _check_observed_heavy_atom_names(block, array, model)
 
