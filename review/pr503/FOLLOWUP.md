@@ -2932,3 +2932,76 @@ records all stages, test scope, source hashes, scheduler outcomes and raw
 benchmark samples. The default attachment model, score-reference failures and
 AtomWorks integration decisions remain open; custom atom-type element-map
 export is not implemented by this stage.
+
+## Portable atom-type element declarations — 2026-09-12
+
+The `.tmol` writer omitted `LigandPreparation.atom_type_elements`, and the reader
+always supplied `None`. The lenient registry then inferred hydrogen for selected
+H-like names and carbon for every other unfamiliar type. The pinned old-writer
+diagnostic demonstrates declared **N, S, Cl and H all becoming C** when their
+type has an unrelated name. Strict registration rejects the same missing map.
+This is a custom-type metadata failure, not a claim that known default types
+were all mistyped.
+
+Version **5** now stores `chemical.atom_type_elements` as shared metadata.
+Writers select versions 2/3/4/5 according to the fields they need to preserve;
+older formats remain supported when they omit element declarations. Element
+maps require nonempty string names/values, and declarations cannot contradict
+an existing atom type in the target database. Guarded replacements and ordinary
+bundles use the same metadata path. The preceding version-4 reader was executed
+against current files and rejects them as incompatible, instead of dropping the
+field. Rosetta `.params` continues to rely on external atom-type definitions.
+
+The wider audit found that patch-only atom types were never registered before
+patch construction, even when their element map was supplied. A scoped alanine
+terminal-patch regression raises `KeyError: 'UnfamiliarO'` before the fix. One
+collector now scans new residue atoms, patch-added/modified atoms and explicit
+replacement atoms, registers each required type once, and supplies those types
+before patching. The public single-residue collection function delegates to the
+same implementation. This also removes repeated scans of the existing type
+inventory for large preparation batches.
+
+The initial element/schema suite has **16 failures / 1 control pass**: ten
+loss/mismatch regressions, five new-schema validation cases (initially rejected
+for an unsupported version), and one required-version case. The first broad CPU
+serialization run passes **141 cases / 11 CUDA skips**. After the patch-collector
+refactor, the focused element/patch/batch CPU suite passes **37 cases**, and the
+completed H200 suite passes **273 CPU/CUDA cases / 11 skips**. Slurm **251006**
+exits **0:0** in **3:30**, batch MaxRSS **5,541,720 KiB**. It includes the ligand
+pipeline, reusable bundles, local conjugate parameters and native connection
+scoring checks. Existing legacy-version tests now explicitly omit new element
+metadata rather than falsely labeling a version-5 payload as an old format.
+
+The current AtomWorks branch, `adcbfd760`, also passes all **19** workflow
+fixtures on CPU through parsing, preparation, construction, scoring, gradients
+and rotamer generation. The run uses the reviewed AtomWorks source and the
+integrated environment (Biotite 1.6), and exercises the completed collector.
+This is current-workflow validation; no new reader-equivalence or scientific
+parameter-accuracy claim is inferred from finite outputs.
+
+[profile_atom_type_collection.py](profile_atom_type_collection.py) compares the
+pinned old collector and outer deduplication loop with the shared collector,
+checking exact type-record equality before timing. Nine warm CPU calls give:
+
+| Atom sources | Type inventory | Old collection | Shared collection |
+| --- | --- | ---: | ---: |
+| 1 | Known | 0.0575 ms | 0.0596 ms |
+| 1,000 | Known | 10.951 ms | 0.538 ms |
+| 1 | One unfamiliar type | 0.0702 ms | 0.0713 ms |
+| 1,000 | One repeated unfamiliar type | 12.095 ms | 0.568 ms |
+
+This is approximately **20–21×** faster for the synthetic 1,000-source metadata
+workload. One-source cost and traced Python peaks (about 21–22 KB) are essentially
+unchanged. Generation, patching, scoring and GPU memory are excluded; this is
+not a whole-pipeline speedup. Synthetic relabeled atoms test declaration and
+registration only: unfamiliar types still require appropriate force-field rows
+and other chemical properties for scoring.
+
+[check_element_metadata.py](check_element_metadata.py) contains the old-writer/
+old-reader diagnostic. [results/element-metadata-validation.json](results/element-metadata-validation.json)
+records final source hashes, every validation stage, scheduler outcome, the
+AtomWorks fixture inventory and raw collection samples. Lint, formatting,
+whitespace and source-hash checks pass. Comment **88** adds the anchored element
+loss finding; the review now has **88 draft comments and 17 general questions**,
+with nothing posted upstream. Default attachment-model selection, original
+reference failures and the default AtomWorks integration remain open.

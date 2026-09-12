@@ -11,7 +11,7 @@ Review date: 2026-09-12
 
 Both subsequent six-file updates have been reviewed separately. Comments 1–46
 retain their original `c03c1e745` anchors; comments 47–56 address `0f4c3bc42`,
-and comments 57–87 address `0593a93b0`. The
+and comments 57–88 address `0593a93b0`. The
 fold-forest expectations and HYP count are now corrected upstream. See
 [FOLLOWUP.md](FOLLOWUP.md) for reconciliation and validation details.
 
@@ -862,3 +862,14 @@ Fifteen regressions fail on parent `c8efb34ca`: repeated preparations/files, con
 The audit also found a **follow-up regression**, not an upstream claim: merging additional charge deltas could mutate a frozen preparation's nested dictionary. A separately failing input-immutability test now passes after copying only the map being updated. Guarded replacements validate contradictory original metadata before filtering values unnecessary for an already corrected target.
 
 The final CPU suite passes 124 cases / 11 CUDA skips. Slurm 250976 passes 233 CPU/CUDA cases / 8 skips; an additional 12-case H200 run checks distinct overlapping files through public preparation, exact named inventories, pose construction, scoring and gradients for all three attachment fixtures. In a repeated-file benchmark, 100 copies previously added 100 definitions and took 277.772 ms; the corrected batch adds one and takes 9.750 ms. A single file is essentially unchanged (9.351 versus 9.426 ms). This measures duplicate-input parsing/installation, not general preparation or scoring performance. See [results/batch-identity-validation.json](results/batch-identity-validation.json).
+
+
+## 88. Preserve declared elements for custom atom types through parameter export — P1
+
+[`tmol/ligand/_params_file.py:238`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/ligand/_params_file.py#L238), with the fallback at [`tmol/ligand/_registry.py:212`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/ligand/_registry.py#L212).
+
+> Can `.tmol` preserve `atom_type_elements` instead of reloading it as `None`? For an unfamiliar type, the lenient fallback assumes carbon unless the name starts with H or the lookup marks it polar H. A declared nitrogen, sulfur, chlorine or hydrogen type with an unrelated name consequently becomes carbon after export/reload; strict registration instead fails. The element should come from the declared chemistry, and an incompatible declaration for an existing type should raise rather than be ignored. New types introduced only by a patch also need registration before patch construction.
+
+The old-writer diagnostic reproduces all four element changes. Version 5 now carries the shared declaration map, preserves it through ordinary and guarded bundles, and is rejected by the version-4 reader. Older formats remain supported when they omit this metadata. Type collection is shared across new residues, patch atoms and explicit replacements; a separately failing patch test previously raised `KeyError` despite its supplied element mapping.
+
+The final H200 suite passes 273 CPU/CUDA cases / 11 skips, and the current AtomWorks parser path passes all 19 fixtures through preparation, construction, scoring, gradients and rotamers. These checks do not supply force-field rows for arbitrary new atom types. A metadata-only benchmark over 1,000 sources improves known-type collection from 10.951 to 0.538 ms and a repeated custom type from 12.095 to 0.568 ms; one-source cost and traced allocation peak are essentially unchanged. This is type collection, not a whole-preparation or GPU speedup. See [results/element-metadata-validation.json](results/element-metadata-validation.json).

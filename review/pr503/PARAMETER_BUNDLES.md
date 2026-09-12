@@ -50,7 +50,7 @@ residue insertion order can still change database indices.
 
 ## Format and scope
 
-Guarded bundles use `.tmol` version **4.0**. Their residue/charge/bonded target
+Guarded bundles require `.tmol` version **4.0** or later. Their residue/charge/bonded target
 records retain the usual schema. `chemical.replacement_baselines` maps exact
 residue names to baseline digests. If a combined bundle also carries old patch
 parameters for those names, `elec.replacement_baseline_charges` and
@@ -67,10 +67,12 @@ The digest has its own `tmol-residue-replacement-v1` domain tag. It does **not**
 cover every atom-type definition, score weight or global force-field table.
 It therefore cannot establish scientific compatibility by itself.
 
-Versions 1–3 remain readable. Writers emit version 2 for ordinary bundles and
-version 3 for generic atom references; only guarded replacements require
-version 4. An older version-3 reader rejects the version-4 bundle, and Rosetta
-`.params` export rejects replacements because it cannot carry their guard.
+Versions 1–4 remain readable. Writers choose the oldest supported format that
+preserves the supplied metadata: version 2 for ordinary bundles without element
+maps, version 3 for generic references, version 4 for guarded replacements, and
+version **5** for declared atom-type elements. Older readers reject the newer
+required major version. Rosetta `.params` export rejects replacements because
+it cannot carry their guard.
 Experimental private conjugate results made with the earlier representation-
 dependent digest must be regenerated; ordinary legacy bundles are unaffected.
 
@@ -115,3 +117,24 @@ mixed string/`Path` spellings of the same path). Distinct paths are read and
 checked independently. There is no persistent file cache, so a later batch
 reads the file again. Overlapping distinct files are covered through public
 preparation and native scoring/gradient checks.
+
+
+## Declared atom-type elements
+
+Version 5 stores `chemical.atom_type_elements` as a shared mapping from type
+name to element string. The loader carries it once on the first preparation,
+and batch registration combines all supplied maps. Declarations must be
+nonempty strings and must agree with existing atom-type elements in the target
+database. Missing legacy maps retain the earlier behavior: strict registration
+rejects unknown types; lenient registration uses the existing name heuristic.
+
+Type collection scans each batch once, including `add_atoms` and `modify_atoms`
+from newly introduced patches. New patch types are installed before constructing
+the patched residue graph. Known types and explicit replacements use the same
+collector. This supports chemical element registration; a custom type still
+needs appropriate scoring parameters and any other required chemical properties.
+
+Rosetta `.params` continues to reference external atom-type definitions and
+cannot carry this element map. Use `.tmol` to preserve the declaration in the
+bundle. The version-5 reader rejects element metadata mislabeled as an older
+format, and the preceding version-4 reader rejects version-5 bundles.

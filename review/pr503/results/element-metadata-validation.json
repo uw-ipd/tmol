@@ -1,0 +1,431 @@
+{
+  "date_utc": "2026-09-12T06:31:31.577132+00:00",
+  "parent_commit": "74fda5c531fe252d909db4ed2b45f1a2a61864ff",
+  "upstream_head": "0593a93b07d80b0302383163d2d98c78e315ab98",
+  "source_sha256": {
+    "tmol/ligand/_registry.py": "e699993a5a7739d00ea91b20d0c26f8c3832450a66e968b32e175661118c5b56",
+    "tmol/ligand/_params_file.py": "eabb55840e04e4a6dfff5fbe5b4156ea2fc48a9392418e7e49da3168ab8dee41",
+    "tmol/ligand/_params_io.py": "13073d3d4840265a3475aec9c1cefcb169a2b8428bf4c9a85486b3f010c955e3",
+    "tmol/tests/ligand/test_atom_type_element_roundtrip.py": "98be4220f39eb84da50cdaa838e4dc92118fb64e05d14d40018ae496846411c9",
+    "tmol/tests/ligand/test_conjugate_params_roundtrip.py": "77e67ad7227e4f5b47df9bd61d2b53c98387fd8c239862f5d7d8b159f0b60d2c",
+    "tmol/tests/ligand/test_ligand_entry_paths.py": "ef713227ac68bdffcc67dccaf143339f90511efd7232cdbf069b39ed56aa67a0",
+    "tmol/tests/ligand/test_parameter_replacements.py": "1b0281cf0d7e7265a86228ed0482d367254a1c64e759808ba8fc60949c3b4de0",
+    "review/pr503/profile_atom_type_collection.py": "b6fab84f921745958ad28626ae55900a96e71b8d9ae6ab760e85f81d3aa3306f",
+    "review/pr503/check_element_metadata.py": "018a0736d57797fc39fe08d14a7601ff3b4c0086976eb2625e263d058f2785a0"
+  },
+  "contract": [
+    "Version 5 preserves the supplied shared atom_type_elements map, including in guarded bundles.",
+    "The writer chooses the oldest version preserving all fields; versions 1-4 remain readable.",
+    "Older readers reject version 5 instead of silently discarding declarations.",
+    "Map keys/values must be nonempty strings; declared elements must agree with existing database types.",
+    "Type collection is shared across new residues, atoms added/modified by new patches, and explicit replacements.",
+    "Patch types are registered before constructing their residue graph.",
+    "Legacy missing-map strict errors and lenient name heuristic remain unchanged."
+  ],
+  "before": {
+    "element_and_schema_tests": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/element-roundtrip-before-cpu.xml",
+      "sha256": "365016d3e9d552f449ef5e719de9cf65ba4b8f376a5afe3cc7c3af4fda2fad56",
+      "passed": 1,
+      "failed": [
+        "test_declared_element_survives_export_without_name_inference[N]",
+        "test_declared_element_survives_export_without_name_inference[O]",
+        "test_declared_element_survives_export_without_name_inference[S]",
+        "test_declared_element_survives_export_without_name_inference[P]",
+        "test_declared_element_survives_export_without_name_inference[H]",
+        "test_declared_element_survives_export_without_name_inference[Cl]",
+        "test_declared_element_survives_export_without_name_inference[Br]",
+        "test_declared_element_survives_export_without_name_inference[Vr]",
+        "test_real_preparation_maps_roundtrip_and_strict_injection",
+        "test_element_declaration_cannot_disagree_with_existing_type",
+        "test_invalid_element_metadata_is_rejected[mapping0]",
+        "test_invalid_element_metadata_is_rejected[mapping1]",
+        "test_invalid_element_metadata_is_rejected[mapping2]",
+        "test_invalid_element_metadata_is_rejected[mapping3]",
+        "test_invalid_element_metadata_is_rejected[mapping4]",
+        "test_old_version_cannot_silently_drop_declared_elements"
+      ],
+      "skipped": 0
+    },
+    "interpretation": "Ten existing-behavior loss/mismatch regressions; five future-schema validation cases initially rejected for unsupported major version; one explicit legacy-version guard case. One legacy strict-mode control passes.",
+    "patch_registration": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/element-patch-before.xml",
+      "sha256": "fe6fb060902a06fddce47728ffc12d5bc012ecd0d1edca6e6115ca79d99b207d",
+      "passed": 0,
+      "failed": [
+        "test_patch_introduced_atom_types_use_declared_elements"
+      ],
+      "skipped": 0
+    }
+  },
+  "compatibility": {
+    "baseline": "74fda5c53",
+    "rows": [
+      {
+        "declared": "N",
+        "legacy": "C",
+        "current": "N",
+        "old_reader_error": "/mnt/home/kdidi/tmol-pr503-followup/element-metadata-compatibility/N-declared.tmol: .tmol format version 5.0 is incompatible with the current format version 4.0. Regenerate the file with the current writer."
+      },
+      {
+        "declared": "S",
+        "legacy": "C",
+        "current": "S",
+        "old_reader_error": "/mnt/home/kdidi/tmol-pr503-followup/element-metadata-compatibility/S-declared.tmol: .tmol format version 5.0 is incompatible with the current format version 4.0. Regenerate the file with the current writer."
+      },
+      {
+        "declared": "Cl",
+        "legacy": "C",
+        "current": "Cl",
+        "old_reader_error": "/mnt/home/kdidi/tmol-pr503-followup/element-metadata-compatibility/Cl-declared.tmol: .tmol format version 5.0 is incompatible with the current format version 4.0. Regenerate the file with the current writer."
+      },
+      {
+        "declared": "H",
+        "legacy": "C",
+        "current": "H",
+        "old_reader_error": "/mnt/home/kdidi/tmol-pr503-followup/element-metadata-compatibility/H-declared.tmol: .tmol format version 5.0 is incompatible with the current format version 4.0. Regenerate the file with the current writer."
+      }
+    ]
+  },
+  "compatibility_scope": "Old writer entry point from pinned parent omits the element map; current reader then registers unfamiliar N/S/Cl/H declarations as C. Current writer preserves them. The complete old reader function rejects current version-5 files with its original version-4 constant.",
+  "tests": {
+    "serialization_cpu": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/element-roundtrip-cpu.xml",
+      "sha256": "d641f9a6ffc24f3e0ad5099de40877262f5d5dd183064dadb0bfcfafdbe69f4c",
+      "passed": 141,
+      "failed": [],
+      "skipped": 11
+    },
+    "final_focused_cpu": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/element-patch-after-cpu.xml",
+      "sha256": "99fc6522b8bd1d3fbe94d240904853a1ef85516c2df1e5c0915a6fd17fb85730",
+      "passed": 37,
+      "failed": [],
+      "skipped": 0
+    },
+    "final_gpu": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/element-roundtrip-gpu.xml",
+      "sha256": "5de4ac6a665f29090f9b0ce439c4593eb0d3d07f201861dbf8cc404982ada73b",
+      "passed": 273,
+      "failed": [],
+      "skipped": 11
+    }
+  },
+  "test_scope": "Broad CPU serialization tests precede the shared patch-collector refactor. Final focused CPU cases and full H200 CPU/CUDA suite cover the completed implementation. Relabeled synthetic element cases test metadata/registration, not scoring of arbitrary new atom types.",
+  "scheduler": "JobID|State|ExitCode|Elapsed|MaxRSS\n251006|COMPLETED|0:0|00:03:30|\n251006.batch|COMPLETED|0:0|00:03:30|5541720K\n",
+  "atomworks": {
+    "commit": "adcbfd760897a0059ef7dff813da91720c0f4b26",
+    "path": "/mnt/home/kdidi/tmol-pr503-followup/element-atomworks-matrix/measurements.json",
+    "sha256": "f9a273ac38f81e20ae997b2f32458d5cd12967e814328f1d73ed5e60b5b034ce",
+    "packages": {
+      "torch": "2.8.0+cpu",
+      "numpy": "2.5.3",
+      "biotite": "1.6.0",
+      "rdkit": "2026.3.6"
+    },
+    "reader": "atomworks",
+    "device": "cpu",
+    "stages": [
+      "read",
+      "prepare",
+      "construct",
+      "score_setup",
+      "first_forward_backward",
+      "score",
+      "score_backward",
+      "rotamers"
+    ],
+    "fixtures": [
+      {
+        "fixture": "cif/1UBQ.cif",
+        "status": "passed",
+        "blocks": 76,
+        "atoms": 1231,
+        "rotamers": 2004
+      },
+      {
+        "fixture": "ncaa_fixtures/6dmz_mod_d.cif",
+        "status": "passed",
+        "blocks": 47,
+        "atoms": 732,
+        "rotamers": 1261
+      },
+      {
+        "fixture": "ncaa_fixtures/6dmz_mod_l.cif",
+        "status": "passed",
+        "blocks": 47,
+        "atoms": 732,
+        "rotamers": 1261
+      },
+      {
+        "fixture": "ncaa_fixtures/beta_peptide_3c3g.cif",
+        "status": "passed",
+        "blocks": 31,
+        "atoms": 585,
+        "rotamers": 748
+      },
+      {
+        "fixture": "ncaa_fixtures/capped_peptide_ace_nh2.cif",
+        "status": "passed",
+        "blocks": 3,
+        "atoms": 19,
+        "rotamers": 3
+      },
+      {
+        "fixture": "ncaa_fixtures/capped_peptide_ace_nme.cif",
+        "status": "passed",
+        "blocks": 3,
+        "atoms": 22,
+        "rotamers": 3
+      },
+      {
+        "fixture": "ncaa_fixtures/collagen_hyp_1bkv.cif",
+        "status": "passed",
+        "blocks": 29,
+        "atoms": 358,
+        "rotamers": 271
+      },
+      {
+        "fixture": "ncaa_fixtures/gamma_peptide_1gac.cif",
+        "status": "passed",
+        "blocks": 5,
+        "atoms": 70,
+        "rotamers": 57
+      },
+      {
+        "fixture": "ncaa_fixtures/na_dna_5mc_1d17.cif",
+        "status": "passed",
+        "blocks": 6,
+        "atoms": 195,
+        "rotamers": 22
+      },
+      {
+        "fixture": "ncaa_fixtures/na_dna_8og_183d.cif",
+        "status": "passed",
+        "blocks": 10,
+        "atoms": 316,
+        "rotamers": 26
+      },
+      {
+        "fixture": "ncaa_fixtures/na_dna_ttd_1ttd.cif",
+        "status": "passed",
+        "blocks": 11,
+        "atoms": 382,
+        "rotamers": 27
+      },
+      {
+        "fixture": "ncaa_fixtures/na_rna_2ome_310d.cif",
+        "status": "passed",
+        "blocks": 6,
+        "atoms": 212,
+        "rotamers": 33
+      },
+      {
+        "fixture": "ncaa_fixtures/na_rna_psu_1bzt.cif",
+        "status": "passed",
+        "blocks": 17,
+        "atoms": 535,
+        "rotamers": 450
+      },
+      {
+        "fixture": "ncaa_fixtures/nmethyl_peptide_6mvz.cif",
+        "status": "passed",
+        "blocks": 4,
+        "atoms": 87,
+        "rotamers": 31
+      },
+      {
+        "fixture": "ncaa_fixtures/phosphopeptide_5ema.cif",
+        "status": "passed",
+        "blocks": 7,
+        "atoms": 106,
+        "rotamers": 340
+      },
+      {
+        "fixture": "covalent_fixtures/lys_biotin_1bdo.cif",
+        "status": "passed",
+        "blocks": 81,
+        "atoms": 1252,
+        "rotamers": 2094
+      },
+      {
+        "fixture": "covalent_fixtures/nglycan_tree_1ax2.cif",
+        "status": "passed",
+        "blocks": 248,
+        "atoms": 3848,
+        "rotamers": 6356
+      },
+      {
+        "fixture": "covalent_fixtures/oglycan_sia_1g1s.cif",
+        "status": "passed",
+        "blocks": 20,
+        "atoms": 396,
+        "rotamers": 3599
+      },
+      {
+        "fixture": "cif/cyclic_peptide_1jbl.cif",
+        "status": "passed",
+        "blocks": 14,
+        "atoms": 210,
+        "rotamers": 232
+      }
+    ],
+    "scope": "Nineteen current-workflow fixtures with finite scores/gradients and rotamer construction; not a new proof of reader equivalence or scientific parameter accuracy."
+  },
+  "benchmark": {
+    "baseline": "74fda5c53",
+    "cases": {
+      "known_1": {
+        "types": 0,
+        "old": {
+          "median_ms": 0.05751661956310272,
+          "samples_ms": [
+            0.05376245826482773,
+            0.06589014083147049,
+            0.05589425563812256,
+            0.059429556131362915,
+            0.055524520576000214,
+            0.05867891013622284,
+            0.05751661956310272,
+            0.05716551095247269,
+            0.06556976586580276
+          ],
+          "python_retained_bytes": 10000,
+          "python_peak_bytes": 21140
+        },
+        "new": {
+          "median_ms": 0.05957018584012985,
+          "samples_ms": [
+            0.0575874000787735,
+            0.06948597729206085,
+            0.05818810313940048,
+            0.06059184670448303,
+            0.058708712458610535,
+            0.07974077016115189,
+            0.05814805626869202,
+            0.07153954356908798,
+            0.05957018584012985
+          ],
+          "python_retained_bytes": 9936,
+          "python_peak_bytes": 21476
+        }
+      },
+      "known_1000": {
+        "types": 0,
+        "old": {
+          "median_ms": 10.95145009458065,
+          "samples_ms": [
+            10.79310942441225,
+            11.007613502442837,
+            10.820550844073296,
+            11.062788777053356,
+            11.087256483733654,
+            10.900991968810558,
+            10.95145009458065,
+            10.912380181252956,
+            11.187758296728134
+          ],
+          "python_retained_bytes": 10000,
+          "python_peak_bytes": 21488
+        },
+        "new": {
+          "median_ms": 0.5380269140005112,
+          "samples_ms": [
+            0.523105263710022,
+            0.5287528038024902,
+            0.5202498286962509,
+            0.5158837884664536,
+            0.5493443459272385,
+            0.5380269140005112,
+            0.54965540766716,
+            0.5564633756875992,
+            0.5442565307021141
+          ],
+          "python_retained_bytes": 9936,
+          "python_peak_bytes": 21488
+        }
+      },
+      "custom_1": {
+        "types": 1,
+        "old": {
+          "median_ms": 0.07019657641649246,
+          "samples_ms": [
+            0.07197912782430649,
+            0.070156529545784,
+            0.07019657641649246,
+            0.07406249642372131,
+            0.06901565939188004,
+            0.09737815707921982,
+            0.07259007543325424,
+            0.07005780935287476,
+            0.06941612809896469
+          ],
+          "python_retained_bytes": 10448,
+          "python_peak_bytes": 21900
+        },
+        "new": {
+          "median_ms": 0.07130764424800873,
+          "samples_ms": [
+            0.08547957986593246,
+            0.0702468678355217,
+            0.07060728967189789,
+            0.06911531090736389,
+            0.07187947630882263,
+            0.07712654769420624,
+            0.07362198084592819,
+            0.06977654993534088,
+            0.07130764424800873
+          ],
+          "python_retained_bytes": 10344,
+          "python_peak_bytes": 22052
+        }
+      },
+      "custom_1000": {
+        "types": 1,
+        "old": {
+          "median_ms": 12.094665318727493,
+          "samples_ms": [
+            12.119212187826633,
+            12.094665318727493,
+            11.846108362078667,
+            12.154076248407364,
+            12.134585529565811,
+            12.138443067669868,
+            11.774640530347824,
+            12.066352181136608,
+            11.74343191087246
+          ],
+          "python_retained_bytes": 10568,
+          "python_peak_bytes": 22244
+        },
+        "new": {
+          "median_ms": 0.5678115412592888,
+          "samples_ms": [
+            0.5747033283114433,
+            0.554150901734829,
+            0.5678115412592888,
+            0.6302064284682274,
+            0.5746325477957726,
+            0.5536098033189774,
+            0.5600107833743095,
+            0.5544228479266167,
+            0.5750628188252449
+          ],
+          "python_retained_bytes": 10344,
+          "python_peak_bytes": 22110
+        }
+      }
+    }
+  },
+  "benchmark_scope": {
+    "method": "Nine warm CPU calls, old collector from parent plus the former outer deduplication loop versus one shared collector. Outputs compare exactly.",
+    "workloads": "One or 1000 named sources sharing a real prepared atom layout, with known types or one deliberately unfamiliar type. No patching, generation or scoring is timed.",
+    "memory": "tracemalloc extra Python allocations; not RSS or GPU memory. Peaks essentially unchanged."
+  },
+  "remaining_limits": [
+    "Element registration does not supply arbitrary atom-type scoring parameters or other missing chemical properties.",
+    "Rosetta .params still relies on external atom-type definitions and does not carry this map.",
+    "No default AtomWorks dependency/reader switch or protonation-policy change.",
+    "Default attachment model remains pending; connection stiffness and old noncanonical reference gates remain unresolved."
+  ]
+}

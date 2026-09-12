@@ -124,7 +124,7 @@ def test_connection_params_bundle_scores_after_reload(
 
     pose = pose_stack_from_pdb_and_resnums(ubq_pdb, torch_device, [(24, 26)])
     record = peptide_record(pose)
-    plain = _single_prep()
+    plain = replace(_single_prep(), atom_type_elements=None)
     prep = replace(plain, connection_params=(record,))
     path = tmp_path / "connections.tmol"
     write_params_file(prep, path, format="tmol")

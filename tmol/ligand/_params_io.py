@@ -400,6 +400,7 @@ def _write_tmol_params_file(
     replacement_baselines: Mapping[str, str] | None = None,
     replacement_baseline_charges: Mapping[str, dict[str, float]] | None = None,
     replacement_baseline_cartbonded: Mapping[str, CartRes] | None = None,
+    atom_type_elements: Mapping[str, str] | None = None,
 ) -> None:
     """Write prepared ligand data to a tmol params YAML (``.tmol``) file.
 
@@ -438,13 +439,19 @@ def _write_tmol_params_file(
         ]
     if replacement_baselines:
         chemical["replacement_baselines"] = dict(replacement_baselines)
+    if atom_type_elements:
+        chemical["atom_type_elements"] = dict(atom_type_elements)
 
     has_generic_references = _has_generic_references(residue_types, patches or ())
     payload: dict[str, Any] = {
         "version": (
-            "4.0"
-            if replacement_baselines
-            else ("3.0" if has_generic_references else "2.0")
+            "5.0"
+            if atom_type_elements
+            else (
+                "4.0"
+                if replacement_baselines
+                else ("3.0" if has_generic_references else "2.0")
+            )
         ),
         "chemical": chemical,
         "elec": {
@@ -504,6 +511,7 @@ def write_params_file(
         _merge_partial_charges,
         _merge_named_parameters,
         _unique_preparations,
+        _batch_atom_type_elements,
     )
 
     definitions = _unique_preparations(preps)
@@ -571,6 +579,7 @@ def write_params_file(
             },
             replacement_baseline_charges=baseline_charges,
             replacement_baseline_cartbonded=baseline_cart,
+            atom_type_elements=_batch_atom_type_elements(preps),
         )
     else:
         raise ValueError(f"unknown params format {format!r} (use 'rosetta' or 'tmol')")

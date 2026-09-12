@@ -72,7 +72,7 @@ def test_complete_bundle_fresh_prepared_and_repeated(bundle, tmp_path, reverse):
         preps = preps[::-1]
     path = tmp_path / "coupled.tmol"
     write_params_file(preps, path, format="tmol")
-    assert yaml.safe_load(path.read_text())["version"] == "4.0"
+    assert yaml.safe_load(path.read_text())["version"] == "5.0"
     loaded = load_params_file(path)
     expected = install_conjugate_parameters(baseline, result)
     for database in (ParameterDatabase.get_default(), baseline, expected):

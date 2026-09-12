@@ -130,11 +130,12 @@ def test_tmol_params_roundtrip_and_inject(tmp_path) -> None:
 
 
 def test_tmol_loader_accepts_minor_version_difference(tmp_path) -> None:
+    from dataclasses import replace
     import yaml
     from tmol.ligand import load_params_file
     from tmol.ligand import write_params_file
 
-    prep = _single_prep()
+    prep = replace(_single_prep(), atom_type_elements=None)
     tmol_file = tmp_path / "lig.tmol"
     write_params_file([prep], str(tmol_file), format="tmol")
 

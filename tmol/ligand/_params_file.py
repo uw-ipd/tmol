@@ -67,7 +67,7 @@ if TYPE_CHECKING:
 # schema changes; bump the minor version on backward-compatible additions.
 # Writers choose the oldest supported major that preserves the bundle;
 # this is the newest supported version. Every file is checked on load.
-TMOL_FORMAT_VERSION: str = "4.0"
+TMOL_FORMAT_VERSION: str = "5.0"
 
 _RAW_RESIDUE_DEFAULTS: dict[str, Any] = {
     "atom_aliases": [],
@@ -130,8 +130,10 @@ def _replacement_metadata(chem, elec, cart, residues, file_major):
     residue_names = {r.name for r in residues}
     replacement_baselines = chem.get("replacement_baselines") or {}
     if replacement_baselines:
-        if file_major != "4":
-            raise ValueError("Replacement baselines require .tmol format version 4")
+        if file_major not in {"4", "5"}:
+            raise ValueError(
+                "Replacement baselines require .tmol format version 4 or later"
+            )
         if (
             not isinstance(replacement_baselines, dict)
             or not set(replacement_baselines) <= residue_names
@@ -162,6 +164,22 @@ def _replacement_metadata(chem, elec, cart, residues, file_major):
     return replacement_baselines, baseline_charges, baseline_cart
 
 
+def _element_metadata(chem, residues, file_major):
+    from tmol.ligand._registry import _validate_atom_type_elements
+
+    elements = chem.get("atom_type_elements")
+    if elements is not None:
+        if file_major != "5":
+            raise ValueError("atom_type_elements require .tmol format version 5")
+        elements = _validate_atom_type_elements(elements)
+
+    if elements and not residues:
+        raise ValueError(
+            "A params bundle with atom_type_elements must define a residue"
+        )
+    return elements
+
+
 def load_params_file(path: str | Path) -> list["LigandPreparation"]:
     """Load a tmol params YAML file as a list of ``LigandPreparation``.
 
@@ -176,7 +194,10 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
     legacy flat schema (top-level ``residues:`` etc.) raise a
     ``ValueError`` pointing at the migration.
     """
-    from tmol.ligand._registry import LigandPreparation, _charges_from_rows
+    from tmol.ligand._registry import (
+        LigandPreparation,
+        _charges_from_rows,
+    )
 
     path = Path(path)
     with path.open() as f:
@@ -204,10 +225,11 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
         # Read legacy single-residue bundles as well as complete conjugates.
         # v2 adds shared partner patches and connection parameters; v3 adds
         # per-atom generic bonded references; v4 adds guarded exact-residue
-        # replacements. Old readers must reject fields
+        # replacements; v5 preserves atom-type element declarations.
+        # Old readers must reject fields
         # they would otherwise silently drop.
         file_major = file_version.split(".")[0]
-        if file_major not in {"1", "2", "3", "4"}:
+        if file_major not in {"1", "2", "3", "4", "5"}:
             raise ValueError(
                 f"{path}: .tmol format version {file_version} is incompatible "
                 f"with the current format version {TMOL_FORMAT_VERSION}. "
@@ -239,6 +261,7 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
     res_list = chem.get("residues") or []
     normalize_bond_tuples({"residues": res_list})
     residues = [_structure_residue(item) for item in res_list]
+    elements = _element_metadata(chem, residues, file_major)
 
     # Bundle-wide additions need not target a residue defined in this file:
     # a glycan, for example, brings a patch for its canonical ASN partner.
@@ -313,7 +336,7 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
                 residue_type=rt,
                 partial_charges=charges,
                 cartbonded_params=cart_by_res.get(rt.name, _empty_cartres()),
-                atom_type_elements=None,
+                atom_type_elements=(elements or None) if not preps else None,
                 adds_patches=tuple(patches) if not preps else (),
                 variant_partial_charges=variant_charges_by_res.get(rt.name) or None,
                 connection_params=connections if not preps else (),

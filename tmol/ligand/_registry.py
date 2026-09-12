@@ -7,6 +7,7 @@ scoring parameters built by the ligand preparation pipeline.
 import logging
 import math
 from dataclasses import dataclass, replace
+from itertools import chain
 from typing import Optional
 
 from tmol.database import (
@@ -187,13 +188,26 @@ def collect_new_atom_types(
     Sets hbond properties (is_donor, is_acceptor, acceptor_hybridization)
     from the HBOND_PROPERTIES lookup in atom_typing.py.
     """
+    return _collect_new_atom_types(
+        chem_db,
+        ((residue_type.atoms, f"residue {residue_type.name}"),),
+        atom_type_elements,
+        strict_atom_types=strict_atom_types,
+    )
+
+
+def _collect_new_atom_types(
+    chem_db, atom_sources, atom_type_elements=None, *, strict_atom_types=False
+):
+    """Collect types once across sources, including atoms introduced by patches."""
     existing = {at.name for at in chem_db.atom_types}
     needed: dict[str, str] = {}
     hbond_properties = get_hbond_properties()
 
-    for atom in residue_type.atoms:
-        if atom.atom_type not in existing and atom.atom_type not in needed:
-            needed[atom.atom_type] = atom.atom_type
+    for atoms, source in atom_sources:
+        for atom in atoms:
+            if atom.atom_type not in existing:
+                needed.setdefault(atom.atom_type, source)
 
     result = []
     atom_type_elements = atom_type_elements or {}
@@ -204,12 +218,12 @@ def collect_new_atom_types(
             if strict_atom_types:
                 raise ValueError(
                     f"Unknown element mapping for atom type '{name}' while "
-                    f"registering residue {residue_type.name}"
+                    f"registering {needed[name]}"
                 )
             # Heuristic: treat polar-H atom types and any name starting
             # with 'H' as hydrogen, everything else as carbon. The
-            # params-file path always lands here because the file format
-            # encodes atom types but not their elements.
+            # Legacy params files may omit element declarations. Version-5
+            # .tmol files preserve explicit maps and avoid this fallback.
             element = "H" if props.get("is_polarh") or name.startswith("H") else "C"
         result.append(
             AtomType(
@@ -255,8 +269,8 @@ class LigandPreparation:
     cartbonded_params: CartRes
     # Optional element mapping for new atom types this ligand introduces.
     # Populated by the AtomArray path (where atom_type element is known
-    # from the RDKit Mol). The params-file path leaves it None and the
-    # injector falls back to an element heuristic.
+    # from the RDKit Mol) and preserved by .tmol version 5. Legacy files may
+    # omit it, in which case strict injection rejects unknown types.
     atom_type_elements: Optional[dict[str, str]] = None
     # Patches for this residue and any existing residues it attaches to.
     # Shared bundle metadata is carried once, on its first preparation.
@@ -410,11 +424,38 @@ def _charges_from_rows(rows):
     return merged
 
 
-def _batch_atom_type_elements(preparations):
-    return _merge_named_parameters(
-        (item for p in preparations for item in (p.atom_type_elements or {}).items()),
+def _validate_atom_type_elements(mapping):
+    if not isinstance(mapping, dict) or any(
+        not isinstance(k, str) or not k or not isinstance(v, str) or not v
+        for k, v in mapping.items()
+    ):
+        raise ValueError(
+            "atom_type_elements must map nonempty type names to element strings"
+        )
+    return mapping
+
+
+def _batch_atom_type_elements(preparations, chemical=None):
+    elements = _merge_named_parameters(
+        (
+            item
+            for p in preparations
+            for item in _validate_atom_type_elements(
+                {} if p.atom_type_elements is None else p.atom_type_elements
+            ).items()
+        ),
         "atom type elements",
     )
+    if chemical is not None:
+        for atom_type in chemical.atom_types:
+            if (
+                atom_type.name in elements
+                and elements[atom_type.name] != atom_type.element
+            ):
+                raise ValueError(
+                    f"Atom type element disagrees with database: {atom_type.name}"
+                )
+    return elements
 
 
 def _additional_cartbonded_params(preparations):
@@ -506,21 +547,21 @@ def inject_ligand_preparations(
         for p in preparations
     ]
     extended = _inject_additions(param_db, additions, strict_atom_types)
-    atom_types = {}
-    elements = _batch_atom_type_elements(preparations)
-    for prep in replacements:
-        for at in collect_new_atom_types(
-            extended.chemical,
-            prep.residue_type,
-            atom_type_elements=elements,
-            strict_atom_types=strict_atom_types,
-        ):
-            atom_types[at.name] = at
+    elements = _batch_atom_type_elements(preparations, extended.chemical)
+    atom_types = _collect_new_atom_types(
+        extended.chemical,
+        (
+            (p.residue_type.atoms, f"residue {p.residue_type.name}")
+            for p in replacements
+        ),
+        elements,
+        strict_atom_types=strict_atom_types,
+    )
     return install_replacements(
         extended,
         replacements,
         tuple(dict.fromkeys(r for p in preparations for r in p.connection_params)),
-        atom_types=list(atom_types.values()) or None,
+        atom_types=atom_types or None,
     )
 
 
@@ -531,7 +572,7 @@ def _inject_additions(param_db, preparations, strict_atom_types):
         return param_db
 
     unique = _unique_preparations(p for p in preparations if p.baseline_sha256 is None)
-    elements = _batch_atom_type_elements(preparations)
+    elements = _batch_atom_type_elements(preparations, param_db.chemical)
     existing_names = {r.name for r in param_db.chemical.residues}
     new_preps = [p for p in unique if p.residue_type.name not in existing_names]
     known_variants = {v.name: v for v in param_db.chemical.variants}
@@ -582,19 +623,18 @@ def _inject_additions(param_db, preparations, strict_atom_types):
     ):
         return param_db
 
-    new_atom_types: list[AtomType] = []
-    seen_at: set[str] = set()
-    for prep in new_preps:
-        for at in collect_new_atom_types(
-            param_db.chemical,
-            prep.residue_type,
-            atom_type_elements=elements,
-            strict_atom_types=strict_atom_types,
-        ):
-            if at.name in seen_at:
-                continue
-            seen_at.add(at.name)
-            new_atom_types.append(at)
+    new_atom_types = _collect_new_atom_types(
+        param_db.chemical,
+        chain(
+            (
+                (p.residue_type.atoms, f"residue {p.residue_type.name}")
+                for p in new_preps
+            ),
+            ((chain(v.add_atoms, v.modify_atoms), f"patch {v.name}") for v in variants),
+        ),
+        elements,
+        strict_atom_types=strict_atom_types,
+    )
 
     for prep in new_preps:
         logger.info(
