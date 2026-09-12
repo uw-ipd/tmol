@@ -93,6 +93,10 @@ from ._pose_stack_from_rosettafold2 import (  # noqa: F401
     packed_block_types_for_rosettafold2,
     _paramdb_for_rosettafold2,
 )
+from ._pose_stack_from_backbone_coords import (  # noqa: F401
+    pose_stack_from_backbone_coords,
+    canonical_form_from_backbone_coords,
+)
 from ._write_pose_stack_pdb import (  # noqa: F401
     write_pose_stack_pdb,
     atom_records_from_pose_stack,
@@ -112,6 +116,7 @@ __all__ = [
     "biotite_from_pose_stack",
     "build_context_from_biotite",
     "canonical_form_from_atomworks",
+    "canonical_form_from_backbone_coords",
     "canonical_form_from_biotite",
     "canonical_form_from_pdb",
     "canonical_form_from_pose_stack",
@@ -131,6 +136,7 @@ __all__ = [
     "pose_stack_from_atomworks",
     "prepare_pose_stack_from_atom37",
     "pose_stack_from_atom37_and_biotite",
+    "pose_stack_from_backbone_coords",
     "pose_stack_from_biotite",
     "pose_stack_from_openfold",
     "pose_stack_from_pdb",
