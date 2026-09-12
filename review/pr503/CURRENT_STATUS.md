@@ -1,9 +1,19 @@
 # Current review checkpoint
 
 Frank's latest fetched head remains `0593a93b07d80b0302383163d2d98c78e315ab98`,
-already merged. The current production fixes are tmol `251fa5901`, following
-the immutable GPU checkpoint `4b4ff72d9`, and AtomWorks `4af94d0c` based on dev
-`59afb1e2`. Later review-record commits do not change production behavior.
+already merged. The current production fixes are tmol `102cda060` and AtomWorks
+`4af94d0c` based on dev `59afb1e2`. Expanded CPU/CUDA validation of an immutable
+snapshot is running in Slurm job **253074**; no completed result is claimed yet.
+
+Both CIF identifier routes now share AtomWorks bond parsing. Complete 1xvk and
+145d regressions retain their declared topology and pass CPU scoring/minimization.
+1xvk also preserves its initial energy under reversed residue order after fixing
+generic torsion direction/priority and central-bond lookup. Declared disulfides
+survive missing/distant sulfur coordinates. Invalid patch combinations are
+rejected before losing their torsion support. The latest focused selection has
+**30 passed, 18 device skips**; preceding shared-reader/corpus checks have
+**39 passed, seven skips**. See
+[incremental evidence](results/topology-focused-validation.json) for revision scope.
 
 [tmol draft PR #508](https://github.com/uw-ipd/tmol/pull/508) targets Frank's
 branch. [AtomWorks draft PR #349](https://github.com/baker-laboratory/atomworks-dev/pull/349)
@@ -21,12 +31,11 @@ has not been independently verified. The notebook requires authenticated access
 to the unpublished AtomWorks source. This caches mappings, not final topology; the broader unified
 prepared-topology atom14/atom37/backbone4 API remains a proposal.
 
-- Broad GPU checkpoint: **1,478 passed, 15 skipped, eight inherited noncanonical
+- Earlier `4b4ff72d9` broad GPU checkpoint: **1,478 passed, 15 skipped, eight inherited noncanonical
   score-reference failures**. All **18 CPU and 18 CUDA examples pass**. No golden
   or tolerance was changed.
 - Subsequent cap-frame/diagnostic fixes: **86 CPU passes, six device skips** and
-  **118 CPU/CUDA passes**. 1xvk preparation now succeeds; its remaining MVA/QUI
-  topology failure has an explicit complete-fixture regression and diagnostic.
+  **118 CPU/CUDA passes**. These predate the topology and generic-lookup fixes.
 - AtomWorks full IO: **766 passed, 13 skipped, four 1twr failures**, all four
   reproduced on unchanged dev. The full run preceded the final allocation-only
   neutralization cleanup; its five identity cases were rerun and pass.
@@ -34,7 +43,7 @@ prepared-topology atom14/atom37/backbone4 API remains a proposal.
   of integrated workflows. All 48 pass. Existing upstream tests are unchanged.
 - All **774 original protonation comparisons match**. Three new mixture
   comparisons intentionally differ because the old engine discarded molecules.
-- All **324 scoring/minimization trials completed**: 132 local-file trials and
+- Earlier **324 scoring/minimization trials completed**: 132 local-file trials and
   192 trials over the 96 PDBs referenced by AtomWorks IO tests. Every reader/input
   ran in a fresh CUDA process, with up to 100 LBFGS iterations and a 300 s timeout.
 
@@ -51,15 +60,18 @@ Partial means additional constructor residue exclusions; numerical pass does
 not imply convergence. Only four trials in each local mode and nine of the
 192 PDB trials report convergence. Connection-length alerts remain explicit.
 
-There are **116 recorded findings**. See [CONTINUED_REVIEW.md](CONTINUED_REVIEW.md)
+There are **117 recorded findings**. See [CONTINUED_REVIEW.md](CONTINUED_REVIEW.md)
 for new anchored comments, experimental diagnostics, failure triage and proposed
 fixes; [PR_DESCRIPTION.md](PR_DESCRIPTION.md) maps every finding to its fix or
 remaining limitation. Full results, source hashes and optimizer states are in
 `results/continued-*-validation.json`.
 
-Outstanding: default attachment parameters/local chemistry, noncanonical golden
-provenance, polymer-port and patch-composition correctness, proximity inference
-versus authoritative connectivity, and certain incomplete inputs. Metals remain
+The attachment parameter source is settled: follow Frank's hybrid model and
+his generated-geometry Cartesian convention (`K=300` lengths, `K=80` angles).
+The MMFF94 harmonic prototype remains diagnostic-only. Completing missing
+attachment/local terms, reconciling noncanonical golden provenance, validating
+broader polymer/patch contexts, and handling certain incomplete inputs remain
+outstanding. Metals remain
 deferred. The immutable AtomWorks dependency needs authenticated Git access and
 must be replaced by a public release before package publication. Native CIF
 reading remains the default while normalization/provenance policy is settled.

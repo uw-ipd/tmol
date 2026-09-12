@@ -82,7 +82,7 @@ explicitly excludes free Mg, completes preparation, checks QUI identity/finite
 ideal coordinates, and exercises the remaining construction error below.
 This test does not claim whole-complex scoring succeeds.
 
-## 114. Partner backbone discovery and chain ordering disagree — open
+## 114. Partner backbone discovery and chain ordering disagree — targeted fix
 
 [Partner connection classification](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/ligand/_preparation.py#L712)
 and [conjugation inference](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/ligand/_preparation.py#L741).
@@ -93,21 +93,21 @@ and [conjugation inference](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b03
 > conjugations. MVA then loses its down polymer port. QUI also occurs after its
 > connected partner in input order and is requested as the wrong terminal class.
 
-The current construction rejects MVA and QUI because no prepared type matches
-the inferred topology. The new diagnostic reports pose, residue, component,
-terminal class and variant even when the candidate set is empty. Previously
-it emitted only a generic failure threshold. Do not manufacture a matching
-candidate or drop these residues to obtain a numerical pass.
+At `102cda060`, resolve unique chemically supported peptide endpoint pairs for
+all partners before generating conjugation patches. Retain explicit sequential
+and nonsequential polymer bonds during canonical conversion and determine termini
+from occupied ports, including intrinsic caps. D-serine's DSN input identity
+resolves its DSER database type. Complete 1xvk now retains all 18 links, with
+finite scores/gradients and decreasing energy in ten LBFGS steps through both
+readers and both original/reversed residue orders on CPU. The same test exposed
+the independent scoring defect in 117. Broader corpus/CUDA validation is pending;
+this is not a claim that every ambiguous polymer has an inferred profile.
 
-Proposed fix: establish a consistent graph of polymer ports before generating
-conjugation patches, using declared sequence and chemically supported endpoint
-pairs; resolve mutually crosslinked neighbors together. Then order polymer
-blocks from that graph or represent nonsequential backbone edges explicitly.
-Require stable results under residue order, repeated instances and chain
-permutation. A one-pass partner lookup or choosing the first two ports cannot
-safely establish this contract.
+Canonical conversion also preserves declared disulfides when sulfur coordinates
+are missing or distant. Connection installation and reciprocal-port validation
+use batched tensor operations instead of per-edge device scalar reads.
 
-## 115. Proximity adds bonds absent from the supplied graph — open
+## 115. Proximity adds bonds absent from the supplied graph — fixed
 
 [Cross-residue detection](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/ligand/_detect.py#L852).
 
@@ -116,21 +116,17 @@ safely establish this contract.
 > phosphodiester bonds. The proximity pass instead reports many base/sugar
 > contacts as MCY/5CM conjugations, including C1', C2', C4' and ring nitrogens.
 
-This is a topology and efficiency defect: false sites generate large numbers
-of combined variants before refinement fails. The supplied graph and the
-inferred partner map were inspected separately; the false links are not bonds
-returned by the native reader. Simply disabling the pass for supplied bond
-tables removes these phantom sites but exposes a separate missing MCY terminal
-mapping and changes the existing glycan-without-link-record fallback contract.
-That experimental change is **not shipped** and no existing test was weakened.
+Remove the spatial conjugation pass. The parser owns supported bond inference;
+ligand detection consumes the supplied graph. The updated integration assertion
+requires an explicit glycan bond, and confirms that coordinates cannot add or
+remove it. This deliberately replaces the old proximity-fallback contract.
+Recognize terminal nucleoside backbones before attempting peptide cap inference:
+MCY's base N4 must not become a peptide endpoint. Complete 145d now retains 24
+DNA blocks and exactly 20 phosphodiester links, with finite scoring and decreasing
+energy during the integrated CPU minimization check. No phantom conjugation
+variants are allocated. The complete fixture and provenance are retained in tmol.
 
-Proposed fix: distinguish complete authoritative connectivity from explicitly
-incomplete connectivity in the input contract. Let the shared parser resolve
-supported polymer/link metadata; request chemistry-constrained inference only
-for inputs declaring missing connectivity. Record each inferred edge. A close
-contact alone, even between polymer residues, cannot establish a chemical bond.
-
-## 116. Combined patches can retain removed torsion atoms — open
+## 116. Combined patches can retain removed torsion atoms — guard implemented
 
 [Conjugation torsion generation](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/ligand/_conjugation_patches.py#L190).
 
@@ -139,11 +135,54 @@ contact alone, even between polymer residues, cannot establish a chemical bond.
 > variants contain a chi frame referencing P after na5prime removed P. The
 > analogous refinement failure in metal-excluded 1aym references absent H.
 
-Reject incompatible patch combinations before building refined residue types;
-select a valid retained heavy-atom frame where the same physical torsion exists.
-Do not just delete a sampling torsion to suppress KeyError. Bound combination
-allocation and generate only the combinations required by actual input sites.
-The 145d phantom-site explosion must also be addressed at its source (115).
+Reject incompatible combinations before mutating a residue: a new torsion must
+reference retained atoms/connections, and a retained connection's existing
+torsion cannot lose supporting atoms. Both terminal/conjugation patch orders
+are checked together using the generated 5CM bundle. Valid conjugations retain
+their sampling torsions. This is a support guard, not a general alternate-frame
+generator; the full 1aym corpus rerun is still required.
+
+## 117. Inter-block generic torsions depend on residue order — fixed lookup
+
+[Native lookup](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/score/genbonded/potentials/genbonded_pose_score.impl.hh#L90)
+and [table generation](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/score/genbonded/_genbonded_energy_term.py#L499).
+
+> Can intra- and inter-block lookup share reversed matches, bond bins and
+> multiplicity priority? Reversing complete 1xvk's residue order preserves every
+> coordinate and type but changes gen_torsions from 13.692318 to 84.313545.
+> The entire 70.621246 energy shift comes from this term.
+
+Build native tables from the database's bidirectional lookup index, with one
+stable rank per multiplicity/source-order priority. Native lookup uses that
+rank. For a 3+1 atom path, select the internal central bond's order/ring bin;
+the external connection's bin applies only when it is the central bond. Share
+this behavior across pose/rotamer forward and backward paths. The integrated
+1xvk order/score/minimization regression now passes on CPU; CUDA is pending.
+No force-field coefficient or score golden was changed. A separate limitation
+remains: ring membership of a connection closing a ring across blocks is not
+represented by the existing per-type connection metadata.
+
+## Attachment parameter source: follow Frank's branch
+
+The user selected Frank's intended scoring model. His
+[PR description](https://github.com/uw-ipd/tmol/pull/503) specifies Hahnbeom's
+generic-bonded hybrid mode. In this implementation, the generic term scores
+proper/improper torsions; his
+[Cartesian generator](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/ligand/_registry.py#L32)
+uses `K=300` for lengths and `K=80` for angles, with equilibrium values from
+generated ideal coordinates. Its intra-ligand convention is direct source
+evidence; applying that convention to missing attachment records is the intended
+extension, not a claim that Frank already supplied those records.
+
+Keep the existing Rosetta/generic ownership and generated-geometry conventions.
+The private MMFF94 harmonic-curvature prototype is diagnostic only; do not install
+it as the default or interpret its successful stiffness test as reference-model
+validation. Frank's existing MMFF94 charge generation and conformer cleanup are
+separate uses of MMFF and remain part of his pipeline. The default-source choice
+is settled; implementation and validation of missing attachment/local terms
+(38/43/58) remain outstanding. Reuse his generator for complete capped chemistry
+and preserve curated peptide references rather than substituting new constants
+or fitting targets to the coordinates being scored.
 
 ## Finding 99 update: equivalent leaving branches — fixed with explicit ambiguity
 
