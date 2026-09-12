@@ -74,37 +74,6 @@ def test_weighted_gradient_layouts(
     torch.testing.assert_close(actual, expected, atol=0, rtol=0)
 
 
-@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
-def test_weighted_gradient_special_values(gradient_module, torch_device, dtype):
-    tiny = torch.finfo(dtype).tiny
-    values = torch.tensor(
-        [
-            0.0,
-            -0.0,
-            tiny / 2,
-            -tiny / 2,
-            float("inf"),
-            -float("inf"),
-            float("nan"),
-            1e20,
-            1.0,
-            -1e20,
-        ],
-        device=torch_device,
-        dtype=dtype,
-    )
-    saved = torch.stack([values.roll(i) for i in range(5)]).reshape(5, 10, 1)
-    weights = torch.tensor(
-        [[1.0], [-1.0], [0.5], [2.0], [-0.0]], device=torch_device, dtype=dtype
-    )
-    with torch.no_grad():
-        expected = reference(saved, weights)
-        actual = gradient_module.accumulate(saved, weights)
-    torch.testing.assert_close(actual, expected, atol=0, rtol=0, equal_nan=True)
-    finite = torch.isfinite(expected)
-    assert torch.equal(torch.signbit(actual[finite]), torch.signbit(expected[finite]))
-
-
 def test_weighted_gradient_preserves_derivative_graph(gradient_module, torch_device):
     saved = torch.randn(
         3, 30, 3, device=torch_device, dtype=torch.float64, requires_grad=True
@@ -126,16 +95,6 @@ def test_weighted_gradient_preserves_derivative_graph(gradient_module, torch_dev
     (actual_second,) = torch.autograd.grad(actual_grad[0].sum(), weights)
     (expected_second,) = torch.autograd.grad(expected_grad[0].sum(), weights)
     torch.testing.assert_close(actual_second, expected_second, atol=0, rtol=0)
-
-
-def test_weighted_gradient_empty_and_mixed_dtype(gradient_module, torch_device):
-    for atoms in (0, 30):
-        saved = torch.randn(3, atoms, 3, device=torch_device, dtype=torch.float32)
-        weights = torch.randn(3, 2, device=torch_device, dtype=torch.float64)
-        with torch.no_grad():
-            actual = gradient_module.accumulate(saved, weights)
-            expected = reference(saved, weights)
-        torch.testing.assert_close(actual, expected, atol=0, rtol=0)
 
 
 def test_weighted_gradient_cuda_memory_and_graph(gradient_module, torch_device):

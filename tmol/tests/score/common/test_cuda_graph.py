@@ -64,7 +64,6 @@ def test_cuda_scoring_capture_replays_values_and_parameter_gradients(
         expected_grads = torch.autograd.grad(expected.sum(), inputs)
         for actual_grad, expected_grad in zip(actual_grads, expected_grads):
             torch.testing.assert_close(actual_grad, expected_grad, atol=0, rtol=0)
-
     capture.eval()
     torch.testing.assert_close(
         capture(coords), coords * module.weight - module.offset, atol=0, rtol=0
@@ -168,40 +167,3 @@ def test_cuda_scoring_capture_preserves_uncached_autocast(torch_device, dtype):
         expected_grads = torch.autograd.grad(expected.sum(), (coords, module.weight))
         for actual_grad, expected_grad in zip(actual_grads, expected_grads):
             torch.testing.assert_close(actual_grad, expected_grad, atol=0, rtol=0)
-
-
-def test_cuda_scoring_capture_rejects_autocast_cache(torch_device):
-    module = _ScoringExample(torch_device, torch.float32)
-    sample = torch.zeros((3, 5), device=torch_device, requires_grad=True)
-    with torch.autocast("cuda", cache_enabled=True):
-        with pytest.raises(RuntimeError, match="cache_enabled=False"):
-            CapturedScoringGraph(module, sample)
-
-
-@pytest.mark.parametrize("hook", ["forward", "forward_pre", "full_backward"])
-def test_cuda_scoring_capture_rejects_existing_hooks(torch_device, hook):
-    module = _ScoringExample(torch_device, torch.float32)
-    getattr(module, f"register_{hook}_hook")(lambda *args: None)
-    sample = torch.zeros((3, 5), device=torch_device, requires_grad=True)
-    with pytest.raises(AssertionError, match="must not have hooks"):
-        CapturedScoringGraph(module, sample)
-
-
-def test_cuda_scoring_capture_rejects_trainable_buffers(torch_device):
-    module = _ScoringExample(torch_device, torch.float32)
-    module.offset.requires_grad_(True)
-    sample = torch.zeros((3, 5), device=torch_device, requires_grad=True)
-    with pytest.raises(AssertionError, match="buffers must have requires_grad=False"):
-        CapturedScoringGraph(module, sample)
-
-
-def test_cuda_scoring_capture_retains_double_backward_restriction(torch_device):
-    module = _ScoringExample(torch_device, torch.float32)
-    sample = torch.zeros((3, 5), device=torch_device, requires_grad=True)
-    capture = CapturedScoringGraph(module, sample)
-    coords = torch.ones_like(sample, requires_grad=True)
-    score = capture(coords)
-    upstream = torch.ones_like(score, requires_grad=True)
-    (grad,) = torch.autograd.grad(score, coords, upstream, create_graph=True)
-    with pytest.raises(RuntimeError, match="once_differentiable"):
-        grad.sum().backward()

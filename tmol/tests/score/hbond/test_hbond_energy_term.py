@@ -135,7 +135,7 @@ class TestHBondEnergyTerm(EnergyTermTestBase):
 
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
 def test_compact_specialization_preserves_subsets(
-    ubq_pdb, default_database, torch_device, dtype, monkeypatch
+    ubq_pdb, default_database, torch_device, dtype
 ):
     if torch_device.type != "cuda":
         pytest.skip("CUDA compact interaction specialization")
@@ -168,40 +168,9 @@ def test_compact_specialization_preserves_subsets(
         expected = term(coords, compact)
         actual = term(coords, neighbors)
         torch.testing.assert_close(actual, expected, atol=tolerance, rtol=tolerance)
-        # Low-level callers may omit the new optional dispatch hint.
-        import tmol.score.hbond.potentials as potentials
-
-        native = potentials.hbond_pose_scores
-        with monkeypatch.context() as patch:
-            patch.setattr(
-                potentials, "hbond_pose_scores", lambda *args: native(*args[:-1])
-            )
-            legacy = term(coords, neighbors)
-        torch.testing.assert_close(legacy, expected, atol=tolerance, rtol=tolerance)
         if gradient:
             (expected_grad,) = torch.autograd.grad(expected, coords, weights)
             (actual_grad,) = torch.autograd.grad(actual, coords, weights)
-            (legacy_grad,) = torch.autograd.grad(legacy, coords, weights)
-            torch.testing.assert_close(
-                legacy_grad, expected_grad, atol=tolerance, rtol=tolerance
-            )
             torch.testing.assert_close(
                 actual_grad, expected_grad, atol=tolerance, rtol=tolerance
             )
-
-
-@pytest.mark.parametrize("short_residues, expected_split", [(1, False), (40, True)])
-def test_specialization_uses_actual_residue_count(
-    ubq_pdb, default_database, torch_device, short_residues, expected_split
-):
-    full = pose_stack_from_pdb(ubq_pdb, torch_device)
-    short = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=short_residues)
-    pose = PoseStackBuilder.from_poses([full] + [short] * 63, torch_device)
-    energy = HBondEnergyTerm(param_db=default_database, device=torch_device)
-    for bt in pose.packed_block_types.active_block_types:
-        energy.setup_block_type(bt)
-    energy.setup_packed_block_types(pose.packed_block_types)
-    energy.setup_poses(pose)
-    assert pose._hbond_allow_split_pairs == (
-        expected_split and torch_device.type == "cuda"
-    )

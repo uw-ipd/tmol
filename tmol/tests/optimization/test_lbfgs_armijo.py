@@ -221,7 +221,6 @@ def test_lbfgs_armijo_short_history():
 
 @pytest.mark.parametrize("first_segment_size", [6, 7])
 def test_lbfgs_armijo_wrapped_segment_histories(torch_device, first_segment_size):
-    # Equal and unequal segments exercise dense and padded history writes.
     x = torch.nn.Parameter(
         torch.linspace(-2, 2, 12, dtype=torch.float64, device=torch_device)
     )

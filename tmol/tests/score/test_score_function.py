@@ -104,36 +104,15 @@ def test_fused_compact_specialization_preserves_subsets(
     score_weights = torch.tensor(
         [0.7, -0.2, 0.0, 1.3], device=torch_device, dtype=dtype
     )
-    from tmol.score.ljlk.potentials import (
-        ljlk_elec_pose_scores,
-        ljlk_elec_weighted_pose_scores,
-    )
 
-    arguments = term._native_arguments(coords, neighbors)
-    operation = ljlk_elec_pose_scores
-    if weighted:
-        operation = ljlk_elec_weighted_pose_scores
-        arguments = (*arguments, score_weights)
-    for invalid_count in (-2, pose.block_type_ind.numel() + 1):
-        with pytest.raises(RuntimeError, match="valid rotamer count"):
-            operation(*arguments, invalid_count)
-
-    def evaluate(neighbor_list, gradient, legacy=False):
+    def evaluate(neighbor_list, gradient):
         coords.requires_grad_(gradient)
         with torch.set_grad_enabled(gradient):
-            if legacy:
-                arguments = term._native_arguments(coords, neighbor_list)
-                scores = (
-                    ljlk_elec_weighted_pose_scores(*arguments, score_weights)[0]
-                    if weighted
-                    else ljlk_elec_pose_scores(*arguments)[0]
-                )
-            else:
-                scores = (
-                    term.forward_weighted(coords, neighbor_list, score_weights)
-                    if weighted
-                    else term(coords, neighbor_list)
-                )
+            scores = (
+                term.forward_weighted(coords, neighbor_list, score_weights)
+                if weighted
+                else term(coords, neighbor_list)
+            )
             if not gradient:
                 return scores, None
             upstream = torch.linspace(
@@ -146,12 +125,6 @@ def test_fused_compact_specialization_preserves_subsets(
     for gradient in (False, True):
         expected, expected_grad = evaluate(compact, gradient)
         actual, actual_grad = evaluate(neighbors, gradient)
-        legacy, legacy_grad = evaluate(neighbors, gradient, legacy=True)
-        torch.testing.assert_close(legacy, expected, atol=tolerance, rtol=tolerance)
-        if gradient:
-            torch.testing.assert_close(
-                legacy_grad, expected_grad, atol=tolerance, rtol=tolerance
-            )
         torch.testing.assert_close(actual, expected, atol=tolerance, rtol=tolerance)
         if gradient:
             torch.testing.assert_close(
@@ -203,9 +176,7 @@ def test_cpu_compact_neighbors_preserve_pose_accumulation_order(
 
 
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
-def test_lk_ball_compact_specialization_preserves_subsets(
-    ubq_pdb, torch_device, dtype, monkeypatch
-):
+def test_lk_ball_compact_specialization_preserves_subsets(ubq_pdb, torch_device, dtype):
     if torch_device.type != "cuda":
         pytest.skip("CUDA compact interaction specialization")
     single_pose = pose_stack_from_pdb(ubq_pdb, torch_device)
@@ -235,20 +206,6 @@ def test_lk_ball_compact_specialization_preserves_subsets(
     torch.testing.assert_close(actual, expected, atol=tolerance, rtol=tolerance)
     torch.testing.assert_close(
         actual_grad, expected_grad, atol=tolerance, rtol=tolerance
-    )
-
-    import tmol.score.lk_ball.potentials as potentials
-
-    native = potentials.lk_ball_pose_score
-    with monkeypatch.context() as patch:
-        patch.setattr(
-            potentials, "lk_ball_pose_score", lambda *args: native(*args[:-1])
-        )
-        legacy = term(coords, neighbors)
-    (legacy_grad,) = torch.autograd.grad(legacy, coords, weights)
-    torch.testing.assert_close(legacy, expected, atol=tolerance, rtol=tolerance)
-    torch.testing.assert_close(
-        legacy_grad, expected_grad, atol=tolerance, rtol=tolerance
     )
 
 

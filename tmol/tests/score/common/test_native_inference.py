@@ -8,12 +8,14 @@ import torch
 from tmol import pose_stack_from_pdb
 from tmol.pose import PoseStackBuilder
 from tmol.score.disulfide import DisulfideEnergyTerm
+from tmol.score.dunbrack import DunbrackEnergyTerm
 from tmol.score.elec import ElecEnergyTerm
 from tmol.score.genbonded import GenBondedEnergyTerm
 from tmol.score.hbond import HBondEnergyTerm
 
 TERMS = [
     DisulfideEnergyTerm,
+    DunbrackEnergyTerm,
     ElecEnergyTerm,
     GenBondedEnergyTerm,
     HBondEnergyTerm,
@@ -52,7 +54,8 @@ def test_direct_inference_preserves_values_and_later_gradients(
         actual = scorer(coords)
     assert coords.requires_grad
     assert not actual.requires_grad
-    tolerance = {"rtol": 0, "atol": 0} if torch_device.type == "cpu" else {}
+    exact = torch_device.type == "cpu" and term_class is not DunbrackEnergyTerm
+    tolerance = {"rtol": 0, "atol": 0} if exact else {}
     torch.testing.assert_close(actual, expected, **tolerance)
     after = scorer(coords)
     (after_grad,) = torch.autograd.grad(after.sum(), coords)

@@ -46,6 +46,18 @@ def test_lbfgs_two_loop_matches_reference(N, m, dtype, torch_device):
 
 
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+def test_lbfgs_two_loop_batched_matches_reference(dtype, torch_device):
+    cases = [_random_inputs(17, 4, dtype, torch_device, seed) for seed in range(3)]
+    grad = torch.stack([case[0] for case in cases])
+    dirs = torch.stack([case[1] for case in cases], dim=1)
+    stps = torch.stack([case[2] for case in cases], dim=1)
+    actual = lbfgs_two_loop(grad, dirs, stps)
+    expected = torch.stack([_golden_two_loop(*case) for case in cases])
+    tolerance = (1e-9, 1e-7) if dtype == torch.float64 else (1e-3, 1e-3)
+    torch.testing.assert_close(actual, expected, atol=tolerance[0], rtol=tolerance[1])
+
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
 @pytest.mark.parametrize("layout", ["contiguous", "strided", "broadcast", "single"])
 @pytest.mark.parametrize("differentiable", [False, True])
 def test_lbfgs_two_loop_diagonal_history(dtype, layout, differentiable, torch_device):

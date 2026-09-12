@@ -23,8 +23,7 @@ def test_lk_ball_backward_does_not_materialize_neighbor_gradient(
     neighbors = scorer.build_compact_block_neighbors(
         coords, scorer.block_neighbor_cutoff
     )
-    # Capacity can greatly exceed the number of live pairs. Only the counted
-    # prefix participates in scoring, and the integer output has no gradient.
+    # Only the counted prefix participates in scoring.
     oversized = torch.full((1 << 20,), -1, dtype=torch.int32, device=torch_device)
     oversized[: neighbors.numel()].copy_(neighbors)
     expected = scorer(coords, neighbors)
