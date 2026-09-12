@@ -11,6 +11,14 @@ bring those primitives together around protein-interface mutation and ligand
 pose-sensitivity questions. Tutorials 11–13 are advanced extension recipes for
 custom chemistry and scoring contexts, explicit kinematics, and packer internals.
 
+To run a notebook, use its **Open In Colab** button, select **Runtime → Change
+runtime type → T4 GPU**, then **Runtime → Run all**. The setup cell installs a
+published TMol wheel and downloads any listed repository fixtures. It supports
+Python 3.12/3.13 with PyTorch 2.11 and CUDA 12.8; Colab's **2026.07** runtime is
+one compatible option. Installation and the first calculation take longer than
+later cells. Local users can follow :doc:`Installation <installation>` and run the
+same notebooks with their installed TMol package.
+
 Use the :doc:`task index <tutorial/recipe_index>` to find a maintained
 tutorial, workflow recipe, or API page for a specific operation.
 
