@@ -557,7 +557,9 @@ def test_ligand_atom_array_allows_passthrough_unknown_bond_type(monkeypatch) -> 
         "tmol.ligand._rdkit_mol.atom_array_to_rdkit",
         lambda _aa, **_options: Chem.MolFromSmiles("CCC"),
     )
-    ligand_info = SimpleNamespace(res_name="LG1", atom_array=_FakeAtomArray())
+    ligand_info = SimpleNamespace(
+        res_name="LG1", atom_array=_FakeAtomArray(), skip_protonation=False
+    )
     mol = ligand_atom_array_to_rdkit_mol(ligand_info)
     assert mol.GetNumAtoms() == 3
 

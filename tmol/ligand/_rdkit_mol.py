@@ -398,7 +398,13 @@ def ligand_atom_array_to_rdkit_mol(
         keep_hydrogens=keep_hydrogens,
     )
     if ligand_info.skip_protonation and any(
-        source_subtype(atom) == "co2" for atom in mol.GetAtoms()
+        source_subtype(atom) == "co2"
+        and atom.GetDegree() == 1
+        and all(
+            bond.GetBondType() == Chem.BondType.SINGLE
+            for bond in atom.GetNeighbors()[0].GetBonds()
+        )
+        for atom in mol.GetAtoms()
     ):
         # Tripos delocalized COO bonds become singles during normalization.
         # Reuse the shared repair on the generated, finite mol2 geometry.
