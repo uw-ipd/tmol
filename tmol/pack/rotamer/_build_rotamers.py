@@ -373,8 +373,9 @@ def update_nodes(
         )
         source = n_nodes_offset_for_rot[rotamer] + starts[rotamer] + within_rotamer
         values = nodes_orig[source]
-        non_root = values != 0
-        values[non_root] += n_atoms_offset_for_rot[rotamer[non_root]]
+        numpy.add(
+            values, n_atoms_offset_for_rot[rotamer], out=values, where=values != 0
+        )
         nodes[output_offset : output_offset + count] = values
         output_offset += count
     assert output_offset == nodes.shape[0]
