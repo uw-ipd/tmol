@@ -504,6 +504,9 @@ def write_params_file(
         format: ``"rosetta"`` (classic Rosetta ``.params``) or ``"tmol"``
             (tmol YAML ``.tmol``).
     """
+    fmt = str(format).lower()
+    if fmt not in ("rosetta", "tmol"):
+        raise ValueError(f"unknown params format {format!r} (use 'rosetta' or 'tmol')")
     is_list = isinstance(preparation, (list, tuple))
     preps = list(preparation) if is_list else [preparation]
     from tmol.ligand._registry import (
@@ -515,7 +518,6 @@ def write_params_file(
     )
 
     definitions = _unique_preparations(preps)
-    fmt = str(format).lower()
     if fmt == "rosetta":
         if any(p.baseline_sha256 is not None for p in preps):
             raise ValueError(
@@ -581,8 +583,6 @@ def write_params_file(
             replacement_baseline_cartbonded=baseline_cart,
             atom_type_elements=_batch_atom_type_elements(preps),
         )
-    else:
-        raise ValueError(f"unknown params format {format!r} (use 'rosetta' or 'tmol')")
 
 
 def write_params_from_mol2(

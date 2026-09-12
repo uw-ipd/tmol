@@ -130,6 +130,9 @@ def trial(args):  # noqa: C901 - keep stage/error recording in one diagnostic tr
             ),
         )
         # Audit the constructor's documented filtering without changing input.
+        stage = "coverage_audit"
+        row["stage"] = stage
+        write(output, row)
         co = context.canonical_ordering
         aliases = {
             alias.name3: alias.read_as
@@ -144,7 +147,7 @@ def trial(args):  # noqa: C901 - keep stage/error recording in one diagnostic tr
             elif name not in co.restype_io_equiv_classes:
                 reason = "unrecognized component"
             else:
-                required = co.restypes_required_mainchain_atoms.get(name, ())
+                required = co.restypes_required_mainchain_atoms.get(name) or ()
                 observed = set(
                     array.atom_name[first:stop][
                         np.isfinite(array.coord[first:stop]).all(axis=1)

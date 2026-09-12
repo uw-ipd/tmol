@@ -223,7 +223,7 @@ Implemented and benchmarked above.
 
 > When this skips a cycle-closing bond, what keeps that bond closed during group sampling? The returned links are a spanning tree, so changing a tree torsion need not preserve the omitted edge. If cyclic/multi-anchor conjugates are outside scope, could they be rejected or held fixed explicitly, with a documented supported-topology check?
 
-Question requiring a supported-chemistry contract; no unvalidated closure algorithm added.
+The later work in comment 35 preserves existing cyclic/external constraints by restricting independent sampling axes. Alternative ring conformations and a general closure sampler remain outside the implemented contract; no unvalidated closure algorithm was added.
 
 ### 18. Maintainability — share the cartbonded improper enumerator
 
@@ -247,7 +247,7 @@ Removed.
 
 > Could this use a cache owned by the database, a weak-reference-aware identity key, or an immutable content key with bounded storage? The process-global dict keys only on `id(chemical_database)` and library names, does not retain/verify the original object, and never evicts. Repeated preparation can accumulate entries, and Python can reuse an object ID after a database is collected.
 
-Static lifecycle concern; left open. The analogous sampler group-tree cache is fixed on this branch.
+Initially a static lifecycle concern; subsequently fixed with the shared bounded weak-identity cache in comment 29. The sampler group-tree cache is separately scoped to its packed-type owner.
 
 ### 21. P1 — group packing tests silently discard the prepared database
 
