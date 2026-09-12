@@ -647,6 +647,14 @@ def select_best_block_type_candidate(  # noqa: C901
 
         nz_is_real_candidate = torch.nonzero(is_real_candidate)
         err_msg = []
+        for i, j in torch.nonzero(is_real_res & ~is_real_candidate.any(dim=2)).tolist():
+            name = canonical_ordering.restype_io_equiv_classes[res_types64[i, j]]
+            termini = ("down", "neither", "up", "both")[termini_variants[i, j]]
+            err_msg.append(
+                f"No block type candidates for pose={i} residue={j} {name}: "
+                f"termini={termini}, variant={res_type_variants64[i, j].item()}. "
+                "Check prepared polymer connections and input chain topology.\n"
+            )
         for cand_ind in range(nz_is_real_candidate.shape[0]):
             i = nz_is_real_candidate[cand_ind, 0]
             j = nz_is_real_candidate[cand_ind, 1]

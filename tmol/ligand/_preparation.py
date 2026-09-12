@@ -358,8 +358,10 @@ def prepare_polymer_residue(
 
     # cartbonded reaches across the peptide bond by atom name, so the few
     #    backbone atoms it names are renamed and the input names kept as aliases
-    backbone_renames_to_canonical = canonical_alpha_renames(
-        atom_array, connection_atoms
+    backbone_renames_to_canonical = (
+        canonical_alpha_renames(atom_array, connection_atoms)
+        if profile.backbone_type == "alpha_aa"
+        else {}
     )
     atom_aliases = ()
     if backbone_renames_to_canonical:

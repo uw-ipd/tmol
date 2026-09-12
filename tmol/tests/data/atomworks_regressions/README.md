@@ -1,6 +1,6 @@
 # AtomWorks regression structures
 
-These files are copied unchanged from the local `atomworks-dev` checkout at
+Except for the separately sourced RCSB 1xvk entry listed in the manifest, these files are copied unchanged from the local `atomworks-dev` checkout at
 `a1bda7edfcf325bc140091889b9745220adb5eba`. `provenance.json` records each source
 path and SHA-256 digest. AtomWorks is distributed under the BSD 3-Clause license.
 The structure files retain their original experimental/generated metadata.
@@ -20,3 +20,5 @@ Tests live in `tmol/tests/io/test_atomworks_corpus_regressions.py`,
 `tmol/tests/ligand/test_atomworks_modified_components.py`.
 The wider scoring/minimization runner is `review/pr503/run_atomworks_corpus.py`.
 Successful numerical checks do not independently validate the force field.
+
+`macrocycle_1xvk.cif` is the complete RCSB entry used by the wider AtomWorks IO suite. The regression explicitly excludes free Mg, verifies QUI cap preparation, and checks an actionable rejection for the still unsupported polymer-port/chain topology. It does not claim whole-complex scoring succeeds.

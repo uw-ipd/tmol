@@ -54,5 +54,14 @@
     "source_commit": "a1bda7edfcf325bc140091889b9745220adb5eba",
     "sha256": "2da84bb3255e8783c69321f4d98542f9b43dc833aa9011050b3c160a39e028e8",
     "bytes": 497933
+  },
+  {
+    "fixture": "macrocycle_1xvk.cif",
+    "source": "https://files.rcsb.org/download/1XVK.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO tests",
+    "retrieved": "2026-09-12",
+    "transformation": "gzip decompression only",
+    "sha256": "45817c082d2ed97a519d0e15530658c7d48e6291ae9492ff38f663d60d2e94a7",
+    "bytes": 134935
   }
 ]

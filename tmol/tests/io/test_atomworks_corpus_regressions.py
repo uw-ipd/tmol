@@ -18,6 +18,30 @@ from tmol.score import beta2016_score_function
 DATA = Path(__file__).parents[1] / "data" / "atomworks_regressions"
 
 
+def test_macrocycle_cap_prepares_without_renaming_its_reference_frame():
+    from tmol.io import build_context_from_biotite, pose_stack_from_biotite
+
+    array = atom_array_from_cif(DATA / "macrocycle_1xvk.cif")
+    # Free magnesium is outside this organic-topology regression's scope.
+    array = array[np.char.upper(array.element) != "MG"]
+    context = build_context_from_biotite(
+        array, torch.device("cpu"), prepare_ligands=True, ligand_seed=20260909
+    )
+    residue = next(r for r in context.restype_set.residue_types if r.name == "QUI")
+    assert {"N1", "C2", "O1"} <= set(residue.atom_to_idx)
+    assert np.isfinite(residue.compute_ideal_coords()).all()
+    # Preparation now succeeds; the remaining port/chain classification must
+    # identify the affected residues rather than emit an empty candidate error.
+    with pytest.raises(RuntimeError) as error:
+        pose_stack_from_biotite(
+            array, torch.device("cpu"), context=context, no_optH=True
+        )
+    message = str(error.value)
+    assert "No block type candidates for pose=0 residue=11 MVA" in message
+    assert "No block type candidates for pose=0 residue=17 QUI" in message
+    assert "prepared polymer connections" in message
+
+
 def test_unknown_heavy_atom_is_not_silently_deleted():
     # The fixture deliberately conflicts: label XYZ versus author CG. The
     # native reader legitimately uses CG; the label-based view must reject XYZ.
