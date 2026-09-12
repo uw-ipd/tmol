@@ -7,11 +7,11 @@ Previous updated head: `0f4c3bc426bca78e8681f0b730fa23c3e26ef261`\
 Latest reviewed head: `0593a93b07d80b0302383163d2d98c78e315ab98`\
 Diff merge base: `08d82941b6b5bfcd405303f8730b36b54dcfd28a`  
 Improvement branch: `review/pr503-chemistry-efficiency`  
-Review date: 2026-09-11
+Review date: 2026-09-12
 
 Both subsequent six-file updates have been reviewed separately. Comments 1–46
 retain their original `c03c1e745` anchors; comments 47–56 address `0f4c3bc42`,
-and comments 57–68 address `0593a93b0`. The
+and comments 57–69 address `0593a93b0`. The
 fold-forest expectations and HYP count are now corrected upstream. See
 [FOLLOWUP.md](FOLLOWUP.md) for reconciliation and validation details.
 
@@ -646,3 +646,13 @@ The PBT early-return check at [line 410](https://github.com/uw-ipd/tmol/blob/059
 See [VALIDATION.md](VALIDATION.md) for the initial review commands, counts, environment, examples, and remaining failures; [FOLLOWUP.md](FOLLOWUP.md) records subsequent fixes and validation. All raw run logs were retained separately under `/mnt/home/kdidi/tmol-pr503-results`. No upstream golden score files were regenerated to make tests pass.
 
 Comment 68 is fixed and checked with both sampler orders, two differently configured instances in one two-pose task, chemical-owner changes, zero-state samplers, nonnested regions, and released sampler/database owners. The initial broad CPU/CUDA run passes 426 cases; the final optimized source passes 75 focused CPU/CUDA cases. Across 230 types, all 121,440 default three-sampler source/target transfer maps match the prior implementation exactly where a source exists. Default fingerprint setup improves 1.45× on CPU and 1.40× on CUDA, with 4.1% fewer packed tensor bytes. The two-sampler configuration has 4.8–7.2% slower cold setup and 2.8% more packed tensor bytes, while repeated setup improves. See [results/fingerprint-validation.json](results/fingerprint-validation.json) for separate source stages and measurement limits.
+
+## 69. Bound the Dunbrack resolver cache and release private databases — P2
+
+Location: [`tmol/score/dunbrack/_params.py:150`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/score/dunbrack/_params.py#L150).
+
+> Could this resolver cache use a bounded weak-owner policy? Its memoizer holds the whole database as a key, so every independently generated library and its derived CPU/CUDA tables remain alive after the preparation/scoring task ends. Please also normalize equivalent device spellings and include the resolver class in the key.
+
+This cache dates to 2019; it is an inherited assumption made more consequential by per-input chemical databases. The follow-up reuses the shared weak-identity LRU with four entries. The compiled-table construction is unchanged. Five pre-fix regressions cover source/output retention, live-owner eviction, device aliases and subclass identity in both orders. All 49 tensor fields and three lookup DataFrames match exactly. The measured private default-sized resolver retains **67,494,320 bytes** of derived tensor storage before the fix and **zero** after its callers release the database and resolver. Active consumers remain valid. Four entries bound cached resolver count, not arbitrary library sizes or total process/GPU memory.
+
+The CPU resolver/scoring/sampler suite passes 60 tests (58 CUDA skips); Slurm 249841 passes 210 tests without skips on CPU/CUDA. See [results/dun-resolver-validation.json](results/dun-resolver-validation.json) for table equality, lifetime evidence and terminal accounting. Scoring-annotation identity is a separate defect and is not corrected by changing the resolver cache.

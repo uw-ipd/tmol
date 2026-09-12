@@ -2034,3 +2034,43 @@ intermediate failures, test inventories, scheduler accounting and full profiles
 are recorded in [results/fingerprint-validation.json](results/fingerprint-validation.json).
 Black, Flake8 and whitespace checks pass. Global resolver retention and scoring
 annotation identity remain separate follow-up items.
+
+## Release unused Dunbrack resolvers
+
+The inherited unbounded memoizer now uses the existing weak-identity LRU, with
+four entries. Keys distinguish the immutable database owner, resolver class and
+concrete device; equivalent CPU/CUDA spellings share one entry. The database is
+not kept alive by the cache. A caller may retain a compiled resolver after the
+source expires, while eviction only drops the cache's own reference. The table
+constructor is moved intact behind the cache wrapper.
+
+Five focused CPU regressions fail before this change: released owner/output
+retention, more than four live owners, device aliases and subclass lookup in
+both orders. The final CPU resolver/scoring/complete-Dunbrack suite passes
+**60 tests / 58 CUDA skips**. The independent paired profiler compares all
+**49 tensor fields and three DataFrames exactly**, with unchanged
+**67,494,320 bytes** of unique derived tensor storage per default-sized resolver.
+After releasing a private owner and resolver, that storage remains cached in
+the old implementation and is no longer retained by the new cache. This does
+not measure allocator reservations, source database memory, native/Python
+metadata or process RSS, and four entries do not bound arbitrary library sizes.
+
+Slurm **249841** passes **210 tests with no skips**, covering resolver/scoring,
+Dunbrack, fingerprint identity, noncanonical sampling and real protein/group
+packing on CPU/CUDA. It completes **0:0** in **00:09:57**, with batch peak host
+RSS **6517516K**. The scoring-identity regressions authored after collection are
+separate work and are not included in these counts.
+
+Five alternating rounds of 100 warm cache calls measure:
+
+| Device | Previous lookup | Current lookup |
+| --- | ---: | ---: |
+| CPU | 29.713 µs | 7.259 µs |
+| CUDA | 33.930 µs | 8.873 µs |
+
+These are host cache lookups, excluding construction, sampling, scoring and all
+device work. The change avoids repeatedly hashing a nested database key; it
+does not claim to accelerate the numerical kernels. Comment 69 records the
+inherited cache defect. Exact sources, test inventories, profiles and scheduler
+accounting are in [results/dun-resolver-validation.json](results/dun-resolver-validation.json).
+Black, Flake8 and whitespace checks pass. Upstream remains `0593a93b0`.

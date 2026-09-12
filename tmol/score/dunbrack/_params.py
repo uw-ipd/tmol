@@ -5,7 +5,6 @@ import numpy
 import pandas
 import torch
 
-import toolz.functoolz
 import itertools
 
 from tmol.types import (
@@ -17,6 +16,8 @@ from tmol.types import (
     validate_args,
 )
 from tmol.numeric import BSplineInterpolation
+from tmol.utility import resolve_device
+from tmol.utility.weak_identity_cache import WeakIdentityLRU
 
 from tmol.database.scoring import DunbrackRotamerLibrary
 
@@ -131,7 +132,9 @@ class SamplingDunbrackDatabaseView(ConvertAttrs):
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
 class DunbrackParamResolver(ValidateAttrs):
-    _from_dun_db_cache = {}
+    # Each default resolver owns about 67 MB of derived tables. Keep a small
+    # working set, and release an entry when its immutable source expires.
+    _from_dun_db_cache = WeakIdentityLRU(capacity=4)
 
     # These live on the device
     scoring_db: ScoringDunbrackDatabaseView
@@ -147,11 +150,18 @@ class DunbrackParamResolver(ValidateAttrs):
 
     @classmethod
     @validate_args
-    @toolz.functoolz.memoize(
-        cache=_from_dun_db_cache,
-        key=lambda args, kwargs: (args[1], args[2].type, args[2].index),
-    )
     def from_database(cls, dun_database: DunbrackRotamerLibrary, device: torch.device):
+        device = resolve_device(device)
+        if device.type == "cpu":
+            device = torch.device("cpu")
+        return cls._from_dun_db_cache.get_or_create(
+            dun_database,
+            (cls, device),
+            lambda: cls._from_database(dun_database, device),
+        )
+
+    @classmethod
+    def _from_database(cls, dun_database, device):
         all_rotlibs = [
             rotlib
             for rotlib in itertools.chain(
