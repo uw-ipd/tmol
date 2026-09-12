@@ -30,6 +30,45 @@ from tmol.tests.ligand._parity_helpers import (
 _SEED = load_parity_manifest()
 
 
+@pytest.mark.parametrize("smiles", ["CC(=O)[O-]", "c1ccc(-c2ccccc2)cc1"])
+def test_mol2_roundtrip_preserves_delocalized_chemistry_and_scores(smiles):
+    import torch
+    from rdkit import Chem
+    from tmol.database import ParameterDatabase
+    from tmol.io import pose_stack_from_biotite
+    from tmol.ligand._detect import nonstandard_residue_info_from_smiles_via_mol2
+    from tmol.ligand._rdkit_mol import ligand_atom_array_to_rdkit_mol
+    from tmol.ligand._preparation import prepare_single_ligand
+    from tmol.ligand._registry import inject_ligand_preparations
+    from tmol.score import beta2016_score_function
+
+    info = nonstandard_residue_info_from_smiles_via_mol2(
+        smiles, res_name="LGX", protonate=False, seed=20250828
+    )
+    mol = ligand_atom_array_to_rdkit_mol(info, keep_hydrogens=True)
+    assert all(atom.IsInRing() for atom in mol.GetAtoms() if atom.GetIsAromatic())
+    assert all(bond.IsInRing() for bond in mol.GetBonds() if bond.GetIsAromatic())
+    Chem.SanitizeMol(mol)
+    assert Chem.MolToSmiles(Chem.RemoveHs(mol)) == Chem.MolToSmiles(
+        Chem.MolFromSmiles(smiles)
+    )
+    prep = prepare_single_ligand(info)
+    assert sum(prep.partial_charges.values()) == pytest.approx(
+        Chem.GetFormalCharge(mol), abs=1e-4
+    )
+    db = inject_ligand_preparations(ParameterDatabase.get_default(), [prep])
+    pose = pose_stack_from_biotite(
+        info.atom_array, torch.device("cpu"), param_db=db, no_optH=True
+    )
+    coords = pose.coords.detach().clone().requires_grad_()
+    energy = beta2016_score_function(
+        pose.device, param_db=db
+    ).render_whole_pose_scoring_module(pose)(coords)
+    energy.sum().backward()
+    assert torch.isfinite(energy).all()
+    assert torch.isfinite(coords.grad).all()
+
+
 def _semantic_match(
     prep, ref, *, charge_tolerance: float = 0.05, skip_charges: bool = False
 ):

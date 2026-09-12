@@ -120,12 +120,13 @@ def _apply_atom_array_annotations(
     flags = atom_array.tmol_aromatic
     for mol_idx, arr_idx in enumerate(arr_indices):
         a = mol.GetAtomWithIdx(mol_idx)
-        a.SetIsAromatic(bool(flags[arr_idx]))
+        a.SetIsAromatic(bool(flags[arr_idx]) and a.IsInRing())
     for bond in mol.GetBonds():
-        if bond.GetBeginAtom().GetIsAromatic() and bond.GetEndAtom().GetIsAromatic():
-            bond.SetIsAromatic(True)
-        else:
-            bond.SetIsAromatic(False)
+        bond.SetIsAromatic(
+            bond.IsInRing()
+            and bond.GetBeginAtom().GetIsAromatic()
+            and bond.GetEndAtom().GetIsAromatic()
+        )
     mol.SetProp(_SOURCE_AROMATIC_PROP, "1")
 
 
@@ -391,8 +392,17 @@ def ligand_atom_array_to_rdkit_mol(
 
     Thin wrapper over :func:`rdkit_mol_from_ligand_atom_array`.
     """
-    return rdkit_mol_from_ligand_atom_array(
+    mol = rdkit_mol_from_ligand_atom_array(
         ligand_info.atom_array,
         res_name=ligand_info.res_name,
         keep_hydrogens=keep_hydrogens,
     )
+    if ligand_info.skip_protonation and any(
+        source_subtype(atom) == "co2" for atom in mol.GetAtoms()
+    ):
+        # Tripos delocalized COO bonds become singles during normalization.
+        # Reuse the shared repair on the generated, finite mol2 geometry.
+        from atomworks.io.tools.protonation import correct_carboxylate_bond_orders
+
+        mol = correct_carboxylate_bond_orders(mol)
+    return mol
