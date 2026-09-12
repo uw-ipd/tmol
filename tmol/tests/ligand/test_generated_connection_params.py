@@ -91,7 +91,9 @@ def test_generated_records_ignore_coordinates_and_instance_numbering(conjugate_i
     second = original.copy()
     second.chain_id[:] = "ZZ"
     second.res_id += 1000
-    second.coord[:] = np.nan
+    # A proper rotation, scaling and translation change all distances while
+    # preserving the stereochemistry that is part of chemical identity.
+    second.coord[:] = original.coord[:, [1, 2, 0]] * 2 + [50, -30, 17]
     # Reverse atom order within each residue as well. Identity must follow
     # names/bonds through conversion and protonation rather than RDKit order.
     starts = struc.get_residue_starts(second, add_exclusive_stop=True)

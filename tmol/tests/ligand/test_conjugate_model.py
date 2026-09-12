@@ -151,7 +151,7 @@ def test_two_lysine_anchors_keep_distinct_chemical_contexts(conjugate_input):
     assert [a.GetFormalCharge() for a in sites] == [0, 1]
 
 
-def test_group_models_are_independent_of_coordinates(conjugate_input):
+def test_group_topology_is_independent_of_coordinates(conjugate_input):
     _, original, db = conjugate_input
     reference = capped_conjugate_models(original, db.chemical)
     changed = original.copy()
@@ -175,3 +175,66 @@ def test_group_models_are_independent_of_coordinates(conjugate_input):
             assert ligand_smiles_from_atom_array(
                 actual.atom_array, with_atom_map=True
             ) == ligand_smiles_from_atom_array(expected.atom_array, with_atom_map=True)
+
+
+def test_capped_generation_preserves_observed_stereochemistry(conjugate_input):
+    from tmol.ligand._connection_params import (
+        _parameterized_model,
+        _model_identity,
+        generate_conjugate_connection_params,
+    )
+    from tmol.ligand._detect import nonstandard_residue_info_from_smiles_via_mol2
+    from tmol.ligand._rdkit_mol import ligand_atom_array_to_rdkit_mol
+
+    _, array, database = conjugate_input
+    identities = []
+    for reflected in (False, True):
+        source = array.copy()
+        if reflected:
+            source.coord *= -1
+        models = capped_conjugate_models(source, database.chemical)
+        identities.append([_model_identity(model) for model in models])
+        checked = 0
+        for model in models:
+            assert np.isnan(model.atom_array.coord).all()
+            mol, _, mapping = _parameterized_model(model, ph=7.4)
+            assert any(
+                a.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED
+                for a in mol.GetAtoms()
+            )
+            assert model.molecule.GetNumConformers() == 0
+            smiles = Chem.MolToSmiles(Chem.RemoveHs(mol), ignoreAtomMapNumbers=True)
+            info = nonstandard_residue_info_from_smiles_via_mol2(
+                smiles, res_name="CONJ", protonate=False, seed=20250828
+            )
+            generated = ligand_atom_array_to_rdkit_mol(info, keep_hydrogens=True)
+            heavy = [a.GetIdx() for a in generated.GetAtoms() if a.GetAtomicNum() > 1]
+            generated_indices = dict(zip(info.source_atom_order, heavy, strict=True))
+            local_indices = {index: local for local, index in mapping.items()}
+            xyz = generated.GetConformer().GetPositions()
+            for atom in mol.GetAtoms():
+                if atom.GetChiralTag() == Chem.ChiralType.CHI_UNSPECIFIED:
+                    continue
+                neighbors = [
+                    n.GetIdx() for n in atom.GetNeighbors() if n.GetAtomicNum() > 1
+                ]
+                indices = [local_indices[i] for i in [atom.GetIdx(), *neighbors[:3]]]
+                original = model.source_atom_indices[indices]
+                if len(indices) != 4 or (original < 0).any():
+                    continue
+                before = source.coord[original].astype(float)
+                if not np.isfinite(before).all():
+                    continue
+                after = xyz[[generated_indices[i] for i in indices]]
+                # Signed local volumes independently compare the observed and
+                # regenerated handedness using the same three named neighbours.
+                assert (
+                    np.linalg.det(before[1:] - before[0])
+                    * np.linalg.det(after[1:] - after[0])
+                    > 0
+                )
+                checked += 1
+        assert checked > 0
+    assert identities[0] != identities[1]
+    with pytest.raises(ValueError, match="Incompatible conjugate chemistry"):
+        generate_conjugate_connection_params(array + source, database)

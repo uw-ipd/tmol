@@ -2,7 +2,7 @@
 
 Models retain residue-instance and source-atom identity. Caps replace ordinary
 polymer neighbours, while every attachment within a connected group is kept.
-They are topology-only inputs for parameter generation, not scored coordinates.
+They retain observed stereochemistry but no conformers for parameter generation.
 """
 
 from dataclasses import dataclass
@@ -10,13 +10,17 @@ from dataclasses import dataclass
 import biotite.structure as struc
 import networkx as nx
 import numpy as np
+from rdkit import Chem
 
 from tmol.ligand._polymer_profile import cap_residue, profile_for_atom_array
+from tmol.ligand._rdkit_mol import rdkit_mol_from_ligand_atom_array
 
 
 @dataclass(frozen=True)
 class CappedConjugateModel:
     atom_array: struc.AtomArray
+    # Coordinate-free chemistry retaining stereochemistry from resolved atoms.
+    molecule: Chem.Mol
     # Original input indices; synthetic cap atoms have index -1.
     source_atom_indices: np.ndarray
     source_residue_indices: np.ndarray
@@ -145,9 +149,18 @@ def _capped_group(
     combined.bonds = struc.BondList(
         len(combined), np.concatenate((combined.bonds.as_array(), connections))
     )
+    # Observe chirality before discarding coordinates; generated equilibrium
+    # geometry must not use these experimental positions as its targets.
+    source_atoms = np.asarray(source_atoms, dtype=np.int64)
+    retained = source_atoms >= 0
+    combined.coord[retained] = atom_array.coord[source_atoms[retained]]
+    molecule = rdkit_mol_from_ligand_atom_array(combined)
+    molecule.RemoveAllConformers()
+    combined.coord[:] = np.nan
     return CappedConjugateModel(
         combined,
-        np.asarray(source_atoms, dtype=np.int64),
+        molecule,
+        source_atoms,
         np.asarray(source_residues, dtype=np.int64),
         group_links,
     )

@@ -139,7 +139,7 @@ def test_generated_local_parameters_preserve_instance_identity(
     second = original.copy()
     second.res_id += 10000
     second.chain_id[:] = "ZZ"
-    second.coord[:] = np.nan
+    second.coord[:] = original.coord[:, [1, 2, 0]] * 2 + [50, -30, 17]
     from biotite.structure import get_residue_starts
 
     boundaries = get_residue_starts(second, add_exclusive_stop=True)

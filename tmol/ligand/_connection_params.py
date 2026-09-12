@@ -18,7 +18,6 @@ from tmol.database.scoring._content_hash import content_hash
 from tmol.ligand._conjugate_model import iter_capped_conjugate_models
 from tmol.ligand._conjugation_patches import CONNECTION_PREFIX, connection_name
 from tmol.ligand._dimorphite_dl import ProtSubstructFuncs, protonate_mol_variants
-from tmol.ligand._rdkit_mol import rdkit_mol_from_ligand_atom_array
 
 # RDKit MMFF/Params.h, MDYNE_A_TO_KCAL_MOL. At equilibrium the bond and
 # radian-angle Hessians are this factor times MMFF kb and ka, respectively.
@@ -26,12 +25,11 @@ MMFF_HARMONIC_CONVERSION = 143.9325
 
 
 def _parameterized_model(model, ph):
-    mol = rdkit_mol_from_ligand_atom_array(model.atom_array)
+    mol = Chem.Mol(model.molecule)
     if mol.GetNumAtoms() != len(model.atom_array):
         raise ValueError("Conjugate conversion changed the heavy-atom inventory")
     for i, atom in enumerate(mol.GetAtoms()):
         atom.SetAtomMapNum(i + 1)
-    mol.RemoveAllConformers()
     variants = protonate_mol_variants(
         mol, min_ph=ph, max_ph=ph, pka_precision=0.1, max_variants=128, silent=True
     )
@@ -173,6 +171,30 @@ def _model_members(model, candidates_by_site):
     return locals_by_residue, sites, links, candidates
 
 
+def _named_chirality(atom, named):
+    """Tetrahedral handedness in residue-name order, independent of CIP priority."""
+    tag = atom.GetChiralTag()
+    if tag == Chem.ChiralType.CHI_UNSPECIFIED:
+        return 0
+    if tag not in (
+        Chem.ChiralType.CHI_TETRAHEDRAL_CW,
+        Chem.ChiralType.CHI_TETRAHEDRAL_CCW,
+    ):
+        raise ValueError("Unsupported non-tetrahedral conjugate stereochemistry")
+    neighbors = [
+        (
+            (0, named[n.GetIdx()])
+            if n.GetIdx() in named
+            else (1, n.GetAtomicNum(), n.GetIsotope())
+        )
+        for n in atom.GetNeighbors()
+    ]
+    if len(set(neighbors)) != len(neighbors):
+        raise ValueError("Ambiguous external neighbors at a conjugate stereocenter")
+    inversions = sum(a > b for i, a in enumerate(neighbors) for b in neighbors[i + 1 :])
+    return (-1 if tag == Chem.ChiralType.CHI_TETRAHEDRAL_CW else 1) * (-1) ** inversions
+
+
 def _context_signature(model, mol, props, heavy_map, locals_):
     # Include chemical identity as well as numerical MMFF assignments. Two
     # isomers can have the same MMFF types and charges without being one type.
@@ -186,6 +208,7 @@ def _context_signature(model, mol, props, heavy_map, locals_):
                 atom.GetAtomicNum(),
                 atom.GetIsotope(),
                 atom.GetFormalCharge(),
+                _named_chirality(atom, named),
                 props.GetMMFFAtomType(index),
                 round(props.GetMMFFPartialCharge(index), 12),
                 sum(n.GetAtomicNum() == 1 for n in atom.GetNeighbors()),
@@ -258,8 +281,8 @@ def _model_records(
 def _model_identity(model):
     # Include every chemistry annotation consumed by the RDKit converter,
     # plus names and relative residue/cap identity used to map parameter rows.
-    # Coordinates are all NaN in these topology-only models. Chain numbering
-    # and PDB metadata do not affect this generator's chemical assignments.
+    # Coordinates are discarded after observing stereochemistry. Chain numbers
+    # and PDB metadata do not affect the generator's chemical assignments.
     array = model.atom_array
     arrays = {
         name: array.get_annotation(name)
@@ -277,9 +300,12 @@ def _model_identity(model):
     arrays["source"] = model.source_atom_indices >= 0
     arrays["residue"] = np.unique(model.source_residue_indices, return_inverse=True)[1]
     return content_hash(
-        tuple(
-            (name, str(values.dtype), values.shape, values.tobytes())
-            for name, values in arrays.items()
+        (
+            Chem.MolToSmiles(model.molecule),
+            tuple(
+                (name, str(values.dtype), values.shape, values.tobytes())
+                for name, values in arrays.items()
+            ),
         )
     )
 

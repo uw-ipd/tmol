@@ -41,10 +41,13 @@ class ConjugateParameters:
 
 def _disconnected_model(model):
     array = model.atom_array.copy()
+    molecule = Chem.RWMol(model.molecule)
     mapping = {int(i): j for j, i in enumerate(model.source_atom_indices) if i >= 0}
     for a, b, _ in model.connections:
         array.bonds.remove_bond(mapping[a], mapping[b])
-    return replace(model, atom_array=array)
+        molecule.RemoveBond(mapping[a], mapping[b])
+    molecule.UpdatePropertyCache(strict=False)
+    return replace(model, atom_array=array, molecule=molecule.GetMol())
 
 
 def _hydrogens(mol, index):
