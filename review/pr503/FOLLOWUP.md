@@ -1,5 +1,7 @@
 # Correctness and performance follow-up
 
+**Latest checkpoint:** [CURRENT_STATUS.md](CURRENT_STATUS.md) and [CONTINUED_REVIEW.md](CONTINUED_REVIEW.md) supersede earlier pending/current statements below. Historical evidence and unresolved scientific questions remain preserved.
+
 Active objective: address the review changes and establish correctness and
 performance for supported CPU/GPU workloads. Starting implementation/reference:
 `96ff844e82ecb7dff0958d6b419e7aa2a946694a`. The original review and results remain
@@ -3229,3 +3231,33 @@ assertion in old tmol, latest AW dev and the shared engine. The standalone
 harness is fail-fast; no claim is made that all subsequent built-in assertions
 passed. The fixed policy's mapped-state comparisons match, and its inherited
 scientific-rule discrepancy is documented rather than refitted silently.
+
+
+## Continued integrated review and model-interface removal
+
+Production `4b4ff72d9` with AtomWorks `4af94d0c` completed Slurm 252914–252917:
+all 324 corpus trials, 1,501 broad test cases (1,478 pass / 15 skip / 8 inherited
+score-reference failures), and 18 CPU / 18 CUDA examples. Follow-up `251fa5901`
+fixes cap-frame renaming and empty-candidate diagnostics: 86 CPU passes plus
+six device skips, and Slurm 252919's 118 CPU/CUDA passes. These selections
+overlap and their counts are not additive. Full result artifacts are committed
+as `results/continued-{broad,corpus,integrated}-validation.json`.
+
+AtomWorks IO has 766 passes / 13 skips / four failures, all four reproduced on
+unchanged dev 59afb1e2. The user requested fewer, integrated tests: 151 added
+cases across ten files became 48 across six. The original 774 mapped protonation
+comparisons still match; the current inventory adds a mixture that deliberately
+differs from the fragment-dropping old engine. See continued comparison artifacts.
+
+OpenFold/RF2 installed interfaces and vendored tables are removed, with no
+wrappers. Both examples live in an executable tutorial and pass scoring and
+coordinate-gradient checks on CPU/CUDA. A prepared-topology guidance API remains
+separate proposed work; the tutorial caches only named mappings.
+
+The 1xvk cap fix is committed with the complete source structure and an explicit
+regression for its remaining construction failure. The expanded review also
+identified false proximity links in 145d despite a valid supplied bond graph.
+An experimental authority change exposed another MCY terminal mapping failure
+and would alter existing glycan behavior; it was not shipped or used to weaken
+an assertion. Findings 114–116 propose the required graph/contract changes.
+The PRs remain drafts; no claim is made that all inputs score or minimize.

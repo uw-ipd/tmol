@@ -1,0 +1,66 @@
+{
+  "tmol_gpu_checkpoint": "4b4ff72d91a0beeb58bc16c98a09ed12abb1e28c",
+  "tmol_cap_fix": "251fa5901",
+  "atomworks_commit": "4af94d0c8be510d49f2a84c2795c6a41fd8f71d3",
+  "atomworks_dev": "59afb1e2d031ea929c2fbeb3d3c9ba2c60c6c690",
+  "checks": {
+    "io-continued-consolidated-final.xml": {
+      "source": "/mnt/home/kdidi/tmol-pr503-followup/io-continued-consolidated-final.xml",
+      "sha256": "961750df29733a80eeadfb63c138a24acf24292476864f79ab6342ee2d96fb29",
+      "cases": 783,
+      "passed": 766,
+      "skipped": 13,
+      "failed": 4,
+      "failures": [
+        {
+          "name": "tests.io.components.test_regression.test_regression_against_stored_result[no_h-1twr]",
+          "message": "tests/io/components/test_regression.py:212: in test_regression_against_stored_result\n    _compare_parse_results(result, expected_result, remove_hydrogens=remove_hydrogens)\ntests/io/components/test_regression.py:106: in _compare_parse_results\n    assert_same_atom_array_or_stack(\nsrc/atomworks/io/utils/testing.py:480: in assert_same_atom_array_or_stack\n    _assert_same_atom_array(arr1[i], arr2[i], **comparison_kwargs)\nsrc/atomworks/io/utils/testing.py:412: in _assert_same_atom_array\n    raise AssertionError(msg)\nE   AssertionError: Bonds do not match at 34 indices. First few mismatches:\nE   \t3882: [3791 3795    2] != [3791 3795    6]\nE   \t3883: [3791 3800    1] != [3791 3800    5]\nE   \t3886: [3793 3801    1] != [3793 3801    5]\nE   \t3887: [3793 3806    2] != [3793 3806    6]\nE   \t3888: [3794 3797    1] != [3794 3797    5]"
+        },
+        {
+          "name": "tests.io.components.test_regression.test_regression_against_stored_result[with_h-1twr]",
+          "message": "tests/io/components/test_regression.py:212: in test_regression_against_stored_result\n    _compare_parse_results(result, expected_result, remove_hydrogens=remove_hydrogens)\ntests/io/components/test_regression.py:106: in _compare_parse_results\n    assert_same_atom_array_or_stack(\nsrc/atomworks/io/utils/testing.py:480: in assert_same_atom_array_or_stack\n    _assert_same_atom_array(arr1[i], arr2[i], **comparison_kwargs)\nsrc/atomworks/io/utils/testing.py:369: in _assert_same_atom_array\n    comparison_fn(annot1, annot2)\nsrc/atomworks/io/utils/testing.py:233: in _compare_annotation_arrays\n    raise AssertionError(msg)\nE   AssertionError: Annotation atom_name does not match at 54 indices. First few mismatches:\nE   \t7664: H1 != H11"
+        },
+        {
+          "name": "tests.io.components.test_regression.test_regression_cif_roundtrip[no_h-1twr]",
+          "message": "tests/io/components/test_regression.py:263: in test_regression_cif_roundtrip\n    _compare_parse_results(\ntests/io/components/test_regression.py:106: in _compare_parse_results\n    assert_same_atom_array_or_stack(\nsrc/atomworks/io/utils/testing.py:480: in assert_same_atom_array_or_stack\n    _assert_same_atom_array(arr1[i], arr2[i], **comparison_kwargs)\nsrc/atomworks/io/utils/testing.py:412: in _assert_same_atom_array\n    raise AssertionError(msg)\nE   AssertionError: Bonds do not match at 34 indices. First few mismatches:\nE   \t3882: [3791 3795    2] != [3791 3795    6]\nE   \t3883: [3791 3800    1] != [3791 3800    5]\nE   \t3886: [3793 3801    1] != [3793 3801    5]\nE   \t3887: [3793 3806    2] != [3793 3806    6]\nE   \t3888: [3794 3797    1] != [3794 3797    5]"
+        },
+        {
+          "name": "tests.io.components.test_regression.test_regression_cif_roundtrip[with_h-1twr]",
+          "message": "tests/io/components/test_regression.py:263: in test_regression_cif_roundtrip\n    _compare_parse_results(\ntests/io/components/test_regression.py:106: in _compare_parse_results\n    assert_same_atom_array_or_stack(\nsrc/atomworks/io/utils/testing.py:480: in assert_same_atom_array_or_stack\n    _assert_same_atom_array(arr1[i], arr2[i], **comparison_kwargs)\nsrc/atomworks/io/utils/testing.py:369: in _assert_same_atom_array\n    comparison_fn(annot1, annot2)\nsrc/atomworks/io/utils/testing.py:233: in _compare_annotation_arrays\n    raise AssertionError(msg)\nE   AssertionError: Annotation atom_name does not match at 54 indices. First few mismatches:\nE   \t7664: H1 != H11"
+        }
+      ]
+    },
+    "atomworks-1twr-upstream-baseline.xml": {
+      "source": "/mnt/home/kdidi/tmol-pr503-followup/atomworks-1twr-upstream-baseline.xml",
+      "sha256": "a8c23e05883a3cf35db9548cb86586e9057fa1f5507c3671db7247b6c7614461",
+      "cases": 4,
+      "passed": 0,
+      "skipped": 0,
+      "failed": 4,
+      "failures": [
+        {
+          "name": "tests.io.components.test_regression.test_regression_against_stored_result[no_h-1twr]",
+          "message": "tests/io/components/test_regression.py:212: in test_regression_against_stored_result\n    _compare_parse_results(result, expected_result, remove_hydrogens=remove_hydrogens)\ntests/io/components/test_regression.py:106: in _compare_parse_results\n    assert_same_atom_array_or_stack(\n../../tmol-pr503-followup/atomworks-dev-59afb1e2-source/src/atomworks/io/utils/testing.py:480: in assert_same_atom_array_or_stack\n    _assert_same_atom_array(arr1[i], arr2[i], **comparison_kwargs)\n../../tmol-pr503-followup/atomworks-dev-59afb1e2-source/src/atomworks/io/utils/testing.py:412: in _assert_same_atom_array\n    raise AssertionError(msg)\nE   AssertionError: Bonds do not match at 34 indices. First few mismatches:\nE   \t3882: [3791 3795    2] != [3791 3795    6]\nE   \t3883: [3791 3800    1] != [3791 3800    5]\nE   \t3886: [3793 3801    1] != [3793 3801    5]\nE   \t3887: [3793 3806    2] != [3793 3806    6]\nE   \t3888: [3794 3797    1] != [3794 3797    5]"
+        },
+        {
+          "name": "tests.io.components.test_regression.test_regression_against_stored_result[with_h-1twr]",
+          "message": "tests/io/components/test_regression.py:212: in test_regression_against_stored_result\n    _compare_parse_results(result, expected_result, remove_hydrogens=remove_hydrogens)\ntests/io/components/test_regression.py:106: in _compare_parse_results\n    assert_same_atom_array_or_stack(\n../../tmol-pr503-followup/atomworks-dev-59afb1e2-source/src/atomworks/io/utils/testing.py:480: in assert_same_atom_array_or_stack\n    _assert_same_atom_array(arr1[i], arr2[i], **comparison_kwargs)\n../../tmol-pr503-followup/atomworks-dev-59afb1e2-source/src/atomworks/io/utils/testing.py:369: in _assert_same_atom_array\n    comparison_fn(annot1, annot2)\n../../tmol-pr503-followup/atomworks-dev-59afb1e2-source/src/atomworks/io/utils/testing.py:233: in _compare_annotation_arrays\n    raise AssertionError(msg)\nE   AssertionError: Annotation atom_name does not match at 54 indices. First few mismatches:\nE   \t7664: H1 != H11"
+        },
+        {
+          "name": "tests.io.components.test_regression.test_regression_cif_roundtrip[no_h-1twr]",
+          "message": "tests/io/components/test_regression.py:263: in test_regression_cif_roundtrip\n    _compare_parse_results(\ntests/io/components/test_regression.py:106: in _compare_parse_results\n    assert_same_atom_array_or_stack(\n../../tmol-pr503-followup/atomworks-dev-59afb1e2-source/src/atomworks/io/utils/testing.py:480: in assert_same_atom_array_or_stack\n    _assert_same_atom_array(arr1[i], arr2[i], **comparison_kwargs)\n../../tmol-pr503-followup/atomworks-dev-59afb1e2-source/src/atomworks/io/utils/testing.py:412: in _assert_same_atom_array\n    raise AssertionError(msg)\nE   AssertionError: Bonds do not match at 34 indices. First few mismatches:\nE   \t3882: [3791 3795    2] != [3791 3795    6]\nE   \t3883: [3791 3800    1] != [3791 3800    5]\nE   \t3886: [3793 3801    1] != [3793 3801    5]\nE   \t3887: [3793 3806    2] != [3793 3806    6]\nE   \t3888: [3794 3797    1] != [3794 3797    5]"
+        },
+        {
+          "name": "tests.io.components.test_regression.test_regression_cif_roundtrip[with_h-1twr]",
+          "message": "tests/io/components/test_regression.py:263: in test_regression_cif_roundtrip\n    _compare_parse_results(\ntests/io/components/test_regression.py:106: in _compare_parse_results\n    assert_same_atom_array_or_stack(\n../../tmol-pr503-followup/atomworks-dev-59afb1e2-source/src/atomworks/io/utils/testing.py:480: in assert_same_atom_array_or_stack\n    _assert_same_atom_array(arr1[i], arr2[i], **comparison_kwargs)\n../../tmol-pr503-followup/atomworks-dev-59afb1e2-source/src/atomworks/io/utils/testing.py:369: in _assert_same_atom_array\n    comparison_fn(annot1, annot2)\n../../tmol-pr503-followup/atomworks-dev-59afb1e2-source/src/atomworks/io/utils/testing.py:233: in _compare_annotation_arrays\n    raise AssertionError(msg)\nE   AssertionError: Annotation atom_name does not match at 54 indices. First few mismatches:\nE   \t7664: H1 != H11"
+        }
+      ]
+    },
+    "shared-consolidated-all-final.xml": {"source": "/mnt/home/kdidi/tmol-pr503-followup/shared-consolidated-all-final.xml", "sha256": "47181485f2e772a2052c7cf55f90b04749827b7574d67e6e1578033963f6d39a", "cases": 48, "passed": 48, "skipped": 0, "failed": 0, "failures": []},
+    "shared-integrated-cache-mixtures.xml": {"source": "/mnt/home/kdidi/tmol-pr503-followup/shared-integrated-cache-mixtures.xml", "sha256": "3215f4023fff87392f3dec6516c6d8f9ceb32a48eeb8ae23f11b0d458abf52dc", "cases": 24, "passed": 24, "skipped": 0, "failed": 0, "failures": []},
+    "model-tutorial-cpu-identity.xml": {"source": "/mnt/home/kdidi/tmol-pr503-followup/model-tutorial-cpu-identity.xml", "sha256": "adb0e99c550214950f2fb76d6ba30fc08f8938c382609fdf513d9fbf3b75bd07", "cases": 6, "passed": 3, "skipped": 3, "failed": 0, "failures": []},
+    "cap-frame-final.xml": {"source": "/mnt/home/kdidi/tmol-pr503-followup/cap-frame-final.xml", "sha256": "f5b48194a4521efef6ebe161a0183a29cf6e007ad248b73f3501039692da2f7a", "cases": 92, "passed": 86, "skipped": 6, "failed": 0, "failures": []},
+    "cap-gpu-final.xml": {"source": "/mnt/home/kdidi/tmol-pr503-followup/cap-gpu-final.xml", "sha256": "a0c4a4ce9425716acf78fc34c27700bedb4d602c26bee86659d186de5f2dc289", "cases": 118, "passed": 118, "skipped": 0, "failed": 0, "failures": []}
+  },
+  "scope": ["Overlapping test selections are not additive.", "Full IO run used consolidated b202647d production before an allocation-only neutralization cleanup; five identity tests rerun at 4af94d0c pass.", "Four 1twr failures reproduce on unchanged AtomWorks dev; no stored chemistry or tolerance modified."]
+}

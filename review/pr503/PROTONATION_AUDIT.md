@@ -1,5 +1,7 @@
 # Shared protonation audit
 
+**Current checkpoint:** see [CURRENT_STATUS.md](CURRENT_STATUS.md) and [CONTINUED_REVIEW.md](CONTINUED_REVIEW.md) for the completed expanded reruns, AtomWorks test consolidation, leaving-branch/mixture/cache fixes, and full model-interface removal. Earlier measurements below retain their recorded revision scope.
+
 The engines were **not identical as complete preparation pipelines**. Current AtomWorks `dev` did not contain the histidine/preprocessing work on the older local branch. Its default rule inventory also differs from tmol. This follow-up uses one AtomWorks engine with tmol's explicit rules, shares source-chemistry repair/conversion code, and preserves observed histidine protons at the tmol parser boundary.
 
 Implementation: tmol `75e02157b`, AtomWorks `774056c7` based on current `dev` `59afb1e2`. The companion is [AtomWorks PR #349](https://github.com/baker-laboratory/atomworks-dev/pull/349), targeting `dev`. Frank's latest fetched head remains `0593a93b0`, already merged.

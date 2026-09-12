@@ -123,7 +123,9 @@ contract in [INPUT_CONTRACT.md](INPUT_CONTRACT.md).
 > fixture has an observed OP2 which disappears in both released and local
 > AtomWorks output.
 
-Open parser chemistry issue; guarded in tmol. The final released-reader matrix
+**Update:** fixed in AtomWorks #349 at `4af94d0c`, now pinned by tmol. Separate chemically equivalent branches and a bond-order budget preserve observed 8OG OP2; repeated resolution and full tmol scoring/gradient checks pass. Ambiguous observed alternatives still require explicit chemistry. See [the continued review](CONTINUED_REVIEW.md).
+
+Historical parser evidence: the released-reader matrix
 has 18 passes and this one rejected input. Direct local inspection confirms
 OP2 is absent in the parsed 8OG, not merely renamed. The CCD inventory marks
 both OP2 and OP3 as leaving atoms; the removal implementation unions every
@@ -137,7 +139,7 @@ alone as authorization to rewrite chemistry. Preserve a source-to-output atom
 map and record each intentional deletion. AF3's 7ubd fixture also contains
 observed terminal OXT atoms removed at internal links; that case needs an
 explicit normalization policy rather than bypassing the identity guard.
-This broader AtomWorks correction is not included in the tmol PR.
+The correction is now supplied by the required companion dependency. Full atom-provenance tracking and the AF3 normalization policy remain open.
 
 ## 100. Make hydrogen authority explicit when only heavy-atom bonds are supplied — P2
 

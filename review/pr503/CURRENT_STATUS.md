@@ -1,37 +1,62 @@
-# Review checkpoint: shared AtomWorks implementation
+# Current review checkpoint
 
-Frank's latest fetched #503 head remains `0593a93b07d80b0302383163d2d98c78e315ab98`,
-already merged. The shared-production checkpoint is tmol `75e02157b` and
-AtomWorks `774056c7` based on latest dev `59afb1e2`.
+Frank's latest fetched head remains `0593a93b07d80b0302383163d2d98c78e315ab98`,
+already merged. The current production fixes are tmol `251fa5901`, following
+the immutable GPU checkpoint `4b4ff72d9`, and AtomWorks `4af94d0c` based on dev
+`59afb1e2`. Later review-record commits do not change production behavior.
 
-[tmol PR #508](https://github.com/uw-ipd/tmol/pull/508) is open as a draft,
-targeting Frank's `dimaio/noncanonicals_through_ligand_pipeline` branch.
+[tmol draft PR #508](https://github.com/uw-ipd/tmol/pull/508) targets Frank's
+branch. [AtomWorks draft PR #349](https://github.com/baker-laboratory/atomworks-dev/pull/349)
+targets dev. Both remain drafts with explicit scientific and input limitations.
 
-[AtomWorks PR #349](https://github.com/baker-laboratory/atomworks-dev/pull/349)
-is open as a draft, targeting `dev`. Tmol now requires that immutable companion
-revision and removes duplicate protonation, repair, converter and CIF-category
-implementations. It preserves its own scientific rules and observed HIS ring H.
+OpenFold/RF2 constructors, factories, exports and vendored model tables are
+removed fully. There are no compatibility wrappers. The
+[executable tutorial](../../docs/model_inputs.rst) shows application-owned
+interfaces using named layouts and Torch canonical construction, including an
+explicit RF2 hydrogen policy. All six CPU/CUDA tutorial checks pass: exact
+C-alpha coordinates, finite scores/gradients, and no input gradient for rebuilt
+hydrogen slots. This caches mappings, not final topology; the broader unified
+prepared-topology atom14/atom37/backbone4 API remains a proposal.
 
-- AtomWorks chemistry/adjacent suites: 180 passed; final affected selection: 74 passed.
-- Prior tmol engine versus shared engine with tmol rules: 774 mapped-state comparisons match.
-- All six existing native HIS coordinate fixtures match the AtomWorks selector.
-- Tmol reader/HIS/CIF selection: 23 passed.
-- Final committed-implementation checks: **46 tmol tests and 34 AtomWorks histidine tests passed** (overlapping selections, not additional unique coverage).
-- Slurm 252647 completed: 1,468 passed, 15 skipped, 10 failed. Eight are inherited score references; the stale mock is now fixed/passing; one unchanged-scorer CUDA repeat assertion remains intermittent. All 18 CPU/18 CUDA examples pass.
-- Slurm 252648 completed all 132 corpus trials. Both modes keep all pre-sharing pass/partial/fail outcomes; only four trials per mode report convergence.
+- Broad GPU checkpoint: **1,478 passed, 15 skipped, eight inherited noncanonical
+  score-reference failures**. All **18 CPU and 18 CUDA examples pass**. No golden
+  or tolerance was changed.
+- Subsequent cap-frame/diagnostic fixes: **86 CPU passes, six device skips** and
+  **118 CPU/CUDA passes**. 1xvk preparation now succeeds; its remaining MVA/QUI
+  topology failure has an explicit complete-fixture regression and diagnostic.
+- AtomWorks full IO: **766 passed, 13 skipped, four 1twr failures**, all four
+  reproduced on unchanged dev. The full run preceded the final allocation-only
+  neutralization cleanup; its five identity cases were rerun and pass.
+- Added AtomWorks tests: **48 cases in six files**, reduced from 151/ten in favor
+  of integrated workflows. All 48 pass. Existing upstream tests are unchanged.
+- All **774 original protonation comparisons match**. Three new mixture
+  comparisons intentionally differ because the old engine discarded molecules.
+- All **324 scoring/minimization trials completed**: 132 local-file trials and
+  192 trials over the 96 PDBs referenced by AtomWorks IO tests. Every reader/input
+  ran in a fresh CUDA process, with up to 100 LBFGS iterations and a 300 s timeout.
 
-See [PROTONATION_AUDIT.md](PROTONATION_AUDIT.md) and the per-comparison result
-artifact. There are 108 recorded findings, including dependency/follow-up issues
-that were not introduced by Frank. The tmol PR description includes the completed reruns and every problem/fix
-disposition and efficiency change.
+| Corpus mode | Native pass / partial / fail | AtomWorks pass / partial / fail |
+|---|---|---|
+| Local files, original input | 14 / 2 / 17 | 11 / 2 / 20 |
+| Local files, explicit free-metal exclusion | 16 / 6 / 11 | 12 / 8 / 13 |
+| 96 PDBs, explicit free-metal exclusion | 57 / 4 / 35 | 22 / 40 / 34 |
 
-Historical production `01159dd7a` validation remains recorded: 1,459 passed,
-15 skipped, eight noncanonical score-reference failures, and 18 CPU/18 GPU
-examples passing. Those counts are not claimed for the new shared checkpoint.
-Default attachment model selection, noncanonical golden provenance, certain
-incomplete inputs and 8OG leaving-branch ambiguity remain explicit limitations.
-Metals are deferred. A numerical minimization pass does not imply convergence.
+The two authored 1j8z files now score/minimize through AtomWorks. Preserving
+8OG OP2 moves metal-excluded 6w13 from read failure to partial minimization.
+Every other local status is unchanged from the earlier shared checkpoint.
+Partial means additional constructor residue exclusions; numerical pass does
+not imply convergence. Only four trials in each local mode and nine of the
+192 PDB trials report convergence. Connection-length alerts remain explicit.
 
-The temporary AtomWorks pin requires authenticated Git access and must become
-a public released dependency before package publication. Full file/tensor API
-unification and removal of model-specific wrappers remain design proposals.
+There are **116 recorded findings**. See [CONTINUED_REVIEW.md](CONTINUED_REVIEW.md)
+for new anchored comments, experimental diagnostics, failure triage and proposed
+fixes; [PR_DESCRIPTION.md](PR_DESCRIPTION.md) maps every finding to its fix or
+remaining limitation. Full results, source hashes and optimizer states are in
+`results/continued-*-validation.json`.
+
+Outstanding: default attachment parameters/local chemistry, noncanonical golden
+provenance, polymer-port and patch-composition correctness, proximity inference
+versus authoritative connectivity, and certain incomplete inputs. Metals remain
+deferred. The immutable AtomWorks dependency needs authenticated Git access and
+must be replaced by a public release before package publication. Native CIF
+reading remains the default while normalization/provenance policy is settled.

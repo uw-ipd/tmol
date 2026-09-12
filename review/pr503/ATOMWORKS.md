@@ -1,5 +1,7 @@
 # AtomWorks reuse audit
 
+**Current checkpoint:** see [CURRENT_STATUS.md](CURRENT_STATUS.md) and [CONTINUED_REVIEW.md](CONTINUED_REVIEW.md) for the completed expanded reruns, AtomWorks test consolidation, leaving-branch/mixture/cache fixes, and full model-interface removal. Earlier measurements below retain their recorded revision scope.
+
 ## Current integration decision (2026-09-12, shared implementation)
 
 AtomWorks is now a core dependency pinned to `774056c7`, the implementation in

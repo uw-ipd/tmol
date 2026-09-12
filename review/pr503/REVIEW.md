@@ -1,5 +1,7 @@
 # Review of tmol PR #503
 
+**Current checkpoint:** see [CURRENT_STATUS.md](CURRENT_STATUS.md) and [CONTINUED_REVIEW.md](CONTINUED_REVIEW.md) for the completed expanded reruns, AtomWorks test consolidation, leaving-branch/mixture/cache fixes, and full model-interface removal. Earlier measurements below retain their recorded revision scope.
+
 The shared protonation/dependency audit adds findings 101–108 in
 [PROTONATION_AUDIT.md](PROTONATION_AUDIT.md), including six direct comparisons
 against the existing native histidine fixtures. The complex-input audit adds findings 92–100 in
