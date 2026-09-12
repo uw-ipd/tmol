@@ -2665,3 +2665,79 @@ Comment 84, [profile_dun_lookup.py](profile_dun_lookup.py) and
 the source hashes, failing and passing cases, raw samples and scheduler record.
 The latest upstream API check still reports `0593a93b0`. Broader chemical
 parameter coverage and release/workflow gates remain open.
+
+
+## Copy current conformations with linear indexing storage
+
+IncludeCurrent and Fallback now share their identical DOF-copy method while
+retaining separate selection policies and class identities. The common planner
+uses per-residue counts to enumerate only copied atoms. Source offsets include
+zero counts for padded pose positions, avoiding compacted-row lookup arrays;
+output buffers are reused for index arithmetic. Empty input returns before
+accessing pose annotations. The two unconditional global CUDA barriers are
+removed from each sampler. Net production code decreases by **76 lines**.
+
+Three planners were compared: one masked enumeration, count-based enumeration
+with an explicit row vector, and the selected direct count-based overload.
+The masked variant is slightly faster for small ordinary GPU layouts, but its
+space still depends on the database-wide maximum residue size. The selected
+implementation uses linear storage and is faster on the measured CPU cases.
+It retains the normal variable-length PyTorch operation's stream synchronization;
+this change does not establish fully asynchronous or CUDA-graph-capturable
+packing. OptH and optional verbose timing barriers remain separate audit items.
+
+Independent copy tests use explicit source/destination index sequences with
+ragged poses, reordered/subselected conformers, gaps in destination storage and
+an unrelated 1,024-atom type. Tests require input metadata to remain unchanged,
+verify exact DOF copies and untouched rows, and exercise a non-default CUDA
+stream. IncludeCurrent and Fallback each reconstruct every atom in two protein
+poses within **2e-5 Å** of the original coordinates. Paired old/new full-build
+outputs and DOF buffers agree **exactly** in the real workload profiler.
+
+The first coordinate-count oracle incorrectly expected an int32 output; after
+correcting it to the API's int64 result, the baseline coordinate control passes.
+The remaining baseline failures isolate an empty-helper input and unwanted
+global CUDA synchronization. A separate Fallback test reproduces its same
+barrier before the method is consolidated. Final focused CPU validation passes
+**24 tests / 26 skips**. Slurm **250871** passes **69 CPU/CUDA tests / three
+expected skips** (two CPU custom-stream cases and the CPU annealer case),
+including the public packing suite, caps, irregular pose sizes, mirror packing,
+registration and task budgets. It completes **0:0**, **2:00**, with
+**4,721,524 KiB** batch peak RSS.
+
+Final seven-round alternating warm measurements:
+
+| Workload | CPU before → after | GPU before → after | Extra GPU peak before → after |
+|---|---:|---:|---:|
+| 12,000 conformers, max type 40 atoms; index planner | 6.000 → 1.367 ms | 0.364 → 0.183 ms | 12,695,040 → 6,471,680 B |
+| 12,000 conformers, max type 1,024 atoms; index planner | 81.654 → 1.496 ms | 0.498 → 0.185 ms | 118,974,464 → 6,471,680 B |
+| 16 ubiquitin poses; current DOF fill | 1.060 → 0.671 ms | 0.381 → 0.220 ms | 1,182,208 B unchanged |
+| 16 ubiquitin poses; current-only rotamer construction | 17.568 → 16.903 ms | 13.345 → 13.250 ms | 6,892,544 B unchanged |
+
+The planner inputs are synthetic and use 15/21/32-atom residues; the large type
+is present only in the database maximum. Construction uses real ubiquitin
+chemistry with IncludeCurrent alone. Its approximately **1–4%** timing changes
+are much smaller than isolated planner improvements; these are not full
+sampling, packing or scoring speedups. Timings exclude parsing and first
+annotation/compilation. CUDA peaks exclude live inputs and retained caches,
+and do not include all native/process memory.
+
+The initial whole-build memory probe allowed cyclic garbage to be collected
+after the allocation baseline and incorrectly reported zero incremental peak
+for the candidate. Those measurements are explicitly invalidated and preserved.
+The corrected probe calls `gc.collect()` before each allocation baseline and
+shows equal full-build peaks. Prototype headers/scripts, source hashes, every
+validation stage, initial and corrected measurements are recorded in
+[results/current-copy-validation.json](results/current-copy-validation.json).
+The reproducible workload tool is [profile_include_current.py](profile_include_current.py).
+Comment 85 describes the inherited performance issue and its tradeoffs.
+
+The broader initial integration, Slurm **250865**, passes **253 CPU/CUDA tests /
+two expected skips**, completing **0:0**, **10:36**, with **7,579,780 KiB** batch
+peak RSS. It covers noncanonical sampling, group masks, conjugation geometry
+and group-packing energy agreement. This run preceded the explicit temporary
+release and Fallback method consolidation; its exact source is archived in the
+manifest, and the final source is covered by the focused/public-packing gate
+above. Counts overlap. Corrected GPU profiling is Slurm **250870**, **0:0**,
+**18 s**, **2,041,064 KiB**. All jobs are terminal. Black, Flake8 and whitespace
+checks pass; the latest upstream head remains `0593a93b0`.

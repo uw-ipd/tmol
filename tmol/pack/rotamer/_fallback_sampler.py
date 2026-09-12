@@ -12,10 +12,9 @@ from tmol.pose import (
     PackedBlockTypes,
     PoseStack,
 )
-from tmol.kinematics import KinForest
 from tmol.pack.rotamer import (
     ConformerSampler,
-    create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampler,
+    IncludeCurrentSampler,
 )
 
 
@@ -127,41 +126,5 @@ class FallbackSampler(ConformerSampler):
         gbt_for_rotamer = torch.nonzero(n_rots_for_gbt, as_tuple=True)[0]
         return (n_rots_for_gbt, gbt_for_rotamer, {})
 
-    def fill_dofs_for_samples(
-        self,
-        pose_stack: PoseStack,
-        task: "SetPackerTask",  # noqa: F821
-        orig_kinforest: KinForest,
-        orig_dofs_kto: Tensor[torch.float32][:, 9],
-        gbt_for_conformer: Tensor[torch.int64][:],
-        block_type_ind_for_conformer: Tensor[torch.int64][:],
-        n_dof_atoms_offset_for_conformer: Tensor[torch.int64][:],
-        conformer_built_by_sampler: Tensor[torch.bool][:],
-        conf_inds_for_sampler: Tensor[torch.int64][:],
-        sampler_n_rots_for_gbt: Tensor[torch.int32][:],
-        sampler_gbt_for_rotamer: Tensor[torch.int32][:],
-        sample_dict: dict,
-        conf_dofs_kto: Tensor[torch.float32][:, 9],
-    ):
-        n_rots = sampler_gbt_for_rotamer.shape[0]
-        if n_rots == 0:
-            return
-
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
-        dst, src = (
-            create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampler(
-                pose_stack,
-                task,
-                gbt_for_conformer,
-                block_type_ind_for_conformer,
-                conf_inds_for_sampler,
-                sampler_n_rots_for_gbt,
-                sampler_gbt_for_rotamer,
-                n_dof_atoms_offset_for_conformer,
-            )
-        )
-
-        conf_dofs_kto[dst + 1, :] = orig_dofs_kto[src + 1, :]
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
+    # Selection differs, but both samplers copy the same input conformation.
+    fill_dofs_for_samples = IncludeCurrentSampler.fill_dofs_for_samples

@@ -11,7 +11,7 @@ Review date: 2026-09-12
 
 Both subsequent six-file updates have been reviewed separately. Comments 1–46
 retain their original `c03c1e745` anchors; comments 47–56 address `0f4c3bc42`,
-and comments 57–84 address `0593a93b0`. The
+and comments 57–85 address `0593a93b0`. The
 fold-forest expectations and HYP count are now corrected upstream. See
 [FOLLOWUP.md](FOLLOWUP.md) for reconciliation and validation details.
 
@@ -825,3 +825,14 @@ Related inherited location: [`tmol/score/dunbrack/_params.py:283`](https://githu
 The follow-up validates residue-key uniqueness, table-name uniqueness across both families and every declared target before the first derived tensor helper. It builds one mapping and derives each family's local indices from that mapping, eliminating repeated conversion and indexing. Per-family `-1` entries, empty families and many residue aliases sharing one table remain valid. Six new invalid-input cases fail before the fix; an independent reordered-alias oracle preserves the intended family indices.
 
 The CPU scoring suite passes 50 cases / 49 CUDA skips. Slurm 250855 passes 247 CPU/CUDA cases / one intentional CPU annealer skip, including sampling, mirrored libraries and packing. All 51 default tensor fields and three lookup DataFrames are exact on CPU and CUDA; derived tensor storage is unchanged. Default lookup construction improves 0.664 → 0.288 ms; a synthetic 10,040-row alias case improves 8.365 → 1.898 ms. These are metadata timings, excluding fitting and scoring. Traced peak memory falls in both cases, but retained Python memory rises slightly for the large case because uniqueness validation caches the index's lookup engine. See [results/dun-lookup-validation.json](results/dun-lookup-validation.json).
+
+
+## 85. Share current-conformation copying and avoid padded index work — P2 performance suggestion
+
+Related inherited locations, outside the PR's changed lines: [`tmol/pack/rotamer/_include_current_sampler.py:102`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/pack/rotamer/_include_current_sampler.py#L102), [`tmol/pack/rotamer/_include_current_sampler.py:123`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/pack/rotamer/_include_current_sampler.py#L123), and [`tmol/pack/rotamer/_fallback_sampler.py:150`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/pack/rotamer/_fallback_sampler.py#L150). This is a general suggestion for shared packing code affected by larger and more heterogeneous chemical databases.
+
+> Can the two samplers share their identical copy method, remove the unconditional global CUDA barriers and enumerate only the atoms being copied? The existing planner builds padded index matrices using the database-wide maximum residue size. A large unrelated ligand type consequently increases temporary work for small protein residues. The CUDA barriers also run for a CPU task whenever any GPU is available.
+
+The follow-up derives source offsets without compacting padded pose rows and enumerates copied atoms from their counts. It reuses a fresh index buffer for source atom indices and preserves both copy order and virtual-root indexing. The fallback sampler shares the include-current fill method while retaining its own selection policy and class identity. This removes 76 net production lines. Empty inputs return before accessing annotations. Independent tests cover explicit source/destination indices, ragged pose layouts, reordered selections, unchanged input metadata, exact DOF copying and non-default CUDA streams. Real protein rotamer coordinates match the old implementation exactly.
+
+In the final synthetic 12,000-conformer test with an unrelated 1,024-atom type, GPU planner time falls 0.498 → 0.185 ms and extra allocated peak falls 118,974,464 → 6,471,680 bytes. With a 40-atom database maximum, the peak falls 12,695,040 → 6,471,680 bytes. Real 16-pose ubiquitin DOF filling improves 1.060 → 0.671 ms on CPU and 0.381 → 0.220 ms on GPU. Complete include-current-only construction changes much less (about 1–4% in these warm rounds), and its GPU allocation peak is unchanged. These are not full sampling/packing/scoring speedups. The first whole-build peak measurement was invalidated by garbage collection; the corrected measurements collect garbage before recording each allocation baseline. See [results/current-copy-validation.json](results/current-copy-validation.json).

@@ -7,7 +7,6 @@ from tmol.types import (
     Tensor,
     validate_args,
 )
-from tmol.utility.tensor import exclusive_cumsum1d
 from tmol.chemical import RefinedResidueType
 from tmol.pose import (
     PackedBlockTypes,
@@ -99,8 +98,6 @@ class IncludeCurrentSampler(ConformerSampler):
         if n_rots == 0:
             return
 
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
         dst, src = (
             create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampler(
                 pose_stack,
@@ -115,8 +112,6 @@ class IncludeCurrentSampler(ConformerSampler):
         )
 
         conf_dofs_kto[dst + 1, :] = orig_dofs_kto[src + 1, :]
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
 
 
 # @validate_args
@@ -130,63 +125,29 @@ def create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampl
     sampler_gbt_for_rotamer: Tensor[torch.int32][:],
     n_dof_atoms_offset_for_rot: Tensor[torch.int64][:],
 ) -> Tuple[Tensor[torch.int64][:], Tensor[torch.int64][:]]:
-    # we want to copy from the orig_dofs tensor into the
-    # rot_dofs tensor for the "mainchain" atoms in the
-    # original residues into the appropriate positions
-    # for the rotamers thta we are building at those
-    # residues. This requires a good deal of reindexing.
-
+    if conf_inds_for_sampler.numel() == 0:
+        return conf_inds_for_sampler, conf_inds_for_sampler
     pbt = poses.packed_block_types
-    n_rots_for_sampler = sampler_gbt_for_rotamer.shape[0]
+    types = poses.block_type_ind.reshape(-1).long()
+    counts = pbt.n_atoms[types.clamp_min(0)].long()
+    counts.masked_fill_(types < 0, 0)
+    source_offsets = torch.cumsum(counts, 0) - counts
+    considered = gbt_for_rot[conf_inds_for_sampler]
+    residues = task.global_block_ind_for_considered_block_types[considered]
+    target_offsets = n_dof_atoms_offset_for_rot[conf_inds_for_sampler]
+    source_minus_target = source_offsets[residues] - target_offsets
+    del considered, residues, types, counts, source_offsets
+    sizes = pbt.n_atoms[block_type_ind_for_rot[conf_inds_for_sampler]].long()
+    packed_offsets = torch.cumsum(sizes, 0) - sizes
 
-    orig_block_type_ind = (
-        poses.block_type_ind[poses.block_type_ind != -1].view(-1).to(torch.int64)
-    )
-    orig_dof_atom_offset = exclusive_cumsum1d(pbt.n_atoms[orig_block_type_ind]).to(
-        torch.int64
-    )  # TO DO: pass this in as an input parameter as each Sampler needs it
-
-    # TO DO: make this an argument and pass it in
-    poses_res_to_real_poses_res = torch.full(
-        (poses.block_type_ind.shape[0] * poses.block_type_ind.shape[1],),
-        -1,
-        dtype=torch.int64,
-        device=poses.device,
-    )
-    poses_res_to_real_poses_res[poses.block_type_ind.view(-1) != -1] = torch.arange(
-        orig_block_type_ind.shape[0], dtype=torch.int64, device=poses.device
-    )
-
-    # get the residue index for each rotamer
-    res_ind_for_gbt = task.global_block_ind_for_considered_block_types
-
-    gbt_for_samplers_rots = gbt_for_rot[conf_inds_for_sampler]
-    res_ind_for_samplers_rots = res_ind_for_gbt[gbt_for_samplers_rots]
-    block_type_ind_for_samplers_rots = block_type_ind_for_rot[conf_inds_for_sampler]
-
-    # find the number of atoms for each rotamer / orig_res
-    orig_res_n_atoms = pbt.n_atoms[block_type_ind_for_samplers_rots]
-
-    # now lets note which atoms are real
-    dummy_rotamer_atom_inds = (
-        torch.arange(pbt.max_n_atoms, dtype=torch.int64, device=poses.device)
-        .view(1, pbt.max_n_atoms)
-        .expand(n_rots_for_sampler, -1)
-    )
-    atom_is_real_for_rot = dummy_rotamer_atom_inds < orig_res_n_atoms.unsqueeze(
-        1
-    ).expand(n_rots_for_sampler, pbt.max_n_atoms)
-    orig_atom_inds = (
-        orig_dof_atom_offset[poses_res_to_real_poses_res[res_ind_for_samplers_rots]]
-        .unsqueeze(1)
-        .expand(-1, pbt.max_n_atoms)
-        + dummy_rotamer_atom_inds
-    )[atom_is_real_for_rot]
-
-    rot_atom_inds = (
-        n_dof_atoms_offset_for_rot[conf_inds_for_sampler]
-        .unsqueeze(1)
-        .expand(-1, pbt.max_n_atoms)
-        + dummy_rotamer_atom_inds
-    )[atom_is_real_for_rot]
-    return rot_atom_inds, orig_atom_inds
+    # The one-argument form returns each conformer's index once per atom.
+    # Work scales with copied atoms, independent of unrelated large types.
+    source = torch.repeat_interleave(sizes)
+    destination = torch.arange(source.numel(), device=poses.device)
+    destination.add_((target_offsets - packed_offsets)[source])
+    # Reuse the fresh conformer-index buffer for source atom indices. Neither
+    # input metadata nor DOFs are modified, and no padded atom matrix is built.
+    source.copy_(source_minus_target[source])
+    source.add_(destination)
+    # These exclude the virtual-root row; the caller adds one to both indices.
+    return destination, source
