@@ -1,7 +1,7 @@
 # Current review checkpoint
 
 Frank's latest fetched head remains `0593a93b07d80b0302383163d2d98c78e315ab98`,
-already merged. Current production fixes are tmol `cdca836b2` and AtomWorks
+already merged. Current review code is tmol `9a91bce6b` and AtomWorks
 `4af94d0c` based on dev `59afb1e2`.
 
 The immutable `102cda060` broad run finished with **1,667 passed, 15 skipped,
@@ -15,6 +15,20 @@ noncanonical references; one stale mock lacks the required protonation-state fie
 is already corrected in `88096fafe` with a passing CPU check. The final port
 guard/conversion selection has **85 CPU/CUDA passes** in job **253094**, with
 no failures or skips.
+
+The private capped-model prototype now retains observed tetrahedral
+stereochemistry before discarding coordinates. Three mirrored full-fixture
+regressions fail before the fix and pass afterward; its focused CPU selection
+has **53 passes, 22 skips (12 device, ten fixture-specific)**. The six Frank-convention native
+energy/gradient comparisons pass on each of CPU and CUDA with stereochemistry retained in the chemical
+identity check. Its CPU/CUDA selection has **65 passes, ten fixture-specific skips** in **253105**.
+See [stereochemistry evidence](results/conjugate-stereochemistry-validation.json).
+This remains a prerequisite for default attachment integration, not a new default.
+
+A subsequent generator audit fixed DAR/DAL/U lookup through declared input
+classes. Its three complete-file regressions pass. All 18 example inputs now
+complete the generator audit: three produce ligand/glycan attachment records
+and fifteen need none. This does not replace the final full corpus rerun.
 
 Both CIF routes expose an explicit preserve/rebuild hydrogen policy, including
 D-histidine evidence. Legacy inputs without a bond table retain geometric
@@ -76,7 +90,7 @@ Partial means additional constructor residue exclusions; numerical pass does
 not imply convergence. Only four trials in each local mode and nine of the
 192 PDB trials report convergence. Connection-length alerts remain explicit.
 
-There are **119 recorded findings**. See [CONTINUED_REVIEW.md](CONTINUED_REVIEW.md)
+There are **120 recorded findings**. See [CONTINUED_REVIEW.md](CONTINUED_REVIEW.md)
 for new anchored comments, experimental diagnostics, failure triage and proposed
 fixes; [PR_DESCRIPTION.md](PR_DESCRIPTION.md) maps every finding to its fix or
 remaining limitation. Full results, source hashes and optimizer states are in

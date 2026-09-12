@@ -1,6 +1,6 @@
 # Continued review: integrated AtomWorks inputs and model tutorials
 
-Latest follow-up: tmol `cdca836b2`, AtomWorks `4af94d0c`. Earlier checkpoints
+Latest follow-up: tmol `9a91bce6b`, AtomWorks `4af94d0c`. Earlier checkpoints
 below retain their original scope; current evidence is in
 [chemistry-followup-validation.json](results/chemistry-followup-validation.json).
 
@@ -36,6 +36,51 @@ and port names. The unmodified compressed CIF is now a regression fixture with
 source provenance. Both readers reject the conflict without mutating their
 input bond tables. This fixes handling of invalid input; it does not silently
 choose one source bond or make original 1AYM a successful minimization case.
+
+## 120. Review prototype discards stereochemistry before parameter generation — fixed for observed tetrahedral states
+
+[The capped-model builder before this fix](https://github.com/kierandidi/tmol/blob/0077c1a1006edeb864c518ae92153d34503f6282/tmol/ligand/_conjugate_model.py#L138).
+This defect was introduced by the review's private prototype, not Frank's PR.
+
+> Can the complete capped molecule retain its observed stereochemistry before
+> coordinates are discarded? Both enantiomers become an unspecified molecule
+> when the converter receives all NaNs; generating 3D afterward can choose a
+> different stereoisomer even if the bond/angle arithmetic is correct.
+
+Use the shared AtomWorks-backed converter on the combined graph with retained
+source coordinates, then remove its conformer. Parameterization clones that
+coordinate-free molecule. Include stereochemical identity in deduplication and
+compare local tetrahedral handedness in a stable order of named neighbors.
+CIP labels alone are unsuitable for this local comparison because priority can
+change with the attached group; RDKit's distinction between chiral tags and
+[CIP labels](https://www.rdkit.org/docs/RDKit_Book.html#assignment-of-absolute-stereochemistry)
+matters here. Non-tetrahedral or ambiguous external-neighbor states raise.
+
+Three complete-fixture workflows preserve signed local volumes through capping,
+protonation, SMILES/mol2 generation and reconstruction, for each input and its
+reflection. They also reject incompatible handedness sharing one residue
+identity. All three fail on the previous commit because no stereocenters remain.
+The complete focused CPU selection has 53 passes and 22 skips. The subsequent
+CPU/CUDA selection has 65 passes and ten fixture-specific skips. Six native
+Frank-convention energy/gradient comparisons pass on each of CPU and CUDA with stereochemistry now
+retained in the mapped-chemistry/resonance check. See
+[revision-scoped validation](results/conjugate-stereochemistry-validation.json).
+
+Two older equality tests erased every coordinate and assumed full chemical
+identity, including provenance, was unchanged. They now change distances,
+orientation, origin, atom order and instance numbering while preserving
+handedness. The separate all-NaN topology check remains. This corrects the
+identity contract; it does not change score goldens or tolerances. Unresolved
+stereochemistry and default attachment/local integration remain outstanding.
+
+The following all-example generator audit exposed the same input-name
+assumption addressed in finding 114: DAR/DAL/U were looked up as internal names
+instead of declared I/O classes. Both model definitions and patched candidates
+now index `io_equiv_class` as well. Three affected complete-file regressions pass.
+The repeated generator audit has no failures across all 18 examples: three
+ligand/glycan fixtures generate records and fifteen need no non-polymer
+attachment records. This is parameter-generation coverage, not a new full
+scoring/minimization corpus run; default integration remains pending.
 
 ## Attachment parameter convention: follow Frank's branch
 
