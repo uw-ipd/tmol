@@ -2518,3 +2518,78 @@ intermediate native layouts, storage audits and benchmark samples are in
 The coarser tables are synthetic validation inputs, not refitted statistical
 libraries. Broader chemistry coverage and independent parameter validation
 remain separate requirements.
+
+
+## Reuse interpolation indices with explicit CPU/GPU resource checks
+
+Spline interpolation now reuses wrapped indices across its tensor-product
+contributions. CPU and 2D CUDA cache the small stencil's offsets. Larger CUDA
+stencils retain wrapped base indices and wrap the remaining tap offsets without
+allocating a per-thread offset array. The floating-point multiplication and
+accumulation order stays the same. Padded/transposed inputs, custom origins,
+rectangular grids and one-/two-point periodic axes remain supported.
+
+The CPU gate passes **40 tests / eight CUDA skips**, including six independent
+periodic linear-system coefficient checks. Slurm **250673** passes **388
+CPU/CUDA tests / one intentional CPU annealer skip**, **0:0**, **11:38**, with
+**7,127,784 KiB** batch peak RSS including compilation. The default 50 parameter
+fields and three lookup DataFrames remain exact; derived tensor storage remains
+**67,494,212 bytes**. The separate native CUDA harness also checks tiny grids,
+negative/full-period coordinates and adjacent floating-point values exactly.
+
+Five prototypes were measured before choosing this strategy. Caching all
+indices improves the isolated GPU 3D kernel but increases its per-thread local
+memory from 96 to 192 bytes. Forced unrolling additionally slows the 2D case.
+Keeping only wrapped base indices preserves local memory for 3D, while caching
+is preferable for 2D and CPU. The rejected variants and their raw results remain
+in the manifest; they were never integrated into the branch.
+
+The real scoring benchmark uses default ubiquitin chemistry, one or 64 repeated
+poses, whole-pose and block-pair output, and forward/forward-plus-gradient calls.
+Three process trials alternate checkout order; each contains seven warm timing
+rounds. Construction, fitting and native compilation are excluded.
+Representative **64-pose** medians:
+
+| Workload | Before | After | Speedup |
+|---|---:|---:|---:|
+| CPU Dunbrack whole-pose forward | 7.163 ms | 5.872 ms | 1.22× |
+| CPU Dunbrack whole-pose forward + gradient | 7.831 ms | 6.577 ms | 1.19× |
+| CPU Dunbrack block-pair forward + gradient | 15.018 ms | 12.061 ms | 1.25× |
+| CPU backbone whole-pose forward | 4.441 ms | 3.787 ms | 1.17× |
+| GPU Dunbrack whole-pose forward | 0.1215 ms | 0.1091 ms | 1.11× |
+| GPU Dunbrack whole-pose forward + gradient | 0.1972 ms | 0.1959 ms | 1.01× |
+| GPU backbone whole-pose forward | 0.0326 ms | 0.0327 ms | 1.00× |
+
+GPU block-pair Dunbrack forward also improves about 11%; its gradient workload
+and backbone scoring are essentially unchanged. All CPU scoring outputs and
+gradients agree exactly. The maximum CUDA difference is **6.10e−5**, also seen
+between repeated baseline processes, with the comparisons passing the stated
+2e−4 absolute / 2e−5 relative tolerance. Block-pair scores agree exactly.
+Managed GPU allocation peaks agree in every measured case. These timings do
+not represent a full score function, packing, input preparation or a new
+statistical model.
+
+Resource checks distinguish the isolated kernels, static compiler output and
+H200 driver compilation. The native fatbins target `sm_75`; their static resource
+reports are not H200 runtime measurements. Separately loading the extracted
+scoring PTX through the CUDA driver gives `binary_version=90`. Most changed
+kernels use fewer registers. One float32 Dunbrack pose-forward kernel uses
+**112 rather than 96 local bytes per thread**, while registers fall **142 →
+127**; the corresponding backward kernel retains 96 local bytes. This is a
+measured tradeoff, despite unchanged managed allocator peaks. No blanket GPU
+memory reduction is claimed.
+
+Workload jobs: **250675** (GPU), **0:0**, **6:01**, **8,640,088 KiB**; **250693**
+(CPU), **0:0**, **4:03**, **5,326,256 KiB**. Final native CUDA/tiny-grid checks:
+**250677**, **0:0**, **53 s**, **4,441,812 KiB**. Driver resource inspection:
+**250692**, **0:0**, **19 s**, **1,023,360 KiB**. Raw timings, numerical controls,
+source hashes, prototype stages and resource records are in
+[results/spline-index-performance.json](results/spline-index-performance.json).
+The executable profiling/comparison tools are stored alongside this report.
+
+On the user's request to pull Frank's latest changes, the PR API, a fresh fetch
+and a direct author-branch lookup all returned `0593a93b0`; the commit is already
+an ancestor, and `git merge` reported “Already up to date.” The cap/conjugation
+update was previously merged in `841d594d5` and audited in the preceding stages.
+See [the upstream check](results/upstream-check-20260912T033836Z.json). Broader
+attachment coverage and the older noncanonical references remain open.

@@ -1,4 +1,4 @@
-"""Paired dense CPU spline timings across the stride-correctness change."""
+"""Paired dense CPU spline timings against a pinned implementation."""
 
 import argparse
 import hashlib
@@ -19,10 +19,13 @@ SOURCE = "tmol/numeric/bspline_compiled/bspline.hh"
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--baseline", default=BASELINE)
     args = parser.parse_args()
     directory = args.output.parent / f"{args.output.stem}-source"
     directory.mkdir(exist_ok=True)
-    source = subprocess.check_output(["git", "show", f"{BASELINE}:{SOURCE}"], text=True)
+    source = subprocess.check_output(
+        ["git", "show", f"{args.baseline}:{SOURCE}"], text=True
+    )
     assert source.count("struct ndspline {") == 1
     (directory / "baseline.hh").write_text(
         source.replace("struct ndspline {", "struct ndspline_baseline {")
@@ -81,7 +84,9 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) { bind<2>(m); bind<3>(m); }
                 }
             )
     result = {
-        "baseline_commit": BASELINE,
+        "baseline_commit": subprocess.check_output(
+            ["git", "rev-parse", args.baseline], text=True
+        ).strip(),
         "source_sha256": {
             "before": hashlib.sha256(source.encode()).hexdigest(),
             "after": hashlib.sha256(Path(SOURCE).read_bytes()).hexdigest(),

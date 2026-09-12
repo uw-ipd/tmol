@@ -360,7 +360,7 @@ struct ndspline {
     RealN dinterp_dX = RealN::Constant(0.0);
 
     Int nprods = 1;
-    Int pt_indexer, idx_box_i, idx_i;
+    Int pt_indexer, idx_box_i;
     int64_t idx_ij;
     IntN idx;
     RealN frac;
@@ -379,6 +379,25 @@ struct ndspline {
     Eigen::Matrix<Real, NDIM, DEGREE + 1> wts = _get_weights(frac);
     Eigen::Matrix<Real, NDIM, DEGREE + 1> dwts = _get_dweights(frac);
 
+    // Cache offsets on CPU and for small CUDA stencils. Larger CUDA stencils
+    // keep only wrapped base indices, avoiding a per-thread offset array.
+    constexpr bool cache_offsets = D == Device::CPU || NDIM <= 2;
+    Eigen::Matrix<int64_t, cache_offsets ? NDIM : 0, DEGREE + 1> offsets;
+    if constexpr (cache_offsets) {
+      for (int dim = 0; dim < NDIM; ++dim) {
+        for (int tap = 0; tap <= DEGREE; ++tap) {
+          Int wrapped = (idx[dim] + tap) % coeffs.size(dim);
+          if (wrapped < 0) wrapped += coeffs.size(dim);
+          offsets(dim, tap) = coeffs.stride(dim) * wrapped;
+        }
+      }
+    } else {
+      for (int dim = 0; dim < NDIM; ++dim) {
+        idx[dim] %= coeffs.size(dim);
+        if (idx[dim] < 0) idx[dim] += coeffs.size(dim);
+      }
+    }
+
     // do the dot product
     for (int pt = 0; pt < nprods; ++pt) {
       weight = 1;
@@ -389,9 +408,13 @@ struct ndspline {
 
       for (int dim = NDIM - 1; dim >= 0; --dim) {
         idx_box_i = pt_indexer % (DEGREE + 1);
-        idx_i = (idx[dim] + idx_box_i) % coeffs.size(dim);
-        if (idx_i < 0) idx_i += coeffs.size(dim);
-        idx_ij += coeffs.stride(dim) * idx_i;
+        if constexpr (cache_offsets) {
+          idx_ij += offsets(dim, idx_box_i);
+        } else {
+          Int idx_i = idx[dim] + idx_box_i;
+          while (idx_i >= coeffs.size(dim)) idx_i -= coeffs.size(dim);
+          idx_ij += coeffs.stride(dim) * idx_i;
+        }
         weight *= wts(dim, idx_box_i);
 
         for (int d_dim = 0; d_dim < NDIM; ++d_dim) {

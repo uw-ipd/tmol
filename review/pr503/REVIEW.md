@@ -11,7 +11,7 @@ Review date: 2026-09-12
 
 Both subsequent six-file updates have been reviewed separately. Comments 1–46
 retain their original `c03c1e745` anchors; comments 47–56 address `0f4c3bc42`,
-and comments 57–81 address `0593a93b0`. The
+and comments 57–82 address `0593a93b0`. The
 fold-forest expectations and HYP count are now corrected upstream. See
 [FOLLOWUP.md](FOLLOWUP.md) for reconciliation and validation details.
 
@@ -794,3 +794,14 @@ Related inherited location, outside the PR's changed lines: [`tmol/numeric/bspli
 > Can the short-period anticausal initialization stop before re-reading its own accumulator? The last entry is already included as the initial term. Iterating through it again both uses a partially modified value and advances the denominator to the wrong pole power. On small grids, interpolation consequently misses the supplied grid values.
 
 After correcting layout handling, three independent 2D/3D/4D tests still fail on 5–8-point axes. Iterating over the other `N-1` entries gives the periodic denominator `1-pole**N` and restores the grid-point interpolation checks. The large-grid truncation branch is unchanged. All three issues and their separately failing intermediate stages are recorded in [results/grid-registration-validation.json](results/grid-registration-validation.json); default parameter tensors are independently checked for exact equality.
+
+
+## 82. Reuse periodic indices inside spline interpolation — P2 performance suggestion
+
+Related inherited location, outside the PR's changed lines: [`tmol/numeric/bspline_compiled/bspline.hh:392`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/numeric/bspline_compiled/bspline.hh#L392). This is a general review suggestion for the shared numerical primitive.
+
+> Could interpolation reuse each axis's wrapped indices across the tensor-product contributions? The same few index remainders are recomputed for every contribution. A small offset cache helps CPU and 2D CUDA; larger CUDA stencils can retain only wrapped base indices to avoid an extra local-memory array. The choice should be checked in full scoring kernels, including register/local-memory costs, rather than inferred from a standalone kernel.
+
+The follow-up preserves the floating-point accumulation order and adds independent periodic linear-system checks, including one- and two-point axes. The integrated GPU suite passes 388 CPU/CUDA cases with one intentional CPU annealer skip. In three alternating-checkout trials with 64 ubiquitin poses, CPU Dunbrack forward/forward-plus-gradient improves about 22%/19%; backbone forward improves about 17%. GPU Dunbrack forward improves about 11%, while its gradient workload and backbone scoring are essentially unchanged. These are individual term timings with construction excluded, not full application speedups.
+
+Managed GPU allocation peaks are identical. The selected strategy avoids the first prototype's doubled local memory in the isolated 3D kernel. Driver-compiled copies of the actual H200 scoring PTX mostly use fewer registers, but one float32 Dunbrack pose-forward kernel uses 112 rather than 96 bytes of local memory per thread (142 → 127 registers). This small tradeoff is retained and reported; no universal reduction in GPU memory is claimed. Full CPU outputs are exact; CUDA differences are within tolerance and no larger than repeated baseline-process variation. See [results/spline-index-performance.json](results/spline-index-performance.json).
