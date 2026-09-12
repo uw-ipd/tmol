@@ -11,7 +11,7 @@ Review date: 2026-09-12
 
 Both subsequent six-file updates have been reviewed separately. Comments 1–46
 retain their original `c03c1e745` anchors; comments 47–56 address `0f4c3bc42`,
-and comments 57–82 address `0593a93b0`. The
+and comments 57–83 address `0593a93b0`. The
 fold-forest expectations and HYP count are now corrected upstream. See
 [FOLLOWUP.md](FOLLOWUP.md) for reconciliation and validation details.
 
@@ -805,3 +805,12 @@ Related inherited location, outside the PR's changed lines: [`tmol/numeric/bspli
 The follow-up preserves the floating-point accumulation order and adds independent periodic linear-system checks, including one- and two-point axes. The integrated GPU suite passes 388 CPU/CUDA cases with one intentional CPU annealer skip. In three alternating-checkout trials with 64 ubiquitin poses, CPU Dunbrack forward/forward-plus-gradient improves about 22%/19%; backbone forward improves about 17%. GPU Dunbrack forward improves about 11%, while its gradient workload and backbone scoring are essentially unchanged. These are individual term timings with construction excluded, not full application speedups.
 
 Managed GPU allocation peaks are identical. The selected strategy avoids the first prototype's doubled local memory in the isolated 3D kernel. Driver-compiled copies of the actual H200 scoring PTX mostly use fewer registers, but one float32 Dunbrack pose-forward kernel uses 112 rather than 96 bytes of local memory per thread (142 → 127 registers). This small tradeoff is retained and reported; no universal reduction in GPU memory is claimed. Full CPU outputs are exact; CUDA differences are within tolerance and no larger than repeated baseline-process variation. See [results/spline-index-performance.json](results/spline-index-performance.json).
+
+
+## 83. Register each sampler object once and combine its enabled regions — P2
+
+Related inherited registration location: [`tmol/pack/_packer_task.py:424`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/pack/_packer_task.py#L424). The new mask-disabling API relies on this registry at [`tmol/pack/_packer_task.py:447`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/pack/_packer_task.py#L447).
+
+> Can registration preserve one entry per sampler object and combine its enabled regions? Adding the same object for masks A and B appends it twice but overwrites its identity-to-column lookup. Both sampling calls then read B: A's residues disappear and B's residues receive duplicate conformers. Disabling that object also addresses only its latest column. A palette that returns a reusable sampler list exposes another alias: adding a sampler mutates the palette's list.
+
+The follow-up owns the task's list, deduplicates defaults by object identity, and unions masks when an existing sampler is enabled again. Enabling it everywhere fills its existing mask column. Equal but distinct sampler objects remain independent. Repeated registration does not grow the mask tensor or duplicate downstream sampling/allocation. Five CPU regressions fail before the change: four expose wrong sampling multiplicities and the distinct-instance control exposes palette-list mutation. Tests use actual IncludeCurrent sampling on a ragged two-pose batch and check the expected per-residue counts, then exercise disabling/re-enabling without mask reallocation. This is an inherited API defect relevant to reusable group-packing configuration, not a claim that the PR introduced registration itself. See [results/sampler-registration-validation.json](results/sampler-registration-validation.json).

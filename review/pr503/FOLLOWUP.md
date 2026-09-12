@@ -2593,3 +2593,35 @@ an ancestor, and `git merge` reported “Already up to date.” The cap/conjugat
 update was previously merged in `841d594d5` and audited in the preceding stages.
 See [the upstream check](results/upstream-check-20260912T033836Z.json). Broader
 attachment coverage and the older noncanonical references remain open.
+
+
+## Preserve sampler registration identity across repeated configuration
+
+`PackerTask` now owns its sampler list and gives each sampler object one mask
+column. Repeated masked registration unions enabled regions; unmasked
+registration enables its existing column everywhere. Equal but distinct objects
+remain independent, and palette defaults are deduplicated by identity in their
+original order. Re-enabling the same object does not allocate a larger mask or
+cause downstream samplers to enumerate duplicate rows.
+
+Previously, registering one object for masks A then B kept two list entries but
+pointed both sampling calls at B's column. A's unique residues disappeared and
+B's residues were sampled twice. Four new cases reproduce incorrect sample
+counts, while a fifth distinct-object control exposes mutation of a palette's
+reused list. All five fail on the preceding commit. The oracle uses real
+IncludeCurrent sampling over a ragged two-pose batch; it checks per-residue
+multiplicity rather than reproducing registry internals. It also checks
+mask/storage behavior after disabling and re-enabling.
+
+The targeted CPU task/include-current suite passes **15 tests / 13 CUDA skips**.
+Comment 83 and [results/sampler-registration-validation.json](results/sampler-registration-validation.json)
+record the defect and before/after evidence. This corrects registration and
+palette-list ownership; snapshot semantics when the original
+`PackerTask` is edited after finalization remain outside this change. No standalone timing ratio is
+claimed for dictionary lookup or mask registration.
+
+Slurm **250845** passes **249 CPU/CUDA tests**, without skips or failures,
+including task registration, rotamer construction, explicit budgets, group
+masks, conjugation geometry and packing/scoring energy agreement. It completes
+with **0:0**, **8:03**, and **4,836,384 KiB** batch peak RSS. Black, Flake8 and
+whitespace checks pass. The latest upstream head remains `0593a93b0`.
