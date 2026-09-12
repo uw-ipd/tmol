@@ -1477,7 +1477,7 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     });
     DeviceDispatch<D>::template for_each_in_workgroup<nt>(reduce_energies);
   });
-  if (compute_derivs) {
+  if (compute_derivs || !output_block_pair_energies) {
     DeviceDispatch<D>::template foreach_workgroup<launch_t>(
         mgr, dispatch_indices.size(1), eval_subgraphs_for_interaction);
   } else {

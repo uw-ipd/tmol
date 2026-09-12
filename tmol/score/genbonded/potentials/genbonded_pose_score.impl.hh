@@ -1269,7 +1269,7 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
     });
     DeviceOps<D>::template for_each_in_workgroup<nt>(reduce_and_write);
   });
-  if (compute_derivs) {
+  if (compute_derivs || !output_block_pair_energies) {
     DeviceOps<D>::template foreach_workgroup<launch_t>(
         mgr, n_output_intxns_total, eval_torsions_for_interaction);
   } else {
