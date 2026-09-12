@@ -3085,3 +3085,50 @@ The simple check runs once when each block's parameter annotation is built.
 See [results/charge-coverage-validation.json](results/charge-coverage-validation.json)
 and review comment 90. Other parameter families and scientific model choices
 remain separate from these coverage checks.
+
+## Complete hydrogen-bond tables and bulk assembly (2026-09-12)
+
+The native missing-pair diagnostic confirms that omitting the backbone
+`hbdon_PBA` / `hbacc_PBA` row produces NaN ubiquitin energies and gradients on
+CPU and CUDA. Runtime construction now enforces the declared-family completeness
+contract already stated by the old default coverage test. It validates family
+and polynomial references, float32 weights and selected float64 polynomial
+parameters. The mapper remains separate from chemical donor flags. Later named
+and pair definitions retain precedence.
+
+Bulk host assembly replaces repeated Pandas row lookup and small TensorGroup
+assignments. It copies each final tensor once and avoids redundant pair-order
+and polynomial dictionaries. Default and reversed catalogs match all 15 resolved
+and compact tensor fields exactly, including strides and dtype. Their combined
+logical tensor storage remains 129,048 bytes. Cold resolver construction changes
+64.37 → 0.796 ms on CPU and 78.15 → 1.048 ms with CUDA transfers. Cold compact
+construction, including the resolver, changes 62.79 → 0.990 ms on CPU and
+78.75 → 1.399 ms on CUDA. Traced Python peaks fall by about 1.8–3.0 KB; retained
+Python memory varies slightly by path. These timings exclude cache hits,
+scientific fitting and scoring; native/GPU allocation peaks were not measured.
+
+Fifteen initial failures include seven silent-acceptance cases, five existing
+errors made actionable, and three empty-family constructor cases. A duplicate-
+precedence control already passed. The broad CPU suite passes 97 / skips 85
+before the final allocation cleanup; final focused tests pass 18 / skip 16.
+Slurm 251872 passes 281 CPU/CUDA tests / 7 skips in 4:08, exits 0:0 and records
+4,008,584 KiB MaxRSS. Its original low-priority queue estimated a three-day wait;
+the same job was moved to the interactive partition. Whole-pose, weighted
+block-pair and ragged rotamer scoring tests include family reordering, database
+reuse and derivatives.
+
+Empty declared donor or acceptor families may omit their polynomial library.
+A separate native test, added after the main job collected cases, verifies zero
+scores and gradients: CPU 3 passes / 3 skips; Slurm 251878 passes all six CPU/CUDA
+cases in 18 seconds. This is recorded separately from the main suite.
+
+The native complete-table CPU control retains exact energies and every gradient
+component. CUDA energy differs by 0.000003814697265625, within the existing
+comparison tolerance; every gradient component is exact. The optional AtomWorks
+route passes all 19 current fixtures on CPU through rotamer construction.
+
+[results/hbond-table-validation.json](results/hbond-table-validation.json) records
+source hashes, all test stages, paired benchmarks and native diagnostics. Review
+comment 91 distinguishes the inherited construction code from the expanded
+chemistry paths. Scientific parameter validity, global-field validation and
+shared-family hybridization consistency remain separate questions.

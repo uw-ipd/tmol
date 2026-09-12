@@ -49,6 +49,20 @@ def setup(term, pose):
 
 
 def database_change(database, kind):
+    if kind == "hbond_family_order":
+        hb = database.scoring.hbond
+        return attr.evolve(
+            database,
+            scoring=attr.evolve(
+                database.scoring,
+                hbond=attr.evolve(
+                    hb,
+                    donor_type_params=tuple(reversed(hb.donor_type_params)),
+                    acceptor_type_params=tuple(reversed(hb.acceptor_type_params)),
+                    pair_parameters=tuple(reversed(hb.pair_parameters)),
+                ),
+            ),
+        )
     if kind == "type_order":
         return attr.evolve(
             database,
@@ -97,6 +111,7 @@ def database_change(database, kind):
         (LKBallEnergyTerm, "donors"),
         (LKBallEnergyTerm, "solvation"),
         (HBondEnergyTerm, "donors"),
+        (HBondEnergyTerm, "hbond_family_order"),
     ],
 )
 @pytest.mark.parametrize("changed_first", [False, True])
@@ -144,7 +159,7 @@ def test_reused_pose_retains_each_database_energy_and_gradient(
         setup(term, clean)
         expected.append(evaluate(getattr(term, render)(clean)))
     assert float(expected[0][0].detach().abs().sum()) > 0.01
-    if change == "type_order":
+    if change in ("type_order", "hbond_family_order"):
         for a, b in zip(expected[0], expected[1]):
             torch.testing.assert_close(a, b, rtol=2e-6, atol=2e-6)
     elif change == "donors" and term_class is HBondEnergyTerm:
@@ -174,6 +189,7 @@ def test_reused_pose_retains_each_database_energy_and_gradient(
         (LKBallEnergyTerm, "donors"),
         (LKBallEnergyTerm, "solvation"),
         (HBondEnergyTerm, "donors"),
+        (HBondEnergyTerm, "hbond_family_order"),
     ],
 )
 @pytest.mark.parametrize("changed_first", [False, True])
@@ -225,7 +241,10 @@ def test_reused_rotamer_pose_retains_each_database(
         setup(term, clean)
         expected.append(evaluate(term.render_rotamer_scoring_module(clean, rotamers)))
     assert float(expected[0][0].detach().abs().sum()) > 0.01
-    if change != "type_order":
+    if change in ("type_order", "hbond_family_order"):
+        for a, b in zip(expected[0], expected[1]):
+            torch.testing.assert_close(a, b, rtol=2e-6, atol=2e-6)
+    else:
         assert not torch.allclose(expected[0][0], expected[1][0])
     order = (1, 0) if changed_first else (0, 1)
     modules, terms = {}, {}

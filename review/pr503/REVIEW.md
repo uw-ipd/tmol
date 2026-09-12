@@ -11,7 +11,7 @@ Review date: 2026-09-12
 
 Both subsequent six-file updates have been reviewed separately. Comments 1–46
 retain their original `c03c1e745` anchors; comments 47–56 address `0f4c3bc42`,
-and comments 57–90 address `0593a93b0`. The
+and comments 57–91 address `0593a93b0`. The
 fold-forest expectations and HYP count are now corrected upstream. See
 [FOLLOWUP.md](FOLLOWUP.md) for reconciliation and validation details.
 
@@ -895,3 +895,16 @@ Packed setup also reuses the validated block indices and heavy-atom lists instea
 Six behavioral regressions fail on parent `b1c4834d8`, covering a missing residue table, non-finite/float32-overflow charges and reused packed annotations. A seventh initially failing test requires explicit water records. HOH is the only default residue whose charges previously came from the missing-table fallback. The follow-up stores its same three zeros explicitly; this preserves existing behavior and does not introduce a fitted water model. All charges across the 230 default types match the preceding implementation exactly.
 
 The corrected lookup raises the existing missing-atom `KeyError` for absent residue tables and gives a residue/atom error for non-finite used charges. Unused invalid rows and explicitly zeroed residues remain supported. Native complete-table CPU energies and every gradient component are exact. Charge lookup adds about 2.6 microseconds for alanine and 0.62 ms for all 230 types in the focused benchmark; the check runs during annotation, with no added forward/backward kernel work. See [results/charge-coverage-validation.json](results/charge-coverage-validation.json) for the final CPU/CUDA checks. This establishes required charge coverage, not the scientific validity or neutrality of a charge model.
+
+
+## 91. Build complete hydrogen-bond pair tables in bulk — P1 correctness / P2 performance
+
+Inherited code at [`tmol/score/hbond/_params.py:118`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/score/hbond/_params.py#L118) and [`tmol/score/hbond/_params.py:163`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/score/hbond/_params.py#L163). The chemistry expansion makes repeated construction for distinct chemical databases more relevant.
+
+> Can construction enforce the complete declared-family table required by the existing coverage test, then gather its polynomial fields in bulk? Omitting the backbone donor/acceptor pair currently produces NaN native ubiquitin energies and gradients. The loop also performs repeated one-row Pandas lookups and many small TensorGroup slice assignments. Host assembly can validate the family references, selected polynomial values and float32 weights before copying each final tensor. Later-definition precedence must remain explicit when pair or polynomial records repeat.
+
+The follow-up requires a pair for every declared donor/acceptor family combination. It does not infer missing hydrogen-bond mappings from chemical donor flags: those flags and the mapper have distinct existing contracts. Unknown references and non-finite selected parameters raise actionable errors. Empty donor or acceptor families may omit their polynomial library; their native score and gradients are checked separately. Last pair/polynomial definitions retain precedence.
+
+Fifteen initial failures comprise seven silent-acceptance cases, five existing errors made actionable, and three newly supported empty-family cases. Default and reversed catalogs have exactly matching tensor values, strides and logical storage across all 15 resolved/compacted tensor fields. Added whole-pose, weighted block-pair and ragged rotamer tests check that family reordering and reuse preserve scores and derivatives.
+
+The final CPU benchmark reduces cold resolver construction from 64.37 to 0.796 ms and cold compact construction, including its resolver, from 62.79 to 0.990 ms. Traced Python peaks decrease by about 1.8 KB; logical tensor storage is unchanged at 129,048 bytes for the resolved plus compact tables. These are cold table-construction measurements in a warm process, excluding cache hits, fitting and scoring. See [results/hbond-table-validation.json](results/hbond-table-validation.json) for final CPU/CUDA evidence and the native missing-pair reproduction. These checks establish table integrity, not scientific validity of the fitted hydrogen-bond model.
