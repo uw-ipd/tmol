@@ -458,6 +458,7 @@ set(_C_SOURCES
 
 if(TMOL_HAS_CUDA)
   list(APPEND _C_SOURCES
+    tmol/score/common/whole_pose_scoring.cuda.cu
     tmol/optimization/armijo_compiled.cuda.cu
     tmol/io/details/compiled/gen_pose_leaf_atoms.cuda.cu
     tmol/io/details/compiled/resolve_his_taut.cuda.cu

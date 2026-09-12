@@ -78,6 +78,144 @@ def test_shared_block_neighbors_preserve_scores_and_gradients(ubq_pdb, torch_dev
     torch.testing.assert_close(shared_grad, legacy_grad, atol=1e-5, rtol=1e-5)
 
 
+@pytest.mark.parametrize(
+    "dtype,weighted",
+    [(torch.float32, False), (torch.float32, True), (torch.float64, True)],
+)
+def test_fused_compact_specialization_preserves_subsets(
+    ubq_pdb, torch_device, dtype, weighted
+):
+    if torch_device.type != "cuda":
+        pytest.skip("CUDA compact interaction specialization")
+    single = pose_stack_from_pdb(ubq_pdb, torch_device)
+    short = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
+    pose = PoseStackBuilder.from_poses([single, short] * 32, torch_device)
+    scorer = _non_memoized_beta2016(torch_device).render_whole_pose_scoring_module(pose)
+    term = scorer._execution_modules[scorer._fused_ljlk_elec_module_index]
+    assert term.n_valid_rots == 32 * (single.max_n_blocks + short.max_n_blocks)
+    assert term.n_valid_rots < pose.block_type_ind.numel()
+    coords = pose.coords.to(dtype).detach().requires_grad_(True)
+    neighbors = scorer._build_shared_block_neighbors(coords)
+    assert neighbors.numel() - 1 >= 32768
+    subset = neighbors[1 : int(neighbors[0]) + 1 : 4].clone().flip(0)
+    neighbors[0] = subset.numel()
+    neighbors[1 : subset.numel() + 1] = subset
+    compact = neighbors[: subset.numel() + 1].clone()
+    assert compact.numel() - 1 < 32768
+    score_weights = torch.tensor(
+        [0.7, -0.2, 0.0, 1.3], device=torch_device, dtype=dtype
+    )
+
+    def evaluate(neighbor_list, gradient):
+        coords.requires_grad_(gradient)
+        with torch.set_grad_enabled(gradient):
+            scores = (
+                term.forward_weighted(coords, neighbor_list, score_weights)
+                if weighted
+                else term(coords, neighbor_list)
+            )
+            if not gradient:
+                return scores, None
+            upstream = torch.linspace(
+                -1, 2, scores.numel(), device=torch_device, dtype=dtype
+            ).reshape_as(scores)
+            (grad,) = torch.autograd.grad(scores, coords, upstream)
+            return scores, grad
+
+    tolerance = 1e-10 if dtype == torch.float64 else 1e-5
+    for gradient in (False, True):
+        expected, expected_grad = evaluate(compact, gradient)
+        actual, actual_grad = evaluate(neighbors, gradient)
+        torch.testing.assert_close(actual, expected, atol=tolerance, rtol=tolerance)
+        if gradient:
+            torch.testing.assert_close(
+                actual_grad, expected_grad, atol=tolerance, rtol=tolerance
+            )
+
+
+@pytest.mark.parametrize(
+    "dtype,reverse_neighbors,strided_neighbors",
+    [
+        (torch.float32, False, False),
+        (torch.float32, True, False),
+        (torch.float32, False, True),
+        (torch.float64, True, True),
+    ],
+)
+def test_cpu_compact_neighbors_preserve_pose_accumulation_order(
+    ubq_pdb, request, dtype, reverse_neighbors, strided_neighbors
+):
+    device = torch.device("cpu")
+    short = pose_stack_from_pdb(ubq_pdb, device, residue_end=3)
+    longer = pose_stack_from_pdb(ubq_pdb, device, residue_end=5)
+    pose = PoseStackBuilder.from_poses([short, longer, longer, short], device)
+    scorer = _non_memoized_beta2016(device).render_whole_pose_scoring_module(pose)
+    original_threads = torch.get_num_threads()
+    request.addfinalizer(lambda: torch.set_num_threads(original_threads))
+
+    def evaluate(threads):
+        torch.set_num_threads(threads)
+        coords = pose.coords.to(dtype=dtype).detach().requires_grad_(True)
+        neighbors = scorer._build_shared_block_neighbors(coords)
+        if reverse_neighbors:
+            count = int(neighbors[0])
+            neighbors[1 : count + 1] = neighbors[1 : count + 1].flip(0)
+        if strided_neighbors:
+            storage = neighbors.new_empty(neighbors.numel() * 2)
+            storage[::2] = neighbors
+            neighbors = storage[::2]
+        scores = torch.cat(
+            [
+                term(coords, neighbors)
+                for term in scorer.term_modules
+                if getattr(term, "block_neighbor_cutoff", None) is not None
+            ]
+        )
+        # Distinct signs and zero upstream weights expose writes to another
+        # pose's gradient, including the padded poses at either end.
+        upstream = torch.tensor([0.5, -2.0, 0.0, 3.0], dtype=dtype).expand_as(scores)
+        (gradient,) = torch.autograd.grad(scores, coords, upstream)
+        return scores, gradient
+
+    serial = evaluate(1)
+    parallel = evaluate(4)
+    torch.testing.assert_close(parallel, serial, rtol=0, atol=0)
+
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+def test_lk_ball_compact_specialization_preserves_subsets(ubq_pdb, torch_device, dtype):
+    if torch_device.type != "cuda":
+        pytest.skip("CUDA compact interaction specialization")
+    single_pose = pose_stack_from_pdb(ubq_pdb, torch_device)
+    short_pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
+    pose = PoseStackBuilder.from_poses([single_pose, short_pose] * 8, torch_device)
+    scorer = _non_memoized_beta2016(torch_device).render_whole_pose_scoring_module(pose)
+    term = next(t for t in scorer.term_modules if t.classname == "LKBall")
+    coords = pose.coords.to(dtype).detach().requires_grad_(True)
+    neighbors = scorer._build_shared_block_neighbors(coords)
+    assert neighbors.numel() - 1 >= 32768
+    assert pose._lk_ball_allow_split_backward
+
+    # Identical custom subsets with different spare capacity exercise both
+    # dispatch paths, without permitting either path to rebuild the list.
+    subset = neighbors[1 : int(neighbors[0]) + 1 : 4].flip(0).clone()
+    neighbors[0] = subset.numel()
+    neighbors[1 : subset.numel() + 1] = subset
+    compact = neighbors[: subset.numel() + 1].clone()
+    assert compact.numel() - 1 < 32768
+    weights = torch.linspace(-1, 2, 64, device=torch_device, dtype=dtype).reshape(4, 16)
+
+    expected = term(coords, compact)
+    (expected_grad,) = torch.autograd.grad(expected, coords, weights)
+    actual = term(coords, neighbors)
+    (actual_grad,) = torch.autograd.grad(actual, coords, weights)
+    tolerance = 1e-10 if dtype == torch.float64 else 1e-5
+    torch.testing.assert_close(actual, expected, atol=tolerance, rtol=tolerance)
+    torch.testing.assert_close(
+        actual_grad, expected_grad, atol=tolerance, rtol=tolerance
+    )
+
+
 def test_shared_block_neighbors_follow_active_terms(
     ubq_pdb, default_database, torch_device
 ):
@@ -112,7 +250,9 @@ def test_fused_ljlk_elec_preserves_term_lanes_weights_and_gradients(
 ):
     pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
 
-    fused = beta2016_score_function(torch_device).render_whole_pose_scoring_module(pose)
+    # This test edits the rendered weight buffer, which shares storage with
+    # its score function. Keep those edits out of the memoized beta2016 object.
+    fused = _non_memoized_beta2016(torch_device).render_whole_pose_scoring_module(pose)
 
     assert [term.classname for term in fused.term_modules][:2] == ["LJLK", "Elec"]
     assert fused._execution_modules[0].classname == "LJLK+Elec"
@@ -391,6 +531,62 @@ def test_whole_pose_gradients_respect_per_pose_upstream_weights(
     )
 
 
+@pytest.mark.parametrize("device_index", [0, 1])
+def test_cuda_term_gradients_accept_strided_lane_weights(ubq_pdb, device_index):
+    if torch.cuda.device_count() <= device_index:
+        pytest.skip("Requested CUDA device is unavailable")
+    original_device = torch.cuda.current_device()
+    torch_device = torch.device("cuda", device_index)
+    with torch.cuda.device(torch_device):
+        one = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+        pose = PoseStackBuilder.from_poses([one, one], torch_device)
+        scorer = _non_memoized_beta2016(torch_device).render_whole_pose_scoring_module(
+            pose
+        )
+        default_stream = torch.cuda.default_stream(torch_device)
+        other_stream = torch.cuda.Stream(device=torch_device)
+        other_stream.wait_stream(default_stream)
+        layouts = ((1, default_stream), (2, other_stream), (3, other_stream))
+        tested_widths = set()
+
+        for term in scorer.term_modules:
+            reference_coords = pose.coords.detach().clone().requires_grad_(True)
+            reference_scores = term(reference_coords)
+            if not reference_scores.requires_grad:
+                continue
+            values = torch.linspace(
+                -1,
+                1,
+                reference_scores.numel(),
+                device=torch_device,
+                dtype=reference_scores.dtype,
+            ).view_as(reference_scores)
+            (expected,) = torch.autograd.grad(
+                reference_scores, reference_coords, values, allow_unused=True
+            )
+            if expected is None:
+                continue
+
+            for stride, stream in layouts:
+                with torch.cuda.stream(stream):
+                    coords = pose.coords.detach().clone().requires_grad_(True)
+                    scores = term(coords)
+                    backing = values.new_empty(values.numel() * stride)
+                    backing[::stride] = values.flatten()
+                    upstream = backing[::stride].view_as(scores)
+                    (actual,) = torch.autograd.grad(
+                        scores, coords, upstream, allow_unused=True
+                    )
+                stream.synchronize()
+                assert actual is not None
+                torch.testing.assert_close(actual, expected, rtol=5e-5, atol=5e-5)
+
+            tested_widths.add(reference_scores.shape[0])
+
+        assert tested_widths == {1, 2, 3, 4, 5}
+    assert torch.cuda.current_device() == original_device
+
+
 def test_zero_weight_does_not_construct_energy_term(default_database, torch_device):
     sfxn = ScoreFunction(default_database, torch_device)
 
@@ -543,6 +739,32 @@ def test_packed_block_annotation_reuse_survives_option_changes(
     second_pose = equivalent_pose()
     score_function.pre_work_initialization(second_pose)
     assert second_pose.packed_block_types.ref_weights is overridden_weights
+
+
+@pytest.mark.parametrize("score_type", [ScoreType.ref, ScoreType.fa_ljrep])
+def test_replacing_options_restores_default_scores(
+    ubq_pdb, default_database, torch_device, score_type
+):
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    score_function = ScoreFunction(default_database, torch_device)
+    score_function.set_weight(score_type, 1.0)
+
+    def score():
+        scorer = score_function.render_whole_pose_scoring_module(pose)
+        return scorer(pose.coords).detach().clone()
+
+    original = score()
+    override = {
+        name: weight + 123.0
+        for name, weight in default_database.scoring.ref.weights.items()
+    }
+    score_function.set_options({"ref_weights": override, "soft_rep": True})
+    assert not torch.allclose(score(), original)
+
+    # set_options replaces the entire dictionary, including options already
+    # applied to constructed terms and cached packed-block annotations.
+    score_function.set_options({})
+    torch.testing.assert_close(score(), original)
 
 
 def test_no_grad_scoring_detaches_coordinates():
@@ -929,7 +1151,8 @@ def test_cuda_graphed_protein_score_matches_eager(ubq_pdb, torch_device):
         pytest.skip("CUDA graph test")
 
     pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
-    sfxn = beta2016_score_function(torch_device)
+    # Reweighting the graph below must not alter later tests' beta2016 scores.
+    sfxn = _non_memoized_beta2016(torch_device)
     eager = sfxn.render_whole_pose_scoring_module(pose_stack)
 
     eager_coords = pose_stack.coords.detach().clone().requires_grad_(True)

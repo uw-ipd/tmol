@@ -156,6 +156,8 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
     def setup_poses(self, poses: PoseStack):
         super(ElecEnergyTerm, self).setup_poses(poses)
 
+    score_only_in_no_grad = True
+
     def get_pose_score_term_function(self):
         from tmol.score.elec.potentials import elec_pose_scores
 

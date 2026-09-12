@@ -107,7 +107,9 @@ class EnergyTerm:
 
         Subclasses may override this method to extract configuration values
         that affect scoring behavior, such as boolean flags, numeric
-        parameters, or other settings. The base implementation is a no-op.
+        parameters, or other settings. This dictionary replaces the previous
+        options; omitted keys must restore their defaults. The base
+        implementation is a no-op.
         """
         pass
 
@@ -123,6 +125,8 @@ class EnergyTerm:
     def get_block_neighbor_cutoff(self):
         """Maximum whole-pose block-neighbor reach, or ``None`` if unused."""
         return None
+
+    score_only_in_no_grad = False
 
     def get_rotamer_score_term_attributes(
         self, pose_stack: PoseStack, rotamer_set: RotamerSet
@@ -167,6 +171,7 @@ class EnergyTerm:
             term_attributes,
             f,
             self.get_block_neighbor_cutoff(),
+            score_only_in_no_grad=self.score_only_in_no_grad,
         )
 
     def render_block_pair_scoring_module(

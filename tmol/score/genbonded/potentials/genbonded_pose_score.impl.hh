@@ -1066,7 +1066,10 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
 
   int const n_V = output_block_pair_energies ? n_output_intxns_total : n_poses;
   auto V_t = TPack<Real, 2, D>::zeros({1, n_V});
-  auto dV_dx_t = TPack<Vec<Real, 3>, 2, D>::zeros({1, n_atoms});
+  bool const accumulate_derivs = compute_derivs && !output_block_pair_energies;
+  auto dV_dx_t = accumulate_derivs
+                     ? TPack<Vec<Real, 3>, 2, D>::zeros({1, n_atoms})
+                     : TPack<Vec<Real, 3>, 2, D>::empty({1, 0});
   auto dispatch_indices_t = TPack<Int, 2, D>::zeros({3, n_output_intxns_total});
 
   auto V = V_t.view;
@@ -1127,7 +1130,7 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
               prm[3],
               prm[4]);
           accumulate_torsion_result<Real, Int, D>(
-              torsion_score, eval, atoms, compute_derivs, dV_dx[0], 1.0);
+              torsion_score, eval, atoms, accumulate_derivs, dV_dx[0], 1.0);
         });
 
     auto score_improper =
@@ -1140,7 +1143,7 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
               prm[0],
               prm[1]);
           accumulate_torsion_result<Real, Int, D>(
-              torsion_score, eval, atoms, compute_derivs, dV_dx[0], 1.0);
+              torsion_score, eval, atoms, accumulate_derivs, dV_dx[0], 1.0);
         });
 
     if (conn_ind1 == max_n_conns) {
@@ -1269,7 +1272,7 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
     });
     DeviceOps<D>::template for_each_in_workgroup<nt>(reduce_and_write);
   });
-  if (compute_derivs) {
+  if (!output_block_pair_energies) {
     DeviceOps<D>::template foreach_workgroup<launch_t>(
         mgr, n_output_intxns_total, eval_torsions_for_interaction);
   } else {

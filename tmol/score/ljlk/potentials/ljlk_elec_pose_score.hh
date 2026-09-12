@@ -57,7 +57,8 @@ struct LJLKAndElecPoseScoreDispatch {
       TView<tmol::score::elec::potentials::ElecGlobalParams<Real>, 1, D>
           elec_global_params,
       TView<Int, 1, D> shared_compact_block_neighbors,
-      bool require_gradient)
+      bool require_gradient,
+      Int n_valid_rots = -1)
       -> std::tuple<TPack<Real, 4, D>, TPack<LJLKExternalVec<Real, 3>, 2, D>>;
 
   /// Evaluate the same four potentials while reducing them with live score
@@ -95,7 +96,8 @@ struct LJLKAndElecPoseScoreDispatch {
           elec_global_params,
       TView<Int, 1, D> shared_compact_block_neighbors,
       TView<Real, 1, D> score_weights,
-      bool require_gradient)
+      bool require_gradient,
+      Int n_valid_rots = -1)
       -> std::tuple<TPack<Real, 4, D>, TPack<LJLKExternalVec<Real, 3>, 2, D>>;
 
   /// Evaluate weighted LJ/LK + electrostatics for a prepared sparse rotamer

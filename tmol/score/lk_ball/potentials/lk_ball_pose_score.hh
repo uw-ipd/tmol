@@ -166,7 +166,8 @@ struct LKBallPoseScoreDispatch {
       TView<Int, 3, Dev> block_neighbors,  // from forward pass
       TView<Int, 1, Dev> compact_block_neighbors,
       TView<Real, 4, Dev> dTdV,
-      bool block_pair_scoring)
+      bool block_pair_scoring,
+      bool allow_split_pairs = false)
       -> std::tuple<TPack<Vec<Real, 3>, 1, Dev>, TPack<Vec<Real, 3>, 2, Dev>>;
 };
 

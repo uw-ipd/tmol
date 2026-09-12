@@ -91,18 +91,14 @@ def validate_list(lst, value):
 def validate_union(union, value):
     assert union.__args__
 
-    last_ex = None
-
     for ut in union.__args__:
-        validator = get_validator(ut)
-
         try:
-            validator(value)
+            get_validator(ut)(value)
             return
-        except (ValueError, TypeError) as ex:
-            last_ex = ex
+        except (ValueError, TypeError):
+            pass
 
-    raise TypeError(f"expected {union}, received {type(value)!r}") from last_ex
+    raise TypeError(f"expected {union}, received {type(value)!r}")
 
 
 @toolz.curry

@@ -600,39 +600,59 @@ struct detect_compact_block_neighbors {
         return;
       }
 
-      auto detect_neighbors = ([=] TMOL_DEVICE_FUNC(int candidate) {
-        // CPU candidates run concurrently. Classify into disjoint slots;
-        // compact them deterministically after the parallel loop instead of
-        // racing on the intentionally non-atomic CPU accumulator.
-        neighbor_indices[candidate + 1] = -1;
-        int const pose_ind = candidate / n_pairs;
+      auto detect_neighbors =
+          ([=] TMOL_DEVICE_FUNC(
+               int candidate, int pose_ind, int block_ind1, int block_ind2) {
+            // CPU candidates run concurrently. Classify into disjoint slots;
+            // compact them deterministically after the parallel loop instead of
+            // racing on the intentionally non-atomic CPU accumulator.
+            neighbor_indices[candidate + 1] = -1;
+            int const block_type1 = pose_stack_block_type[pose_ind][block_ind1];
+            if (block_type1 < 0) return;
+            int const block_type2 = pose_stack_block_type[pose_ind][block_ind2];
+            if (block_type2 < 0) return;
+
+            Vec<Real, 4> sphere1(0, 0, 0, 0);
+            Vec<Real, 4> sphere2(0, 0, 0, 0);
+            for (int i = 0; i < 4; ++i) {
+              sphere1[i] = block_spheres[pose_ind][block_ind1][i];
+              sphere2[i] = block_spheres[pose_ind][block_ind2][i];
+            }
+            Real const d2 =
+                ((sphere1[0] - sphere2[0]) * (sphere1[0] - sphere2[0])
+                 + (sphere1[1] - sphere2[1]) * (sphere1[1] - sphere2[1])
+                 + (sphere1[2] - sphere2[2]) * (sphere1[2] - sphere2[2]));
+            Real const threshold = sphere1[3] + sphere2[3] + reach;
+            if (d2 >= threshold * threshold) return;
+
+            neighbor_indices[candidate + 1] = candidate;
+          });
+      // Decode one triangular index per chunk, then advance through adjacent
+      // pairs. Chunks own disjoint output slots and retain canonical ordering.
+      constexpr int chunk_size = 128;
+      int const n_chunks =
+          int((int64_t(n_candidates) + chunk_size - 1) / chunk_size);
+      auto detect_chunk = ([=] TMOL_DEVICE_FUNC(int chunk) {
+        int const first = chunk * chunk_size;
+        int const end = first + min(chunk_size, n_candidates - first);
+        int pose = first / n_pairs;
         auto pair = common::upper_triangle_inds_from_linear_index(
-            candidate % n_pairs, max_n_blocks + 1);
-        int const block_ind1 = common::get<0>(pair);
-        int const block_ind2 = common::get<1>(pair) - 1;
-
-        int const block_type1 = pose_stack_block_type[pose_ind][block_ind1];
-        if (block_type1 < 0) return;
-        int const block_type2 = pose_stack_block_type[pose_ind][block_ind2];
-        if (block_type2 < 0) return;
-
-        Vec<Real, 4> sphere1(0, 0, 0, 0);
-        Vec<Real, 4> sphere2(0, 0, 0, 0);
-        for (int i = 0; i < 4; ++i) {
-          sphere1[i] = block_spheres[pose_ind][block_ind1][i];
-          sphere2[i] = block_spheres[pose_ind][block_ind2][i];
+            first % n_pairs, max_n_blocks + 1);
+        int block1 = common::get<0>(pair);
+        int block2 = common::get<1>(pair) - 1;
+        for (int candidate = first; candidate < end; ++candidate) {
+          detect_neighbors(candidate, pose, block1, block2);
+          if (++block2 == max_n_blocks) {
+            if (++block1 == max_n_blocks) {
+              ++pose;
+              block1 = 0;
+            }
+            block2 = block1;
+          }
         }
-        Real const d2 =
-            ((sphere1[0] - sphere2[0]) * (sphere1[0] - sphere2[0])
-             + (sphere1[1] - sphere2[1]) * (sphere1[1] - sphere2[1])
-             + (sphere1[2] - sphere2[2]) * (sphere1[2] - sphere2[2]));
-        Real const threshold = sphere1[3] + sphere2[3] + reach;
-        if (d2 >= threshold * threshold) return;
-
-        neighbor_indices[candidate + 1] = candidate;
       });
-      DeviceDispatch<D>::template forall_independent<launch_t>(
-          mgr, n_candidates, detect_neighbors);
+      DeviceDispatch<D>::template foreach_independent_workgroup<launch_t>(
+          mgr, n_chunks, detect_chunk);
       Int n_neighbors = 0;
       for (int candidate = 0; candidate < n_candidates; ++candidate) {
         Int const value = neighbor_indices[candidate + 1];
@@ -787,7 +807,11 @@ template <
     typename Int,
     typename Eval>
 void launch_precomputed_block_neighbors(
-    ContextManager& mgr, TView<Int, 1, D> neighbor_indices, Eval eval) {
+    ContextManager& mgr,
+    TView<Int, 1, D> neighbor_indices,
+    int n_poses,
+    int max_n_blocks,
+    Eval eval) {
   int const n_candidates = neighbor_indices.size(0) - 1;
   if (n_candidates <= 0) return;
 #ifdef __NVCC__
@@ -804,10 +828,48 @@ void launch_precomputed_block_neighbors(
       mgr, n_workgroups, eval_compact);
 #else
   int const n_neighbors = neighbor_indices[0];
-  auto eval_compact =
-      ([=] TMOL_DEVICE_FUNC(int index) { eval(neighbor_indices[index + 1]); });
-  DeviceDispatch<D>::template foreach_workgroup<Launch>(
-      mgr, n_neighbors, eval_compact);
+  bool ordered = n_poses > 1;
+  for (int index = 2; ordered && index <= n_neighbors; ++index) {
+    ordered = neighbor_indices[index - 1] <= neighbor_indices[index];
+  }
+  if (ordered) {
+    int const pairs_per_pose = common::checked_triangular_size(
+        max_n_blocks, true, "compact CPU block-pair dispatch");
+    common::checked_dispatch_product(
+        n_poses, pairs_per_pose, "compact CPU block-pair dispatch");
+    // CPU neighbor construction retains ascending candidate IDs. Partition
+    // this list by pose: coordinate/energy outputs are disjoint across poses,
+    // while each pose keeps the original pair accumulation order. Explicit
+    // caller-provided lists with another order retain the serial fallback.
+    auto lower_bound = ([=](int candidate) {
+      int first = 1;
+      int last = n_neighbors + 1;
+      while (first < last) {
+        int const middle = first + (last - first) / 2;
+        if (neighbor_indices[middle] < candidate) {
+          first = middle + 1;
+        } else {
+          last = middle;
+        }
+      }
+      return first;
+    });
+    auto eval_pose = ([=](int pose) {
+      int const first = lower_bound(pose * pairs_per_pose);
+      int const last = lower_bound((pose + 1) * pairs_per_pose);
+      for (int index = first; index < last; ++index) {
+        eval(neighbor_indices[index]);
+      }
+    });
+    DeviceDispatch<D>::template foreach_pose_workgroup<Launch>(
+        mgr, n_poses, 1, eval_pose);
+  } else {
+    auto eval_compact = ([=] TMOL_DEVICE_FUNC(int index) {
+      eval(neighbor_indices[index + 1]);
+    });
+    DeviceDispatch<D>::template foreach_workgroup<Launch>(
+        mgr, n_neighbors, eval_compact);
+  }
 #endif
 }
 

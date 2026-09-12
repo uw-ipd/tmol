@@ -1,7 +1,30 @@
+import weakref
+
 import torch
 import pytest
 
 from tmol.optimization import LBFGS_Armijo
+
+
+def test_lbfgs_releases_closure_after_step(torch_device):
+    x = torch.nn.Parameter(torch.tensor([2.0, -3.0], device=torch_device))
+    optimizer = LBFGS_Armijo([x], max_iter=3)
+    optimizer_ref = weakref.ref(optimizer)
+
+    class Closure:
+        def __call__(self):
+            optimizer_ref().zero_grad()
+            loss = x.square().sum()
+            loss.backward()
+            return loss
+
+    closure = Closure()
+    closure_ref = weakref.ref(closure)
+    optimizer.step(closure)
+    del closure
+    assert closure_ref() is None
+    del optimizer
+    assert optimizer_ref() is None
 
 
 class SimpleLJScore:
@@ -194,3 +217,40 @@ def test_lbfgs_armijo_short_history():
     score_stop = closure()
 
     assert score_start > score_stop
+
+
+@pytest.mark.parametrize("first_segment_size", [6, 7])
+def test_lbfgs_armijo_wrapped_segment_histories(torch_device, first_segment_size):
+    x = torch.nn.Parameter(
+        torch.linspace(-2, 2, 12, dtype=torch.float64, device=torch_device)
+    )
+    segment_ids = torch.tensor(
+        [0] * first_segment_size + [1] * (12 - first_segment_size), device=torch_device
+    )
+    curvature = torch.tensor(
+        [1, 2, 4, 8, 1, 2, 4, 8, 4, 2, 1, 8],
+        dtype=x.dtype,
+        device=torch_device,
+    )
+    optimizer = LBFGS_Armijo(
+        [x],
+        segment_ids=segment_ids,
+        history_size=2,
+        max_iter=80,
+        rtol=0,
+        atol=0,
+        gradtol=1e-8,
+    )
+
+    def closure():
+        optimizer.zero_grad()
+        terms = curvature * (x - 1).square()
+        energies = torch.stack(
+            (terms[:first_segment_size].sum(), terms[first_segment_size:].sum())
+        )
+        energies.sum().backward()
+        return energies
+
+    optimizer.step(closure)
+    assert optimizer.state[x]["n_iter"] > 4
+    torch.testing.assert_close(x, torch.ones_like(x), atol=1e-6, rtol=0)

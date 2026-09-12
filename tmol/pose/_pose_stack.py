@@ -83,12 +83,10 @@ class PoseStack:
             device=self.block_coord_offset.device,
         ).repeat(n_poses)
 
-        pose_inds = (
-            torch.arange(0, n_poses, dtype=torch.int32, device=self.device)
-            .unsqueeze(1)
-            .expand((n_poses, n_blocks))
+        pose_inds = torch.arange(n_poses, dtype=torch.int32, device=self.device)
+        self.pose_ind_for_rot = (
+            pose_inds.unsqueeze(1).expand(n_poses, n_blocks).flatten()
         )
-        self.pose_ind_for_rot = pose_inds.flatten()
 
         self.block_type_ind_for_rot = self.block_type_ind.flatten()
 
@@ -101,12 +99,8 @@ class PoseStack:
         self.n_rots_for_pose = torch.tensor(
             [n_blocks], dtype=torch.int32, device=self.device
         ).expand(n_poses)
-        self.rot_offset_for_pose = self.n_rots_for_pose * torch.arange(
-            0, n_poses, dtype=torch.int32, device=self.device
-        )
-        coord_offset_for_pose = self.coords.size(1) * torch.arange(
-            0, n_poses, dtype=torch.int32, device=self.device
-        )
+        self.rot_offset_for_pose = self.n_rots_for_pose * pose_inds
+        coord_offset_for_pose = self.coords.size(1) * pose_inds
         self.n_rots_for_block = torch.full_like(self.block_coord_offset, 1)
 
         self.rot_coord_offset = (
@@ -175,13 +169,11 @@ class PoseStack:
     def real_atoms(self) -> Tensor[torch.bool][:, :]:
         """Return the mask of real, non-padding atoms in ``coords``."""
         # get the list of real atoms to read out of pose coords
-        n_ats_per_pose_arange_expanded = (
-            torch.arange(self.max_n_pose_atoms, dtype=torch.int64, device=self.device)
-            .repeat(self.n_poses)
-            .view(self.n_poses, self.max_n_pose_atoms)
+        atom_inds = torch.arange(
+            self.max_n_pose_atoms, dtype=torch.int64, device=self.device
         )
         n_ats_per_pose = torch.sum(self.n_ats_per_block, dim=1).unsqueeze(1)
-        return n_ats_per_pose_arange_expanded < n_ats_per_pose
+        return atom_inds < n_ats_per_pose
 
     def clone(self) -> "PoseStack":
         """Deep-copy clone of this PoseStack"""
@@ -261,14 +253,10 @@ class PoseStack:
         """
 
         # get the list of real atoms that we will be writing to in the 4D tensor
-        n_ats_per_block_arange_expanded = (
-            torch.arange(self.max_n_block_atoms, dtype=torch.int64, device=self.device)
-            .repeat(self.n_poses * self.max_n_blocks)
-            .view(self.n_poses, self.max_n_blocks, self.max_n_block_atoms)
+        atom_inds = torch.arange(
+            self.max_n_block_atoms, dtype=torch.int64, device=self.device
         )
-        real_expanded_pose_ats = (
-            n_ats_per_block_arange_expanded < self.n_ats_per_block.unsqueeze(2)
-        )
+        real_expanded_pose_ats = atom_inds < self.n_ats_per_block.unsqueeze(2)
 
         # now perform the actual copy
         expanded_coords = torch.zeros(

@@ -148,11 +148,13 @@ class TermWholePoseScoringModule(TermPoseScoringModule):
         term_parameters,
         term_score_poses,
         block_neighbor_cutoff=None,
+        score_only_in_no_grad=False,
     ):
         super(TermWholePoseScoringModule, self).__init__(
             classname, pose_stack, term_parameters, term_score_poses
         )
         self.block_neighbor_cutoff = block_neighbor_cutoff
+        self.score_only_in_no_grad = score_only_in_no_grad
         self._neighbor_block_type_n_atoms = pose_stack.packed_block_types.n_atoms
         self.register_buffer(
             "_empty_block_neighbors",
@@ -166,6 +168,12 @@ class TermWholePoseScoringModule(TermPoseScoringModule):
         shared_block_neighbors=None,
     ):
         flat = coords.flatten(start_dim=0, end_dim=-2)
+        if (
+            self.score_only_in_no_grad
+            and not torch.is_grad_enabled()
+            and flat.requires_grad
+        ):
+            flat = flat.detach()
         tail = self._static_tail_for_coords(coords)
         if self.block_neighbor_cutoff is not None:
             if shared_block_neighbors is None:

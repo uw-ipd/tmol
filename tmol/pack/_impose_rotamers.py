@@ -48,20 +48,14 @@ def impose_top_rotamer_assignments(
 
     # map from the subset of blocks and bump-checked rotamer
     # to an assignment in the original rotamer-set indexing
-    assignment = torch.full(
-        (n_poses, max_n_blocks), -1, dtype=torch.int64, device=device
-    )
-    is_nonmolten_block = rotamer_for_nonmolten_block != -1
-    assignment[is_nonmolten_block] = rotamer_for_nonmolten_block[is_nonmolten_block]
+    assignment = rotamer_for_nonmolten_block.clone()
 
     is_real_block = orig_pose_stack.block_type_ind64 != -1
     is_molten_block = torch.logical_and(
         rotamer_for_nonmolten_block == -1, is_real_block
     )
-    molten_block_arange = (
-        torch.arange(max_n_molten_blocks, dtype=torch.int64, device=device)
-        .unsqueeze(0)
-        .expand(n_poses, -1)
+    molten_block_arange = torch.arange(
+        max_n_molten_blocks, dtype=torch.int64, device=device
     )
     is_real_molten_block = molten_block_arange < n_molten_blocks_per_pose.view(-1, 1)
     bc_assignment_global = (
@@ -76,8 +70,6 @@ def impose_top_rotamer_assignments(
         (n_poses, max_n_blocks), -1, dtype=torch.int64, device=device
     )
     new_rot_for_block64 = assignment
-
-    is_real_block = orig_pose_stack.block_type_ind64 != -1
 
     new_block_type_ind64[is_real_block] = rotamer_set.block_type_ind_for_rot[
         new_rot_for_block64[is_real_block]
@@ -115,35 +107,18 @@ def impose_top_rotamer_assignments(
     max_n_atoms_arange64 = torch.arange(
         max_n_atoms_per_block, dtype=torch.int64, device=device
     )
-    max_n_atoms_arange64 = max_n_atoms_arange64.view(1, 1, -1).expand(
-        n_poses, max_n_blocks, max_n_atoms_per_block
-    )
-
-    pose_for_atom64 = torch.arange(n_poses, dtype=torch.int64, device=device)
-    pose_for_atom64 = pose_for_atom64.view(-1, 1, 1).expand(
-        n_poses, max_n_blocks, max_n_atoms_per_block
-    )
+    max_n_atoms_arange64 = max_n_atoms_arange64.view(1, 1, -1)
 
     pose_offset_for_atom64 = (
         torch.arange(n_poses, dtype=torch.int64, device=device) * new_max_n_pose_atoms
     )
-    pose_offset_for_atom64 = pose_offset_for_atom64.view(-1, 1, 1).expand(
-        n_poses, max_n_blocks, max_n_atoms_per_block
-    )
-
-    block_for_atom64 = (
-        torch.arange(max_n_blocks, dtype=torch.int64, device=device)
-        .view(1, -1, 1)
-        .expand(n_poses, max_n_blocks, max_n_atoms_per_block)
-    )
+    pose_offset_for_atom64 = pose_offset_for_atom64.view(-1, 1, 1)
 
     pose_coords1d_offset_for_atom64 = (
-        new_n_atoms_offset64[pose_for_atom64, block_for_atom64] + pose_offset_for_atom64
+        new_n_atoms_offset64.unsqueeze(2) + pose_offset_for_atom64
     )
 
-    new_n_atoms_for_atoms_block64 = new_n_atoms_per_block64.unsqueeze(2).expand(
-        n_poses, max_n_blocks, max_n_atoms_per_block
-    )
+    new_n_atoms_for_atoms_block64 = new_n_atoms_per_block64.unsqueeze(2)
     is_pose_atom_real = max_n_atoms_arange64 < new_n_atoms_for_atoms_block64
 
     dst_inds = (pose_coords1d_offset_for_atom64 + max_n_atoms_arange64)[
@@ -157,9 +132,7 @@ def impose_top_rotamer_assignments(
         new_rot_for_block64[is_real_block]
     ]
     rot_coord_offset_for_block64 = rot_coord_offset_for_block32.to(torch.int64)
-    rot_coord_offset_for_atom64 = rot_coord_offset_for_block64.unsqueeze(2).expand(
-        n_poses, max_n_blocks, max_n_atoms_per_block
-    )
+    rot_coord_offset_for_atom64 = rot_coord_offset_for_block64.unsqueeze(2)
     src_inds = (rot_coord_offset_for_atom64 + max_n_atoms_arange64)[is_pose_atom_real]
 
     # now lets copy the coordinates
@@ -238,7 +211,7 @@ def impose_top_rotamer_assignments(
         # new_atom_b_factor[is_real_atom]
         new_pose_at_is_real = torch.arange(
             new_max_n_pose_atoms, dtype=torch.int64, device=device
-        ).repeat(n_poses, 1) < new_n_pose_atoms.unsqueeze(1)
+        ) < new_n_pose_atoms.unsqueeze(1)
         new_pose_at_is_real = new_pose_at_is_real.cpu().numpy()
 
         new_atom_b_factor[new_pose_at_is_real] = new_expanded_b_factor[

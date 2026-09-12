@@ -813,6 +813,14 @@ class _FusedLJLKAndElecWholePoseModule(torch.nn.Module):
             ljlk_module.block_neighbor_cutoff, elec_module.block_neighbor_cutoff
         )
         self.n_score_types = ljlk_module.n_score_types + elec_module.n_score_types
+        # Topology is fixed at render time; count once, before graph capture.
+        # Native rotamer arrays include padding on jagged pose stacks.
+        self.n_valid_rots = -1
+        block_types = ljlk_module.common_parameters[3]
+        # Below the native gradient threshold, even all-valid storage cannot
+        # benefit from specialization; avoid a device synchronization there.
+        if block_types.is_cuda and block_types.numel() >= 1024:
+            self.n_valid_rots = int((block_types >= 0).sum().item())
 
     def build_compact_block_neighbors(self, coords, reach):
         return self.ljlk_module.build_compact_block_neighbors(coords, reach)
@@ -834,7 +842,7 @@ class _FusedLJLKAndElecWholePoseModule(torch.nn.Module):
         # composite selects arguments from each child's dtype-adjusted static
         # tail rather than bypassing it and reading raw float32 parameters.
         (scores,) = ljlk_elec_pose_scores(
-            *self._native_arguments(coords, shared_block_neighbors)
+            *self._native_arguments(coords, shared_block_neighbors), self.n_valid_rots
         )
         return scores
 
@@ -845,7 +853,9 @@ class _FusedLJLKAndElecWholePoseModule(torch.nn.Module):
         if score_weights.dtype != coords.dtype:
             score_weights = score_weights.to(dtype=coords.dtype)
         (scores,) = ljlk_elec_weighted_pose_scores(
-            *self._native_arguments(coords, shared_block_neighbors), score_weights
+            *self._native_arguments(coords, shared_block_neighbors),
+            score_weights,
+            self.n_valid_rots,
         )
         return scores
 
@@ -1376,6 +1386,8 @@ class WholePoseScoringModule:
         if mode in ("forward_backward", "both") and not hasattr(
             self, "_cuda_graphed_autograd"
         ):
+            from tmol.score.common._cuda_graph import CapturedScoringGraph
+
             graph_module = _DefaultWholePoseScoringModule(
                 self.weights,
                 self._execution_modules,
@@ -1387,16 +1399,13 @@ class WholePoseScoringModule:
                 torch.enable_grad(),
                 warnings.catch_warnings(),
             ):
-                # PyTorch's backward-capture warmup retains the sample leaf's
-                # default-stream AccumulateGrad node. Capture and replay are
-                # valid; suppress only that known internal warning.
+                # Scoring parameters may retain an AccumulateGrad node on
+                # another stream. Suppress only that known warmup warning.
                 warnings.filterwarnings(
                     "ignore",
                     message="The AccumulateGrad node's stream does not match",
                 )
-                self._cuda_graphed_autograd = torch.cuda.make_graphed_callables(
-                    graph_module, (sample,), allow_unused_input=True
-                )
+                self._cuda_graphed_autograd = CapturedScoringGraph(graph_module, sample)
         return self
 
 
@@ -1902,6 +1911,9 @@ class RotamerScoringModule:
             if dispatch_key is not None and cutoff is not None:
                 dispatch_by_key.setdefault(dispatch_key, []).append((cutoff, result[1]))
             yield term, result, already_weighted
+            # The consumer has retained the weighted values. Release the raw
+            # lanes before the next native call allocates another score table.
+            del result
 
     @staticmethod
     def _matching_layout(indices, all_indices, layouts_by_nnz):
@@ -2046,6 +2058,11 @@ class RotamerScoringModule:
             if n_poses is None:
                 n_poses = term.n_poses
                 n_rots = term.n_rots
+            # Loop locals otherwise keep the previous raw table (and, after
+            # merging layouts, its temporary weighted values) alive during
+            # the next call to the result generator. Autograd retains any
+            # tensors it still needs for differentiable scoring.
+            del scores, weighted_values
 
         return all_indices, all_values, n_poses, n_rots
 
