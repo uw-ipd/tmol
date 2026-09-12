@@ -1151,9 +1151,10 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // Allocate the tensors to which we will write our outputs
   int const n_V = output_block_pair_energies ? n_output_intxns_total : n_poses;
   auto V_t = TPack<Real, 2, D>::zeros({5, n_V});
-  auto dV_dx_t = compute_derivs
+  bool const accumulate_derivs = compute_derivs && !output_block_pair_energies;
+  auto dV_dx_t = accumulate_derivs
                      ? TPack<Vec<Real, 3>, 2, D>::zeros({5, n_atoms})
-                     : TPack<Vec<Real, 3>, 2, D>::empty({5, n_atoms});
+                     : TPack<Vec<Real, 3>, 2, D>::empty({5, 0});
   auto dispatch_indices_t = TPack<Int, 2, D>::zeros({3, n_output_intxns_total});
 
   auto V = V_t.view;
@@ -1237,7 +1238,7 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
                 length_score,
                 eval,
                 atoms.head(2),
-                true,
+                accumulate_derivs,
                 dV_dx[score_type],
                 1.0);
           } else {
@@ -1251,7 +1252,12 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           if (compute_derivs) {
             auto eval = cbangle_V_dV(atom1, atom2, atom3, params[2], params[1]);
             accumulate_result<Real, Int, 3, D>(
-                angle_score, eval, atoms.head(3), true, dV_dx[score_type], 1.0);
+                angle_score,
+                eval,
+                atoms.head(3),
+                accumulate_derivs,
+                dV_dx[score_type],
+                1.0);
           } else {
             angle_score += cbangle_V(atom1, atom2, atom3, params[2], params[1]);
           }
@@ -1277,7 +1283,12 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
                 params[5],
                 params[6]);
             accumulate_result<Real, Int, 4, D>(
-                tor_score, eval, atoms.head(4), true, dV_dx[score_type], 1.0);
+                tor_score,
+                eval,
+                atoms.head(4),
+                accumulate_derivs,
+                dV_dx[score_type],
+                1.0);
           } else {
             tor_score += cbtorsion_V(
                 atom1,
@@ -1477,7 +1488,7 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     });
     DeviceDispatch<D>::template for_each_in_workgroup<nt>(reduce_energies);
   });
-  if (compute_derivs || !output_block_pair_energies) {
+  if (!output_block_pair_energies) {
     DeviceDispatch<D>::template foreach_workgroup<launch_t>(
         mgr, dispatch_indices.size(1), eval_subgraphs_for_interaction);
   } else {
