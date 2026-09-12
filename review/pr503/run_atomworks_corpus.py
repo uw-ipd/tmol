@@ -332,7 +332,11 @@ def trial(args):  # noqa: C901 - keep stage/error recording in one diagnostic tr
 def main(args):
     output = Path(args.output)
     output.mkdir(parents=True, exist_ok=True)
-    cases = inventory(Path(args.root))
+    cases = (
+        json.loads(Path(args.case_manifest).read_text())
+        if args.case_manifest
+        else inventory(Path(args.root))
+    )
     write(output / "inventory.json", cases)
     versions = {}
     for package in ("torch", "numpy", "biotite", "rdkit", "atomworks"):
@@ -433,6 +437,10 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", default="/mnt/home/kdidi/projects/atomworks-dev")
+    parser.add_argument(
+        "--case-manifest",
+        help="JSON inventory of path/sha256/bytes/aliases records; absolute paths are allowed",
+    )
     parser.add_argument("--output", required=True)
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
     parser.add_argument("--max-iter", type=int, default=100)

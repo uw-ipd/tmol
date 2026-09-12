@@ -4,14 +4,13 @@
 
 Adopt the proposed two-front-end design: AtomWorks owns file parsing and generic
 chemical completion; a Torch tensor mapper binds coordinates to prepared topology.
-Both feed one tmol construction and completion pipeline. Keep model-named entry
-points temporarily as compatibility shims, then deprecate them. PR #380 should
+Both feed one tmol construction and completion pipeline. Remove model-named entry points and document application-owned extraction examples. PR #380 should
 become a small backbone4 adapter plus shared completion tests, rather than a new
 construction pipeline.
 
 This is a design recommendation. The explicit AtomWorks CIF reader and the
-complex-input fixes are implemented on the review branch; the generic tensor
-API and removal of old entry points are not implemented here.
+complex-input fixes are implemented on the review branch; the generic prepared-topology API remains proposed. The OpenFold/RF2 interfaces and
+ordering factories are removed, with executable examples in `docs/model_inputs.rst`.
 
 AtomWorks already supplies reusable `TokenEncoding` definitions and conversions.
 Its `atom_array_to_encoding()` initializes coordinate slots with NaN by default;
@@ -147,24 +146,26 @@ These comments are review drafts; none were posted to #380.
 
 ## AtomWorks dependency decision and migration
 
-AtomWorks is the right owner for shared file input. The review branch now has
-`tmol[atomworks]` (`atomworks>=2.2.1,<3`) and
-`pose_stack_from_cif(..., reader="atomworks")`. The adapter supports the published
-keyword API and the local ParseConfig API. It disables the published release's
-faulty formal-charge correction (which assigns +1 to an acetyl carbon), reuses
-its parsed component metadata, and rejects deletion of source heavy-atom names.
-The published release and local checkout differ in validation and sanitation;
-passing the parser alone is not a correctness test.
+AtomWorks is the right owner for shared file input. The review branch now makes
+it a core dependency, pinned to the companion [AtomWorks PR #349](https://github.com/baker-laboratory/atomworks-dev/pull/349),
+and provides `pose_stack_from_cif(..., reader="atomworks")`. It uses the current
+ParseConfig API, shares protonation/repair/conversion/authored-CCD code, preserves
+observed HIS protons, and rejects deletion of source heavy-atom names. The empty
+`tmol[atomworks]` extra remains for compatibility. The earlier optional released
+version matrix is historical; a release containing the companion APIs must
+replace the temporary authenticated Git pin before public package publication.
 
 The native reader currently remains for strict `use_ccd=False` and its author-ID
-contract. The optional route is a migration step, not the final proposed split.
+contract. The explicit reader selection is a migration step, not the final proposed split.
 To make AtomWorks the only file parser, first put the necessary authority,
 identifier and omission checks in a released shared parser contract, then port
 existing PDB/CIF compatibility tests, switch the file entry points, and delete
 the redundant native completion implementation. Do not move tmol's force-field
 parameter generation or discrete sampling into the parser.
 
-Use a compatibility period for OpenFold/RF2 helpers: extract model fields,
-translate their named encoding, and call the common builder. Preserve the old
-serialization orderings separately. Their specialized construction code can be
-removed once coordinate, topology, gradient and missing-atom parity is tested.
+The user explicitly requested full removal of OpenFold/RF2 interfaces and their
+model-specific factories. `docs/model_inputs.rst` shows application-owned extraction
+and a named-tensor mapping to the existing canonical construction boundary. It
+includes explicit preservation/rebuilding of RF2 hydrogens. Old canonical tensors
+require their original ordering for migration; the tutorial does not claim that
+old integer tensors can be loaded under today's default database.

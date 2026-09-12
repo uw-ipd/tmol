@@ -33,21 +33,31 @@ def test_label_template_substitution_cannot_silently_erase_unknown_atom():
 
 
 def test_leaving_group_completion_cannot_silently_erase_observed_phosphate():
-    # The 8OG template flags both OP2 and OP3 as possible leaving atoms.
-    # One polymer linkage must not silently remove both branches. Until the
-    # shared parser resolves this ambiguity, the adapter reports the loss.
-    with pytest.raises(ValueError, match="8OG.OP2"):
-        atom_array_from_cif(
-            DATA / "ncaa_fixtures/na_dna_8og_183d.cif", reader="atomworks"
-        )
+    path = DATA / "ncaa_fixtures/na_dna_8og_183d.cif"
+    native = atom_array_from_cif(path)
+    shared = atom_array_from_cif(path, reader="atomworks")
+    for array in (native, shared):
+        nucleotide = array[array.res_name == "8OG"]
+        assert "OP2" in nucleotide.atom_name
+        assert "OP3" not in nucleotide.atom_name
+    np.testing.assert_array_equal(
+        shared.coord[(shared.res_name == "8OG") & (shared.atom_name == "OP2")],
+        native.coord[(native.res_name == "8OG") & (native.atom_name == "OP2")],
+    )
 
 
 @pytest.mark.parametrize(
-    "fixture", ["capped_peptide_ace_nh2.cif", "beta_peptide_3c3g.cif"]
+    "fixture",
+    [
+        "ncaa_fixtures/capped_peptide_ace_nh2.cif",
+        "ncaa_fixtures/beta_peptide_3c3g.cif",
+        "ncaa_fixtures/na_dna_8og_183d.cif",
+        "atomworks_regressions/acetylated_peptide_1j8z.cif",
+    ],
 )
 def test_shared_parser_builds_and_scores_general_chemistry(fixture):
     pose, context = pose_stack_from_cif(
-        DATA / "ncaa_fixtures" / fixture,
+        DATA / fixture,
         torch.device("cpu"),
         reader="atomworks",
         prepare_ligands=True,

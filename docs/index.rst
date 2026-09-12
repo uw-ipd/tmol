@@ -32,6 +32,7 @@ protein-ligand ddG quickstart.
 
   architecture
   datatypes
+  model_inputs
   apidoc
 
 Packages

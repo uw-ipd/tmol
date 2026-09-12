@@ -21,6 +21,7 @@ python -m pytest -v --tb=short --durations=20 --junitxml="$results/tests.xml" \
     tmol/tests/test_cyclic_peptide.py \
     tmol/tests/io/test_cif_completion.py \
     tmol/tests/io/test_atomworks_reader.py \
+    tmol/tests/io/test_model_input_tutorial.py \
     tmol/tests/io/test_atomworks_corpus_regressions.py \
     tmol/tests/io/test_filtered_covalent_partners.py \
     tmol/tests/io/test_pose_stack_from_biotite.py \
