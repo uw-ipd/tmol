@@ -2413,3 +2413,50 @@ Exact hashes, stage-separated tests, timing samples and scheduler accounting are
 in [results/mirrored-library-generation.json](results/mirrored-library-generation.json).
 Comment 77 is corrected. Empty library families and non-grid-aligned custom
 registrations remain separate audit items.
+
+
+## Support absent Dunbrack families without dummy tables
+
+Private databases can now carry only rotameric libraries, only semirotameric
+libraries, or neither. Lookup construction is shared, empty tensors retain the
+required ranks, and offset arrays have the same zero length as their family.
+The existing prefix-sum utility now accepts empty input. An entirely unmapped
+Dunbrack scorer also receives valid empty dihedral strides at the native
+boundary, instead of NumPy's zero strides.
+
+Five original regressions fail. After the table/lookup changes, the same cases
+expose the empty prefix-sum assumption; after that fix, two scoring cases expose
+the native stride constraint. The final CPU suite passes **21 tests / 17
+skips**. Four public coordinate-construction cases pass on CPU (four CUDA
+skips), including explicitly supplied, gapped chi indices with no statistical
+libraries. Whole-pose/block-pair energies and nonuniformly weighted gradients
+match a full database with the same residue mappings; unmapped terms return
+zero values and gradients.
+
+Slurm **250598** passes **297 CPU/CUDA cases / one intentional CPU annealer
+skip**, including scoring references/gradient checks, metadata, native sampling,
+mirror packing, conjugated groups and tensor utilities. It completes with
+**0:0**, **7:36**, **6,499,536 KiB** batch peak RSS. Additional public-construction
+cases added after that job's collection pass **eight CPU/CUDA cases** in
+**250599**, **0:0**, **26 s**, **2,286,512 KiB**.
+
+The paired default resolver audit compares all **50 tensor fields** and
+**three lookup DataFrames** exactly on CPU/CUDA. Unique derived tensor storage:
+
+| Deliberately selected libraries | Derived tensor storage |
+|---|---:|
+| Complete default | 67,494,212 B |
+| LEU only | 374,345 B |
+| PHE only | 1,308,573 B |
+| None | 0 B |
+
+The default uses 144 fewer bytes because integer offsets can now be shared
+between scoring/sampling views instead of converted twice. The initial audit
+harness incorrectly required equal storage size after its exact-value checks;
+the corrected harness records the reduction. These sizes exclude source
+parameters, Python metadata, temporary peaks and allocator overhead. There is
+no automatic reference pruning and no timing claim. Exact source hashes,
+separate failure stages, storage audits and accounting are in
+[results/empty-dunbrack-libraries.json](results/empty-dunbrack-libraries.json).
+Comment 78 is corrected. Custom grid registration and the broader completion
+requirements remain open.

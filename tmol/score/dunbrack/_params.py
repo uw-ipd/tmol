@@ -29,6 +29,18 @@ from tmol.utility.tensor import (
 )
 
 
+def _pack_spline_coefficients(tables, ndim, device):
+    """Preserve the native table rank when a library family is absent."""
+    if tables:
+        return nplus1d_tensor_from_list(tables)
+    metadata = torch.empty((0, ndim), dtype=torch.int64, device=device)
+    return (
+        torch.empty((0,) * (ndim + 1), dtype=torch.float32, device=device),
+        metadata,
+        metadata,
+    )
+
+
 @attr.s(auto_attribs=True)
 class DunbrackParams(TensorGroup):
     ndihe_for_res: Tensor[torch.int32][:, :]
@@ -296,7 +308,7 @@ class DunbrackParamResolver(ValidateAttrs):
     def _create_all_table_indices(cls, all_table_names, dun_lookup):
         # all_table_names = [x.table_name for x in all_rotlibs]
         all_table_lookup = pandas.DataFrame.from_records(
-            cattr.unstructure(dun_lookup)
+            cattr.unstructure(dun_lookup), columns=("dun_table_name", "residue_name")
         ).set_index("residue_name")
         dun_indices = pandas.Index(all_table_names)
         all_table_lookup.dun_table_name = dun_indices.get_indexer(
@@ -306,29 +318,17 @@ class DunbrackParamResolver(ValidateAttrs):
 
     @classmethod
     def _create_rotameric_indices(cls, dun_database):
-        rotameric_table_names = [x.table_name for x in dun_database.rotameric_libraries]
-        rotameric_table_lookup = pandas.DataFrame.from_records(
-            cattr.unstructure(dun_database.dun_lookup)
-        ).set_index("residue_name")
-        indices = pandas.Index(rotameric_table_names)
-        rotameric_table_lookup.dun_table_name = indices.get_indexer(
-            rotameric_table_lookup.dun_table_name
+        return cls._create_all_table_indices(
+            [x.table_name for x in dun_database.rotameric_libraries],
+            dun_database.dun_lookup,
         )
-        return rotameric_table_lookup
 
     @classmethod
     def _create_semirotameric_indices(cls, dun_database):
-        semirotameric_table_names = [
-            x.table_name for x in dun_database.semi_rotameric_libraries
-        ]
-        semirotameric_table_lookup = pandas.DataFrame.from_records(
-            cattr.unstructure(dun_database.dun_lookup)
-        ).set_index("residue_name")
-        indices = pandas.Index(semirotameric_table_names)
-        semirotameric_table_lookup.dun_table_name = indices.get_indexer(
-            semirotameric_table_lookup.dun_table_name
+        return cls._create_all_table_indices(
+            [x.table_name for x in dun_database.semi_rotameric_libraries],
+            dun_database.dun_lookup,
         )
-        return semirotameric_table_lookup
 
     @classmethod
     def _create_nchi_for_table_set(cls, all_rotlibs, device):
@@ -367,26 +367,26 @@ class DunbrackParamResolver(ValidateAttrs):
             BSplineInterpolation.from_coordinates(t).coeffs.to(device)
             for t in rotameric_prob_tables
         ]
-        prob_coeffs, prob_coeffs_sizes, prob_coeffs_strides = nplus1d_tensor_from_list(
-            prob_coeffs
+        prob_coeffs, prob_coeffs_sizes, prob_coeffs_strides = _pack_spline_coefficients(
+            prob_coeffs, 2, device
         )
 
         neglnprob_coeffs = [
             BSplineInterpolation.from_coordinates(t).coeffs.to(device)
             for t in rotameric_neglnprob_tables
         ]
-        neglnprob_coeffs, _, _2 = nplus1d_tensor_from_list(neglnprob_coeffs)
+        neglnprob_coeffs, _, _2 = _pack_spline_coefficients(neglnprob_coeffs, 2, device)
         return prob_coeffs, prob_coeffs_sizes, prob_coeffs_strides, neglnprob_coeffs
 
     @classmethod
     def _create_rot_mean_offsets(cls, all_rotlibs, device):
-        mean_table_n_entries = [0] + [
+        mean_table_n_entries = [
             rotlib.rotameric_data.rotamer_means.shape[0]
             * rotlib.rotameric_data.rotamer_means.shape[3]
             for rotlib in all_rotlibs
-        ][:-1]
-        return torch.cumsum(
-            torch.tensor(mean_table_n_entries, dtype=torch.int32, device=device), 0
+        ]
+        return exclusive_cumsum1d(
+            torch.tensor(mean_table_n_entries, dtype=torch.int32, device=device)
         )
 
     @classmethod
@@ -412,8 +412,8 @@ class DunbrackParamResolver(ValidateAttrs):
             BSplineInterpolation.from_coordinates(t).coeffs.to(device)
             for t in rotameric_mean_tables
         ]
-        mean_coeffs, mean_coeffs_sizes, mean_coeffs_strides = nplus1d_tensor_from_list(
-            mean_coeffs
+        mean_coeffs, mean_coeffs_sizes, mean_coeffs_strides = _pack_spline_coefficients(
+            mean_coeffs, 2, device
         )
 
         return mean_coeffs, mean_coeffs_sizes, mean_coeffs_strides
@@ -433,11 +433,14 @@ class DunbrackParamResolver(ValidateAttrs):
             BSplineInterpolation.from_coordinates(t).coeffs.to(device)
             for t in rotameric_sdev_tables
         ]
-        sdev_coeffs, _, _2 = nplus1d_tensor_from_list(sdev_coeffs)
+        sdev_coeffs, _, _2 = _pack_spline_coefficients(sdev_coeffs, 2, device)
         return sdev_coeffs
 
     @classmethod
     def _create_rot_periodicities(cls, all_rotlibs, device):
+        if not all_rotlibs:
+            empty = torch.empty((0, 2), dtype=torch.float32, device=device)
+            return empty, empty, empty
         rotameric_bb_start = torch.tensor(
             [
                 list(rotlib.rotameric_data.backbone_dihedral_start)
@@ -580,13 +583,12 @@ class DunbrackParamResolver(ValidateAttrs):
         ]
 
         # same for both rotameric and semi-rotameric rotind2tableind tables
-        return torch.cumsum(
+        return exclusive_cumsum1d(
             torch.tensor(
-                [0] + [3 ** rotamers.shape[1] for rotamers in rotamer_sets][:-1],
+                [3 ** rotamers.shape[1] for rotamers in rotamer_sets],
                 dtype=torch.int32,
                 device=device,
             ),
-            0,
         )
 
     @classmethod
@@ -602,11 +604,8 @@ class DunbrackParamResolver(ValidateAttrs):
             for rotlib in dun_database.semi_rotameric_libraries
         ]
 
-        return torch.cumsum(
-            torch.tensor(
-                [0] + rotamer_counts_sets[:-1], dtype=torch.int32, device=device
-            ),
-            0,
+        return exclusive_cumsum1d(
+            torch.tensor(rotamer_counts_sets, dtype=torch.int32, device=device),
         )
 
     @classmethod
@@ -626,7 +625,7 @@ class DunbrackParamResolver(ValidateAttrs):
             BSplineInterpolation.from_coordinates(t).coeffs.to(device)
             for t in semirotameric_prob_tables
         ]
-        return nplus1d_tensor_from_list(semirot_coeffs)
+        return _pack_spline_coefficients(semirot_coeffs, 3, device)
 
     @classmethod
     def _create_semirot_periodicity(cls, dun_database, device):
@@ -684,16 +683,18 @@ class DunbrackParamResolver(ValidateAttrs):
 
     @classmethod
     def _create_semirot_offsets(cls, dun_database, device):
-        nsemirot_rotamers = [0] + [
+        nsemirot_rotamers = [
             rotlib.nonrotameric_chi_probabilities.shape[0]
             for rotlib in dun_database.semi_rotameric_libraries
-        ][:-1]
-        return torch.cumsum(
-            torch.tensor(nsemirot_rotamers, dtype=torch.int32, device=device), 0
+        ]
+        return exclusive_cumsum1d(
+            torch.tensor(nsemirot_rotamers, dtype=torch.int32, device=device)
         )
 
     @classmethod
     def create_sorted_rot_2_rot(cls, all_rotlibs, device):
+        if not all_rotlibs:
+            return torch.empty((0, 0, 0), dtype=torch.int64, device=device)
         sorted_2_rotinds, _1, _2 = cat_differently_sized_tensors(
             [
                 rot.rotameric_data.prob_sorted_rot_inds.permute(2, 0, 1).to(device)
@@ -705,6 +706,8 @@ class DunbrackParamResolver(ValidateAttrs):
 
     @classmethod
     def create_rotamer_well_table(cls, all_rotlibs, device):
+        if not all_rotlibs:
+            return torch.empty((0, 0), dtype=torch.int32, device=device)
         rotwells, _1, _2 = cat_differently_sized_tensors(
             [rot.rotameric_data.rotamers.to(device) for rot in all_rotlibs]
         )

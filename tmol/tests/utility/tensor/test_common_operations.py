@@ -1,5 +1,6 @@
 import torch
 import numpy
+import pytest
 
 from tmol.utility.tensor import (
     stretch,
@@ -41,6 +42,18 @@ def test_exclusive_cumsum():
     excumsum = exclusive_cumsum1d(t)
     gold = numpy.arange(50, dtype=numpy.int64)
     numpy.testing.assert_equal(excumsum, gold)
+
+
+@pytest.mark.parametrize("values", [[], [5], [2, 0, 3, -1]])
+@pytest.mark.parametrize("dtype", [torch.int32, torch.int64])
+def test_exclusive_cumsum_empty_and_small_inputs(torch_device, dtype, values):
+    source = torch.tensor(values, dtype=dtype, device=torch_device)
+    result = exclusive_cumsum1d(source)
+    expected = [sum(values[:i]) for i in range(len(values))]
+    torch.testing.assert_close(
+        result, torch.tensor(expected, dtype=dtype, device=torch_device)
+    )
+    assert result is not source
 
 
 def test_nplus1d_tensor_from_list():

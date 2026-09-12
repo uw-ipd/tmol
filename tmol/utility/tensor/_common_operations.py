@@ -36,6 +36,8 @@ def stretch2(t: Union[Tensor[torch.int32][:, :], Tensor[torch.int64][:, :]], cou
 def exclusive_cumsum1d(
     inds: Union[Tensor[torch.int32][:], Tensor[torch.int64][:]],
 ) -> Union[Tensor[torch.int32][:], Tensor[torch.int64][:]]:
+    if inds.shape[0] == 0:
+        return torch.empty_like(inds)
     return torch.cat(
         (
             torch.tensor([0], dtype=inds.dtype, device=inds.device),

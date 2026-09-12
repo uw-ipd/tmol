@@ -11,7 +11,7 @@ Review date: 2026-09-12
 
 Both subsequent six-file updates have been reviewed separately. Comments 1–46
 retain their original `c03c1e745` anchors; comments 47–56 address `0f4c3bc42`,
-and comments 57–77 address `0593a93b0`. The
+and comments 57–78 address `0593a93b0`. The
 fold-forest expectations and HYP count are now corrected upstream. See
 [FOLLOWUP.md](FOLLOWUP.md) for reconciliation and validation details.
 
@@ -754,3 +754,14 @@ Location: [`tmol/database/scoring/_mirrored_dunbrack.py:177`](https://github.com
 Eight regressions fail before the fix. The follow-up supports incremental requests, retains existing library objects/mappings, returns the original database when no new library is required, and rejects missing source tables, competing target requests and ambiguous generated names. Selective ARG/DARG/PHE native sampling matches the full database exactly on CPU/CUDA even though PHE's table index moves. All default generated values remain exactly equal to the previous function. Final Slurm 250526 passes 54 CPU/CUDA cases with one intentional CPU annealer skip, including full-atom mirror energies and actual single-position packing.
 
 Seven alternating warm timing rounds show DARG-only generation **17.28 → 1.65 ms**, with additional owned tensor storage **30,927,608 → 4,279,200 bytes**. DSER-only is **17.29 → 0.089 ms** and **30,927,608 → 77,784 bytes**. The full default request is essentially unchanged (**15.79 → 15.86 ms**, identical tensor storage); a no-D request now allocates no new tensor storage. These measurements exclude the source L tables, resolver fitting, transient peaks and whole-program work. See [profile_mirrored_library_generation.py](profile_mirrored_library_generation.py) and [results/mirrored-library-generation.json](results/mirrored-library-generation.json).
+
+
+## 78. Support rotamer-only and empty library databases through the native boundary — P2
+
+Location: [`tmol/score/dunbrack/_params.py:605`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/score/dunbrack/_params.py#L605), empty lookup construction at [line 279](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/score/dunbrack/_params.py#L279).
+
+> Could absent statistical-library families retain their actual zero length with the correct tensor ranks? A valid LEU-only database fails while packing the empty semirotameric coefficient list. An entirely empty database also fails when constructing lookup columns and offsets. Once those are corrected, an entirely unmapped scorer reaches the native interface with zero-stride dihedral metadata. Explicit ligand/polymer chi sampling should not require unrelated amino-acid tables to be installed.
+
+These are inherited full-database assumptions exposed by private/minimal chemistry. Five pre-fix cases fail; semirotameric-only controls pass. The follow-up shares lookup construction, creates rank-correct empty tensors and true empty offsets, handles empty prefix sums, and constructs empty dihedral tensors with native-compatible strides. It introduces no dummy tables or dihedrals. Whole-pose/block-pair energies and weighted coordinate gradients match the full database restricted to the same mappings, including exactly zero outputs for an unmapped term. Public explicit-chi coordinate construction also works with no statistical library, including gapped chi numbering.
+
+All 50 default resolver tensor fields and three lookup DataFrames match the preceding implementation on CPU/CUDA. Derived tensor storage is 374,345 bytes for LEU-only, 1,308,573 for PHE-only, and zero for no libraries; these are deliberately different reference sets, not automatic pruning of a full model. The full default remains 67,494,212 bytes, 144 fewer because two views can share integer offsets. Slurm 250598 passes 297 CPU/CUDA cases (one intentional CPU annealer skip); the separately added public-construction cases pass eight CPU/CUDA tests in 250599. See [check_empty_dunbrack_database.py](check_empty_dunbrack_database.py) and [results/empty-dunbrack-libraries.json](results/empty-dunbrack-libraries.json).

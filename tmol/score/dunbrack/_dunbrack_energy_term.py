@@ -239,6 +239,11 @@ class DunbrackEnergyTerm(EnergyTerm):
         for index, array in enumerate(arrays):
             if array is not None:
                 packed[(index, *(slice(0, size) for size in array.shape))] = array
+        if packed.size == 0:
+            # NumPy's empty arrays have zero strides, including the consumed
+            # three-component UAID axis. Construct native-compatible strides
+            # directly without inserting a phantom dihedral into empty types.
+            return torch.empty(packed.shape, dtype=torch.int32, device=device)
         return torch.tensor(packed, dtype=torch.int32, device=device)
 
     def setup_poses(self, poses: PoseStack):

@@ -133,9 +133,23 @@ def test_own_chi_count_obeys_explicit_budget(ubq_pdb, default_database, torch_de
 
 
 @pytest.mark.parametrize("gapped", [False, True])
+@pytest.mark.parametrize("empty_libraries", [False, True])
 def test_own_chi_builds_requested_coordinates(
-    gapped, ubq_pdb, default_database, torch_device
+    gapped, empty_libraries, ubq_pdb, default_database, torch_device
 ):
+    if empty_libraries:
+        default_database = attr.evolve(
+            default_database,
+            scoring=attr.evolve(
+                default_database.scoring,
+                dun=attr.evolve(
+                    default_database.scoring.dun,
+                    dun_lookup=(),
+                    rotameric_libraries=(),
+                    semi_rotameric_libraries=(),
+                ),
+            ),
+        )
     pose, samples = own_chi_pose(ubq_pdb, torch_device, gapped=gapped)
     sampler = create_dunbrack_sampler_from_database(default_database, torch_device)
     task = PackerTask(pose, PackerPalette())
