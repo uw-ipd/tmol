@@ -1,6 +1,12 @@
 Build an interface for your model
 ================================
 
+Run `Example 02: model inputs <https://colab.research.google.com/github/kierandidi/tmol/blob/review/pr503-chemistry-efficiency/notebooks/example_02_model_inputs.ipynb>`_
+in Colab, or open ``notebooks/example_02_model_inputs.ipynb`` locally. It includes
+installation, both editable adapters, saved predictions, score/gradient checks
+and a repeated-guidance loop. The notebook is the executable source for this tutorial.
+
+
 Model output is a coordinate tensor plus a description of what each slot means.
 Keep the model's dictionary keys and version-specific layouts in your application.
 Tmol provides the generic ``CanonicalOrdering`` / ``CanonicalForm`` construction
@@ -22,9 +28,7 @@ for explicit residue padding, and distinguishes unobserved atoms from padded
 residues. Finite supplied coordinates remain connected to autograd. Missing
 coordinates are NaN triplets; infinity and partially finite triplets are rejected.
 
-.. literalinclude:: examples/model_inputs.py
-   :language: python
-   :pyobject: prepare_named_layout
+The notebook defines ``prepare_named_layout`` in an editable code cell.
 
 This small example uses the default chemical database and calls canonical pose
 construction on every iteration. It caches the source mapping, not the final
@@ -42,9 +46,7 @@ tokens, atom-existence mask and chain IDs from a saved prediction. These diction
 keys describe the example prediction, not a universal OpenFold output schema.
 If your model returns a different schema, adapt this extraction locally.
 
-.. literalinclude:: examples/model_inputs.py
-   :language: python
-   :pyobject: openfold_example
+The notebook defines ``openfold_example`` in an editable code cell.
 
 A model producing atom37 can use the same named-layout function with its atom37
 encoding and observation mask; no temporary atom14-to-atom37 expansion is needed.
@@ -63,9 +65,7 @@ The generic amide ``H`` at each chain's N terminus is replaced by the appropriat
 terminal hydrogen model in either case. The rebuilt input slots have no gradient;
 other supplied coordinates retain their gradient connection.
 
-.. literalinclude:: examples/model_inputs.py
-   :language: python
-   :pyobject: rf2_example
+The notebook defines ``rf2_example`` in an editable code cell.
 
 Scoring and repeated guidance
 -----------------------------

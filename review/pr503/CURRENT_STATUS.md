@@ -11,11 +11,14 @@ targets dev. Both remain drafts with explicit scientific and input limitations.
 
 OpenFold/RF2 constructors, factories, exports and vendored model tables are
 removed fully. There are no compatibility wrappers. The
-[executable tutorial](../../docs/model_inputs.rst) shows application-owned
+[Colab notebook](../../notebooks/example_02_model_inputs.ipynb) shows application-owned
 interfaces using named layouts and Torch canonical construction, including an
-explicit RF2 hydrogen policy. All six CPU/CUDA tutorial checks pass: exact
+explicit RF2 hydrogen policy. Two complete CPU/CUDA notebook workflows pass: exact
 C-alpha coordinates, finite scores/gradients, and no input gradient for rebuilt
-hydrogen slots. This caches mappings, not final topology; the broader unified
+hydrogen slots, and repeated guidance. Its download/install path also completed
+in an isolated local environment; execution on Google's hosted Colab service
+has not been independently verified. The notebook requires authenticated access
+to the unpublished AtomWorks source. This caches mappings, not final topology; the broader unified
 prepared-topology atom14/atom37/backbone4 API remains a proposal.
 
 - Broad GPU checkpoint: **1,478 passed, 15 skipped, eight inherited noncanonical
