@@ -1265,7 +1265,14 @@ def _apply_conjugated_variants(
             )
         block_types[pose_ind][res] = conjugated
 
-    connections = []
+    connections, occupied = [], {}
+
+    def endpoint_label(pose_ind, endpoint):
+        res, conn = endpoint
+        bt = pbt.active_block_types[block_types[pose_ind][res]]
+        site = bt.connections[conn]
+        return f"residue {res} {bt.name}.{site.atom} ({site.name})"
+
     for pose_ind, res1, atom1, res2, atom2 in bonds:
         resolved = []
         for res, atom in ((res1, atom1), (res2, atom2)):
@@ -1279,6 +1286,15 @@ def _apply_conjugated_variants(
                     f"{bt.name} has no connection at {name} for a declared bond"
                 )
             resolved.append((res, conn))
+        for endpoint, partner in (resolved, resolved[::-1]):
+            previous = occupied.setdefault((pose_ind, *endpoint), partner)
+            if previous != partner:
+                raise ValueError(
+                    f"pose {pose_ind}: {endpoint_label(pose_ind, endpoint)} has "
+                    f"multiple declared partners: {endpoint_label(pose_ind, previous)} "
+                    f"and {endpoint_label(pose_ind, partner)}. Each connection accepts "
+                    "one partner; resolve the input bond graph."
+                )
         connections.append((pose_ind, *resolved[0], *resolved[1]))
     block_type_ind64.copy_(
         torch.tensor(block_types, dtype=torch.int64, device=pbt.device)

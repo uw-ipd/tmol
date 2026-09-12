@@ -8,7 +8,7 @@ import biotite.structure.io.pdbx as pdbx
 import pytest
 import torch
 
-from tmol.io import atom_array_from_cif, pose_stack_from_cif
+from tmol.io import atom_array_from_cif, pose_stack_from_biotite, pose_stack_from_cif
 from tmol.io._pose_stack_from_biotite import (
     _map_atoms_to_canonical,
     canonical_form_from_biotite,
@@ -174,6 +174,26 @@ def test_schiff_base_cannot_lose_its_incomplete_lysine_partner():
             ligand_seed=20260909,
             no_optH=True,
         )
+
+
+@pytest.mark.parametrize("reader", ["tmol", "atomworks"])
+def test_conflicting_myristate_connections_are_reported(reader, torch_device):
+    array = atom_array_from_cif(
+        DATA / "conflicting_myristate_1aym.cif.gz", reader=reader
+    )
+    # The complete source has a free zinc ion; metal parameters are out of scope.
+    array = array[array.res_name != "ZN"]
+    before = array.bonds.as_array().copy()
+    with pytest.raises(ValueError, match=r"MYR\.C1.*multiple declared partners") as exc:
+        pose_stack_from_biotite(
+            array,
+            torch_device,
+            prepare_ligands=True,
+            ligand_seed=20250828,
+            no_optH=True,
+        )
+    assert ".N (" in str(exc.value) and ".CA (" in str(exc.value)
+    np.testing.assert_array_equal(array.bonds.as_array(), before)
 
 
 def test_entirely_unresolved_ligand_keeps_its_chemical_identity():

@@ -72,5 +72,14 @@
     "transformation": "gzip decompression only",
     "sha256": "9b0821b2d3ac56ff21b6fdb558013f17b3468019105c0ee0ef3681087c4dee66",
     "bytes": 125361
+  },
+  {
+    "fixture": "conflicting_myristate_1aym.cif.gz",
+    "source": "https://files.rcsb.org/download/1AYM.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO tests",
+    "retrieved": "2026-09-12",
+    "transformation": "none; complete compressed source",
+    "sha256": "99861fb9f6556f4b19f68787df1c5078414308c45d911b80496edc62b6dedac9",
+    "bytes": 195275
   }
 ]
