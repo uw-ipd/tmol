@@ -10,9 +10,12 @@ from tmol.pack import PackerPalette, PackerTask, SetPackerTask
 from tmol.pack.rotamer import IncludeCurrentSampler, build_rotamers
 from tmol.score.cartbonded import CartBondedEnergyTerm
 from tmol.score.genbonded import GenBondedEnergyTerm
+from tmol.score.dunbrack import DunbrackEnergyTerm
 
 
-@pytest.mark.parametrize("term_class", [CartBondedEnergyTerm, GenBondedEnergyTerm])
+@pytest.mark.parametrize(
+    "term_class", [CartBondedEnergyTerm, GenBondedEnergyTerm, DunbrackEnergyTerm]
+)
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
 def test_rotamer_forward_defers_pair_derivatives(
     term_class, dtype, ubq_pdb, default_database, torch_device
