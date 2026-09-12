@@ -608,8 +608,7 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
     # Scoring
     # ------------------------------------------------------------------
 
-    def supports_score_only_in_no_grad(self):
-        return True
+    score_only_in_no_grad = True
 
     def get_pose_score_term_function(self):
         return genbonded_pose_scores

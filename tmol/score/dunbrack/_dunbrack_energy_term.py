@@ -236,8 +236,7 @@ class DunbrackEnergyTerm(EnergyTerm):
 
         return dunbrack_pose_scores
 
-    def supports_score_only_in_no_grad(self):
-        return True
+    score_only_in_no_grad = True
 
     def get_rotamer_score_term_function(self):
         from tmol.score.dunbrack.potentials import dunbrack_rotamer_scores

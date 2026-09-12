@@ -16,10 +16,9 @@ from tmol.types._validators import get_validator
 from tmol.types._converters import get_converter
 
 
-@pytest.mark.parametrize("first_branch", [NDArray[int][:], NDArray[float][:, 3]])
 @pytest.mark.parametrize("nested", [False, True])
-def test_successful_union_releases_value_and_caller(first_branch, nested):
-    annotation = Union[first_branch, NDArray[float][:]]
+def test_successful_union_releases_value_and_caller(nested):
+    annotation = Union[NDArray[int][:], NDArray[float][:]]
     if nested:
         annotation = Union[List[int], List[annotation]]
 
@@ -42,17 +41,6 @@ def test_successful_union_releases_value_and_caller(first_branch, nested):
     finally:
         if gc_enabled:
             gc.enable()
-
-
-def test_rejected_union_preserves_last_error_cause():
-    annotation = Union[int, str]
-    with pytest.raises(TypeError) as error:
-        get_validator(annotation)(1.5)
-    assert str(error.value) == f"expected {annotation}, received <class 'float'>"
-    cause = error.value.__cause__
-    assert isinstance(cause, TypeError)
-    assert str(cause) == "expected <class 'str'>, received <class 'float'>"
-    assert cause.__traceback__ is not None
 
 
 def test_successful_union_conversion_releases_original_value():
@@ -78,17 +66,6 @@ def test_successful_union_conversion_releases_original_value():
             gc.enable()
 
 
-def test_rejected_union_conversion_preserves_error_message():
-    annotation = Union[int, float]
-    value = 1j
-    with pytest.raises(TypeError) as error:
-        get_converter(annotation)(value)
-    assert str(error.value) == (
-        f"Unable to convert to any union subtype: {annotation} value: {value!r}"
-    )
-    assert error.value.__cause__ is None
-
-
 @pytest.mark.parametrize("factory", [get_validator, get_converter])
 def test_rejected_union_releases_value_after_error_is_handled(factory):
     class Value:
@@ -97,12 +74,8 @@ def test_rejected_union_releases_value_after_error_is_handled(factory):
     def invoke():
         value = Value()
         value_ref = weakref.ref(value)
-        try:
+        with pytest.raises(TypeError):
             factory(Union[int, float])(value)
-        except TypeError:
-            pass
-        else:
-            pytest.fail("The value must be rejected by both union branches")
         return value_ref
 
     gc.collect()

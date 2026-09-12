@@ -219,7 +219,8 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             score_args += (shared_dispatch_indices,)
         return score_op(*score_args)
 
-    def supports_score_only_in_no_grad(self):
+    @property
+    def score_only_in_no_grad(self):
         # CPU compilers can round score-only and derivative paths differently
         # (including float64 on ARM). Preserve tracked-input values there.
         return self.device.type == "cuda"

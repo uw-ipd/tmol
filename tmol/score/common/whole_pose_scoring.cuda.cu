@@ -12,23 +12,13 @@ namespace common {
 namespace {
 
 template <typename Real>
-__device__ Real rounded_product(Real a, Real b);
-template <>
-__device__ float rounded_product(float a, float b) {
-  return __fmul_rn(a, b);
-}
-template <>
-__device__ double rounded_product(double a, double b) {
+__device__ Real rounded_product(Real a, Real b) {
+  if constexpr (std::is_same_v<Real, float>) return __fmul_rn(a, b);
   return __dmul_rn(a, b);
 }
 template <typename Real>
-__device__ Real rounded_sum(Real a, Real b);
-template <>
-__device__ float rounded_sum(float a, float b) {
-  return __fadd_rn(a, b);
-}
-template <>
-__device__ double rounded_sum(double a, double b) {
+__device__ Real rounded_sum(Real a, Real b) {
+  if constexpr (std::is_same_v<Real, float>) return __fadd_rn(a, b);
   return __dadd_rn(a, b);
 }
 

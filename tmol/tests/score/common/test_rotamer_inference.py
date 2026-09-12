@@ -6,6 +6,7 @@ import pytest
 import torch
 
 from tmol import pose_stack_from_pdb
+from tmol.tests import requires_cuda
 from tmol.pack import PackerPalette, PackerTask, SetPackerTask
 from tmol.pack.rotamer import IncludeCurrentSampler, build_rotamers
 from tmol.score.cartbonded import CartBondedEnergyTerm
@@ -14,6 +15,8 @@ from tmol.score.dunbrack import DunbrackEnergyTerm
 from tmol.score.elec import ElecEnergyTerm
 from tmol.score.hbond import HBondEnergyTerm
 from tmol.score.ljlk import LJLKEnergyTerm
+
+pytestmark = requires_cuda
 
 
 @pytest.mark.parametrize(
@@ -31,8 +34,6 @@ from tmol.score.ljlk import LJLKEnergyTerm
 def test_rotamer_forward_avoids_unused_gradient_storage(
     term_class, dtype, ubq_pdb, default_database, torch_device
 ):
-    if torch_device.type != "cuda":
-        pytest.skip("CUDA allocator statistics required")
     pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=15)
     task = PackerTask(pose, PackerPalette())
     task.restrict_to_repacking()

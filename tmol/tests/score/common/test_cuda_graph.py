@@ -5,10 +5,14 @@ import pytest
 import torch
 
 from tmol.score.common._cuda_graph import CapturedScoringGraph
+from tmol.tests import requires_cuda
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:The AccumulateGrad node's stream does not match"
-)
+pytestmark = [
+    requires_cuda,
+    pytest.mark.filterwarnings(
+        "ignore:The AccumulateGrad node's stream does not match"
+    ),
+]
 
 
 class _ScoringExample(torch.nn.Module):
@@ -35,8 +39,6 @@ class _ScoringExample(torch.nn.Module):
 def test_cuda_scoring_capture_replays_values_and_parameter_gradients(
     torch_device, dtype, trainable, layout
 ):
-    if torch_device.type != "cuda":
-        pytest.skip("CUDA scoring capture")
     module = _ScoringExample(torch_device, dtype, trainable)
     sample = torch.zeros((3, 5), device=torch_device, dtype=dtype, requires_grad=True)
     capture = CapturedScoringGraph(module, sample)
@@ -68,8 +70,6 @@ def test_cuda_scoring_capture_replays_values_and_parameter_gradients(
 def test_cuda_scoring_capture_preserves_unused_coordinate_gradients(
     torch_device, dtype
 ):
-    if torch_device.type != "cuda":
-        pytest.skip("CUDA scoring capture")
     module = _ScoringExample(torch_device, dtype, unused_coords=True)
     sample = torch.zeros((3, 5), device=torch_device, dtype=dtype, requires_grad=True)
     capture = CapturedScoringGraph(module, sample)
@@ -84,8 +84,6 @@ def test_cuda_scoring_capture_preserves_unused_coordinate_gradients(
 
 
 def test_cuda_scoring_capture_lives_until_pending_backward_finishes(torch_device):
-    if torch_device.type != "cuda":
-        pytest.skip("CUDA scoring capture")
     gc.collect()
     gc_enabled = gc.isenabled()
     gc.disable()
@@ -147,8 +145,6 @@ def test_cuda_scoring_capture_preserves_device_and_caller_stream(device_index):
 
 @pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16])
 def test_cuda_scoring_capture_preserves_uncached_autocast(torch_device, dtype):
-    if torch_device.type != "cuda":
-        pytest.skip("CUDA scoring capture")
     module = torch.nn.Linear(5, 3, bias=False, device=torch_device)
     with torch.no_grad():
         module.weight.copy_(torch.arange(15, device=torch_device).reshape(3, 5) / 8)
@@ -170,8 +166,6 @@ def test_cuda_scoring_capture_preserves_uncached_autocast(torch_device, dtype):
 
 
 def test_cuda_scoring_capture_rejects_autocast_cache(torch_device):
-    if torch_device.type != "cuda":
-        pytest.skip("CUDA scoring capture")
     module = _ScoringExample(torch_device, torch.float32)
     sample = torch.zeros((3, 5), device=torch_device, requires_grad=True)
     with torch.autocast("cuda", cache_enabled=True):
@@ -181,8 +175,6 @@ def test_cuda_scoring_capture_rejects_autocast_cache(torch_device):
 
 @pytest.mark.parametrize("hook", ["forward", "forward_pre", "full_backward"])
 def test_cuda_scoring_capture_rejects_existing_hooks(torch_device, hook):
-    if torch_device.type != "cuda":
-        pytest.skip("CUDA scoring capture")
     module = _ScoringExample(torch_device, torch.float32)
     getattr(module, f"register_{hook}_hook")(lambda *args: None)
     sample = torch.zeros((3, 5), device=torch_device, requires_grad=True)
@@ -191,8 +183,6 @@ def test_cuda_scoring_capture_rejects_existing_hooks(torch_device, hook):
 
 
 def test_cuda_scoring_capture_rejects_trainable_buffers(torch_device):
-    if torch_device.type != "cuda":
-        pytest.skip("CUDA scoring capture")
     module = _ScoringExample(torch_device, torch.float32)
     module.offset.requires_grad_(True)
     sample = torch.zeros((3, 5), device=torch_device, requires_grad=True)
@@ -201,8 +191,6 @@ def test_cuda_scoring_capture_rejects_trainable_buffers(torch_device):
 
 
 def test_cuda_scoring_capture_retains_double_backward_restriction(torch_device):
-    if torch_device.type != "cuda":
-        pytest.skip("CUDA scoring capture")
     module = _ScoringExample(torch_device, torch.float32)
     sample = torch.zeros((3, 5), device=torch_device, requires_grad=True)
     capture = CapturedScoringGraph(module, sample)
