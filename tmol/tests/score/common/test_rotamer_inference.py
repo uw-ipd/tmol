@@ -19,6 +19,11 @@ from tmol.score.ljlk import LJLKEnergyTerm
 pytestmark = requires_cuda
 
 
+@pytest.fixture
+def torch_device():
+    return torch.device("cuda", torch.cuda.current_device())
+
+
 @pytest.mark.parametrize(
     "term_class",
     [

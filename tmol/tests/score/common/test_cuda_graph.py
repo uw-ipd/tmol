@@ -15,6 +15,11 @@ pytestmark = [
 ]
 
 
+@pytest.fixture
+def torch_device():
+    return torch.device("cuda", torch.cuda.current_device())
+
+
 class _ScoringExample(torch.nn.Module):
     def __init__(self, device, dtype, trainable=True, unused_coords=False):
         super().__init__()
