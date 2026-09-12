@@ -331,6 +331,8 @@ def generate_conjugate_connection_params(
         )
         if sites:
             candidates[rt.base_name, sites].append(rt)
+            if rt.io_equiv_class != rt.base_name:
+                candidates[rt.io_equiv_class, sites].append(rt)
             adjacency[rt.name] = _neighbors(rt)
     for alias in chem.name3_aliases:
         for (base, sites), types in list(candidates.items()):

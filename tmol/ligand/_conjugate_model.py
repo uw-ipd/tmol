@@ -57,6 +57,8 @@ def iter_capped_conjugate_models(atom_array, chemical_database):
     definitions = {
         r.name: r for r in chemical_database.residues if r.name == r.base_name
     }
+    for residue in list(definitions.values()):
+        definitions.setdefault(residue.io_equiv_class, residue)
     for alias in chemical_database.name3_aliases:
         if alias.read_as in definitions:
             definitions.setdefault(alias.name3, definitions[alias.read_as])

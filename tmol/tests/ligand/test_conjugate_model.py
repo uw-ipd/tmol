@@ -238,3 +238,22 @@ def test_capped_generation_preserves_observed_stereochemistry(conjugate_input):
     assert identities[0] != identities[1]
     with pytest.raises(ValueError, match="Incompatible conjugate chemistry"):
         generate_conjugate_connection_params(array + source, database)
+
+
+@pytest.mark.parametrize(
+    "fixture", ["6dmz_mod_d", "gamma_peptide_1gac", "na_rna_psu_1bzt"]
+)
+def test_declared_input_classes_resolve_prepared_polymer_types(fixture):
+    from tmol.ligand._connection_params import generate_conjugate_connection_params
+
+    array = atom_array_from_cif(data_path("ncaa_fixtures", fixture + ".cif"))
+    database, ordering = prepare_ligands(array, seed=20250828)
+    assert any(
+        r.io_equiv_class in array.res_name and r.io_equiv_class != r.name
+        for r in database.chemical.residues
+        if r.name == r.base_name
+    )
+    assert set(array.res_name) <= set(ordering.restype_io_equiv_classes)
+    # Ordinary polymer and curated disulfide links need no generated attachment
+    # records, regardless of internal names such as DARG versus input DAR.
+    assert generate_conjugate_connection_params(array, database) == ()
