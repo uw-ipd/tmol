@@ -1,5 +1,59 @@
 # Continued review: integrated AtomWorks inputs and model tutorials
 
+Latest follow-up: tmol `cdca836b2`, AtomWorks `4af94d0c`. Earlier checkpoints
+below retain their original scope; current evidence is in
+[chemistry-followup-validation.json](results/chemistry-followup-validation.json).
+
+## 118. Mol2 delocalization is restored as invalid aromatic chemistry — fixed
+
+[Frank's source annotation restoration](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/ligand/_rdkit_mol.py#L166).
+
+> Can annotation restoration distinguish aromatic ring bonds from Tripos
+> delocalized carboxylates and the single bond joining two aromatic rings?
+> The O-glycan SIA conversion restores non-ring aromatic atoms after bond
+> normalization, while its carbonyl remains single and both oxygens are negative.
+
+Require ring membership for restored aromatic atoms/bonds and reuse AtomWorks'
+carboxylate bond-order repair on generated mol2 geometry. Run that repair only
+when a Tripos carboxylate still lacks its double bond; valid carbonyls avoid
+the extra copy/sanitization. Existing partial charges are retained. Integrated
+acetate and biphenyl workflows both fail before the fix and pass afterward,
+including chemical identity, parameter generation, scoring and gradients.
+The combined semantic/typing selection has 115 CPU passes.
+
+## 119. Conflicting declared partners overwrite one connection port — fixed
+
+[Frank's conjugated connection construction](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/io/details/_select_from_canonical.py#L1210).
+
+> Can connection occupancy be validated before writing the pose graph?
+> Complete 1AYM declares both GLY N–MYR C1 and GLY CA–MYR C1 in struct_conn.
+> Assigning both to MYR's one port overwrites an edge and leaves a nonreciprocal
+> graph; batched device writes also make the surviving edge undefined.
+
+Validate each port's partner on the host before device writes, allowing
+identical repeated edges but rejecting different partners with residue, atom
+and port names. The unmodified compressed CIF is now a regression fixture with
+source provenance. Both readers reject the conflict without mutating their
+input bond tables. This fixes handling of invalid input; it does not silently
+choose one source bond or make original 1AYM a successful minimization case.
+
+## Attachment parameter convention: follow Frank's branch
+
+[PR503's description](https://github.com/uw-ipd/tmol/pull/503) specifies Hahnbeom's
+gen_bonded hybrid model. Its Cartesian generator uses ideal generated geometry
+with `K=300` for lengths and `K=80` for angles; generic bonded scoring supplies
+proper/improper torsions. Existing MMFF use for charges and conformer cleanup
+does not imply MMFF harmonic force constants should replace those values.
+
+The selected attachment implementation must preserve that convention. A CPU
+diagnostic now generates complete capped biotin, O-glycan and N-glycan geometry
+and verifies native attachment energy/gradients against an independent Torch
+expression in whole-pose and weighted block-pair modes. All six comparisons
+pass. This diagnostic still uses the prototype's MMFF coverage checks and does
+not independently validate stereochemistry. Default attachment/local parameter
+integration remains outstanding; the MMFF harmonic and local-delta prototypes
+remain private diagnostics. No new default force field is installed.
+
 The comparison is Frank's `0593a93b07d80b0302383163d2d98c78e315ab98` (already
 merged), and AtomWorks dev `59afb1e2`. The shared AtomWorks implementation is
 now `4af94d0c`; the immutable tmol GPU checkpoint is `4b4ff72d9`. Later cap-frame
@@ -203,8 +257,8 @@ remain. This removes another 1,922 production/vendor lines beyond the earlier
 1,532 net shared-chemistry removal. The original model predictions remain as
 fixtures. Their layout metadata is test data, not an installed model API.
 
-`docs/model_inputs.rst` includes executable examples from
-`docs/examples/model_inputs.py`. Applications provide named residue/atom layouts,
+`docs/model_inputs.rst` links the executable Colab tutorial
+`notebooks/example_02_model_inputs.ipynb`. Applications provide named residue/atom layouts,
 prepare mappings once, and bind tensors through Torch into generic canonical
 construction. OpenFold uses AtomWorks atom14 metadata; RF2 accepts the model's
 actual tables and explicitly chooses preserved or rebuilt hydrogen coordinates.

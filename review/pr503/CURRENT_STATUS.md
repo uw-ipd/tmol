@@ -1,19 +1,35 @@
 # Current review checkpoint
 
 Frank's latest fetched head remains `0593a93b07d80b0302383163d2d98c78e315ab98`,
-already merged. The current production fixes are tmol `102cda060` and AtomWorks
-`4af94d0c` based on dev `59afb1e2`. Expanded CPU/CUDA validation of an immutable
-snapshot is running in Slurm job **253074**; no completed result is claimed yet.
+already merged. Current production fixes are tmol `cdca836b2` and AtomWorks
+`4af94d0c` based on dev `59afb1e2`.
 
-Both CIF identifier routes now share AtomWorks bond parsing. Complete 1xvk and
-145d regressions retain their declared topology and pass CPU scoring/minimization.
-1xvk also preserves its initial energy under reversed residue order after fixing
-generic torsion direction/priority and central-bond lookup. Declared disulfides
-survive missing/distant sulfur coordinates. Invalid patch combinations are
-rejected before losing their torsion support. The latest focused selection has
-**30 passed, 18 device skips**; preceding shared-reader/corpus checks have
-**39 passed, seven skips**. See
-[incremental evidence](results/topology-focused-validation.json) for revision scope.
+The immutable `102cda060` broad run finished with **1,667 passed, 15 skipped,
+27 failed** and all **18 CPU + 18 CUDA examples passing**. Nineteen failures
+exposed hydrogen-policy/fixture compatibility assumptions; their focused CPU
+checks now pass without changing score goldens or tolerances. The other eight
+are inherited fresh-preparation noncanonical score references. The expanded
+`6560d12e1` run finished in Slurm **253088** with **1,693 passed, 15 skipped,
+nine failed**; all **18 CPU + 18 CUDA examples pass**. Eight failures are the
+noncanonical references; one stale mock lacks the required protonation-state field and
+is already corrected in `88096fafe` with a passing CPU check. The final port
+guard/conversion selection has **85 CPU/CUDA passes** in job **253094**, with
+no failures or skips.
+
+Both CIF routes expose an explicit preserve/rebuild hydrogen policy, including
+D-histidine evidence. Legacy inputs without a bond table retain geometric
+disulfide detection; supplied bond graphs remain authoritative. Mol2 aromatic
+annotations now require ring membership, and unresolved carboxylates reuse
+AtomWorks bond-order repair without repeating it for valid carbonyls.
+
+Targeted CUDA corpus job **253092** passes scoring/minimization for complete
+145d, 1xvk and 1IZC through both readers. Original 1AYM still fails: its source
+explicitly declares two partners for one MYR connection port. The new guard
+reports that conflict before graph writes; both-reader complete-file regression
+checks pass. Focused CPU selections have **115 semantic/typing passes** and
+**26 input/topology passes, 20 device skips**. These are overlapping checks,
+not counts to add to the broad suite. See
+[revision-scoped evidence](results/chemistry-followup-validation.json).
 
 [tmol draft PR #508](https://github.com/uw-ipd/tmol/pull/508) targets Frank's
 branch. [AtomWorks draft PR #349](https://github.com/baker-laboratory/atomworks-dev/pull/349)
@@ -60,7 +76,7 @@ Partial means additional constructor residue exclusions; numerical pass does
 not imply convergence. Only four trials in each local mode and nine of the
 192 PDB trials report convergence. Connection-length alerts remain explicit.
 
-There are **117 recorded findings**. See [CONTINUED_REVIEW.md](CONTINUED_REVIEW.md)
+There are **119 recorded findings**. See [CONTINUED_REVIEW.md](CONTINUED_REVIEW.md)
 for new anchored comments, experimental diagnostics, failure triage and proposed
 fixes; [PR_DESCRIPTION.md](PR_DESCRIPTION.md) maps every finding to its fix or
 remaining limitation. Full results, source hashes and optimizer states are in
@@ -68,7 +84,10 @@ remaining limitation. Full results, source hashes and optimizer states are in
 
 The attachment parameter source is settled: follow Frank's hybrid model and
 his generated-geometry Cartesian convention (`K=300` lengths, `K=80` angles).
-The MMFF94 harmonic prototype remains diagnostic-only. Completing missing
+The MMFF94 harmonic prototype remains diagnostic-only. Frank-convention generated
+attachment records pass six CPU whole-pose/block-pair energy and gradient
+comparisons across biotin and both glycan fixtures. This is diagnostic validation,
+not default integration or independent stereochemical validation. Completing missing
 attachment/local terms, reconciling noncanonical golden provenance, validating
 broader polymer/patch contexts, and handling certain incomplete inputs remain
 outstanding. Metals remain
