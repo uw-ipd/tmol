@@ -18,11 +18,10 @@ from rdkit import Chem
 
 from tmol.database.chemical import RawResidueType
 from tmol.database.scoring import AngleGroup, CartRes, ConnectionCartRes, LengthGroup
-from tmol.database.scoring._content_hash import content_hash
 from tmol.ligand import _connection_params as connection
 from tmol.ligand._atom_typing import assign_tmol_atom_types
 from tmol.ligand._conjugation_patches import CONNECTION_PREFIX
-from tmol.score.elec._params import ElecParamResolver
+from tmol.ligand._parameter_replacements import _baseline_charges, _local_identity
 
 
 @dataclass(frozen=True)
@@ -109,107 +108,11 @@ def _reference_mapping(
     return free_mapping, removed
 
 
-def _baseline_charges(index, restype):
-    base, variants = ElecParamResolver._lookup_order(restype.name)
-    names = [base + ":" + v if v else base for v in variants]
-    charges = {}
-    for atom in restype.atoms:
-        for name in names:
-            if (name, atom.name) in index:
-                charges[atom.name] = index[name, atom.name]
-                break
-        else:
-            raise ValueError(f"Missing baseline charge for {restype.name},{atom.name}")
-    return charges
-
-
-def _local_identity(restype, charges, bonded):
-    return content_hash(restype, tuple(sorted(charges.items())), bonded)
-
-
-def _connection_key(record):
-    return tuple(
-        sorted(
-            (
-                (record.block_type1, record.connection1),
-                (record.block_type2, record.connection2),
-            )
-        )
-    )
-
-
 def install_conjugate_parameters(parameter_database, result):
-    """Install a private generated result atomically, checking its baseline.
+    """Install private generated parameters with the shared baseline guard."""
+    from tmol.ligand._parameter_replacements import install_replacements
 
-    Reinstalling the same result is a no-op. Applying it to changed local
-    chemistry/charges/bonded records raises instead of silently mixing fits.
-    The input database is never modified.
-    """
-    from tmol.database import inject_residue_params
-
-    residues = {r.name: r for r in parameter_database.chemical.residues}
-    charge_index = {
-        (p.res, p.atom): p.charge
-        for p in parameter_database.scoring.elec.atom_charge_parameters
-    }
-    cart = parameter_database.scoring.cartbonded
-    installed = True
-    for row in result.residues:
-        name = row.residue_type.name
-        if name not in residues:
-            raise ValueError(f"Missing conjugate baseline residue {name}")
-        rt = residues[name]
-        actual = _local_identity(
-            rt,
-            _baseline_charges(charge_index, rt),
-            cart.residue_params.get(name, cart.residue_params.get(rt.base_name)),
-        )
-        expected = _local_identity(
-            row.residue_type, row.partial_charges, row.cartbonded_params
-        )
-        if actual not in (row.baseline_sha256, expected):
-            raise ValueError(f"Conjugate baseline changed for {name}")
-        installed &= actual == expected
-    replacements = {_connection_key(r): r for r in result.connections}
-    for old in cart.connection_params:
-        new = replacements.get(_connection_key(old))
-        if new is not None and attr.evolve(old, provenance="") != attr.evolve(
-            new, provenance=""
-        ):
-            raise ValueError("Existing conjugate connection parameters differ")
-    if installed and all(r in cart.connection_params for r in result.connections):
-        return parameter_database
-    retained = tuple(
-        r for r in cart.connection_params if _connection_key(r) not in replacements
-    )
-    base = attr.evolve(
-        parameter_database,
-        scoring=attr.evolve(
-            parameter_database.scoring,
-            cartbonded=type(cart).from_cartres_dict(cart.residue_params, retained),
-        ),
-    )
-    extended = inject_residue_params(
-        base,
-        [],
-        partial_charges={
-            r.residue_type.name: r.partial_charges for r in result.residues
-        },
-        cartbonded_params={
-            r.residue_type.name: r.cartbonded_params for r in result.residues
-        },
-        connection_params=result.connections,
-    )
-    updates = {r.residue_type.name: r.residue_type for r in result.residues}
-    return attr.evolve(
-        extended,
-        chemical=attr.evolve(
-            extended.chemical,
-            residues=tuple(
-                updates.get(r.name, r) for r in parameter_database.chemical.residues
-            ),
-        ),
-    )
+    return install_replacements(parameter_database, result.residues, result.connections)
 
 
 def _correct_atoms(

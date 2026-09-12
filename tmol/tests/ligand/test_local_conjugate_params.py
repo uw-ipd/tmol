@@ -74,7 +74,7 @@ def test_local_bundle_roundtrip_preserves_correction_and_baseline(
 ):
     from dataclasses import replace
     from tmol.ligand import load_params_file, write_params_file
-    from tmol.ligand._registry import LigandPreparation
+    from tmol.ligand._registry import LigandPreparation, inject_ligand_preparations
 
     _, array, database = conjugate_input
     result = generate_conjugate_parameters(array, database)
@@ -84,6 +84,7 @@ def test_local_bundle_roundtrip_preserves_correction_and_baseline(
             partial_charges=row.partial_charges,
             cartbonded_params=row.cartbonded_params,
             connection_params=result.connections if i == 0 else (),
+            baseline_sha256=row.baseline_sha256,
         )
         for i, row in enumerate(result.residues)
     ]
@@ -111,6 +112,11 @@ def test_local_bundle_roundtrip_preserves_correction_and_baseline(
     )
     assert reloaded == result
     corrected = install(database, reloaded)
+    ordinary = inject_ligand_preparations(database, restored)
+    assert ordinary.chemical == corrected.chemical
+    assert ordinary.scoring.elec == corrected.scoring.elec
+    assert ordinary.scoring.cartbonded == corrected.scoring.cartbonded
+    assert inject_ligand_preparations(ordinary, restored) is ordinary
     assert install(corrected, reloaded) is corrected
     with pytest.raises(ValueError, match="already corrected"):
         generate_conjugate_parameters(array, corrected)

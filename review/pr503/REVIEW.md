@@ -11,7 +11,7 @@ Review date: 2026-09-12
 
 Both subsequent six-file updates have been reviewed separately. Comments 1–46
 retain their original `c03c1e745` anchors; comments 47–56 address `0f4c3bc42`,
-and comments 57–85 address `0593a93b0`. The
+and comments 57–86 address `0593a93b0`. The
 fold-forest expectations and HYP count are now corrected upstream. See
 [FOLLOWUP.md](FOLLOWUP.md) for reconciliation and validation details.
 
@@ -443,7 +443,7 @@ Fixed and measured with the same prepared records in both writers. Twenty export
 
 Reproduced on CPU and CUDA by [diagnose_acylated_lysine.py](diagnose_acylated_lysine.py). The retained angle has `x0=1.91114 rad, K=51.348`; moving the hydrogen from 109.5° to 120° costs **0.862196 kcal/mol** in cartbonded angles. Rotating it by 180° about CE–NZ changes the retained lysine proper energy by **14.758556 kcal/mol**. This latter scan also changes the missing connection angles; it is not an equal-energy symmetry test. There is no NZ-rooted cart improper and no matching generic improper for the installed `Nbb` site, but proper torsions do respond: this is **not** a claim that all planarity energy is absent. The topology-derived MMFF diagnostic has local angle targets around 120° and reports `Nad`; its uncapped pair's total charge includes artificial backbone termini and is not a whole-conjugate charge reference.
 
-The follow-up adds isolated, exact-variant `CartRes` replacements and their `.tmol` persistence as the mechanism for local corrections. Eight before-fix CPU checks show that exact variant rows were ignored; independent whole-pose, weighted block-pair, rotamer and biotin bundle score/gradient checks now pass on CPU/CUDA. **Automatic chemistry-derived local parameters, typing/charge updates and ownership remain unresolved.** Synthetic replacement tests establish the mechanism, not a fitted amide model.
+The follow-up adds isolated, exact-variant `CartRes` replacements and their `.tmol` persistence as the mechanism for local corrections. Eight before-fix CPU checks show that exact variant rows were ignored; independent whole-pose, weighted block-pair, rotamer and biotin bundle score/gradient checks now pass on CPU/CUDA. The later private coupled generator supplies connected-versus-disconnected corrections for local types, charges, bonded terms, hydrogen construction and torsion ownership, with explicit provisional MMFF provenance. Guarded `.tmol` bundles now deliver those corrections through the ordinary loader (comment 86). **Default model selection, three-block angles and broader chemical-context coverage remain unresolved.** These checks do not establish a scientifically fitted amide model.
 
 ### 44. P2 — polymer capping discards source atom annotations
 
@@ -838,3 +838,14 @@ Related inherited locations, outside the PR's changed lines: [`tmol/pack/rotamer
 The follow-up derives source offsets without compacting padded pose rows and enumerates copied atoms from their counts. It reuses a fresh index buffer for source atom indices and preserves both copy order and virtual-root indexing. The fallback sampler shares the include-current fill method while retaining its own selection policy and class identity. This removes 76 net production lines. Empty inputs return before accessing annotations. Independent tests cover explicit source/destination indices, ragged pose layouts, reordered selections, unchanged input metadata, exact DOF copying and non-default CUDA streams. Real protein rotamer coordinates match the old implementation exactly.
 
 In the final synthetic 12,000-conformer test with an unrelated 1,024-atom type, GPU planner time falls 0.498 → 0.185 ms and extra allocated peak falls 118,974,464 → 6,471,680 bytes. With a 40-atom database maximum, the peak falls 12,695,040 → 6,471,680 bytes. Real 16-pose ubiquitin DOF filling improves 1.060 → 0.671 ms on CPU and 0.381 → 0.220 ms on GPU. Complete include-current-only construction changes much less (about 1–4% in these warm rounds), and its GPU allocation peak is unchanged. These are not full sampling/packing/scoring speedups. The first whole-build peak measurement was invalidated by garbage collection; the corrected measurements collect garbage before recording each allocation baseline. See [results/current-copy-validation.json](results/current-copy-validation.json).
+
+
+## 86. Define guarded replacement semantics for reusable parameter bundles — P2 design question
+
+[`tmol/ligand/_registry.py:399`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/ligand/_registry.py#L399).
+
+> Should a parameter bundle be able to explicitly replace an existing exact residue definition? The current name filter silently skips it. A coupled attachment correction needs its atom types, charges, bonded terms and hydrogen construction to arrive together. An opt-in baseline digest would let the loader distinguish a compatible update, an identical reload and an incompatible chemical baseline. Combined bundles also need to preserve their original patch parameters without applying those values over an already corrected residue.
+
+This is an API/design extension, not a claim that ordinary duplicate definitions should overwrite existing types. The follow-up adds explicit guarded replacements in `.tmol` version 4; older readers reject that version. Versions 1–3 retain their existing addition semantics. The private coupled generator and ordinary bundle injector now share one installation path. The guard normalizes declared scalar types and NumPy/Python strings so serialization does not change baseline identity. Patch order is preserved when loading shared metadata.
+
+Biotin, N-glycan and O-glycan tests cover fresh/prepared/corrected databases, reversed bundle order, changed baselines, missing records, conflicting connections, exact built coordinates, and native scores/gradients. The bonded database is built and hashed once instead of twice. [PARAMETER_BUNDLES.md](PARAMETER_BUNDLES.md) explains the API, format and fingerprint scope; [results/parameter-replacement-validation.json](results/parameter-replacement-validation.json) records validation and installation-only performance. This does not choose a default attachment force field or validate the provisional MMFF charge model.

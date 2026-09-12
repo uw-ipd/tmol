@@ -29,7 +29,6 @@ from tmol.database.scoring import (
     CartRes,
     PartialCharges,
 )
-from tmol.ligand._params_file import TMOL_FORMAT_VERSION
 
 if TYPE_CHECKING:
     from tmol.ligand._registry import LigandPreparation
@@ -398,6 +397,9 @@ def _write_tmol_params_file(
     cartbonded: Mapping[str, CartRes],
     patches: "list | None" = None,
     connection_params: tuple = (),
+    replacement_baselines: Mapping[str, str] | None = None,
+    replacement_baseline_charges: Mapping[str, dict[str, float]] | None = None,
+    replacement_baseline_cartbonded: Mapping[str, CartRes] | None = None,
 ) -> None:
     """Write prepared ligand data to a tmol params YAML (``.tmol``) file.
 
@@ -434,10 +436,16 @@ def _write_tmol_params_file(
         chemical["adds_patches"] = [
             _compactify_patch(cattr.unstructure(patch)) for patch in patches
         ]
+    if replacement_baselines:
+        chemical["replacement_baselines"] = dict(replacement_baselines)
 
     has_generic_references = _has_generic_references(residue_types, patches or ())
     payload: dict[str, Any] = {
-        "version": TMOL_FORMAT_VERSION if has_generic_references else "2.0",
+        "version": (
+            "4.0"
+            if replacement_baselines
+            else ("3.0" if has_generic_references else "2.0")
+        ),
         "chemical": chemical,
         "elec": {
             "atom_charge_parameters": _FlowList(charge_list),
@@ -450,6 +458,15 @@ def _write_tmol_params_file(
         payload["cartbonded"]["connection_params"] = [
             cattr.unstructure(record) for record in connection_params
         ]
+    if replacement_baseline_charges:
+        payload["elec"]["replacement_baseline_charges"] = dict(
+            replacement_baseline_charges
+        )
+    if replacement_baseline_cartbonded:
+        payload["cartbonded"]["replacement_baseline_params"] = {
+            name: cattr.unstructure(record)
+            for name, record in replacement_baseline_cartbonded.items()
+        }
 
     with Path(path).open("w") as f:
         yaml.dump(
@@ -484,6 +501,10 @@ def write_params_file(
     preps = list(preparation) if is_list else [preparation]
     fmt = str(format).lower()
     if fmt == "rosetta":
+        if any(p.baseline_sha256 is not None for p in preps):
+            raise ValueError(
+                "Rosetta .params cannot preserve replacement baselines; use .tmol"
+            )
         if _has_generic_references(
             (p.residue_type for p in preps),
             (patch for p in preps for patch in p.adds_patches),
@@ -510,6 +531,27 @@ def write_params_file(
         cartbonded.update(_additional_cartbonded_params(preps))
         for prep in preps:
             charges.update(prep.variant_partial_charges or {})
+        replacements = [p for p in preps if p.baseline_sha256 is not None]
+        replacement_names = {p.residue_type.name for p in replacements}
+        baseline_charges = {
+            n: q
+            for p in preps
+            for n, q in (p.variant_partial_charges or {}).items()
+            if n in replacement_names
+        }
+        baseline_cart = {
+            n: c
+            for n, c in _additional_cartbonded_params(preps).items()
+            if n in replacement_names
+        }
+        if replacements and len({p.residue_type.name for p in preps}) != len(preps):
+            raise ValueError("Replacement bundles require unique residue definitions")
+        # Complete explicit replacements supersede old patch metadata in a
+        # combined bundle, independently of preparation order.
+        charges.update({p.residue_type.name: p.partial_charges for p in replacements})
+        cartbonded.update(
+            {p.residue_type.name: p.cartbonded_params for p in replacements}
+        )
         _write_tmol_params_file(
             path,
             [p.residue_type for p in preps],
@@ -519,6 +561,11 @@ def write_params_file(
             connection_params=tuple(
                 dict.fromkeys(record for p in preps for record in p.connection_params)
             ),
+            replacement_baselines={
+                p.residue_type.name: p.baseline_sha256 for p in replacements
+            },
+            replacement_baseline_charges=baseline_charges,
+            replacement_baseline_cartbonded=baseline_cart,
         )
     else:
         raise ValueError(f"unknown params format {format!r} (use 'rosetta' or 'tmol')")

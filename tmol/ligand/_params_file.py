@@ -67,7 +67,7 @@ if TYPE_CHECKING:
 # schema changes; bump the minor version on backward-compatible additions.
 # Writers choose the oldest supported major that preserves the bundle;
 # this is the newest supported version. Every file is checked on load.
-TMOL_FORMAT_VERSION: str = "3.0"
+TMOL_FORMAT_VERSION: str = "4.0"
 
 _RAW_RESIDUE_DEFAULTS: dict[str, Any] = {
     "atom_aliases": [],
@@ -125,6 +125,43 @@ def _structure_residue(item: dict[str, Any]) -> RawResidueType:
     return cattr.structure(populated, RawResidueType)
 
 
+def _replacement_metadata(chem, elec, cart, residues, file_major):
+    """Read guarded metadata separately from ordinary additions."""
+    residue_names = {r.name for r in residues}
+    replacement_baselines = chem.get("replacement_baselines") or {}
+    if replacement_baselines:
+        if file_major != "4":
+            raise ValueError("Replacement baselines require .tmol format version 4")
+        if (
+            not isinstance(replacement_baselines, dict)
+            or not set(replacement_baselines) <= residue_names
+        ):
+            raise ValueError("Replacement baselines must name residues in the bundle")
+        if len(residue_names) != len(residues):
+            raise ValueError("Replacement bundles require unique residue definitions")
+        import re
+
+        if any(
+            not isinstance(v, str) or not re.fullmatch(r"[0-9a-f]{64}", v)
+            for v in replacement_baselines.values()
+        ):
+            raise ValueError("Invalid replacement baseline_sha256")
+    baseline_charges = elec.get("replacement_baseline_charges") or {}
+    baseline_cart = cart.get("replacement_baseline_params") or {}
+    for records in (baseline_charges, baseline_cart):
+        if not isinstance(records, dict) or not set(records) <= set(
+            replacement_baselines
+        ):
+            raise ValueError(
+                "Replacement baseline parameters must name guarded residues"
+            )
+    if replacement_baselines and not set(replacement_baselines) <= set(
+        cart.get("residue_params") or {}
+    ):
+        raise ValueError("Replacement requires an explicit complete bonded record")
+    return replacement_baselines, baseline_charges, baseline_cart
+
+
 def load_params_file(path: str | Path) -> list["LigandPreparation"]:
     """Load a tmol params YAML file as a list of ``LigandPreparation``.
 
@@ -166,10 +203,11 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
         file_version = str(file_version)
         # Read legacy single-residue bundles as well as complete conjugates.
         # v2 adds shared partner patches and connection parameters; v3 adds
-        # per-atom generic bonded references. Old readers must reject fields
+        # per-atom generic bonded references; v4 adds guarded exact-residue
+        # replacements. Old readers must reject fields
         # they would otherwise silently drop.
         file_major = file_version.split(".")[0]
-        if file_major not in {"1", "2", "3"}:
+        if file_major not in {"1", "2", "3", "4"}:
             raise ValueError(
                 f"{path}: .tmol format version {file_version} is incompatible "
                 f"with the current format version {TMOL_FORMAT_VERSION}. "
@@ -204,18 +242,18 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
 
     # Bundle-wide additions need not target a residue defined in this file:
     # a glycan, for example, brings a patch for its canonical ASN partner.
-    # Carry each patch once, preferring its own residue as the owner.
+    # Carry patches once, in file order. Assigning them to individual residue
+    # owners would reorder patches when a bundle's residue order changes.
     residue_names = {r.name for r in residues}
-    patches_by_res: dict[str, list] = {}
+    replacement_baselines, baseline_charges, baseline_cart = _replacement_metadata(
+        chem, elec, cart, residues, file_major
+    )
+    patches = []
     for item in chem.get("adds_patches") or []:
         patch = cattr.structure(_fill_patch_defaults(item), VariantType)
         if not residues:
             raise ValueError("A params bundle with patches must define a residue")
-        owner = next(
-            (n for n in patch.applies_to.base_names or () if n in residue_names),
-            residues[0].name,
-        )
-        patches_by_res.setdefault(owner, []).append(patch)
+        patches.append(patch)
 
     connections = tuple(
         cattr.structure(item, ConnectionCartRes)
@@ -233,6 +271,12 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
         for name, params in cart_by_res.items()
         if name not in residue_names
     }
+    additional_cart.update(
+        {
+            str(name): cattr.structure(payload, CartRes)
+            for name, payload in baseline_cart.items()
+        }
+    )
     if additional_cart and not residues:
         raise ValueError("A params bundle with bonded parameters must define a residue")
 
@@ -242,6 +286,8 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
         charges_by_res.setdefault(pc.res, {})[pc.atom] = pc.charge
 
     variant_charges_by_res: dict[str, dict[str, dict[str, float]]] = {}
+    if baseline_charges:
+        variant_charges_by_res[residues[0].name] = baseline_charges
     for name, atom_charges in charges_by_res.items():
         base_name = name.partition(":")[0]
         if name not in residue_names:
@@ -265,12 +311,13 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
                 partial_charges=charges,
                 cartbonded_params=cart_by_res.get(rt.name, _empty_cartres()),
                 atom_type_elements=None,
-                adds_patches=tuple(patches_by_res.get(rt.name, ())),
+                adds_patches=tuple(patches) if not preps else (),
                 variant_partial_charges=variant_charges_by_res.get(rt.name) or None,
                 connection_params=connections if not preps else (),
                 additional_cartbonded_params=(
                     (additional_cart or None) if not preps else None
                 ),
+                baseline_sha256=replacement_baselines.get(rt.name),
             )
         )
     return preps

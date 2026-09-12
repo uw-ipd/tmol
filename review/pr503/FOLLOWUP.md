@@ -2790,3 +2790,79 @@ records source hashes, every fresh-test failure, complete verified replay
 comparisons, fault injection, current attachment probes and scheduler status.
 The broader goal remains active; these are strengthened diagnostics and review
 evidence, not repaired scientific-reference or default attachment gates.
+
+## Guarded replacement bundles and shared installation — 2026-09-12
+
+Fresh GitHub API/fetch/merge checks still report Frank's head as
+`0593a93b07d80b0302383163d2d98c78e315ab98`; it was already merged by `841d594d5`.
+There are no additional upstream changes to merge in this stage.
+
+The private coupled generator already produced corrected atom types, charges,
+local/connection bonded records and hydrogen construction. Its delivery path
+was incomplete: the ordinary injector skipped existing residue definitions,
+so a normal `.tmol` reload could not install those coupled corrections.
+`LigandPreparation.baseline_sha256` now opts into exact-name replacement.
+The private installer and ordinary injector share a model-independent guard
+and installation helper. Default preparation still uses its previous model.
+
+The guard checks complete finite atom charges, the full residue definition
+and local bonded record. Existing targets are checked before ordinary bundle
+metadata can reset their old charges; newly added targets are checked after
+baseline preparation. The current state must match the original baseline or
+the complete requested result. Repeated combined/correction-only bundles return
+the same database object. Conflicting residue/connection records fail without
+modifying the input database.
+
+Guarded bundles use version 4. Ordinary and generic-reference bundles still
+write versions 2 and 3. Original patch charges and exact baseline bonded records
+are retained separately from their replacements, enabling fresh-database
+installation and idempotent reload. Shared patch order is preserved during
+loading. Rosetta export rejects guards, and a clean version-3 reader was checked
+to reject a generated version-4 bundle. Earlier private representation-dependent
+digests must be regenerated. The new digest normalizes declared scalar types
+and NumPy/Python strings; it does not fingerprint global force-field tables.
+[PARAMETER_BUNDLES.md](PARAMETER_BUNDLES.md) documents the contract and example.
+
+The completed CPU run passes **119 tests / 18 CUDA skips**. Final H200 Slurm
+**250953** passes **208 CPU/CUDA tests / 8 skips**, exits **0:0** in **2:48**, and
+records batch MaxRSS **3,338,456 KiB**. These are targeted delivery, preparation,
+local chemistry and explicit-connection tests, not a clean full-repository run.
+All three fixture poses have exact coordinates and CPU scores/gradients across
+reload. CUDA maximum score/gradient differences are **0.00048828125** and
+**3.8146973e-6**; repeated evaluations of unchanged databases reach
+**0.00134277344** and **3.8146973e-6**. The initial bitwise CUDA assertions failed
+at reduction-roundoff scale; the final checks use normal float32 tolerance
+while retaining exact CPU/coordinate checks. Intermediate failed runs and their
+reasons remain recorded rather than being reported as passing jobs.
+
+The shared installer builds/hashes the completed bonded database once instead
+of twice. In 15 warm calls per fixture, its private entry point improves:
+
+| Fixture | Previous private installer | Shared private installer | Ordinary guarded injector |
+| --- | ---: | ---: | ---: |
+| Biotin | 18.529 ms | 11.321 ms | 16.098 ms |
+| N-glycan | 28.254 ms | 17.037 ms | 27.748 ms |
+| O-glycan | 26.133 ms | 16.256 ms | 25.973 ms |
+
+The shared private path is approximately **38–40% faster** in this run; the
+ordinary path also performs pre-addition validation. Generation and scoring
+are excluded. Private installation's extra traced Python peak decreases by
+about **78–81 KiB**, while retained Python allocation increases by about
+**0.6–1.6 KiB**. This is not a reduction in total process or GPU memory. The
+benchmark loads the previous implementation from its pinned parent and uses
+that implementation's original digest; it checks complete database equality
+before timing. Garbage collection runs outside the timed interval.
+
+Formatting, lint and whitespace checks pass. Comment **86** adds a guarded
+bundle API question with a pinned upstream line; comment 43 now reflects the
+private coupled generator's actual state. There are **86 draft comments and
+17 general questions**, with nothing posted upstream.
+[results/parameter-replacement-validation.json](results/parameter-replacement-validation.json)
+contains final source hashes, tests, native differences, intermediate failures,
+scheduler outcomes and raw benchmark samples.
+
+The user preference between an MMFF-based default attachment model and a
+Rosetta/Hahnbeom reference source remains pending. Three-block angles,
+context-specific type identity, default attachment stiffness and the existing
+noncanonical score-reference failures remain open. This stage improves safe
+parameter delivery without choosing or independently validating that model.

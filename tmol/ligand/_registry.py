@@ -6,7 +6,7 @@ scoring parameters built by the ligand preparation pipeline.
 
 import logging
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Optional
 
 from tmol.database import (
@@ -266,6 +266,9 @@ class LigandPreparation:
     connection_params: tuple[ConnectionCartRes, ...] = ()
     # Complete CartRes replacements for other exact residue/variant names.
     additional_cartbonded_params: Optional[dict[str, CartRes]] = None
+    # Explicit exact-name replacement, guarded by the original residue,
+    # effective charges, and bonded-record digest. Ordinary additions omit it.
+    baseline_sha256: Optional[str] = None
 
 
 def _applied_patch(chemdb, base, variant):
@@ -366,7 +369,13 @@ def terminus_charge_entries(param_db, patched_chemdb, residue_type) -> dict:
 
 def _additional_cartbonded_params(preparations):
     """Collect shared records, rejecting contradictory definitions in one bundle."""
-    own = {p.residue_type.name: p.cartbonded_params for p in preparations}
+    # For guarded replacements, shared records describe the original baseline;
+    # their complete target records are installed only after the digest check.
+    own = {
+        p.residue_type.name: p.cartbonded_params
+        for p in preparations
+        if p.baseline_sha256 is None
+    }
     extra = {}
     for prep in preparations:
         for name, params in (prep.additional_cartbonded_params or {}).items():
@@ -389,12 +398,14 @@ def inject_ligand_preparations(
     prepared ligands (regardless of whether they came from a
     ``.tmol`` file or an AtomArray), this function aggregates their
     residue types, atom types, charges, and cartbonded params and
-    evolves the input ``ParameterDatabase`` exactly once via
+    evolves the input ``ParameterDatabase`` via
     :func:`tmol.database.inject_residue_params`.
 
     Base definitions whose name already exists in ``param_db`` are skipped.
     Their additional patches, variant charges and connection records are still
     installed; repeating an identical bundle returns the original database.
+    A preparation with ``baseline_sha256`` instead replaces an exact residue
+    after checking its original parameters (or an already installed result).
 
     Args:
         param_db: Base database (not modified).
@@ -408,13 +419,68 @@ def inject_ligand_preparations(
         A new frozen ``ParameterDatabase`` extended with all provided
         preparations.
     """
+    replacements = [p for p in preparations if p.baseline_sha256 is not None]
+    if not replacements:
+        return _inject_additions(param_db, preparations, strict_atom_types)
+
+    from tmol.ligand._parameter_replacements import (
+        install_replacements,
+        validate_replacements,
+    )
+
+    # Check existing targets before any bundle metadata can reset their charges.
+    validate_replacements(param_db, replacements, allow_missing=True)
+    existing_names = {r.name for r in param_db.chemical.residues}
+    protected = {p.residue_type.name for p in replacements} & existing_names
+    additions = [
+        replace(
+            p,
+            variant_partial_charges={
+                n: q
+                for n, q in (p.variant_partial_charges or {}).items()
+                if n not in protected
+            }
+            or None,
+            additional_cartbonded_params={
+                n: c
+                for n, c in (p.additional_cartbonded_params or {}).items()
+                if n not in protected
+            }
+            or None,
+            connection_params=(),
+        )
+        for p in preparations
+    ]
+    extended = _inject_additions(param_db, additions, strict_atom_types)
+    atom_types = {}
+    for prep in replacements:
+        for at in collect_new_atom_types(
+            extended.chemical,
+            prep.residue_type,
+            atom_type_elements=prep.atom_type_elements,
+            strict_atom_types=strict_atom_types,
+        ):
+            atom_types[at.name] = at
+    return install_replacements(
+        extended,
+        replacements,
+        tuple(dict.fromkeys(r for p in preparations for r in p.connection_params)),
+        atom_types=list(atom_types.values()) or None,
+    )
+
+
+def _inject_additions(param_db, preparations, strict_atom_types):
     from tmol.database import inject_residue_params
 
     if not preparations:
         return param_db
 
     existing_names = {r.name for r in param_db.chemical.residues}
-    new_preps = [p for p in preparations if p.residue_type.name not in existing_names]
+    new_preps = [
+        p
+        for p in preparations
+        if p.baseline_sha256 is None and p.residue_type.name not in existing_names
+    ]
     known_variants = {v.name: v for v in param_db.chemical.variants}
     variants = []
     for prep in preparations:

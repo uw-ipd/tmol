@@ -171,7 +171,7 @@ def test_tmol_loader_warns_when_no_charges(tmp_path) -> None:
     [
         ("- a\n- b\n", "Expected mapping"),
         ("chemical: {}\n", "no 'version' field"),
-        ('version: "4.0"\nchemical: {}\n', "incompatible"),
+        ('version: "99.0"\nchemical: {}\n', "incompatible"),
         ('version: "1.0"\nresidues: []\n', "deprecated flat schema"),
     ],
 )
