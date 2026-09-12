@@ -31,6 +31,14 @@ constexpr float operator"" _2rad(long double deg) {
   return float(M_PI * deg / 180.);
 }
 
+template <typename Real>
+def periodic_chi_difference(Real chi, Real mean) -> Real {
+  Real difference = chi - mean;
+  while (difference > Real(M_PI)) difference -= Real(2 * M_PI);
+  while (difference < Real(-M_PI)) difference += Real(2 * M_PI);
+  return difference;
+}
+
 template <typename Real, typename Int, tmol::Device D>
 def measure_dihedral_V_dV(
     TensorAccessor<Eigen::Matrix<Real, 3, 1>, 1, D> coordinates,
@@ -411,8 +419,7 @@ def block_chi_deviation_penalty(
 
   Int chi_index = chi_ind + NbbP1 - 1;  // Where does this -1 come from?
   Real const chi = dihedrals[chi_index];
-  Real const chi_dev =
-      (chi < -120.0_2rad ? chi + Real(2 * M_PI) - mean : chi - mean);
+  Real const chi_dev = periodic_chi_difference(chi, mean);
 
   // Now calculate d penalty / dbb
 
@@ -483,8 +490,7 @@ def chi_deviation_penalty(
   Int chi_index =
       dihedral_offset_for_res[residue_ind] + chi_dihe_for_residue + NbbP1 - 1;
   Real const chi = dihedrals[chi_index];
-  Real const chi_dev =
-      (chi < -120.0_2rad ? chi + Real(2 * M_PI) - mean : chi - mean);
+  Real const chi_dev = periodic_chi_difference(chi, mean);
 
   // Now calculate d penalty / dbb
 

@@ -34,6 +34,7 @@ std::vector<Tensor> dun_sample_chi(
     Tensor rotameric_bb_start,        // ntable-set entries
     Tensor rotameric_bb_step,         // ntable-set entries
     Tensor rotameric_bb_periodicity,  // ntable-set entries
+    Tensor rotameric_bb_is_mirrored,
     Tensor semirotameric_tables,      // n-semirot-tabset
     Tensor semirot_table_sizes,       // n-semirot-tabset
     Tensor semirot_table_strides,     // n-semirot-tabset
@@ -93,6 +94,7 @@ std::vector<Tensor> dun_sample_chi(
               TCAST(rotameric_bb_start),
               TCAST(rotameric_bb_step),
               TCAST(rotameric_bb_periodicity),
+              TCAST(rotameric_bb_is_mirrored),
               TCAST(semirotameric_tables),
               TCAST(semirot_table_sizes),
               TCAST(semirot_table_strides),

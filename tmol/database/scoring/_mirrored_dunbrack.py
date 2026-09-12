@@ -3,9 +3,9 @@
 A D residue's rotamer statistics are its L counterpart's read at negated
 backbone and sidechain torsions. Mirroring the libraries -- rather than the
 packed tensors the scoring kernels read -- means the existing packing code
-builds every offset and index for the D libraries exactly as it does for the L
-ones, the kernels are untouched, and the rotamer builder gets D rotamers for
-free because it reads the same tables.
+builds offsets and indices for D libraries using the same layout as L ones.
+Explicit reflection metadata lets sampling choose ordering cells in the source
+grid and lets spline fitting choose the reflected chi-mean branch.
 
 Under phi,psi,chi -> -phi,-psi,-chi:
 
@@ -105,6 +105,7 @@ def mirror_rotameric_data(data: RotamericDataForAA) -> RotamericDataForAA:
     alias = data.rotamer_alias
     return attr.evolve(
         data,
+        backbone_is_mirrored=not getattr(data, "backbone_is_mirrored", False),
         rotamers=mirror_wells(data.rotamers, counts),
         rotamer_probabilities=reflect(data.rotamer_probabilities, dims, start, step),
         rotamer_means=-reflect(data.rotamer_means, dims, start, step),

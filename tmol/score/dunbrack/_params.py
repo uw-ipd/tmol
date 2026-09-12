@@ -113,6 +113,7 @@ class SamplingDunbrackDatabaseView(ConvertAttrs):
     rotameric_bb_start: Tensor[torch.float][:, :]
     rotameric_bb_step: Tensor[torch.float][:, :]
     rotameric_bb_periodicity: Tensor[torch.float][:, :]
+    rotameric_bb_is_mirrored: Tensor[torch.bool][:]
 
     rotameric_rotind2tableind: Tensor[torch.int32][:]
     semirotameric_rotind2tableind: Tensor[torch.int32][:]
@@ -259,6 +260,14 @@ class DunbrackParamResolver(ValidateAttrs):
             rotameric_bb_start=rot_bb_start,
             rotameric_bb_step=rot_bb_step,
             rotameric_bb_periodicity=rot_bb_per,
+            rotameric_bb_is_mirrored=torch.tensor(
+                [
+                    getattr(lib.rotameric_data, "backbone_is_mirrored", False)
+                    for lib in all_rotlibs
+                ],
+                dtype=torch.bool,
+                device=device,
+            ),
             rotameric_rotind2tableind=rot_ri2ti,
             semirotameric_rotind2tableind=semirot_ri2ti,
             all_chi_rotind2tableind=allchi_ri2ti,
@@ -382,17 +391,22 @@ class DunbrackParamResolver(ValidateAttrs):
 
     @classmethod
     def _calculate_rot_mean_coeffs(cls, all_rotlibs, device):
-        rotameric_mean_tables = [
-            rotlib.rotameric_data.rotamer_means[i, :, :, j].clone().detach()
-            for rotlib in all_rotlibs
-            for i in range(rotlib.rotameric_data.rotamer_means.shape[0])
-            for j in range(rotlib.rotameric_data.rotamer_means.shape[3])
-        ]
-
-        # if the mean is near -180, wrap it towards +180
-        for x in rotameric_mean_tables:
-            x[x < -120] = x[x < -120] + 360
-            x *= numpy.pi / 180
+        rotameric_mean_tables = []
+        for rotlib in all_rotlibs:
+            data = rotlib.rotameric_data
+            for i in range(data.rotamer_means.shape[0]):
+                for j in range(data.rotamer_means.shape[3]):
+                    x = data.rotamer_means[i, :, :, j].clone().detach()
+                    # Choose the source library's angular branch before
+                    # interpolation. Its reflection uses [-240, 120], not
+                    # the original [-120, 240] branch: otherwise neighboring
+                    # mirrored means can acquire different extra full turns.
+                    if getattr(data, "backbone_is_mirrored", False):
+                        x[x > 120] -= 360
+                    else:
+                        x[x < -120] += 360
+                    x *= numpy.pi / 180
+                    rotameric_mean_tables.append(x)
 
         mean_coeffs = [
             BSplineInterpolation.from_coordinates(t).coeffs.to(device)

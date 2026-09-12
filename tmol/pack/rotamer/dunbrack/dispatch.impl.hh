@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Eigen/Core>
+#include <cmath>
 #include <limits>
 #include <tuple>
 
@@ -40,7 +41,17 @@ struct DunbrackChiSampler {
       Real step,
       Real period,
       Real& coordinate,
-      Int& bin) {
+      Int& bin,
+      bool mirrored,
+      Int axis) {
+    // Missing terminal torsions use the source library's neutral angles.
+    // A reflected table resolves its own defaults, even when L and D types
+    // are both considered at one input residue.
+    if (dihedral != dihedral) {
+      dihedral = axis == 0 ? Real(-M_PI / 3.0) : Real(M_PI / 3.0);
+    } else if (mirrored) {
+      dihedral = -dihedral;
+    }
     Real wrapped = dihedral - start;
     while (wrapped < 0) wrapped += period;
     while (wrapped >= period) wrapped -= period;
@@ -49,6 +60,18 @@ struct DunbrackChiSampler {
     Int const n_bins = Int(period / step + Real(0.5));
     if (coordinate >= n_bins) coordinate = 0;
     bin = Int(coordinate);
+    if (mirrored) {
+      // The generated grid reflects point k to (origin - k) modulo n_bins.
+      // Select the source cell first: independently flooring the reflected
+      // coordinate chooses the adjacent cell, and ceil is unstable at grid
+      // boundaries because the two coordinate calculations round separately.
+      Int const origin = Int(std::round(-2 * start / step));
+      coordinate = Real(origin) - coordinate;
+      while (coordinate < 0) coordinate += n_bins;
+      while (coordinate >= n_bins) coordinate -= n_bins;
+      bin = (origin - bin) % n_bins;
+      if (bin < 0) bin += n_bins;
+    }
   }
 
   // Negative values mark invalid/overflowed counts and survive every later sum.
@@ -98,6 +121,7 @@ struct DunbrackChiSampler {
     TView<Vec<Real, 2>, 1, D> rotameric_bb_start,          // ntable-set entries
     TView<Vec<Real, 2>, 1, D> rotameric_bb_step,           // ntable-set entries
     TView<Vec<Real, 2>, 1, D> rotameric_bb_periodicity,    // ntable-set entries
+    TView<bool, 1, D> rotameric_bb_is_mirrored,
     TView<Real, 4, D> /*semirotameric_tables*/,            // n-semirot-tabset
     TView<Vec<int64_t, 3>, 1, D> /*semirot_table_sizes*/,  // n-semirot-tabset
     TView<Vec<int64_t, 3>, 1, D> /*semirot_table_strides*/,  // n-semirot-tabset
@@ -135,6 +159,9 @@ struct DunbrackChiSampler {
           TPack<Int, 1, D>,
           TPack<Int, 1, D>,
           TPack<Real, 2, D> > {
+    TORCH_CHECK(
+        rotameric_bb_is_mirrored.size(0) == rotameric_bb_start.size(0),
+        "Dunbrack reflection metadata must cover every table set");
     // construct the list of chi for the rotamers that should be built
     // in 7 stages.
     // 1. State which AAs at which positions
@@ -249,18 +276,10 @@ struct DunbrackChiSampler {
         Int at1 = dihedral_atom_inds[i][1];
         Int at2 = dihedral_atom_inds[i][2];
         Int at3 = dihedral_atom_inds[i][3];
-        Real dihe = 0;
+        Real dihe = std::numeric_limits<Real>::quiet_NaN();
         if (at0 >= 0 && at1 >= 0 && at2 >= 0 && at3 >= 0) {
           dihe = score::common::dihedral_angle<Real>::V(
               coords[at0], coords[at1], coords[at2], coords[at3]);
-        } else if (dihe_ind == 0) {
-          // neutral phi in radians, as suggested by Roland Dunbrack, -60
-          // degrees
-          dihe = -M_PI / 3.0;
-        } else if (dihe_ind == 1) {
-          // neutral psi in radians, as suggested by Roland Dunbrack, +60
-          // degrees
-          dihe = M_PI / 3.0;
         }
         backbone_dihedrals[i] = dihe;
       }
@@ -289,6 +308,7 @@ struct DunbrackChiSampler {
         rotameric_bb_start,
         rotameric_bb_step,
         rotameric_bb_periodicity,
+        rotameric_bb_is_mirrored,
         n_rotamers_for_tableset_offsets,
         sorted_rotamer_2_rotamer,
         bubl_and_rottable_set_for_buildable_restype,
@@ -376,6 +396,7 @@ struct DunbrackChiSampler {
         rotameric_bb_start,
         rotameric_bb_step,
         rotameric_bb_periodicity,
+        rotameric_bb_is_mirrored,
 
         sorted_rotamer_2_rotamer,
         nchi_for_tableset,
@@ -473,6 +494,7 @@ struct DunbrackChiSampler {
       TView<Vec<Real, 2>, 1, D> rotameric_bb_start,
       TView<Vec<Real, 2>, 1, D> rotameric_bb_step,
       TView<Vec<Real, 2>, 1, D> rotameric_bb_periodicity,
+      TView<bool, 1, D> rotameric_bb_is_mirrored,
       TView<Int, 1, D> n_rotamers_for_tableset_offsets,
       TView<int64_t, 3, D> sorted_rotamer_2_rotamer,
       TView<Int, 2, D> bubl_and_rottable_set_for_buildable_restype,
@@ -510,7 +532,9 @@ struct DunbrackChiSampler {
             rotameric_bb_step[table_set][ii],
             rotameric_bb_periodicity[table_set][ii],
             bbdihe[ii],
-            bin_index[ii]);
+            bin_index[ii],
+            rotameric_bb_is_mirrored[table_set],
+            ii);
       }
 
       // Look up the index of the rotamer: we know where the rotamer is in
@@ -714,6 +738,7 @@ struct DunbrackChiSampler {
       TView<Vec<Real, 2>, 1, D> rotameric_bb_start,
       TView<Vec<Real, 2>, 1, D> rotameric_bb_step,
       TView<Vec<Real, 2>, 1, D> rotameric_bb_periodicity,
+      TView<bool, 1, D> rotameric_bb_is_mirrored,
 
       TView<int64_t, 3, D> sorted_rotamer_2_rotamer,
       TView<Int, 1, D> nchi_for_tableset,
@@ -770,7 +795,9 @@ struct DunbrackChiSampler {
               rotameric_bb_step[table_set][ii],
               rotameric_bb_periodicity[table_set][ii],
               bbdihe[ii],
-              bin_index[ii]);
+              bin_index[ii],
+              rotameric_bb_is_mirrored[table_set],
+              ii);
         }
       }
 
