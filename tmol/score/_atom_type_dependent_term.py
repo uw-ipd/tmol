@@ -80,9 +80,7 @@ class AtomTypeDependentTerm(EnergyTerm):
             block_type.atom_wildcard_ids = wildcard
             block_type.atom_cross_ids = cross
 
-        atom_types = self.atom_type_index.get_indexer(
-            [x.atom_type for x in block_type.atoms]
-        )
+        atom_types = self.atom_type_resolver.block_type_indices(block_type)
         heavy_inds = numpy.nonzero(self.np_is_heavyatom[atom_types])[0]
 
         setattr(block_type, "atom_types", atom_types)
@@ -105,9 +103,15 @@ class AtomTypeDependentTerm(EnergyTerm):
         if cached is not None:
             return cached
 
-        # TO DO: Figure out why this add was necessary
+        # Subclasses also prepare their own block annotations here. Keep this
+        # resolver's returned annotation, since shared blocks may have been
+        # used with another chemical database.
+        block_params = []
         for bt in packed_block_types.active_block_types:
             self.setup_block_type(bt)
+            block_params.append(
+                cached_annotation(bt, "_atom_type_annotation", self._atom_type_key)
+            )
 
         atom_types = numpy.full(
             (packed_block_types.n_types, packed_block_types.max_n_atoms),
@@ -146,19 +150,9 @@ class AtomTypeDependentTerm(EnergyTerm):
                     atom_unique_id_index[atom_name] = len(atom_unique_id_index)
                 atom_cross_ids[i, j] = atom_unique_id_index[atom_name]
 
-        for i, restype in enumerate(packed_block_types.active_block_types):
-            atom_types[i, : len(restype.atoms)] = self.atom_type_index.get_indexer(
-                [x.atom_type for x in restype.atoms]
-            )
-
-        # Reuse the indices just resolved on the host. Reading is_hydrogen
-        # from a CUDA tensor once per atom synchronizes thousands of times.
-        # These rows follow this resolver even when the block types already
-        # carry annotations from another atom-type ordering.
-        heavy_atom_inds = [
-            numpy.flatnonzero(self.np_is_heavyatom[atom_types[i, : len(rt.atoms)]])
-            for i, rt in enumerate(packed_block_types.active_block_types)
-        ]
+        for i, (indices, _) in enumerate(block_params):
+            atom_types[i, : len(indices)] = indices
+        heavy_atom_inds = [heavy for _, heavy in block_params]
 
         n_heavy_atoms = numpy.array(
             [len(heavy_inds) for heavy_inds in heavy_atom_inds], dtype=numpy.int32

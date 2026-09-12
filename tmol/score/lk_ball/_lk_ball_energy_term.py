@@ -96,6 +96,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         return 2
 
     def setup_block_type(self, block_type: RefinedResidueType):
+        self.ljlk_param_resolver.validate_block_type(block_type)
         atom_params = super(LKBallEnergyTerm, self).setup_block_type(block_type)
         cached = cached_annotation(
             block_type, "_lk_ball_annotation", self._lk_ball_block_key

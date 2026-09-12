@@ -169,26 +169,10 @@ class HBondDependentTerm(BondDependentTerm):
         if cached is not None:
             return cached
 
-        atom_types = [x.atom_type for x in block_type.atoms]
-        atom_type_idx = self._hbond_atom_type_index.get_indexer(atom_types)
+        atom_type_idx = self.atom_type_resolver.block_type_indices(block_type)
         atom_acceptor_hybridization = self._hbond_hybridization[atom_type_idx][None, :]
-        if numpy.any(atom_type_idx < 0):
-            # Preserve name-based mapping for a caller's unregistered atom type.
-            acc_type = _map_hbond_types(
-                self.hbond_database.acceptor_type_mapper,
-                "acc_type",
-                self.hbond_resolver.acceptor_type_index,
-                atom_types,
-            )
-            don_type = _map_hbond_types(
-                self.hbond_database.donor_type_mapper,
-                "don_type",
-                self.hbond_resolver.donor_type_index,
-                atom_types,
-            )
-        else:
-            acc_type = self._hbond_acceptor_types[atom_type_idx]
-            don_type = self._hbond_donor_types[atom_type_idx]
+        acc_type = self._hbond_acceptor_types[atom_type_idx]
+        don_type = self._hbond_donor_types[atom_type_idx]
         is_acc, is_don = acc_type != -1, don_type != -1
 
         A_idx = numpy.nonzero(is_acc)[0].astype(dtype=numpy.int32)

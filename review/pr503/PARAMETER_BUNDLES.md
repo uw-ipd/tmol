@@ -134,6 +134,14 @@ the patched residue graph. Known types and explicit replacements use the same
 collector. This supports chemical element registration; a custom type still
 needs appropriate scoring parameters and any other required chemical properties.
 
+Scoring setup rejects a real atom whose type is absent from the chemical
+database. LJ/solvation and LK-ball also reject used types with missing or
+non-finite LJLK fields, including values that overflow their float32 kernel
+representation. Errors identify the residue, atom, type and affected fields.
+Unused incomplete entries remain allowed, as do finite zero-valued virtual-atom
+parameters. These checks establish coverage and finiteness, not a scientific
+fit or validation of parameter ranges. The low-level padding sentinel is unchanged.
+
 Rosetta `.params` continues to reference external atom-type definitions and
 cannot carry this element map. Use `.tmol` to preserve the declaration in the
 bundle. The version-5 reader rejects element metadata mislabeled as an older

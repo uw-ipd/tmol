@@ -27,6 +27,7 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         )
         super(LJLKEnergyTerm, self).__init__(param_db=param_db, device=device)
         self.type_params = ljlk_param_resolver.type_params
+        self._ljlk_param_resolver = ljlk_param_resolver
         self.global_params = ljlk_param_resolver.global_params
         self._max_dis = float(param_db.scoring.ljlk.global_parameters.max_dis)
         self.tile_size = LJLKEnergyTerm.tile_size
@@ -37,6 +38,7 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         )
         self._ljlk_packed_key = AnnotationKey.from_sources(
             param_db.chemical,
+            param_db.scoring.ljlk,
             settings=(
                 self.type_params.lj_radius.device,
                 self.tile_size,
@@ -62,6 +64,7 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
             self.soft_repulsive = options["soft_rep"]
 
     def setup_block_type(self, block_type: RefinedResidueType):
+        self._ljlk_param_resolver.validate_block_type(block_type)
         atom_params = super(LJLKEnergyTerm, self).setup_block_type(block_type)
         cached = cached_annotation(block_type, "_ljlk_annotation", self._ljlk_block_key)
         if cached is not None:

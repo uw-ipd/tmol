@@ -11,7 +11,7 @@ Review date: 2026-09-12
 
 Both subsequent six-file updates have been reviewed separately. Comments 1–46
 retain their original `c03c1e745` anchors; comments 47–56 address `0f4c3bc42`,
-and comments 57–88 address `0593a93b0`. The
+and comments 57–89 address `0593a93b0`. The
 fold-forest expectations and HYP count are now corrected upstream. See
 [FOLLOWUP.md](FOLLOWUP.md) for reconciliation and validation details.
 
@@ -873,3 +873,14 @@ The final CPU suite passes 124 cases / 11 CUDA skips. Slurm 250976 passes 233 CP
 The old-writer diagnostic reproduces all four element changes. Version 5 now carries the shared declaration map, preserves it through ordinary and guarded bundles, and is rejected by the version-4 reader. Older formats remain supported when they omit this metadata. Type collection is shared across new residues, patch atoms and explicit replacements; a separately failing patch test previously raised `KeyError` despite its supplied element mapping.
 
 The final H200 suite passes 273 CPU/CUDA cases / 11 skips, and the current AtomWorks parser path passes all 19 fixtures through preparation, construction, scoring, gradients and rotamers. These checks do not supply force-field rows for arbitrary new atom types. A metadata-only benchmark over 1,000 sources improves known-type collection from 10.951 to 0.538 ms and a repeated custom type from 12.095 to 0.568 ms; one-source cost and traced allocation peak are essentially unchanged. This is type collection, not a whole-preparation or GPU speedup. See [results/element-metadata-validation.json](results/element-metadata-validation.json).
+
+
+## 89. Reject missing parameters for used atom types before scoring — P1
+
+[`tmol/ligand/_registry.py:212`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/ligand/_registry.py#L212), with the inherited table reindexing at [`tmol/score/ljlk/_params.py:124`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/score/ljlk/_params.py#L124). The scoring fallback predates this PR; accepting additional chemical types makes its contract relevant to the new preparation paths.
+
+> Can scoring distinguish an unused database entry from a used atom type with no force-field row? Registering an element does not supply LJ/solvation parameters. Reindexing the scoring table inserts NaNs for missing rows, and setup currently accepts them. Removing the `CH3` row produces NaN energies and gradients for a two-alanine pose in both LJ/solvation and LK-ball. An actionable error should identify the residue, atom, type and missing fields. Real atoms also should not carry the unknown-type index intended for padded low-level lookups.
+
+Fourteen regressions initially fail on parent `9ceaeeb1f`: unknown chemical types, missing/non-finite LJLK rows, float32 overflow and reuse of previously valid packed annotations. The follow-up shares real-atom index validation, checks all five LJLK fields in their kernel representation on the host, and validates used types before scoring. Unused incomplete types, finite zero-valued virtual types and the low-level NaN sentinel remain supported. The expanded tests cover each float field and an empty parameter table. Reused LJLK annotations include the scoring database identity, so a changed table cannot bypass validation.
+
+Packed setup also reuses the validated block indices and heavy-atom lists instead of resolving them again. On CPU, warm packed annotation for the 230-type default catalog changes from 7.55 to 2.79 ms, with traced Python peak allocation changing from 382,047 to 312,444 bytes. Resolver construction increases from 2.228 to 2.326 ms because it now checks coverage; its traced allocation peak is essentially unchanged. These are setup measurements, not scoring or full-workflow speedups. All default LJLK tensor fields match the parent exactly. See [results/parameter-coverage-validation.json](results/parameter-coverage-validation.json) for final CPU/CUDA and workflow results. Coverage and finiteness do not establish parameter provenance, valid physical ranges or scientific accuracy.

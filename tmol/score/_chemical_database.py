@@ -61,6 +61,20 @@ class AtomTypeParamResolver(ValidateAttrs):
 
     device: torch.device
 
+    def block_type_indices(self, block_type):
+        """Resolve real atoms, keeping the low-level padding sentinel separate."""
+        indices = self.index.get_indexer([a.atom_type for a in block_type.atoms])
+        invalid = (indices < 0) | (indices == len(self.index) - 1)
+        if numpy.any(invalid):
+            atoms = ", ".join(
+                f"{block_type.atoms[i].name} ({block_type.atoms[i].atom_type!r})"
+                for i in numpy.flatnonzero(invalid)
+            )
+            raise ValueError(
+                f"Residue {block_type.name} has unregistered chemical atom types: {atoms}"
+            )
+        return indices
+
     def type_idx(self, atom_types: NDArray[object][...]) -> Tensor[torch.int64][...]:
         """Convert array of atom type names to parameter indices.
 

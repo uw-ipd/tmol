@@ -3005,3 +3005,45 @@ whitespace and source-hash checks pass. Comment **88** adds the anchored element
 loss finding; the review now has **88 draft comments and 17 general questions**,
 with nothing posted upstream. Default attachment-model selection, original
 reference failures and the default AtomWorks integration remain open.
+
+## Used atom-type parameter coverage and shared packed setup (2026-09-12)
+
+Frank's head was checked again through the GitHub API and fetched from
+`refs/pull/503/head`. It remains `0593a93b0`; merging reports already up to date.
+
+Fourteen initial regressions demonstrate that setup accepts unknown chemical
+atom types and missing/non-finite LJLK rows, including overflow when converting
+to the kernel's float32 representation. A separate native two-alanine diagnostic
+removes the `CH3` row: both LJ/solvation and LK-ball produce NaN scores and
+coordinate gradients. The corrected setup names the offending residue, atom,
+type and fields before native evaluation. Complete-table control energies are
+exactly unchanged and their gradients remain finite.
+
+Real-atom index validation is shared by atom-type and hydrogen-bond setup. The
+low-level padding sentinel retains its previous behavior. LJLK coverage is
+computed on the host while constructing the parameter table and checked only
+against used block types. Unused incomplete entries and finite zero virtual
+parameters remain allowed. A scoring-database change invalidates the packed
+LJLK annotation, preventing an earlier successful setup from hiding missing rows.
+
+Packed setup reuses block indices and heavy-atom lists already validated for the
+current chemical source. All resulting annotations and all 26 default LJLK
+parameter tensor fields match the parent exactly on CPU and CUDA. For the
+230-type / 4,738-atom default catalog, warm packed setup changes from 7.55 to
+2.79 ms on CPU and 10.02 to 3.37 ms with CUDA transfers. The CPU traced Python
+peak changes from 382,047 to 312,444 bytes. Resolver construction increases by
+about 0.10 ms on each device; its traced allocation peak is essentially unchanged.
+These measurements exclude complete preparation, scoring and native/GPU memory.
+
+The expanded CPU suite passes 93 tests / 92 CUDA skips. Slurm 251032 passes 298
+CPU/CUDA tests / 3 skips, exits 0:0 in 3:04 and records 5,090,972 KiB MaxRSS.
+It includes scoring, gradients, annotation reuse, ligand generation, batch
+identity, parameter replacements and element serialization. The optional
+AtomWorks path at unchanged local `adcbfd760` also passes all 19 fixtures on CPU
+through preparation, construction, scoring, gradients and rotamers.
+
+[results/parameter-coverage-validation.json](results/parameter-coverage-validation.json)
+records hashes, diagnostics and paired timings. Review comment 89 distinguishes
+the inherited scoring fallback from this PR's expanded type-registration paths.
+Physical parameter ranges, other scoring families' fallback policies and the
+pending attachment model are outside the completed scope of this stage.
