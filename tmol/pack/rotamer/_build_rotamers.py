@@ -540,7 +540,7 @@ def construct_kinforest_for_conformers(
         )
 
     def _t(arr):
-        return torch.tensor(arr, dtype=torch.int32, device=device)
+        return torch.as_tensor(arr, dtype=torch.int32, device=device)
 
     id = _t(
         nab2(
