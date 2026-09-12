@@ -13,6 +13,7 @@ from tmol.score.genbonded import GenBondedEnergyTerm
 from tmol.score.dunbrack import DunbrackEnergyTerm
 from tmol.score.elec import ElecEnergyTerm
 from tmol.score.hbond import HBondEnergyTerm
+from tmol.score.ljlk import LJLKEnergyTerm
 
 
 @pytest.mark.parametrize(
@@ -23,6 +24,7 @@ from tmol.score.hbond import HBondEnergyTerm
         DunbrackEnergyTerm,
         ElecEnergyTerm,
         HBondEnergyTerm,
+        LJLKEnergyTerm,
     ],
 )
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])

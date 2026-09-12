@@ -1266,7 +1266,6 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
 
-  int const n_atoms = rot_coords.size(0);
   int const n_poses = first_rot_for_block.size(0);
   int const n_rots = rot_coord_offset.size(0);
   int const max_n_blocks = first_rot_for_block.size(1);

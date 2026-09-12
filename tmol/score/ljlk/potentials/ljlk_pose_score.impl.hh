@@ -1509,7 +1509,6 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
     tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 2, D>, TPack<Int, 2, D> > {
   using Real3 = Vec<Real, 3>;
 
-  int const n_atoms = rot_coords.size(0);
   int const n_rots = rot_coord_offset.size(0);
   int const n_poses = first_rot_for_block.size(0);
   int const max_n_blocks = first_rot_for_block.size(1);
@@ -1566,8 +1565,7 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
   assert(block_type_path_distance.size(1) == max_n_block_atoms);
   assert(block_type_path_distance.size(2) == max_n_block_atoms);
 
-  auto dV_dcoords_t = TPack<Vec<Real, 3>, 2, D>::zeros({3, n_atoms});
-  auto dV_dcoords = dV_dcoords_t.view;
+  auto dV_dcoords_t = TPack<Vec<Real, 3>, 2, D>::empty({3, 0});
 
   auto scratch_rot_spheres_t = D == Device::CPU
                                    ? TPack<Real, 2, D>::zeros({n_rots, 4})
@@ -1758,13 +1756,9 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
   // within striking distance
 
   assert(output_block_pair_energies);
-  if (require_gradient) {
-    DeviceOperations<D>::template foreach_workgroup<launch_t>(
-        mgr, dispatch_indices.size(1), eval_energies_by_block);
-  } else {
-    DeviceOperations<D>::template foreach_independent_workgroup<launch_t>(
-        mgr, dispatch_indices.size(1), eval_energies_by_block);
-  }
+  // Each pair writes its own score; backward recomputes its derivatives.
+  DeviceOperations<D>::template foreach_independent_workgroup<launch_t>(
+      mgr, dispatch_indices.size(1), eval_energies_by_block);
 
   return {output_t, dV_dcoords_t, dispatch_indices_t};
 }  // LJLKRotamerScoreDispatch::forward
