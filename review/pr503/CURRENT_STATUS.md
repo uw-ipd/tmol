@@ -4,6 +4,9 @@ Frank's latest fetched #503 head remains `0593a93b07d80b0302383163d2d98c78e315ab
 already merged. The shared-production checkpoint is tmol `75e02157b` and
 AtomWorks `774056c7` based on latest dev `59afb1e2`.
 
+[tmol PR #508](https://github.com/uw-ipd/tmol/pull/508) is open as a draft,
+targeting Frank's `dimaio/noncanonicals_through_ligand_pipeline` branch.
+
 [AtomWorks PR #349](https://github.com/baker-laboratory/atomworks-dev/pull/349)
 is open as a draft, targeting `dev`. Tmol now requires that immutable companion
 revision and removes duplicate protonation, repair, converter and CIF-category
