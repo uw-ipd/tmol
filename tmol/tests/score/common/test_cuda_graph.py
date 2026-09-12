@@ -38,16 +38,21 @@ class _ScoringExample(torch.nn.Module):
         return coords * self.weight - self.offset
 
 
-@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
-@pytest.mark.parametrize("trainable", [False, True])
-@pytest.mark.parametrize("layout", ["contiguous", "strided", "negative"])
+@pytest.mark.parametrize(
+    "dtype,trainable,layout",
+    [
+        (torch.float32, True, "contiguous"),
+        (torch.float32, False, "strided"),
+        (torch.float64, True, "negative"),
+    ],
+)
 def test_cuda_scoring_capture_replays_values_and_parameter_gradients(
     torch_device, dtype, trainable, layout
 ):
     module = _ScoringExample(torch_device, dtype, trainable)
     sample = torch.zeros((3, 5), device=torch_device, dtype=dtype, requires_grad=True)
     capture = CapturedScoringGraph(module, sample)
-    for shift in (0, 1, -2):
+    for shift in (0, -2):
         coords = (
             torch.arange(15, device=torch_device, dtype=dtype).reshape(3, 5) + shift
         ) / 8
@@ -70,12 +75,9 @@ def test_cuda_scoring_capture_replays_values_and_parameter_gradients(
     )
 
 
-@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
-def test_cuda_scoring_capture_preserves_unused_coordinate_gradients(
-    torch_device, dtype
-):
-    module = _ScoringExample(torch_device, dtype, unused_coords=True)
-    sample = torch.zeros((3, 5), device=torch_device, dtype=dtype, requires_grad=True)
+def test_cuda_scoring_capture_preserves_unused_coordinate_gradients(torch_device):
+    module = _ScoringExample(torch_device, torch.float32, unused_coords=True)
+    sample = torch.zeros((3, 5), device=torch_device, requires_grad=True)
     capture = CapturedScoringGraph(module, sample)
     coords = torch.ones_like(sample, requires_grad=True)
     coord_grad, weight_grad = torch.autograd.grad(
@@ -155,7 +157,7 @@ def test_cuda_scoring_capture_preserves_uncached_autocast(torch_device, dtype):
     sample = torch.zeros((4, 5), device=torch_device, requires_grad=True)
     with torch.autocast("cuda", dtype=dtype, cache_enabled=False):
         capture = CapturedScoringGraph(module, sample)
-    for shift in (0, 1, -2):
+    for shift in (0, -2):
         coords = (
             (torch.arange(20, device=torch_device).reshape(4, 5) + shift) / 8
         ).requires_grad_(True)

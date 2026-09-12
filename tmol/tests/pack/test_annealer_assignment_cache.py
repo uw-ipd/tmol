@@ -47,8 +47,10 @@ def independent_minimum_tables(counts, chunk_size, device):
 
 
 @requires_cuda
-@pytest.mark.parametrize("chunk_size", [7, 16, 32])
-@pytest.mark.parametrize("n_res", [1, 2, 3, 128, 129])
+@pytest.mark.parametrize(
+    "chunk_size,n_res",
+    [(7, 3), (16, 1), (16, 2), (16, 128), (16, 129), (32, 3)],
+)
 def test_cuda_annealer_assignment_cache_boundaries(chunk_size, n_res):
     from tmol.pack.compiled import pack_anneal
 

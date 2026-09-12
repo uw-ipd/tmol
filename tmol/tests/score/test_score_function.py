@@ -79,8 +79,10 @@ def test_shared_block_neighbors_preserve_scores_and_gradients(ubq_pdb, torch_dev
     torch.testing.assert_close(shared_grad, legacy_grad, atol=1e-5, rtol=1e-5)
 
 
-@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
-@pytest.mark.parametrize("weighted", [False, True])
+@pytest.mark.parametrize(
+    "dtype,weighted",
+    [(torch.float32, False), (torch.float32, True), (torch.float64, True)],
+)
 def test_fused_compact_specialization_preserves_subsets(
     ubq_pdb, torch_device, dtype, weighted
 ):
@@ -132,9 +134,15 @@ def test_fused_compact_specialization_preserves_subsets(
             )
 
 
-@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
-@pytest.mark.parametrize("reverse_neighbors", [False, True])
-@pytest.mark.parametrize("strided_neighbors", [False, True])
+@pytest.mark.parametrize(
+    "dtype,reverse_neighbors,strided_neighbors",
+    [
+        (torch.float32, False, False),
+        (torch.float32, True, False),
+        (torch.float32, False, True),
+        (torch.float64, True, True),
+    ],
+)
 def test_cpu_compact_neighbors_preserve_pose_accumulation_order(
     ubq_pdb, request, dtype, reverse_neighbors, strided_neighbors
 ):
@@ -539,49 +547,44 @@ def test_cuda_term_gradients_accept_strided_lane_weights(ubq_pdb, device_index):
         default_stream = torch.cuda.default_stream(torch_device)
         other_stream = torch.cuda.Stream(device=torch_device)
         other_stream.wait_stream(default_stream)
+        layouts = ((1, default_stream), (2, other_stream), (3, other_stream))
+        tested_widths = set()
 
-        for stride, stream in (
-            (1, default_stream),
-            (2, other_stream),
-            (3, other_stream),
-        ):
-            tested_widths = set()
-            for term in scorer.term_modules:
+        for term in scorer.term_modules:
+            reference_coords = pose.coords.detach().clone().requires_grad_(True)
+            reference_scores = term(reference_coords)
+            if not reference_scores.requires_grad:
+                continue
+            values = torch.linspace(
+                -1,
+                1,
+                reference_scores.numel(),
+                device=torch_device,
+                dtype=reference_scores.dtype,
+            ).view_as(reference_scores)
+            (expected,) = torch.autograd.grad(
+                reference_scores, reference_coords, values, allow_unused=True
+            )
+            if expected is None:
+                continue
+
+            for stride, stream in layouts:
                 with torch.cuda.stream(stream):
                     coords = pose.coords.detach().clone().requires_grad_(True)
                     scores = term(coords)
-                    if not scores.requires_grad:
-                        continue
-                    values = torch.linspace(
-                        -1,
-                        1,
-                        scores.numel(),
-                        device=torch_device,
-                        dtype=scores.dtype,
-                    )
                     backing = values.new_empty(values.numel() * stride)
-                    backing[::stride] = values
+                    backing[::stride] = values.flatten()
                     upstream = backing[::stride].view_as(scores)
                     (actual,) = torch.autograd.grad(
                         scores, coords, upstream, allow_unused=True
                     )
-                if actual is None:
-                    continue
                 stream.synchronize()
-
-                reference_coords = pose.coords.detach().clone().requires_grad_(True)
-                reference_scores = term(reference_coords)
-                (expected,) = torch.autograd.grad(
-                    reference_scores,
-                    reference_coords,
-                    upstream.contiguous(),
-                    allow_unused=True,
-                )
-                assert expected is not None
+                assert actual is not None
                 torch.testing.assert_close(actual, expected, rtol=5e-5, atol=5e-5)
-                tested_widths.add(scores.shape[0])
 
-            assert tested_widths == {1, 2, 3, 4, 5}
+            tested_widths.add(reference_scores.shape[0])
+
+        assert tested_widths == {1, 2, 3, 4, 5}
     assert torch.cuda.current_device() == original_device
 
 

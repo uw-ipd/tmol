@@ -136,12 +136,11 @@ struct InteractionGraph {
 };
 
 // Preserve the existing mapping, including cuRAND's inclusive upper endpoint.
-// Most products already lie in range and need no integer division. Keep the
-// remainder fallback for the endpoint and any float-to-int boundary cases.
+// Most products already lie in range. Map cuRAND's inclusive endpoint to zero.
 MGPU_DEVICE
 int curand_in_range(float uniform, int n) {
   int const index = int(uniform * n);
-  return index >= 0 && index < n ? index : index % n;
+  return index < n ? index : 0;
 }
 
 MGPU_DEVICE

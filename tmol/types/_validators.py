@@ -91,22 +91,14 @@ def validate_list(lst, value):
 def validate_union(union, value):
     assert union.__args__
 
-    last_ex = None
-    try:
-        for ut in union.__args__:
-            validator = get_validator(ut)
+    for ut in union.__args__:
+        try:
+            get_validator(ut)(value)
+            return
+        except (ValueError, TypeError):
+            pass
 
-            try:
-                validator(value)
-                return
-            except (ValueError, TypeError) as ex:
-                last_ex = ex
-
-        raise TypeError(f"expected {union}, received {type(value)!r}") from last_ex
-    finally:
-        # The last branch's traceback points back to this frame. Drop this
-        # local reference on every exit; a raised error still owns its cause.
-        last_ex = None
+    raise TypeError(f"expected {union}, received {type(value)!r}")
 
 
 @toolz.curry

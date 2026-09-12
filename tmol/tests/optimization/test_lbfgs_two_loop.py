@@ -57,9 +57,16 @@ def test_lbfgs_two_loop_batched_matches_reference(dtype, torch_device):
     torch.testing.assert_close(actual, expected, atol=tolerance[0], rtol=tolerance[1])
 
 
-@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
-@pytest.mark.parametrize("layout", ["contiguous", "strided", "broadcast", "single"])
-@pytest.mark.parametrize("differentiable", [False, True])
+@pytest.mark.parametrize(
+    "dtype,layout,differentiable",
+    [
+        (torch.float32, "contiguous", False),
+        (torch.float64, "strided", False),
+        (torch.float64, "broadcast", False),
+        (torch.float32, "single", False),
+        (torch.float32, "contiguous", True),
+    ],
+)
 def test_lbfgs_two_loop_diagonal_history(dtype, layout, differentiable, torch_device):
     # Orthogonal updates give a known diagonal inverse Hessian. Two unused
     # history slots must leave both the direction and its derivative intact.

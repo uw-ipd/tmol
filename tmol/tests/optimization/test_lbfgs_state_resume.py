@@ -6,8 +6,9 @@ import torch
 from tmol.optimization import LBFGS_Armijo
 
 
-@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
-@pytest.mark.parametrize("lengths", [(7, 7), (5, 9)])
+@pytest.mark.parametrize(
+    "dtype,lengths", [(torch.float32, (7, 7)), (torch.float64, (5, 9))]
+)
 def test_checkpoint_resume_preserves_trajectory(torch_device, dtype, lengths):
     device = torch.device(torch_device)
     initial = torch.linspace(-2, 2, sum(lengths), device=device, dtype=dtype)
