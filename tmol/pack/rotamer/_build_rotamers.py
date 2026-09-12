@@ -9,7 +9,7 @@ from tmol.types import (
     Tensor,
     validate_args,
 )
-from tmol.utility.tensor import exclusive_cumsum1d, stretch
+from tmol.utility.tensor import exclusive_cumsum1d
 from tmol.database.chemical import ChemicalDatabase
 from tmol.kinematics import KinForest, NodeType
 from tmol.chemical import RefinedResidueType
@@ -631,29 +631,23 @@ def measure_pose_dofs(
     # offsets provided by the pose stack
     n_poses = poses.coords.shape[0]
     max_n_atoms_per_pose = poses.max_n_pose_atoms
-    max_n_blocks_per_pose = poses.max_n_blocks
-    per_pose_offset = max_n_atoms_per_pose * stretch(
-        torch.arange(n_poses, dtype=torch.int64, device=poses.device),
-        max_n_blocks_per_pose,
-    )
+    per_pose_offset = max_n_atoms_per_pose * torch.arange(
+        n_poses, dtype=torch.int64, device=poses.device
+    ).unsqueeze(1)
     orig_atom_offset_for_poses_blocks = (
-        (
-            poses.block_coord_offset.flatten()[real_poses_blocks].to(torch.int64)
-            + per_pose_offset[real_poses_blocks]
-        )
+        (poses.block_coord_offset.to(torch.int64) + per_pose_offset)
+        .flatten()[real_poses_blocks]
         .cpu()
         .numpy()
     )
 
     n_atoms_for_orig = pbt.n_atoms[orig_res_block_type_ind.to(torch.int64)]
-    n_atoms_offset_for_orig = torch.cumsum(n_atoms_for_orig, dim=0)
-    n_atoms_offset_for_orig = n_atoms_offset_for_orig.cpu().numpy()
-    n_orig_atoms_total = n_atoms_offset_for_orig[-1]
+    n_orig_atoms_total = int(n_atoms_for_orig.sum())
 
     orig_kinforest = construct_kinforest_for_conformers(
         poses.packed_block_types,
         orig_res_block_type_ind.cpu().numpy(),
-        int(n_orig_atoms_total),
+        n_orig_atoms_total,
         n_atoms_for_orig,
         orig_atom_offset_for_poses_blocks,
         poses.device,
