@@ -169,40 +169,74 @@ def mirror_semi_rotameric_library(
 def with_mirrored_libraries(
     library: DunbrackRotamerLibrary, d_residue_names
 ) -> DunbrackRotamerLibrary:
-    """Append the mirrored libraries and the lookup rows that reach them.
+    """Append only required mirrored libraries and their missing lookup rows.
 
     ``d_residue_names`` maps an L residue name to the name of the D residue
     type that mirrors it; a residue whose L form has no rotamer library keeps
-    none, as glycine and alanine do.
+    none, as glycine and alanine do. Existing target mappings are authoritative.
+    A generated table name must be free: an explicit lookup can reuse an
+    existing table without guessing its provenance from a name prefix.
     """
-    covered = {m.dun_table_name for m in library.dun_lookup}
-    if any(name.startswith(D_PREFIX) for name in covered):
+    if not d_residue_names:
         return library
 
+    tables = {}
+    for lib in (*library.rotameric_libraries, *library.semi_rotameric_libraries):
+        if lib.table_name in tables:
+            raise ValueError(f"Duplicate Dunbrack table name: {lib.table_name}")
+        tables[lib.table_name] = lib
+    existing = {}
+    for row in library.dun_lookup:
+        if row.residue_name in existing:
+            raise ValueError(f"Duplicate Dunbrack residue mapping: {row.residue_name}")
+        existing[row.residue_name] = row.dun_table_name
+
     lookup = list(library.dun_lookup)
+    required = set()
+    added = {}
     for mapping in library.dun_lookup:
         d_name = d_residue_names.get(mapping.residue_name)
-        if d_name is None:
+        if d_name is None or d_name in existing:
             continue
-        lookup.append(
-            DunMappingParams(
-                dun_table_name=d_table_name(mapping.dun_table_name),
-                residue_name=d_name,
+        source = mapping.dun_table_name
+        target = d_table_name(source)
+        if d_name in added:
+            if added[d_name] != target:
+                raise ValueError(
+                    f"Conflicting mirrored libraries requested for {d_name}"
+                )
+            continue
+        if source not in tables:
+            raise ValueError(f"Missing source Dunbrack table: {source}")
+        if target in tables:
+            raise ValueError(
+                f"Mirrored Dunbrack table name collision: {target}; "
+                f"provide an explicit mapping for {d_name} to reuse a table"
             )
-        )
+        required.add(source)
+        added[d_name] = target
+        lookup.append(DunMappingParams(dun_table_name=target, residue_name=d_name))
+
+    if not added:
+        return library
 
     return attr.evolve(
         library,
         dun_lookup=tuple(lookup),
         rotameric_libraries=(
             *library.rotameric_libraries,
-            *(mirror_rotameric_library(lib) for lib in library.rotameric_libraries),
+            *(
+                mirror_rotameric_library(lib)
+                for lib in library.rotameric_libraries
+                if lib.table_name in required
+            ),
         ),
         semi_rotameric_libraries=(
             *library.semi_rotameric_libraries,
             *(
                 mirror_semi_rotameric_library(lib)
                 for lib in library.semi_rotameric_libraries
+                if lib.table_name in required
             ),
         ),
     )

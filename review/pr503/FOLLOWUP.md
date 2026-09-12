@@ -2379,3 +2379,37 @@ No speed gain is claimed for these correctness corrections. Arbitrary custom
 grid registrations, empty library families, generation based on a `d` name
 prefix, the default attachment-parameter gaps, and the broader completion
 requirements remain separate work.
+
+
+## Generate only requested mirrored libraries
+
+Mirrored-library generation no longer treats a `d` prefix as proof that all D
+chemistry is covered. It checks requested target mappings, preserves explicit
+ones, adds only missing libraries and returns the same database for a no-op.
+Partial generation can be extended later without discarding existing library
+objects. Source/name/target conflicts fail at generation instead of producing
+ambiguous or unreachable tables.
+
+Eight pre-fix regressions fail. The corrected initial CPU suite passes 24 cases
+(three CUDA skips), and the final selective native-parity/scope suite passes ten
+(one CUDA skip). Slurm **250526** passes **54 cases / one intentional CPU
+annealer skip**, **0:0**, **1:27**, **5,155,204 KiB** batch peak RSS. This includes
+full-atom mirrored interaction tables and actual controlled CUDA packing after
+the generation change. All complete default generated library values match the
+preceding function exactly; selective ARG/DARG/PHE native outputs also match.
+
+| Requested D chemistry | Previous generation | Selective generation | New tensor storage, previous → selective |
+|---|---:|---:|---:|
+| Complete default set | 15.79 ms | 15.86 ms | 30,927,608 → 30,927,608 B |
+| DARG only | 17.28 ms | 1.65 ms | 30,927,608 → 4,279,200 B |
+| DSER only | 17.29 ms | 0.089 ms | 30,927,608 → 77,784 B |
+| No D types | 17.22 ms | Early return | 30,927,608 → 0 B |
+
+These are seven alternating warm rounds of three uninstrumented calls, with
+source/database construction outside timing. Storage excludes shared L tables,
+Python metadata, temporary peaks and allocator overhead. No whole-application
+speedup is implied, and the default full chemistry set remains unchanged.
+Exact hashes, stage-separated tests, timing samples and scheduler accounting are
+in [results/mirrored-library-generation.json](results/mirrored-library-generation.json).
+Comment 77 is corrected. Empty library families and non-grid-aligned custom
+registrations remain separate audit items.

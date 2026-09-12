@@ -11,7 +11,7 @@ Review date: 2026-09-12
 
 Both subsequent six-file updates have been reviewed separately. Comments 1–46
 retain their original `c03c1e745` anchors; comments 47–56 address `0f4c3bc42`,
-and comments 57–76 address `0593a93b0`. The
+and comments 57–77 address `0593a93b0`. The
 fold-forest expectations and HYP count are now corrected upstream. See
 [FOLLOWUP.md](FOLLOWUP.md) for reconciliation and validation details.
 
@@ -743,3 +743,14 @@ reflected final coordinates. This validates that controlled packing task,
 not identical random trajectories for arbitrary multi-position packing.
 See [FOLLOWUP.md](FOLLOWUP.md) and the stage-separated
 [manifest](results/mirror-packing-validation.json).
+
+
+## 77. Generate missing D libraries from requested mappings, not a name-prefix guard — P1
+
+Location: [`tmol/database/scoring/_mirrored_dunbrack.py:177`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/database/scoring/_mirrored_dunbrack.py#L177), unconditional duplication at [line 196](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/database/scoring/_mirrored_dunbrack.py#L196).
+
+> Could this check which requested residue mappings are missing and mirror only the libraries those mappings need? Any covered table whose name begins with `d` currently disables all generation, including an ordinary source called `different_original` or a database with only one D type already added. Conversely, requesting no D types or only DALA still duplicates every library. Existing explicit target mappings should remain authoritative, and generated-name collisions should fail clearly.
+
+Eight regressions fail before the fix. The follow-up supports incremental requests, retains existing library objects/mappings, returns the original database when no new library is required, and rejects missing source tables, competing target requests and ambiguous generated names. Selective ARG/DARG/PHE native sampling matches the full database exactly on CPU/CUDA even though PHE's table index moves. All default generated values remain exactly equal to the previous function. Final Slurm 250526 passes 54 CPU/CUDA cases with one intentional CPU annealer skip, including full-atom mirror energies and actual single-position packing.
+
+Seven alternating warm timing rounds show DARG-only generation **17.28 → 1.65 ms**, with additional owned tensor storage **30,927,608 → 4,279,200 bytes**. DSER-only is **17.29 → 0.089 ms** and **30,927,608 → 77,784 bytes**. The full default request is essentially unchanged (**15.79 → 15.86 ms**, identical tensor storage); a no-D request now allocates no new tensor storage. These measurements exclude the source L tables, resolver fitting, transient peaks and whole-program work. See [profile_mirrored_library_generation.py](profile_mirrored_library_generation.py) and [results/mirrored-library-generation.json](results/mirrored-library-generation.json).
