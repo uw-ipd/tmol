@@ -62,16 +62,17 @@ class ParameterDatabase:
         return cls(scoring=scoring, chemical=patched_chemdb)
 
     def with_symmetric_gly(self) -> "ParameterDatabase":
-        """A copy whose glycine backbone tables are mirror-symmetric.
+        """A copy with symmetric glycine backbone tables and C-alpha hydrogens.
 
         Glycine is achiral, but the tables derived from PDB statistics are not,
         so by default a structure and its mirror image score differently. This
-        points glycine at the symmetrized tables instead; every other residue is
-        untouched, and the chirality of the other 19 is carried by their own
-        lookup rows.
+        points glycine at the symmetrized tables instead. Its two C-alpha
+        hydrogen ideal lengths and bonded targets are averaged, so rebuilding
+        glycine also preserves reflection when the equivalent H names exchange.
+        Other residues are untouched.
 
-        Glycine's bbdep-omega tables become uniformly trans, since an achiral
-        residue has no backbone-dependent omega preference to keep.
+        This optional model uses uniformly trans glycine bbdep-omega tables.
+        Uniformity is a modeling choice, not a consequence of achirality.
         """
         rama = self.scoring.rama
         omega = self.scoring.omega_bbdep
@@ -100,10 +101,17 @@ class ParameterDatabase:
                 {"gly": "gly_symm", "prepro": "prepro_gly_symm"},
             ),
         )
+        from ._symmetric_gly import symmetric_gly_geometry
+
+        chemical, cartbonded = symmetric_gly_geometry(
+            self.chemical, self.scoring.cartbonded
+        )
         return attr.evolve(
             self,
+            chemical=chemical,
             scoring=attr.evolve(
                 self.scoring,
+                cartbonded=cartbonded,
                 rama=attr.evolve(rama, uniq_id=rama.content_id()),
                 omega_bbdep=attr.evolve(omega, uniq_id=omega.content_id()),
             ),

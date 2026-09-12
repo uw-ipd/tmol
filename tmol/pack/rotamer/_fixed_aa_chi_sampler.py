@@ -53,7 +53,10 @@ class FixedAAChiSampler(ChiSampler):
     def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
         base = l_base_name(rt)
         if base == "GLY":
-            return ("HA3",)
+            # Glycine's alpha hydrogens exchange under reflection. Rebuilding
+            # only one can place it on top of the retained hydrogen, and a
+            # glycine-to-amino-acid design must not inherit an arbitrary one.
+            return ("HA2", "HA3")
         elif base == "ALA":
             return ("CB",)
 

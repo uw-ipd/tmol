@@ -10,7 +10,7 @@ historical evidence, not a claim that the follow-up is complete.
 | Area | Required evidence | Status |
 |---|---|---|
 | Import/closure inference (1) | Fresh checkout collection; explicit/inferred closure, padding, breaks and caps on both devices | Existing replacement; extend audit |
-| Mixed chirality (2) | Published reference parameters/formula; LL/DD/LD/DL permutation and reflection energies/gradients; whole-pose and packing parity | Rosetta mixed distribution and shared derivatives implemented; independent LL/LD/DL/DD energy/gradient, permutation and reflection checks pass on CPU/CUDA; per-term whole-pose/block-pair reflected gradients also pass CPU/CUDA; full mirror packing exposes unequal conformer sets (comments 73, diagnostic below) |
+| Mixed chirality (2) | Published reference parameters/formula; LL/DD/LD/DL permutation and reflection energies/gradients; whole-pose and packing parity | Rosetta mixed distribution and shared derivatives implemented; independent LL/LD/DL/DD energy/gradient, permutation and reflection checks pass on CPU/CUDA; per-term whole-pose/block-pair reflected gradients also pass CPU/CUDA; default reflected conformer sets and all per-term interaction matrices now agree on CPU/CUDA; single-position CUDA packing reaches the exhaustive minimum on both sides (comments 73–76, final manifest below) |
 | Group identity and safety (3–7,9,30,31,33–37) | Real multi-pose/multi-database groups, repeated chi names, jagged/empty counts, early rejection; native parity | Capped anchors, rigid cyclic cores, external attachments and sampled pendant branches tested CPU/CUDA, including packing and two-pose reuse; later masks now constrain geometry and ownership; task-dependent tests recorded below |
 | Sampling budgets/caches (8,14,27) | Explicit budget semantics; task propagation; immutable sampler reuse; actual library/extra/proton counts; reproducible HYP count | Explicit task overrides and actual group/library bounds implemented/tested CPU/CUDA; aggregate/default budget policy and adaptive library expansion remain open |
 | Residue identity/completion (10–12,16,32) | Insertion codes, chain identity, explicit/CCD authority, missing atoms, custom names; realistic scaling | Reader annotation reuse and finite-geometry repair checks pass; AtomWorks parser/converter profiles recorded; broader identity/authority contracts remain open |
@@ -2318,3 +2318,64 @@ product failures. Exact test inventories and source hashes are in
 Comment 74 is now corrected on the follow-up branch. The separate L/D
 conformer-set tests still fail at both default and expanded chi settings;
 periodic wrapping alone does not complete mirror-image packing support.
+
+
+## Mirror sampling, periodic scoring and complete glycine geometry
+
+The branch now preserves reflected library ordering cells, missing-torsion
+defaults and chi means. Probability ordering uses the source library's cell
+before mapping that cell into the reflected grid; each target library resolves
+its own missing-backbone defaults. Explicit library metadata survives legacy
+loading, renaming and serialization. The additional sampling tensor contains
+36 booleans (**36 payload bytes**, excluding allocation rounding and Python
+metadata); there is no new per-conformer reflection buffer.
+
+Mean interpolation uses the reflected angular branch for D libraries. Both
+scoring paths now measure the periodic chi-minus-mean difference, so full-turn
+representatives do not alter energy or coordinate derivatives. The CPU scoring
+references and numerical gradient checks pass. The intermediate implementation
+with corrected means but the old scorer failed three scoring checks; those
+failures are retained in the manifest rather than presented as successes.
+
+Fixed glycine sampling now rebuilds both alpha hydrogens, correcting a D-pose
+conformer with only **0.081 Å** between them. The existing `with_symmetric_gly()`
+option also averages their ideal C–H lengths and harmonic bonded targets/force
+constants, including terminal forms. The original default YAML parameters are
+unchanged. Only five GLY HA2 coordinate rows in the ubiquitin rotamer reference
+were updated after verifying that every other one of its 34,630 atom rows
+still matches the existing tolerance. Independent hydrogen-side, bond-length,
+full-atom reflection and per-term energy checks support that update.
+
+The exact L/D fixture now offers **1,308 conformers on each side**. One-to-one
+matching covers all atoms, allowing hydrogen permutations only when atom types
+and named neighbors agree. All 24 configured score components' complete
+rotamer interaction matrices agree on CPU and CUDA; absent chemical classes
+still contribute zero and are not independently exercised by this fixture.
+Expanded-chi counts/heavy geometry and each missing-axis case pass separately.
+A further native sweep covers every default grid point, adjacent floating-point
+values and missing backbone axes across all 18 library pairs, for both
+probabilities and chi means.
+
+Actual CUDA packing fixes every position except one PHE. Both reflected inputs
+reach the minimum found by exhaustive whole-pose scoring of every offered
+choice, and the final structures reflect one another. This is stronger than a
+chirality-only check, but does not require arbitrary multi-position stochastic
+trajectories to make identical choices.
+
+Final validation: CPU **24 passes / 23 skips** for canonical reference updates,
+symmetric geometry and full-atom energies; Slurm **250496: 311 passes / one
+intentional CPU annealer skip**, **0:0**, **9:28** elapsed, **6,468,352 KiB** batch
+peak RSS. The additional all-grid sweep is **two CPU passes / two CUDA skips**
+and **four CPU/CUDA passes** in Slurm **250506**, **0:0**, **20 s**, **1,721,280 KiB**.
+The prior broad run **250427: 289 passes** covers the library/scoring fixes
+before the later GLY changes. Job 250426 was deliberately cancelled when CPU
+checks exposed the intermediate scorer defect. Job 250486 passed full-atom
+energies and actual packing but failed the two old hydrogen coordinate
+references; the five-row update and final run supersede those failures.
+
+Exact source hashes, test inventories, separate failure stages, scheduler
+accounting and limits are in [results/mirror-packing-validation.json](results/mirror-packing-validation.json).
+No speed gain is claimed for these correctness corrections. Arbitrary custom
+grid registrations, empty library families, generation based on a `d` name
+prefix, the default attachment-parameter gaps, and the broader completion
+requirements remain separate work.

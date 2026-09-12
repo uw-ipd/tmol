@@ -11,7 +11,7 @@ Review date: 2026-09-12
 
 Both subsequent six-file updates have been reviewed separately. Comments 1–46
 retain their original `c03c1e745` anchors; comments 47–56 address `0f4c3bc42`,
-and comments 57–74 address `0593a93b0`. The
+and comments 57–76 address `0593a93b0`. The
 fold-forest expectations and HYP count are now corrected upstream. See
 [FOLLOWUP.md](FOLLOWUP.md) for reconciliation and validation details.
 
@@ -80,6 +80,8 @@ This measures CIF missing-atom insertion, **not end-to-end packing/scoring accel
 14. **Junction parameter scope:** Can renamed junctions carry explicit chemical roles, including the partner frame, rather than borrowing rows through atom names alone? How should both ends being renamed, carbonyl oxygen versus hydroxyl, N-substitution, retained hydrogens, and non-peptide polymers be covered? The new `0593a93b0` helper maps nucleotide phosphate to peptide nitrogen; single-frame substitution also leaves the remote atom names canonical. A connection-specific parameter contract would make the supported scope explicit.
 
 15. **Mirror sampling contract:** Should paired L/D structures receive one-to-one reflected conformer sets, including terminal defaults, probability truncation and extra-chi sampling? Which equivalent-atom permutations are allowed, and what grid-boundary convention makes the probability-ordering tables agree with their reflected counterparts? Matching scores and preserving D chirality do not establish this.
+
+16. **Achiral glycine model:** Is `with_symmetric_gly()` intended to symmetrize the complete model or only select backbone tables? The two alpha-hydrogen ideal lengths and bonded targets differ, which breaks exact reflection after rebuilding equivalent hydrogens. Also, a reflection-invariant omega potential can retain backbone dependence; what supports replacing it with a uniformly trans table? The follow-up preserves the default parameter files and makes the hydrogen averaging opt-in.
 
 ## Suggested inline comments
 
@@ -694,7 +696,7 @@ Location: [`tmol/pack/rotamer/dunbrack/dispatch.impl.hh:210`](https://github.com
 
 > Could the mirror test compare the offered conformer sets and packing energy tables, with chirality-aware missing-torsion defaults and consistent reflected bin boundaries? On the follow-up branch, the exact L/D fixture pair receives 1,308 versus 1,265 conformers on both CPU and CUDA. Fifteen residue/type groups differ in count; another ten equal-count groups have nonmatching named heavy-atom conformers. Keeping the final structure D does not detect these omissions.
 
-These counts use the follow-up branch’s 0.98 coverage for both library classes; they are not a rerun of the untouched upstream defaults. The anchored bin/default logic is unchanged. The native sampler uses the same −60°/+60° fallback for missing L and D backbone angles. Its floor-based ordering-cell lookup also conflicts with reflecting the sorted tables as grid points. An isolated shift of only the D ordering cells removes 14 of 15 count mismatches, leaving terminal ARG at 51 L / 17 D states; this diagnostic does not settle exact boundary conventions and is not integrated as a fix. New per-term whole-pose/block-pair energy and reflected-gradient tests pass on CPU/CUDA (Slurm 250251: nine cases), but the full packing gate remains false. [check_mirror_packing.py](check_mirror_packing.py) uses one-to-one assignment, retains unmatched counts, and distinguishes named heavy-atom geometry from unclassified hydrogen permutations. The structured CUDA diagnostic is Slurm 250256; see [results/chi-assignment-validation.json](results/chi-assignment-validation.json). This is a newly exposed open defect, not a claimed completed correction.
+These counts use the follow-up branch’s 0.98 coverage for both library classes; they are not a rerun of the untouched upstream defaults. The anchored bin/default logic is unchanged. The native sampler uses the same −60°/+60° fallback for missing L and D backbone angles. Its floor-based ordering-cell lookup also conflicts with reflecting the sorted tables as grid points. An isolated shift of only the D ordering cells removes 14 of 15 count mismatches, leaving terminal ARG at 51 L / 17 D states; this diagnostic does not settle exact boundary conventions and is not integrated as a fix. New per-term whole-pose/block-pair energy and reflected-gradient tests pass on CPU/CUDA (Slurm 250251: nine cases), but the full packing gate remains false. [check_mirror_packing.py](check_mirror_packing.py) uses one-to-one assignment, retains unmatched counts, and distinguishes named heavy-atom geometry from unclassified hydrogen permutations. The structured CUDA diagnostic is Slurm 250256; see [results/chi-assignment-validation.json](results/chi-assignment-validation.json). This defect was open at that stage; the follow-up validation below supersedes that status.
 
 ## 74. Wrap the positive periodic endpoint before sorted-table indexing — P1
 
@@ -710,4 +712,34 @@ upper endpoint and a guard against division rounding up to the bin count.
 Four probability/chi × phi/psi regressions fail before and pass after the fix.
 The CPU native suite passes 51 tests (49 CUDA skips), and Slurm 250352 passes
 188 CPU/CUDA cases. See [results/periodic-lookup-validation.json](results/periodic-lookup-validation.json).
-Comment 73's reflected-cell and terminal-default behavior remains open.
+Comment 73's reflected-cell and terminal-default behavior is corrected in the subsequent mirror-packing follow-up below.
+
+
+## 75. Reflect the chi-mean branch before spline fitting — P1
+
+Location: [`tmol/score/dunbrack/_params.py:374`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/score/dunbrack/_params.py#L374), and scoring at [`potentials/potentials.hh:415`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/score/dunbrack/potentials/potentials.hh#L415).
+
+> Could mirrored means use the reflected angular branch before fitting, with scoring measuring a periodic chi-minus-mean difference? Moving every mean below −120° toward +180° adds a full turn to only some grid points of a reflected library. Interpolation then produces a different conformation, even after the probability-ordering cells and terminal defaults agree. A periodic difference in the scorer is needed when the mean uses the reflected branch.
+
+After correcting only the ordering cells and defaults, the mirror fixture has equal conformer counts but PHE heavy atoms still differ by 0.657 Å (0.943 Å with expanded chi). A synthetic 110°/130° mean grid reproduces the branch defect against the exact previous fitting method. The follow-up carries explicit reflection metadata with each library, preserves it through renaming/serialization, and unwraps D means toward −180°. Both scoring paths now wrap the actual chi-minus-mean difference. Adding −2, +1 or +3 full turns to private mean coefficients preserves whole-pose and block-pair energies and weighted coordinate gradients. CPU numerical scoring references and gradient checks pass; the 289-case CPU/CUDA run in Slurm 250427 covers these fixes before the subsequent glycine changes.
+
+## 76. Rebuild both glycine alpha hydrogens and define the symmetry option completely — P1
+
+Location: [`tmol/pack/rotamer/_fixed_aa_chi_sampler.py:55`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/pack/rotamer/_fixed_aa_chi_sampler.py#L55); symmetry option at [`tmol/database/__init__.py:64`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/database/__init__.py#L64).
+
+> Could fixed glycine sampling rebuild HA2 and HA3 together? Preserving HA2 while rebuilding HA3 in the fixed ideal convention puts the two hydrogens only 0.081 Å apart in the reflected fixture. Once both are rebuilt, exact mirror packing also exposes unequal ideal C–H lengths (1.090168/1.089353 Å) and bonded targets (1.09017/1.08935 Å). Should the existing symmetric-glycine option average those equivalent hydrogen parameters as well?
+
+The follow-up rebuilds both alpha hydrogens, preventing the overlap and arbitrary inheritance of a glycine hydrogen during design. In the opt-in symmetric database, it averages their ideal lengths and harmonic targets/force constants, including terminal forms, without editing the default YAML parameters. Other residue objects remain shared, and repeated symmetrization preserves values and cache content IDs. The pre-fix L fixture passes the hydrogen geometry check while D fails. Full-atom one-to-one matching permits only hydrogen exchanges with identical chemical types and named neighbors; with the opt-in correction, every per-term packing interaction table agrees on CPU. Slurm 250496 passes 311 CPU/CUDA cases (one skip for CPU-only invocation of the CUDA annealer), including per-term packing matrices and an actual single-position packing result compared with exhaustive whole-pose scores. Slurm 250506 passes four exhaustive grid-sweep cases. See [results/mirror-packing-validation.json](results/mirror-packing-validation.json). This does not validate the underlying statistical or bonded parameters scientifically.
+
+
+Comment 73 follow-up: reflected ordering cells, per-library missing-torsion
+defaults, mean interpolation, and the glycine hydrogen defects are now fixed.
+The fixture receives **1,308 conformers on each side**, with one-to-one full-atom
+matching and all 24 configured score components' interaction matrices agreeing
+on CPU/CUDA (components for absent chemistry remain zero). Expanded-chi counts
+and heavy geometry pass separately. Actual CUDA packing of one movable PHE
+reaches the exhaustively enumerated minimum for both inputs and produces
+reflected final coordinates. This validates that controlled packing task,
+not identical random trajectories for arbitrary multi-position packing.
+See [FOLLOWUP.md](FOLLOWUP.md) and the stage-separated
+[manifest](results/mirror-packing-validation.json).
