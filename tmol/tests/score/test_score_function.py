@@ -536,40 +536,52 @@ def test_cuda_term_gradients_accept_strided_lane_weights(ubq_pdb, device_index):
         scorer = _non_memoized_beta2016(torch_device).render_whole_pose_scoring_module(
             pose
         )
-    stream = torch.cuda.Stream(device=torch_device)
-    stream.wait_stream(torch.cuda.current_stream(torch_device))
-    tested_widths = set()
+        default_stream = torch.cuda.default_stream(torch_device)
+        other_stream = torch.cuda.Stream(device=torch_device)
+        other_stream.wait_stream(default_stream)
 
-    for term in scorer.term_modules:
-        with torch.cuda.stream(stream):
-            coords = pose.coords.detach().clone().requires_grad_(True)
-            scores = term(coords)
-            if not scores.requires_grad:
-                continue
-            backing = torch.linspace(
-                -1, 1, 2 * scores.numel(), device=torch_device, dtype=scores.dtype
-            )
-            upstream = backing[::2].view_as(scores)
-            (actual,) = torch.autograd.grad(scores, coords, upstream, allow_unused=True)
-        if actual is None:
-            continue
-        stream.synchronize()
+        for stride, stream in (
+            (1, default_stream),
+            (2, other_stream),
+            (3, other_stream),
+        ):
+            tested_widths = set()
+            for term in scorer.term_modules:
+                with torch.cuda.stream(stream):
+                    coords = pose.coords.detach().clone().requires_grad_(True)
+                    scores = term(coords)
+                    if not scores.requires_grad:
+                        continue
+                    values = torch.linspace(
+                        -1,
+                        1,
+                        scores.numel(),
+                        device=torch_device,
+                        dtype=scores.dtype,
+                    )
+                    backing = values.new_empty(values.numel() * stride)
+                    backing[::stride] = values
+                    upstream = backing[::stride].view_as(scores)
+                    (actual,) = torch.autograd.grad(
+                        scores, coords, upstream, allow_unused=True
+                    )
+                if actual is None:
+                    continue
+                stream.synchronize()
 
-        with torch.cuda.device(torch_device):
-            reference_coords = pose.coords.detach().clone().requires_grad_(True)
-            reference_scores = term(reference_coords)
-            (expected,) = torch.autograd.grad(
-                reference_scores,
-                reference_coords,
-                upstream,
-                create_graph=True,
-                allow_unused=True,
-            )
-        assert expected is not None
-        torch.testing.assert_close(actual, expected, rtol=5e-5, atol=5e-5)
-        tested_widths.add(scores.shape[0])
+                reference_coords = pose.coords.detach().clone().requires_grad_(True)
+                reference_scores = term(reference_coords)
+                (expected,) = torch.autograd.grad(
+                    reference_scores,
+                    reference_coords,
+                    upstream.contiguous(),
+                    allow_unused=True,
+                )
+                assert expected is not None
+                torch.testing.assert_close(actual, expected, rtol=5e-5, atol=5e-5)
+                tested_widths.add(scores.shape[0])
 
-    assert tested_widths == {1, 2, 3, 4, 5}
+            assert tested_widths == {1, 2, 3, 4, 5}
     assert torch.cuda.current_device() == original_device
 
 
@@ -750,7 +762,6 @@ def test_replacing_options_restores_default_scores(
     # set_options replaces the entire dictionary, including options already
     # applied to constructed terms and cached packed-block annotations.
     score_function.set_options({})
-    torch.testing.assert_close(score(), original)
     torch.testing.assert_close(score(), original)
 
 
