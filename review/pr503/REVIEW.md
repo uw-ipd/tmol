@@ -11,7 +11,7 @@ Review date: 2026-09-12
 
 Both subsequent six-file updates have been reviewed separately. Comments 1–46
 retain their original `c03c1e745` anchors; comments 47–56 address `0f4c3bc42`,
-and comments 57–69 address `0593a93b0`. The
+and comments 57–70 address `0593a93b0`. The
 fold-forest expectations and HYP count are now corrected upstream. See
 [FOLLOWUP.md](FOLLOWUP.md) for reconciliation and validation details.
 
@@ -656,3 +656,13 @@ Location: [`tmol/score/dunbrack/_params.py:150`](https://github.com/uw-ipd/tmol/
 This cache dates to 2019; it is an inherited assumption made more consequential by per-input chemical databases. The follow-up reuses the shared weak-identity LRU with four entries. The compiled-table construction is unchanged. Five pre-fix regressions cover source/output retention, live-owner eviction, device aliases and subclass identity in both orders. All 49 tensor fields and three lookup DataFrames match exactly. The measured private default-sized resolver retains **67,494,320 bytes** of derived tensor storage before the fix and **zero** after its callers release the database and resolver. Active consumers remain valid. Four entries bound cached resolver count, not arbitrary library sizes or total process/GPU memory.
 
 The CPU resolver/scoring/sampler suite passes 60 tests (58 CUDA skips); Slurm 249841 passes 210 tests without skips on CPU/CUDA. See [results/dun-resolver-validation.json](results/dun-resolver-validation.json) for table equality, lifetime evidence and terminal accounting. Scoring-annotation identity is a separate defect and is not corrected by changing the resolver cache.
+
+## 70. Keep Dunbrack scoring annotations tied to their resolver — P1
+
+Location: [`tmol/score/dunbrack/_dunbrack_energy_term.py:91`](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/score/dunbrack/_dunbrack_energy_term.py#L91), packed guard at [line 212](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/score/dunbrack/_dunbrack_energy_term.py#L212), and renderer at [line 297](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/score/dunbrack/_dunbrack_energy_term.py#L297).
+
+> Could both annotation levels validate the resolver that produced their values, and could rendering refresh the calling term's own packed annotations? A second parameter set can remap or remove a residue's library while the shared chemical types still carry the first term's table IDs and offsets. Rendered modules also need to retain their own tensors after another term updates the shared packed set.
+
+This is an inherited scoring-cache assumption, separate from sampler and global resolver caching. Nine regressions reproduce wrong energies on shared types or stale RT annotations after direct PBT setup. Remapping ILE to the two-chi LEU library or removing its lookup is compared with independently annotated fresh jagged poses, in both orders and whole-pose/block-pair modes. The follow-up keeps one weak resolver-keyed annotation per RT/PBT, refreshes the caller at render time and retains each rendered module's tensor arguments. Tests also compare coordinate gradients, permit owner expiry without invalidating a rendered scorer, reject duplicate lookup names and prohibit per-residue device-scalar reads.
+
+Small lookup metadata are copied to the host once per term; whole annotation tables are assembled there before one transfer per field. All 2,760 RT fields and 12 packed tensor fields match exactly over 230 default types; packed storage remains 76,360 bytes. The complete scoring/resolver CPU suite passes 25 tests (25 CUDA skips). Slurm 249931 passes 119 CPU/CUDA cases, including mirror-image scoring, D repacking and noncanonical/conjugated-group packing. See [results/dun-scoring-validation.json](results/dun-scoring-validation.json) for source stages, scheduler preemption/restart accounting and setup performance limits.

@@ -2074,3 +2074,64 @@ does not claim to accelerate the numerical kernels. Comment 69 records the
 inherited cache defect. Exact sources, test inventories, profiles and scheduler
 accounting are in [results/dun-resolver-validation.json](results/dun-resolver-validation.json).
 Black, Flake8 and whitespace checks pass. Upstream remains `0593a93b0`.
+
+## Isolate Dunbrack scoring annotations and simplify setup
+
+RT and PBT scoring annotations now validate the immutable resolver that produced
+them, through the shared weak-source annotation helper. A new packed annotation
+refreshes its RT inputs; a valid packed hit reuses its tensors directly.
+Rendering selects the calling term's own packed data. Previously rendered
+modules continue to own their original tensor arguments after a different
+parameter set updates the shared PBT. Old resolver/database owners need not be
+retained for those compiled tensors to remain usable.
+
+The regression changes or removes ILE's library mapping and compares shared
+jagged poses with fresh annotations in both database orders, for whole-pose and
+block-pair scoring. Energies and weighted coordinate gradients must match, and
+the two parameter sets must actually give different results. A direct PBT-setup
+case requires refreshing shared RT annotations. The first attempted jagged
+fixture misused a helper for concatenated residue ranges; its eight setup
+failures are not counted as product evidence. Correcting the fixture yields
+**nine reproduced scoring/annotation failures** before the fix.
+
+Three more tests check released-owner lifetime with a still-live rendered
+scorer, reject duplicate lookup names and prohibit per-residue tensor `.item()`
+reads during setup. The isolated initial candidate passes 17 CPU tests; the
+final production scoring/resolver suite passes **25 tests / 25 CUDA skips**.
+
+Slurm **249931** passes **119 tests with no skips** across scoring/resolvers,
+mirror-image scoring, D-residue repacking, noncanonical rotamers, group geometry
+and conjugated packing. Slurm preempted the first attempt at 00:11:19 UTC and
+automatically restarted it once. Only the completed XML is counted. The final
+batch completes **0:0** in **00:09:11**, with peak host RSS **7202176K**.
+
+Setup now reads small name/index/offset metadata on the host once per term,
+replacing per-RT Pandas indexing and device-scalar reads. Packing creates an
+int32 NumPy table per field and transfers it once, replacing individual device
+allocations/assignments for every residue type. The production file is shorter
+by 32 lines. The numerical table construction, torsion definitions and scoring
+kernels are unchanged.
+
+The paired profiler compares the exact preceding class from `24df324dc`.
+Across 230 types, **2,760 RT fields and all 12 packed tensor fields match exactly**.
+The packed tensor storage remains **76,360 bytes**. Five alternating rounds of
+five samples measure:
+
+| Device | Cold setup, previous → current | Repeated setup, previous → current |
+| --- | ---: | ---: |
+| CPU | 55.487 → 3.117 ms | 26.300 → 45.369 µs |
+| CUDA | 110.069 → 3.767 ms | 26.215 → 43.620 µs |
+
+Cold setup improves **17.80× CPU / 29.22× CUDA**. Repeated setup
+adds a small host cost for validating identity instead of checking only attribute
+existence. Cold includes term construction and RT/PBT annotation; database and
+resolver construction, fresh object copies and actual scoring are excluded.
+Tensor byte totals exclude retained host lookup metadata, temporary arrays,
+allocator overhead and process RSS. No kernel or whole-application speedup is
+claimed. The remapped library is an identity fixture, not a fitted physical model.
+
+Comment 70 records this separate scoring defect. Exact source hashes, intermediate
+failures, test inventories, complete timings and scheduler accounting are in
+[results/dun-scoring-validation.json](results/dun-scoring-validation.json).
+Black, Flake8 and whitespace checks pass. Independent DOF-copy prototypes remain
+outside production until their shared-table integration is checked separately.
