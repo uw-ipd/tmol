@@ -1,0 +1,136 @@
+{
+  "standard_aw_atom37_slots_match_af2": true,
+  "atomworks_protein_tokens": {
+    "1": "ALA",
+    "2": "ARG",
+    "3": "ASN",
+    "4": "ASP",
+    "5": "CYS",
+    "6": "GLN",
+    "7": "GLU",
+    "8": "GLY",
+    "9": "HIS",
+    "10": "ILE",
+    "11": "LEU",
+    "12": "LYS",
+    "13": "MET",
+    "14": "PHE",
+    "15": "PRO",
+    "16": "SER",
+    "17": "THR",
+    "18": "TRP",
+    "19": "TYR",
+    "20": "VAL"
+  },
+  "af2_residue_codes": [
+    "A",
+    "R",
+    "N",
+    "D",
+    "C",
+    "Q",
+    "E",
+    "G",
+    "H",
+    "I",
+    "L",
+    "K",
+    "M",
+    "F",
+    "P",
+    "S",
+    "T",
+    "W",
+    "Y",
+    "V"
+  ],
+  "openfold_ALA_atom14": [
+    "N",
+    "CA",
+    "C",
+    "O",
+    "CB",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
+  ],
+  "aw_ALA_atom37_nonempty": {
+    "0": "N",
+    "1": "CA",
+    "2": "C",
+    "3": "CB",
+    "4": "O",
+    "36": "OXT"
+  },
+  "rf2_ALA_atoms": [
+    "N",
+    "CA",
+    "C",
+    "O",
+    "CB",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "H",
+    "HA",
+    "1HB",
+    "2HB",
+    "3HB",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  "backbone_via_biotite_atom37_exact": true,
+  "backbone_via_biotite_atom37_gradient_exact": true,
+  "pure_atomarray_retains_autograd": false,
+  "overlay_nan_uses_reference": true,
+  "pr380_token_-2": {
+    "accepted": true,
+    "res_types": [
+      [
+        -1,
+        -1
+      ]
+    ]
+  },
+  "pr380_token_-1": {
+    "accepted": true,
+    "res_types": [
+      [
+        -1,
+        -1
+      ]
+    ]
+  },
+  "pr380_X_accepted": false,
+  "pr380_X_error": "aa_order entry 'X' (None) is not a canonical AA",
+  "pr380_preserves_infinity": true,
+  "master_commit": "c8dfab919938c7466155f659b6f5b3b939fa21ca",
+  "pr380_commit": "513609e6d644d1889def2cf082d3b8d9d7a10386",
+  "review_commit": "01159dd7adc8ec9ff7bdb4c9d5b3867a1cc3958e",
+  "scope": "CPU canonical tensor mapping and input validation only; not a new end-to-end packing or performance measurement",
+  "script_sha256": "18763f00801237dbf89e87d24d52e7d68a04eb416a581db88f82e17a25b955fc",
+  "portable_reproduction": {
+    "script": "review/pr503/check_input_encodings.py",
+    "sha256": "c69b23fdf508a6a55c840d31d6ea91098f0ada015a62f14d21f6a1e8dbf4a523",
+    "result_matches_original": true,
+    "command": "Run from the audited master checkout with PYTHONPATH=.: python /path/to/check_input_encodings.py --pr380-module /path/to/exported_pr380_module.py --output result.json"
+  }
+}

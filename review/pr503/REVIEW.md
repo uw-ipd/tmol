@@ -1,5 +1,9 @@
 # Review of tmol PR #503
 
+The final complex-input audit adds findings 92–100 in
+[CORPUS_FINDINGS.md](CORPUS_FINDINGS.md). The proposed shared file/tensor input
+contract and PR #380 review are in [INPUT_CONTRACT.md](INPUT_CONTRACT.md).
+
 Reviewed PR: https://github.com/uw-ipd/tmol/pull/503  
 Author branch: `dimaio/noncanonicals_through_ligand_pipeline`  
 Initial pinned head: `c03c1e745f3bc655948ea12dac44d6c74620358f`\

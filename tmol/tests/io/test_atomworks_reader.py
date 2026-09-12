@@ -32,6 +32,16 @@ def test_label_template_substitution_cannot_silently_erase_unknown_atom():
         )
 
 
+def test_leaving_group_completion_cannot_silently_erase_observed_phosphate():
+    # The 8OG template flags both OP2 and OP3 as possible leaving atoms.
+    # One polymer linkage must not silently remove both branches. Until the
+    # shared parser resolves this ambiguity, the adapter reports the loss.
+    with pytest.raises(ValueError, match="8OG.OP2"):
+        atom_array_from_cif(
+            DATA / "ncaa_fixtures/na_dna_8og_183d.cif", reader="atomworks"
+        )
+
+
 @pytest.mark.parametrize(
     "fixture", ["capped_peptide_ace_nh2.cif", "beta_peptide_3c3g.cif"]
 )
