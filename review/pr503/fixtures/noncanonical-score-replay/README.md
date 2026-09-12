@@ -30,3 +30,21 @@ and scores them without regenerating conformers or rerunning OptH. This separate
 scoring from environment-dependent generated chemistry. It does not establish an
 independently fitted potential or explain the unreproduced historical beta-peptide
 LJ reference. See `../../FOLLOWUP.md` for the full audit and remaining gates.
+
+
+To check a replay rather than merely record its scores:
+
+```sh
+python review/pr503/verify_noncanonical_replay.py \
+  --reference review/pr503/fixtures/noncanonical-score-replay \
+  --candidate /tmp/tmol-score-replay \
+  --output /tmp/tmol-score-replay-check.json
+```
+
+The verifier checks all input checksums, complete case/term inventories, ordered
+atom identities and types, block types, and exact saved coordinates. It exits
+nonzero when a score exceeds `max(0.01, 0.0001 * abs(reference))`. Both raw and
+hydrogen-optimized cases must be present for all four classes in every repeat.
+These remain diagnostic numerical references for frozen inputs; the verifier
+does not replace the original fresh-generation score tests or independently
+validate the chemical parameter fit.

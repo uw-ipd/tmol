@@ -2741,3 +2741,52 @@ manifest, and the final source is covered by the focused/public-packing gate
 above. Counts overlap. Corrected GPU profiling is Slurm **250870**, **0:0**,
 **18 s**, **2,041,064 KiB**. All jobs are terminal. Black, Flake8 and whitespace
 checks pass; the latest upstream head remains `0593a93b0`.
+
+
+## Recheck scientific reference and attachment gaps at a237928b0
+
+The original fresh-generation score tests and upstream YAML remain unchanged.
+The standalone CPU run has **three passes / two failures / five CUDA skips**:
+DNA and beta-peptide references still differ. The container has **two passes /
+eight failures**, all four classes on CPU/CUDA. Slurm **250872** completes with
+**1:0**, **1:53**, **4,165,168 KiB**; the script preserves the failing pytest
+status while also producing a fixed-input CUDA replay. Passing the replay does
+not turn this job into a passing test run.
+
+The later upstream YAML already corrected the beta-peptide LJ value to about
+122; the original approximately 663 discrepancy is historical. Current
+standalone beta-peptide differences are cart-length **247.5734 vs 247.8785**,
+cart-angle **51.1910 vs 53.5927**, and generic torsion **44.7902 vs 44.7705**.
+The DNA reference retains the previously diagnosed OptH heavy-atom displacement:
+its cart-length value is **253.5855**, compared with **10.8618** after the
+independently tested preservation fix. Container-generated inputs differ further.
+These observations do not reconstruct the unrecorded historical parameter state.
+
+The frozen bundle and exact coordinates instead pass **192/192 per-term
+comparisons** on each backend at the existing numerical tolerance. CPU has
+**190 bit-exact terms**, with two HYP Dunbrack rotdev differences of **3.81e-6**;
+CUDA has 86 exact terms and a maximum difference of **0.00263548**. This provides
+an executable separation between fixed-input scoring and fresh preparation,
+without declaring the generated force field independently validated.
+
+[verify_noncanonical_replay.py](verify_noncanonical_replay.py) now gates this
+comparison. It validates all thirteen input checksums; requires complete,
+nonduplicated case/term inventories; checks atom keys/types, block identities
+and exact coordinates; and returns failure for out-of-tolerance score changes.
+Eight deliberate faults were rejected: changed score, missing case, duplicate
+case, missing term, changed coordinates, changed atom type, corrupted reference
+input and fresh-generation metadata. The replay README gives the exact command.
+
+A fresh default CPU connection probe also reproduces all **14** missing
+attachment stretching/bending responses, while all **three** peptide controls
+retain the expected **369.445 kcal/mol/Å²** stretching stiffness. Kinematic bond
+preservation during packing does not repair this energy-model omission. The
+private capped-MMFF generator remains separate from default preparation pending
+local chemistry/ownership and model-integration work.
+
+Comment 23 is reconciled with the latest YAML and results.
+[results/noncanonical-reference-status.json](results/noncanonical-reference-status.json)
+records source hashes, every fresh-test failure, complete verified replay
+comparisons, fault injection, current attachment probes and scheduler status.
+The broader goal remains active; these are strengthened diagnostics and review
+evidence, not repaired scientific-reference or default attachment gates.

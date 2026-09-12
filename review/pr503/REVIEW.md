@@ -273,6 +273,8 @@ Reproduced on CPU and H200; baseline also fails, including with cyclic inference
 
 Recorded without updating goldens. Environment and baseline/candidate comparison are in the validation record; numerical discrepancies alone do not identify which implementation or reference is scientifically correct.
 
+Latest reconciliation at `a237928b0`: the later upstream YAML lowers beta-peptide LJ repulsion to approximately 122; the original quoted 663 discrepancy is historical. The current standalone CPU run still fails DNA and beta-peptide references; the container fails all four classes on CPU/CUDA. Frozen-input replay passes all 192 term comparisons on each backend, with exact atom identities/types and coordinates. CPU has 190 exact terms and a maximum difference of 3.81e-6; CUDA's maximum is 0.00263548. This separates the numerical replay from fresh preparation and the DNA geometry correction; it does not establish the missing historical parameter provenance or justify a blind YAML refresh. The executable verifier rejects missing cases/terms, duplicate cases, changed coordinates/types, changed scores and corrupted reference inputs. See [results/noncanonical-reference-status.json](results/noncanonical-reference-status.json).
+
 ### 24. P2 — the D repacking test checks labels, not geometry
 
 [tmol/tests/score/test_mirror_image_scoring.py:120](https://github.com/uw-ipd/tmol/blob/c03c1e745f3bc655948ea12dac44d6c74620358f/tmol/tests/score/test_mirror_image_scoring.py#L120).
