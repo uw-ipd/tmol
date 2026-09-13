@@ -215,5 +215,13 @@
     "transformation": "none; complete compressed source",
     "sha256": "50224a3e2fa5e1845b0386e8db9387f1bebad1b27ad998e8262a5d7ea43d4221",
     "bytes": 1514078
+  },
+  {
+    "fixture": "hydrolase_intermediate_1tqh.cif.gz",
+    "source": "https://files.rcsb.org/download/1TQH.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks parse-invariant tests",
+    "transformation": "none; complete compressed source",
+    "sha256": "0086cf08b16f27d42223d0bf42ed9848b46662acc223e68d0dc90bfdbcd53632",
+    "bytes": 121703
   }
 ]

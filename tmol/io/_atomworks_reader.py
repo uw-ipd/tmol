@@ -91,6 +91,7 @@ def read_cif(
             "hetero",
             "atom_name",
             "element",
+            "charge",
             "label_entity_id",
             *(extra_fields or []),
         }

@@ -70,6 +70,7 @@ def test_label_template_substitution_cannot_silently_erase_unknown_atom():
         "ncaa_fixtures/na_dna_8og_183d.cif",
         "ncaa_fixtures/na_dna_5mc_1d17.cif",
         "ncaa_fixtures/na_rna_2ome_310d.cif",
+        "atomworks_regressions/hydrolase_intermediate_1tqh.cif.gz",
     ],
 )
 @pytest.mark.parametrize("reader", ["tmol", "atomworks"])
@@ -93,6 +94,15 @@ def test_shared_parser_builds_and_scores_general_chemistry(
     )
     array = atom_array_from_cif(DATA / fixture, reader=reader)
     array = array[array.res_name != "HOH"]
+    if "1tqh" in fixture:
+        residues = list(struc.residue_iter(array))
+        unresolved = np.array([not np.isfinite(r.coord).any() for r in residues])
+        # AtomWorks also restores five wholly unresolved protein residues.
+        # Their absence from the constructed pose must not hide observed atoms.
+        assert int(unresolved.sum()) == (5 if reader == "atomworks" else 0)
+        keep = np.repeat(~unresolved, [len(r) for r in residues])
+        assert not array.hetero[~keep].any()
+        array = array[keep]
     _assert_all_source_connections(pose, array)
     if "/na_" in fixture:
         # Capping must displace only terminal oxygen, preserving both retained
@@ -116,6 +126,33 @@ def test_shared_parser_builds_and_scores_general_chemistry(
         if "8og" in fixture:
             nucleotide = array[array.res_name == "8OG"]
             assert "OP2" in nucleotide.atom_name and "OP3" not in nucleotide.atom_name
+    if "1tqh" in fixture:
+        # The observed tetrahedral intermediate has four single bonds at CAI:
+        # restoring the free component's carbonyl would overfill that carbon.
+        ligand = array.res_name == "4PA"
+        carbon = int(np.flatnonzero(ligand & (array.atom_name == "CAI"))[0])
+        oxygen = int(np.flatnonzero(ligand & (array.atom_name == "OAD"))[0])
+        neighbors, orders = array.bonds.get_bonds(carbon)
+        assert len(neighbors) == 4 and np.all(orders == struc.BondType.SINGLE)
+        assert oxygen in neighbors and array.charge[oxygen] == -1
+        assert (
+            np.count_nonzero(
+                (array.res_name[neighbors] == "SER")
+                & (array.atom_name[neighbors] == "OG")
+            )
+            == 1
+        )
+        for bi, residue in enumerate(struc.residue_iter(array)):
+            if residue.res_name[0] == "4PA":
+                bt = pose.packed_block_types.active_block_types[
+                    int(pose.block_type_ind[0, bi])
+                ]
+                assert "conj_CAI" in bt.connection_to_cidx
+                offset = int(pose.block_coord_offset[0, bi])
+                indices = [offset + bt.atom_to_idx[str(n)] for n in residue.atom_name]
+                np.testing.assert_array_equal(
+                    pose.coords[0, indices].detach().cpu(), residue.coord
+                )
     _score_and_minimize(pose, context, max_iter=100)
 
 

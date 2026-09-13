@@ -133,3 +133,10 @@ scores and minimizes (10 iterations on CPU, 100 on CUDA). Only unbonded metals
 and water are filtered. Entirely unresolved protein residues and five partially
 resolved 4NDZ termini lacking backbone C are explicit constructor exclusions;
 these remain partial-input workflows, not successful modeling of those residues.
+
+`hydrolase_intermediate_1tqh.cif.gz` is the complete, unmodified source used by
+AtomWorks' parse-invariant tests. The shared input workflow checks its tetrahedral
+SER–4PA intermediate (four single bonds at CAI, OAD charge −1), declared
+connections, supplied ligand coordinates and 100-step minimization through both
+readers. The label reader additionally restores five entirely unresolved protein
+residues; the regression explicitly accounts for their construction exclusion.

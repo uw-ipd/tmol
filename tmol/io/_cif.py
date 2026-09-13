@@ -65,6 +65,7 @@ def _completion_templates(entries):
             "hetero",
             "atom_name",
             "element",
+            "charge",
             "is_leaving_atom",
         }:
             array.del_annotation(name)
@@ -219,7 +220,13 @@ def atom_array_from_cif(
     templates = _completion_templates(
         {name: entry.copy() for name, entry in array._custom_ccd_registry.items()}
     )
-    return with_unresolved_atoms(array, templates, use_ccd=use_ccd)
+    from atomworks.io.utils.leaving_atoms import resolve_overvalent_atoms
+
+    # AtomWorks skips sanitation when its own completion is disabled. Repair
+    # the final author-view graph with the same shared attachment chemistry.
+    return resolve_overvalent_atoms(
+        with_unresolved_atoms(array, templates, use_ccd=use_ccd)
+    )
 
 
 def _with_component_type_annotation(array, block):
@@ -434,15 +441,19 @@ def _inserted(atom_array, starts, additions: dict):
 
 def _placeholder_atoms(atom_array, begin, missing, template):
     """The unresolved atoms of one residue, at NaN, annotated like their residue."""
-    element = {str(n): str(e) for n, e in zip(template.atom_name, template.element)}
+    positions = {str(n): i for i, n in enumerate(template.atom_name)}
+    indices = [positions[n] for n in missing]
     extra = struc.AtomArray(len(missing))
     extra.coord = np.full((len(missing), 3), np.nan, dtype=np.float32)
     for field in atom_array.get_annotation_categories():
         source = atom_array.get_annotation(field)
         if field == "atom_name":
             value = np.array(missing, dtype=str)
-        elif field == "element":
-            value = np.array([element.get(n, "") for n in missing], dtype=source.dtype)
+        elif field in ("element", "charge"):
+            values = getattr(
+                template, field, np.zeros(len(template), dtype=source.dtype)
+            )
+            value = values[indices].astype(source.dtype)
         else:
             value = np.array([source[begin]] * len(missing), dtype=source.dtype)
         extra.set_annotation(field, value)
