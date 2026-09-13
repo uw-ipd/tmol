@@ -97,3 +97,11 @@ all atoms through both readers, preserves all 98,986 observed atoms and 1,076
 waters, then scores/minimizes protein chain A. Scoring that selected chain does
 not validate the complete photosystem's metal-bound cofactors; metals remain
 outside this regression's scoring scope.
+
+`repeated_partner_glycans_1ivo.cif.gz` and `repeated_partner_glycans_1hge.cif.gz`
+retain their complete entries. One NAG connection pattern occurs with chemically
+different partners: its shared local residue frame cannot own the different
+junction bond lengths/angles. The connection-pair records retain those generator
+targets with K300/K80. The regression excludes waters and explicitly unbonded
+metals, verifies distinct pair-specific targets, and reconstructs/scores/minimizes
+both residue orders through both readers without dropping glycans or their bonds.

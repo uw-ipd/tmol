@@ -238,8 +238,8 @@ def _named_chirality(atom, named):
 
 
 def _context_signature(model, mol, props, heavy_map, locals_):
-    # Include chemical identity as well as numerical MMFF assignments. Two
-    # isomers can have the same MMFF types and charges without being one type.
+    # Preserve named chemistry and typing; charges are checked on the actual
+    # local records, since the conserved-charge model does not use MMFF charges.
     named = {heavy_map[i]: str(model.atom_array.atom_name[i]) for i in locals_}
     atoms = []
     for index, name in named.items():
@@ -252,7 +252,6 @@ def _context_signature(model, mol, props, heavy_map, locals_):
                 atom.GetFormalCharge(),
                 _named_chirality(atom, named),
                 props.GetMMFFAtomType(index),
-                round(props.GetMMFFPartialCharge(index), 12),
                 sum(n.GetAtomicNum() == 1 for n in atom.GetNeighbors()),
                 tuple(
                     sorted(

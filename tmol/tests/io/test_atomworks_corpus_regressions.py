@@ -258,21 +258,44 @@ def _assert_all_source_connections(pose, array):
 
 
 @pytest.mark.parametrize("reader", ["tmol", "atomworks"])
-def test_repeated_glycans_share_transferable_attachment_targets(reader, torch_device):
+@pytest.mark.parametrize(
+    "fixture, shared_type",
+    [
+        ("repeated_glycans_6mub", None),
+        ("repeated_partner_glycans_1ivo", "NAG:conj_C1"),
+        ("repeated_partner_glycans_1hge", "NAG:conj_C1:conj_O4"),
+    ],
+)
+def test_repeated_glycans_share_transferable_attachment_targets(
+    reader, torch_device, fixture, shared_type
+):
     from tmol.io import build_context_from_biotite
     from tmol.ligand._connection_params import generate_conjugate_connection_params
 
-    array = atom_array_from_cif(DATA / "repeated_glycans_6mub.cif.gz", reader=reader)
+    array = atom_array_from_cif(DATA / f"{fixture}.cif.gz", reader=reader)
     array = array[array.res_name != "HOH"]
+    metals = np.isin(np.char.upper(array.element), ("ZN", "NA", "MG", "CA"))
+    assert not metals[array.bonds.as_array()[:, :2]].any()
+    array = array[~metals]
     context = build_context_from_biotite(
         array, torch_device, prepare_ligands=True, ligand_seed=20260909
     )
     database = context.parameter_database
     records = database.scoring.cartbonded.connection_params
-    assert any(
-        r.block_type1 == "MAN:conj_C1" and r.block_type2 == "MAN:conj_C1:conj_O2"
-        for r in records
-    )
+    if shared_type is None:
+        assert any(
+            r.block_type1 == "MAN:conj_C1" and r.block_type2 == "MAN:conj_C1:conj_O2"
+            for r in records
+        )
+    else:
+        targets = {
+            p.x0
+            for r in records
+            if (r.block_type1, r.connection1) == (shared_type, "conj_C1")
+            or (r.block_type2, r.connection2) == (shared_type, "conj_C1")
+            for p in r.length_parameters
+        }
+        assert len(targets) > 1  # Pair-specific targets must not collapse together.
     assert all(p.K == 300 for r in records for p in r.length_parameters)
     assert all(p.K == 80 for r in records for p in r.angle_parameters)
     starts = struc.get_residue_starts(array, add_exclusive_stop=True)

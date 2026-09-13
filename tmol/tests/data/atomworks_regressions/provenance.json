@@ -156,5 +156,21 @@
     "transformation": "none; complete compressed mirror entry",
     "sha256": "2bbdcb66fa073d57cc1b3a292ce1a14736dc925a6d49e2196045dcfc45e311bf",
     "bytes": 2528970
+  },
+  {
+    "fixture": "repeated_partner_glycans_1ivo.cif.gz",
+    "source": "https://files.rcsb.org/download/1IVO.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO tests",
+    "transformation": "none; complete compressed mirror entry",
+    "sha256": "01ae9b0d1d000f1e444e6fc8f190d746fa9716fb75fe511a60a2025b7396fd11",
+    "bytes": 242336
+  },
+  {
+    "fixture": "repeated_partner_glycans_1hge.cif.gz",
+    "source": "https://files.rcsb.org/download/1HGE.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO tests",
+    "transformation": "none; complete compressed mirror entry",
+    "sha256": "d86092cfb011f2fe4a38753ef51a8b1ddc9ba79195f2b94e66df8e6a8b96421d",
+    "bytes": 384172
   }
 ]

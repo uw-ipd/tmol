@@ -257,7 +257,11 @@ def _correct_bonded(
 
 
 def _correct_icoors(rt, mol, props, mapping, neighbors, atoms, bonded, baseline):
-    """Use the same targets for construction, including planar retained H."""
+    """Use local atom targets and residue-local connection frames for construction.
+
+    Partner-specific bond geometry belongs to connection-pair records. Group
+    packing measures those bonds from the pose, not the virtual port coordinates.
+    """
     previous_lengths = set(baseline.length_parameters)
     previous_angles = set(baseline.angle_parameters)
     lengths = {
@@ -283,21 +287,10 @@ def _correct_icoors(rt, mol, props, mapping, neighbors, atoms, bonded, baseline)
             values["theta"] = math.pi - angle
         if values:
             icoors[ic.name] = attr.evolve(ic, **values)
-    mapped = set(mapping.values())
     for conn in rt.connections:
         if not conn.name.startswith(CONNECTION_PREFIX):
             continue
         root = mapping[conn.atom]
-        remote = [
-            a.GetIdx()
-            for a in mol.GetAtomWithIdx(root).GetNeighbors()
-            if a.GetIdx() not in mapped
-        ]
-        if len(remote) != 1:
-            raise ValueError(
-                f"Ambiguous attachment construction frame at {rt.name},{conn.name}"
-            )
-        remote = remote[0]
         ic = icoors[conn.name]
         heavy = [
             n
@@ -363,11 +356,7 @@ def _correct_icoors(rt, mol, props, mapping, neighbors, atoms, bonded, baseline)
                 -float(vector @ frame[:3, 0]), float(vector @ frame[:3, 1])
             )
             ic = attr.evolve(ic, grand_parent=grand, great_grand_parent=great, phi=phi)
-        bond = props.GetMMFFBondStretchParams(mol, root, remote)
-        angle = props.GetMMFFAngleBendParams(mol, mapping[grand], root, remote)
-        icoors[conn.name] = attr.evolve(
-            ic, d=bond[2], theta=math.pi - math.radians(angle[2])
-        )
+        icoors[conn.name] = ic
         # A one-H amide must use the actual partner connection as its plane
         # reference. A frame on the old amine's sidechain cannot enforce this.
         if physical[conn.atom] == "Nad":
