@@ -483,6 +483,13 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_poses</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">poses</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">HBondEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_poses</span><span class="p">(</span><span class="n">poses</span><span class="p">)</span>
+        <span class="c1"># Count actual residues once, before scoring or CUDA Graph capture.</span>
+        <span class="c1"># Padded stack size alone can overestimate work in jagged batches.</span>
+        <span class="n">poses</span><span class="o">.</span><span class="n">_hbond_allow_split_pairs</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">poses</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"cuda"</span>
+            <span class="ow">and</span> <span class="n">poses</span><span class="o">.</span><span class="n">block_type_ind</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="mi">4096</span>
+            <span class="ow">and</span> <span class="nb">int</span><span class="p">((</span><span class="n">poses</span><span class="o">.</span><span class="n">block_type_ind</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span> <span class="o">&gt;=</span> <span class="mi">2048</span>
+        <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">pose_score_hbond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.hbond.potentials</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -494,6 +501,7 @@
         <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
         <span class="n">block_pair_scoring</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
         <span class="n">shared_block_neighbors</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">allow_split_pairs</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="s2">"_hbond_allow_split_pairs"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
         <span class="n">coords_dtype</span> <span class="o">=</span> <span class="n">common_args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span>
         <span class="n">pair_param_table</span><span class="p">,</span> <span class="n">pair_poly_table</span><span class="p">,</span> <span class="n">global_param_table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_param_tables</span><span class="p">(</span>
             <span class="n">coords_dtype</span>
@@ -553,6 +561,7 @@
             <span class="n">derived_atom_inds</span><span class="p">,</span>
             <span class="n">block_pair_scoring</span><span class="p">,</span>
             <span class="n">shared_block_neighbors</span><span class="p">,</span>
+            <span class="n">allow_split_pairs</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">rotamer_score_hbond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -630,6 +639,12 @@
         <span class="k">if</span> <span class="n">shared_dispatch_indices</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">score_args</span> <span class="o">+=</span> <span class="p">(</span><span class="n">shared_dispatch_indices</span><span class="p">,)</span>
         <span class="k">return</span> <span class="n">score_op</span><span class="p">(</span><span class="o">*</span><span class="n">score_args</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">score_only_in_no_grad</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># CPU compilers can round score-only and derivative paths differently</span>
+        <span class="c1"># (including float64 on ARM). Preserve tracked-input values there.</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"cuda"</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_pose_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose_score_hbond</span>

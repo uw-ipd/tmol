@@ -458,8 +458,7 @@
         <span class="k">return</span> <span class="mi">1</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">set_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">options</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
-        <span class="k">if</span> <span class="s2">"ref_weights"</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">weights_override</span> <span class="o">=</span> <span class="n">options</span><span class="p">[</span><span class="s2">"ref_weights"</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weights_override</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"ref_weights"</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_resolved_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""The ref-weight map this term scores with (override beats the db default)."""</span>

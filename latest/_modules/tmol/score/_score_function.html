@@ -1286,6 +1286,14 @@
             <span class="n">ljlk_module</span><span class="o">.</span><span class="n">block_neighbor_cutoff</span><span class="p">,</span> <span class="n">elec_module</span><span class="o">.</span><span class="n">block_neighbor_cutoff</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_score_types</span> <span class="o">=</span> <span class="n">ljlk_module</span><span class="o">.</span><span class="n">n_score_types</span> <span class="o">+</span> <span class="n">elec_module</span><span class="o">.</span><span class="n">n_score_types</span>
+        <span class="c1"># Topology is fixed at render time; count once, before graph capture.</span>
+        <span class="c1"># Native rotamer arrays include padding on jagged pose stacks.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_valid_rots</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">block_types</span> <span class="o">=</span> <span class="n">ljlk_module</span><span class="o">.</span><span class="n">common_parameters</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+        <span class="c1"># Below the native gradient threshold, even all-valid storage cannot</span>
+        <span class="c1"># benefit from specialization; avoid a device synchronization there.</span>
+        <span class="k">if</span> <span class="n">block_types</span><span class="o">.</span><span class="n">is_cuda</span> <span class="ow">and</span> <span class="n">block_types</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="mi">1024</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_valid_rots</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">block_types</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">build_compact_block_neighbors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">reach</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ljlk_module</span><span class="o">.</span><span class="n">build_compact_block_neighbors</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">reach</span><span class="p">)</span>
@@ -1307,7 +1315,7 @@
         <span class="c1"># composite selects arguments from each child's dtype-adjusted static</span>
         <span class="c1"># tail rather than bypassing it and reading raw float32 parameters.</span>
         <span class="p">(</span><span class="n">scores</span><span class="p">,)</span> <span class="o">=</span> <span class="n">ljlk_elec_pose_scores</span><span class="p">(</span>
-            <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_native_arguments</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">shared_block_neighbors</span><span class="p">)</span>
+            <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_native_arguments</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">shared_block_neighbors</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_valid_rots</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">scores</span>
 
@@ -1318,7 +1326,9 @@
         <span class="k">if</span> <span class="n">score_weights</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">coords</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
             <span class="n">score_weights</span> <span class="o">=</span> <span class="n">score_weights</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
         <span class="p">(</span><span class="n">scores</span><span class="p">,)</span> <span class="o">=</span> <span class="n">ljlk_elec_weighted_pose_scores</span><span class="p">(</span>
-            <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_native_arguments</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">shared_block_neighbors</span><span class="p">),</span> <span class="n">score_weights</span>
+            <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_native_arguments</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">shared_block_neighbors</span><span class="p">),</span>
+            <span class="n">score_weights</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_valid_rots</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">scores</span>
 
@@ -1853,6 +1863,8 @@
         <span class="k">if</span> <span class="n">mode</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"forward_backward"</span><span class="p">,</span> <span class="s2">"both"</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span> <span class="s2">"_cuda_graphed_autograd"</span>
         <span class="p">):</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.common._cuda_graph</span><span class="w"> </span><span class="kn">import</span> <span class="n">CapturedScoringGraph</span>
+
             <span class="n">graph_module</span> <span class="o">=</span> <span class="n">_DefaultWholePoseScoringModule</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_execution_modules</span><span class="p">,</span>
@@ -1864,16 +1876,13 @@
                 <span class="n">torch</span><span class="o">.</span><span class="n">enable_grad</span><span class="p">(),</span>
                 <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">(),</span>
             <span class="p">):</span>
-                <span class="c1"># PyTorch's backward-capture warmup retains the sample leaf's</span>
-                <span class="c1"># default-stream AccumulateGrad node. Capture and replay are</span>
-                <span class="c1"># valid; suppress only that known internal warning.</span>
+                <span class="c1"># Scoring parameters may retain an AccumulateGrad node on</span>
+                <span class="c1"># another stream. Suppress only that known warmup warning.</span>
                 <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span>
                     <span class="s2">"ignore"</span><span class="p">,</span>
                     <span class="n">message</span><span class="o">=</span><span class="s2">"The AccumulateGrad node's stream does not match"</span><span class="p">,</span>
                 <span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_cuda_graphed_autograd</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">make_graphed_callables</span><span class="p">(</span>
-                    <span class="n">graph_module</span><span class="p">,</span> <span class="p">(</span><span class="n">sample</span><span class="p">,),</span> <span class="n">allow_unused_input</span><span class="o">=</span><span class="kc">True</span>
-                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_cuda_graphed_autograd</span> <span class="o">=</span> <span class="n">CapturedScoringGraph</span><span class="p">(</span><span class="n">graph_module</span><span class="p">,</span> <span class="n">sample</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span></div>
 </div>
 
@@ -2389,6 +2398,9 @@
             <span class="k">if</span> <span class="n">dispatch_key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">cutoff</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">dispatch_by_key</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">dispatch_key</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">cutoff</span><span class="p">,</span> <span class="n">result</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
             <span class="k">yield</span> <span class="n">term</span><span class="p">,</span> <span class="n">result</span><span class="p">,</span> <span class="n">already_weighted</span>
+            <span class="c1"># The consumer has retained the weighted values. Release the raw</span>
+            <span class="c1"># lanes before the next native call allocates another score table.</span>
+            <span class="k">del</span> <span class="n">result</span>
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_matching_layout</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">all_indices</span><span class="p">,</span> <span class="n">layouts_by_nnz</span><span class="p">):</span>
@@ -2533,6 +2545,11 @@
             <span class="k">if</span> <span class="n">n_poses</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">n_poses</span> <span class="o">=</span> <span class="n">term</span><span class="o">.</span><span class="n">n_poses</span>
                 <span class="n">n_rots</span> <span class="o">=</span> <span class="n">term</span><span class="o">.</span><span class="n">n_rots</span>
+            <span class="c1"># Loop locals otherwise keep the previous raw table (and, after</span>
+            <span class="c1"># merging layouts, its temporary weighted values) alive during</span>
+            <span class="c1"># the next call to the result generator. Autograd retains any</span>
+            <span class="c1"># tensors it still needs for differentiable scoring.</span>
+            <span class="k">del</span> <span class="n">scores</span><span class="p">,</span> <span class="n">weighted_values</span>
 
         <span class="k">return</span> <span class="n">all_indices</span><span class="p">,</span> <span class="n">all_values</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">,</span> <span class="n">n_rots</span>
 

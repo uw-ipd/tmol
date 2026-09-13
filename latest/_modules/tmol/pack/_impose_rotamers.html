@@ -466,20 +466,14 @@
 
     <span class="c1"># map from the subset of blocks and bump-checked rotamer</span>
     <span class="c1"># to an assignment in the original rotamer-set indexing</span>
-    <span class="n">assignment</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
-        <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
-    <span class="p">)</span>
-    <span class="n">is_nonmolten_block</span> <span class="o">=</span> <span class="n">rotamer_for_nonmolten_block</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
-    <span class="n">assignment</span><span class="p">[</span><span class="n">is_nonmolten_block</span><span class="p">]</span> <span class="o">=</span> <span class="n">rotamer_for_nonmolten_block</span><span class="p">[</span><span class="n">is_nonmolten_block</span><span class="p">]</span>
+    <span class="n">assignment</span> <span class="o">=</span> <span class="n">rotamer_for_nonmolten_block</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
 
     <span class="n">is_real_block</span> <span class="o">=</span> <span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
     <span class="n">is_molten_block</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
         <span class="n">rotamer_for_nonmolten_block</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">is_real_block</span>
     <span class="p">)</span>
-    <span class="n">molten_block_arange</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">max_n_molten_blocks</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">molten_block_arange</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+        <span class="n">max_n_molten_blocks</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
     <span class="p">)</span>
     <span class="n">is_real_molten_block</span> <span class="o">=</span> <span class="n">molten_block_arange</span> <span class="o">&lt;</span> <span class="n">n_molten_blocks_per_pose</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
     <span class="n">bc_assignment_global</span> <span class="o">=</span> <span class="p">(</span>
@@ -494,8 +488,6 @@
         <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
     <span class="p">)</span>
     <span class="n">new_rot_for_block64</span> <span class="o">=</span> <span class="n">assignment</span>
-
-    <span class="n">is_real_block</span> <span class="o">=</span> <span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
 
     <span class="n">new_block_type_ind64</span><span class="p">[</span><span class="n">is_real_block</span><span class="p">]</span> <span class="o">=</span> <span class="n">rotamer_set</span><span class="o">.</span><span class="n">block_type_ind_for_rot</span><span class="p">[</span>
         <span class="n">new_rot_for_block64</span><span class="p">[</span><span class="n">is_real_block</span><span class="p">]</span>
@@ -533,35 +525,18 @@
     <span class="n">max_n_atoms_arange64</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
         <span class="n">max_n_atoms_per_block</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
     <span class="p">)</span>
-    <span class="n">max_n_atoms_arange64</span> <span class="o">=</span> <span class="n">max_n_atoms_arange64</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span>
-        <span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">max_n_atoms_per_block</span>
-    <span class="p">)</span>
-
-    <span class="n">pose_for_atom64</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
-    <span class="n">pose_for_atom64</span> <span class="o">=</span> <span class="n">pose_for_atom64</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span>
-        <span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">max_n_atoms_per_block</span>
-    <span class="p">)</span>
+    <span class="n">max_n_atoms_arange64</span> <span class="o">=</span> <span class="n">max_n_atoms_arange64</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
 
     <span class="n">pose_offset_for_atom64</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span> <span class="o">*</span> <span class="n">new_max_n_pose_atoms</span>
     <span class="p">)</span>
-    <span class="n">pose_offset_for_atom64</span> <span class="o">=</span> <span class="n">pose_offset_for_atom64</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span>
-        <span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">max_n_atoms_per_block</span>
-    <span class="p">)</span>
-
-    <span class="n">block_for_atom64</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">max_n_atoms_per_block</span><span class="p">)</span>
-    <span class="p">)</span>
+    <span class="n">pose_offset_for_atom64</span> <span class="o">=</span> <span class="n">pose_offset_for_atom64</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
     <span class="n">pose_coords1d_offset_for_atom64</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">new_n_atoms_offset64</span><span class="p">[</span><span class="n">pose_for_atom64</span><span class="p">,</span> <span class="n">block_for_atom64</span><span class="p">]</span> <span class="o">+</span> <span class="n">pose_offset_for_atom64</span>
+        <span class="n">new_n_atoms_offset64</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">pose_offset_for_atom64</span>
     <span class="p">)</span>
 
-    <span class="n">new_n_atoms_for_atoms_block64</span> <span class="o">=</span> <span class="n">new_n_atoms_per_block64</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span>
-        <span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">max_n_atoms_per_block</span>
-    <span class="p">)</span>
+    <span class="n">new_n_atoms_for_atoms_block64</span> <span class="o">=</span> <span class="n">new_n_atoms_per_block64</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
     <span class="n">is_pose_atom_real</span> <span class="o">=</span> <span class="n">max_n_atoms_arange64</span> <span class="o">&lt;</span> <span class="n">new_n_atoms_for_atoms_block64</span>
 
     <span class="n">dst_inds</span> <span class="o">=</span> <span class="p">(</span><span class="n">pose_coords1d_offset_for_atom64</span> <span class="o">+</span> <span class="n">max_n_atoms_arange64</span><span class="p">)[</span>
@@ -575,9 +550,7 @@
         <span class="n">new_rot_for_block64</span><span class="p">[</span><span class="n">is_real_block</span><span class="p">]</span>
     <span class="p">]</span>
     <span class="n">rot_coord_offset_for_block64</span> <span class="o">=</span> <span class="n">rot_coord_offset_for_block32</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-    <span class="n">rot_coord_offset_for_atom64</span> <span class="o">=</span> <span class="n">rot_coord_offset_for_block64</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span>
-        <span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">max_n_atoms_per_block</span>
-    <span class="p">)</span>
+    <span class="n">rot_coord_offset_for_atom64</span> <span class="o">=</span> <span class="n">rot_coord_offset_for_block64</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
     <span class="n">src_inds</span> <span class="o">=</span> <span class="p">(</span><span class="n">rot_coord_offset_for_atom64</span> <span class="o">+</span> <span class="n">max_n_atoms_arange64</span><span class="p">)[</span><span class="n">is_pose_atom_real</span><span class="p">]</span>
 
     <span class="c1"># now lets copy the coordinates</span>
@@ -656,7 +629,7 @@
         <span class="c1"># new_atom_b_factor[is_real_atom]</span>
         <span class="n">new_pose_at_is_real</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
             <span class="n">new_max_n_pose_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">new_n_pose_atoms</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span> <span class="o">&lt;</span> <span class="n">new_n_pose_atoms</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">new_pose_at_is_real</span> <span class="o">=</span> <span class="n">new_pose_at_is_real</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
 
         <span class="n">new_atom_b_factor</span><span class="p">[</span><span class="n">new_pose_at_is_real</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_expanded_b_factor</span><span class="p">[</span>

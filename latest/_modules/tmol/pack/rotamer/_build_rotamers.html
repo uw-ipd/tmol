@@ -425,7 +425,7 @@
     <span class="n">Tensor</span><span class="p">,</span>
     <span class="n">validate_args</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.tensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">exclusive_cumsum1d</span><span class="p">,</span> <span class="n">stretch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.tensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">exclusive_cumsum1d</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChemicalDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics</span><span class="w"> </span><span class="kn">import</span> <span class="n">KinForest</span><span class="p">,</span> <span class="n">NodeType</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
@@ -788,9 +788,10 @@
             <span class="n">numpy</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">lengths</span><span class="p">)</span> <span class="o">-</span> <span class="n">lengths</span><span class="p">,</span> <span class="n">lengths</span>
         <span class="p">)</span>
         <span class="n">source</span> <span class="o">=</span> <span class="n">n_nodes_offset_for_rot</span><span class="p">[</span><span class="n">rotamer</span><span class="p">]</span> <span class="o">+</span> <span class="n">starts</span><span class="p">[</span><span class="n">rotamer</span><span class="p">]</span> <span class="o">+</span> <span class="n">within_rotamer</span>
-        <span class="n">values</span> <span class="o">=</span> <span class="n">nodes_orig</span><span class="p">[</span><span class="n">source</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        <span class="n">non_root</span> <span class="o">=</span> <span class="n">values</span> <span class="o">!=</span> <span class="mi">0</span>
-        <span class="n">values</span><span class="p">[</span><span class="n">non_root</span><span class="p">]</span> <span class="o">+=</span> <span class="n">n_atoms_offset_for_rot</span><span class="p">[</span><span class="n">rotamer</span><span class="p">[</span><span class="n">non_root</span><span class="p">]]</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="n">nodes_orig</span><span class="p">[</span><span class="n">source</span><span class="p">]</span>
+        <span class="n">numpy</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+            <span class="n">values</span><span class="p">,</span> <span class="n">n_atoms_offset_for_rot</span><span class="p">[</span><span class="n">rotamer</span><span class="p">],</span> <span class="n">out</span><span class="o">=</span><span class="n">values</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">values</span> <span class="o">!=</span> <span class="mi">0</span>
+        <span class="p">)</span>
         <span class="n">nodes</span><span class="p">[</span><span class="n">output_offset</span> <span class="p">:</span> <span class="n">output_offset</span> <span class="o">+</span> <span class="n">count</span><span class="p">]</span> <span class="o">=</span> <span class="n">values</span>
         <span class="n">output_offset</span> <span class="o">+=</span> <span class="n">count</span>
     <span class="k">assert</span> <span class="n">output_offset</span> <span class="o">==</span> <span class="n">nodes</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -841,23 +842,15 @@
     <span class="n">natomsPerGen</span> <span class="o">=</span> <span class="n">atomStartsStack</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">atomStartsStack</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
     <span class="n">natomsPerGen</span><span class="p">[</span><span class="n">natomsPerGen</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
 
-    <span class="n">cumsumAtomStarts</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">natomsPerGen</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">atomStartsOffsets</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
-        <span class="p">(</span>
-            <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">natomsPerGen</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-            <span class="n">cumsumAtomStarts</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-        <span class="p">),</span>
-        <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-    <span class="p">)</span>
+    <span class="n">atomStartsOffsets</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">natomsPerGen</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">atomStartsOffsets</span> <span class="o">-=</span> <span class="n">natomsPerGen</span>
 
     <span class="n">ngenStack</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span>
         <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">n_scans_per_gen</span><span class="p">[</span><span class="n">block_type_ind_for_conf</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span>
     <span class="p">)</span>
     <span class="n">ngenStack</span><span class="p">[</span><span class="n">ngenStack</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">ngenStackCumsum</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">ngenStack</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-
     <span class="n">scanStarts</span> <span class="o">=</span> <span class="n">update_scan_starts</span><span class="p">(</span>
-        <span class="n">ngenStackCumsum</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+        <span class="n">ngenStack</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span>
         <span class="n">atomStartsOffsets</span><span class="p">,</span>
         <span class="n">scanStartsStack</span><span class="p">,</span>
         <span class="n">genStartsStack</span><span class="p">,</span>
@@ -963,7 +956,7 @@
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_t</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
 
     <span class="nb">id</span> <span class="o">=</span> <span class="n">_t</span><span class="p">(</span>
         <span class="n">nab2</span><span class="p">(</span>
@@ -1056,29 +1049,23 @@
     <span class="c1"># offsets provided by the pose stack</span>
     <span class="n">n_poses</span> <span class="o">=</span> <span class="n">poses</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">max_n_atoms_per_pose</span> <span class="o">=</span> <span class="n">poses</span><span class="o">.</span><span class="n">max_n_pose_atoms</span>
-    <span class="n">max_n_blocks_per_pose</span> <span class="o">=</span> <span class="n">poses</span><span class="o">.</span><span class="n">max_n_blocks</span>
-    <span class="n">per_pose_offset</span> <span class="o">=</span> <span class="n">max_n_atoms_per_pose</span> <span class="o">*</span> <span class="n">stretch</span><span class="p">(</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">poses</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
-        <span class="n">max_n_blocks_per_pose</span><span class="p">,</span>
-    <span class="p">)</span>
+    <span class="n">per_pose_offset</span> <span class="o">=</span> <span class="n">max_n_atoms_per_pose</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+        <span class="n">n_poses</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">poses</span><span class="o">.</span><span class="n">device</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">orig_atom_offset_for_poses_blocks</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="p">(</span>
-            <span class="n">poses</span><span class="o">.</span><span class="n">block_coord_offset</span><span class="o">.</span><span class="n">flatten</span><span class="p">()[</span><span class="n">real_poses_blocks</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-            <span class="o">+</span> <span class="n">per_pose_offset</span><span class="p">[</span><span class="n">real_poses_blocks</span><span class="p">]</span>
-        <span class="p">)</span>
+        <span class="p">(</span><span class="n">poses</span><span class="o">.</span><span class="n">block_coord_offset</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span> <span class="o">+</span> <span class="n">per_pose_offset</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">flatten</span><span class="p">()[</span><span class="n">real_poses_blocks</span><span class="p">]</span>
         <span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
         <span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
     <span class="p">)</span>
 
     <span class="n">n_atoms_for_orig</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">[</span><span class="n">orig_res_block_type_ind</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)]</span>
-    <span class="n">n_atoms_offset_for_orig</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">n_atoms_for_orig</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-    <span class="n">n_atoms_offset_for_orig</span> <span class="o">=</span> <span class="n">n_atoms_offset_for_orig</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-    <span class="n">n_orig_atoms_total</span> <span class="o">=</span> <span class="n">n_atoms_offset_for_orig</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">n_orig_atoms_total</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_atoms_for_orig</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
 
     <span class="n">orig_kinforest</span> <span class="o">=</span> <span class="n">construct_kinforest_for_conformers</span><span class="p">(</span>
         <span class="n">poses</span><span class="o">.</span><span class="n">packed_block_types</span><span class="p">,</span>
         <span class="n">orig_res_block_type_ind</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
-        <span class="nb">int</span><span class="p">(</span><span class="n">n_orig_atoms_total</span><span class="p">),</span>
+        <span class="n">n_orig_atoms_total</span><span class="p">,</span>
         <span class="n">n_atoms_for_orig</span><span class="p">,</span>
         <span class="n">orig_atom_offset_for_poses_blocks</span><span class="p">,</span>
         <span class="n">poses</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
