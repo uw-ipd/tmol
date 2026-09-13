@@ -41,6 +41,21 @@ def test_insertion_codes_keep_missing_atoms_local():
     }
     assert original.array_length() == 5
 
+    # A missing leaving group belongs to the attached instance, even when a
+    # free copy with the same code/number also lacks that group in the input.
+    template.set_annotation("is_leaving_atom", np.array([False, False, True]))
+    first, second = first[:2], second[:2]
+    partner = template[:1].copy()
+    partner.res_id[:] = 2
+    original = struc.concatenate([first, second, partner])
+    original.bonds.add_bond(1, 4, struc.BondType.SINGLE)
+    result = _cif.with_unresolved_atoms(original, {"ZZZ": template}, use_ccd=False)
+    free = result[(result.res_id == 1) & (result.ins_code == "B")]
+    attached = result[(result.res_id == 1) & (result.ins_code == "A")]
+    assert list(free.atom_name) == ["C1", "C2", "C3"]
+    assert list(attached.atom_name) == ["C1", "C2"]
+    assert np.isnan(free.coord[-1]).all()
+
 
 def test_connections_distinguish_insertion_codes():
     first, second = component(), component()
@@ -48,7 +63,7 @@ def test_connections_distinguish_insertion_codes():
     second.ins_code[:] = "B"
     original = struc.concatenate([first, second])
     original.bonds.add_bond(2, 3, struc.BondType.SINGLE)
-    assert _cif._connection_atoms_by_name(original) == {"ZZZ": {"C1", "C3"}}
+    assert _cif._connection_atoms_by_residue(original) == {0: {"C3"}, 1: {"C1"}}
 
 
 def test_dictionary_is_read_once_per_component_per_call(monkeypatch):

@@ -16,7 +16,6 @@ through the usual sidechain path rather than through anything new.
 import logging
 
 import biotite.structure as struc
-import biotite.structure.info as info
 import biotite.structure.io.pdbx as pdbx
 import numpy as np
 
@@ -45,11 +44,11 @@ def component_chemistry_from_cif(cif_path) -> dict:
     return entries
 
 
-def component_chemistry_from_block(block) -> dict:
-    """Read authored component chemistry without dictionary supplementation."""
+def component_chemistry_from_block(block, *, use_ccd=False) -> dict:
+    """Read authored chemistry, optionally supplementing missing annotations."""
     from atomworks.io.utils.ccd import build_ccd_entries_from_cif_block
 
-    entries = build_ccd_entries_from_cif_block(block, supplement_from_ccd=False)
+    entries = build_ccd_entries_from_cif_block(block, supplement_from_ccd=use_ccd)
     for array in entries.values():
         # Preserve the legacy template contract; structure-level metadata is
         # attached separately before parameter preparation.
@@ -61,6 +60,7 @@ def component_chemistry_from_block(block) -> dict:
             "hetero",
             "atom_name",
             "element",
+            "is_leaving_atom",
         }:
             array.del_annotation(name)
         array.coord[:] = np.nan
@@ -95,58 +95,17 @@ def _element_from_name(name: str) -> str:
     return get_element_from_atom_name(name)
 
 
-def expected_atoms_from_chemistry(template, observed, ends) -> frozenset:
-    """The heavy atoms a copy of this residue in this structure should carry.
-
-    ``template`` declares the free molecule, so it also names the atoms
-    polymerizing displaces -- the hydroxyl of an acid, a proton of an amine.
-    Those are absent by chemistry rather than by density, and are told apart by
-    hanging off one of the backbone's ends and appearing in no copy at all.
-    Both ends count, not only the ends the structure shows bonded: a residue at
-    a chain terminus sheds the same atoms as one in the middle, and the variant
-    for that terminus is what puts them back.
-    """
-    heavy = {
-        str(n)
-        for n, e in zip(template.atom_name, template.element)
-        if str(e).strip().upper() != "H"
-    }
-    connections = set(ends or ())
-    if not connections:
-        return frozenset(heavy)
-    adjacency: dict = {}
-    for i, j, _order in template.bonds.as_array():
-        a, b = str(template.atom_name[i]), str(template.atom_name[j])
-        adjacency.setdefault(a, set()).add(b)
-        adjacency.setdefault(b, set()).add(a)
-    shed = {
-        name for name in heavy - observed if adjacency.get(name, set()) & connections
-    }
-    return frozenset(heavy - shed)
-
-
 def _component_dictionary_template(res_name: str):
-    """The component dictionary's account of this residue, or None."""
+    """Read complete chemical annotations from the shared component dictionary."""
+    from atomworks.io.utils.ccd import atom_array_from_ccd_code
+
     try:
-        component = info.residue(res_name)
-    except Exception:
+        component = atom_array_from_ccd_code(
+            res_name, ccd_mirror_path=None, coords=None
+        )
+    except (ValueError, AttributeError):
         return None
     return component if component.bonds is not None else None
-
-
-def _accounts_for(residue, template) -> bool:
-    """Whether a template names every heavy atom the structure resolved."""
-    declared = {
-        str(n)
-        for n, e in zip(template.atom_name, template.element)
-        if str(e).strip().upper() != "H"
-    }
-    heavy = {
-        str(n)
-        for n, e in zip(residue.atom_name, residue.element)
-        if str(e).strip().upper() != "H"
-    }
-    return bool(heavy) and heavy <= declared
 
 
 def atom_array_from_cif(
@@ -244,7 +203,7 @@ def atom_array_from_cif(
     if not include_bonds:
         return array
     return with_unresolved_atoms(
-        array, component_chemistry_from_block(block), use_ccd=use_ccd
+        array, component_chemistry_from_block(block, use_ccd=use_ccd), use_ccd=use_ccd
     )
 
 
@@ -304,19 +263,20 @@ def _with_polymer_entity_flag(atom_array, block):
 def with_unresolved_atoms(atom_array, declared: dict, *, use_ccd: bool = True):
     """``atom_array`` plus the declared atoms it does not resolve, at NaN.
 
-    An atom the chain sheds is not unresolved -- a residue in a chain never had
-    the hydroxyl of its acid -- so those are left out; they are told apart by
-    hanging off one of the backbone's ends.
+    Only declared leaving groups at this instance's connections are absent by
+    chemistry. Unresolved ring and sidechain atoms retain their chemical identity.
     """
+    from atomworks.io.utils.leaving_atoms import get_leaving_atom_groups
     from tmol.ligand._polymer_profile import completed_connection_atoms
 
-    connections = _connection_atoms_by_name(atom_array)
     boundaries = struc.get_residue_starts(atom_array, add_exclusive_stop=True)
     starts = boundaries[:-1]
+    connections = _connection_atoms_by_residue(atom_array, boundaries)
     templates = dict(declared)
+    chemistry = {}
     warned: set = set()
     additions: dict[int, list] = {}
-    for start, stop in zip(starts, boundaries[1:]):
+    for ri, (start, stop) in enumerate(zip(starts, boundaries[1:])):
         res_name = str(atom_array.res_name[start]).strip()
         if res_name not in templates and use_ccd:
             templates[res_name] = _component_dictionary_template(res_name)
@@ -339,7 +299,22 @@ def with_unresolved_atoms(atom_array, declared: dict, *, use_ccd: bool = True):
             continue
         residue = atom_array[start:stop]
         present = {str(n) for n in residue.atom_name}
-        if not _accounts_for(residue, template):
+        if res_name not in chemistry:
+            chemistry[res_name] = (
+                frozenset(
+                    str(n)
+                    for n, e in zip(template.atom_name, template.element)
+                    if e not in ("H", "D")
+                ),
+                get_leaving_atom_groups(template),
+            )
+        heavy, leaving = chemistry[res_name]
+        observed_heavy = {
+            str(n)
+            for n, e in zip(residue.atom_name, residue.element)
+            if e not in ("H", "D")
+        }
+        if not observed_heavy or not observed_heavy <= heavy:
             if res_name in warned:
                 continue
             warned.add(res_name)
@@ -349,11 +324,13 @@ def with_unresolved_atoms(atom_array, declared: dict, *, use_ccd: bool = True):
                 res_name,
             )
             continue
-        ends = completed_connection_atoms(
-            residue, frozenset(connections.get(res_name, ()))
-        )
-        expected = expected_atoms_from_chemistry(template, present, ends)
-        missing = sorted(expected - present)
+        ends = completed_connection_atoms(residue, frozenset(connections.get(ri, ())))
+        missing = set(heavy - present)
+        for end in ends or ():
+            for group in leaving.get(end, ()):
+                if present.isdisjoint(group):
+                    missing.difference_update(group)
+        missing = sorted(missing)
         if missing:
             additions[int(start)] = (missing, template)
     if not additions:
@@ -361,26 +338,24 @@ def with_unresolved_atoms(atom_array, declared: dict, *, use_ccd: bool = True):
     return _inserted(atom_array, starts, additions)
 
 
-def _connection_atoms_by_name(atom_array) -> dict:
-    """Atoms each residue name bonds a neighbouring residue through.
-
-    Collected across every copy: a copy at a chain end is bonded on one side
-    only, and every copy of a name shares one chemistry.
-    """
-    if atom_array.bonds is None or atom_array.bonds.get_bond_count() == 0:
+def _connection_atoms_by_residue(atom_array, boundaries=None) -> dict:
+    """Covalent attachment atoms keyed by contiguous residue instance."""
+    if atom_array.bonds is None:
         return {}
-    names = atom_array.res_name
-    boundaries = struc.get_residue_starts(atom_array, add_exclusive_stop=True)
-    residue_index = np.repeat(np.arange(len(boundaries) - 1), np.diff(boundaries))
-    linked: dict = {}
-    for i, j, _order in atom_array.bonds.as_array():
-        i, j = int(i), int(j)
-        if residue_index[i] == residue_index[j]:
-            continue
-        for at in (i, j):
-            linked.setdefault(str(names[at]).strip(), set()).add(
-                str(atom_array.atom_name[at]).strip()
-            )
+    if boundaries is None:
+        boundaries = struc.get_residue_starts(atom_array, add_exclusive_stop=True)
+    n_residues = len(boundaries) - 1
+    residue_index = np.repeat(
+        np.arange(n_residues, dtype=np.min_scalar_type(n_residues)),
+        np.diff(boundaries),
+    )
+    bonds = atom_array.bonds.as_array()[:, :2]
+    cross = bonds[residue_index[bonds[:, 0]] != residue_index[bonds[:, 1]]]
+    linked = {}
+    for atom in cross.flat:
+        linked.setdefault(int(residue_index[atom]), set()).add(
+            str(atom_array.atom_name[atom]).strip()
+        )
     return linked
 
 

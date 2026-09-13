@@ -21,6 +21,32 @@ from tmol.score import beta2016_score_function
 DATA = Path(__file__).parents[1] / "data" / "atomworks_regressions"
 
 
+def test_partial_sugar_ring_completion_preserves_chemical_identity():
+    inventories = []
+    for reader in ("tmol", "atomworks"):
+        array = atom_array_from_cif(
+            DATA / "partial_sugar_rings_2msb.cif.gz", reader=reader
+        )
+        sugars = [
+            r
+            for r in struc.residue_iter(array)
+            if r.res_name[0] in ("NAG", "BMA", "MAN")
+        ]
+        inventories.append([frozenset(r.atom_name) for r in sugars])
+        partial = sugars[-1]
+        assert partial.res_name[0] == "MAN"
+        assert len(partial) == 11
+        assert {"C1", "C2", "C3", "C4", "C5", "O5"} <= set(partial.atom_name)
+        assert set(partial.atom_name[np.isfinite(partial.coord).all(axis=-1)]) == {"C1"}
+        bonds = {
+            frozenset((str(partial.atom_name[a]), str(partial.atom_name[b])))
+            for a, b, _ in partial.bonds.as_array()
+        }
+        ring = ("C1", "C2", "C3", "C4", "C5", "O5", "C1")
+        assert all(frozenset(pair) in bonds for pair in zip(ring[:-1], ring[1:]))
+    assert inventories[0] == inventories[1]
+
+
 @pytest.mark.parametrize("reader", ["tmol", "atomworks"])
 def test_decreasing_water_author_ids_preserve_full_input(reader, torch_device):
     from tmol.io import build_context_from_biotite

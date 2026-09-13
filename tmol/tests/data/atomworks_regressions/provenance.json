@@ -180,5 +180,13 @@
     "transformation": "none; complete compressed mirror entry",
     "sha256": "cee5648f5407953574da42242e9eb3a49270f0426561e45f3834c3c9713e883d",
     "bytes": 69238
+  },
+  {
+    "fixture": "partial_sugar_rings_2msb.cif.gz",
+    "source": "https://files.rcsb.org/download/2MSB.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO tests",
+    "transformation": "none; complete compressed mirror entry",
+    "sha256": "b633ee769469c230f28e63691a196ab79e71728d4975f4378e8e182b4dd63331",
+    "bytes": 69717
   }
 ]

@@ -110,3 +110,9 @@ glycan workflow excludes water and only unbonded metals, then constructs, scores
 and minimizes both residue orders through both readers. It also checks that the
 ASJ terminal oxygens keep their supplied names and coordinates and that their
 patch scope does not change ASP sidechain atom classification.
+
+`partial_sugar_rings_2msb.cif.gz` is the complete 2MSB mirror entry. The parser
+regression compares both readers' sugar inventories and verifies the complete
+ring and NaN mask of a MAN residue with only C1 resolved. Full scoring/minimization
+remains limited by unresolved stereochemistry and construction frames in two
+glycans; this fixture does not claim those stages pass.
