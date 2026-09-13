@@ -379,17 +379,17 @@ def test_repeated_glycans_share_transferable_attachment_targets(
             retained_source = source[retained]
             asj = []
             for block, residue in zip(blocks, struc.residue_iter(retained_source)):
-                if residue.res_name[0] != "ASJ":
-                    continue
                 bt, offset = block
-                assert "cterm" in bt.name and "conj_C" in bt.name
-                assert {"OD1", "OD2"} <= set(bt.atom_to_idx)
                 observed = residue[np.isfinite(residue.coord).all(axis=-1)]
+                assert len(set(observed.atom_name)) == len(observed)
                 indices = [offset + bt.atom_to_idx[str(n)] for n in observed.atom_name]
                 np.testing.assert_allclose(
                     pose.coords[0, indices].detach().cpu(), observed.coord, atol=1e-6
                 )
-                asj.append(bt)
+                if residue.res_name[0] == "ASJ":
+                    assert "cterm" in bt.name and "conj_C" in bt.name
+                    assert {"OD1", "OD2"} <= set(bt.atom_to_idx)
+                    asj.append(bt)
             assert len(asj) == 1
         if source is reversed_array:
             blocks.reverse()
@@ -416,6 +416,25 @@ def test_unknown_heavy_atom_is_not_silently_deleted():
     assert np.count_nonzero(array.atom_name == "XYZ") == 1
     with pytest.raises(ValueError, match="Heavy atoms.*ASP.*XYZ"):
         canonical_form_from_biotite(array, torch.device("cpu"))
+
+
+def test_duplicate_canonical_atoms_are_rejected(torch_device):
+    array = struc.AtomArray(6)
+    array.res_name[:] = "ALA"
+    array.res_id[:] = 1
+    array.atom_name = ["N", "CA", "C", "O", "CB", "HB1"]
+    array.element = ["N", "C", "C", "O", "C", "H"]
+    array.coord[:] = np.arange(18).reshape(6, 3)
+    for name, alias in (("CA", "CA"), ("HB1", "1HB")):
+        duplicate = array[array.atom_name == name]
+        duplicate.atom_name[:] = alias
+        with pytest.raises(ValueError, match="Multiple input atoms map to canonical"):
+            canonical_form_from_biotite(array + duplicate, torch_device)
+    second = array.copy()
+    second.ins_code[:] = "A"
+    canonical = canonical_form_from_biotite(array + second, torch_device)
+    assert canonical.res_types.shape == (1, 2)
+    assert torch.isfinite(canonical.coords).all(-1).sum() == 2 * len(array)
 
 
 def test_author_named_view_preserves_the_conflicting_label_atom_coordinate():

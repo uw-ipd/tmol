@@ -489,11 +489,22 @@ def _map_atoms_to_canonical(co, atom_res_inds, res_names, atom_names, elements):
     atom_inds = []
     valid = []
     unmapped = set()
+    destinations = set()
     for i, (resname, atname) in enumerate(zip(res_names, atom_names)):
         mapping = co.restypes_atom_index_mapping.get(resname, {})
         idx = mapping.get(atname, -1)
         atom_inds.append(idx)
         valid.append(idx >= 0)
+        if idx >= 0:
+            destination = (int(atom_res_inds[i]), idx)
+            if destination in destinations:
+                raise ValueError(
+                    f"Multiple input atoms map to canonical atom {idx} of "
+                    f"{resname} at residue index {destination[0]} ({atname}). "
+                    "Resolve alternate locations and preserve residue identifiers "
+                    "and insertion codes before constructing a pose."
+                )
+            destinations.add(destination)
         if idx < 0 and str(elements[i]).strip().upper() not in ("H", "D"):
             unmapped.add((int(atom_res_inds[i]), str(resname), str(atname)))
 

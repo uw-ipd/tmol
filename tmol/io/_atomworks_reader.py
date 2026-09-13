@@ -46,6 +46,7 @@ def read_cif(
         "res_name": "auth_comp_id",
         "chain_id": "auth_asym_id",
         "res_id": "auth_seq_id",
+        "ins_code": "pdbx_PDB_ins_code",
     }
     if author_fields:
         options["extra_fields"] = list(
@@ -80,6 +81,7 @@ def read_cif(
                 continue
             if source in array.get_annotation_categories():
                 array.set_annotation(target, array.get_annotation(source).copy())
+        array.ins_code[np.isin(array.ins_code, (".", "?"))] = ""
         retained = {
             "chain_id",
             "res_id",
