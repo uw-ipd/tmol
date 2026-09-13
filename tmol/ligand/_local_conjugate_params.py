@@ -48,6 +48,9 @@ def _disconnected_model(model):
     for a, b, _ in model.connections:
         array.bonds.remove_bond(mapping[a], mapping[b])
         molecule.RemoveBond(mapping[a], mapping[b])
+        # Detached comparison fragments complete the endpoints' open valences.
+        for index in (mapping[a], mapping[b]):
+            molecule.GetAtomWithIdx(index).SetNoImplicit(False)
     molecule.UpdatePropertyCache(strict=False)
     return replace(model, atom_array=array, molecule=molecule.GetMol())
 
