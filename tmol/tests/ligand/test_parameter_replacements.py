@@ -25,8 +25,11 @@ conjugate_input = test_conjugate_model.conjugate_input
 def bundle(conjugate_input, tmp_path_factory):
     _, array, _ = conjugate_input
     path = tmp_path_factory.mktemp("replacement") / "baseline.tmol"
-    baseline, _ = prepare_ligands(array, seed=20250828, params_output=str(path))
-    additions = load_params_file(path)
+    prepare_ligands(array, seed=20250828, params_output=str(path))
+    # The private MMFF-delta diagnostic starts from uncorrected chemistry.
+    # Its harmonic records must not overwrite the default Frank-convention fit.
+    additions = [replace(p, connection_params=()) for p in load_params_file(path)]
+    baseline = inject_ligand_preparations(ParameterDatabase.get_default(), additions)
     result = generate_conjugate_parameters(array, baseline)
     corrections = [
         LigandPreparation(
