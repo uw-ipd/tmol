@@ -15,7 +15,7 @@ import biotite.structure as struc
 import numpy as np
 from rdkit import Chem
 
-from tmol.database import ParameterDatabase
+from tmol.database import ParameterDatabase, inject_residue_params
 from tmol.database.chemical import AtomAlias
 from tmol.io import CanonicalOrdering
 from tmol.ligand._atom_typing import AtomTypeAssignment, assign_tmol_atom_types
@@ -75,6 +75,27 @@ def _partial_charges_for_residue(param_db, residue_name: str) -> dict[str, float
         for parameter in param_db.scoring.elec.atom_charge_parameters
         if parameter.res == residue_name
     }
+
+
+def _prepare_connection_params(atom_array, param_db, ph, seed):
+    from tmol.ligand._connection_params import generate_conjugate_connection_params
+
+    try:
+        records = generate_conjugate_connection_params(
+            atom_array,
+            param_db,
+            ph=ph,
+            seed=seed,
+            existing=param_db.scoring.cartbonded.connection_params,
+        )
+    except ValueError as err:
+        raise LigandPreparationError(
+            f"Cannot generate attachment bond/angle parameters: {err}. "
+            "Supply compatible explicit connection parameters via ligand_params_files."
+        ) from err
+    if records:
+        param_db = inject_residue_params(param_db, [], connection_params=records)
+    return param_db, records
 
 
 def _assert_fragment_names_available(param_db, fragment_preparations) -> None:
@@ -1037,7 +1058,9 @@ def prepare_ligands(  # noqa: C901
     Scans the input AtomArray for residues not in the ParameterDatabase,
     runs each through the unified SMILES→OpenBabel mol2→typing→residue-build
     pipeline, and returns a **new** ParameterDatabase with the ligand data
-    injected.
+    injected. Ligand/glycan attachment lengths and angles use generated capped
+    geometry with the same Cartesian constants as ordinary ligand parameters.
+    Supplied explicit connection records take precedence.
 
     Args:
         atom_array: A biotite AtomArray from a CIF or PDB file.
@@ -1048,7 +1071,8 @@ def prepare_ligands(  # noqa: C901
             mappings are encountered during registration.
         params_files: Optional list of tmol YAML params file paths to
             inject before detection. Residues defined in these files
-            skip the RDKit/OB preparation pipeline.
+            skip residue generation. Missing attachment records are generated;
+            existing records are reused without regeneration.
         params_output: Optional path to write all prepared ligand data
             to a tmol YAML params file for later reuse.
         strict_ligands: If True (default), raise :class:`LigandPreparationError`
@@ -1205,6 +1229,7 @@ def prepare_ligands(  # noqa: C901
 
     if not ligands:
         logger.info("No non-standard residues detected")
+        param_db, _ = _prepare_connection_params(atom_array, param_db, ph, seed)
         if return_fragment_definitions:
             return (
                 param_db,
@@ -1348,6 +1373,11 @@ def prepare_ligands(  # noqa: C901
         )
         param_db = inject_ligand_preparations(
             param_db, preparations, strict_atom_types=strict_atom_types
+        )
+        param_db, records = _prepare_connection_params(atom_array, param_db, ph, seed)
+        preparations[0] = replace(
+            preparations[0],
+            connection_params=(*preparations[0].connection_params, *records),
         )
         canonical_ordering = rebuild_canonical_ordering(param_db)
 

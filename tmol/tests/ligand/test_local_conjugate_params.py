@@ -15,7 +15,26 @@ from tmol.ligand._local_conjugate_params import (
 )
 from tmol.tests.ligand import test_conjugate_model
 
-conjugate_input = test_conjugate_model.conjugate_input
+prepared_conjugate_input = test_conjugate_model.conjugate_input
+
+
+@pytest.fixture(scope="module")
+def conjugate_input(prepared_conjugate_input):
+    # This private MMFF-delta diagnostic compares against a database without
+    # default attachment records; installing it over the Frank fit must conflict.
+    fixture, array, database = prepared_conjugate_input
+    cart = database.scoring.cartbonded
+    return (
+        fixture,
+        array,
+        attr.evolve(
+            database,
+            scoring=attr.evolve(
+                database.scoring,
+                cartbonded=type(cart).from_cartres_dict(cart.residue_params),
+            ),
+        ),
+    )
 
 
 def _charges(database, rt):

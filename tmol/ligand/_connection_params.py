@@ -1,7 +1,7 @@
 """Harmonic attachment parameters derived from complete capped chemistry.
 
-This is a local harmonic approximation to MMFF94 bond/angle terms. It omits
-anharmonic and stretch-bend terms; it is not the full MMFF energy function.
+Generated geometry and constants match the ordinary ligand Cartesian generator.
+The alternate MMFF harmonic source is retained for private diagnostic consumers.
 """
 
 from collections import defaultdict
@@ -18,6 +18,8 @@ from tmol.database.scoring._content_hash import content_hash
 from tmol.ligand._conjugate_model import iter_capped_conjugate_models
 from tmol.ligand._conjugation_patches import CONNECTION_PREFIX, connection_name
 from tmol.ligand._dimorphite_dl import ProtSubstructFuncs, protonate_mol_variants
+from tmol.ligand._conjugate_geometry import generated_conjugate_coordinates
+from tmol.ligand._registry import GENERATED_LENGTH_K, GENERATED_ANGLE_K
 
 # RDKit MMFF/Params.h, MDYNE_A_TO_KCAL_MOL. At equilibrium the bond and
 # radian-angle Hessians are this factor times MMFF kb and ka, respectively.
@@ -82,7 +84,7 @@ def _residue_mapping(model, mol, heavy_map, locals_, restype, elements, neighbor
     return result
 
 
-def _connection_record(mol, props, first, second, maps, names, adjacency):
+def _connection_record(mol, props, first, second, maps, names, adjacency, coords=None):
     connections = [
         next(c for c in rt.connections if c.name == name)
         for rt, name in zip((first, second), names)
@@ -109,30 +111,49 @@ def _connection_record(mol, props, first, second, maps, names, adjacency):
         raise ValueError(
             "Attachment bond order differs from its patched connection type"
         )
-    bond = props.GetMMFFBondStretchParams(mol, *indices)
-    if bond is None:
-        raise ValueError("Missing MMFF94 attachment bond parameter")
-    lengths = (
-        LengthGroup(
-            roots[0], "+" + roots[1], x0=bond[2], K=MMFF_HARMONIC_CONVERSION * bond[1]
-        ),
-    )
+    if coords is None:
+        bond = props.GetMMFFBondStretchParams(mol, *indices)
+        if bond is None:
+            raise ValueError("Missing MMFF94 attachment bond parameter")
+        length, length_k = bond[2], MMFF_HARMONIC_CONVERSION * bond[1]
+    else:
+        length = float(np.linalg.norm(coords[indices[0]] - coords[indices[1]]))
+        length_k = GENERATED_LENGTH_K
+    if not math.isfinite(length) or length <= 0:
+        raise ValueError("Generated attachment bond has degenerate geometry")
+    lengths = (LengthGroup(roots[0], "+" + roots[1], x0=length, K=length_k),)
     angles = []
     for side in (0, 1):
         for neighbor in neighbors[side]:
-            values = props.GetMMFFAngleBendParams(
-                mol, maps[side][neighbor], indices[side], indices[1 - side]
-            )
-            if values is None:
-                raise ValueError("Missing MMFF94 attachment angle parameter")
+            if coords is None:
+                values = props.GetMMFFAngleBendParams(
+                    mol, maps[side][neighbor], indices[side], indices[1 - side]
+                )
+                if values is None:
+                    raise ValueError("Missing MMFF94 attachment angle parameter")
+                angle, angle_k = (
+                    math.radians(values[2]),
+                    MMFF_HARMONIC_CONVERSION * values[1],
+                )
+            else:
+                a = coords[maps[side][neighbor]] - coords[indices[side]]
+                b = coords[indices[1 - side]] - coords[indices[side]]
+                if min(np.linalg.norm(a), np.linalg.norm(b)) <= 0:
+                    raise ValueError(
+                        "Generated attachment angle has degenerate geometry"
+                    )
+                angle, angle_k = (
+                    math.atan2(float(np.linalg.norm(np.cross(a, b))), float(a @ b)),
+                    GENERATED_ANGLE_K,
+                )
             prefix, far = ("", "+") if side == 0 else ("+", "")
             angles.append(
                 AngleGroup(
                     prefix + neighbor,
                     prefix + roots[side],
                     far + roots[1 - side],
-                    x0=math.radians(values[2]),
-                    K=MMFF_HARMONIC_CONVERSION * values[1],
+                    x0=angle,
+                    K=angle_k,
                 )
             )
     return ConnectionCartRes(
@@ -225,12 +246,31 @@ def _context_signature(model, mol, props, heavy_map, locals_):
 
 
 def _model_records(
-    model, candidates_by_site, elements, adjacency, contexts, ph, consumer=None
+    model,
+    candidates_by_site,
+    elements,
+    adjacency,
+    contexts,
+    ph,
+    consumer=None,
+    *,
+    parameter_source="generated-geometry",
+    seed=0,
+    existing=frozenset(),
 ):
     locals_by_residue, sites, links, candidates = _model_members(
         model, candidates_by_site
     )
     if not any(candidates.values()):
+        return
+    pairs = [
+        (ra, ca, first, rb, cb, second)
+        for (ra, ca), (rb, cb) in links
+        for first in candidates[ra]
+        for second in candidates[rb]
+        if frozenset(((first.name, ca), (second.name, cb))) not in existing
+    ]
+    if not pairs:
         return
     mol, props, heavy_map = _parameterized_model(model, ph)
     mappings = {}
@@ -256,26 +296,24 @@ def _model_records(
             )
     if consumer is not None:
         consumer(model, mol, props, heavy_map, candidates, mappings, adjacency)
+    coords = (
+        generated_conjugate_coordinates(mol, seed)
+        if parameter_source == "generated-geometry"
+        else None
+    )
     unmapped = Chem.Mol(mol)
     for atom in unmapped.GetAtoms():
         atom.SetAtomMapNum(0)
     chemical_smiles = Chem.MolToSmiles(Chem.RemoveHs(unmapped))
-    for (ra, ca), (rb, cb) in links:
-        for first in candidates[ra]:
-            for second in candidates[rb]:
-                rts, names = (first, second), (ca, cb)
-                maps = (mappings[ra, first.name], mappings[rb, second.name])
-                if (first.name, ca) > (second.name, cb):
-                    rts, names, maps = rts[::-1], names[::-1], maps[::-1]
-                record = _connection_record(
-                    mol,
-                    props,
-                    *rts,
-                    maps,
-                    names,
-                    [adjacency[rt.name] for rt in rts],
-                )
-                yield record, chemical_smiles
+    for ra, ca, first, rb, cb, second in pairs:
+        rts, names = (first, second), (ca, cb)
+        maps = (mappings[ra, first.name], mappings[rb, second.name])
+        if (first.name, ca) > (second.name, cb):
+            rts, names, maps = rts[::-1], names[::-1], maps[::-1]
+        record = _connection_record(
+            mol, props, *rts, maps, names, [adjacency[rt.name] for rt in rts], coords
+        )
+        yield record, chemical_smiles
 
 
 def _model_identity(model):
@@ -311,18 +349,29 @@ def _model_identity(model):
 
 
 def generate_conjugate_connection_params(
-    atom_array, parameter_database, *, ph=7.4, _model_consumer=None
+    atom_array,
+    parameter_database,
+    *,
+    ph=7.4,
+    seed=0,
+    parameter_source="generated-geometry",
+    existing=(),
+    _model_consumer=None,
 ):
     """Generate complete two-block bond/angle records for prepared attachments.
 
     Exact patched names remain separate, including terminal combinations. A
-    repeated residue/site identity with incompatible MMFF chemistry raises;
+    repeated residue/site identity with incompatible chemistry raises;
     this function does not rename input residues or invent context selection.
-    Existing non-conjugation connections are not assigned new records. This
-    private generator is not yet part of the default preparation pipeline.
+    Existing non-conjugation connections are not assigned new records. Pairs
+    covered by ``existing`` records retain those parameters without regeneration.
+    The default source uses generated ideal geometry and the ordinary ligand
+    Cartesian constants. ``mmff94-harmonic`` is a private diagnostic alternative.
     """
     if not math.isfinite(ph):
         raise ValueError("Conjugate protonation pH must be finite")
+    if parameter_source not in ("generated-geometry", "mmff94-harmonic"):
+        raise ValueError(f"Unknown conjugate parameter source: {parameter_source}")
     chem = parameter_database.chemical
     candidates, adjacency = defaultdict(list), {}
     for rt in chem.residues:
@@ -334,19 +383,34 @@ def generate_conjugate_connection_params(
             if rt.io_equiv_class != rt.base_name:
                 candidates[rt.io_equiv_class, sites].append(rt)
             adjacency[rt.name] = _neighbors(rt)
+    if not candidates:
+        return ()
     for alias in chem.name3_aliases:
         for (base, sites), types in list(candidates.items()):
             if base == alias.read_as:
                 candidates.setdefault((alias.name3, sites), types)
     elements = {a.name: a.element for a in chem.atom_types}
     records, contexts, provenance = {}, {}, defaultdict(set)
+    existing = frozenset(
+        frozenset(((r.block_type1, r.connection1), (r.block_type2, r.connection2)))
+        for r in existing
+    )
     seen = set()
     for model in iter_capped_conjugate_models(atom_array, chem):
         identity = _model_identity(model)
         if identity in seen:
             continue
         for record, smiles in _model_records(
-            model, candidates, elements, adjacency, contexts, ph, _model_consumer
+            model,
+            candidates,
+            elements,
+            adjacency,
+            contexts,
+            ph,
+            _model_consumer,
+            parameter_source=parameter_source,
+            seed=seed,
+            existing=existing,
         ):
             key = (
                 record.block_type1,
@@ -383,18 +447,32 @@ def generate_conjugate_connection_params(
         ),
     }
 
+    if parameter_source == "generated-geometry":
+        from openbabel import openbabel
+
+        method = {
+            "method": "tmol-generated-geometry-cartbonded-v1",
+            "openbabel": openbabel.OBReleaseVersion(),
+            "seed": seed,
+            "length_K": GENERATED_LENGTH_K,
+            "angle_K": GENERATED_ANGLE_K,
+        }
+    else:
+        method = {
+            "method": "tmol-mmff94-harmonic-v1",
+            "approximation": "equilibrium curvature; no anharmonic or stretch-bend terms",
+        }
     return tuple(
         evolve(
             records[key],
             provenance=json.dumps(
                 {
-                    "method": "tmol-mmff94-harmonic-v1",
+                    **method,
                     "rdkit": rdBase.rdkitVersion,
                     "ph": ph,
                     "protonation": protonation,
                     "model": "complete conjugate with polymer caps",
                     "capped_smiles": sorted(provenance[key]),
-                    "approximation": "equilibrium curvature; no anharmonic or stretch-bend terms",
                 },
                 sort_keys=True,
             ),

@@ -105,7 +105,10 @@ def test_generated_records_ignore_coordinates_and_instance_numbering(conjugate_i
     assert generate_conjugate_connection_params(original + second, database) == expected
     for record in expected:
         provenance = json.loads(record.provenance)
-        assert provenance["method"] == "tmol-mmff94-harmonic-v1"
+        assert provenance["method"] == "tmol-generated-geometry-cartbonded-v1"
+        assert provenance["seed"] == 0
+        assert provenance["length_K"] == 300.0
+        assert provenance["angle_K"] == 80.0
         assert provenance["ph"] == 7.4
         assert provenance["protonation"]["selection"] == "first ordered variant"
         assert len(provenance["protonation"]["rules_sha256"]) == 64
@@ -186,21 +189,46 @@ def test_duplicate_groups_parameterized_once_per_call(conjugate_input, monkeypat
     assert calls == [7.4] * count + [6.4] * count
 
 
-def test_generated_record_bundle_preserves_model_provenance(conjugate_input, tmp_path):
+def test_generated_record_bundle_preserves_model_provenance(
+    conjugate_input, tmp_path, monkeypatch
+):
     _, array, database = conjugate_input
-    records = generate_conjugate_connection_params(array, database)
+    records = database.scoring.cartbonded.connection_params
+    assert records == generate_conjugate_connection_params(
+        array, database, seed=20250828
+    )
     path = tmp_path / "generated.tmol"
     prepare_ligands(array, seed=20250828, params_output=str(path))
-    preps = load_params_file(path)
-    preps[0] = replace(preps[0], connection_params=records)
-    write_params_file(preps, path, format="tmol")
     restored = load_params_file(path)
     assert restored[0].connection_params == records
     for base in (ParameterDatabase.get_default(), database):
         enriched = inject_ligand_preparations(base, restored)
         assert enriched.scoring.cartbonded.connection_params == records
-        assert generate_conjugate_connection_params(array, enriched) == records
         assert inject_ligand_preparations(enriched, restored) is enriched
+
+    # Older bundles without attachment records acquire them on preparation.
+    legacy = [replace(p, connection_params=()) for p in restored]
+    write_params_file(legacy, path, format="tmol")
+    regenerated, _ = prepare_ligands(array, params_files=[str(path)], seed=20250828)
+    assert regenerated.scoring.cartbonded.connection_params == records
+
+    # Explicit records are authoritative, including a different scientific fit.
+    custom = attr.evolve(
+        records[0],
+        length_parameters=(attr.evolve(records[0].length_parameters[0], K=123.0),),
+        provenance="user supplied reference",
+    )
+    restored[0] = replace(restored[0], connection_params=(custom, *records[1:]))
+    write_params_file(restored, path, format="tmol")
+
+    def unexpected_generation(*args, **kwargs):
+        pytest.fail("Supplied attachment parameters must not be regenerated")
+
+    monkeypatch.setattr(
+        _connection_params, "generated_conjugate_coordinates", unexpected_generation
+    )
+    reused, _ = prepare_ligands(array, params_files=[str(path)], seed=123)
+    assert reused.scoring.cartbonded.connection_params == restored[0].connection_params
 
 
 def test_attachment_bond_order_must_match_patched_type(conjugate_input):
@@ -301,7 +329,8 @@ def test_generated_attachment_energy_and_gradients(
     conjugate_input, torch_device, block_pairs
 ):
     fixture, array, database = conjugate_input
-    records = generate_conjugate_connection_params(array, database)
+    records = database.scoring.cartbonded.connection_params
+    assert records
     pose = pose_stack_from_biotite(array, torch_device, param_db=database, no_optH=True)
     # Isolate generated terms, so a legacy wildcard cannot mask missing rows.
     isolated = attr.evolve(

@@ -495,7 +495,11 @@ def generate_conjugate_parameters(atom_array, parameter_database, *, ph=7.4):
                 rows[rt.name] = row
 
     connections = connection.generate_conjugate_connection_params(
-        atom_array, parameter_database, ph=ph, _model_consumer=consume
+        atom_array,
+        parameter_database,
+        ph=ph,
+        _model_consumer=consume,
+        parameter_source="mmff94-harmonic",
     )
     result = ConjugateParameters(tuple(rows[name] for name in sorted(rows)), ())
     annotated = []

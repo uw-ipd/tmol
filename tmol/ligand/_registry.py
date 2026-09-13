@@ -29,6 +29,9 @@ from tmol.ligand._chemistry_tables import get_hbond_properties
 
 logger = logging.getLogger(__name__)
 
+GENERATED_LENGTH_K = 300.0
+GENERATED_ANGLE_K = 80.0
+
 
 def _build_cartbonded_params(  # noqa: C901
     residue_type: RawResidueType,
@@ -117,7 +120,7 @@ def _build_cartbonded_params(  # noqa: C901
             d = _dist_from_coords(a, b)
             if d is None or d <= 0:
                 continue
-            lengths.append(LengthGroup(atm1=a, atm2=b, x0=d, K=300.0))
+            lengths.append(LengthGroup(atm1=a, atm2=b, x0=d, K=GENERATED_LENGTH_K))
     else:
         # Fallback: icoor tree edges only (legacy behavior).
         for ic in residue_type.icoors:
@@ -125,7 +128,9 @@ def _build_cartbonded_params(  # noqa: C901
                 continue
             if ic.d > 0 and ic.name in atom_names and ic.parent in atom_names:
                 lengths.append(
-                    LengthGroup(atm1=ic.name, atm2=ic.parent, x0=ic.d, K=300.0)
+                    LengthGroup(
+                        atm1=ic.name, atm2=ic.parent, x0=ic.d, K=GENERATED_LENGTH_K
+                    )
                 )
 
     angles = []
@@ -164,7 +169,13 @@ def _build_cartbonded_params(  # noqa: C901
 
                 if angle_rad is not None and angle_rad > 0:
                     angles.append(
-                        AngleGroup(atm1=a1, atm2=center, atm3=a3, x0=angle_rad, K=80.0)
+                        AngleGroup(
+                            atm1=a1,
+                            atm2=center,
+                            atm3=a3,
+                            x0=angle_rad,
+                            K=GENERATED_ANGLE_K,
+                        )
                     )
 
     return CartRes(
