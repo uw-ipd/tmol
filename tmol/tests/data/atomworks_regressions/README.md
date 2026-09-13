@@ -105,3 +105,8 @@ junction bond lengths/angles. The connection-pair records retain those generator
 targets with K300/K80. The regression excludes waters and explicitly unbonded
 metals, verifies distinct pair-specific targets, and reconstructs/scores/minimizes
 both residue orders through both readers without dropping glycans or their bonds.
+`terminal_asj_glycans_1iau.cif.gz` retains the complete 1IAU input. The repeated
+glycan workflow excludes water and only unbonded metals, then constructs, scores
+and minimizes both residue orders through both readers. It also checks that the
+ASJ terminal oxygens keep their supplied names and coordinates and that their
+patch scope does not change ASP sidechain atom classification.

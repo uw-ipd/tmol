@@ -1022,17 +1022,17 @@ def test_a_terminal_group_is_built_at_the_angle_its_geometry_calls_for() -> None
     connection = next(c.atom for c in restype.connections if c.name == "down")
     assert connection  # the acid end is patched, so the amine end remains
 
-    oxygens = sorted(
-        a.name
-        for a in restype.atoms
-        if a.name not in {x.name for x in _prepare("MLE").residue_type.atoms}
-    )
+    base = next(r for r in prepared.chemical.residues if r.name == "MLE")
+    carbon = next(c.atom for c in base.connections if c.name == "up")
+    elements = {a.name: a.element for a in prepared.chemical.atom_types}
+    atom_elements = {a.name: elements[a.atom_type] for a in restype.atoms}
+    oxygens = [
+        other
+        for bond in restype.bonds
+        for atom, other in (bond[:2], bond[1::-1])
+        if atom == carbon and atom_elements[other] == "O"
+    ]
     assert len(oxygens) == 2, oxygens
-    carbon = next(
-        b[1] if b[0] == oxygens[0] else b[0]
-        for b in restype.bonds
-        if oxygens[0] in b[:2] and not b[0].startswith("H") and not b[1].startswith("H")
-    )
     first, second = (coords[o] - coords[carbon] for o in oxygens)
     cosine = numpy.dot(first, second) / (
         numpy.linalg.norm(first) * numpy.linalg.norm(second)

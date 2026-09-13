@@ -172,5 +172,13 @@
     "transformation": "none; complete compressed mirror entry",
     "sha256": "d86092cfb011f2fe4a38753ef51a8b1ddc9ba79195f2b94e66df8e6a8b96421d",
     "bytes": 384172
+  },
+  {
+    "fixture": "terminal_asj_glycans_1iau.cif.gz",
+    "source": "https://files.rcsb.org/download/1IAU.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO tests",
+    "transformation": "none; complete compressed mirror entry",
+    "sha256": "cee5648f5407953574da42242e9eb3a49270f0426561e45f3834c3c9713e883d",
+    "bytes": 69238
   }
 ]

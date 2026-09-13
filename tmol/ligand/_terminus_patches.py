@@ -413,7 +413,13 @@ def _terminal_chemistry(
         "site_charge": charges[site.GetIdx()],
         "site_is_planar": _is_planar(site),
         "heavy": _terminal_heavy_atoms(
-            site, names, by_index, charges, {a.name for a in residue_type.atoms}
+            site,
+            names,
+            by_index,
+            charges,
+            {a.name for a in residue_type.atoms},
+            atom_array,
+            site_name,
         ),
         **_charges_by_atom(mol, names, charges),
     }
@@ -454,13 +460,22 @@ def _is_planar(atom):
     )
 
 
-def _terminal_heavy_atoms(site, names, by_index, charges, base_names):
+def _terminal_heavy_atoms(
+    site, names, by_index, charges, base_names, atom_array, site_name
+):
     """The heavy atoms bonded to the connection, typed and charged.
 
     ``in_base`` says whether the residue already has the atom: the ones it does
     not are what the patch adds, and the ones it does may be retyped by having
     a terminal group next to them.
     """
+    source_names = list(atom_array.atom_name)
+    neighbors, _ = atom_array.bonds.get_bonds(source_names.index(site_name))
+    displaced = {
+        str(atom_array.atom_name[i]): str(atom_array.element[i])
+        for i in neighbors
+        if atom_array.element[i] != "H" and atom_array.atom_name[i] not in names
+    }
     out = []
     for neighbour in site.GetNeighbors():
         if neighbour.GetAtomicNum() == 1:
@@ -470,9 +485,18 @@ def _terminal_heavy_atoms(site, names, by_index, charges, base_names):
         typed = by_index.get(neighbour.GetIdx())
         if typed is None:
             continue
+        input_name = name if name in source_names else None
+        # Capping replaces a terminal leaving atom with a synthetic stub.
+        # Recover its name only when the local chemistry identifies it uniquely.
+        if input_name is None:
+            candidates = [n for n, e in displaced.items() if e == neighbour.GetSymbol()]
+            if len(candidates) == 1:
+                input_name = candidates[0]
+                del displaced[input_name]
         out.append(
             {
                 "name": name,
+                "input_name": input_name,
                 "in_base": name in base_names,
                 "element": neighbour.GetSymbol(),
                 "atom_type": typed.atom_type,
@@ -602,7 +626,8 @@ def terminus_patches(
     if profile.down is None or profile.up is None:
         return []
 
-    taken = {a.name for a in residue_type.atoms}
+    base_names = {a.name for a in residue_type.atoms}
+    added_names = set()
     chi_taken = {t.name for t in residue_type.torsions}
     generated = []
     for (display_name, connection), candidates in terminus_templates(
@@ -664,10 +689,27 @@ def terminus_patches(
             )
 
         add_atoms = _terminal_add_atoms(template, chemistry)
+        binding = _pattern_binding(chemdb, residue_type, template) or {}
+        removed = {binding.get(str(a)) for a in template.remove_atoms}
+        taken = (base_names - removed) | added_names
+        heavy_names = {
+            a.name: e.get("input_name")
+            for a, e in zip(
+                (a for a in add_atoms if not a.atom_type.startswith("H")),
+                _terminal_group_heavy(chemistry),
+            )
+        }
+        reserved = set(heavy_names.values()) - {None}
         renames = {}
         for atom in add_atoms:
-            free = _free_name(atom.name, taken)
+            source = heavy_names.get(atom.name)
+            free = (
+                source
+                if source is not None and source not in taken
+                else _free_name(atom.name, taken | reserved)
+            )
             taken.add(free)
+            added_names.add(free)
             if free != atom.name:
                 renames[atom.name] = free
         patch = _rename_patch(

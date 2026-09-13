@@ -193,7 +193,8 @@ class CanonicalOrdering:
     CTERM_VARIANTS = ("cterm", "na3prime")
     down_termini_patches: Tuple[str, ...]
     up_termini_patches: Tuple[str, ...]
-    termini_patch_added_atoms: Mapping[str, Tuple[str, ...]]
+    # Added terminal atoms by (base chemistry, patch display name).
+    termini_patch_added_atoms: Mapping[Tuple[str, str], Tuple[str, ...]]
     cys_inds: CysSpecialCaseIndices
     his_inds: HisSpecialCaseIndices
     polymer_conn_inds: PolymerConnectionIndices
@@ -297,7 +298,7 @@ class CanonicalOrdering:
         restypes_required_mainchain_atoms = cls._required_mainchain_atoms(chemdb)
 
         default_termini_mapping = cls._default_termini_mapping(chemdb)
-        termini_patch_added_atoms = defaultdict(lambda: set([]))
+        terminal_patches = defaultdict(list)
 
         # we need to know which variants create down- and up termini
         # so we can build the right termini types
@@ -307,12 +308,24 @@ class CanonicalOrdering:
             for rm in patch.remove_atoms:
                 if rm == "<{down}>":
                     down_termini_patches.add(patch.display_name)
-                    for atom in patch.add_atoms:
-                        termini_patch_added_atoms[patch.display_name].add(atom.name)
                 elif rm == "<{up}>":
                     up_termini_patches.add(patch.display_name)
-                    for atom in patch.add_atoms:
-                        termini_patch_added_atoms[patch.display_name].add(atom.name)
+            if "<{down}>" in patch.remove_atoms or "<{up}>" in patch.remove_atoms:
+                terminal_patches[patch.display_name].append(patch)
+        termini_patch_added_atoms = {
+            (base, display): tuple(
+                sorted(
+                    {
+                        atom.name
+                        for patch in patches
+                        if patch.applies_to.matches(rt)
+                        for atom in patch.add_atoms
+                    }
+                )
+            )
+            for base, rt in {r.base_name: r for r in chemdb.residues}.items()
+            for display, patches in terminal_patches.items()
+        }
 
         return cls(
             max_n_canonical_atoms=max_n_canonical_atoms,

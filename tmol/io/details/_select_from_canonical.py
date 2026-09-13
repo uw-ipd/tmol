@@ -1051,11 +1051,10 @@ def _note_atoms_present_and_absent_from_variants(co, pbt: PackedBlockTypes):
 
         # now we will go and strike out all the atoms that were not
         # added by termini patches so we can mark them as present
-        variants = bt.name.split(":")[1:]
-        for var in variants:
-            for can_at in co.termini_patch_added_atoms[var]:
-                if can_at in bt_at_names:
-                    bt_at_names.remove(can_at)
+        for variant in bt.name.split(":")[1:]:
+            bt_at_names.difference_update(
+                co.termini_patch_added_atoms.get((bt.base_name, variant), ())
+            )
 
         for at_name in bt_at_names:
             can_ind = co.restypes_atom_index_mapping[bt.io_equiv_class][at_name]

@@ -264,6 +264,7 @@ def _assert_all_source_connections(pose, array):
         ("repeated_glycans_6mub", None),
         ("repeated_partner_glycans_1ivo", "NAG:conj_C1"),
         ("repeated_partner_glycans_1hge", "NAG:conj_C1:conj_O4"),
+        ("terminal_asj_glycans_1iau", "NAG:conj_C1"),
     ],
 )
 def test_repeated_glycans_share_transferable_attachment_targets(
@@ -281,6 +282,10 @@ def test_repeated_glycans_share_transferable_attachment_targets(
         array, torch_device, prepare_ligands=True, ligand_seed=20260909
     )
     database = context.parameter_database
+    if fixture == "terminal_asj_glycans_1iau":
+        terminal_atoms = context.canonical_ordering.termini_patch_added_atoms
+        assert {"OD1", "OD2"} <= set(terminal_atoms["ASJ", "cterm"])
+        assert {"OD1", "OD2"}.isdisjoint(terminal_atoms["ASP", "cterm"])
     records = database.scoring.cartbonded.connection_params
     if shared_type is None:
         assert any(
@@ -344,6 +349,22 @@ def test_repeated_glycans_share_transferable_attachment_targets(
                 pose.block_type_ind[0].tolist(), pose.block_coord_offset[0].tolist()
             )
         ]
+        if fixture == "terminal_asj_glycans_1iau":
+            retained_source = source[retained]
+            asj = []
+            for block, residue in zip(blocks, struc.residue_iter(retained_source)):
+                if residue.res_name[0] != "ASJ":
+                    continue
+                bt, offset = block
+                assert "cterm" in bt.name and "conj_C" in bt.name
+                assert {"OD1", "OD2"} <= set(bt.atom_to_idx)
+                observed = residue[np.isfinite(residue.coord).all(axis=-1)]
+                indices = [offset + bt.atom_to_idx[str(n)] for n in observed.atom_name]
+                np.testing.assert_allclose(
+                    pose.coords[0, indices].detach().cpu(), observed.coord, atol=1e-6
+                )
+                asj.append(bt)
+            assert len(asj) == 1
         if source is reversed_array:
             blocks.reverse()
         identities.append([bt.name for bt, _ in blocks])
