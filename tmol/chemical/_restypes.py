@@ -206,7 +206,7 @@ class RefinedResidueType(RawResidueType):
                 for b in self.bonds
             )
         )
-        bond_array = numpy.array(bondi, dtype=numpy.int32)
+        bond_array = numpy.array(bondi, dtype=numpy.int32).reshape(-1, 2)
         bond_array.flags.writeable = False
         return bond_array
 

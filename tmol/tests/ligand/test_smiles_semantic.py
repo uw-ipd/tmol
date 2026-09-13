@@ -31,9 +31,12 @@ _SEED = load_parity_manifest()
 
 
 @pytest.mark.parametrize(
-    "smiles", ["CC(=O)[O-]", "c1ccc(-c2ccccc2)cc1", "O=P([O-])([O-])[O-]"]
+    "smiles",
+    ["CC(=O)[O-]", "c1ccc(-c2ccccc2)cc1", "O=P([O-])([O-])[O-]", "[Cl-]", "[I-]"],
 )
-def test_mol2_roundtrip_preserves_delocalized_chemistry_and_scores(smiles):
+def test_mol2_roundtrip_preserves_delocalized_chemistry_and_scores(
+    smiles, torch_device
+):
     import torch
     from rdkit import Chem
     from tmol.database import ParameterDatabase
@@ -60,7 +63,7 @@ def test_mol2_roundtrip_preserves_delocalized_chemistry_and_scores(smiles):
     )
     db = inject_ligand_preparations(ParameterDatabase.get_default(), [prep])
     pose = pose_stack_from_biotite(
-        info.atom_array, torch.device("cpu"), param_db=db, no_optH=True
+        info.atom_array, torch_device, param_db=db, no_optH=True
     )
     coords = pose.coords.detach().clone().requires_grad_()
     energy = beta2016_score_function(

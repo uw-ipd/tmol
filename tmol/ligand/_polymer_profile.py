@@ -1308,6 +1308,11 @@ def cap_residue(atom_array, profile: PolymerProfile, *, include_coordinates=True
         )
         if not carbonyl and elements.get(anchor) != "P":
             continue
+        if (
+            elements.get(anchor) == "P"
+            and len(adj[anchor]) + len(double.get(anchor, ())) < 5
+        ):
+            continue
         leaving = [
             n
             for n in adj.get(anchor, ())

@@ -70,8 +70,10 @@ def test_label_template_substitution_cannot_silently_erase_unknown_atom():
         "ncaa_fixtures/na_dna_8og_183d.cif",
         "ncaa_fixtures/na_dna_5mc_1d17.cif",
         "ncaa_fixtures/na_rna_2ome_310d.cif",
+        "ncaa_fixtures/na_dna_ttd_1ttd.cif",
         "atomworks_regressions/hydrolase_intermediate_1tqh.cif.gz",
         "atomworks_regressions/phosphate_charge_4js1.cif.gz",
+        "atomworks_regressions/chloride_complex_4hbt.cif.gz",
     ],
 )
 @pytest.mark.parametrize("reader", ["tmol", "atomworks"])
@@ -95,12 +97,13 @@ def test_shared_parser_builds_and_scores_general_chemistry(
     )
     array = atom_array_from_cif(DATA / fixture, reader=reader)
     array = array[array.res_name != "HOH"]
-    if "1tqh" in fixture:
+    if "1tqh" in fixture or "4hbt" in fixture:
         residues = list(struc.residue_iter(array))
         unresolved = np.array([not np.isfinite(r.coord).any() for r in residues])
-        # AtomWorks also restores five wholly unresolved protein residues.
+        # AtomWorks also restores wholly unresolved protein residues.
         # Their absence from the constructed pose must not hide observed atoms.
-        assert int(unresolved.sum()) == (5 if reader == "atomworks" else 0)
+        expected = (5 if "1tqh" in fixture else 1) if reader == "atomworks" else 0
+        assert int(unresolved.sum()) == expected
         keep = np.repeat(~unresolved, [len(r) for r in residues])
         assert not array.hetero[~keep].any()
         array = array[keep]
@@ -154,19 +157,24 @@ def test_shared_parser_builds_and_scores_general_chemistry(
                 np.testing.assert_array_equal(
                     pose.coords[0, indices].detach().cpu(), residue.coord
                 )
-    if "4js1" in fixture:
+    if "4js1" in fixture or "4hbt" in fixture:
         from tmol.tests.ligand.test_local_conjugate_params import _charges
 
+        ion, names, charge = (
+            ("PO4", {"P", "O1", "O2", "O3", "O4"}, -3)
+            if "4js1" in fixture
+            else ("CL", {"CL"}, -1)
+        )
         for bi, residue in enumerate(struc.residue_iter(array)):
-            if residue.res_name[0] != "PO4":
+            if residue.res_name[0] != ion:
                 continue
             bt = pose.packed_block_types.active_block_types[
                 int(pose.block_type_ind[0, bi])
             ]
-            assert set(bt.atom_to_idx) == {"P", "O1", "O2", "O3", "O4"}
+            assert set(bt.atom_to_idx) == names
             assert sum(
                 _charges(context.parameter_database, bt).values()
-            ) == pytest.approx(-3, abs=1e-8)
+            ) == pytest.approx(charge, abs=1e-8)
             offset = int(pose.block_coord_offset[0, bi])
             indices = [offset + bt.atom_to_idx[str(n)] for n in residue.atom_name]
             np.testing.assert_array_equal(

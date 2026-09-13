@@ -195,7 +195,7 @@ def atom_array_from_cif(
             model=model,
             assembly_id=assembly_id,
             author_fields=True,
-            extra_fields=extra_fields,
+            extra_fields=[*(extra_fields or []), "pdbx_formal_charge"],
             hydrogen_policy=hydrogen_policy,
         )
     else:
@@ -220,13 +220,30 @@ def atom_array_from_cif(
     templates = _completion_templates(
         {name: entry.copy() for name, entry in array._custom_ccd_registry.items()}
     )
-    from atomworks.io.utils.leaving_atoms import resolve_overvalent_atoms
+    from atomworks.io.utils.ccd import add_annotations_from_ccd, custom_ccd_residues
+    from atomworks.io.utils.leaving_atoms import resolve_leaving_atoms
 
     # AtomWorks skips sanitation when its own completion is disabled. Repair
     # the final author-view graph with the same shared attachment chemistry.
-    return resolve_overvalent_atoms(
-        with_unresolved_atoms(array, templates, use_ccd=use_ccd)
-    )
+    with custom_ccd_residues(array._custom_ccd_registry):
+        specified = getattr(array, "pdbx_formal_charge", np.full(len(array), "?"))
+        missing = np.isin(specified, ("", ".", "?")) & np.isin(
+            array.res_name, list(array._custom_ccd_registry)
+        )
+        if missing.any():
+            supplement = add_annotations_from_ccd(
+                array[missing],
+                annotations=["charge"],
+                overwrite=True,
+                ccd_mirror_path=None,
+            )
+            array.charge[missing] = supplement.charge
+        if "pdbx_formal_charge" not in (extra_fields or []) and hasattr(
+            array, "pdbx_formal_charge"
+        ):
+            array.del_annotation("pdbx_formal_charge")
+        array = with_unresolved_atoms(array, templates, use_ccd=use_ccd)
+        return resolve_leaving_atoms(array)[0]
 
 
 def _with_component_type_annotation(array, block):

@@ -145,3 +145,10 @@ residues; the regression explicitly accounts for their construction exclusion.
 formal charge on a double-bonded phosphate oxygen. The shared workflow checks
 phosphate charge conservation, observed coordinates, complete construction,
 scoring, gradients and 100-step minimization through both readers.
+
+`chloride_complex_4hbt.cif.gz` is the complete structure, including its bound
+ligand and chloride ion. Both readers construct, score and minimize the full
+organic/halide complex, preserving chloride charge, atom count and coordinates.
+No dummy atoms or bonds are introduced for the monatomic ion.
+The label reader additionally restores one wholly unresolved GLN; its constructor
+exclusion is explicitly counted, making that route a partial-input workflow.

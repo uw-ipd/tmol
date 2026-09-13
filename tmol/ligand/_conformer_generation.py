@@ -465,7 +465,8 @@ def _metric_embed(L, U, seed: int) -> np.ndarray:
     G = -0.5 * (J @ (D**2) @ J)
     w, V = np.linalg.eigh(G)
     order = np.argsort(w)[::-1]
-    return V[:, order[:3]] * np.sqrt(np.clip(w[order[:3]], 0.0, None))
+    coords = V[:, order[:3]] * np.sqrt(np.clip(w[order[:3]], 0.0, None))
+    return np.pad(coords, ((0, 0), (0, 3 - n))) if n < 3 else coords
 
 
 def _pair_masks(L0, U0, L, U):

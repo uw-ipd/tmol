@@ -92,7 +92,7 @@ def ligand_smiles_from_atom_array(
             could be derived from the bonds present.
     """
     label = res_name or "<unknown>"
-    if not _has_bonds(atom_array):
+    if not _has_bonds(atom_array) and len(atom_array) != 1:
         raise ValueError(
             f"Ligand {label} has no bond table; bond orders are required to "
             "derive a SMILES. Supply an input with explicit bonds (CIF "

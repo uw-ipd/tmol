@@ -231,5 +231,13 @@
     "transformation": "none; complete compressed source",
     "sha256": "d0871eca33d5a59ed3678b35bc2ea682ced5bf08c8fa15482ac3ffea4422d934",
     "bytes": 161575
+  },
+  {
+    "fixture": "chloride_complex_4hbt.cif.gz",
+    "source": "https://files.rcsb.org/download/4HBT.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO tests",
+    "transformation": "none; complete compressed source",
+    "sha256": "0d2b96c17d114da4d7b149203003fb68843e44c6304ad1ed5377c0f59377aeaa",
+    "bytes": 128420
   }
 ]

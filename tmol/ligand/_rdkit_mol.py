@@ -295,7 +295,7 @@ def rdkit_mol_from_ligand_atom_array(
     has_bonds = atom_array.bonds is not None and atom_array.bonds.get_bond_count() > 0
     if len(atom_array) == 0:
         raise ValueError(f"{res_name}: empty atom array")
-    if not has_bonds:
+    if not has_bonds and len(atom_array) != 1:
         raise ValueError(
             f"{res_name}: ligand bond inference is unsupported. "
             "Input must provide explicit bond orders (CIF with "
@@ -303,7 +303,7 @@ def rdkit_mol_from_ligand_atom_array(
             "PDB/topology-only ligand chemistry is not supported."
         )
 
-    raw_types = [int(t) for _, _, t in atom_array.bonds.as_array()]
+    raw_types = [int(t) for _, _, t in atom_array.bonds.as_array()] if has_bonds else []
     unsupported = sorted(
         set(t for t in raw_types if t not in BIOTITE_BOND_TYPE_TO_RDKIT)
     )

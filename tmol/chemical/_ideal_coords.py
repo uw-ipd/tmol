@@ -72,7 +72,11 @@ def build_coords_from_icoors(icoors_ancestors, icoors_geom):
 
     n_atoms = icoors_ancestors.shape[0]
     coords = numpy.zeros((n_atoms, 3), dtype=numpy.float32)
+    if n_atoms < 2:
+        return coords
     coords[1, 0] = icoors_geom[1, 2]
+    if n_atoms < 3:
+        return coords
 
     # coord 2 in the x-y plane. Atom 2 is bonded to either atom 1 or atom 0
     # (its only two possible predecessors); its parent is whichever it is

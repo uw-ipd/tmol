@@ -19,6 +19,11 @@ class IndexedBonds:
     @classmethod
     def from_bonds(cls, src_bonds, minlength=None):
         # Convert undirected (stack, i, j) bond index tuples into sorted, indexed list.
+        if len(src_bonds) == 0:
+            return cls(
+                bonds=torch.empty((1, 0, 2), dtype=torch.int64),
+                bond_spans=torch.zeros((1, minlength or 0, 2), dtype=torch.int64),
+            )
 
         uniq_bonds, src_index = numpy.unique(src_bonds, axis=0, return_index=True)
 
