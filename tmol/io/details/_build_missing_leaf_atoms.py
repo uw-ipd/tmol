@@ -28,8 +28,10 @@ def build_missing_leaf_atoms(
     geometry of those atoms. A leaf atom is an atom that is not a parent to any other
     atom; these include hydrogens and carbonyl/carboxyl oxygens.
     Non-polymer heavy atoms are also completed when their declared construction
-    frames are available, followed by atoms that depend on them. Observed atoms
-    are preserved; components without sufficient anchors remain unresolved.
+    frames are available, followed by atoms that depend on them. Stalled blocks
+    use their prepared conformer and resolved anchors, with a declared linkage
+    sample if needed to orient a singly anchored attachment. Observed atoms
+    are preserved; components without sufficient references remain unresolved.
     """
 
     (
@@ -92,7 +94,20 @@ def build_missing_leaf_atoms(
                 inter_residue_connections,
             )
             if torch.equal(torch.isnan(built).any(dim=-1), missing_pose):
-                break
+                from ._build_missing_nonpolymer_atoms import (
+                    build_missing_nonpolymer_atoms,
+                )
+
+                built = build_missing_nonpolymer_atoms(
+                    packed_block_types,
+                    built,
+                    targets,
+                    block_coord_offset,
+                    block_types,
+                    inter_residue_connections,
+                )
+                if torch.equal(torch.isnan(built).any(dim=-1), missing_pose):
+                    break
             new_pose_coords = built
         block_atom_missing = remaining
         block_has_missing_atoms = torch.any(

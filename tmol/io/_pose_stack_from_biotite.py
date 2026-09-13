@@ -175,6 +175,13 @@ def pose_stack_from_biotite(  # noqa: C901
     ordering, residue-type set, and packed block types; only the per-structure
     canonical form is recomputed (see the ``context`` arg).
 
+    Missing non-polymer atoms use prepared conformer geometry and resolved
+    coordinate anchors. If only an attachment's endpoints are resolved, its
+    first declared torsion sample and the next resolved partner atom can orient
+    the missing component. These are starting conformers for scoring/packing,
+    not recovered experimental coordinates. Supplied heavy-atom coordinates
+    stay unchanged; insufficient or degenerate references still raise.
+
     Args:
         biotite_structure: A Biotite AtomArray or AtomArrayStack.
         torch_device: Target PyTorch device.
