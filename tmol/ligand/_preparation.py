@@ -80,19 +80,15 @@ def _partial_charges_for_residue(param_db, residue_name: str) -> dict[str, float
 def _prepare_connection_params(atom_array, param_db, ph, seed):
     from tmol.ligand._connection_params import generate_conjugate_connection_params
 
-    try:
-        records = generate_conjugate_connection_params(
-            atom_array,
-            param_db,
-            ph=ph,
-            seed=seed,
-            existing=param_db.scoring.cartbonded.connection_params,
-        )
-    except ValueError as err:
-        raise LigandPreparationError(
-            f"Cannot generate attachment bond/angle parameters: {err}. "
-            "Supply compatible explicit connection parameters via ligand_params_files."
-        ) from err
+    if atom_array.bonds is None:
+        return param_db, ()
+    records = generate_conjugate_connection_params(
+        atom_array,
+        param_db,
+        ph=ph,
+        seed=seed,
+        existing=param_db.scoring.cartbonded.connection_params,
+    )
     if records:
         param_db = inject_residue_params(param_db, [], connection_params=records)
     return param_db, records

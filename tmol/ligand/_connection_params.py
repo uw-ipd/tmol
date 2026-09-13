@@ -16,7 +16,7 @@ from rdkit.Chem import AllChem
 from tmol.database.scoring import ConnectionCartRes, LengthGroup, AngleGroup
 from tmol.database.scoring._content_hash import content_hash
 from tmol.ligand._conjugate_model import iter_capped_conjugate_models
-from tmol.ligand._conjugation_patches import CONNECTION_PREFIX, connection_name
+from tmol.ligand._conjugation_patches import CONNECTION_PREFIX
 from tmol.ligand._dimorphite_dl import ProtSubstructFuncs, protonate_mol_variants
 from tmol.ligand._conjugate_geometry import generated_conjugate_coordinates
 from tmol.ligand._registry import GENERATED_LENGTH_K, GENERATED_ANGLE_K
@@ -107,7 +107,15 @@ def _connection_record(mol, props, first, second, maps, names, adjacency, coords
             "Attachment atom/hydrogen mapping differs from its patched residue type"
         ) from err
     bond_type = str(mol.GetBondBetweenAtoms(*indices).GetBondType())
-    if any(c.type != bond_type for c in connections):
+    # Polymer ports use AROMATIC for the partial-double peptide convention,
+    # whereas RDKit represents both amide and ester attachments as SINGLE.
+    if any(
+        c.type != bond_type
+        and not (
+            c.name in ("up", "down") and c.type == "AROMATIC" and bond_type == "SINGLE"
+        )
+        for c in connections
+    ):
         raise ValueError(
             "Attachment bond order differs from its patched connection type"
         )
@@ -168,23 +176,26 @@ def _model_members(model, candidates_by_site):
             source_local[int(source)] = local
             locals_by_residue[int(model.source_residue_indices[local])].append(local)
     sites, links = defaultdict(set), []
-    for a, b, _ in model.connections:
+    for (a, b, _), names in zip(model.connections, model.connection_names, strict=True):
         pair = []
-        for source in (a, b):
+        for source, name in zip((a, b), names):
             local = source_local[source]
             ri = int(model.source_residue_indices[local])
-            name = connection_name(str(model.atom_array.atom_name[local]))
             sites[ri].add(name)
             pair.append((ri, name))
         links.append(pair)
     candidates = {
-        ri: candidates_by_site.get(
-            (
-                str(model.atom_array.res_name[locals_by_residue[ri][0]]),
-                frozenset(names),
-            ),
-            (),
-        )
+        ri: [
+            rt
+            for rt in candidates_by_site.get(
+                (
+                    str(model.atom_array.res_name[locals_by_residue[ri][0]]),
+                    frozenset(n for n in names if n.startswith(CONNECTION_PREFIX)),
+                ),
+                (),
+            )
+            if names <= {c.name for c in rt.connections}
+        ]
         for ri, names in sites.items()
     }
     if any(candidates.values()) and not all(candidates.values()):
@@ -285,6 +296,8 @@ def _model_records(
             )
         contexts[identity] = signature
         for rt in types:
+            if rt.name not in adjacency:
+                adjacency[rt.name] = _neighbors(rt)
             mappings[ri, rt.name] = _residue_mapping(
                 model,
                 mol,
@@ -378,12 +391,10 @@ def generate_conjugate_connection_params(
         sites = frozenset(
             c.name for c in rt.connections if c.name.startswith(CONNECTION_PREFIX)
         )
-        if sites:
-            candidates[rt.base_name, sites].append(rt)
-            if rt.io_equiv_class != rt.base_name:
-                candidates[rt.io_equiv_class, sites].append(rt)
-            adjacency[rt.name] = _neighbors(rt)
-    if not candidates:
+        candidates[rt.base_name, sites].append(rt)
+        if rt.io_equiv_class != rt.base_name:
+            candidates[rt.io_equiv_class, sites].append(rt)
+    if not any(sites for _, sites in candidates):
         return ()
     for alias in chem.name3_aliases:
         for (base, sites), types in list(candidates.items()):

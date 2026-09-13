@@ -75,6 +75,10 @@ def test_macrocycle_preserves_every_bond_across_residue_order(reader, torch_devi
     context = build_context_from_biotite(
         array, torch_device, prepare_ligands=True, ligand_seed=20260909
     )
+    records = context.parameter_database.scoring.cartbonded.connection_params
+    assert any({r.connection1, r.connection2} == {"up", "conj_OG"} for r in records)
+    assert all(p.K == 300 for r in records for p in r.length_parameters)
+    assert all(p.K == 80 for r in records for p in r.angle_parameters)
     residue = next(r for r in context.restype_set.residue_types if r.name == "QUI")
     assert {"N1", "C2", "O1"} <= set(residue.atom_to_idx)
     assert np.isfinite(residue.compute_ideal_coords()).all()
@@ -165,8 +169,11 @@ def test_unrecognized_hydrogen_names_can_be_rebuilt(element):
     assert len(atoms) == len(residues) == 1
 
 
-def test_schiff_base_cannot_lose_its_incomplete_lysine_partner():
-    with pytest.raises(ValueError, match="discard.*covalent"):
+def test_schiff_base_requires_resolved_stereochemistry_for_attachment_parameters():
+    # Default attachment generation now rejects the incomplete chemical state
+    # before construction can filter its lysine partner. Constructor filtering
+    # remains independently covered in test_filtered_covalent_partners.py.
+    with pytest.raises(ValueError, match="unspecified stereochemistry"):
         pose_stack_from_cif(
             DATA / "schiff_base_double_bond.cif",
             torch.device("cpu"),

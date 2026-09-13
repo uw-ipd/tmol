@@ -229,6 +229,13 @@ def test_generated_record_bundle_preserves_model_provenance(
     )
     reused, _ = prepare_ligands(array, params_files=[str(path)], seed=123)
     assert reused.scoring.cartbonded.connection_params == restored[0].connection_params
+    # Reusing this database for an ordinary protein does not require a graph
+    # describing attachments that the new input never declared.
+    protein = array[~array.hetero]
+    assert len(protein)
+    protein.bonds = None
+    unrelated, _ = prepare_ligands(protein, param_db=reused)
+    assert unrelated is reused
 
 
 def test_attachment_bond_order_must_match_patched_type(conjugate_input):

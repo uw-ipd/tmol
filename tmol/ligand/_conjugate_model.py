@@ -7,12 +7,14 @@ They retain observed stereochemistry but no conformers for parameter generation.
 
 from dataclasses import dataclass
 
+import attr
 import biotite.structure as struc
 import networkx as nx
 import numpy as np
 from rdkit import Chem
 
 from tmol.ligand._polymer_profile import cap_residue, profile_for_atom_array
+from tmol.ligand._conjugation_patches import connection_name
 from tmol.ligand._rdkit_mol import rdkit_mol_from_ligand_atom_array
 
 
@@ -26,6 +28,7 @@ class CappedConjugateModel:
     source_residue_indices: np.ndarray
     # Original input atom indices and declared Biotite bond order.
     connections: tuple[tuple[int, int, int], ...]
+    connection_names: tuple[tuple[str, str], ...]
 
 
 def _polymer_connection(residue, atom):
@@ -74,13 +77,35 @@ def iter_capped_conjugate_models(atom_array, chemical_database):
             residue_definitions[ri] = definitions[name]
         return residue_definitions[ri]
 
-    links_by_residue = {}
+    links_by_residue, occupied = {}, {}
     graph = nx.Graph()
     bonds = atom_array.bonds.as_array()
     cross = bonds[indices[bonds[:, 0]] != indices[bonds[:, 1]]]
+
+    def port(index):
+        ri = int(indices[index])
+        atom = str(atom_array.atom_name[index])
+        name = next(
+            (c.name for c in definition(ri).connections if c.atom == atom),
+            connection_name(atom),
+        )
+        return ri, name
+
+    def label(index):
+        ri, name = port(index)
+        return f"residue {ri} {atom_array.res_name[index]}.{atom_array.atom_name[index]} ({name})"
+
     for first, second, order in cross:
         first, second = int(first), int(second)
         ri, rj = int(indices[first]), int(indices[second])
+        for endpoint, partner in ((first, second), (second, first)):
+            previous = occupied.setdefault(port(endpoint), partner)
+            if previous != partner:
+                raise ValueError(
+                    f"{label(endpoint)} has multiple declared partners: "
+                    f"{label(previous)} and {label(partner)}. "
+                    "Each connection accepts one partner; resolve the input bond graph."
+                )
         ci = _polymer_connection(definition(ri), str(atom_array.atom_name[first]))
         cj = _polymer_connection(definition(rj), str(atom_array.atom_name[second]))
         if {ci, cj} == {"up", "down"}:
@@ -103,11 +128,18 @@ def iter_capped_conjugate_models(atom_array, chemical_database):
             residue_definitions,
             chemical_database,
             group_links,
+            tuple((port(a)[1], port(b)[1]) for a, b, _ in group_links),
         )
 
 
 def _capped_group(
-    atom_array, starts, members, residue_definitions, chemical_database, group_links
+    atom_array,
+    starts,
+    members,
+    residue_definitions,
+    chemical_database,
+    group_links,
+    connection_names,
 ):
     # Release per-residue slices and cap buffers before the caller parameterizes
     # the returned model; a suspended generator would otherwise retain them.
@@ -129,6 +161,21 @@ def _capped_group(
                 raise ValueError(
                     f"No cap profile for polymer residue {ri} ({residue_type.name})"
                 )
+            # A polymer port may itself be an attachment (e.g. a depsipeptide
+            # ester). Keep that real partner instead of adding a second cap.
+            occupied = {
+                str(atom_array.atom_name[i])
+                for a, b, _ in group_links
+                for i in (a, b)
+                if start <= i < stop
+            }
+            caps = []
+            for cap in profile.caps:
+                if cap.bond_to in occupied:
+                    occupied.add(cap.name)
+                else:
+                    caps.append(cap)
+            profile = attr.evolve(profile, caps=tuple(caps))
             prepared, caps = cap_residue(source, profile, include_coordinates=False)
             cap_names = set(caps.values())
         else:
@@ -165,6 +212,7 @@ def _capped_group(
         source_atoms,
         np.asarray(source_residues, dtype=np.int64),
         group_links,
+        connection_names,
     )
 
 
