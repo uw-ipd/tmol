@@ -3,7 +3,7 @@
 A glycan's link to its protein, or a ligand's to a sidechain, is a bond the
 residue types know nothing about: serine declares no connection at OG, and a
 sugar declares none at its hydroxyls. Each attachment site becomes a patch that
-removes displaced hydrogens and adds a connection, so a residue linked at several
+removes displaced atoms and adds a connection, so a residue linked at several
 sites is the combination of its patches. A site with available valence can also
 attach without losing hydrogen.
 
@@ -13,8 +13,10 @@ residue type they were generated for.
 """
 
 import attr
+import biotite.structure as struc
 import networkx
 import numpy as np
+from atomworks.io.utils.leaving_atoms import get_leaving_atom_groups
 
 from tmol.database.chemical import (
     Atom,
@@ -107,6 +109,59 @@ def leaving_atom(residue_type, atom: str, chemdb) -> str:
     """The single hydrogen standing where the bond attaches, or None."""
     leaving = leaving_atoms(residue_type, atom, chemdb, 1)
     return leaving[0] if leaving else None
+
+
+def declared_heavy_leaving_groups(atom_array):
+    """Absent template-declared groups at connected sites, scoped by residue.
+
+    An unresolved atom is still present and cannot be removed here. Different
+    copies using the same attachment patch must agree on their leaving groups.
+    """
+    templates = getattr(atom_array, "_custom_ccd_registry", {})
+    if not templates or atom_array.bonds is None:
+        return {}
+    starts = struc.get_residue_starts(atom_array, add_exclusive_stop=True)
+    bonds = atom_array.bonds.as_array()[:, :2]
+    residues = np.searchsorted(starts, bonds, side="right") - 1
+    endpoints = np.unique(bonds[residues[:, 0] != residues[:, 1]])
+    groups, present, result = {}, {}, {}
+    for index in endpoints:
+        name, atom = str(atom_array.res_name[index]), str(atom_array.atom_name[index])
+        if name not in templates:
+            continue
+        if name not in groups:
+            template = templates[name]
+            heavy = set(template.atom_name[~np.isin(template.element, ("H", "D"))])
+            groups[name] = {
+                site: tuple(frozenset(group) & heavy for group in leaving)
+                for site, leaving in get_leaving_atom_groups(template).items()
+            }
+        ri = int(np.searchsorted(starts, index, side="right") - 1)
+        if ri not in present:
+            present[ri] = set(atom_array.atom_name[starts[ri] : starts[ri + 1]])
+        removed = frozenset(
+            missing
+            for group in groups[name].get(atom, ())
+            if group.isdisjoint(present[ri])
+            for missing in group
+        )
+        key = (name, atom)
+        if result.setdefault(key, removed) != removed:
+            raise ValueError(f"Incompatible declared leaving groups at {key}")
+    return result
+
+
+def _displaced_atoms(residue_type, atom, chemdb, n_hydrogens, heavy_leaving=()):
+    present = _hydrogens_on(residue_type, atom, chemdb)
+    n_leaving = 1 if n_hydrogens is None else len(present) - n_hydrogens
+    if n_leaving < 0:
+        raise ValueError(f"Attachment adds hydrogens at {residue_type.name}.{atom}")
+    removed = list(leaving_atoms(residue_type, atom, chemdb, n_leaving) or ())
+    heavy = set(heavy_leaving) & {a.name for a in residue_type.atoms}
+    for name in sorted(heavy):
+        removed.append(name)
+        removed.extend(_hydrogens_on(residue_type, name, chemdb))
+    return tuple(dict.fromkeys(removed))
 
 
 def _icoor_for(residue_type, name):
@@ -209,10 +264,11 @@ def conjugation_patch(
     chi_name=None,
     n_hydrogens=None,
     bond_type="SINGLE",
+    heavy_leaving=(),
 ):
-    """A patch adding an attachment and removing only displaced hydrogens.
+    """Add an attachment, removing displaced H and declared heavy leaving groups.
 
-    The connection inherits the first hydrogen's internal coordinates, which
+    The connection inherits a departing atom's internal coordinates, which
     already point along the bond; only the length differs, and the caller
     supplies it where the input measured one.
 
@@ -222,16 +278,13 @@ def conjugation_patch(
     does change it, and leaving the spare hydrogen behind puts an atom where
     the partner already is.
     """
-    present = _hydrogens_on(residue_type, atom, chemdb)
-    n_leaving = 1 if n_hydrogens is None else len(present) - n_hydrogens
-    if n_leaving < 0:
-        raise ValueError(f"Attachment adds hydrogens at {residue_type.name}.{atom}")
-    leaving_all = leaving_atoms(residue_type, atom, chemdb, n_leaving) or ()
+    leaving_all = _displaced_atoms(
+        residue_type, atom, chemdb, n_hydrogens, heavy_leaving
+    )
     if not leaving_all and n_hydrogens is None:
         return None
-    # the connection takes a departing hydrogen's frame, so it has to be one
-    #    framed on atoms that stay: the hydrogens are built one against the
-    #    next, and the ones peeled first are framed on the ones peeled after
+    # Inherit a departing atom's frame whose references remain after removal.
+    # Hydrogens may themselves be framed on other departing hydrogens.
     gone = set(leaving_all)
 
     def _survives(name):
@@ -259,7 +312,7 @@ def conjugation_patch(
     current = next(a.atom_type for a in residue_type.atoms if a.name == atom)
     becomes = conjugated.get(current)
     modify_atoms = (Atom(name=f"<{atom}>", atom_type=becomes),) if becomes else ()
-    # Inherit a departing H's frame, or provide the open-valence frame explicitly.
+    # Inherit a departing atom's frame, or supply an open-valence frame.
     icoors = (
         (
             IcoorVariant(name=name, source=f"<{leaving}>", d=distance)
@@ -330,7 +383,13 @@ def conjugation_patch(
 
 
 def conjugation_patches(
-    residue_type, atoms, chemdb, distances=None, hydrogens=None, bond_types=None
+    residue_type,
+    atoms,
+    chemdb,
+    distances=None,
+    hydrogens=None,
+    bond_types=None,
+    heavy_leaving=None,
 ):
     """One patch per attachment site, using the supplied bonded hydrogen count.
 
@@ -355,6 +414,7 @@ def conjugation_patches(
             chi_name,
             (hydrogens or {}).get(atom),
             (bond_types or {}).get(atom, "SINGLE"),
+            (heavy_leaving or {}).get(atom, ()),
         )
         if patch is not None:
             patches.append(patch)
@@ -370,11 +430,11 @@ def with_conjugation_patches(chemdb, residue_type, atoms, distances=None):
 
 
 def conjugation_charge_entries(
-    residue_type, atoms, chemdb, base_charges, hydrogens=None
+    residue_type, atoms, chemdb, base_charges, hydrogens=None, heavy_leaving=None
 ):
     """``{variant name: {atom: charge}}`` for a residue's conjugation patches.
 
-    The attachment atom takes the charge of every hydrogen that left, so the
+    The attachment atom takes the charge of every atom that left, so the
     residue keeps the net charge it had. Nothing else moves: every other atom
     falls back to the unpatched entry, and only one atom per patch needs one.
 
@@ -384,10 +444,13 @@ def conjugation_charge_entries(
     """
     entries = {}
     for atom in sorted(atoms):
-        present = _hydrogens_on(residue_type, atom, chemdb)
-        wanted = (hydrogens or {}).get(atom)
-        n_leaving = 1 if wanted is None else max(len(present) - wanted, 0)
-        leaving = leaving_atoms(residue_type, atom, chemdb, n_leaving)
+        leaving = _displaced_atoms(
+            residue_type,
+            atom,
+            chemdb,
+            (hydrogens or {}).get(atom),
+            (heavy_leaving or {}).get(atom, ()),
+        )
         if not leaving:
             continue
         if atom not in base_charges or any(

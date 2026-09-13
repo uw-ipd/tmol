@@ -121,3 +121,15 @@ The integrated test checks ring geometry and handedness, exact supplied
 coordinates, and finite-difference gradients through the construction anchors.
 A singly anchored attachment uses its first declared linkage torsion sample as
 a starting conformer; insufficient or degenerate references stay unresolved.
+
+`terminal_and_linked_glycans_1en2.cif.gz` and
+`terminal_and_linked_glycans_4ndz.cif.gz` retain their complete entries. Terminal
+NAG/GLC copies retain O1 (unresolved in 1EN2), while linked copies lose that
+declared leaving group. Both readers must retain the full base identity, remove
+O1 only from the linked variants, keep construction references on retained atoms,
+conserve per-residue charges, preserve every observed glycan heavy atom exactly,
+and retain declared connections among constructed residues. The integrated workflow checks glycan handedness and K300/K80, then
+scores and minimizes (10 iterations on CPU, 100 on CUDA). Only unbonded metals
+and water are filtered. Entirely unresolved protein residues and five partially
+resolved 4NDZ termini lacking backbone C are explicit constructor exclusions;
+these remain partial-input workflows, not successful modeling of those residues.

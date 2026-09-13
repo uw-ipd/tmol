@@ -208,6 +208,116 @@ def test_partial_sugar_rings_construct_score_and_minimize(
 
 
 @pytest.mark.parametrize("reader", ["tmol", "atomworks"])
+@pytest.mark.parametrize("pdb,sugar,count", [("1en2", "NAG", 4), ("4ndz", "GLC", 10)])
+def test_terminal_and_linked_glycans_construct_score_and_minimize(
+    reader, torch_device, pdb, sugar, count
+):
+    from tmol.io import build_context_from_biotite
+    from tmol.tests.ligand.test_local_conjugate_params import _charges
+
+    array = atom_array_from_cif(
+        DATA / f"terminal_and_linked_glycans_{pdb}.cif.gz", reader=reader
+    )
+    metal = np.isin(np.char.upper(array.element), ("ZN", "NA", "MG", "CA"))
+    assert not metal[array.bonds.as_array()[:, :2]].any()
+    array = array[~metal & (array.res_name != "HOH")]
+    supplied = array.coord.copy()
+    context = build_context_from_biotite(
+        array, torch_device, prepare_ligands=True, ligand_seed=20260909
+    )
+    db = context.parameter_database
+    residues = {r.name: r for r in db.chemical.residues}
+    base_charge = sum(_charges(db, residues[sugar]).values())
+    assert "O1" in {a.name for a in residues[sugar].atoms}
+    records = db.scoring.cartbonded.connection_params
+    assert records
+    assert all(p.K == 300 for r in records for p in r.length_parameters)
+    assert all(p.K == 80 for r in records for p in r.angle_parameters)
+    pose = pose_stack_from_biotite(
+        array,
+        torch_device,
+        context=context,
+        no_optH=True,
+        find_additional_disulfides=False,
+    )
+    np.testing.assert_array_equal(array.coord, supplied)
+    starts = struc.get_residue_starts(array, add_exclusive_stop=True)
+    # 4NDZ also has five partly resolved protein termini lacking C. The
+    # current backbone contract excludes them as well as unresolved residues;
+    # this glycan regression makes those remaining exclusions explicit.
+    retained, partial = [], 0
+    for a, b in zip(starts[:-1], starts[1:]):
+        observed_names = set(
+            array.atom_name[a:b][np.isfinite(array.coord[a:b]).all(-1)]
+        )
+        missing_c = not array.hetero[a] and "C" not in observed_names
+        partial += bool(observed_names) and missing_c
+        retained.extend([not missing_c] * (b - a))
+    retained = np.asarray(retained)
+    assert partial == (0 if pdb == "1en2" else 5)
+    assert not array.hetero[~retained].any()
+    _assert_all_source_connections(pose, array[retained])
+    glycans, terminal = 0, 0
+    for bi, residue in enumerate(struc.residue_iter(array[retained])):
+        bt = pose.packed_block_types.active_block_types[int(pose.block_type_ind[0, bi])]
+        offset = int(pose.block_coord_offset[0, bi])
+        if residue.res_name[0] != sugar:
+            continue
+        # Packing can rebuild incomplete protein sidechains; these glycans
+        # must keep every supplied heavy-atom coordinate exactly.
+        observed = residue[
+            np.isfinite(residue.coord).all(axis=-1)
+            & ~np.isin(residue.element, ("H", "D"))
+        ]
+        indices = [offset + bt.atom_to_idx[str(n)] for n in observed.atom_name]
+        np.testing.assert_array_equal(
+            pose.coords[0, indices].detach().cpu(), observed.coord
+        )
+        glycans += 1
+        has_o1 = "O1" in residue.atom_name
+        terminal += has_o1
+        assert ("O1" in bt.atom_to_idx) == has_o1
+        assert ("conj_C1" in bt.connection_to_cidx) != has_o1
+        rt = residues[bt.name]
+        assert sum(_charges(db, rt).values()) == pytest.approx(base_charge, abs=1e-8)
+        names = {a.name for a in rt.atoms} | {c.name for c in rt.connections}
+        assert all(
+            {ic.parent, ic.grand_parent, ic.great_grand_parent} <= names
+            for ic in rt.icoors
+            if ic.name in names
+        )
+        # A generated terminal oxygen must keep the anomeric handedness. All
+        # observed ring centers also retain the prepared conformer's chirality.
+        ideal = bt.ideal_coords[bt.at_to_icoor_ind]
+        xyz = pose.coords[0, offset : offset + bt.n_atoms].detach().cpu().numpy()
+        for center in ("C1", "C2", "C3", "C4", "C5"):
+            ai = bt.atom_to_idx[center]
+            heavy = sorted(
+                {
+                    b
+                    for a, b in bt.bond_indices
+                    if a == ai
+                    and not bool(
+                        pose.packed_block_types.atom_is_hydrogen[
+                            int(pose.block_type_ind[0, bi]), b
+                        ]
+                    )
+                }
+            )
+            if len(heavy) == 3:
+                assert (
+                    np.linalg.det(ideal[heavy] - ideal[ai])
+                    * np.linalg.det(xyz[heavy] - xyz[ai])
+                    > 0
+                )
+    assert glycans == count
+    assert terminal == (1 if pdb == "1en2" else 5)
+    _score_and_minimize(
+        pose, context, max_iter=100 if torch_device.type == "cuda" else 10
+    )
+
+
+@pytest.mark.parametrize("reader", ["tmol", "atomworks"])
 def test_decreasing_water_author_ids_preserve_full_input(reader, torch_device):
     from tmol.io import build_context_from_biotite
 

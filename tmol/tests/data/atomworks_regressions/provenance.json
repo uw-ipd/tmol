@@ -197,5 +197,23 @@
     "transformation": "none; complete compressed source",
     "sha256": "5671f72a9e2b26f1526678479c179305a4c7c08c5372b6a693946045e81ea1a2",
     "bytes": 148933
+  },
+  {
+    "fixture": "terminal_and_linked_glycans_1en2.cif.gz",
+    "source": "https://files.rcsb.org/download/1EN2.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO tests",
+    "retrieved": "2026-09-12",
+    "transformation": "none; complete compressed source",
+    "sha256": "60fd2c80acbbb32271204496765a6e52dd9b5289ee3c12123b8350c818cce98d",
+    "bytes": 36783
+  },
+  {
+    "fixture": "terminal_and_linked_glycans_4ndz.cif.gz",
+    "source": "https://files.rcsb.org/download/4NDZ.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO tests",
+    "retrieved": "2026-09-12",
+    "transformation": "none; complete compressed source",
+    "sha256": "50224a3e2fa5e1845b0386e8db9387f1bebad1b27ad998e8262a5d7ea43d4221",
+    "bytes": 1514078
   }
 ]

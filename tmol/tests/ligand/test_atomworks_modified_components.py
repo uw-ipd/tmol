@@ -313,8 +313,15 @@ def test_internal_representative_keeps_terminal_oxygen_names(reader, torch_devic
     ]
     definitions, parameters = [], []
     for source in (array, reverse):
+        # Prepare one context without the terminal QUK oxygen so its base must
+        # come from an internal copy; construct both from the complete input.
+        preparation = source
+        if source is array:
+            preparation = source[
+                ~((source.res_name == "QUK") & (source.atom_name == "OXT"))
+            ]
         context = build_context_from_biotite(
-            source, torch_device, prepare_ligands=True, ligand_seed=20260909
+            preparation, torch_device, prepare_ligands=True, ligand_seed=20260909
         )
         pose = pose_stack_from_biotite(
             source, torch_device, context=context, no_optH=True

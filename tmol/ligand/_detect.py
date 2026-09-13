@@ -663,6 +663,9 @@ def detect_nonstandard_residues(
     ]
     if not unknown_starts:
         return []
+    heavy_counts = np.add.reduceat(
+        ~np.isin(atom_array.element, ("H", "D")), residue_starts
+    )
     seen: set[str] = set()
     results: list[NonStandardResidueInfo] = []
     polymer_names = polymer_entity_residues(atom_array)
@@ -691,7 +694,9 @@ def detect_nonstandard_residues(
         seen.add(res_name)
 
         connections = connection_atoms_by_name.get(res_name, ())
-        sub = _representative_instance(atom_array, residue_starts, start, connections)
+        sub = _representative_instance(
+            atom_array, residue_starts, start, connections, heavy_counts
+        )
         component_type = get_chem_comp_type(res_name, chem_comp_types) or "UNKNOWN"
 
         logger.info(
@@ -732,37 +737,41 @@ def detect_nonstandard_residues(
     return results
 
 
-def _representative_instance(atom_array, residue_starts, start, connection_atoms=()):
+def _representative_instance(
+    atom_array, residue_starts, start, connection_atoms=(), heavy_counts=None
+):
     """The copy of this residue to describe the type from.
 
-    A residue type describes the molecule, so the copy to read it from is one
-    whose atoms are all resolved, and failing that one carrying the atoms the
-    connections say the residue has -- a nucleotide at a 5' terminus has no
-    phosphate, while the connections, collected across every copy, name one.
-    Where no copy qualifies the first stands and the caller completes it.
+    Prefer copies carrying all connection atoms, then the fuller heavy-atom
+    inventory, then resolved coordinates. A fully observed internal sugar has
+    lost its anomeric leaving oxygen; using it ahead of a fuller terminal copy
+    would omit an atom the shared base type must describe.
     """
     wanted = set(connection_atoms)
 
-    def suitable(candidate):
-        if not wanted <= {str(n) for n in candidate.atom_name}:
-            return False
-        return not np.isnan(candidate.coord).any()
-
     ends = np.append(residue_starts[1:], atom_array.array_length())
-    index = int(np.searchsorted(residue_starts, start))
-    first = atom_array[start : ends[index]]
-    if suitable(first):
-        return first
-    fallback = first if wanted <= set(first.atom_name) else None
-    for begin, end in zip(residue_starts, ends):
-        if begin == start or atom_array.res_name[begin] != atom_array.res_name[start]:
+    if heavy_counts is None:
+        heavy_counts = np.add.reduceat(
+            ~np.isin(atom_array.element, ("H", "D")), residue_starts
+        )
+    copies = np.flatnonzero(
+        atom_array.res_name[residue_starts] == atom_array.res_name[start]
+    )
+    copies = copies[np.argsort(-heavy_counts[copies], kind="stable")]
+    fallback, best_count = None, -1
+    for i in copies:
+        if fallback is not None and heavy_counts[i] < best_count:
+            break
+        candidate = atom_array[residue_starts[i] : ends[i]]
+        if not wanted <= set(candidate.atom_name):
             continue
-        candidate = atom_array[begin:end]
-        if suitable(candidate):
+        if np.isfinite(candidate.coord).all():
             return candidate
-        if fallback is None and wanted <= set(candidate.atom_name):
-            fallback = candidate
-    return first if fallback is None else fallback
+        if fallback is None:
+            fallback, best_count = candidate, heavy_counts[i]
+    if fallback is not None:
+        return fallback
+    return atom_array[start : ends[np.searchsorted(residue_starts, start)]]
 
 
 def with_resolved_coordinates(atom_array, res_name: str, use_ccd: bool):

@@ -149,7 +149,7 @@ def _pick_neighbor(
 
 
 def _build_atom_tree(  # noqa: C901
-    mol: Chem.Mol, root_idx: int
+    mol: Chem.Mol, root_idx: int, frame_excluded_indices=()
 ) -> tuple[list[int], dict[int, int], dict[int, tuple[int, int]]]:
     """Build an atom tree via simple BFS from the root.
 
@@ -173,11 +173,15 @@ def _build_atom_tree(  # noqa: C901
         adj[a].append(b)
         adj[b].append(a)
 
-    # Ensure heavy atoms are first in the BFS
+    # Keep declared leaving groups behind retained neighbors so the first
+    # construction frame survives attachment. Hydrogens still follow heavy atoms.
+    priority = (
+        (lambda i: (i in frame_excluded_indices, i)) if frame_excluded_indices else None
+    )
     while queue:
         current = queue.popleft()
         order.append(current)
-        for nbr in sorted(adj[current]):
+        for nbr in sorted(adj[current], key=priority):
             if visited[nbr] or not _is_heavy(mol, nbr):
                 continue
             visited[nbr] = True
@@ -438,6 +442,7 @@ def build_residue_type(  # noqa: C901
     assign_ring_chis: bool = False,
     generate_heavy_chi_samples: bool = False,
     original_single_bonds: frozenset[frozenset[str]] | None = None,
+    frame_excluded_atoms: frozenset[str] = frozenset(),
 ) -> RawResidueType:
     """Build a complete RawResidueType from a Chem.Mol.
 
@@ -459,6 +464,8 @@ def build_residue_type(  # noqa: C901
         generate_heavy_chi_samples: Emit samples for heavy chi.
         original_single_bonds: Bonds the source mol2 records as literal single
             bonds, whose order kekulization must not promote.
+        frame_excluded_atoms: Declared leaving atoms that must not root the
+            construction frame; their retained neighbors are visited first.
 
     Returns:
         A fully populated RawResidueType.
@@ -530,8 +537,13 @@ def build_residue_type(  # noqa: C901
     dropped_indices = (
         (set(range(mol.GetNumAtoms())) - keep_indices) if keep_indices else None
     )
-    nbr_idx = _find_nbr_atom(mol, coords, skip_indices=dropped_indices)
-    order, parent, grandparents = _build_atom_tree(mol, nbr_idx)
+    frame_excluded = {
+        i for i, name in enumerate(atom_names) if name in frame_excluded_atoms
+    }
+    nbr_idx = _find_nbr_atom(
+        mol, coords, skip_indices=(dropped_indices or set()) | frame_excluded
+    )
+    order, parent, grandparents = _build_atom_tree(mol, nbr_idx, frame_excluded)
     if keep_indices is not None:
         order = [i for i in order if i in keep_indices]
 

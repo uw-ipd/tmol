@@ -285,6 +285,16 @@ def prepare_single_ligand(
         ligand_info.source_atom_order,
     )
 
+    source = name_source if name_source is not None else ligand_info
+    template = getattr(source.atom_array, "_custom_ccd_registry", {}).get(
+        source.res_name
+    )
+    frame_excluded = frozenset()
+    if (
+        template is not None
+        and "is_leaving_atom" in template.get_annotation_categories()
+    ):
+        frame_excluded = frozenset(template.atom_name[template.is_leaving_atom])
     restype = build_residue_type(
         protonated,
         ligand_info.res_name,
@@ -293,6 +303,7 @@ def prepare_single_ligand(
         assign_ring_chis=assign_ring_chis,
         generate_heavy_chi_samples=generate_heavy_chi_samples,
         original_single_bonds=ligand_info.original_single_bonds,
+        frame_excluded_atoms=frame_excluded,
     )
 
     atom_type_elements: dict[str, str] = {}
@@ -919,7 +930,9 @@ def _bond_lengths_by_site(atom_array):
     return lengths
 
 
-def _with_conjugation(prep, atoms, chemdb, lengths, hydrogens, bond_types):
+def _with_conjugation(
+    prep, atoms, chemdb, lengths, hydrogens, bond_types, heavy_leaving
+):
     """``prep`` carrying a patch and charge entry for each attachment site."""
     from dataclasses import replace
 
@@ -933,12 +946,17 @@ def _with_conjugation(prep, atoms, chemdb, lengths, hydrogens, bond_types):
     residue_type = prep.residue_type
     distances = {atom: lengths.get((residue_type.name, atom)) for atom in atoms}
     patches = conjugation_patches(
-        residue_type, atoms, chemdb, distances, hydrogens, bond_types
+        residue_type, atoms, chemdb, distances, hydrogens, bond_types, heavy_leaving
     )
     if not patches:
         return prep
     charges = conjugation_charge_entries(
-        residue_type, atoms, chemdb, prep.partial_charges or {}, hydrogens
+        residue_type,
+        atoms,
+        chemdb,
+        prep.partial_charges or {},
+        hydrogens,
+        heavy_leaving,
     )
     return replace(
         prep,
@@ -1011,7 +1029,7 @@ def _conjugation_chemistry(atom_array, chemical_database, ph):
 
 
 def _canonical_conjugation_parameters(
-    param_db, sites, lengths, hydrogen_counts, bond_types
+    param_db, sites, lengths, hydrogen_counts, bond_types, heavy_leaving
 ):
     """Patches and charges for the database residues a component attaches to."""
     from tmol.ligand._conjugation_patches import (
@@ -1037,15 +1055,22 @@ def _canonical_conjugation_parameters(
         distances = {atom: lengths.get((res_name, atom)) for atom in atoms}
         hydrogens = {atom: hydrogen_counts.get((res_name, atom)) for atom in atoms}
         orders = {atom: bond_types.get((res_name, atom), "SINGLE") for atom in atoms}
+        leaving = {atom: heavy_leaving.get((res_name, atom), ()) for atom in atoms}
         patches = conjugation_patches(
-            residue_type, atoms, param_db.chemical, distances, hydrogens, orders
+            residue_type,
+            atoms,
+            param_db.chemical,
+            distances,
+            hydrogens,
+            orders,
+            leaving,
         )
         if not patches:
             continue
         variants.extend(patches)
         charges.update(
             conjugation_charge_entries(
-                residue_type, atoms, param_db.chemical, base, hydrogens
+                residue_type, atoms, param_db.chemical, base, hydrogens, leaving
             )
         )
     return tuple(variants), charges
@@ -1422,6 +1447,9 @@ def prepare_ligands(  # noqa: C901
         else:
             prepared_ligands.append((lig, prep))
 
+    from tmol.ligand._conjugation_patches import declared_heavy_leaving_groups
+
+    heavy_leaving = declared_heavy_leaving_groups(atom_array)
     hydrogen_counts, bond_types = {}, {}
     if preparations:
         # Base definitions suffice for identifying polymer caps. Avoid a second
@@ -1445,6 +1473,7 @@ def prepare_ligands(  # noqa: C901
                 bond_lengths,
                 {atom: hydrogen_counts.get((name, atom)) for atom in atoms},
                 {atom: bond_types.get((name, atom), "SINGLE") for atom in atoms},
+                {atom: heavy_leaving.get((name, atom), ()) for atom in atoms},
             )
         preparations = list(prepared_by_name.values())
         prepared_ligands = [
@@ -1489,6 +1518,7 @@ def prepare_ligands(  # noqa: C901
             bond_lengths,
             hydrogen_counts,
             bond_types,
+            heavy_leaving,
         )
         # Keep shared partner metadata with the source preparation so export
         # and direct injection follow the same path.
