@@ -5,6 +5,7 @@ _ops = load_ops(
     __file__,
     [
         "compiled.ops.cpp",
+        "../../common/whole_pose_scoring.cuda.cu",
         "hbond_pose_score.cpu.cpp",
         "hbond_pose_score.cuda.cu",
         "gen_hbond_bases.cpu.cpp",

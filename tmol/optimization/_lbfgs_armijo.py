@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 from types import SimpleNamespace
 from typing import Any
 
@@ -14,7 +15,7 @@ from tmol.optimization._armijo_compiled import (
 
 
 def lbfgs_two_loop(grad, dirs, stps):
-    """L-BFGS search direction H_k @ grad via the compact
+    """L-BFGS search direction -H_k @ grad via the compact
     representation of Byrd, Nocedal & Schnabel, (Math. Prog. 63 (1994)):
         H_0 = I
         M = [[ R^-T (D + Y^T Y) R^-1, -R^-T ], [ -R^-1, 0 ]]
@@ -39,22 +40,31 @@ def lbfgs_two_loop(grad, dirs, stps):
     # promote to float64
     S = stps.double()
     Y = dirs.double()
-    g = -grad.double()
-    # FastRelax supplies float32 coordinates. Preserve the common einsum path
-    # for float64, where callers may compare independently minimized segments
-    # with a batched minimization at tight double-precision tolerances.
+    q = -grad.double()
+    # Explicit batched products avoid einsum's repeated layout planning. Keep
+    # the single-segment, broadcast, and differentiable paths: their reduction
+    # layouts can differ at tight double-precision tolerances.
     single_segment = grad.shape[0] == 1 and out_dtype == torch.float32
+    use_bmm = (
+        q.shape[0] > 1
+        and S.shape[1] == Y.shape[1] == q.shape[0]
+        and S.shape[2] == Y.shape[2] == q.shape[1]
+        and not (
+            torch.is_grad_enabled()
+            and (grad.requires_grad or dirs.requires_grad or stps.requires_grad)
+        )
+    )
     if single_segment:
-        S_one, Y_one, g_one = S[:, 0], Y[:, 0], g[0]
-        a = torch.mv(S_one, g_one).unsqueeze(0)  # a_i = s_i . g
-        b = torch.mv(Y_one, g_one).unsqueeze(0)  # b_i = y_i . g
+        S_one, Y_one = S[:, 0], Y[:, 0]
+        a = torch.mv(S_one, q[0]).unsqueeze(0)  # a_i = s_i . g
         SY = torch.mm(S_one, Y_one.T).unsqueeze(0)  # SY_ij = s_i . y_j
-        YY = torch.mm(Y_one, Y_one.T).unsqueeze(0)  # YY_ij = y_i . y_j
+    elif use_bmm:
+        S_by_pose, Y_by_pose = S.transpose(0, 1), Y.transpose(0, 1)
+        a = torch.bmm(S_by_pose, q.unsqueeze(-1)).squeeze(-1)
+        SY = torch.bmm(S_by_pose, Y_by_pose.transpose(-2, -1))
     else:
-        a = torch.einsum("ipk,pk->pi", S, g)
-        b = torch.einsum("ipk,pk->pi", Y, g)
+        a = torch.einsum("ipk,pk->pi", S, q)
         SY = torch.einsum("ipk,jpk->pij", S, Y)
-        YY = torch.einsum("ipk,jpk->pij", Y, Y)
     R = torch.triu(SY)  # upper-triangular incl. diagonal
     D = SY.diagonal(dim1=-2, dim2=-1)  # D_i = s_i . y_i
 
@@ -64,25 +74,27 @@ def lbfgs_two_loop(grad, dirs, stps):
 
     # u = R^-1 a
     u = torch.linalg.solve_triangular(R, a.unsqueeze(-1), upper=True).squeeze(-1)
-    # v = (D + Y^T Y) u - b
+    # q = g - Y u; v = D u - Y^T q avoids forming Y^T Y.
     if single_segment:
-        v = (torch.mv(YY[0], u[0]) + D[0] * u[0] - b[0]).unsqueeze(0)
+        q = (q[0] - torch.mv(Y_one.T, u[0])).unsqueeze(0)
+        v = (D[0] * u[0] - torch.mv(Y_one, q[0])).unsqueeze(0)
+    elif use_bmm:
+        q = q - torch.bmm(u.unsqueeze(1), Y_by_pose).squeeze(1)
+        v = D * u - torch.bmm(Y_by_pose, q.unsqueeze(-1)).squeeze(-1)
     else:
-        v = torch.einsum("pij,pj->pi", YY, u) + D * u - b
-    # p1 = R^-T v
-    p1 = torch.linalg.solve_triangular(
+        q = q - torch.einsum("pi,ipk->pk", u, Y)
+        v = D * u - torch.einsum("ipk,pk->pi", Y, q)
+    # p = R^-T v
+    p = torch.linalg.solve_triangular(
         R.transpose(-2, -1), v.unsqueeze(-1), upper=False
     ).squeeze(-1)
-    p2 = -u
-
-    # result = g + S p1 + Y p2
+    # result = q + S p
     if single_segment:
-        result = (
-            g[0] + torch.mv(S[:, 0].T, p1[0]) + torch.mv(Y[:, 0].T, p2[0])
-        ).unsqueeze(0)
+        result = (q[0] + torch.mv(S_one.T, p[0])).unsqueeze(0)
+    elif use_bmm:
+        result = q + torch.bmm(p.unsqueeze(1), S_by_pose).squeeze(1)
     else:
-        result = g + torch.einsum("pi,ipk->pk", p1, S)
-        result += torch.einsum("pi,ipk->pk", p2, Y)
+        result = q + torch.einsum("pi,ipk->pk", p, S)
     result = result.to(out_dtype)
     return result.squeeze(0) if unbatched else result
 
@@ -169,10 +181,9 @@ def armijo_linesearch_segmented(
         sigma_decrease,
     )
 
-    while True:
-        if not _any_true(active):
-            break
-
+    combine_cuda_checks = searching.is_cuda and searching.numel() > 1
+    any_active = _any_true(active)
+    while any_active:
         trial = armijo_trial(status, alpha, accepted, factor)
         phi_trial = func(trial)
         n_evals += 1
@@ -189,7 +200,13 @@ def armijo_linesearch_segmented(
             sigma_decrease,
             minstep,
         )
-        if _any_true(failed):
+        if combine_cuda_checks:
+            # Transfer both decisions together and reuse the active flag on
+            # the next iteration instead of synchronizing its mask again.
+            any_failed, any_active = torch.stack((failed, active)).any(dim=1).tolist()
+        else:
+            any_failed = _any_true(failed)
+        if any_failed:
             for p in failed.nonzero(as_tuple=False).flatten().tolist():
                 step = float(trial[p])
                 finite = (
@@ -210,6 +227,8 @@ def armijo_linesearch_segmented(
 
         alpha = trial
         phi = phi_trial
+        if not combine_cuda_checks:
+            any_active = _any_true(active)
 
     return accepted, phi_accepted, n_evals, status, bool(torch.equal(alpha, accepted))
 
@@ -365,7 +384,6 @@ class LBFGS_Armijo(Optimizer):
         state["any_was_reset"] = False
         state["any_inactive"] = False
         self._last_loss_vec = None
-        self._closure_fn = None
 
     def _init_segments(self, segment_ids):
         """Set up the mapping from parameter elements to independent blocks.
@@ -472,6 +490,15 @@ class LBFGS_Armijo(Optimizer):
         """Broadcast per-segment values to parameters without indexing one segment."""
         if self._n_segments == 1:
             return segment_values[0]
+        # Repeated CPU copies avoid reading an index for every parameter.
+        # Keep differentiable broadcasts on their original reduction path.
+        if (
+            self._segments_are_dense
+            and segment_values.device.type == "cpu"
+            and segment_values.shape == (self._n_segments,)
+            and not (torch.is_grad_enabled() and segment_values.requires_grad)
+        ):
+            return segment_values.repeat_interleave(self._segment_size)
         return segment_values[self._segment_ids]
 
     def _wrap_closure(self, closure):
@@ -560,10 +587,10 @@ class LBFGS_Armijo(Optimizer):
                 hist_shape = (history_size, L)
             else:
                 hist_shape = (history_size, self._n_segments, self._segment_size)
-                # scratch for the padded gradient handed to the two-loop
-                state["grad_pad"] = torch.zeros(
-                    hist_shape[1:], device=x.device, dtype=x.dtype
-                )
+                if not self._segments_are_dense:
+                    state["grad_pad"] = torch.zeros(
+                        hist_shape[1:], device=x.device, dtype=x.dtype
+                    )
             # Only ``history_count`` written slots are consumed. Non-dense
             # segmented writes explicitly zero their own padding.
             state["old_dirs_mat"] = torch.empty(
@@ -584,7 +611,14 @@ class LBFGS_Armijo(Optimizer):
             state["was_reset"] = torch.zeros(self._n_segments, **flags)
             state["any_was_reset"] = False
 
+        # State loading casts tensor masks to the parameter's floating dtype.
+        for key in ("converged", "stalled", "needs_reset", "was_reset"):
+            state[key] = state[key].bool()
+
         return SimpleNamespace(
+            # Keep the wrapped closure local to this step. Storing it on the
+            # optimizer creates a cycle through the wrapper's self reference.
+            closure=closure,
             # config
             max_iter=max_iter,
             lr=lr,
@@ -668,12 +702,20 @@ class LBFGS_Armijo(Optimizer):
                 else:
                     keep_elem = self._per_element(keep)
                     zero = torch.zeros((), dtype=y.dtype, device=y.device)
-                    self._pad(
-                        torch.where(keep_elem, y, zero), out=ctx.old_dirs_mat[idx]
-                    )
-                    self._pad(
-                        torch.where(keep_elem, s, zero), out=ctx.old_stps_mat[idx]
-                    )
+                    if self._segments_are_dense:
+                        torch.where(
+                            keep_elem, y, zero, out=ctx.old_dirs_mat[idx].view(-1)
+                        )
+                        torch.where(
+                            keep_elem, s, zero, out=ctx.old_stps_mat[idx].view(-1)
+                        )
+                    else:
+                        self._pad(
+                            torch.where(keep_elem, y, zero), out=ctx.old_dirs_mat[idx]
+                        )
+                        self._pad(
+                            torch.where(keep_elem, s, zero), out=ctx.old_stps_mat[idx]
+                        )
                     ctx.x_ref = torch.where(keep_elem, x, ctx.x_ref)
 
             # compute the approximate (L-BFGS) inverse Hessian
@@ -681,27 +723,32 @@ class LBFGS_Armijo(Optimizer):
                 # No history: use steepest descent direction
                 d.copy_(flat_grad).neg_()
             else:
-                # Create views old -> new
-                if ctx.history_count < ctx.history_size:
+                # A partial or unwrapped buffer is already in chronological order.
+                if ctx.history_start == 0:
                     old_dirs_view = ctx.old_dirs_mat[: ctx.history_count]
                     old_stps_view = ctx.old_stps_mat[: ctx.history_count]
                 else:
                     # Buffer full, need to reorder: [start:end] + [0:start]
-                    indices = torch.cat(
-                        [
-                            torch.arange(
-                                ctx.history_start, ctx.history_size, device=x.device
-                            ),
-                            torch.arange(0, ctx.history_start, device=x.device),
-                        ]
+                    start = ctx.history_start
+                    old_dirs_view = torch.cat(
+                        (ctx.old_dirs_mat[start:], ctx.old_dirs_mat[:start])
                     )
-                    old_dirs_view = ctx.old_dirs_mat[indices]
-                    old_stps_view = ctx.old_stps_mat[indices]
+                    old_stps_view = torch.cat(
+                        (ctx.old_stps_mat[start:], ctx.old_stps_mat[:start])
+                    )
 
-                grad_pad = self._pad(flat_grad, out=ctx.state["grad_pad"])
-                d.copy_(
-                    self._unpad(lbfgs_two_loop(grad_pad, old_dirs_view, old_stps_view))
+                # Dense gradients already have the layout consumed by the
+                # two-loop calculation; only scattered segments need a copy.
+                grad_pad = self._pad(
+                    flat_grad,
+                    out=None if self._segments_are_dense else ctx.state["grad_pad"],
                 )
+                with torch.inference_mode() if grad_pad.is_cuda else nullcontext():
+                    d.copy_(
+                        self._unpad(
+                            lbfgs_two_loop(grad_pad, old_dirs_view, old_stps_view)
+                        )
+                    )
 
         self._restart_failed_segments(ctx)
         self._freeze_converged(ctx)
@@ -779,14 +826,14 @@ class LBFGS_Armijo(Optimizer):
         )
         ctx.ls_evals = ls_evals
 
-        torch.addcmul(
-            ctx.x_backup,
-            ctx.d,
-            self._per_element(accepted),
-            out=ctx.x,
-        )
         if not trial_is_accepted:
-            self._closure_fn()
+            torch.addcmul(
+                ctx.x_backup,
+                ctx.d,
+                self._per_element(accepted),
+                out=ctx.x,
+            )
+            ctx.closure()
         ctx.loss_vec = self._last_loss_vec
         # Keep the normal optimization path asynchronous. The scalar total is
         # only needed for human-readable progress output.
@@ -867,7 +914,6 @@ class LBFGS_Armijo(Optimizer):
             The initial loss, matching the ``Optimizer.step`` convention.
         """
         closure = self._wrap_closure(closure)
-        self._closure_fn = closure
         ctx = self._step_setup(closure)
 
         x = ctx.x

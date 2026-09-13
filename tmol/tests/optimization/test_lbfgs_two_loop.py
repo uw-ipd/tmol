@@ -45,6 +45,51 @@ def test_lbfgs_two_loop_matches_reference(N, m, dtype, torch_device):
     torch.testing.assert_close(out, ref, atol=atol, rtol=rtol)
 
 
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+def test_lbfgs_two_loop_batched_matches_reference(dtype, torch_device):
+    cases = [_random_inputs(17, 4, dtype, torch_device, seed) for seed in range(3)]
+    grad = torch.stack([case[0] for case in cases])
+    dirs = torch.stack([case[1] for case in cases], dim=1)
+    stps = torch.stack([case[2] for case in cases], dim=1)
+    actual = lbfgs_two_loop(grad, dirs, stps)
+    expected = torch.stack([_golden_two_loop(*case) for case in cases])
+    tolerance = (1e-9, 1e-7) if dtype == torch.float64 else (1e-3, 1e-3)
+    torch.testing.assert_close(actual, expected, atol=tolerance[0], rtol=tolerance[1])
+
+
+@pytest.mark.parametrize(
+    "dtype,layout,differentiable",
+    [
+        (torch.float32, "contiguous", False),
+        (torch.float64, "strided", False),
+        (torch.float64, "broadcast", False),
+        (torch.float32, "single", False),
+        (torch.float32, "contiguous", True),
+    ],
+)
+def test_lbfgs_two_loop_diagonal_history(dtype, layout, differentiable, torch_device):
+    # Orthogonal updates give a known diagonal inverse Hessian. Two unused
+    # history slots must leave both the direction and its derivative intact.
+    batch = 1 if layout == "single" else 3
+    history_batch = 1 if layout == "broadcast" else batch
+    stride = 2 if layout in ("strided", "single") else 1
+    steps = torch.zeros(5, history_batch, 7 * stride, dtype=dtype, device=torch_device)
+    steps = steps[..., ::stride]
+    diagonal = torch.tensor([2, 4, 8, 1, 1, 1, 1], dtype=dtype, device=torch_device)
+    for index in range(3):
+        steps[index, :, index] = 1
+    directions = steps * diagonal
+    grad = torch.arange(1, batch * 7 + 1, dtype=dtype, device=torch_device)
+    grad = grad.reshape(batch, 7).requires_grad_(differentiable)
+    result = lbfgs_two_loop(grad, directions, steps)
+    torch.testing.assert_close(result, -grad / diagonal, atol=0, rtol=0)
+    if differentiable:
+        (derivative,) = torch.autograd.grad(result.sum(), grad)
+        torch.testing.assert_close(
+            derivative, (-1 / diagonal).expand_as(grad), atol=0, rtol=0
+        )
+
+
 @pytest.mark.parametrize(
     "dtype", [torch.float32, torch.float64], ids=["float32", "float64"]
 )

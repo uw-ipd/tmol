@@ -54,6 +54,9 @@ def measure_dihedral_V_dV(
   } else if (at1 == -1) {
     // -1 is sentinel value for undefined dihedral
     dihedral = dih_default;
+    // Default angles are constant. Downstream derivative helpers consume
+    // this scratch even though unresolved atom indices prevent accumulation.
+    ddihe_dxyz.setZero();
   }
 }
 

@@ -46,8 +46,7 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         return 2
 
     def set_options(self, options: dict):
-        if "soft_rep" in options:
-            self.soft_repulsive = options["soft_rep"]
+        self.soft_repulsive = options.get("soft_rep", False)
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(LJLKEnergyTerm, self).setup_block_type(block_type)

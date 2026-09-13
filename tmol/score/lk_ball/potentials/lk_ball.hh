@@ -518,6 +518,7 @@ struct lk_ball_score {
             frac_IJ_water_overlap.dV.dWJ / 2}};
   }
 
+  template <bool UseSharedScratch = false>
   static def weighted_dV(
       Real3 I,
       Real3 J,
@@ -549,8 +550,25 @@ struct lk_ball_score {
         global.distance_threshold,
         i.is_carbon_lk && j.is_carbon_lk);
 
-    auto const frac_desolv =
-        lk_fraction<Real, MAX_WATER>::V_dV(WI, J, j.lj_radius);
+    auto frac_desolv = lk_fraction<Real, MAX_WATER>::V_dV(WI, J, j.lj_radius);
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ == 900
+    // Hopper has enough shared memory to keep occupancy while these values
+    // leave registers during the bridge calculation. Each lane owns its
+    // column; volatile stores and reloads shorten the register lifetimes.
+    __shared__ volatile Real desolv_scratch[4 + MAX_WATER * 3][32];
+    if constexpr (UseSharedScratch) {
+      desolv_scratch[0][threadIdx.x] = frac_desolv.V;
+#pragma unroll
+      for (int d = 0; d < 3; ++d) {
+        desolv_scratch[1 + d][threadIdx.x] = frac_desolv.dV.dJ[d];
+#pragma unroll
+        for (int w = 0; w < MAX_WATER; ++w) {
+          desolv_scratch[4 + d * MAX_WATER + w][threadIdx.x] =
+              frac_desolv.dV.dWI(w, d);
+        }
+      }
+    }
+#endif
 
     typename lk_bridge_fraction<Real, MAX_WATER>::V_dV_t frac_bridge;
     if (j.is_donor || j.is_acceptor) {
@@ -559,6 +577,21 @@ struct lk_ball_score {
     } else {
       frac_bridge = {0.0, decltype(frac_bridge.dV)::Zero()};
     }
+
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ == 900
+    if constexpr (UseSharedScratch) {
+      frac_desolv.V = desolv_scratch[0][threadIdx.x];
+#pragma unroll
+      for (int d = 0; d < 3; ++d) {
+        frac_desolv.dV.dJ[d] = desolv_scratch[1 + d][threadIdx.x];
+#pragma unroll
+        for (int w = 0; w < MAX_WATER; ++w) {
+          frac_desolv.dV.dWI(w, d) =
+              desolv_scratch[4 + d * MAX_WATER + w][threadIdx.x];
+        }
+      }
+    }
+#endif
 
     Real const iso_scale = weights[w_lk_ball_iso]
                            + weights[w_lk_ball] * frac_desolv.V
@@ -1250,7 +1283,12 @@ TMOL_DEVICE_FUNC lk_ball_Vt<Real> lk_ball_atom_energy_full(
 
 // Calculate and write to global memory only the derivatives for the two
 // indicated atoms. Does not return the score
-template <int TILE_SIZE, int MAX_N_WATER, typename Real, tmol::Device Dev>
+template <
+    int TILE_SIZE,
+    int MAX_N_WATER,
+    typename Real,
+    tmol::Device Dev,
+    bool UseSharedScratch = false>
 TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
     int polar_ind,               // in [0:n_polar)
     int occluder_ind,            // in [0:n_occluders)
@@ -1295,16 +1333,17 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
         MAX_N_WATER * occluder_atom_tile_ind + wi);
   }
 
-  auto dV = lk_ball_score<Real, MAX_N_WATER>::weighted_dV(
-      polar_xyz,
-      occluder_xyz,
-      wmat_polar,
-      wmat_occluder,
-      cp_separation,
-      polar_block_dat.lk_ball_params[polar_ind],
-      occluder_block_dat.lk_ball_params[occluder_ind],
-      block_pair_dat.global_params,
-      dTdV);
+  auto dV =
+      lk_ball_score<Real, MAX_N_WATER>::template weighted_dV<UseSharedScratch>(
+          polar_xyz,
+          occluder_xyz,
+          wmat_polar,
+          wmat_occluder,
+          cp_separation,
+          polar_block_dat.lk_ball_params[polar_ind],
+          occluder_block_dat.lk_ball_params[occluder_ind],
+          block_pair_dat.global_params,
+          dTdV);
 
   auto accum_derivs = ([&] TMOL_DEVICE_FUNC(
                            LKBallSingleResData<Real> const& block_dat,

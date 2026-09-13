@@ -159,10 +159,17 @@ class LJLKPoseScoreOp
       score = score.squeeze(-1).squeeze(-1);  // remove final 2 "dummy" dims
       ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
     }
+    // The integer neighbor output has no derivative. Do not allocate an
+    // unused zero gradient for it when differentiating the score.
+    ctx->set_materialize_grads(false);
     return {score, block_neighbors};
   }
 
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
+    tensor_list gradients(28);
+    if (!grad_outputs[0].defined()) {
+      return gradients;
+    }
     auto saved = ctx->get_saved_variables();
 
     at::Tensor dV_d_pose_coords;
@@ -262,22 +269,8 @@ class LJLKPoseScoreOp
           }));
     }
 
-    return {dV_d_pose_coords, torch::Tensor(),
-
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(),
-
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(),
-
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(),
-
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(),
-
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor()};
+    gradients[0] = dV_d_pose_coords;
+    return gradients;
   }
 };
 
@@ -316,10 +309,14 @@ class LJLKAndElecPoseScoreOp
       Tensor block_type_elec_intra_repr_path_distance,
       Tensor elec_global_params,
       Tensor shared_compact_block_neighbors,
-      Tensor score_weights) {
+      Tensor score_weights,
+      int64_t n_valid_rots) {
     TORCH_CHECK(
         shared_compact_block_neighbors.numel() != 0,
         "fused LJ/LK + electrostatics requires compact block neighbors");
+    TORCH_CHECK(
+        n_valid_rots >= -1 && n_valid_rots <= rot_coord_offset.numel(),
+        "valid rotamer count must be -1 or within the rotamer storage size");
     if constexpr (weighted) {
       TORCH_CHECK(
           score_weights.dim() == 1 && score_weights.size(0) == 4,
@@ -363,14 +360,18 @@ class LJLKAndElecPoseScoreOp
                   forward_weighted(
                       TMOL_FUSED_SCORE_ARGS,
                       TCAST(score_weights),
-                      rot_coords.requires_grad());
+                      rot_coords.requires_grad(),
+                      n_valid_rots);
             } else {
               return LJLKAndElecPoseScoreDispatch<
                   DispatchMethod,
                   Dev,
                   Real,
                   Int>::
-                  forward(TMOL_FUSED_SCORE_ARGS, rot_coords.requires_grad());
+                  forward(
+                      TMOL_FUSED_SCORE_ARGS,
+                      rot_coords.requires_grad(),
+                      n_valid_rots);
             }
           }();
           score = std::get<0>(result).tensor.squeeze(-1).squeeze(-1);
@@ -383,7 +384,7 @@ class LJLKAndElecPoseScoreOp
 
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
     auto const saved = ctx->get_saved_variables();
-    tensor_list gradients(29);
+    tensor_list gradients(30);
     gradients[0] =
         common::accumulate_whole_pose_gradients(saved[0], grad_outputs[0]);
     return gradients;
@@ -823,7 +824,8 @@ std::vector<Tensor> ljlk_elec_pose_scores_op(
     Tensor block_type_elec_inter_repr_path_distance,
     Tensor block_type_elec_intra_repr_path_distance,
     Tensor elec_global_params,
-    Tensor shared_compact_block_neighbors) {
+    Tensor shared_compact_block_neighbors,
+    int64_t n_valid_rots) {
   return LJLKAndElecPoseScoreOp<DispatchMethod, false>::apply(
       rot_coords,
       rot_coord_offset,
@@ -853,7 +855,8 @@ std::vector<Tensor> ljlk_elec_pose_scores_op(
       block_type_elec_intra_repr_path_distance,
       elec_global_params,
       shared_compact_block_neighbors,
-      torch::empty({0}, rot_coords.options()));
+      torch::empty({0}, rot_coords.options()),
+      n_valid_rots);
 }
 
 template <template <tmol::Device> class DispatchMethod>
@@ -886,7 +889,8 @@ std::vector<Tensor> ljlk_elec_weighted_pose_scores_op(
     Tensor block_type_elec_intra_repr_path_distance,
     Tensor elec_global_params,
     Tensor shared_compact_block_neighbors,
-    Tensor score_weights) {
+    Tensor score_weights,
+    int64_t n_valid_rots) {
   return LJLKAndElecPoseScoreOp<DispatchMethod, true>::apply(
       rot_coords,
       rot_coord_offset,
@@ -916,7 +920,8 @@ std::vector<Tensor> ljlk_elec_weighted_pose_scores_op(
       block_type_elec_intra_repr_path_distance,
       elec_global_params,
       shared_compact_block_neighbors,
-      score_weights);
+      score_weights,
+      n_valid_rots);
 }
 
 template <template <tmol::Device> class DispatchMethod>
@@ -1175,9 +1180,33 @@ std::vector<Tensor> ljlk_elec_weighted_rotamer_scores_op(
 // See https://stackoverflow.com/a/3221914
 TORCH_LIBRARY(tmol_ljlk, m) {
   m.def("ljlk_pose_scores", &ljlk_pose_scores_op<DeviceOperations>);
-  m.def("ljlk_elec_pose_scores", &ljlk_elec_pose_scores_op<DeviceOperations>);
+  // Preserve the inferred argument names for existing callers while adding
+  // an optional topology hint used only to choose the CUDA launch strategy.
   m.def(
-      "ljlk_elec_weighted_pose_scores",
+      "ljlk_elec_pose_scores("
+      "Tensor _0, Tensor _1, Tensor _2, "
+      "Tensor _3, Tensor _4, Tensor _5, "
+      "Tensor _6, Tensor _7, Tensor _8, "
+      "Tensor _9, Tensor _10, Tensor _11, "
+      "int _12, Tensor _13, Tensor _14, "
+      "Tensor _15, Tensor _16, Tensor _17, "
+      "Tensor _18, Tensor _19, Tensor _20, "
+      "Tensor _21, Tensor _22, Tensor _23, "
+      "Tensor _24, Tensor _25, Tensor _26, "
+      "Tensor _27, int n_valid_rots=-1) -> Tensor[] _0",
+      &ljlk_elec_pose_scores_op<DeviceOperations>);
+  m.def(
+      "ljlk_elec_weighted_pose_scores("
+      "Tensor _0, Tensor _1, Tensor _2, "
+      "Tensor _3, Tensor _4, Tensor _5, "
+      "Tensor _6, Tensor _7, Tensor _8, "
+      "Tensor _9, Tensor _10, Tensor _11, "
+      "int _12, Tensor _13, Tensor _14, "
+      "Tensor _15, Tensor _16, Tensor _17, "
+      "Tensor _18, Tensor _19, Tensor _20, "
+      "Tensor _21, Tensor _22, Tensor _23, "
+      "Tensor _24, Tensor _25, Tensor _26, "
+      "Tensor _27, Tensor _28, int n_valid_rots=-1) -> Tensor[] _0",
       &ljlk_elec_weighted_pose_scores_op<DeviceOperations>);
   m.def(
       "weighted_fused_score_sum",

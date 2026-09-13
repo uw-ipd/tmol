@@ -395,7 +395,8 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
       double max_dis,  // host scalar; needed by detect-neighbors call
       Tensor water_coords,
       bool output_block_pair_energies,
-      Tensor shared_compact_block_neighbors) {
+      Tensor shared_compact_block_neighbors,
+      bool allow_split_backward) {
     at::Tensor score;
     at::Tensor block_neighbors;
 
@@ -492,14 +493,22 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
          shared_compact_block_neighbors});
 
     ctx->saved_data["block_pair_scoring"] = output_block_pair_energies;
+    ctx->saved_data["allow_split_backward"] = allow_split_backward;
 
     auto returned_neighbors = shared_compact_block_neighbors.numel() != 0
                                   ? shared_compact_block_neighbors
                                   : block_neighbors;
+    // The integer neighbor output has no derivative. Do not allocate an
+    // unused zero gradient for it when differentiating the score.
+    ctx->set_materialize_grads(false);
     return {score, returned_neighbors};
   }
 
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
+    tensor_list gradients(30);
+    if (!grad_outputs[0].defined()) {
+      return gradients;
+    }
     auto saved = ctx->get_saved_variables();
 
     int i = 0;
@@ -591,22 +600,16 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
                   TCAST(block_neighbors),
                   TCAST(compact_block_neighbors),
                   TCAST(dTdV),
-                  block_pair_scoring);
+                  block_pair_scoring,
+                  ctx->saved_data["allow_split_backward"].toBool());
 
           dV_d_pose_coords = std::get<0>(result).tensor;
           dV_d_water_coords = std::get<1>(result).tensor;
         }));
 
-    return {
-        dV_d_pose_coords, torch::Tensor(), torch::Tensor(),   torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(), dV_d_water_coords, torch::Tensor(),
-        torch::Tensor(),
-    };
+    gradients[0] = dV_d_pose_coords;
+    gradients[26] = dV_d_water_coords;
+    return gradients;
   }
 };
 
@@ -878,7 +881,8 @@ std::vector<Tensor> lkball_pose_score(
     double max_dis,
     Tensor water_coords,
     bool output_block_pair_energies,
-    Tensor shared_compact_block_neighbors) {
+    Tensor shared_compact_block_neighbors,
+    bool allow_split_backward = false) {
   return LKBallPoseScoreOp::apply(
       // common params
       rot_coords,
@@ -912,7 +916,8 @@ std::vector<Tensor> lkball_pose_score(
       max_dis,
       water_coords,
       output_block_pair_energies,
-      shared_compact_block_neighbors);
+      shared_compact_block_neighbors,
+      allow_split_backward);
 }
 
 std::vector<Tensor> lkball_rotamer_score(
@@ -1062,7 +1067,15 @@ std::vector<Tensor> lkball_rotamer_score_shared(
 }
 
 TORCH_LIBRARY(tmol_lk_ball, m) {
-  m.def("lk_ball_pose_score", &lkball_pose_score);
+  // Keep the existing inferred argument names when adding the optional hint.
+  m.def(
+      "lk_ball_pose_score(Tensor _0, Tensor _1, Tensor _2, Tensor _3, Tensor "
+      "_4, Tensor _5, Tensor _6, Tensor _7, Tensor _8, Tensor _9, Tensor _10, "
+      "Tensor _11, int _12, Tensor _13, Tensor _14, Tensor _15, Tensor _16, "
+      "Tensor _17, Tensor _18, Tensor _19, Tensor _20, Tensor _21, Tensor _22, "
+      "Tensor _23, Tensor _24, float _25, Tensor _26, bool _27, Tensor _28, "
+      "bool allow_split_backward=False) -> Tensor[] _0",
+      &lkball_pose_score);
   m.def("lk_ball_rotamer_score", &lkball_rotamer_score);
   m.def("lk_ball_rotamer_score_shared", &lkball_rotamer_score_shared);
   m.def("gen_pose_waters", &pose_watergen_op);

@@ -12,6 +12,7 @@ if ensure_compiled_or_jit():
                 __file__,
                 [
                     "compiled.ops.cpp",
+                    "../../common/whole_pose_scoring.cuda.cu",
                     "genbonded_pose_score.cpu.cpp",
                     "genbonded_pose_score.cuda.cu",
                 ],

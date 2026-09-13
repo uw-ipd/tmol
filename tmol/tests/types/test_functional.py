@@ -1,3 +1,7 @@
+import gc
+import weakref
+from contextlib import contextmanager
+
 import numpy
 import pytest
 
@@ -9,6 +13,73 @@ from tmol.types import (
     convert_args,
     NDArray,
 )
+from tmol.types._validators import get_validator
+from tmol.types._converters import get_converter
+
+
+@contextmanager
+def collect_without_cyclic_gc():
+    gc.collect()
+    enabled = gc.isenabled()
+    gc.disable()
+    try:
+        yield
+    finally:
+        if enabled:
+            gc.enable()
+
+
+@pytest.mark.parametrize("nested", [False, True])
+def test_successful_union_releases_value_and_caller(nested):
+    annotation = Union[NDArray[int][:], NDArray[float][:]]
+    if nested:
+        annotation = Union[List[int], List[annotation]]
+
+    @validate_args
+    def consume(value: annotation):
+        pass
+
+    def invoke():
+        value = numpy.arange(32, dtype=float)
+        value_ref = weakref.ref(value)
+        consume([value] if nested else value)
+        return value_ref
+
+    with collect_without_cyclic_gc():
+        assert invoke()() is None
+
+
+def test_successful_union_conversion_releases_original_value():
+    class Convertible:
+        def __int__(self):
+            raise ValueError("Only floating-point conversion is supported")
+
+        def __float__(self):
+            return 1.25
+
+    with collect_without_cyclic_gc():
+        value = Convertible()
+        value_ref = weakref.ref(value)
+        converted = get_converter(Union[int, float])(value)
+        del value
+        assert converted == 1.25
+        assert value_ref() is None
+
+
+@pytest.mark.parametrize("factory", [get_validator, get_converter])
+def test_rejected_union_releases_value_after_error_is_handled(factory):
+    class Value:
+        pass
+
+    def invoke():
+        value = Value()
+        value_ref = weakref.ref(value)
+        with pytest.raises(TypeError):
+            factory(Union[int, float])(value)
+        return value_ref
+
+    with collect_without_cyclic_gc():
+        assert invoke()() is None
 
 
 def f(*args, **kwargs):

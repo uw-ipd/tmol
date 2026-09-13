@@ -849,11 +849,19 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     if (compute_derivs) {
       score::common::sphere_overlap::
           launch_precomputed_block_neighbors<DeviceDispatch, D, launch_t, Int>(
-              mgr, shared_compact_block_neighbors, eval_energies);
+              mgr,
+              shared_compact_block_neighbors,
+              n_poses,
+              max_n_blocks,
+              eval_energies);
     } else {
       score::common::sphere_overlap::
           launch_precomputed_block_neighbors<DeviceDispatch, D, launch_t, Int>(
-              mgr, shared_compact_block_neighbors, eval_energies_by_block);
+              mgr,
+              shared_compact_block_neighbors,
+              n_poses,
+              max_n_blocks,
+              eval_energies_by_block);
     }
   } else if (
       !output_block_pair_energies
@@ -877,13 +885,23 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
             DeviceDispatch,
             D,
             launch_t,
-            Int>(mgr, shared_compact_block_neighbors, eval_energies);
+            Int>(
+            mgr,
+            shared_compact_block_neighbors,
+            n_poses,
+            max_n_blocks,
+            eval_energies);
       } else {
         score::common::sphere_overlap::launch_precomputed_block_neighbors<
             DeviceDispatch,
             D,
             launch_t,
-            Int>(mgr, shared_compact_block_neighbors, eval_energies_by_block);
+            Int>(
+            mgr,
+            shared_compact_block_neighbors,
+            n_poses,
+            max_n_blocks,
+            eval_energies_by_block);
       }
     } else if (output_block_pair_energies || !compute_derivs) {
       DeviceDispatch<D>::template foreach_pose_workgroup<launch_t>(
@@ -1248,7 +1266,6 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
 
-  int const n_atoms = rot_coords.size(0);
   int const n_poses = first_rot_for_block.size(0);
   int const n_rots = rot_coord_offset.size(0);
   int const max_n_blocks = first_rot_for_block.size(1);
@@ -1298,8 +1315,7 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   assert(block_type_intra_repr_path_distance.size(1) == max_n_block_atoms);
   assert(block_type_intra_repr_path_distance.size(2) == max_n_block_atoms);
 
-  auto dV_dcoords_t = TPack<Vec<Real, 3>, 2, D>::zeros({1, n_atoms});
-  auto dV_dcoords = dV_dcoords_t.view;
+  auto dV_dcoords_t = TPack<Vec<Real, 3>, 2, D>::empty({1, 0});
 
   TPack<Int, 2, D> dispatch_indices_t;
   if (shared_dispatch_indices.size(0) == 3) {
@@ -1483,14 +1499,9 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         store_calculated_energies);
   });
 
-  // Evaluate the prepared rotamer-pair dispatch list.
-  if (compute_derivs) {
-    DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-        mgr, dispatch_indices.size(1), eval_energies_by_block);
-  } else {
-    DeviceDispatch<D>::template foreach_independent_workgroup<launch_t>(
-        mgr, dispatch_indices.size(1), eval_energies_by_block);
-  }
+  // Each pair writes its own score; backward recomputes its derivatives.
+  DeviceDispatch<D>::template foreach_independent_workgroup<launch_t>(
+      mgr, dispatch_indices.size(1), eval_energies_by_block);
 
   return {output_t, dV_dcoords_t, dispatch_indices_t};
 }  // namespace potentials
