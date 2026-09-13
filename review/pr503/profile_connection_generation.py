@@ -2,8 +2,9 @@
 
 The reference disables within-call reuse and materializes all capped models.
 It uses identical chemistry and record generation; this measures an internal
-optimization of the new prototype, not a speedup over upstream preparation
-(which does not yet generate these attachment energy parameters).
+optimization of attachment record generation, not an end-to-end speedup
+over upstream preparation. Historical MMFF measurements do not describe
+the current generated-geometry default.
 """
 
 import argparse

@@ -1,6 +1,7 @@
 # Continued review: integrated AtomWorks inputs and model tutorials
 
-Latest follow-up: tmol `9a91bce6b`, AtomWorks `4af94d0c`. Earlier checkpoints
+Latest follow-up: tmol `202fe2dcc`, AtomWorks `32d8c587` (production source
+identical to pinned `4af94d0c`). Earlier checkpoints
 below retain their original scope; current evidence is in
 [chemistry-followup-validation.json](results/chemistry-followup-validation.json).
 
@@ -71,7 +72,7 @@ identity, including provenance, was unchanged. They now change distances,
 orientation, origin, atom order and instance numbering while preserving
 handedness. The separate all-NaN topology check remains. This corrects the
 identity contract; it does not change score goldens or tolerances. Unresolved
-stereochemistry and default attachment/local integration remain outstanding.
+stereochemistry and coupled local chemistry corrections remain outstanding.
 
 The following all-example generator audit exposed the same input-name
 assumption addressed in finding 114: DAR/DAL/U were looked up as internal names
@@ -80,7 +81,7 @@ now index `io_equiv_class` as well. Three affected complete-file regressions pas
 The repeated generator audit has no failures across all 18 examples: three
 ligand/glycan fixtures generate records and fifteen need no non-polymer
 attachment records. This is parameter-generation coverage, not a new full
-scoring/minimization corpus run; default integration remains pending.
+scoring/minimization corpus run. Default integration is recorded below.
 
 ## Attachment parameter convention: follow Frank's branch
 
@@ -90,14 +91,69 @@ with `K=300` for lengths and `K=80` for angles; generic bonded scoring supplies
 proper/improper torsions. Existing MMFF use for charges and conformer cleanup
 does not imply MMFF harmonic force constants should replace those values.
 
-The selected attachment implementation must preserve that convention. A CPU
-diagnostic now generates complete capped biotin, O-glycan and N-glycan geometry
-and verifies native attachment energy/gradients against an independent Torch
-expression in whole-pose and weighted block-pair modes. All six comparisons
-pass. This diagnostic still uses the prototype's MMFF coverage checks and does
-not independently validate stereochemistry. Default attachment/local parameter
-integration remains outstanding; the MMFF harmonic and local-delta prototypes
-remain private diagnostics. No new default force field is installed.
+Preparation now fills missing attachment length/angle records using complete
+capped models and the same SMILES/mol2 geometry pipeline as ordinary ligands.
+It preserves observed stereochemistry and validates mapped chemistry afterward;
+measured input distances never define equilibrium targets. The two constants
+are shared with `_build_cartbonded_params`, preserving Frank's numerical values.
+Existing explicit records remain authoritative, including custom reference fits.
+Bundled parameters persist the generated records and their source/version/seed
+provenance. Reusing them avoids conformer regeneration; older bundles acquire
+missing records during preparation.
+
+The initial default selection has 82 CPU passes. The broader integration run
+exposed mixed polymer/conjugation ports in 1xvk: the review generator assumed
+both endpoints were new conjugation ports and capped a carbonyl already joined
+to its actual partner. This was a review-integration defect, not Frank's defect.
+Models now carry declared port names, retain occupied polymer ends, and select
+compatible exact variants. RDKit SINGLE amide/ester bonds remain compatible
+with the database's AROMATIC polymer-port convention; literal conjugation
+bond-order checks remain strict. Per-port occupancy is validated before
+chemical generation, preserving the original 1AYM conflict error. Reusing a
+prepared database for an ordinary protein does not require an attachment graph.
+
+The existing complete 1xvk regression now also requires generated mixed-port
+records with Frank's constants, and continues checking every source bond,
+reversed residue order, finite scores/gradients and minimization. Diagnostic
+MMFF replacement tests start from explicitly uncorrected baseline records;
+no production replacement guard was weakened. The incomplete Schiff-base
+fixture now rejects unspecified stereochemistry before construction; separate
+covalent-partner filtering regressions keep their original assertions.
+
+CPU follow-ups have 51 bundle passes, 79 context/generator passes and three
+reuse passes (overlapping selections). The final focused CPU/CUDA run has
+155 passes and ten fixture-specific skips. Final CUDA scoring/minimization completes 44 trials: 42 numerical passes and
+two declared-invalid 1AYM failures. All 18 examples and complete 1xvk pass
+through both readers; no ligand/glycan attachment bond has a length alert.
+Only four trials converge within 100 iterations. The 16 ordinary DNA bond
+alerts in 145d remain: independent displacement probes measure K300 at all
+20 phosphodiester links, so missing stiffness is not their cause.
+The full local AtomWorks rerun has 28 passes, nine partial outcomes and 29
+failures across 66 trials (12 failures involve deferred metal components).
+Repeated glycan contexts and reader/input differences remain open. See [revision-scoped evidence](results/frank-default-validation.json).
+Coupled local chemistry corrections (43), MMFF-uncovered chemistry, unresolved
+stereochemistry, three-block angles and conflicting repeated contexts remain
+open. The MMFF harmonic/local-delta prototypes remain private diagnostics.
+
+## 121. Fixed seeds do not reproduce threaded conformer refinement — fixed on the tested CPU stack
+
+[Frank's chiral refinement gathers](https://github.com/uw-ipd/tmol/blob/0593a93b07d80b0302383163d2d98c78e315ab98/tmol/ligand/_conformer_generation.py#L513).
+The conformer generator was unchanged from Frank's head before this fix.
+
+> Can fixed-seed reproducibility include gradient accumulation during refinement?
+> Repeated N-glycan generation has identical bounds and initial embeddings, but
+> first diverges in chiral annealing and produces different bond/angle targets.
+
+Repeated-index advanced gathers accumulate CPU gradients nondeterministically
+on the tested threaded Torch build. Use `index_select` in planar, chiral and
+stress refinement, sharing distance/volume helpers and each repeated origin.
+Weights, targets, seeds, precision, iteration counts and global Torch settings
+remain unchanged. The first generator suite had four regeneration failures;
+all four pass after this correction. Three stage traces now have identical
+coordinate hashes; previously all three differed. This addresses a real source
+of inherited reference instability (23), but does not reconcile the eight
+remaining goldens or establish cross-version reproducibility. No performance
+improvement is inferred from different optimizer trajectories.
 
 The comparison is Frank's `0593a93b07d80b0302383163d2d98c78e315ab98` (already
 merged), and AtomWorks dev `59afb1e2`. The shared AtomWorks implementation is
@@ -278,8 +334,8 @@ The private MMFF94 harmonic-curvature prototype is diagnostic only; do not insta
 it as the default or interpret its successful stiffness test as reference-model
 validation. Frank's existing MMFF94 charge generation and conformer cleanup are
 separate uses of MMFF and remain part of his pipeline. The default-source choice
-is settled; implementation and validation of missing attachment/local terms
-(38/43/58) remain outstanding. Reuse his generator for complete capped chemistry
+is settled; missing attachment lengths/angles (38) now use that convention.
+Coupled local chemistry (43/58) and broader context coverage remain incomplete. Reuse his generator for complete capped chemistry
 and preserve curated peptide references rather than substituting new constants
 or fitting targets to the coordinates being scored.
 

@@ -93,6 +93,15 @@ def main():
     for fixture, filename in sorted(FIXTURES.items()):
         array = atom_array_from_cif(data_path("covalent_fixtures", filename + ".cif"))
         db, _ = prepare_ligands(array, seed=20250828)
+        # This benchmark exercises the private MMFF-delta replacement model.
+        # Keep its baseline separate from the default Frank attachment records.
+        db = attr.evolve(
+            db,
+            scoring=attr.evolve(
+                db.scoring,
+                cartbonded=attr.evolve(db.scoring.cartbonded, connection_params=()),
+            ),
+        )
         result = generate_conjugate_parameters(array, db)
         residues = {r.name: r for r in db.chemical.residues}
         charge_index = {

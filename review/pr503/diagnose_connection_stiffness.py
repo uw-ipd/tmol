@@ -22,11 +22,6 @@ def main():
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--minimize-biotin", action="store_true")
     parser.add_argument(
-        "--generated-connections",
-        action="store_true",
-        help="Install the private capped-MMFF harmonic prototype for this diagnostic",
-    )
-    parser.add_argument(
         "--fixtures", nargs="+", choices=list(FIXTURES), default=list(FIXTURES)
     )
     args = parser.parse_args()
@@ -43,14 +38,7 @@ def main():
             ligand_seed=20250828,
         )
         database = context.parameter_database
-        if args.generated_connections:
-            from tmol.database import inject_residue_params
-            from tmol.ligand._connection_params import (
-                generate_conjugate_connection_params,
-            )
-
-            records = generate_conjugate_connection_params(array, database)
-            database = inject_residue_params(database, [], connection_params=records)
+        records = database.scoring.cartbonded.connection_params
         term = CartBondedEnergyTerm(param_db=database, device=pose.device)
         for block_type in pose.packed_block_types.active_block_types:
             term.setup_block_type(block_type)
@@ -132,18 +120,14 @@ def main():
                 )
             row = dict(
                 fixture=name,
-                parameter_model=(
-                    "tmol-mmff94-harmonic-v1"
-                    if args.generated_connections
-                    else "default"
-                ),
+                parameter_model="default",
                 kind=kind,
                 blocks=[ba, bb],
                 atoms=[types[ba].atoms[ia].name, types[bb].atoms[ib].name],
                 distance=distance,
                 probes=probes,
             )
-            if args.generated_connections and kind == "conjugation":
+            if kind == "conjugation":
                 key = (
                     types[ba].name,
                     types[ba].connections[ac].name,
@@ -186,15 +170,14 @@ def main():
                         coord_mask=mask,
                         optimizer_kwargs={"max_iter": 100},
                     )
-                    if args.generated_connections:
-                        final_distance = float(
-                            (final.coords[0, first] - final.coords[0, second]).norm()
-                        )
-                        assert abs(final_distance - row["generated_bond"]["x0"]) < 0.1
-                        assert float(whole(final.coords).detach()) < before
-                        torch.testing.assert_close(
-                            final.coords[~mask], initial.coords[~mask], rtol=0, atol=0
-                        )
+                    final_distance = float(
+                        (final.coords[0, first] - final.coords[0, second]).norm()
+                    )
+                    assert abs(final_distance - row["generated_bond"]["x0"]) < 0.1
+                    assert float(whole(final.coords).detach()) < before
+                    torch.testing.assert_close(
+                        final.coords[~mask], initial.coords[~mask], rtol=0, atol=0
+                    )
                     row["cartesian_minimization"].append(
                         dict(
                             displacement=displacement,
