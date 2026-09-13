@@ -640,8 +640,24 @@ def _validate_filtered_covalent_partners(array, co, atom_res, valid_res, res_nam
             if (
                 first_atom >= 0
                 and second_atom >= 0
-                and first_atom == connections.up_atom_for_co_restype[first_type]
-                and second_atom == connections.down_atom_for_co_restype[second_type]
+                and (
+                    (
+                        first_atom == connections.up_atom_for_co_restype[first_type]
+                        and second_atom
+                        == connections.down_atom_for_co_restype[second_type]
+                    )
+                    or (
+                        # Reordering an explicitly numbered chain does not turn
+                        # an ordinary gap into a cyclic/crosslinked attachment.
+                        # Require the source sequence direction; a backward link
+                        # in forward residue order still closes a cycle.
+                        first_atom == connections.down_atom_for_co_restype[first_type]
+                        and second_atom
+                        == connections.up_atom_for_co_restype[second_type]
+                        and (array.res_id[first], array.ins_code[first])
+                        > (array.res_id[second], array.ins_code[second])
+                    )
+                )
             ):
                 continue
 
@@ -817,19 +833,46 @@ def _break_connections_for_missing_density(
             not_connected[i + 1, 0] = True
 
 
+def _orient_polymer_gap_flags(not_connected, chain_id, restypes, bonds, co):
+    """Translate input-neighbor gap flags to chemical down/up on reversed chains.
+
+    Declared adjacent polymer bonds establish direction. Non-polymer links and
+    cyclic closures do not vote; mixed directions have no single chain ordering.
+    """
+    if not len(bonds) or not numpy.any(not_connected):
+        return
+    first, a, second, b = bonds.T
+    conn = co.polymer_conn_inds
+    up = numpy.asarray(conn.up_atom_for_co_restype)[restypes]
+    down = numpy.asarray(conn.down_atom_for_co_restype)[restypes]
+    adjacent = (second == first + 1) & (chain_id[first] == chain_id[second])
+    forward = adjacent & (a == up[first]) & (b == down[second])
+    reverse = adjacent & (a == down[first]) & (b == up[second])
+    for chain in numpy.unique(chain_id[first[reverse]]):
+        if not numpy.any(forward & (chain_id[first] == chain)):
+            members = chain_id == chain
+            not_connected[members] = not_connected[members, ::-1]
+
+
 def _extract_residue_metadata(
     biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
     not_connected,
-    torch_device: torch.device,
 ):
     biotite_residue_starts = biotite.structure.get_residue_starts(biotite_structure)
 
-    chain_starts = biotite.structure.get_chain_starts(biotite_structure)
-    n_atoms = biotite_structure.array_length()
-    per_atom_chain_idx = numpy.zeros(n_atoms, dtype=int)
-    for i, start in enumerate(chain_starts):
-        per_atom_chain_idx[start:] = i
-    biotite_chain_id_for_res = per_atom_chain_idx[biotite_residue_starts]
+    # Residue labels are not chain identities. Biotite's get_chain_starts also
+    # splits whenever res_id decreases, turning a reversed chain into one chain
+    # per residue. Work at residue granularity and retain explicit symmetry IDs.
+    keys = ["chain_id"]
+    if "sym_id" in biotite_structure.get_annotation_categories():
+        keys.append("sym_id")
+    boundaries = numpy.zeros(max(0, len(biotite_residue_starts) - 1), dtype=bool)
+    for key in keys:
+        values = biotite_structure.get_annotation(key)[biotite_residue_starts]
+        boundaries |= values[1:] != values[:-1]
+    biotite_chain_id_for_res = numpy.cumsum(numpy.r_[0, boundaries])[
+        : len(biotite_residue_starts)
+    ]
 
     if len(biotite_chain_id_for_res) > 1:
         res_is_disconnected_from_neighbor = (
@@ -838,9 +881,6 @@ def _extract_residue_metadata(
         not_connected[1:, 0] &= ~res_is_disconnected_from_neighbor
         not_connected[:-1, 1] &= ~res_is_disconnected_from_neighbor
 
-    res_not_connected_1 = torch.tensor(
-        not_connected, dtype=torch.bool, device=torch_device
-    ).unsqueeze(0)
     biotite_chain_labels = biotite_structure.chain_id[biotite_residue_starts]
     biotite_insertion_codes = biotite_structure.ins_code[biotite_residue_starts]
     biotite_residue_labels, biotite_residues = biotite.structure.get_residues(
@@ -852,8 +892,6 @@ def _extract_residue_metadata(
         biotite_insertion_codes,
         biotite_residue_labels,
         biotite_residues,
-        res_not_connected_1,
-        not_connected,
     )
 
 
@@ -1006,9 +1044,7 @@ def canonical_form_from_biotite(
         biotite_insertion_codes,
         biotite_residue_labels,
         biotite_residues,
-        res_not_connected_1,
-        not_connected,
-    ) = _extract_residue_metadata(biotite_structure, not_connected, torch_device)
+    ) = _extract_residue_metadata(biotite_structure, not_connected)
 
     atom_res_inds = get_all_residue_positions(biotite_structure)
     biotite_name_for_atom = biotite_structure.atom_name
@@ -1087,11 +1123,14 @@ def canonical_form_from_biotite(
             missing_density_distance_threshold,
             polymeric,
         )
-        res_not_connected_1 = torch.tensor(
-            not_connected, dtype=torch.bool, device=torch_device
-        ).unsqueeze(0)
-
-    res_not_connected = res_not_connected_1.repeat(n_poses, 1, 1)
+    _orient_polymer_gap_flags(
+        not_connected, biotite_chain_id_for_res, tmol_restypes, covalent_bonds_np, co
+    )
+    res_not_connected = (
+        torch.tensor(not_connected, dtype=torch.bool, device=torch_device)
+        .unsqueeze(0)
+        .repeat(n_poses, 1, 1)
+    )
 
     # Return CanonicalForm with all converted data
     return CanonicalForm(

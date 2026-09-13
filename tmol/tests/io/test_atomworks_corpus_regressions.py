@@ -157,8 +157,14 @@ def test_repeated_glycans_share_transferable_attachment_targets(reader, torch_de
     )
     energies = []
     for source in (array, reversed_array):
+        # Require the declared graph exactly in this regression. The corpus
+        # runner separately exercises the default disulfide-inference policy.
         pose = pose_stack_from_biotite(
-            source, torch_device, context=context, no_optH=True
+            source,
+            torch_device,
+            context=context,
+            no_optH=True,
+            find_additional_disulfides=False,
         )
         # The full input includes entirely unresolved protein residues. The
         # constructor excludes them; it must retain every observed residue and
