@@ -22,13 +22,6 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-_BOND_ORDERS = {
-    "SING": struc.BondType.SINGLE,
-    "DOUB": struc.BondType.DOUBLE,
-    "TRIP": struc.BondType.TRIPLE,
-    "QUAD": struc.BondType.QUADRUPLE,
-}
-
 
 def component_chemistry_from_cif(cif_path) -> dict:
     """The complete chemistry a CIF declares for each component it names.
@@ -53,94 +46,46 @@ def component_chemistry_from_cif(cif_path) -> dict:
 
 
 def component_chemistry_from_block(block) -> dict:
-    """The declared chemistry of one CIF block; see the path form above."""
-    if "chem_comp_atom" not in block:
-        return {}
-    atoms = block["chem_comp_atom"]
-    if "comp_id" not in atoms or "atom_id" not in atoms:
-        return {}
+    """Read authored component chemistry without dictionary supplementation."""
+    from atomworks.io.utils.ccd import build_ccd_entries_from_cif_block
 
-    comp = np.char.strip(atoms["comp_id"].as_array(str))
-    name = np.char.strip(atoms["atom_id"].as_array(str))
-    element = (
-        np.char.strip(atoms["type_symbol"].as_array(str))
-        if "type_symbol" in atoms
-        else np.full(len(name), "", dtype="U4")
-    )
-    bonds = _authored_bonds(block)
-
-    entries: dict[str, struc.AtomArray] = {}
-    for comp_id in sorted(set(str(c) for c in comp)):
-        if not comp_id:
-            continue
-        mask = comp == comp_id
-        names = [str(n) for n in name[mask]]
-        if len(names) > 1 and comp_id not in bonds:
-            logger.warning(
-                "%s: the file declares %d atoms but bonds none of them, so "
-                "its chemistry cannot be read from the file; falling back "
-                "to the component dictionary",
-                comp_id,
-                len(names),
-            )
-            continue
-        entries[comp_id] = _component_array(
-            comp_id, names, [str(e) for e in element[mask]], bonds.get(comp_id, ())
+    entries = build_ccd_entries_from_cif_block(block, supplement_from_ccd=False)
+    for array in entries.values():
+        # Preserve the legacy template contract; structure-level metadata is
+        # attached separately before parameter preparation.
+        for name in set(array.get_annotation_categories()) - {
+            "chain_id",
+            "res_id",
+            "ins_code",
+            "res_name",
+            "hetero",
+            "atom_name",
+            "element",
+        }:
+            array.del_annotation(name)
+        array.coord[:] = np.nan
+        array.chain_id[:] = "A"
+        array.res_id[:] = 1
+        array.hetero[:] = True
+        array.element = np.array(
+            [
+                str(e) or _element_from_name(str(n))
+                for n, e in zip(array.atom_name, array.element)
+            ],
+            dtype="U4",
         )
+        bonds = array.bonds.as_array()
+        aromatic = np.isin(
+            bonds[:, 2],
+            [
+                struc.BondType.AROMATIC_SINGLE,
+                struc.BondType.AROMATIC_DOUBLE,
+                struc.BondType.AROMATIC_TRIPLE,
+            ],
+        )
+        bonds[aromatic, 2] = struc.BondType.AROMATIC
+        array.bonds = struc.BondList(len(array), bonds)
     return entries
-
-
-def _authored_bonds(block) -> dict:
-    """``{comp_id: [(name_a, name_b, BondType), ...]}`` from ``chem_comp_bond``."""
-    if "chem_comp_bond" not in block:
-        return {}
-    category = block["chem_comp_bond"]
-    required = ("comp_id", "atom_id_1", "atom_id_2")
-    if any(field not in category for field in required):
-        return {}
-    comp = np.char.strip(category["comp_id"].as_array(str))
-    first = np.char.strip(category["atom_id_1"].as_array(str))
-    second = np.char.strip(category["atom_id_2"].as_array(str))
-    order = (
-        np.char.upper(np.char.strip(category["value_order"].as_array(str)))
-        if "value_order" in category
-        else np.full(len(comp), "SING", dtype="U8")
-    )
-    aromatic = (
-        np.char.strip(category["pdbx_aromatic_flag"].as_array(str)) == "Y"
-        if "pdbx_aromatic_flag" in category
-        else np.zeros(len(comp), dtype=bool)
-    )
-    bonds: dict[str, list] = {}
-    for c, a, b, o, aro in zip(comp, first, second, order, aromatic):
-        kind = (
-            struc.BondType.AROMATIC
-            if aro
-            else _BOND_ORDERS.get(str(o)[:4], struc.BondType.SINGLE)
-        )
-        bonds.setdefault(str(c), []).append((str(a), str(b), int(kind)))
-    return bonds
-
-
-def _component_array(comp_id, names, elements, bonds) -> struc.AtomArray:
-    """One component as an AtomArray with its bonds and no coordinates."""
-    array = struc.AtomArray(len(names))
-    array.coord = np.full((len(names), 3), np.nan, dtype=np.float32)
-    array.atom_name = np.array(names, dtype="U16")
-    array.element = np.array(
-        [e if e else _element_from_name(n) for n, e in zip(names, elements)], dtype="U4"
-    )
-    array.res_name = np.array([comp_id] * len(names), dtype="U8")
-    array.chain_id = np.array(["A"] * len(names), dtype="U4")
-    array.res_id = np.array([1] * len(names), dtype=np.int32)
-    array.hetero = np.array([True] * len(names), dtype=bool)
-    index = {n: i for i, n in enumerate(names)}
-    table = struc.BondList(len(names))
-    for a, b, kind in bonds:
-        if a in index and b in index:
-            table.add_bond(index[a], index[b], kind)
-    array.bonds = table
-    return array
 
 
 def _element_from_name(name: str) -> str:
@@ -189,14 +134,18 @@ def _component_dictionary_template(res_name: str):
     return component if component.bonds is not None else None
 
 
-def _accounts_for(observed, template) -> bool:
+def _accounts_for(residue, template) -> bool:
     """Whether a template names every heavy atom the structure resolved."""
     declared = {
         str(n)
         for n, e in zip(template.atom_name, template.element)
         if str(e).strip().upper() != "H"
     }
-    heavy = {n for n in observed if not n.startswith("H")}
+    heavy = {
+        str(n)
+        for n, e in zip(residue.atom_name, residue.element)
+        if str(e).strip().upper() != "H"
+    }
     return bool(heavy) and heavy <= declared
 
 
@@ -207,6 +156,8 @@ def atom_array_from_cif(
     use_ccd: bool = True,
     include_bonds: bool = True,
     extra_fields=None,
+    reader: str = "tmol",
+    hydrogen_policy: str = "rebuild",
 ):
     """A structure's atoms, including the ones its density did not resolve.
 
@@ -227,24 +178,85 @@ def atom_array_from_cif(
             cannot be read, so unresolved atoms are not added either.
         extra_fields: Further ``atom_site`` columns to keep, alongside the
             ``label_entity_id`` this always reads.
+        reader: Both bonded routes use AtomWorks parsing and bond sanitation.
+            ``"tmol"`` restores author identifiers and applies tmol's legacy
+            completion policy. ``"atomworks"`` uses label identifiers and
+            AtomWorks NaN completion.
+            AtomWorks also supports compressed and binary CIF. Its label route requires
+            ``use_ccd=True`` and ``include_bonds=True``; extra fields are not
+            supported across the AtomWorks completion API.
+        hydrogen_policy: ``"rebuild"`` discards supplied hydrogens except observed
+            histidine ring protons used for tautomer selection. ``"preserve"``
+            retains them and requires compatible hydrogen names/connectivity.
+            Applies to bonded reading; without bonds the raw coordinates are kept.
 
     Returns:
         A biotite AtomArray.
     """
-    cif = pdbx.CIFFile.read(str(cif_path))
-    block = cif[next(iter(cif.keys()))]
-    fields = ["label_entity_id", *(extra_fields or [])]
-    array = pdbx.get_structure(
-        cif, model=model, include_bonds=include_bonds, extra_fields=fields
-    )
-    if isinstance(array, struc.AtomArrayStack):
-        array = array[0]
+    if reader == "atomworks":
+        if not use_ccd or not include_bonds or extra_fields:
+            raise ValueError(
+                "The AtomWorks reader requires use_ccd=True, include_bonds=True "
+                "and no extra_fields. Use reader='tmol' for those input policies."
+            )
+        from tmol.io._atomworks_reader import read_cif
+
+        return read_cif(cif_path, model=model, hydrogen_policy=hydrogen_policy)[0]
+    if reader != "tmol":
+        raise ValueError(f"Unknown CIF reader {reader!r}; choose 'tmol' or 'atomworks'")
+    if include_bonds:
+        from tmol.io._atomworks_reader import read_cif
+
+        array, block = read_cif(
+            cif_path,
+            model=model,
+            author_fields=True,
+            extra_fields=extra_fields,
+            hydrogen_policy=hydrogen_policy,
+        )
+    else:
+        cif = pdbx.CIFFile.read(str(cif_path))
+        block = cif[next(iter(cif.keys()))]
+        array = pdbx.get_structure(
+            cif,
+            model=model,
+            include_bonds=False,
+            extra_fields=["label_entity_id", *(extra_fields or [])],
+        )
     array = _with_polymer_entity_flag(array, block)
+    array = _with_component_type_annotation(array, block)
     if not include_bonds:
         return array
     return with_unresolved_atoms(
         array, component_chemistry_from_block(block), use_ccd=use_ccd
     )
+
+
+def _with_component_type_annotation(array, block):
+    """Carry declared component types from the already parsed CIF into preparation."""
+    if "chem_comp" not in block:
+        return array
+    category = block["chem_comp"]
+    if "id" not in category or "type" not in category:
+        return array
+    declared = {
+        str(name).strip().upper(): str(kind).strip().upper()
+        for name, kind in zip(
+            category["id"].as_array(str), category["type"].as_array(str)
+        )
+        if str(kind).strip() not in ("", ".", "?")
+    }
+    previous = getattr(array, "chem_comp_type", np.full(array.array_length(), ""))
+    array.set_annotation(
+        "chem_comp_type",
+        np.array(
+            [
+                declared.get(str(name).upper(), str(old))
+                for name, old in zip(array.res_name, previous)
+            ]
+        ),
+    )
+    return array
 
 
 def _with_polymer_entity_flag(atom_array, block):
@@ -283,14 +295,16 @@ def with_unresolved_atoms(atom_array, declared: dict, *, use_ccd: bool = True):
     from tmol.ligand._polymer_profile import completed_connection_atoms
 
     connections = _connection_atoms_by_name(atom_array)
-    starts = struc.get_residue_starts(atom_array)
+    boundaries = struc.get_residue_starts(atom_array, add_exclusive_stop=True)
+    starts = boundaries[:-1]
+    templates = dict(declared)
     warned: set = set()
     additions: dict[int, list] = {}
-    for start in starts:
+    for start, stop in zip(starts, boundaries[1:]):
         res_name = str(atom_array.res_name[start]).strip()
-        template = declared.get(res_name)
-        if template is None and use_ccd:
-            template = _component_dictionary_template(res_name)
+        if res_name not in templates and use_ccd:
+            templates[res_name] = _component_dictionary_template(res_name)
+        template = templates.get(res_name)
         if template is None:
             # nothing describes this residue, so there is no telling whether
             #    what was resolved is all of it. A code no dictionary defines
@@ -307,9 +321,9 @@ def with_unresolved_atoms(atom_array, declared: dict, *, use_ccd: bool = True):
                     res_name,
                 )
             continue
-        residue = atom_array[_residue_mask(atom_array, start)]
+        residue = atom_array[start:stop]
         present = {str(n) for n in residue.atom_name}
-        if not _accounts_for(present, template):
+        if not _accounts_for(residue, template):
             if res_name in warned:
                 continue
             warned.add(res_name)
@@ -331,15 +345,6 @@ def with_unresolved_atoms(atom_array, declared: dict, *, use_ccd: bool = True):
     return _inserted(atom_array, starts, additions)
 
 
-def _residue_mask(atom_array, start):
-    """Boolean mask of the residue instance the atom at ``start`` belongs to."""
-    mask = atom_array.res_id == atom_array.res_id[start]
-    mask &= atom_array.res_name == atom_array.res_name[start]
-    if hasattr(atom_array, "chain_id"):
-        mask &= atom_array.chain_id == atom_array.chain_id[start]
-    return mask
-
-
 def _connection_atoms_by_name(atom_array) -> dict:
     """Atoms each residue name bonds a neighbouring residue through.
 
@@ -349,13 +354,12 @@ def _connection_atoms_by_name(atom_array) -> dict:
     if atom_array.bonds is None or atom_array.bonds.get_bond_count() == 0:
         return {}
     names = atom_array.res_name
-    ids = atom_array.res_id
-    chains = atom_array.chain_id if hasattr(atom_array, "chain_id") else None
+    boundaries = struc.get_residue_starts(atom_array, add_exclusive_stop=True)
+    residue_index = np.repeat(np.arange(len(boundaries) - 1), np.diff(boundaries))
     linked: dict = {}
     for i, j, _order in atom_array.bonds.as_array():
         i, j = int(i), int(j)
-        same = names[i] == names[j] and ids[i] == ids[j]
-        if same and (chains is None or chains[i] == chains[j]):
+        if residue_index[i] == residue_index[j]:
             continue
         for at in (i, j):
             linked.setdefault(str(names[at]).strip(), set()).add(
@@ -375,14 +379,13 @@ def _inserted(atom_array, starts, additions: dict):
 
     # final layout: each residue's own atoms, then the ones it did not resolve
     pieces = []
-    remap = {}
+    remap = np.empty(atom_array.array_length(), dtype=np.uint32)
     added_at = {}
     total = 0
     for begin, end in zip(boundaries, boundaries[1:]):
         pieces.append(atom_array[begin:end])
-        for old in range(begin, end):
-            remap[old] = total
-            total += 1
+        remap[begin:end] = np.arange(total, total + end - begin, dtype=np.uint32)
+        total += end - begin
         entry = additions.get(int(begin))
         if entry is None:
             continue
@@ -392,33 +395,33 @@ def _inserted(atom_array, starts, additions: dict):
             added_at[(int(begin), name)] = total
             total += 1
 
-    combined = pieces[0]
-    for piece in pieces[1:]:
-        combined = combined + piece
+    combined = struc.concatenate(pieces)
 
-    bonds = struc.BondList(combined.array_length())
+    bond_tables = []
     if atom_array.bonds is not None:
-        for i, j, order in atom_array.bonds.as_array():
-            bonds.add_bond(remap[int(i)], remap[int(j)], int(order))
+        original_bonds = atom_array.bonds.as_array()
+        original_bonds[:, :2] = remap[original_bonds[:, :2]]
+        bond_tables.append(original_bonds)
 
+    ends = dict(zip(boundaries[:-1], boundaries[1:]))
+    added_bonds = []
     for begin, (missing, template) in additions.items():
+        missing = set(missing)
         position = {
             str(atom_array.atom_name[old]): remap[old]
-            for old in range(begin, _residue_end(boundaries, begin))
+            for old in range(begin, ends[begin])
         }
         position.update({name: added_at[(begin, name)] for name in missing})
         for i, j, order in template.bonds.as_array():
             a, b = str(template.atom_name[i]), str(template.atom_name[j])
             if (a in missing or b in missing) and a in position and b in position:
-                bonds.add_bond(position[a], position[b], int(order))
+                added_bonds.append((position[a], position[b], int(order)))
 
-    combined.bonds = bonds
+    bond_tables.append(np.asarray(added_bonds, dtype=np.uint32).reshape(-1, 3))
+    combined.bonds = struc.BondList(
+        combined.array_length(), np.concatenate(bond_tables)
+    )
     return combined
-
-
-def _residue_end(boundaries, begin) -> int:
-    """Where the residue starting at ``begin`` ends in the original array."""
-    return boundaries[boundaries.index(begin) + 1]
 
 
 def _placeholder_atoms(atom_array, begin, missing, template):
@@ -438,7 +441,15 @@ def _placeholder_atoms(atom_array, begin, missing, template):
     return extra
 
 
-def pose_stack_from_cif(cif_path, device, *, use_ccd: bool = True, **kwargs):
+def pose_stack_from_cif(
+    cif_path,
+    device,
+    *,
+    use_ccd: bool = True,
+    reader: str = "tmol",
+    hydrogen_policy: str = "rebuild",
+    **kwargs,
+):
     """Construct a PoseStack from an mmCIF file.
 
     Reads the structure with :func:`atom_array_from_cif`, so the residues carry
@@ -446,12 +457,13 @@ def pose_stack_from_cif(cif_path, device, *, use_ccd: bool = True, **kwargs):
     for pose construction to rebuild. Further keyword arguments are passed to
     :func:`tmol.io.pose_stack_from_biotite`.
     """
-    from tmol.ligand import chem_comp_types_from_cif
     from tmol.io._pose_stack_from_biotite import pose_stack_from_biotite
 
-    kwargs.setdefault("chem_comp_types", chem_comp_types_from_cif(cif_path))
+    array = atom_array_from_cif(
+        cif_path, use_ccd=use_ccd, reader=reader, hydrogen_policy=hydrogen_policy
+    )
     return pose_stack_from_biotite(
-        atom_array_from_cif(cif_path, use_ccd=use_ccd),
+        array,
         device,
         use_ccd=use_ccd,
         **kwargs,

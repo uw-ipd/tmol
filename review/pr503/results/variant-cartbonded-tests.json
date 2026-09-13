@@ -1,0 +1,50 @@
+{
+  "baseline": "b25bb991bb3a01b2973c6bda93dae5097ca13e9f",
+  "before": {
+    "failed": 8,
+    "skipped": 8,
+    "seconds": 5.25,
+    "log": "/mnt/home/kdidi/tmol-pr503-followup/variant-cartbonded-before.log",
+    "scope": "Previous Python scorer loaded from git under a separate module name, on identical current poses/databases. All eight CPU energy/gradient isolation cases return zero override effect."
+  },
+  "runs": [
+    {
+      "name": "Initial CPU native variant validation",
+      "passed": 10,
+      "skipped": 10,
+      "seconds": 12.11,
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/variant-cartbonded-cpu-final.log"
+    },
+    {
+      "name": "Complete affected CPU/CUDA scoring and bundle suites",
+      "slurm": 248669,
+      "passed": 111,
+      "seconds": 60.07,
+      "state": "COMPLETED",
+      "exit_code": "0:0",
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/variant-cartbonded-248669.log"
+    },
+    {
+      "name": "Final CPU bundle conflict/empty-data, variant and entry-point checks",
+      "passed": 63,
+      "skipped": 15,
+      "seconds": 33.39,
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/variant-bundle-cpu.log"
+    }
+  ],
+  "source_sha256": {
+    "tmol/score/cartbonded/_cartbonded_energy_term.py": "b8d4ab0692f7fa20a41b5f09d533a2ebac47fe15606220c6b09d990e98ac8e37",
+    "tmol/database/scoring/_cartbonded.py": "4bc4f01c3a15c99ceaaeceaf129d29c176b5cd36851df11adccaf514845fea8b",
+    "tmol/ligand/_registry.py": "ec1679876e1ed40c2ec3d1fda55f330f5fb31183cb283e5c0ad1839258856a77",
+    "tmol/ligand/_params_file.py": "6ac6b74b38becf7a7324ac7e477d46fc67f2e7375eb3caba16c117fbd03bab57",
+    "tmol/ligand/_params_io.py": "a2a668782380a427d050de580addc6fbf90ca42a89c6b3251c078519c2f9d0cd",
+    "tmol/tests/score/cartbonded/test_variant_parameters.py": "1cc01b80e67b1c6ac8f5fc304ca1de7b47296c4faa18bb1d1a137fa66706cfa2",
+    "tmol/tests/ligand/test_conjugate_params_roundtrip.py": "8d091aff99accea975f445922d084d2c21bca35d5cf2dc2e98ee26677058b169"
+  },
+  "notes": [
+    "Runs overlap and are not additive unique coverage.",
+    "No native kernel/signature changes. The scorer keeps private atom IDs only when exact-variant records are active; otherwise it reuses the shared tensor.",
+    "Tests use synthetic replacement coefficients, not a scientific amide fit.",
+    "Default conjugate automatic generation, local typing/charge corrections and torsion ownership remain open."
+  ]
+}

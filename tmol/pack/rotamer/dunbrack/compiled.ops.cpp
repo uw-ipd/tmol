@@ -34,6 +34,8 @@ std::vector<Tensor> dun_sample_chi(
     Tensor rotameric_bb_start,        // ntable-set entries
     Tensor rotameric_bb_step,         // ntable-set entries
     Tensor rotameric_bb_periodicity,  // ntable-set entries
+    Tensor rotameric_bb_source_start,
+    Tensor rotameric_bb_is_mirrored,
     Tensor semirotameric_tables,      // n-semirot-tabset
     Tensor semirot_table_sizes,       // n-semirot-tabset
     Tensor semirot_table_strides,     // n-semirot-tabset
@@ -61,7 +63,8 @@ std::vector<Tensor> dun_sample_chi(
     Tensor non_dunbrack_expansion_for_buildable_restype,
     Tensor non_dunbrack_expansion_counts_for_buildable_restype,
     Tensor prob_cumsum_limit_for_buildable_restype,
-    Tensor nchi_for_buildable_restype) {
+    Tensor nchi_for_buildable_restype,
+    int64_t max_samples_per_restype) {
   nvtx_range_push("dunbrack_sample_chi");
   // std::cout << "Hit compiled.ops.cpp" << std::endl;
 
@@ -92,6 +95,8 @@ std::vector<Tensor> dun_sample_chi(
               TCAST(rotameric_bb_start),
               TCAST(rotameric_bb_step),
               TCAST(rotameric_bb_periodicity),
+              TCAST(rotameric_bb_source_start),
+              TCAST(rotameric_bb_is_mirrored),
               TCAST(semirotameric_tables),
               TCAST(semirot_table_sizes),
               TCAST(semirot_table_strides),
@@ -118,7 +123,8 @@ std::vector<Tensor> dun_sample_chi(
               TCAST(non_dunbrack_expansion_for_buildable_restype),
               TCAST(non_dunbrack_expansion_counts_for_buildable_restype),
               TCAST(prob_cumsum_limit_for_buildable_restype),
-              TCAST(nchi_for_buildable_restype)
+              TCAST(nchi_for_buildable_restype),
+              max_samples_per_restype
 
           );
 

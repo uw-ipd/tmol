@@ -1,0 +1,219 @@
+{
+  "baseline": "09258fbad",
+  "candidate": "09258fbad66f82de83db814ac33b923a33db6f4e",
+  "diff": "diff --git a/tmol/pack/rotamer/_conjugated_chi_sampler.py b/tmol/pack/rotamer/_conjugated_chi_sampler.py\nindex be250978b..d4d3536b0 100644\n--- a/tmol/pack/rotamer/_conjugated_chi_sampler.py\n+++ b/tmol/pack/rotamer/_conjugated_chi_sampler.py\n@@ -25,7 +25,6 @@ from tmol.types import Tensor, validate_args\n from tmol.chemical import RefinedResidueType\n from tmol.pose import PackedBlockTypes, PoseStack\n from tmol.pose._util import get_named_torsions\n-from tmol.kinematics import KinForest\n from tmol.pack.rotamer._chi_sampler import ChiSampler\n from tmol.pack.rotamer._conformer_sampler import sc_roots_for_chis\n from tmol.pack.rotamer._conjugated_groups import (\n@@ -43,6 +42,82 @@ def _heavy_chi(rt: RefinedResidueType):\n     return [cs for cs in rt.chi_samples if not cs.is_proton]\n \n \n+def _repeated_kinforest(rot_kf, count, device):\n+    \"\"\"Independent copies of a local tree, sharing only the global root.\"\"\"\n+    n_atoms = len(rot_kf.id)\n+    local = numpy.stack(\n+        [\n+            rot_kf.id,\n+            rot_kf.doftype,\n+            rot_kf.parent + 1,\n+            rot_kf.frame_x + 1,\n+            rot_kf.frame_y + 1,\n+            rot_kf.frame_z + 1,\n+        ],\n+        axis=1,\n+    )\n+    repeated = numpy.broadcast_to(local, (count, n_atoms, 6)).copy()\n+    offsets = numpy.arange(count, dtype=numpy.int32)[:, None] * n_atoms\n+    repeated[:, :, 0] += offsets\n+    repeated[:, :, 2:] += numpy.where(local[None, :, 2:] > 0, offsets[:, :, None], 0)\n+    root = numpy.array([[-1, 0, 0, 0, 0, 0]], dtype=numpy.int32)\n+    return torch.tensor(\n+        numpy.concatenate([root, repeated.reshape(-1, 6)]),\n+        dtype=torch.int32,\n+        device=device,\n+    )\n+\n+\n+def _fold_group_conformers(rot_kf, dofs):\n+    \"\"\"Fold every conformer in one generational scan; return original atom order.\"\"\"\n+    from tmol.kinematics.compiled import forward_only_op\n+\n+    count, n_nodes = dofs.shape[:2]\n+    n_atoms = n_nodes - 1\n+    if count == 0:\n+        return dofs.new_empty((0, n_atoms, 3))\n+    offsets = numpy.arange(count, dtype=numpy.int32)[:, None] * n_atoms\n+    node_parts, scan_parts = [], []\n+    for (n0, s0), (n1, s1) in zip(rot_kf.gens[:-1], rot_kf.gens[1:]):\n+        nodes = rot_kf.nodes[n0:n1]\n+        node_parts.append((nodes + numpy.where(nodes > 0, offsets, 0)).ravel())\n+        scan_parts.append(\n+            (rot_kf.scans[s0:s1] + numpy.arange(count)[:, None] * (n1 - n0)).ravel()\n+        )\n+    stack = _repeated_kinforest(rot_kf, count, dofs.device)\n+    coords = forward_only_op(\n+        torch.cat([dofs[0, :1], dofs[:, 1:].reshape(-1, 9)]),\n+        torch.tensor(\n+            numpy.concatenate(node_parts), dtype=torch.int32, device=dofs.device\n+        ),\n+        torch.tensor(\n+            numpy.concatenate(scan_parts), dtype=torch.int32, device=dofs.device\n+        ),\n+        torch.tensor(rot_kf.gens * count, dtype=torch.int32, device=\"cpu\"),\n+        stack,\n+    )\n+    original_order = torch.tensor(numpy.argsort(rot_kf.id), device=dofs.device)\n+    return coords[1:].reshape(count, n_atoms, 3)[:, original_order]\n+\n+\n+def _measure_member_dofs(rot_kf, coords):\n+    \"\"\"Measure all copies of one member in a single inverse-kinematics call.\"\"\"\n+    from tmol.kinematics.compiled import inverse_kin\n+\n+    count, n_atoms = coords.shape[:2]\n+    if count == 0:\n+        return coords.new_empty((0, n_atoms, 9))\n+    stack = _repeated_kinforest(rot_kf, count, coords.device)\n+    atom_order = torch.tensor(rot_kf.id, dtype=torch.int64, device=coords.device)\n+    ordered = torch.cat(\n+        [coords.new_zeros((1, 3)), coords[:, atom_order].reshape(-1, 3)]\n+    )\n+    dofs = inverse_kin(\n+        ordered, stack[:, 2], stack[:, 3], stack[:, 4], stack[:, 5], stack[:, 1]\n+    )\n+    return dofs[1:].reshape(count, n_atoms, 9)\n+\n+\n @attr.s(auto_attribs=True)\n class ConjugatedChiSampler(ChiSampler):\n     chi_sample_expanded_limit: int = DEFAULT_CHI_SAMPLE_EXPANDED_LIMIT\n@@ -366,58 +441,22 @@ class ConjugatedChiSampler(ChiSampler):\n         across the bond: a member's placement comes from where the group put it,\n         not from where it started.\n         \"\"\"\n-        from tmol.kinematics.compiled import inverse_kin, forward_only_op\n         from tmol.pack.rotamer._single_residue_kinforest import (\n             construct_single_residue_kinforest,\n         )\n \n         pbt = pose_stack.packed_block_types\n-        device = pose_stack.device\n-\n-        def _p(t):\n-            return torch.nn.Parameter(t, requires_grad=False)\n-\n-        def _t(x, d=device):\n-            return torch.tensor(numpy.asarray(x, dtype=numpy.int32), device=d)\n-\n+        # One transfer for all destinations, not two scalar synchronizations\n+        # for every member/conformer. Validate before indexing native outputs.\n+        conf_indices = conf_inds_for_sampler.cpu().numpy()\n+        dof_offsets = n_dof_atoms_offset_for_conformer.cpu().numpy()\n+        if numpy.any((conf_indices < 0) | (conf_indices >= len(dof_offsets))):\n+            raise IndexError(\"conjugated rotamer maps to an invalid global conformer\")\n+        destinations = dof_offsets[conf_indices] + 1\n         for gi, (group, columns, conformers) in enumerate(sample_dict[\"groups\"]):\n-            kinforest, dofs, offsets = self.group_coords(\n-                pose_stack, group, columns, conformers\n-            )\n+            _, dofs, offsets = self.group_coords(pose_stack, group, columns, conformers)\n             rot_kf, _ = self._group_kinforest(pose_stack, group)\n-            stack = _p(\n-                torch.stack(\n-                    [\n-                        kinforest.id,\n-                        kinforest.doftype,\n-                        kinforest.parent,\n-                        kinforest.frame_x,\n-                        kinforest.frame_y,\n-                        kinforest.frame_z,\n-                    ],\n-                    dim=1,\n-                )\n-            )\n-            n_group_atoms = int(offsets[-1])\n-            nodes = _p(_t(rot_kf.nodes))\n-            scans = _p(_t(rot_kf.scans))\n-            gens = _p(_t(rot_kf.gens, torch.device(\"cpu\")))\n-            atom_order = kinforest.id[1:].to(torch.int64)\n-            folded = []\n-            for i in range(dofs.shape[0]):\n-                kco = forward_only_op(\n-                    dofs[i],\n-                    nodes,\n-                    scans,\n-                    gens,\n-                    stack,\n-                )\n-                rto = torch.zeros(\n-                    (n_group_atoms, 3), dtype=torch.float32, device=device\n-                )\n-                rto[atom_order] = kco[1:]\n-                folded.append(rto)\n-\n+            folded = _fold_group_conformers(rot_kf, dofs)\n             for pgi, owner, gbt, first in sample_dict[\"plan\"]:\n                 if pgi != gi:\n                     continue\n@@ -426,42 +465,23 @@ class ConjugatedChiSampler(ChiSampler):\n                     int(pose_stack.block_type_ind[group.pose, block])\n                 ]\n                 construct_single_residue_kinforest(bt)\n-                mkf = bt.rotamer_kinforest\n-                mk = KinForest(\n-                    id=_t(numpy.concatenate([[-1], mkf.id])),\n-                    doftype=_t(numpy.concatenate([[0], mkf.doftype])),\n-                    parent=_t(numpy.concatenate([[0], mkf.parent + 1])),\n-                    frame_x=_t(numpy.concatenate([[0], mkf.frame_x + 1])),\n-                    frame_y=_t(numpy.concatenate([[0], mkf.frame_y + 1])),\n-                    frame_z=_t(numpy.concatenate([[0], mkf.frame_z + 1])),\n-                )\n                 lo, hi = int(offsets[owner]), int(offsets[owner + 1])\n-                for k in range(len(folded)):\n-                    member = folded[k][lo:hi]\n-                    kco = torch.cat(\n-                        [\n-                            torch.zeros((1, 3), dtype=torch.float32, device=device),\n-                            member,\n-                        ]\n-                    )[mk.id.to(torch.int64) + 1]\n-                    kco[0, :] = 0\n-                    member_dofs = inverse_kin(\n-                        kco, mk.parent, mk.frame_x, mk.frame_y, mk.frame_z, mk.doftype\n+                member_dofs = _measure_member_dofs(\n+                    bt.rotamer_kinforest, folded[:, lo:hi]\n+                )\n+                starts = destinations[first : first + len(folded)]\n+                if len(starts) != len(folded) or numpy.any(\n+                    (starts < 1) | (starts + hi - lo > conf_dofs_kto.shape[0])\n+                ):\n+                    raise IndexError(\n+                        f\"conjugated group block {block} maps outside the global dof rows\"\n                     )\n-                    conf = int(conf_inds_for_sampler[first + k])\n-                    off = int(n_dof_atoms_offset_for_conformer[conf]) + 1\n-                    n_member = hi - lo\n-                    if off + n_member > conf_dofs_kto.shape[0]:\n-                        raise IndexError(\n-                            f\"conjugated rotamer {first + k} (group block \"\n-                            f\"{block}, conformer {k}) maps to global conformer \"\n-                            f\"{conf}, whose dof offset {off} leaves only \"\n-                            f\"{conf_dofs_kto.shape[0] - off} rows for \"\n-                            f\"{n_member} atoms; sampler rotamers \"\n-                            f\"{conf_inds_for_sampler.shape[0]}, total dof rows \"\n-                            f\"{conf_dofs_kto.shape[0]}\"\n-                        )\n-                    conf_dofs_kto[off : off + n_member, :] = member_dofs[1:]\n+                rows = torch.tensor(\n+                    starts[:, None] + numpy.arange(hi - lo),\n+                    dtype=torch.int64,\n+                    device=pose_stack.device,\n+                )\n+                conf_dofs_kto[rows] = member_dofs\n \n     def anchor_library_chi(self, pose_stack, task, groups):\n         \"\"\"The chi values a rotamer library offers each group's anchor.\n",
+  "device": "cuda:0",
+  "torch": "2.13.0+cu132",
+  "rows": [
+    {
+      "fixture": "lys_biotin_1bdo",
+      "rotamer_coordinate_shape": [
+        37351,
+        3
+      ],
+      "max_coordinate_difference": 1.1444091796875e-05,
+      "before": {
+        "fill_seconds": [
+          0.041736651211977005,
+          0.04163631796836853,
+          0.04167599184438586,
+          0.04192554485052824,
+          0.0417012101970613,
+          0.041649945080280304,
+          0.04220097791403532
+        ],
+        "build_seconds": [
+          0.12887775525450706,
+          0.12935158098116517,
+          0.1278653689660132,
+          0.127754723187536,
+          0.12818659003823996,
+          0.1280453847721219,
+          0.12744598928838968
+        ],
+        "fill_peak_extra_bytes": [
+          536064,
+          536064,
+          536064,
+          536064,
+          536064,
+          536064,
+          372736
+        ],
+        "fill_median": 0.0417012101970613,
+        "build_median": 0.1280453847721219
+      },
+      "after": {
+        "fill_seconds": [
+          0.004763961769640446,
+          0.004752115812152624,
+          0.004740918055176735,
+          0.005046134814620018,
+          0.004781195893883705,
+          0.00471136812120676,
+          0.004773458931595087
+        ],
+        "build_seconds": [
+          0.09360790764912963,
+          0.09060545265674591,
+          0.09085162309929729,
+          0.091456881724298,
+          0.09114244906231761,
+          0.08984116511419415,
+          0.09051488200202584
+        ],
+        "fill_peak_extra_bytes": [
+          2657280,
+          2657280,
+          2657280,
+          372736,
+          2657280,
+          2657280,
+          2657280
+        ],
+        "fill_median": 0.004763961769640446,
+        "build_median": 0.09085162309929729
+      }
+    },
+    {
+      "fixture": "oglycan_sia_1g1s",
+      "rotamer_coordinate_shape": [
+        86319,
+        3
+      ],
+      "max_coordinate_difference": 4.57763671875e-05,
+      "before": {
+        "fill_seconds": [
+          0.05755161866545677,
+          0.05726556479930878,
+          0.057463131844997406,
+          0.058899078983813524,
+          0.05796913290396333,
+          0.058516877237707376,
+          0.05666719377040863
+        ],
+        "build_seconds": [
+          0.23850835487246513,
+          0.23934635007753968,
+          0.2408326817676425,
+          0.23995504388585687,
+          0.2411981299519539,
+          0.2387700011022389,
+          0.24103815201669931
+        ],
+        "fill_peak_extra_bytes": [
+          700416,
+          700416,
+          700416,
+          700416,
+          700416,
+          700416,
+          700416
+        ],
+        "fill_median": 0.05755161866545677,
+        "build_median": 0.23995504388585687
+      },
+      "after": {
+        "fill_seconds": [
+          0.0064294771291315556,
+          0.006426495034247637,
+          0.006620095111429691,
+          0.006359850987792015,
+          0.006284988019615412,
+          0.006685582455247641,
+          0.00647532707080245
+        ],
+        "build_seconds": [
+          0.19253099104389548,
+          0.1873788721859455,
+          0.1898089200258255,
+          0.18825271911919117,
+          0.18721400294452906,
+          0.19545160699635744,
+          0.19204549212008715
+        ],
+        "fill_peak_extra_bytes": [
+          3384320,
+          3384320,
+          3384320,
+          3384320,
+          3384320,
+          3384320,
+          3384320
+        ],
+        "fill_median": 0.0064294771291315556,
+        "build_median": 0.1898089200258255
+      }
+    },
+    {
+      "fixture": "nglycan_tree_1ax2",
+      "rotamer_coordinate_shape": [
+        106486,
+        3
+      ],
+      "max_coordinate_difference": 1.33514404296875e-05,
+      "before": {
+        "fill_seconds": [
+          0.05214054277166724,
+          0.05217674793675542,
+          0.05204776581376791,
+          0.052027382887899876,
+          0.052037668880075216,
+          0.052164246793836355,
+          0.05195360770449042
+        ],
+        "build_seconds": [
+          0.13990761199966073,
+          0.13983154203742743,
+          0.14005581196397543,
+          0.1398408696986735,
+          0.1399689381942153,
+          0.13988420274108648,
+          0.13948612101376057
+        ],
+        "fill_peak_extra_bytes": [
+          585216,
+          585216,
+          585216,
+          585216,
+          585216,
+          585216,
+          585216
+        ],
+        "fill_median": 0.05204776581376791,
+        "build_median": 0.13988420274108648
+      },
+      "after": {
+        "fill_seconds": [
+          0.005356206092983484,
+          0.005368528887629509,
+          0.005332300905138254,
+          0.00533687137067318,
+          0.005334621295332909,
+          0.00529437093064189,
+          0.0053153629414737225
+        ],
+        "build_seconds": [
+          0.09309276426211,
+          0.09328871825709939,
+          0.0931399897672236,
+          0.09317530412226915,
+          0.09280512295663357,
+          0.09271242283284664,
+          0.09259105799719691
+        ],
+        "fill_peak_extra_bytes": [
+          2788864,
+          2788864,
+          2788864,
+          2788864,
+          2788864,
+          2788864,
+          2788864
+        ],
+        "fill_median": 0.005334621295332909,
+        "build_median": 0.09309276426211
+      }
+    }
+  ]
+}

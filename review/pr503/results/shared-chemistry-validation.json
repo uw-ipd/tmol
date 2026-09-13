@@ -1,0 +1,77 @@
+{
+  "provenance": {
+    "tmol_production_commit": "75e02157bcae71b159c7006861396b4707a562e7",
+    "atomworks_commit": "774056c7191c5cc8af715c76d6002c1f537dc7ba",
+    "atomworks_base": "59afb1e2d031ea929c2fbeb3d3c9ba2c60c6c690",
+    "baseline_tmol_commit": "9a6bc4f8dabfd33b4bbdb49252f5814d1f179d77",
+    "baseline_engine_sha256": "1f6d4b7520b6a98eb56974bebb6e73d6364ab99f2e64651db2527933e44eb1d3",
+    "atomworks_pr": "https://github.com/baker-laboratory/atomworks-dev/pull/349",
+    "limits": "Parseable literal SMILES strings from test Python ASTs; not dynamic/generated fixtures or independent pKa validation. Ordered canonical mapped states compared. Coordinates/order/property preservation tested separately."
+  },
+  "checks": [
+    {
+      "file": "atomworks-shared-input-final.xml",
+      "sha256": "a78c9c6125e6e0830a37dc08160cb3ef27b42c6882498c9f10e9ce1e2639849e",
+      "tests": 180,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "file": "atomworks-protonation-postreview.xml",
+      "sha256": "5d9c5663d2ee80fd00cfe8dab8b6c3c730e9ccfa0d1d714f7b32b5be7cb3b954",
+      "tests": 74,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "file": "atomworks-older-protonation.xml",
+      "sha256": "4b396826f1c2c54339fc6bea0ff5e5cddcdbe04f0c1a0c81b77448b7fa3a7fe2",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "file": "tmol-protonation-parity.xml",
+      "sha256": "8ea11731b91f787a9ed794eedf953dc66b0b5ddd0259f9989d670d4a9077ab66",
+      "tests": 88,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 6
+    },
+    {
+      "file": "tmol-reader-protonation-final.xml",
+      "sha256": "158abdbd82a177ce373e9badebbf282bd392fe3687e843486763eb49259448c3",
+      "tests": 23,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "file": "tmol-shared-cif-chemistry.xml",
+      "sha256": "09a07efcae6f4e465a98070565d917d66bff46c6a0b00ac32034a2d8a930c12e",
+      "tests": 83,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 4
+    },
+    {
+      "file": "shared-final-regression.xml",
+      "sha256": "9f9541d1f04f8dd2ed2e11b992648a2dd4b46b1286edf183e4006f4988bdaf49",
+      "tests": 46,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "file": "atomworks-histidine-committed-head.xml",
+      "sha256": "3c843e5bfd20639c3751cb752bbd31fe39372280c0dd624d291d7e8cbffedbd5",
+      "tests": 34,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ]
+}

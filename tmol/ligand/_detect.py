@@ -507,29 +507,10 @@ def _normalize_radical_oxygens(smiles: str) -> str:
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return smiles
-    changed = False
-    for atom in mol.GetAtoms():
-        if (
-            atom.GetSymbol() == "O"
-            and atom.GetDegree() == 1
-            and atom.GetTotalNumHs() == 0
-            and atom.GetFormalCharge() == 0
-            and atom.GetNumRadicalElectrons() > 0
-        ):
-            atom.SetFormalCharge(-1)
-            atom.SetNumRadicalElectrons(0)
-            changed = True
-    if not changed:
-        return smiles
-    try:
-        Chem.SanitizeMol(mol)
-    except Exception:
-        logger.warning(
-            "Radical-oxygen normalization failed to sanitize SMILES %r; " "using input",
-            smiles,
-        )
-        return smiles
-    return Chem.MolToSmiles(mol)
+    from atomworks.io.tools.protonation import normalize_radical_oxygens
+
+    fixed = normalize_radical_oxygens(mol)
+    return smiles if fixed is mol else Chem.MolToSmiles(fixed)
 
 
 def _dimorphite_protonate_smiles(
@@ -615,6 +596,41 @@ def nonstandard_residue_info_from_smiles_via_mol2(
     return attr.evolve(info, source_atom_order=source_order)
 
 
+def _component_types_from_annotations(atom_array, explicit=None):
+    """Consume per-atom chemistry supplied by AtomWorks or another reader.
+
+    An explicit mapping overrides annotations. A component name must otherwise
+    identify one type; conflicting annotations cannot define a reusable tmol
+    residue type and are rejected before parameter generation.
+    """
+    result = dict(explicit or {})
+    if "chem_comp_type" not in atom_array.get_annotation_categories():
+        return result
+    names = atom_array.res_name.astype(str)
+    values = atom_array.get_annotation("chem_comp_type").astype(str)
+    # Most annotations repeat across every atom of a residue. Collapse runs
+    # before sorting, while still detecting contradictory values within a run.
+    starts = np.r_[True, (names[1:] != names[:-1]) | (values[1:] != values[:-1])]
+    pairs = (
+        np.unique(np.stack((names[starts], values[starts]), axis=1), axis=0)
+        if len(names)
+        else []
+    )
+    declared = {}
+    for name, value in pairs:
+        name, value = name.strip().upper(), value.strip().upper()
+        if not value or value in {".", "?", "UNKNOWN"} or name in result:
+            continue
+        previous = declared.setdefault(name, value)
+        if previous != value:
+            raise ValueError(
+                f"Conflicting chem_comp_type annotations for {name}: "
+                f"{previous!r} and {value!r}"
+            )
+    declared.update(result)
+    return declared
+
+
 def detect_nonstandard_residues(
     atom_array: struc.AtomArray,
     canonical_ordering: CanonicalOrdering,
@@ -637,14 +653,13 @@ def detect_nonstandard_residues(
         A list of NonStandardResidueInfo objects, one per unique unknown
         residue name.
     """
+    chem_comp_types = _component_types_from_annotations(atom_array, chem_comp_types)
     known_names = set(canonical_ordering.restype_io_equiv_classes)
     seen: set[str] = set()
     results: list[NonStandardResidueInfo] = []
     polymer_names = polymer_entity_residues(atom_array)
 
-    cross_residue_atoms, cross_residue_partners = _cross_residue_bond_atoms(
-        atom_array, chem_comp_types=chem_comp_types
-    )
+    cross_residue_atoms, cross_residue_partners = _cross_residue_bond_atoms(atom_array)
     covalently_linked_names = frozenset(
         res_name for _chain, _res_id, res_name in cross_residue_atoms
     )
@@ -722,33 +737,26 @@ def _representative_instance(atom_array, residue_starts, start, connection_atoms
     """
     wanted = set(connection_atoms)
 
-    def instance(other):
-        mask = atom_array.res_name == atom_array.res_name[other]
-        if hasattr(atom_array, "res_id"):
-            mask &= atom_array.res_id == atom_array.res_id[other]
-        if hasattr(atom_array, "chain_id"):
-            mask &= atom_array.chain_id == atom_array.chain_id[other]
-        return atom_array[mask]
-
     def suitable(candidate):
         if not wanted <= {str(n) for n in candidate.atom_name}:
             return False
         return not np.isnan(candidate.coord).any()
 
-    copies = [
-        instance(other)
-        for other in residue_starts
-        if atom_array.res_name[other] == atom_array.res_name[start]
-    ]
-    first = instance(start)
-    for candidate in [first, *copies]:
+    ends = np.append(residue_starts[1:], atom_array.array_length())
+    index = int(np.searchsorted(residue_starts, start))
+    first = atom_array[start : ends[index]]
+    if suitable(first):
+        return first
+    fallback = first if wanted <= set(first.atom_name) else None
+    for begin, end in zip(residue_starts, ends):
+        if begin == start or atom_array.res_name[begin] != atom_array.res_name[start]:
+            continue
+        candidate = atom_array[begin:end]
         if suitable(candidate):
             return candidate
-    # nothing is fully resolved; take one that at least shows the connections
-    for candidate in [first, *copies]:
-        if wanted <= {str(n) for n in candidate.atom_name}:
-            return candidate
-    return first
+        if fallback is None and wanted <= set(candidate.atom_name):
+            fallback = candidate
+    return first if fallback is None else fallback
 
 
 def with_resolved_coordinates(atom_array, res_name: str, use_ccd: bool):
@@ -837,9 +845,10 @@ def polymer_entity_residues(atom_array: struc.AtomArray) -> Optional[frozenset[s
     """
     categories = atom_array.get_annotation_categories()
     names = atom_array.res_name.astype(str)
-    if "tmol_polymer_entity" in categories:
-        flag = atom_array.get_annotation("tmol_polymer_entity").astype(bool)
-        return frozenset(str(n).strip() for n in names[flag])
+    for annotation in ("tmol_polymer_entity", "is_polymer"):
+        if annotation in categories:
+            flag = atom_array.get_annotation(annotation).astype(bool)
+            return frozenset(str(n).strip() for n in names[flag])
     if "label_seq_id" not in categories:
         return None
     seq = atom_array.get_annotation("label_seq_id").astype(str)
@@ -849,10 +858,8 @@ def polymer_entity_residues(atom_array: struc.AtomArray) -> Optional[frozenset[s
     return frozenset(str(n).strip() for n in names[numbered])
 
 
-def _cross_residue_bond_atoms(  # noqa: C901
+def _cross_residue_bond_atoms(
     atom_array: struc.AtomArray,
-    spatial_cutoff: float = 1.8,
-    chem_comp_types: Optional[dict] = None,
 ) -> tuple[dict[tuple, frozenset[str]], dict[tuple, dict[str, frozenset[tuple]]]]:
     """Atoms of each residue instance that bond to a different residue.
 
@@ -870,17 +877,10 @@ def _cross_residue_bond_atoms(  # noqa: C901
     chain) also count as cross-residue bonds. Used to flag ligands that are
     covalently attached to a polymer or to other ligand instances.
 
-    Detection runs two passes:
-    1. Explicit bonds in ``atom_array.bonds`` (if present). Authoritative for
-       any residue type.
-    2. Heavy-atom spatial proximity within ``spatial_cutoff`` Å. This catches
-       covalent attachments missing from the bond table for residues the input
-       file places in a polymer entity (modified amino acids/nucleotides,
-       glycans) when files lack ``_struct_conn`` records. Non-polymer ligands
-       are deliberately *not* flagged by proximity: tight binding-pocket
-       contacts, hydrogen bonds, and clashes in unminimized models routinely
-       fall below a covalent-bond distance and would otherwise be misread as
-       covalent attachments and silently discarded.
+    Use the supplied bond graph, independent of coordinates and component type.
+    Readers own polymer/link inference. Preparation must not turn close contacts
+    into covalent links or generate unused conjugation types from those contacts.
+    Supply explicit connectivity before preparation when a file omits link data.
     """
     chain_ids = atom_array.chain_id if hasattr(atom_array, "chain_id") else None
     res_ids = atom_array.res_id
@@ -906,7 +906,12 @@ def _cross_residue_bond_atoms(  # noqa: C901
     def _spans_residues(a: int, b: int) -> bool:
         """Whether atoms ``a`` and ``b`` belong to different residues."""
         same_chain = chain_ids is None or chain_ids[a] == chain_ids[b]
-        if same_chain and res_ids[a] == res_ids[b] and res_names[a] == res_names[b]:
+        if (
+            same_chain
+            and res_ids[a] == res_ids[b]
+            and res_names[a] == res_names[b]
+            and atom_array.ins_code[a] == atom_array.ins_code[b]
+        ):
             return False
         return True
 
@@ -916,34 +921,6 @@ def _cross_residue_bond_atoms(  # noqa: C901
             if _spans_residues(a, b):
                 _record(a, b)
                 _record(b, a)
-
-    polymer_names = polymer_entity_residues(atom_array)
-
-    def _is_polymer(name: str) -> bool:
-        if polymer_names is not None:
-            return name in polymer_names
-        return is_polymer_linking_component_type(
-            get_chem_comp_type(name, chem_comp_types)
-        )
-
-    if len(atom_array) > 1:
-        # an atom the structure did not resolve has no position to be near
-        heavy_mask = (np.char.strip(atom_array.element.astype(str)) != "H") & ~np.isnan(
-            atom_array.coord
-        ).any(axis=-1)
-        if heavy_mask.any():
-            from scipy.spatial import cKDTree
-
-            heavy_indices = np.nonzero(heavy_mask)[0]
-            tree = cKDTree(atom_array.coord[heavy_mask])
-            for i, j in tree.query_pairs(spatial_cutoff, output_type="ndarray"):
-                a = int(heavy_indices[i])
-                b = int(heavy_indices[j])
-                if not _spans_residues(a, b):
-                    continue
-                for idx, other in ((a, b), (b, a)):
-                    if _is_polymer(res_names[idx].strip()):
-                        _record(idx, other)
 
     return (
         {key: frozenset(names) for key, names in linked.items()},
@@ -956,13 +933,9 @@ def _cross_residue_bond_atoms(  # noqa: C901
 
 def _residue_names_with_cross_residue_bonds(
     atom_array: struc.AtomArray,
-    spatial_cutoff: float = 1.8,
-    chem_comp_types: Optional[dict] = None,
 ) -> frozenset[str]:
     """Names of the residues that have at least one bond to a different residue."""
     return frozenset(
         res_name
-        for _chain, _res_id, res_name in _cross_residue_bond_atoms(
-            atom_array, spatial_cutoff, chem_comp_types
-        )[0]
+        for _chain, _res_id, res_name in _cross_residue_bond_atoms(atom_array)[0]
     )

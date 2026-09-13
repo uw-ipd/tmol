@@ -3,6 +3,7 @@ import torch
 
 from ._params import LKBallBlockTypeParams, LKBallPackedBlockTypesParams
 
+from .._annotation_cache import AnnotationKey, cached_annotation, store_annotation
 from .._atom_type_dependent_term import AtomTypeDependentTerm
 from ..hbond._hbond_dependent_term import HBondDependentTerm
 from ..ljlk._params import LJLKGlobalParams, LJLKParamResolver
@@ -31,6 +32,24 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             param_db.chemical, param_db.scoring.ljlk, device=device
         )
         self.tile_size = LKBallEnergyTerm.tile_size
+        self._lk_ball_types_cpu = self.ljlk_param_resolver.type_params.to(
+            torch.device("cpu")
+        )
+        self._lk_ball_block_key = AnnotationKey.from_sources(
+            param_db.chemical,
+            param_db.scoring.hbond,
+            param_db.scoring.ljlk,
+            settings=(self.tile_size,),
+        )
+        self._lk_ball_packed_key = AnnotationKey.from_sources(
+            param_db.chemical,
+            param_db.scoring.hbond,
+            param_db.scoring.ljlk,
+            settings=(
+                self.ljlk_param_resolver.type_params.lj_radius.device,
+                self.tile_size,
+            ),
+        )
 
         # Precompute the stacked lk-ball global-parameter tensors
         # These depend only on static values from ljlk_param_resolver globals,
@@ -77,9 +96,13 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         return 2
 
     def setup_block_type(self, block_type: RefinedResidueType):
-        super(LKBallEnergyTerm, self).setup_block_type(block_type)
-        if hasattr(block_type, "lk_ball_params"):
-            return
+        self.ljlk_param_resolver.validate_block_type(block_type)
+        atom_params = super(LKBallEnergyTerm, self).setup_block_type(block_type)
+        cached = cached_annotation(
+            block_type, "_lk_ball_annotation", self._lk_ball_block_key
+        )
+        if cached is not None:
+            return cached
 
         # we are going to order the data needed for score evaluation around the
         # idea that, first, we will bin all the atoms into groups of "tile_size"
@@ -96,7 +119,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         # The lk-ball properties needed to evaluate the energy will be stored
         # also in polars-before-non-polars order.
 
-        hbbt_params = block_type.hbbt_params
+        hbbt_params = HBondDependentTerm.setup_block_type(self, block_type)
         n_tiles = hbbt_params.tile_donH_inds.shape[0]
 
         atom_is_polar = numpy.full((block_type.n_atoms,), False, dtype=bool)
@@ -148,8 +171,8 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         # ok, now let's collect the properties of the atoms in this block
         # needed for LKBallTypeParams (see properties/params.hh)
         assert hasattr(block_type, "atom_types")
-        at = block_type.atom_types
-        type_params = self.ljlk_param_resolver.type_params.to(torch.device("cpu"))
+        at = atom_params[0]
+        type_params = self._lk_ball_types_cpu
         bt_lj_radius = type_params.lj_radius[at].numpy()
         bt_lk_dgfree = type_params.lk_dgfree[at].numpy()
         bt_lk_lambda = type_params.lk_lambda[at].numpy()
@@ -199,11 +222,23 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             tile_lk_ball_params=tiled_bt_lk_ball_at_params,
         )
         setattr(block_type, "lk_ball_params", bt_lk_ball_params)
+        return store_annotation(
+            block_type,
+            "_lk_ball_annotation",
+            self._lk_ball_block_key,
+            bt_lk_ball_params,
+        )
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(LKBallEnergyTerm, self).setup_packed_block_types(packed_block_types)
-        if hasattr(packed_block_types, "lk_ball_params"):
-            return
+        cached = cached_annotation(
+            packed_block_types, "_lk_ball_annotation", self._lk_ball_packed_key
+        )
+        if cached is not None:
+            return cached
+        blocks = [
+            self.setup_block_type(bt) for bt in packed_block_types.active_block_types
+        ]
         n_types = packed_block_types.n_types
         n_tiles = packed_block_types.hbpbt_params.tile_donH_inds.shape[1]
         tile_size = LKBallEnergyTerm.tile_size
@@ -218,7 +253,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         )
 
         for i, bt in enumerate(packed_block_types.active_block_types):
-            i_lkbp = bt.lk_ball_params
+            i_lkbp = blocks[i]
             i_n_tiles = i_lkbp.tile_n_polar_atoms.shape[0]
 
             tile_n_polar_atoms[i, :i_n_tiles] = i_lkbp.tile_n_polar_atoms
@@ -236,6 +271,12 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             tile_lk_ball_params=_t(tile_lk_ball_params),
         )
         setattr(packed_block_types, "lk_ball_params", lk_ball_params)
+        return store_annotation(
+            packed_block_types,
+            "_lk_ball_annotation",
+            self._lk_ball_packed_key,
+            lk_ball_params,
+        )
 
     def setup_poses(self, pose_stack: PoseStack):
         super(LKBallEnergyTerm, self).setup_poses(pose_stack)
@@ -246,8 +287,8 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             gen_pose_waters,
         )
 
-        common_args = args[:-2]
-        pose_stack = args[-2]
+        common_args = args[:-4]
+        pose_stack, hbond_params, lk_ball_params = args[-4:-1]
         block_pair_scoring = args[-1]
 
         # each block appears once, so nothing moves in lockstep with anything
@@ -269,15 +310,15 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             pose_stack.packed_block_types.n_all_bonds,
             pose_stack.packed_block_types.all_bonds,
             pose_stack.packed_block_types.atom_all_bond_ranges,
-            pose_stack.packed_block_types.hbpbt_params.tile_n_donH,
-            pose_stack.packed_block_types.hbpbt_params.tile_n_acc,
-            pose_stack.packed_block_types.hbpbt_params.tile_donH_inds,
-            pose_stack.packed_block_types.hbpbt_params.tile_donH_hvy_inds,
-            pose_stack.packed_block_types.hbpbt_params.tile_which_donH_of_donH_hvy,
-            pose_stack.packed_block_types.hbpbt_params.tile_acc_inds,
-            pose_stack.packed_block_types.hbpbt_params.tile_acceptor_hybridization,
-            pose_stack.packed_block_types.hbpbt_params.tile_acceptor_n_attached_H,
-            pose_stack.packed_block_types.hbpbt_params.is_hydrogen,
+            hbond_params.tile_n_donH,
+            hbond_params.tile_n_acc,
+            hbond_params.tile_donH_inds,
+            hbond_params.tile_donH_hvy_inds,
+            hbond_params.tile_which_donH_of_donH_hvy,
+            hbond_params.tile_acc_inds,
+            hbond_params.tile_acceptor_hybridization,
+            hbond_params.tile_acceptor_n_attached_H,
+            hbond_params.is_hydrogen,
             self._lk_ball_water_gen_global_params,
             self.ljlk_param_resolver.global_params.lkb_water_tors_sp2,
             self.ljlk_param_resolver.global_params.lkb_water_tors_sp3,
@@ -296,10 +337,10 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             pose_stack.packed_block_types.n_atoms,
             pose_stack.packed_block_types.n_conn,
             pose_stack.packed_block_types.conn_atom,
-            pose_stack.packed_block_types.lk_ball_params.tile_n_polar_atoms,
-            pose_stack.packed_block_types.lk_ball_params.tile_n_occluder_atoms,
-            pose_stack.packed_block_types.lk_ball_params.tile_pol_occ_inds,
-            pose_stack.packed_block_types.lk_ball_params.tile_lk_ball_params,
+            lk_ball_params.tile_n_polar_atoms,
+            lk_ball_params.tile_n_occluder_atoms,
+            lk_ball_params.tile_pol_occ_inds,
+            lk_ball_params.tile_lk_ball_params,
             pose_stack.packed_block_types.bond_separation,
             self._lk_ball_global_params,
             # max_dis as host scalar for detect-neighbors call
@@ -318,8 +359,8 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             gen_pose_waters,
         )
 
-        common_args = args[:-2]
-        pose_stack = args[-2]
+        common_args = args[:-4]
+        pose_stack, hbond_params, lk_ball_params = args[-4:-1]
         block_pair_scoring = args[-1]
 
         # water generation takes the same common args as the scoring call: a
@@ -334,15 +375,15 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             pose_stack.packed_block_types.n_all_bonds,
             pose_stack.packed_block_types.all_bonds,
             pose_stack.packed_block_types.atom_all_bond_ranges,
-            pose_stack.packed_block_types.hbpbt_params.tile_n_donH,
-            pose_stack.packed_block_types.hbpbt_params.tile_n_acc,
-            pose_stack.packed_block_types.hbpbt_params.tile_donH_inds,
-            pose_stack.packed_block_types.hbpbt_params.tile_donH_hvy_inds,
-            pose_stack.packed_block_types.hbpbt_params.tile_which_donH_of_donH_hvy,
-            pose_stack.packed_block_types.hbpbt_params.tile_acc_inds,
-            pose_stack.packed_block_types.hbpbt_params.tile_acceptor_hybridization,
-            pose_stack.packed_block_types.hbpbt_params.tile_acceptor_n_attached_H,
-            pose_stack.packed_block_types.hbpbt_params.is_hydrogen,
+            hbond_params.tile_n_donH,
+            hbond_params.tile_n_acc,
+            hbond_params.tile_donH_inds,
+            hbond_params.tile_donH_hvy_inds,
+            hbond_params.tile_which_donH_of_donH_hvy,
+            hbond_params.tile_acc_inds,
+            hbond_params.tile_acceptor_hybridization,
+            hbond_params.tile_acceptor_n_attached_H,
+            hbond_params.is_hydrogen,
             self._lk_ball_water_gen_global_params,
             self.ljlk_param_resolver.global_params.lkb_water_tors_sp2,
             self.ljlk_param_resolver.global_params.lkb_water_tors_sp3,
@@ -361,10 +402,10 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             pose_stack.packed_block_types.n_atoms,
             pose_stack.packed_block_types.n_conn,
             pose_stack.packed_block_types.conn_atom,
-            pose_stack.packed_block_types.lk_ball_params.tile_n_polar_atoms,
-            pose_stack.packed_block_types.lk_ball_params.tile_n_occluder_atoms,
-            pose_stack.packed_block_types.lk_ball_params.tile_pol_occ_inds,
-            pose_stack.packed_block_types.lk_ball_params.tile_lk_ball_params,
+            lk_ball_params.tile_n_polar_atoms,
+            lk_ball_params.tile_n_occluder_atoms,
+            lk_ball_params.tile_pol_occ_inds,
+            lk_ball_params.tile_lk_ball_params,
             pose_stack.packed_block_types.bond_separation,
             self._lk_ball_global_params,
             # max_dis as host scalar for detect-neighbors call
@@ -384,4 +425,8 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         return self.rotamer_score_lk_ball
 
     def get_score_term_attributes(self, pose_stack):
-        return [pose_stack]
+        annotation = self.setup_packed_block_types(pose_stack.packed_block_types)
+        hbond = HBondDependentTerm.setup_packed_block_types(
+            self, pose_stack.packed_block_types
+        )
+        return [pose_stack, hbond, annotation]

@@ -166,9 +166,10 @@ def _setup_for_leaf_atom_coord_building(
     pose_stack_atom_is_missing = torch.zeros(
         (n_poses, max_n_ats), dtype=torch.bool, device=device
     )
-    pose_stack_atom_is_missing[pose_at_is_real] = block_leaf_atom_is_missing[
-        real_block_atoms
-    ]
+    # Ancestor selection must see missing non-leaf atoms too. Otherwise a
+    # missing CB looks available to HA's primary frame and its backup is never
+    # tried. The separate leaf mask still controls which atoms this pass builds.
+    pose_stack_atom_is_missing[pose_at_is_real] = block_atom_missing[real_block_atoms]
 
     # Create block_has_missing_atoms tensor: True for blocks that have any missing non-leaf atoms
     block_has_missing_atoms = torch.any(non_leaf_atom_is_missing, dim=2)
@@ -287,9 +288,8 @@ def _annotate_block_type_atom_is_leaf_atom(
     is_leaf = numpy.logical_not(is_parent)
 
     # special case: we cannot build missing atoms if there are not enough
-    # atoms to define a coordinate frame. A connection supplies one, so a cap
-    # is not in that position even though it is this small.
-    if block_type.n_atoms == 3 and len(block_type.connections) == 0:
+    # atoms to define a coordinate frame
+    if block_type.n_atoms == 3 and not block_type.connections:
         is_leaf[:] = False
 
     leaf_annotation = BlockTypeLeafAtomsAnnotation(is_leaf)
@@ -366,12 +366,9 @@ def _annotate_packed_block_types_w_leaf_atom_icoors(pbt: PackedBlockTypes):
 
 
 def _uaid_for_at(bt, icoor_at_name):
-    if icoor_at_name == "up":
-        return (-1, bt.up_connection_ind, 0)
-    elif icoor_at_name == "down":
-        return (-1, bt.down_connection_ind, 0)
-    else:
-        return (bt.atom_to_idx[icoor_at_name], -1, -1)
+    if icoor_at_name in bt.connection_to_cidx or icoor_at_name in ("up", "down"):
+        return (-1, bt.connection_to_cidx.get(icoor_at_name, -1), 0)
+    return (bt.atom_to_idx[icoor_at_name], -1, -1)
 
 
 def _icoor_at_is_leaf(bt, icoor_at_name):
@@ -403,7 +400,7 @@ def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):  # noqa: C
     # because there isn't a (meaningful) coordinate frame we can create
     # from only a single xyz coordinate. So, for now, we will skip
     # water.
-    if bt.n_atoms <= 3:
+    if bt.n_atoms <= 3 and not bt.connections:
         ann = BlockTypeLeafAtomICoorAnnotation(
             geom=icoor_geom,
             anc_uaids=icoor_uaids,
@@ -412,6 +409,8 @@ def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):  # noqa: C
         )
         setattr(bt, "leaf_atom_icoor_ann", ann)
         return
+    cap_phi_offsets = {}
+    torsion_defining_atoms = set(bt.ordered_torsions[:, 3, 0])
     for j, at in enumerate(bt.atoms):
         atname = at.name
         j_icoor_ind = bt.icoors_index[atname]
@@ -457,6 +456,16 @@ def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):  # noqa: C
             pass
         ggp_uaid = _uaid_for_at(bt, j_icoor.great_grand_parent)
 
+        # A one-heavy-atom polymer cap (e.g. NH2) has no local third
+        # reference for its hydrogen plane. Continue one bond into the
+        # connected residue rather than reusing the cap's nitrogen. Its
+        # first hydrogen is trans to that reference; retain the remaining
+        # hydrogens' relative dihedrals from the generated chemical geometry.
+        if gp_uaid[1] >= 0 and ggp_uaid == p_uaid:
+            ggp_uaid = (-1, gp_uaid[1], 1)
+            if atom_is_hydrogen[j]:
+                phi += cap_phi_offsets.setdefault(p_uaid, numpy.pi - phi)
+
         ggp_ind_backup = None
         phi_backup = phi
         if _icoor_at_is_inter_res(bt, j_icoor.great_grand_parent):
@@ -474,7 +483,20 @@ def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):  # noqa: C
             # is specifically for building the OXT atom on a cterm residue
             # when the O atom is given but OXT is not.
             seen_backup = set()
-            while _icoor_at_is_leaf(bt, j_icoor.great_grand_parent):
+            while True:
+                reference = j_icoor.great_grand_parent
+                candidate = bt.icoors[bt.icoors_index[reference]]
+                # HA can reference an unresolved non-leaf CB. Its fixed CB
+                # dihedral uses the same CA-N axis, so composing the two phi
+                # offsets supplies an independent C reference. A sampled
+                # torsion must not be replaced by its ideal dihedral.
+                fixed_axis = (
+                    candidate.parent == bt.icoors[j_icoor_ind].parent
+                    and candidate.grand_parent == bt.icoors[j_icoor_ind].grand_parent
+                    and bt.atom_to_idx.get(reference, -1) not in torsion_defining_atoms
+                )
+                if not (_icoor_at_is_leaf(bt, reference) or fixed_axis):
+                    break
                 ggp_ind_backup = bt.icoors_index[j_icoor.great_grand_parent]
                 if ggp_ind_backup in seen_backup:
                     break
@@ -527,15 +549,6 @@ class BlockTypeHCompletionAnnotation:
     # substituents too, and the open vertex is not right without them
     par_conn: NDArray[numpy.int32][:, :]
     n_par_conn: NDArray[numpy.int32][:]
-    # 0: place opposite the mean of the parent's substituents.
-    # 1: the parent's only substituent is a connection, so the residue fixes an
-    #    axis but no rotation about it; place in the plane of the partner's own
-    #    substituent using the stored angle and dihedral.
-    mode: NDArray[numpy.int32][:]
-    theta: NDArray[numpy.float32][:]
-    phi: NDArray[numpy.float32][:]
-    # first heavy neighbour of each atom, so a partner can be framed against it
-    first_heavy_nbr: NDArray[numpy.int32][:]
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -547,109 +560,6 @@ class PackedBlockTypesHCompletionAnnotation:
     dist: Tensor[torch.float32][:, :]
     par_conn: Tensor[torch.int64][:, :, 3]
     n_par_conn: Tensor[torch.int64][:, :]
-    mode: Tensor[torch.int64][:, :]
-    theta: Tensor[torch.float32][:, :]
-    phi: Tensor[torch.float32][:, :]
-    first_heavy_nbr: Tensor[torch.int64][:, :]
-
-
-# A planar center's three substituent angles sum to this; the tolerance admits
-# the scatter of a measured conformer without admitting a pyramidal center.
-_PLANAR_ANGLE_SUM = 360.0
-_PLANAR_TOL = 5.0
-
-
-def _ideal_angle(xyz, a, b, c):
-    """Angle a-b-c, in degrees, from a set of coordinates."""
-    u, v = xyz[a] - xyz[b], xyz[c] - xyz[b]
-    cos = numpy.dot(u, v) / (numpy.linalg.norm(u) * numpy.linalg.norm(v))
-    return float(numpy.degrees(numpy.arccos(numpy.clip(cos, -1.0, 1.0))))
-
-
-def _ideal_dihedral(xyz, a, b, c, d):
-    """Dihedral a-b-c-d, in degrees, from a set of coordinates."""
-    b0, b1, b2 = xyz[a] - xyz[b], xyz[c] - xyz[b], xyz[d] - xyz[c]
-    b1 = b1 / numpy.linalg.norm(b1)
-    v = b0 - numpy.dot(b0, b1) * b1
-    w = b2 - numpy.dot(b2, b1) * b1
-    return float(
-        numpy.degrees(numpy.arctan2(numpy.dot(numpy.cross(b1, v), w), numpy.dot(v, w)))
-    )
-
-
-def _annotate_planar_single_conn_h(
-    bt,
-    n,
-    is_h,
-    adj,
-    eligible,
-    parent,
-    dist,
-    par_conn,
-    n_par_conn,
-    mode,
-    theta,
-    phi,
-):
-    """Flag H on a parent whose only substituent is an inter-residue connection.
-
-    A terminal amide cap is the case: its nitrogen carries two hydrogens and
-    one connection, so the residue fixes the N-C axis but nothing about the
-    rotation around it. The hydrogens are placed against the partner's own
-    substituent instead, which is what makes the amide planar. Restricted to a
-    parent that is planar in its ideal geometry -- a pyramidal center has a
-    real rotational degree of freedom and must not be pinned this way.
-    """
-    conns_on_atom = {}
-    for ci, at in enumerate(bt.ordered_connection_atoms):
-        conns_on_atom.setdefault(int(at), []).append(ci)
-
-    xyz = bt.ideal_coords
-    ind = bt.icoors_index
-
-    def at_xyz(atom_ind):
-        return xyz[ind[bt.atoms[atom_ind].name]]
-
-    for par in range(n):
-        if is_h[par]:
-            continue
-        heavy = [k for k in adj[par] if not is_h[k]]
-        hydrogens = sorted(k for k in adj[par] if is_h[k])
-        conns = conns_on_atom.get(par, [])
-        if heavy or len(conns) != 1 or len(hydrogens) < 2:
-            continue
-
-        conn_name = bt.connections[conns[0]].name
-        if conn_name not in ind:
-            continue
-        pts = {k: at_xyz(k) for k in hydrogens}
-        pts[-1] = xyz[ind[conn_name]]
-        par_xyz = at_xyz(par)
-        coords = {k: v for k, v in pts.items()}
-        coords[par] = par_xyz
-
-        # planar: the angles between consecutive substituents close to 360
-        subs = [-1] + hydrogens
-        angle_sum = 0.0
-        for i in range(len(subs)):
-            for j in range(i + 1, len(subs)):
-                angle_sum += _ideal_angle(coords, subs[i], par, subs[j])
-        if len(subs) != 3 or abs(angle_sum - _PLANAR_ANGLE_SUM) > _PLANAR_TOL:
-            continue
-
-        # the first hydrogen sits trans to the partner's substituent; the rest
-        #    keep the arrangement the ideal geometry gives them
-        ref = hydrogens[0]
-        for k, h in enumerate(hydrogens):
-            eligible[h] = True
-            parent[h] = par
-            mode[h] = 1
-            n_par_conn[h] = 1
-            par_conn[h, 0] = conns[0]
-            dist[h] = float(numpy.linalg.norm(coords[h] - par_xyz))
-            theta[h] = numpy.radians(_ideal_angle(coords, h, par, -1))
-            offset = 0.0 if k == 0 else _ideal_dihedral(coords, ref, par, -1, h)
-            phi[h] = numpy.radians(180.0 + offset)
 
 
 def _determine_h_completion_for_block_type(bt, atom_is_hydrogen):
@@ -671,10 +581,6 @@ def _determine_h_completion_for_block_type(bt, atom_is_hydrogen):
     dist = numpy.zeros(n, dtype=numpy.float32)
     par_conn = numpy.full((n, _H_COMPLETION_MAX_NEIGH), -1, dtype=numpy.int32)
     n_par_conn = numpy.zeros(n, dtype=numpy.int32)
-    mode = numpy.zeros(n, dtype=numpy.int32)
-    theta = numpy.zeros(n, dtype=numpy.float32)
-    phi = numpy.zeros(n, dtype=numpy.float32)
-    first_heavy_nbr = numpy.full(n, -1, dtype=numpy.int32)
 
     # Two cases need a hydrogen placed from geometry rather than from a stored
     # dihedral: an autogen ligand, whose heavy atoms and H icoors come from
@@ -689,30 +595,10 @@ def _determine_h_completion_for_block_type(bt, atom_is_hydrogen):
         for i, at in enumerate(bt.ordered_connection_atoms)
         if i not in structural
     }
-    adj = [[] for _ in range(n)]
-    for a0, a1 in bt.bond_indices:
-        adj[int(a0)].append(int(a1))
-    for j in range(n):
-        heavy_nbrs = [k for k in adj[j] if not is_h[k]]
-        if heavy_nbrs:
-            first_heavy_nbr[j] = min(heavy_nbrs)
-
-    _annotate_planar_single_conn_h(
-        bt,
-        n,
-        is_h,
-        adj,
-        eligible,
-        parent,
-        dist,
-        par_conn,
-        n_par_conn,
-        mode,
-        theta,
-        phi,
-    )
-
     if getattr(bt, "hydrogens_regenerated", False) or conjugated_atoms:
+        adj = [[] for _ in range(n)]
+        for a0, a1 in bt.bond_indices:
+            adj[int(a0)].append(int(a1))
         conns_on_atom = {}
         for ci, at in enumerate(bt.ordered_connection_atoms):
             conns_on_atom.setdefault(int(at), []).append(ci)
@@ -730,8 +616,6 @@ def _determine_h_completion_for_block_type(bt, atom_is_hydrogen):
             par_conns = conns_on_atom.get(par, [])
             if len(par_heavy) + len(par_conns) < 2 or par_n_h != 1:
                 continue
-            if eligible[j]:
-                continue  # already claimed by the planar single-connection rule
             if not getattr(bt, "hydrogens_regenerated", False):
                 # a canonical residue only needs this where a conjugation
                 #    changed the site out from under its icoors
@@ -758,10 +642,6 @@ def _determine_h_completion_for_block_type(bt, atom_is_hydrogen):
             dist=dist,
             par_conn=par_conn,
             n_par_conn=n_par_conn,
-            mode=mode,
-            theta=theta,
-            phi=phi,
-            first_heavy_nbr=first_heavy_nbr,
         ),
     )
 
@@ -782,10 +662,6 @@ def _annotate_packed_block_types_w_h_completion(pbt: PackedBlockTypes):
         (pbt.n_types, pbt.max_n_atoms, _H_COMPLETION_MAX_NEIGH), -1, dtype=numpy.int64
     )
     n_par_conn = numpy.zeros((pbt.n_types, pbt.max_n_atoms), dtype=numpy.int64)
-    mode = numpy.zeros((pbt.n_types, pbt.max_n_atoms), dtype=numpy.int64)
-    theta = numpy.zeros((pbt.n_types, pbt.max_n_atoms), dtype=numpy.float32)
-    phi = numpy.zeros((pbt.n_types, pbt.max_n_atoms), dtype=numpy.float32)
-    first_heavy_nbr = numpy.full((pbt.n_types, pbt.max_n_atoms), -1, dtype=numpy.int64)
     atom_is_hydrogen_cpu = pbt.atom_is_hydrogen.cpu()
     for i, bt in enumerate(pbt.active_block_types):
         _determine_h_completion_for_block_type(bt, atom_is_hydrogen_cpu[i, :])
@@ -797,10 +673,6 @@ def _annotate_packed_block_types_w_h_completion(pbt: PackedBlockTypes):
         dist[i, : bt.n_atoms] = ann.dist
         par_conn[i, : bt.n_atoms] = ann.par_conn
         n_par_conn[i, : bt.n_atoms] = ann.n_par_conn
-        mode[i, : bt.n_atoms] = ann.mode
-        theta[i, : bt.n_atoms] = ann.theta
-        phi[i, : bt.n_atoms] = ann.phi
-        first_heavy_nbr[i, : bt.n_atoms] = ann.first_heavy_nbr
 
     dev = pbt.device
     setattr(
@@ -814,12 +686,6 @@ def _annotate_packed_block_types_w_h_completion(pbt: PackedBlockTypes):
             dist=torch.tensor(dist, dtype=torch.float32, device=dev),
             par_conn=torch.tensor(par_conn, dtype=torch.int64, device=dev),
             n_par_conn=torch.tensor(n_par_conn, dtype=torch.int64, device=dev),
-            mode=torch.tensor(mode, dtype=torch.int64, device=dev),
-            theta=torch.tensor(theta, dtype=torch.float32, device=dev),
-            phi=torch.tensor(phi, dtype=torch.float32, device=dev),
-            first_heavy_nbr=torch.tensor(
-                first_heavy_nbr, dtype=torch.int64, device=dev
-            ),
         ),
     )
 
@@ -856,31 +722,6 @@ def _apply_h_geometric_completion(
         bt_ind = int(bt64[p, b])
         off = int(block_coord_offset[p, b])
         par_pos = pose_coords[p, off + int(ann.parent[bt_ind, a])]
-
-        if int(ann.mode[bt_ind, a]) == 1:
-            # the parent's only substituent is a connection: frame the hydrogen
-            #    on the partner's own substituent, which is what fixes the plane
-            conn = int(ann.par_conn[bt_ind, a, 0])
-            other_b = int(inter_residue_connections[p, b, conn, 0])
-            other_conn = int(inter_residue_connections[p, b, conn, 1])
-            if other_b < 0 or other_conn < 0:
-                continue
-            other_bt = int(bt64[p, other_b])
-            other_at = int(pbt.conn_atom[other_bt, other_conn])
-            ref_at = int(ann.first_heavy_nbr[other_bt, other_at])
-            if other_at < 0 or ref_at < 0:
-                continue
-            other_off = int(block_coord_offset[p, other_b])
-            new_coords[p, off + a] = _place_from_frame(
-                pose_coords[p, other_off + ref_at],
-                pose_coords[p, other_off + other_at],
-                par_pos,
-                ann.dist[bt_ind, a],
-                ann.theta[bt_ind, a],
-                ann.phi[bt_ind, a],
-            )
-            continue
-
         nn = int(ann.n_neigh[bt_ind, a])
         acc = torch.zeros(3, dtype=pose_coords.dtype, device=pose_coords.device)
         for k in range(nn):
@@ -904,17 +745,3 @@ def _apply_h_geometric_completion(
         h_pos = par_pos - d * acc / torch.linalg.norm(acc)
         new_coords[p, off + a] = h_pos
     return new_coords
-
-
-def _place_from_frame(a_pos, b_pos, c_pos, d, theta, phi):
-    """Atom at distance d from c, angle theta about b, dihedral phi about a-b-c."""
-    bc = c_pos - b_pos
-    bc = bc / torch.linalg.norm(bc)
-    n = torch.linalg.cross(b_pos - a_pos, bc)
-    n = n / torch.linalg.norm(n)
-    m = torch.linalg.cross(n, bc)
-    return c_pos + (
-        -d * torch.cos(theta) * bc
-        + d * torch.sin(theta) * torch.cos(phi) * m
-        + d * torch.sin(theta) * torch.sin(phi) * n
-    )

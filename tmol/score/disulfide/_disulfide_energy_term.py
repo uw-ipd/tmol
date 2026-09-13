@@ -14,7 +14,8 @@ from tmol.pose import (
 # positions of the dihedral means within a packed parameter row; only these
 # flip for a mirrored residue -- the interior-angle mean is achiral
 _MIRRORED_MU_INDICES = (8, 11, 13, 16, 19)
-_MIRRORED_SIGNS = torch.ones(26)
+_MIRRORED_SIGNS = torch.ones(33)
+_MIRRORED_SIGNS[32] = -1.0  # explicit chirality for selecting the pair distribution
 for _i in _MIRRORED_MU_INDICES:
     _MIRRORED_SIGNS[_i] = -1.0
 
@@ -135,6 +136,13 @@ class DisulfideEnergyTerm(EnergyTerm):
                     self.global_params.wt_ang,
                     self.global_params.wt_len,
                     self.global_params.shift,
+                    self.global_params.dss_mixed_logA1,
+                    self.global_params.dss_mixed_kappa1,
+                    self.global_params.dss_mixed_mu1,
+                    self.global_params.dss_mixed_logA2,
+                    self.global_params.dss_mixed_kappa2,
+                    self.global_params.dss_mixed_mu2,
+                    torch.ones_like(self.global_params.shift),
                 ]
             ),
             dim=1,

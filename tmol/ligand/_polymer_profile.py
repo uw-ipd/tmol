@@ -18,6 +18,8 @@ import biotite.structure as struc
 from rdkit import Chem
 from rdkit.Chem import rdFMCS
 
+from tmol.utility.weak_identity_cache import WeakIdentityLRU
+
 logger = logging.getLogger(__name__)
 
 
@@ -155,7 +157,7 @@ def _stub_from_icoor(
     )
 
 
-_ALPHA_PROFILE_CACHE: dict = {}
+_POLYMER_PROFILE_CACHE = WeakIdentityLRU()
 
 
 def alpha_profile(chemdb) -> PolymerProfile:
@@ -166,10 +168,9 @@ def alpha_profile(chemdb) -> PolymerProfile:
     geometry are all surveyed from the canonical residues that already carry
     them, so a change to the database reaches this without an edit.
     """
-    key = id(chemdb)
-    if key not in _ALPHA_PROFILE_CACHE:
-        _ALPHA_PROFILE_CACHE[key] = _build_alpha_profile(chemdb)
-    return _ALPHA_PROFILE_CACHE[key]
+    return _POLYMER_PROFILE_CACHE.get_or_create(
+        chemdb, "alpha", lambda: _build_alpha_profile(chemdb)
+    )
 
 
 def _build_alpha_profile(chemdb) -> PolymerProfile:  # noqa: C901
@@ -973,63 +974,55 @@ def substituted_wildcard_rows(cartbonded_db, canonical, replacement, present):
     return rows
 
 
-def noncanonical_junction_substitutions(atom_array, profile, connection_atoms):
-    """``{canonical: actual}`` for a junction whose atoms are not canonically named.
+def noncanonical_junction_substitutions(residue_type, atom_type_index):
+    """Map peptide junction frames onto their bonded, retained chemical atoms.
 
-    cartbonded's wildcard rows describe the peptide bond in terms of an alpha
-    backbone -- CA, C, O on one side and N, H on the other -- and are matched by
-    name. A backbone that connects through an atom of its own naming, such as a
-    gamma peptide bonding through CD, is passed over and its junction ends up
-    with no bond-length or angle term at all. The rows still describe it, in
-    terms of the atoms that actually play those parts: the connection atom, the
-    mainchain atom before it, and the carbonyl oxygen on it.
-
-    Returns one mapping per side that needs one; a canonically named side is
-    left alone, since it already matches.
+    Only carbonyl-carbon and amine-nitrogen junctions borrow peptide rows.
+    A changed neighbor name also needs a mapping, even if C/N itself retains
+    its canonical name. Other polymer chemistries require their own parameters.
     """
-    mainchain = tuple(profile.mainchain_atoms or ())
+    # Use the reconstructed molecule: the input can omit hydrogens, and its
+    # leaving groups are no longer part of the chemical identity being scored.
+    mainchain = tuple(residue_type.properties.polymer.mainchain_atoms or ())
     if len(mainchain) < 3:
         return []
-    names = {str(n) for n in atom_array.atom_name}
-    bonds, _types = atom_array.bonds.get_all_bonds()
-    index = {str(n): i for i, n in enumerate(atom_array.atom_name)}
     elements = {
-        str(n): str(e) for n, e in zip(atom_array.atom_name, atom_array.element)
+        atom.name: atom_type_index[atom.atom_type].element
+        for atom in residue_type.atoms
     }
+    conns = {c.atom for c in residue_type.connections if c.name in ("up", "down")}
+    neighbors = {name: {} for name in elements}
+    for a, b, order, *_ in residue_type.bonds:
+        neighbors[a][b] = order
+        neighbors[b][a] = order
 
-    def bonded(name):
-        return [str(atom_array.atom_name[b]) for b in bonds[index[name]] if b >= 0]
-
-    def attached(name, element, exclude):
-        return next(
-            (
-                nbr
-                for nbr in bonded(name)
-                if elements.get(nbr) == element and nbr not in exclude
-            ),
-            None,
-        )
-
-    subs = []
-    conns = set(connection_atoms or ())
-
-    # upper side: the carbonyl carbon is whatever the chain ends on
-    upper, before = mainchain[-1], mainchain[-2]
-    if upper in conns and upper != "C":
-        oxygen = attached(upper, "O", {before})
-        if oxygen is not None and {upper, before, oxygen} <= names:
-            subs.append({"C": upper, "CA": before, "O": oxygen})
-
-    # lower side: untested by any fixture here, but the rows are symmetric
-    lower, after = mainchain[0], mainchain[1]
-    if lower in conns and lower != "N":
-        hydrogen = attached(lower, "H", set())
-        mapping = {"N": lower, "CA": after}
-        if hydrogen is not None:
-            mapping["H"] = hydrogen
-        if set(mapping.values()) <= names:
+    def retain(mapping):
+        if any(k != v for k, v in mapping.items()):
             subs.append(mapping)
 
+    subs = []
+    upper, before = mainchain[-1], mainchain[-2]
+    if upper in conns and elements.get(upper) == elements.get(before) == "C":
+        bonded = neighbors[upper]
+        oxygens = [
+            atom
+            for atom, order in bonded.items()
+            if elements[atom] == "O" and order == "DOUBLE"
+        ]
+        if bonded.get(before) == "SINGLE" and len(oxygens) == 1:
+            retain({"C": upper, "CA": before, "O": oxygens[0]})
+
+    lower, after = mainchain[0], mainchain[1]
+    if lower in conns and elements.get(lower) == "N" and elements.get(after) == "C":
+        bonded = neighbors[lower]
+        if bonded.get(after) == "SINGLE" and all(
+            order == "SINGLE" for order in bonded.values()
+        ):
+            mapping = {"N": lower, "CA": after}
+            hydrogens = sorted(atom for atom in bonded if elements[atom] == "H")
+            if hydrogens:
+                mapping["H"] = "H" if "H" in hydrogens else hydrogens[0]
+            retain(mapping)
     return subs
 
 
@@ -1044,12 +1037,12 @@ def profile_for_atom_array(
     # a sugar has no backbone; its attachments carry its topology instead
     if is_carbohydrate(atom_array, connection_atoms):
         return None
+    # Recognize the sugar before peptide end completion: a terminal nucleotide
+    # can carry a base amine that is unrelated to its polymer backbone.
+    kind = na_backbone_kind(atom_array, connection_atoms)
+    if kind is not None:
+        return na_profile(chemdb, kind)
     if connection_atoms and len(connection_atoms) == 1:
-        # a nucleotide seen only at a 5' terminus has one connection and no
-        #    phosphate, which is a chain member rather than a cap
-        completed = completed_connection_atoms(atom_array, connection_atoms)
-        if na_backbone_kind(atom_array, completed) is not None:
-            return na_profile(chemdb, na_backbone_kind(atom_array, completed))
         known = next(iter(connection_atoms))
         # nothing to continue the chain with: this residue terminates it
         if not _chain_end_candidates(atom_array, known):
@@ -1057,9 +1050,6 @@ def profile_for_atom_array(
     connection_atoms = completed_connection_atoms(atom_array, connection_atoms)
     if alpha_backbone_atoms(atom_array, connection_atoms) is not None:
         return alpha_profile(chemdb)
-    kind = na_backbone_kind(atom_array, connection_atoms)
-    if kind is not None:
-        return na_profile(chemdb, kind)
     path = mainchain_path(atom_array, connection_atoms)
     if path is not None and len(path) >= 3:
         _adj, _double, element = _heavy_adjacency(atom_array)
@@ -1245,11 +1235,14 @@ def resolve_cap_names(profile: PolymerProfile, existing):
     return resolved
 
 
-def cap_residue(atom_array, profile: PolymerProfile):
+def cap_residue(atom_array, profile: PolymerProfile, *, include_coordinates=True):
     """Return (capped heavy-atom AtomArray, cap name mapping).
 
     Hydrogens are dropped: the pipeline derives a SMILES from heavy atoms and the
-    bond table, then re-protonates.
+    bond table, then re-protonates. Source annotations survive for retained
+    atoms; synthetic cap annotations start empty/zero except residue identity.
+    With ``include_coordinates=False``, return all-NaN coordinates without
+    constructing geometric frames, for topology-only parameter generation.
     """
     names = {str(n) for n in atom_array.atom_name}
     missing = sorted(profile.required_atoms() - names)
@@ -1265,54 +1258,98 @@ def cap_residue(atom_array, profile: PolymerProfile):
     cap_names = resolve_cap_names(profile, names)
 
     keep = numpy.array([str(e) != "H" for e in atom_array.element])
+    # A complete free terminus can carry a hydroxyl that polymerization
+    # displaces. Replace that group when adding the connection's cap; retaining
+    # it would give a carbonyl carbon five bonds. Sidechain acids are untouched.
+    adj, double, elements = _heavy_adjacency(atom_array)
+    displaced = set()
+    for _connection, anchor in profile.connections:
+        if elements.get(anchor) != "C" or not any(
+            elements.get(n) == "O" for n in double.get(anchor, ())
+        ):
+            continue
+        leaving = [
+            n
+            for n in adj.get(anchor, ())
+            if elements.get(n) == "O"
+            and len(adj[n]) == 1
+            and n not in double.get(anchor, ())
+        ]
+        if len(leaving) > 1:
+            raise ValueError(
+                f"Ambiguous leaving atoms at polymer connection {anchor}: {leaving}"
+            )
+        displaced.update(leaving)
+    keep &= ~numpy.isin(atom_array.atom_name, list(displaced))
     kept_indices = numpy.nonzero(keep)[0]
     residue = atom_array[kept_indices]
 
-    pos = {str(n): c for n, c in zip(residue.atom_name, residue.coord)}
-    for cap in profile.caps:
-        frame = [pos[cap_names.get(r, r)] for r in cap.refs]
-        while len(frame) < 3:
-            frame = [synthetic_reference(*frame[:2])] + frame
-        a, b, c = frame
-        pos[cap_names[cap.name]] = place_atom(a, b, c, cap.d, cap.angle, cap.dihedral)
-
     n_residue = residue.array_length()
     out = struc.AtomArray(n_residue + len(profile.caps))
-    out.coord[:n_residue] = residue.coord
-    out.atom_name[:n_residue] = residue.atom_name
-    out.element[:n_residue] = residue.element
+    out.coord[:] = numpy.nan
+    defaults = set(out.get_annotation_categories())
+    for annotation in residue.get_annotation_categories():
+        source = residue.get_annotation(annotation)
+        if (
+            annotation in defaults
+            and out.get_annotation(annotation).dtype == source.dtype
+        ):
+            values = out.get_annotation(annotation)
+        else:
+            values = numpy.zeros(len(out), dtype=source.dtype)
+            out.set_annotation(annotation, values)
+        values[:n_residue] = source
+    # Cap names can be longer than the input's atom-name column.
+    width = max(len(n) for n in (*names, *cap_names.values()))
+    if out.atom_name.dtype.kind != "U" or out.atom_name.dtype.itemsize < 4 * width:
+        out.set_annotation("atom_name", out.atom_name.astype(f"U{width}"))
+    if include_coordinates:
+        pos = {str(n): c for n, c in zip(residue.atom_name, residue.coord)}
+        for cap in profile.caps:
+            frame = [pos[cap_names.get(r, r)] for r in cap.refs]
+            while len(frame) < 3:
+                frame = [synthetic_reference(*frame[:2])] + frame
+            a, b, c = frame
+            pos[cap_names[cap.name]] = place_atom(
+                a, b, c, cap.d, cap.angle, cap.dihedral
+            )
+        out.coord[:n_residue] = residue.coord
     for offset, cap in enumerate(profile.caps):
-        out.coord[n_residue + offset] = pos[cap_names[cap.name]]
+        if include_coordinates:
+            out.coord[n_residue + offset] = pos[cap_names[cap.name]]
         out.atom_name[n_residue + offset] = cap_names[cap.name]
         out.element[n_residue + offset] = cap.element
-    for field in ("res_name", "chain_id", "res_id", "hetero"):
+    for field in ("res_name", "chain_id", "res_id", "hetero", "ins_code"):
         if field in atom_array.get_annotation_categories():
             value = getattr(atom_array, field)[0]
-            getattr(out, field)[:] = value
+            getattr(out, field)[n_residue:] = value
 
-    remap = {int(old): new for new, old in enumerate(kept_indices)}
-    bonds = struc.BondList(out.array_length())
-    if atom_array.bonds is not None:
-        for i, j, bond_type in atom_array.bonds.as_array():
-            if i in remap and j in remap:
-                bonds.add_bond(remap[i], remap[j], bond_type)
+    remap = numpy.full(len(atom_array), -1, dtype=numpy.int64)
+    remap[kept_indices] = numpy.arange(n_residue)
+    source_bonds = atom_array.bonds.as_array()
+    endpoints = remap[source_bonds[:, :2]]
+    retained = (endpoints >= 0).all(axis=1)
+    bonds = numpy.column_stack((endpoints[retained], source_bonds[retained, 2]))
     index = {str(n): i for i, n in enumerate(out.atom_name)}
     order = {"SINGLE": struc.BondType.SINGLE, "DOUBLE": struc.BondType.DOUBLE}
-    for cap in profile.caps:
-        bonds.add_bond(
-            index[cap_names[cap.name]],
-            index[cap_names.get(cap.bond_to, cap.bond_to)],
-            order[cap.bond_order],
-        )
-    out.bonds = bonds
+    cap_bonds = numpy.asarray(
+        [
+            (
+                index[cap_names[cap.name]],
+                index[cap_names.get(cap.bond_to, cap.bond_to)],
+                order[cap.bond_order],
+            )
+            for cap in profile.caps
+        ],
+        dtype=numpy.int64,
+    ).reshape(-1, 3)
+    out.bonds = struc.BondList(len(out), numpy.concatenate((bonds, cap_bonds)))
     return out, cap_names
 
 
 # --------------------------------------------------------------------------- #
 # nucleic acids
 # --------------------------------------------------------------------------- #
-
-_NA_PROFILE_CACHE: dict = {}
 
 
 def na_profile(chemdb, kind: str) -> Optional[PolymerProfile]:
@@ -1324,10 +1361,9 @@ def na_profile(chemdb, kind: str) -> Optional[PolymerProfile]:
     -- everything on the near side of the bond from the sugar to the base --
     so only the base is left to the ligand typer.
     """
-    key = (id(chemdb), kind)
-    if key not in _NA_PROFILE_CACHE:
-        _NA_PROFILE_CACHE[key] = _build_na_profile(chemdb, kind)
-    return _NA_PROFILE_CACHE[key]
+    return _POLYMER_PROFILE_CACHE.get_or_create(
+        chemdb, ("na", kind), lambda: _build_na_profile(chemdb, kind)
+    )
 
 
 def _canonical_na_residues(chemdb, kind):
@@ -1720,14 +1756,24 @@ def complete_backbone_from_reference(atom_array, profile, param_db):
     if atom_array.bonds is not None:
         for i, j, order in atom_array.bonds.as_array():
             bonds.add_bond(int(i), int(j), int(order))
-    for a, b, bond_order, *_ in _localized_bonds(donor_type):
+    existing_orders = (
+        {
+            frozenset(
+                (str(atom_array.atom_name[i]), str(atom_array.atom_name[j]))
+            ): int(order)
+            for i, j, order in atom_array.bonds.as_array()
+        }
+        if atom_array.bonds is not None
+        else {}
+    )
+    for a, b, bond_order, *_ in _localized_bonds(donor_type, existing_orders):
         if a in index and b in index and (a in wanted or b in wanted):
             bonds.add_bond(index[a], index[b], bond_order)
     combined.bonds = bonds
     return combined
 
 
-def _localized_bonds(residue_type):
+def _localized_bonds(residue_type, existing_orders=None):
     """The residue's bonds as a structure writes them, not as tmol stores them.
 
     A delocalized group -- a phosphate's two free oxygens, a carboxylate's --
@@ -1735,6 +1781,7 @@ def _localized_bonds(residue_type):
     molecule can be built from. One of each such group becomes the double bond
     and the rest single, which is how a structure file carries it.
     """
+    existing_orders = existing_orders or {}
     delocalized = defaultdict(list)
     localized = []
     for a, b, bond_order, *_ in residue_type.bonds:
@@ -1750,7 +1797,11 @@ def _localized_bonds(residue_type):
         #    only a group all on one centre is a resonance pair to localize
         if len(group) < 2 or any(len(delocalized[b]) > 2 for _a, b in group):
             continue
-        doubled.add(group[0])
+        # Complete a partially observed resonance group without adding a
+        # second double bond beside one the input already supplied.
+        already_double = [b for b in group if existing_orders.get(frozenset(b)) == 2]
+        unassigned = [b for b in group if frozenset(b) not in existing_orders]
+        doubled.add((already_double or unassigned or group)[0])
     seen = set()
     for centre_bonds in delocalized.values():
         for bond in centre_bonds:

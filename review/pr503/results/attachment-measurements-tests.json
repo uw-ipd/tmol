@@ -1,0 +1,65 @@
+{
+  "baseline": "daef9b803",
+  "source_sha256": {
+    "tmol/ligand/_preparation.py": "463eaecbd08bd0c8543122aff959c7b6ebaa116278e70153d19105284176ed8a",
+    "tmol/tests/ligand/test_attachment_measurements.py": "f43f64e83939e35469b8d7833042732b028a3e9fc2a1d5297c6c880e8af4fc91",
+    "review/pr503/profile_attachment_measurements.py": "543c76c71cb8f866545544fe951e94ef1085b7d520899f354efb3f74d0bbe07e"
+  },
+  "runs": [
+    {
+      "name": "Pre-fix unresolved/repeated/insertion checks",
+      "passed": 0,
+      "failed": 7,
+      "skipped": 3,
+      "seconds": 5.42,
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/attachment-measurements-before.log"
+    },
+    {
+      "name": "First fix; construction test assumed unsupported ligand reconstruction",
+      "passed": 5,
+      "failed": 2,
+      "skipped": 3,
+      "seconds": 14.55,
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/attachment-measurements-first-cpu.log",
+      "failure": "Tests now explicitly verify the existing missing ligand heavy atom error; preparation/export are successful."
+    },
+    {
+      "name": "Final CPU helper and conjugate bundles",
+      "passed": 18,
+      "skipped": 8,
+      "seconds": 29.59,
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/attachment-measurements-final-cpu.log"
+    },
+    {
+      "name": "Initial vectorized helper CPU/CUDA bundle, models, generator and full conjugate packing",
+      "slurm": 248864,
+      "passed": 85,
+      "skipped": 6,
+      "seconds": 415.49,
+      "state": "COMPLETED",
+      "exit_code": "0:0",
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/attachment-measurements-248864.log",
+      "junit": "/mnt/home/kdidi/tmol-pr503-followup/attachment-measurements-tests.xml",
+      "note": "Helper subsequently changed to bounded chunks; final input/bundle rerun below validates the final helper."
+    },
+    {
+      "name": "Final bounded helper CPU/CUDA input and bundle checks",
+      "slurm": 248870,
+      "passed": 26,
+      "skipped": 0,
+      "seconds": 59.78,
+      "state": "COMPLETED",
+      "exit_code": "0:0",
+      "job_elapsed": "00:01:13",
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/attachment-measurements-final-248870.log",
+      "junit": "/mnt/home/kdidi/tmol-pr503-followup/attachment-measurements-final-tests.xml"
+    },
+    {
+      "name": "AtomWorks three unresolved-attachment input cases",
+      "passed": 3,
+      "log": "/mnt/home/kdidi/tmol-pr503-followup/attachment-measurements-atomworks.log",
+      "artifact": "attachment-measurements-atomworks.json"
+    }
+  ],
+  "scope": "Overlapping targeted checks, not a release suite. Existing no-measurement geometry fallback and missing ligand-heavy-atom rejection retained."
+}

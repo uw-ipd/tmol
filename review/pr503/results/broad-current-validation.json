@@ -1,0 +1,76 @@
+{
+  "production_revision_under_broad_test": "01159dd7adc8ec9ff7bdb4c9d5b3867a1cc3958e",
+  "broad": {
+    "job": 251938,
+    "total": 1482,
+    "passed": 1459,
+    "failed": 8,
+    "skipped": 15,
+    "errors": 0,
+    "pytest_seconds": 1207.901,
+    "slurm_exit": "1:0",
+    "elapsed": "00:21:59",
+    "max_rss_kib": 9657820,
+    "failure_names": [
+      "test_noncanonical_scores_match_baseline[cpu-alpha_aa]",
+      "test_noncanonical_scores_match_baseline[cpu-dna]",
+      "test_noncanonical_scores_match_baseline[cpu-nonstandard_aa]",
+      "test_noncanonical_scores_match_baseline[cpu-nonstandard_na]",
+      "test_noncanonical_scores_match_baseline[cuda-alpha_aa]",
+      "test_noncanonical_scores_match_baseline[cuda-dna]",
+      "test_noncanonical_scores_match_baseline[cuda-nonstandard_aa]",
+      "test_noncanonical_scores_match_baseline[cuda-nonstandard_na]"
+    ]
+  },
+  "examples": {
+    "cpu": {
+      "passed": 18,
+      "failed": 0
+    },
+    "gpu": {
+      "passed": 18,
+      "failed": 0
+    }
+  },
+  "scope": "PR-focused runner, not every test in tmol. CPU/CUDA cases are counted separately. Counts overlap earlier focused suites. Eight existing noncanonical score-reference failures remain; no golden updates. Example runs check scoring and gradients, not minimization. H200 uses existing sm75/PTX75 driver-JIT extension cache, not native sm90 compilation.",
+  "previous_broad": {
+    "job": 251879,
+    "passed": 1424,
+    "failed": 9,
+    "skipped": 15,
+    "errors": 0,
+    "total": 1448,
+    "pytest_seconds": 1185.339,
+    "slurm_exit": "1:0",
+    "elapsed": "00:21:36",
+    "max_rss_kib": 8827448,
+    "failure_classes": {
+      "existing_noncanonical_score_reference_mismatches": 8,
+      "writer_unknown_format_error_precedence": 1
+    }
+  },
+  "writer_fix": {
+    "commit": "a91cb31015961a3354cdf04eb01f4fe0faeea406",
+    "cpu_passed": 44,
+    "cpu_failed": 0,
+    "scope": "Existing ligand unit-coverage and preparation-batch-identity suites. Validate format before reading preparation contents; supported-format behavior unchanged."
+  },
+  "evidence": {
+    "broad-01159/tests.xml": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/broad-01159/tests.xml",
+      "sha256": "38287e5ea7e37d22b6306d8e3d6470dd62fd52baf3132224741e365d81c19851"
+    },
+    "broad-01159/examples-cpu.json": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/broad-01159/examples-cpu.json",
+      "sha256": "5620581f3aa90b2a5b048a2237b82afafd3dd31db087e403d07b9c35d48adc0a"
+    },
+    "broad-01159/examples-gpu.json": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/broad-01159/examples-gpu.json",
+      "sha256": "cbf30d842eaa5f40090970c4a01bb49c4c90e86d564787afe40428cedc346870"
+    },
+    "writer-format-final-fixed.xml": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/writer-format-final-fixed.xml",
+      "sha256": "bfcbe483669901f97327685ff45bd0b1bc83706647a281f78085e77fa832f40c"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "torch": "2.8.0+cpu",
+  "numpy": "2.5.3",
+  "biotite": "1.7.1",
+  "rdkit": "2026.3.6",
+  "openbabel-wheel": "3.1.1.22",
+  "pytest": "9.1.1",
+  "black": "26.3.1",
+  "flake8": "7.3.0"
+}

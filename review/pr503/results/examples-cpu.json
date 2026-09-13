@@ -1,0 +1,176 @@
+[
+  {
+    "fixture": "ncaa_fixtures/6dmz_mod_d.cif",
+    "device": "cpu",
+    "status": "passed",
+    "atoms": 732,
+    "blocks": 47,
+    "score": 88.44515991210938,
+    "max_abs_gradient": 26.366764068603516,
+    "seconds": 12.318330806680024
+  },
+  {
+    "fixture": "ncaa_fixtures/6dmz_mod_l.cif",
+    "device": "cpu",
+    "status": "passed",
+    "atoms": 732,
+    "blocks": 47,
+    "score": 89.99659729003906,
+    "max_abs_gradient": 26.366777420043945,
+    "seconds": 1.2085396870970726
+  },
+  {
+    "fixture": "ncaa_fixtures/beta_peptide_3c3g.cif",
+    "device": "cpu",
+    "status": "passed",
+    "atoms": 586,
+    "blocks": 31,
+    "score": 189.32101440429688,
+    "max_abs_gradient": 41.261783599853516,
+    "seconds": 8.615028287284076
+  },
+  {
+    "fixture": "ncaa_fixtures/capped_peptide_ace_nh2.cif",
+    "device": "cpu",
+    "status": "failed",
+    "error": "Traceback (most recent call last):\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/review/pr503/run_examples.py\", line 30, in run\n    pose, context = pose_stack_from_cif(\n                    ^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/tmol/io/_cif.py\", line 448, in pose_stack_from_cif\n    return pose_stack_from_biotite(\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/tmol-pr503-env/lib/python3.12/site-packages/decorator/__init__.py\", line 247, in fun\n    return caller(func, *(extras + args), **kw)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/tmol/types/_functional.py\", line 27, in validate_f\n    retval = f(*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/tmol/io/_pose_stack_from_biotite.py\", line 283, in pose_stack_from_biotite\n    result = pose_stack_from_canonical_form(\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/tmol-pr503-env/lib/python3.12/site-packages/decorator/__init__.py\", line 247, in fun\n    return caller(func, *(extras + args), **kw)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/tmol/types/_functional.py\", line 27, in validate_f\n    retval = f(*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/tmol/io/_pose_stack_construction.py\", line 296, in pose_stack_from_canonical_form\n    ) = assign_block_types(\n        ^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/tmol-pr503-env/lib/python3.12/site-packages/decorator/__init__.py\", line 247, in fun\n    return caller(func, *(extras + args), **kw)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/tmol/types/_functional.py\", line 27, in validate_f\n    retval = f(*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/tmol/io/details/_select_from_canonical.py\", line 71, in assign_block_types\n    block_type_ind64 = select_best_block_type_candidate(\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/tmol-pr503-env/lib/python3.12/site-packages/decorator/__init__.py\", line 247, in fun\n    return caller(func, *(extras + args), **kw)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/tmol/types/_functional.py\", line 27, in validate_f\n    retval = f(*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/tmol/io/details/_select_from_canonical.py\", line 733, in select_best_block_type_candidate\n    raise RuntimeError(err_msg + \"Best candidate exceeds failure threshold\")\nRuntimeError: failed to resolve a block type from the candidates available\nBest candidate exceeds failure threshold\n",
+    "seconds": 0.3993915030732751
+  },
+  {
+    "fixture": "ncaa_fixtures/capped_peptide_ace_nme.cif",
+    "device": "cpu",
+    "status": "failed",
+    "error": "Traceback (most recent call last):\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/review/pr503/run_examples.py\", line 30, in run\n    pose, context = pose_stack_from_cif(\n                    ^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/tmol/io/_cif.py\", line 448, in pose_stack_from_cif\n    return pose_stack_from_biotite(\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/tmol-pr503-env/lib/python3.12/site-packages/decorator/__init__.py\", line 247, in fun\n    return caller(func, *(extras + args), **kw)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/tmol/types/_functional.py\", line 27, in validate_f\n    retval = f(*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/tmol/io/_pose_stack_from_biotite.py\", line 283, in pose_stack_from_biotite\n    result = pose_stack_from_canonical_form(\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/tmol-pr503-env/lib/python3.12/site-packages/decorator/__init__.py\", line 247, in fun\n    return caller(func, *(extras + args), **kw)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/tmol/types/_functional.py\", line 27, in validate_f\n    retval = f(*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/tmol/io/_pose_stack_construction.py\", line 296, in pose_stack_from_canonical_form\n    ) = assign_block_types(\n        ^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/tmol-pr503-env/lib/python3.12/site-packages/decorator/__init__.py\", line 247, in fun\n    return caller(func, *(extras + args), **kw)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/tmol/types/_functional.py\", line 27, in validate_f\n    retval = f(*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/tmol/io/details/_select_from_canonical.py\", line 71, in assign_block_types\n    block_type_ind64 = select_best_block_type_candidate(\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/tmol-pr503-env/lib/python3.12/site-packages/decorator/__init__.py\", line 247, in fun\n    return caller(func, *(extras + args), **kw)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/tmol/types/_functional.py\", line 27, in validate_f\n    retval = f(*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/tmol/io/details/_select_from_canonical.py\", line 733, in select_best_block_type_candidate\n    raise RuntimeError(err_msg + \"Best candidate exceeds failure threshold\")\nRuntimeError: failed to resolve a block type from the candidates available\nBest candidate exceeds failure threshold\n",
+    "seconds": 0.3831624202430248
+  },
+  {
+    "fixture": "ncaa_fixtures/collagen_hyp_1bkv.cif",
+    "device": "cpu",
+    "status": "passed",
+    "atoms": 358,
+    "blocks": 29,
+    "score": 38.011287689208984,
+    "max_abs_gradient": 20.08220863342285,
+    "seconds": 1.4730298984795809
+  },
+  {
+    "fixture": "ncaa_fixtures/gamma_peptide_1gac.cif",
+    "device": "cpu",
+    "status": "passed",
+    "atoms": 70,
+    "blocks": 5,
+    "score": 174.07659912109375,
+    "max_abs_gradient": 252.60940551757812,
+    "seconds": 1.4821650413796306
+  },
+  {
+    "fixture": "ncaa_fixtures/na_dna_5mc_1d17.cif",
+    "device": "cpu",
+    "status": "passed",
+    "atoms": 195,
+    "blocks": 6,
+    "score": 290.69720458984375,
+    "max_abs_gradient": 148.89097595214844,
+    "seconds": 1.8236166052520275
+  },
+  {
+    "fixture": "ncaa_fixtures/na_dna_8og_183d.cif",
+    "device": "cpu",
+    "status": "passed",
+    "atoms": 316,
+    "blocks": 10,
+    "score": 180.74366760253906,
+    "max_abs_gradient": 582.271728515625,
+    "seconds": 1.8661241512745619
+  },
+  {
+    "fixture": "ncaa_fixtures/na_dna_ttd_1ttd.cif",
+    "device": "cpu",
+    "status": "passed",
+    "atoms": 382,
+    "blocks": 11,
+    "score": 115.21134185791016,
+    "max_abs_gradient": 43.514183044433594,
+    "seconds": 1.6752243703231215
+  },
+  {
+    "fixture": "ncaa_fixtures/na_rna_2ome_310d.cif",
+    "device": "cpu",
+    "status": "passed",
+    "atoms": 212,
+    "blocks": 6,
+    "score": 111.12053680419922,
+    "max_abs_gradient": 67.14707946777344,
+    "seconds": 2.0249445298686624
+  },
+  {
+    "fixture": "ncaa_fixtures/na_rna_psu_1bzt.cif",
+    "device": "cpu",
+    "status": "passed",
+    "atoms": 535,
+    "blocks": 17,
+    "score": 197.64971923828125,
+    "max_abs_gradient": 333.3245849609375,
+    "seconds": 1.6101170685142279
+  },
+  {
+    "fixture": "ncaa_fixtures/nmethyl_peptide_6mvz.cif",
+    "device": "cpu",
+    "status": "passed",
+    "atoms": 87,
+    "blocks": 4,
+    "score": 18.33684539794922,
+    "max_abs_gradient": 38.00131607055664,
+    "seconds": 1.4480771915987134
+  },
+  {
+    "fixture": "ncaa_fixtures/phosphopeptide_5ema.cif",
+    "device": "cpu",
+    "status": "passed",
+    "atoms": 106,
+    "blocks": 7,
+    "score": 48.05320739746094,
+    "max_abs_gradient": 35.11039733886719,
+    "seconds": 1.4713153960183263
+  },
+  {
+    "fixture": "covalent_fixtures/lys_biotin_1bdo.cif",
+    "device": "cpu",
+    "status": "passed",
+    "atoms": 1252,
+    "blocks": 81,
+    "score": -84.30311584472656,
+    "max_abs_gradient": 36.110774993896484,
+    "seconds": 1.4926142171025276
+  },
+  {
+    "fixture": "covalent_fixtures/nglycan_tree_1ax2.cif",
+    "device": "cpu",
+    "status": "passed",
+    "atoms": 3848,
+    "blocks": 248,
+    "score": 12.48138427734375,
+    "max_abs_gradient": 47.329769134521484,
+    "seconds": 3.2250062143430114
+  },
+  {
+    "fixture": "covalent_fixtures/oglycan_sia_1g1s.cif",
+    "device": "cpu",
+    "status": "passed",
+    "atoms": 396,
+    "blocks": 20,
+    "score": 88.00858306884766,
+    "max_abs_gradient": 29.41451072692871,
+    "seconds": 4.09503526147455
+  },
+  {
+    "fixture": "cif/cyclic_peptide_1jbl.cif",
+    "device": "cpu",
+    "status": "passed",
+    "atoms": 210,
+    "blocks": 14,
+    "score": 42.89794158935547,
+    "max_abs_gradient": 31.84593391418457,
+    "seconds": 0.9714128822088242
+  }
+]

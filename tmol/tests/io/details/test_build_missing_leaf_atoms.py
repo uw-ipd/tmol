@@ -19,6 +19,23 @@ from tmol.tests import gradcheck
 from tmol.tests.kinematics.test_script_modules import coord_weights_for_device
 
 
+def test_leaf_icoor_can_reference_any_declared_connection():
+    from types import SimpleNamespace
+    import pytest
+    from tmol.io.details._build_missing_leaf_atoms import _uaid_for_at
+
+    block = SimpleNamespace(
+        atom_to_idx={"NZ": 7},
+        connection_to_cidx={"down": 0, "conj_NZ": 1, "custom_link": 2},
+    )
+    assert _uaid_for_at(block, "conj_NZ") == (-1, 1, 0)
+    assert _uaid_for_at(block, "custom_link") == (-1, 2, 0)
+    assert _uaid_for_at(block, "NZ") == (7, -1, -1)
+    assert _uaid_for_at(block, "up") == (-1, -1, 0)
+    with pytest.raises(KeyError):
+        _uaid_for_at(block, "undeclared_link")
+
+
 def not_any_nancoord(coords):
     return torch.logical_not(torch.any(torch.isnan(coords), dim=3))
 

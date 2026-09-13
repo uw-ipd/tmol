@@ -1,0 +1,1883 @@
+{
+  "parent_commit": "35350d6e35aba4f2ce1692808bfa105ded5545e8",
+  "upstream_head": "0593a93b07d80b0302383163d2d98c78e315ab98",
+  "final_sources_sha256": {
+    "tmol/pack/rotamer/dunbrack/_dunbrack_chi_sampler.py": "47ca7b87da1e18ed7514efdc13b4898a963d8322f662e32e84fb49468be495fe",
+    "tmol/tests/pack/rotamer/dunbrack/test_sampler_parameter_identity.py": "c44f8dca653b2368c6dba2a9909e8bb8b943e00e88e5e4a15489e540d844d9d9",
+    "review/pr503/profile_dun_sampler_setup.py": "5de7c988d62200e935ac0cec44b142a6484b27ec4eff5f5ee3651511359a6c55"
+  },
+  "runs": [
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/dun-identity-before.xml",
+      "sha256": "3875f16e0a55fb0957f32a14cdd974f4320c2dadc15917bc402043adbb8fb019",
+      "slurm_job": null,
+      "stage": "Initial mapping, host lookup and equality regressions before fix",
+      "counts": {
+        "passed": 0,
+        "failure": 4,
+        "error": 0,
+        "skipped": 4
+      },
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "4",
+          "skipped": "4",
+          "tests": "8",
+          "time": "4.902",
+          "timestamp": "2026-09-11T22:53:59.871701+00:00",
+          "hostname": "slurm-login-0"
+        }
+      ],
+      "cases": [
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_shared_annotations_follow_resolver_identity[cpu-False]",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_shared_annotations_follow_resolver_identity[cpu-True]",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_shared_annotations_follow_resolver_identity[cuda-False]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_shared_annotations_follow_resolver_identity[cuda-True]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_library_metadata_stays_on_host[cpu]",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_library_metadata_stays_on_host[cuda]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_sampler_equality_requires_a_sampler[cpu]",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_sampler_equality_requires_a_sampler[cuda]",
+          "outcome": "skipped"
+        }
+      ]
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/dun-identity-cpu.xml",
+      "sha256": "2f33c62f38bd1edc2e6e074c3e5246a52684dd52cd60138e86e7495e6df4cd2f",
+      "slurm_job": null,
+      "stage": "Full native sampler tests before adding direct sampling variants",
+      "counts": {
+        "passed": 38,
+        "failure": 0,
+        "error": 0,
+        "skipped": 36
+      },
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "36",
+          "tests": "74",
+          "time": "3.277",
+          "timestamp": "2026-09-11T22:55:14.131991+00:00",
+          "hostname": "slurm-login-0"
+        }
+      ],
+      "cases": [
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_invalid_counts_raise_before_rotamer_allocation[cpu-base0-extra0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_invalid_counts_raise_before_rotamer_allocation[cpu-base1-extra1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_invalid_counts_raise_before_rotamer_allocation[cpu-base2-extra2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_invalid_counts_raise_before_rotamer_allocation[cpu-base3-extra3]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_invalid_counts_raise_before_rotamer_allocation[cpu-base4-extra4]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_invalid_counts_raise_before_rotamer_allocation[cpu-base5-extra5]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_invalid_counts_raise_before_rotamer_allocation[cuda-base0-extra0]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_invalid_counts_raise_before_rotamer_allocation[cuda-base1-extra1]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_invalid_counts_raise_before_rotamer_allocation[cuda-base2-extra2]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_invalid_counts_raise_before_rotamer_allocation[cuda-base3-extra3]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_invalid_counts_raise_before_rotamer_allocation[cuda-base4-extra4]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_invalid_counts_raise_before_rotamer_allocation[cuda-base5-extra5]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_valid_counts_and_offsets_are_exact[cpu-base0-extra0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_valid_counts_and_offsets_are_exact[cpu-base1-extra1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_valid_counts_and_offsets_are_exact[cpu-base2-extra2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_valid_counts_and_offsets_are_exact[cpu-base3-extra3]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_valid_counts_and_offsets_are_exact[cpu-base4-extra4]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_valid_counts_and_offsets_are_exact[cuda-base0-extra0]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_valid_counts_and_offsets_are_exact[cuda-base1-extra1]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_valid_counts_and_offsets_are_exact[cuda-base2-extra2]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_valid_counts_and_offsets_are_exact[cuda-base3-extra3]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_valid_counts_and_offsets_are_exact[cuda-base4-extra4]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_library_count_narrowing_preserves_an_error_marker[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_library_count_narrowing_preserves_an_error_marker[cuda]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_public_sampler_rejects_possible_count_overflow[cpu-2147483648-1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_public_sampler_rejects_possible_count_overflow[cpu-1073741824-2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_public_sampler_rejects_possible_count_overflow[cuda-2147483648-1]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_public_sampler_rejects_possible_count_overflow[cuda-1073741824-2]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_parallel_scan_cannot_recover_from_an_invalid_prefix[cpu-sum-0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_parallel_scan_cannot_recover_from_an_invalid_prefix[cpu-sum-1024]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_parallel_scan_cannot_recover_from_an_invalid_prefix[cpu-sum-2052]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_parallel_scan_cannot_recover_from_an_invalid_prefix[cpu-negative-0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_parallel_scan_cannot_recover_from_an_invalid_prefix[cpu-negative-1024]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_parallel_scan_cannot_recover_from_an_invalid_prefix[cpu-negative-2052]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_parallel_scan_cannot_recover_from_an_invalid_prefix[cuda-sum-0]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_parallel_scan_cannot_recover_from_an_invalid_prefix[cuda-sum-1024]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_parallel_scan_cannot_recover_from_an_invalid_prefix[cuda-sum-2052]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_parallel_scan_cannot_recover_from_an_invalid_prefix[cuda-negative-0]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_parallel_scan_cannot_recover_from_an_invalid_prefix[cuda-negative-1024]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_parallel_scan_cannot_recover_from_an_invalid_prefix[cuda-negative-2052]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_valid_multi_block_scan_has_exact_offsets[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_valid_multi_block_scan_has_exact_offsets[cuda]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_annotate_residue_type",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_annotate_packed_block_types[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_annotate_packed_block_types[cuda]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_determine_n_possible_rots[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_determine_n_possible_rots[cuda]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_fill_in_brt_for_possrots[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_fill_in_brt_for_possrots[cuda]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_interpolate_probabilities_for_possible_rotamers[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_interpolate_probabilities_for_possible_rotamers[cuda]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_determine_n_base_rotamers_to_build_1[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_determine_n_base_rotamers_to_build_1[cuda]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_determine_n_base_rotamers_to_build_2[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_determine_n_base_rotamers_to_build_2[cuda]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_count_expanded_rotamers[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_count_expanded_rotamers[cuda]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_map_from_rotamer_index_to_brt[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_map_from_rotamer_index_to_brt[cuda]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_sample_chi_for_rotamers[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_sample_chi_for_rotamers[cuda]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_package_samples_for_output[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_package_samples_for_output[cuda]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_chi_sampler_smoke",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_chi_sampler_build_lots_of_rotamers[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_chi_sampler_build_lots_of_rotamers[cuda]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_shared_annotations_follow_resolver_identity[cpu-False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_shared_annotations_follow_resolver_identity[cpu-True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_shared_annotations_follow_resolver_identity[cuda-False]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_shared_annotations_follow_resolver_identity[cuda-True]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_library_metadata_stays_on_host[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_library_metadata_stays_on_host[cuda]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_sampler_equality_requires_a_sampler[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_sampler_equality_requires_a_sampler[cuda]",
+          "outcome": "skipped"
+        }
+      ]
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/dun-identity-final-cpu.xml",
+      "sha256": "3f7c4f075b43ea20c9dfeb586db9ad9ef8d37f945c3bc1b441509785ff5db57a",
+      "slurm_job": null,
+      "stage": "Final sampler identity suite, with and without explicit annotation",
+      "counts": {
+        "passed": 6,
+        "failure": 0,
+        "error": 0,
+        "skipped": 6
+      },
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "6",
+          "tests": "12",
+          "time": "3.512",
+          "timestamp": "2026-09-11T22:57:28.476222+00:00",
+          "hostname": "slurm-login-0"
+        }
+      ],
+      "cases": [
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_shared_annotations_follow_resolver_identity[cpu-False-False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_shared_annotations_follow_resolver_identity[cpu-False-True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_shared_annotations_follow_resolver_identity[cpu-True-False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_shared_annotations_follow_resolver_identity[cpu-True-True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_shared_annotations_follow_resolver_identity[cuda-False-False]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_shared_annotations_follow_resolver_identity[cuda-False-True]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_shared_annotations_follow_resolver_identity[cuda-True-False]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_shared_annotations_follow_resolver_identity[cuda-True-True]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_library_metadata_stays_on_host[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_library_metadata_stays_on_host[cuda]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_sampler_equality_requires_a_sampler[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_sampler_equality_requires_a_sampler[cuda]",
+          "outcome": "skipped"
+        }
+      ]
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/dun-identity-gpu.xml",
+      "sha256": "7941eaef2b629969c9efb3c86bf65a2481617f26573ed2eea91563d71036109f",
+      "slurm_job": 249687,
+      "stage": "Final Dunbrack, noncanonical, task budget, group and packing suites",
+      "counts": {
+        "passed": 294,
+        "failure": 0,
+        "error": 0,
+        "skipped": 0
+      },
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "294",
+          "time": "388.889",
+          "timestamp": "2026-09-11T22:57:38.357141+00:00",
+          "hostname": "slurm-h200-238-041"
+        }
+      ],
+      "cases": [
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_invalid_counts_raise_before_rotamer_allocation[cpu-base0-extra0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_invalid_counts_raise_before_rotamer_allocation[cpu-base1-extra1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_invalid_counts_raise_before_rotamer_allocation[cpu-base2-extra2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_invalid_counts_raise_before_rotamer_allocation[cpu-base3-extra3]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_invalid_counts_raise_before_rotamer_allocation[cpu-base4-extra4]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_invalid_counts_raise_before_rotamer_allocation[cpu-base5-extra5]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_invalid_counts_raise_before_rotamer_allocation[cuda-base0-extra0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_invalid_counts_raise_before_rotamer_allocation[cuda-base1-extra1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_invalid_counts_raise_before_rotamer_allocation[cuda-base2-extra2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_invalid_counts_raise_before_rotamer_allocation[cuda-base3-extra3]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_invalid_counts_raise_before_rotamer_allocation[cuda-base4-extra4]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_invalid_counts_raise_before_rotamer_allocation[cuda-base5-extra5]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_valid_counts_and_offsets_are_exact[cpu-base0-extra0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_valid_counts_and_offsets_are_exact[cpu-base1-extra1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_valid_counts_and_offsets_are_exact[cpu-base2-extra2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_valid_counts_and_offsets_are_exact[cpu-base3-extra3]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_valid_counts_and_offsets_are_exact[cpu-base4-extra4]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_valid_counts_and_offsets_are_exact[cuda-base0-extra0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_valid_counts_and_offsets_are_exact[cuda-base1-extra1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_valid_counts_and_offsets_are_exact[cuda-base2-extra2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_valid_counts_and_offsets_are_exact[cuda-base3-extra3]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_valid_counts_and_offsets_are_exact[cuda-base4-extra4]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_library_count_narrowing_preserves_an_error_marker[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_library_count_narrowing_preserves_an_error_marker[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_public_sampler_rejects_possible_count_overflow[cpu-2147483648-1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_public_sampler_rejects_possible_count_overflow[cpu-1073741824-2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_public_sampler_rejects_possible_count_overflow[cuda-2147483648-1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_public_sampler_rejects_possible_count_overflow[cuda-1073741824-2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_parallel_scan_cannot_recover_from_an_invalid_prefix[cpu-sum-0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_parallel_scan_cannot_recover_from_an_invalid_prefix[cpu-sum-1024]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_parallel_scan_cannot_recover_from_an_invalid_prefix[cpu-sum-2052]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_parallel_scan_cannot_recover_from_an_invalid_prefix[cpu-negative-0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_parallel_scan_cannot_recover_from_an_invalid_prefix[cpu-negative-1024]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_parallel_scan_cannot_recover_from_an_invalid_prefix[cpu-negative-2052]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_parallel_scan_cannot_recover_from_an_invalid_prefix[cuda-sum-0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_parallel_scan_cannot_recover_from_an_invalid_prefix[cuda-sum-1024]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_parallel_scan_cannot_recover_from_an_invalid_prefix[cuda-sum-2052]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_parallel_scan_cannot_recover_from_an_invalid_prefix[cuda-negative-0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_parallel_scan_cannot_recover_from_an_invalid_prefix[cuda-negative-1024]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_parallel_scan_cannot_recover_from_an_invalid_prefix[cuda-negative-2052]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_valid_multi_block_scan_has_exact_offsets[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_count_limits::test_valid_multi_block_scan_has_exact_offsets[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_annotate_residue_type",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_annotate_packed_block_types[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_annotate_packed_block_types[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_determine_n_possible_rots[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_determine_n_possible_rots[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_fill_in_brt_for_possrots[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_fill_in_brt_for_possrots[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_interpolate_probabilities_for_possible_rotamers[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_interpolate_probabilities_for_possible_rotamers[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_determine_n_base_rotamers_to_build_1[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_determine_n_base_rotamers_to_build_1[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_determine_n_base_rotamers_to_build_2[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_determine_n_base_rotamers_to_build_2[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_count_expanded_rotamers[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_count_expanded_rotamers[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_map_from_rotamer_index_to_brt[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_map_from_rotamer_index_to_brt[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_sample_chi_for_rotamers[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_sample_chi_for_rotamers[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_package_samples_for_output[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_package_samples_for_output[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_chi_sampler_smoke",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_chi_sampler_build_lots_of_rotamers[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler::test_chi_sampler_build_lots_of_rotamers[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_shared_annotations_follow_resolver_identity[cpu-False-False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_shared_annotations_follow_resolver_identity[cpu-False-True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_shared_annotations_follow_resolver_identity[cpu-True-False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_shared_annotations_follow_resolver_identity[cpu-True-True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_shared_annotations_follow_resolver_identity[cuda-False-False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_shared_annotations_follow_resolver_identity[cuda-False-True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_shared_annotations_follow_resolver_identity[cuda-True-False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_shared_annotations_follow_resolver_identity[cuda-True-True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_library_metadata_stays_on_host[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_library_metadata_stays_on_host[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_sampler_equality_requires_a_sampler[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity::test_sampler_equality_requires_a_sampler[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_a_borrowed_library_brings_its_chi_definitions[AIB]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_a_borrowed_library_brings_its_chi_definitions[B3K]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_a_borrowed_library_brings_its_chi_definitions[BIL]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_a_borrowed_library_brings_its_chi_definitions[HYP]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_a_borrowed_library_brings_its_chi_definitions[MLE]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_a_modified_nucleotide_borrows_the_base_it_resembles",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_the_packer_builds_rotamers_for_a_noncanonical[cpu-B3K]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_the_packer_builds_rotamers_for_a_noncanonical[cpu-BIL]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_the_packer_builds_rotamers_for_a_noncanonical[cpu-HYP]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_the_packer_builds_rotamers_for_a_noncanonical[cpu-MLE]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_the_packer_builds_rotamers_for_a_noncanonical[cpu-PSU]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_the_packer_builds_rotamers_for_a_noncanonical[cpu-RU]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_the_packer_builds_rotamers_for_a_noncanonical[cpu-SEP]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_the_packer_builds_rotamers_for_a_noncanonical[cuda-B3K]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_the_packer_builds_rotamers_for_a_noncanonical[cuda-BIL]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_the_packer_builds_rotamers_for_a_noncanonical[cuda-HYP]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_the_packer_builds_rotamers_for_a_noncanonical[cuda-MLE]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_the_packer_builds_rotamers_for_a_noncanonical[cuda-PSU]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_the_packer_builds_rotamers_for_a_noncanonical[cuda-RU]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_the_packer_builds_rotamers_for_a_noncanonical[cuda-SEP]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_a_borrowed_library_yields_its_own_number_of_rotamers[cpu-B3K]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_a_borrowed_library_yields_its_own_number_of_rotamers[cpu-BIL]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_a_borrowed_library_yields_its_own_number_of_rotamers[cpu-HYP]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_a_borrowed_library_yields_its_own_number_of_rotamers[cpu-MLE]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_a_borrowed_library_yields_its_own_number_of_rotamers[cuda-B3K]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_a_borrowed_library_yields_its_own_number_of_rotamers[cuda-BIL]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_a_borrowed_library_yields_its_own_number_of_rotamers[cuda-HYP]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_a_borrowed_library_yields_its_own_number_of_rotamers[cuda-MLE]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_a_built_rotamer_keeps_its_sidechain_on_the_same_side[cpu-B3K]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_a_built_rotamer_keeps_its_sidechain_on_the_same_side[cpu-BIL]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_a_built_rotamer_keeps_its_sidechain_on_the_same_side[cpu-HYP]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_a_built_rotamer_keeps_its_sidechain_on_the_same_side[cpu-MLE]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_a_built_rotamer_keeps_its_sidechain_on_the_same_side[cuda-B3K]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_a_built_rotamer_keeps_its_sidechain_on_the_same_side[cuda-BIL]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_a_built_rotamer_keeps_its_sidechain_on_the_same_side[cuda-HYP]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_a_built_rotamer_keeps_its_sidechain_on_the_same_side[cuda-MLE]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_hyp_count_contains_two_library_states_and_nine_hydroxyl_angles[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_noncanonical_rotamers::test_hyp_count_contains_two_library_states_and_nine_hydroxyl_angles[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cpu-False-opth]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cpu-False-na]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cpu-False-dunbrack]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cpu-True-opth]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cpu-True-na]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cpu-True-dunbrack]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cuda-False-opth]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cuda-False-na]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cuda-False-dunbrack]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cuda-True-opth]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cuda-True-na]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cuda-True-dunbrack]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_budget_setter_rejects_noninteger_limits_without_partial_update",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_combined_task_limit_is_checked_before_merging[cpu-samplers]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_combined_task_limit_is_checked_before_merging[cpu-design]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_combined_task_limit_is_checked_before_merging[cuda-samplers]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_combined_task_limit_is_checked_before_merging[cuda-design]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_combined_limit_is_per_residue_and_pose[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_combined_limit_is_per_residue_and_pose[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_budget_preserves_owner_when_chi_names_repeat",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_independent_library_does_not_remove_child_chi",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_budget_retains_a_proton_placement_and_rejects_oversize_library",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_group_budget_keeps_correct_residue_and_linkage",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_anchor_library_keeps_identical_block_numbers_in_different_poses[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_anchor_library_keeps_identical_block_numbers_in_different_poses[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_kinforest_cache_is_scoped_to_packed_block_types",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_lockstep_rejects_mismatched_counts_before_native_scoring[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_lockstep_rejects_mismatched_counts_before_native_scoring[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_group_collapse_accepts_exclusive_end_offset[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_group_collapse_accepts_exclusive_end_offset[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_constrained_library_projection_preserves_first_distinct_states",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_topology_cache_separates_external_constraints_and_is_bounded",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_independent_samples_on_connected_blocks_are_not_correlated[cpu-counts0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_independent_samples_on_connected_blocks_are_not_correlated[cpu-counts1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_independent_samples_on_connected_blocks_are_not_correlated[cuda-counts0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_independent_samples_on_connected_blocks_are_not_correlated[cuda-counts1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_explicit_correlation_rejects_invalid_members[cpu--1-blocks0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_explicit_correlation_rejects_invalid_members[cpu-1-blocks1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_explicit_correlation_rejects_invalid_members[cpu-0-blocks2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_explicit_correlation_rejects_invalid_members[cpu-0-blocks3]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_explicit_correlation_rejects_invalid_members[cpu-0-blocks4]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_explicit_correlation_rejects_invalid_members[cuda--1-blocks0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_explicit_correlation_rejects_invalid_members[cuda-1-blocks1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_explicit_correlation_rejects_invalid_members[cuda-0-blocks2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_explicit_correlation_rejects_invalid_members[cuda-0-blocks3]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_explicit_correlation_rejects_invalid_members[cuda-0-blocks4]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_single_state_groups_cannot_overlap[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_single_state_groups_cannot_overlap[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_late_independent_sampler_cannot_extend_correlated_members[cpu-extra_counts0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_late_independent_sampler_cannot_extend_correlated_members[cpu-extra_counts1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_late_independent_sampler_cannot_extend_correlated_members[cuda-extra_counts0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_sampling_regressions::test_late_independent_sampler_cannot_extend_correlated_members[cuda-extra_counts1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners0-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners0-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners1-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners1-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners2-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners2-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners3-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners3-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners4-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners4-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners0-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners0-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners1-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners1-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners2-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners2-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners3-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners3-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners4-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners4-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners0-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners0-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners1-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners1-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners2-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners2-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners3-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners3-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners4-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners4-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners0-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners0-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners1-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners1-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners2-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners2-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners3-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners3-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners4-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners4-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners0-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners0-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners1-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners1-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners2-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners2-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners3-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners3-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners4-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners4-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners0-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners0-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners1-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners1-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners2-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners2-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners3-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners3-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners4-packing]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners4-sampler]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_budget_counts_active_and_background_rotamers[free-cpu-fixed_owners0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_budget_counts_active_and_background_rotamers[free-cpu-fixed_owners1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_budget_counts_active_and_background_rotamers[free-cuda-fixed_owners0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_budget_counts_active_and_background_rotamers[free-cuda-fixed_owners1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_budget_counts_active_and_background_rotamers[cycle-cpu-fixed_owners0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_budget_counts_active_and_background_rotamers[cycle-cpu-fixed_owners1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_budget_counts_active_and_background_rotamers[cycle-cuda-fixed_owners0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_budget_counts_active_and_background_rotamers[cycle-cuda-fixed_owners1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_budget_counts_active_and_background_rotamers[external-cpu-fixed_owners0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_budget_counts_active_and_background_rotamers[external-cpu-fixed_owners1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_budget_counts_active_and_background_rotamers[external-cuda-fixed_owners0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_budget_counts_active_and_background_rotamers[external-cuda-fixed_owners1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_packing_preserves_geometry_and_energy[free-cpu-fixed_owners0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_packing_preserves_geometry_and_energy[free-cpu-fixed_owners1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_packing_preserves_geometry_and_energy[free-cpu-fixed_owners2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_packing_preserves_geometry_and_energy[free-cuda-fixed_owners0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_packing_preserves_geometry_and_energy[free-cuda-fixed_owners1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_packing_preserves_geometry_and_energy[free-cuda-fixed_owners2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_packing_preserves_geometry_and_energy[cycle-cpu-fixed_owners0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_packing_preserves_geometry_and_energy[cycle-cpu-fixed_owners1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_packing_preserves_geometry_and_energy[cycle-cpu-fixed_owners2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_packing_preserves_geometry_and_energy[cycle-cuda-fixed_owners0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_packing_preserves_geometry_and_energy[cycle-cuda-fixed_owners1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_packing_preserves_geometry_and_energy[cycle-cuda-fixed_owners2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_packing_preserves_geometry_and_energy[external-cpu-fixed_owners0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_packing_preserves_geometry_and_energy[external-cpu-fixed_owners1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_packing_preserves_geometry_and_energy[external-cpu-fixed_owners2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_packing_preserves_geometry_and_energy[external-cuda-fixed_owners0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_packing_preserves_geometry_and_energy[external-cuda-fixed_owners1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_masked_group_packing_preserves_geometry_and_energy[external-cuda-fixed_owners2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_reused_sampler_and_batched_masks_are_pose_local[free-cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_reused_sampler_and_batched_masks_are_pose_local[free-cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_reused_sampler_and_batched_masks_are_pose_local[cycle-cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_reused_sampler_and_batched_masks_are_pose_local[cycle-cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_reused_sampler_and_batched_masks_are_pose_local[external-cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_reused_sampler_and_batched_masks_are_pose_local[external-cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_member_without_its_own_chi_does_not_add_independent_fallback[free-cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_member_without_its_own_chi_does_not_add_independent_fallback[free-cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_member_without_its_own_chi_does_not_add_independent_fallback[cycle-cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_member_without_its_own_chi_does_not_add_independent_fallback[cycle-cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_member_without_its_own_chi_does_not_add_independent_fallback[external-cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_member_without_its_own_chi_does_not_add_independent_fallback[external-cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_library_free_group_preserves_entire_anchor[free-cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_library_free_group_preserves_entire_anchor[free-cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_library_free_group_preserves_entire_anchor[cycle-cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_library_free_group_preserves_entire_anchor[cycle-cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_library_free_group_preserves_entire_anchor[external-cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_group_task_masks::test_library_free_group_preserves_entire_anchor[external-cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_optH[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_optH[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_w_cst[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_w_cst[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_w_empty_interaction_graph[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_w_empty_interaction_graph[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_w_dslf[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_w_dslf[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers2[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers2[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_irregular_sized_poses[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_irregular_sized_poses[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_a_capped_structure[cpu-capped_peptide_ace_nme]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_a_capped_structure[cpu-capped_peptide_ace_nh2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_a_capped_structure[cuda-capped_peptide_ace_nme]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_a_capped_structure[cuda-capped_peptide_ace_nh2]",
+          "outcome": "passed"
+        }
+      ]
+    }
+  ],
+  "profiles": {
+    "cpu": {
+      "baseline": "35350d6e35aba4f2ce1692808bfa105ded5545e8",
+      "baseline_source_sha256": "c78a674e581f6bfc83b3a4ac6a2913996c332c0bc510a4deecbf81309a583a4b",
+      "candidate_source_sha256": "47ca7b87da1e18ed7514efdc13b4898a963d8322f662e32e84fb49468be495fe",
+      "device": "cpu",
+      "torch": "2.8.0+cpu",
+      "n_types": 230,
+      "n_atoms": 4738,
+      "all_annotation_fields_exact": true,
+      "annotation_tensor_and_array_bytes": {
+        "baseline": 212846,
+        "candidate": 211006
+      },
+      "round_medians_seconds": {
+        "baseline": [
+          0.06465617753565311,
+          0.06591701041907072,
+          0.0654048528522253,
+          0.06441786419600248,
+          0.06473808083683252
+        ],
+        "candidate": [
+          0.009425001218914986,
+          0.009333111345767975,
+          0.009462418034672737,
+          0.009318319149315357,
+          0.009447505697607994
+        ]
+      },
+      "median_seconds": {
+        "baseline": 0.06473808083683252,
+        "candidate": 0.009425001218914986
+      },
+      "baseline_over_candidate": 6.868761004180032,
+      "limits": "Sampler construction plus first RT/PBT annotation only; five alternating warm rounds of five samples. Database/resolver construction and fresh chemical-object copies are outside timing. Tensor/array byte totals sum annotation fields; they exclude Python metadata, allocator overhead and process RSS. No end-to-end sampling or peak-memory claim."
+    },
+    "cuda": {
+      "baseline": "35350d6e35aba4f2ce1692808bfa105ded5545e8",
+      "baseline_source_sha256": "c78a674e581f6bfc83b3a4ac6a2913996c332c0bc510a4deecbf81309a583a4b",
+      "candidate_source_sha256": "47ca7b87da1e18ed7514efdc13b4898a963d8322f662e32e84fb49468be495fe",
+      "device": "cuda",
+      "torch": "2.13.0+cu132",
+      "n_types": 230,
+      "n_atoms": 4738,
+      "all_annotation_fields_exact": true,
+      "annotation_tensor_and_array_bytes": {
+        "baseline": 212846,
+        "candidate": 211006
+      },
+      "round_medians_seconds": {
+        "baseline": [
+          0.10518082184717059,
+          0.10490030329674482,
+          0.10308174230158329,
+          0.10404668794944882,
+          0.10317792370915413
+        ],
+        "candidate": [
+          0.010810001753270626,
+          0.010727924760431051,
+          0.01071347389370203,
+          0.010740786325186491,
+          0.01074380287900567
+        ]
+      },
+      "median_seconds": {
+        "baseline": 0.10404668794944882,
+        "candidate": 0.010740786325186491
+      },
+      "baseline_over_candidate": 9.687064317206056,
+      "limits": "Sampler construction plus first RT/PBT annotation only; five alternating warm rounds of five samples. Database/resolver construction and fresh chemical-object copies are outside timing. Tensor/array byte totals sum annotation fields; they exclude Python metadata, allocator overhead and process RSS. No end-to-end sampling or peak-memory claim."
+    }
+  },
+  "artifacts": [
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/dun-identity-249687.log",
+      "sha256": "7c1493979fb9cb8f6c0745198e75cf37525329bb6339c7e1271841fc4945bfb7",
+      "bytes": 3642
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/dun-identity-before.log",
+      "sha256": "01db384424832373b2e118a1abb6797a683e17575b72cd4ef5d96dc87daf9e6a",
+      "bytes": 8520
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/dun-identity-before.xml",
+      "sha256": "3875f16e0a55fb0957f32a14cdd974f4320c2dadc15917bc402043adbb8fb019",
+      "bytes": 9997
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/dun-identity-cpu.log",
+      "sha256": "57877c1b5aab5b4293b6c824858d4ef721a3a8e85d2969ab18f137f8198eab6c",
+      "bytes": 690
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/dun-identity-cpu.xml",
+      "sha256": "2f33c62f38bd1edc2e6e074c3e5246a52684dd52cd60138e86e7495e6df4cd2f",
+      "bytes": 18670
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/dun-identity-final-cpu.log",
+      "sha256": "5e5ba70fddc251a8c7d6fa7f0d9ad494b03c7c82bb951866d969b822c1078e73",
+      "bytes": 608
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/dun-identity-final-cpu.xml",
+      "sha256": "3f7c4f075b43ea20c9dfeb586db9ad9ef8d37f945c3bc1b441509785ff5db57a",
+      "bytes": 3465
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/dun-identity-gpu.xml",
+      "sha256": "7941eaef2b629969c9efb3c86bf65a2481617f26573ed2eea91563d71036109f",
+      "bytes": 47891
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/dun-identity.sh",
+      "sha256": "bbdd2652e62d94c73cbcee2ff95027c37d32b4750070780e518cf63783d0d3cb",
+      "bytes": 1244
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/dun-setup-profile-cpu-representation-error.log",
+      "sha256": "2d2b5ef28139d372808340ae268a6e384a5cb1ec8672bba5ce296a4a48b8080d",
+      "bytes": 881
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/dun-setup-profile-cpu.json",
+      "sha256": "409926e407b3988b629a7954c550a97a5c294c75602a0f4bacce988cc67b3fc8",
+      "bytes": 1333
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/dun-setup-profile-cpu.log",
+      "sha256": "409926e407b3988b629a7954c550a97a5c294c75602a0f4bacce988cc67b3fc8",
+      "bytes": 1333
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/dun-setup-profile-cuda.json",
+      "sha256": "7182963a698b13696e8a20b50d3f937285565221f7e5692e4e8c555b49e09e00",
+      "bytes": 1336
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/dun-resolver-lifetime-probe.json",
+      "sha256": "084d7c931b9c0550b94e719b5f895d45827501d5204d82efc06c50dc895cdf4a",
+      "bytes": 250
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/dun-resolver-lifetime-probe.log",
+      "sha256": "9382431585ab21de7e3a162e554c9051ecb1fc7b2fa69664566ecd2a85fd7e63",
+      "bytes": 236
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/dun-libraryless-probe-fixture-error.log",
+      "sha256": "54cdefa2057ea4139ec9dd7e2dbf316b61a90955f4dc45194083466f7ff1d720",
+      "bytes": 2309
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/dun-libraryless-probe.json",
+      "sha256": "b8dc238292ea4ba0e1649f4ea8e4c0af6723f617b2fdd66181fc7b2b602735d1",
+      "bytes": 289
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/dun-libraryless-probe.log",
+      "sha256": "6b7b64e6a53f076ae97056039d10b31de149c408479d94486cdb57ec014c76af",
+      "bytes": 227
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/probe_dun_resolver_lifetime.py",
+      "sha256": "5d5aabc81f526016ec49362d068137fb182acbb5e43ac7cf8bba5c11cb016f3e",
+      "bytes": 1387
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/probe_dun_libraryless.py",
+      "sha256": "e3025b4255aacf69f69cc38a1d87a116e42746eade1bc4cc323c04b162e76609",
+      "bytes": 1861
+    }
+  ],
+  "slurm_accounting": "JobID|JobName|Partition|State|ExitCode|Elapsed|AllocCPUS|ReqMem|MaxRSS|NodeList\n249687|tmol-dun-identity|hpc-mid|COMPLETED|0:0|00:07:06|4|32G||slurm-h200-238-041\n249687.batch|batch||COMPLETED|0:0|00:07:06|4||6646388K|slurm-h200-238-041\n",
+  "next_probes": {
+    "dun-resolver-lifetime": {
+      "build_seconds": 0.568424697034061,
+      "unique_resolver_tensor_storage_bytes": 67494320,
+      "unique_storages": 30,
+      "cache_entries": 1,
+      "private_database_retained_after_callers_release": true,
+      "resolver_retained_after_callers_release": true
+    },
+    "dun-libraryless": {
+      "block_names": [
+        "ILE",
+        "ILE:cterm",
+        "ILE:nterm",
+        "ILE:cterm:nterm"
+      ],
+      "advertised_buildable": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "expected_count_per_type": 3,
+      "actual_counts": [
+        0
+      ],
+      "allowed_target_count": 1,
+      "other_counts_nonzero": 10
+    }
+  },
+  "limits": [
+    "Parameter resolver tables are immutable inputs; changed tables require a new resolver.",
+    "Sampler annotations keep one current context per RT/PBT; concurrent mutation of shared chemical annotations is not supported.",
+    "This change does not fix scoring-term annotations, global resolver cache lifetime, or the libraryless-heavy-chi filter demonstrated by the next probes.",
+    "Setup timing includes sampler construction and first annotation, but excludes resolver construction, source-object copies, sampling, scoring and packing.",
+    "The old RT table index is a scalar tensor; the new value is a Python integer as declared by its schema. Values are exact; storage byte totals exclude Python object overhead.",
+    "The first profiler comparison rejected this intentional scalar representation difference; the comparator was corrected before reporting timings.",
+    "Suites overlap and should not be summed as unique coverage."
+  ]
+}

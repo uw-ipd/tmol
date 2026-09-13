@@ -130,16 +130,18 @@ def test_tmol_params_roundtrip_and_inject(tmp_path) -> None:
 
 
 def test_tmol_loader_accepts_minor_version_difference(tmp_path) -> None:
+    from dataclasses import replace
+    import yaml
     from tmol.ligand import load_params_file
     from tmol.ligand import write_params_file
 
-    prep = _single_prep()
+    prep = replace(_single_prep(), atom_type_elements=None)
     tmol_file = tmp_path / "lig.tmol"
     write_params_file([prep], str(tmol_file), format="tmol")
 
-    text = tmol_file.read_text().replace('version: "1.0"', 'version: "1.9"')
-    assert "1.9" in text
-    tmol_file.write_text(text)
+    payload = yaml.safe_load(tmol_file.read_text())
+    payload["version"] = "1.9"
+    tmol_file.write_text(yaml.safe_dump(payload))
     loaded = load_params_file(tmol_file)
     assert loaded and loaded[0].residue_type.name == prep.residue_type.name
 
@@ -170,7 +172,7 @@ def test_tmol_loader_warns_when_no_charges(tmp_path) -> None:
     [
         ("- a\n- b\n", "Expected mapping"),
         ("chemical: {}\n", "no 'version' field"),
-        ('version: "2.0"\nchemical: {}\n', "incompatible"),
+        ('version: "99.0"\nchemical: {}\n', "incompatible"),
         ('version: "1.0"\nresidues: []\n', "deprecated flat schema"),
     ],
 )

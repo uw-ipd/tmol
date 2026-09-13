@@ -29,7 +29,6 @@ from tmol.database.scoring import (
     CartRes,
     PartialCharges,
 )
-from tmol.ligand._params_file import TMOL_FORMAT_VERSION
 
 if TYPE_CHECKING:
     from tmol.ligand._registry import LigandPreparation
@@ -56,6 +55,17 @@ def _chi_number(name: str) -> int:
     return 0
 
 
+def _has_generic_references(residue_types, patches=()):
+    return any(
+        atom.genbonded_type is not None
+        for atoms in (
+            *(r.atoms for r in residue_types),
+            *(p.add_atoms + p.modify_atoms for p in patches),
+        )
+        for atom in atoms
+    )
+
+
 def _write_rosetta_params_file(
     restype: RawResidueType,
     path: str | Path,
@@ -69,6 +79,8 @@ def _write_rosetta_params_file(
         partial_charges: Optional per-atom partial charges. Keys are atom
             names matching restype.atoms[i].name.
     """
+    if _has_generic_references((restype,)):
+        raise ValueError("Rosetta .params cannot preserve genbonded_type; use .tmol")
     lines: list[str] = []
 
     lines.append(f"NAME {restype.name}")
@@ -265,22 +277,13 @@ def read_params_file(path: str | Path) -> RawResidueType:  # noqa: C901
 # diffs readable and the injection-equivalence tests strict.
 
 _OMIT_IF_EMPTY_FIELDS = ("torsions",)
-_PROPERTIES_OMIT_IF_DEFAULT: dict[str, Any] = {}
-_POLYMER_OMIT_IF_DEFAULT: dict[str, Any] = {}
 
 
-def _radians_to_deg_str(val: float) -> str:
-    """Format a radian angle as a ``"<deg> deg"`` string (Frank's convention)."""
-    return f"{math.degrees(val):.6f} deg"
-
-
-def _unstructure_residue(rt: RawResidueType) -> dict[str, Any]:  # noqa: C901
+def _unstructure_residue(rt: RawResidueType) -> dict[str, Any]:
     """Unstructure a RawResidueType to a YAML-friendly dict.
 
-    Output matches the compact style Frank uses for ligand ``.tmol`` files:
-    flow-style atoms/bonds (one entry per line), icoor angles re-formatted as
-    degree strings, and optional fields with default values omitted entirely so
-    the output is byte-close to a hand-curated reference.
+    Keep numeric precision and order intact; formatting must not change the
+    reconstructed residue or its derived kinematics.
     """
     d = cattr.unstructure(rt)
 
@@ -288,29 +291,6 @@ def _unstructure_residue(rt: RawResidueType) -> dict[str, Any]:  # noqa: C901
     for f in _OMIT_IF_EMPTY_FIELDS:
         if f in d and not d[f]:
             del d[f]
-
-    # Trim default polymer/protonation fields when they match the neutral
-    # non-polymer ligand defaults (the only setting the pipeline emits).
-    props = d.get("properties")
-    if isinstance(props, dict):
-        for k, default in _PROPERTIES_OMIT_IF_DEFAULT.items():
-            if k in props and props[k] == default:
-                del props[k]
-        polymer = props.get("polymer")
-        if isinstance(polymer, dict):
-            for k, default in _POLYMER_OMIT_IF_DEFAULT.items():
-                if k in polymer and polymer[k] == default:
-                    del polymer[k]
-
-    for ic in d.get("icoors", []):
-        if isinstance(ic.get("phi"), (int, float)):
-            ic["phi"] = _radians_to_deg_str(ic["phi"])
-        if isinstance(ic.get("theta"), (int, float)):
-            ic["theta"] = _radians_to_deg_str(ic["theta"])
-        # Round bond distances to match Frank's 6-decimal convention.
-        if isinstance(ic.get("d"), float):
-            rounded = round(ic["d"], 6)
-            ic["d"] = float(f"{rounded:g}")
 
     # Trim ``UnresolvedAtom`` defaults inside torsion entries and emit them
     # flow-style (``{atom: C3}``) — Frank's references keep only ``atom``.
@@ -347,6 +327,13 @@ class _CompactDumper(yaml.SafeDumper):
 _CompactDumper.add_representer(_FlowList, _flow_list_representer)
 
 
+class _FlowDict(dict):
+    """Marker subtype for compact, flow-style records."""
+
+
+_CompactDumper.add_representer(_FlowDict, _flow_dict_representer)
+
+
 def _np_scalar_representer(dumper: Any, data: Any) -> Any:
     """Represent numpy scalar types (np.str_, np.float64, ...) as native Python.
 
@@ -362,13 +349,11 @@ _CompactDumper.add_multi_representer(np.generic, _np_scalar_representer)
 
 def _flow_atom(d: dict[str, Any]) -> dict[str, Any]:
     """Mark an atom dict for flow-style emission."""
-    out = dict(d)
-
-    class _FlowDict(dict):
-        pass
-
-    _CompactDumper.add_representer(_FlowDict, _flow_dict_representer)
-    return _FlowDict(out)
+    return _FlowDict(
+        (key, value)
+        for key, value in d.items()
+        if key != "genbonded_type" or value is not None
+    )
 
 
 def _compactify_patch(d: dict[str, Any]) -> dict[str, Any]:
@@ -399,12 +384,7 @@ def _compactify_residue(d: dict[str, Any]) -> dict[str, Any]:
     if "atoms" in d:
         d["atoms"] = [_flow_atom(a) for a in d["atoms"]]
     if "bonds" in d:
-        # Sort bonds: SINGLE first (in input order), then non-SINGLE in input
-        # order — matches Frank's reference layout.
-        bonds = list(d["bonds"])
-        single = [b for b in bonds if (b[2] if len(b) > 2 else "SINGLE") == "SINGLE"]
-        other = [b for b in bonds if (b[2] if len(b) > 2 else "SINGLE") != "SINGLE"]
-        d["bonds"] = [_FlowList(b) for b in single + other]
+        d["bonds"] = [_FlowList(b) for b in d["bonds"]]
     if "icoors" in d:
         d["icoors"] = [_flow_atom(ic) for ic in d["icoors"]]
     return d
@@ -416,6 +396,11 @@ def _write_tmol_params_file(
     charges: Mapping[str, dict[str, float]],
     cartbonded: Mapping[str, CartRes],
     patches: "list | None" = None,
+    connection_params: tuple = (),
+    replacement_baselines: Mapping[str, str] | None = None,
+    replacement_baseline_charges: Mapping[str, dict[str, float]] | None = None,
+    replacement_baseline_cartbonded: Mapping[str, CartRes] | None = None,
+    atom_type_elements: Mapping[str, str] | None = None,
 ) -> None:
     """Write prepared ligand data to a tmol params YAML (``.tmol``) file.
 
@@ -452,9 +437,22 @@ def _write_tmol_params_file(
         chemical["adds_patches"] = [
             _compactify_patch(cattr.unstructure(patch)) for patch in patches
         ]
+    if replacement_baselines:
+        chemical["replacement_baselines"] = dict(replacement_baselines)
+    if atom_type_elements:
+        chemical["atom_type_elements"] = dict(atom_type_elements)
 
+    has_generic_references = _has_generic_references(residue_types, patches or ())
     payload: dict[str, Any] = {
-        "version": TMOL_FORMAT_VERSION,
+        "version": (
+            "5.0"
+            if atom_type_elements
+            else (
+                "4.0"
+                if replacement_baselines
+                else ("3.0" if has_generic_references else "2.0")
+            )
+        ),
         "chemical": chemical,
         "elec": {
             "atom_charge_parameters": _FlowList(charge_list),
@@ -463,6 +461,19 @@ def _write_tmol_params_file(
             "residue_params": cartbonded_payload,
         },
     }
+    if connection_params:
+        payload["cartbonded"]["connection_params"] = [
+            cattr.unstructure(record) for record in connection_params
+        ]
+    if replacement_baseline_charges:
+        payload["elec"]["replacement_baseline_charges"] = dict(
+            replacement_baseline_charges
+        )
+    if replacement_baseline_cartbonded:
+        payload["cartbonded"]["replacement_baseline_params"] = {
+            name: cattr.unstructure(record)
+            for name, record in replacement_baseline_cartbonded.items()
+        }
 
     with Path(path).open("w") as f:
         yaml.dump(
@@ -493,13 +504,35 @@ def write_params_file(
         format: ``"rosetta"`` (classic Rosetta ``.params``) or ``"tmol"``
             (tmol YAML ``.tmol``).
     """
+    fmt = str(format).lower()
+    if fmt not in ("rosetta", "tmol"):
+        raise ValueError(f"unknown params format {format!r} (use 'rosetta' or 'tmol')")
     is_list = isinstance(preparation, (list, tuple))
     preps = list(preparation) if is_list else [preparation]
-    fmt = str(format).lower()
+    from tmol.ligand._registry import (
+        _additional_cartbonded_params,
+        _merge_partial_charges,
+        _merge_named_parameters,
+        _unique_preparations,
+        _batch_atom_type_elements,
+    )
+
+    definitions = _unique_preparations(preps)
     if fmt == "rosetta":
+        if any(p.baseline_sha256 is not None for p in preps):
+            raise ValueError(
+                "Rosetta .params cannot preserve replacement baselines; use .tmol"
+            )
+        if _has_generic_references(
+            (p.residue_type for p in preps),
+            (patch for p in preps for patch in p.adds_patches),
+        ):
+            raise ValueError(
+                "Rosetta .params cannot preserve genbonded_type; use .tmol"
+            )
         if is_list:
             out_dir = Path(path)
-            for prep in preps:
+            for prep in definitions:
                 _write_rosetta_params_file(
                     prep.residue_type,
                     out_dir / f"{prep.residue_type.name}.params",
@@ -510,17 +543,46 @@ def write_params_file(
             _write_rosetta_params_file(prep.residue_type, path, prep.partial_charges)
     elif fmt == "tmol":
         charges = {p.residue_type.name: p.partial_charges for p in preps}
-        for prep in preps:
-            charges.update(prep.variant_partial_charges or {})
+        cartbonded = {p.residue_type.name: p.cartbonded_params for p in preps}
+        extra_cart = _additional_cartbonded_params(preps)
+        cartbonded.update(extra_cart)
+        shared_charges = _merge_partial_charges(
+            p.variant_partial_charges or {} for p in preps
+        )
+        charges.update(shared_charges)
+        replacements = [p for p in definitions if p.baseline_sha256 is not None]
+        replacement_names = {p.residue_type.name for p in replacements}
+        baseline_charges = {
+            n: q for n, q in shared_charges.items() if n in replacement_names
+        }
+        baseline_cart = {n: c for n, c in extra_cart.items() if n in replacement_names}
+        # Complete explicit replacements supersede old patch metadata in a
+        # combined bundle, independently of preparation order.
+        charges.update({p.residue_type.name: p.partial_charges for p in replacements})
+        cartbonded.update(
+            {p.residue_type.name: p.cartbonded_params for p in replacements}
+        )
         _write_tmol_params_file(
             path,
-            [p.residue_type for p in preps],
+            [p.residue_type for p in definitions],
             charges,
-            {p.residue_type.name: p.cartbonded_params for p in preps},
-            patches=[v for p in preps for v in p.adds_patches],
+            cartbonded,
+            patches=list(
+                _merge_named_parameters(
+                    ((v.name, v) for p in preps for v in p.adds_patches),
+                    "patch definitions",
+                ).values()
+            ),
+            connection_params=tuple(
+                dict.fromkeys(record for p in preps for record in p.connection_params)
+            ),
+            replacement_baselines={
+                p.residue_type.name: p.baseline_sha256 for p in replacements
+            },
+            replacement_baseline_charges=baseline_charges,
+            replacement_baseline_cartbonded=baseline_cart,
+            atom_type_elements=_batch_atom_type_elements(preps),
         )
-    else:
-        raise ValueError(f"unknown params format {format!r} (use 'rosetta' or 'tmol')")
 
 
 def write_params_from_mol2(

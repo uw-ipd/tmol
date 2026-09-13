@@ -1,0 +1,1336 @@
+{
+  "budget-groups": {
+    "suites": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "1",
+        "skipped": "0",
+        "tests": "64",
+        "time": "341.083",
+        "timestamp": "2026-09-11T11:21:36.156110+00:00",
+        "hostname": "slurm-h200-interactive-244-105"
+      }
+    ],
+    "cases": [
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cpu-biotin]",
+        "time": "7.721",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cpu-nglycan]",
+        "time": "2.631",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cpu-oglycan]",
+        "time": "5.386",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cuda-biotin]",
+        "time": "3.165",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cuda-nglycan]",
+        "time": "2.894",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cuda-oglycan]",
+        "time": "5.085",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_a_group_is_sampled_as_the_product_of_its_parts[cpu]",
+        "time": "0.673",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_a_group_is_sampled_as_the_product_of_its_parts[cuda]",
+        "time": "1.027",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cpu-biotin]",
+        "time": "10.721",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cpu-nglycan]",
+        "time": "45.890",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cpu-oglycan]",
+        "time": "83.761",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cuda-biotin]",
+        "time": "2.973",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cuda-nglycan]",
+        "time": "5.157",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cuda-oglycan]",
+        "time": "5.296",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cpu-biotin]",
+        "time": "10.657",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cpu-nglycan]",
+        "time": "45.874",
+        "status": "failure"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cpu-oglycan]",
+        "time": "84.085",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cuda-biotin]",
+        "time": "3.336",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cuda-nglycan]",
+        "time": "5.078",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cuda-oglycan]",
+        "time": "5.191",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_budget_preserves_owner_when_chi_names_repeat",
+        "time": "0.005",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_independent_library_does_not_remove_child_chi",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_budget_retains_a_proton_placement_and_rejects_oversize_library",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_group_budget_keeps_correct_residue_and_linkage",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_anchor_library_keeps_identical_block_numbers_in_different_poses[cpu]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_anchor_library_keeps_identical_block_numbers_in_different_poses[cuda]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_kinforest_cache_is_scoped_to_packed_block_types",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_lockstep_rejects_mismatched_counts_before_native_scoring[cpu]",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_lockstep_rejects_mismatched_counts_before_native_scoring[cuda]",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_group_collapse_accepts_exclusive_end_offset[cpu]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_group_collapse_accepts_exclusive_end_offset[cuda]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_sampler_cache_settings",
+        "name": "test_changing_budget_rebuilds_both_annotation_levels[cpu-na]",
+        "time": "0.100",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_sampler_cache_settings",
+        "name": "test_changing_budget_rebuilds_both_annotation_levels[cpu-opth]",
+        "time": "0.085",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_sampler_cache_settings",
+        "name": "test_changing_budget_rebuilds_both_annotation_levels[cuda-na]",
+        "time": "0.116",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_sampler_cache_settings",
+        "name": "test_changing_budget_rebuilds_both_annotation_levels[cuda-opth]",
+        "time": "0.097",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_sampler_cache_settings",
+        "name": "test_changing_flip_setting_updates_buildable_types[cpu]",
+        "time": "0.053",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_sampler_cache_settings",
+        "name": "test_changing_flip_setting_updates_buildable_types[cuda]",
+        "time": "0.120",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_sampler_cache_settings",
+        "name": "test_na_element_assignments_are_part_of_annotation_identity[cpu]",
+        "time": "0.024",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_sampler_cache_settings",
+        "name": "test_na_element_assignments_are_part_of_annotation_identity[cuda]",
+        "time": "0.024",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_na_chi_sampler",
+        "name": "test_na_sampler_builds_for_nucleotides_only[cpu]",
+        "time": "0.007",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_na_chi_sampler",
+        "name": "test_na_sampler_builds_for_nucleotides_only[cuda]",
+        "time": "0.008",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_na_chi_sampler",
+        "name": "test_na_sampler_chi_sit_at_scored_minima[cpu-dna_pdb]",
+        "time": "0.112",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_na_chi_sampler",
+        "name": "test_na_sampler_chi_sit_at_scored_minima[cpu-rna_pdb]",
+        "time": "0.018",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_na_chi_sampler",
+        "name": "test_na_sampler_chi_sit_at_scored_minima[cuda-dna_pdb]",
+        "time": "0.085",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_na_chi_sampler",
+        "name": "test_na_sampler_chi_sit_at_scored_minima[cuda-rna_pdb]",
+        "time": "0.026",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_na_chi_sampler",
+        "name": "test_na_sampler_syn_is_rna_only[cpu]",
+        "time": "0.031",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_na_chi_sampler",
+        "name": "test_na_sampler_syn_is_rna_only[cuda]",
+        "time": "0.046",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_na_chi_sampler",
+        "name": "test_na_sampler_expands_proton_chis[cpu-dna_pdb-1]",
+        "time": "0.016",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_na_chi_sampler",
+        "name": "test_na_sampler_expands_proton_chis[cpu-rna_pdb-2]",
+        "time": "0.017",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_na_chi_sampler",
+        "name": "test_na_sampler_expands_proton_chis[cuda-dna_pdb-1]",
+        "time": "0.023",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_na_chi_sampler",
+        "name": "test_na_sampler_expands_proton_chis[cuda-rna_pdb-2]",
+        "time": "0.028",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_na_chi_sampler",
+        "name": "test_na_sampler_chi_level_widens_the_rotamer_set[cpu]",
+        "time": "0.032",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_na_chi_sampler",
+        "name": "test_na_sampler_chi_level_widens_the_rotamer_set[cuda]",
+        "time": "0.051",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_na_chi_sampler",
+        "name": "test_na_build_rotamers[cpu-dna_pdb]",
+        "time": "0.422",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_na_chi_sampler",
+        "name": "test_na_build_rotamers[cpu-rna_pdb]",
+        "time": "0.083",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_na_chi_sampler",
+        "name": "test_na_build_rotamers[cuda-dna_pdb]",
+        "time": "0.089",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_na_chi_sampler",
+        "name": "test_na_build_rotamers[cuda-rna_pdb]",
+        "time": "0.088",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_na_chi_sampler",
+        "name": "test_na_sampler_ignores_sampling_work_for_non_nucleotides[cpu]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_na_chi_sampler",
+        "name": "test_na_sampler_ignores_sampling_work_for_non_nucleotides[cuda]",
+        "time": "0.003",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_opth_sampler",
+        "name": "test_opth_builds_cartesian_product_for_multiple_proton_chis",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_opth_sampler",
+        "name": "test_optH_rotamer_sampler_flipNHQ[cpu]",
+        "time": "0.705",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_opth_sampler",
+        "name": "test_optH_rotamer_sampler_flipNHQ[cuda]",
+        "time": "0.568",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_opth_sampler",
+        "name": "test_optH_rotamer_sampler_no_flipNHQ[cpu]",
+        "time": "0.458",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_opth_sampler",
+        "name": "test_optH_rotamer_sampler_no_flipNHQ[cuda]",
+        "time": "0.563",
+        "status": "pass"
+      }
+    ]
+  },
+  "task-budget": {
+    "suites": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "53",
+        "time": "224.093",
+        "timestamp": "2026-09-11T11:29:33.020642+00:00",
+        "hostname": "slurm-h200-interactive-244-105"
+      }
+    ],
+    "cases": [
+      {
+        "classname": "tmol.tests.pack.rotamer.test_task_sampler_budget",
+        "name": "test_task_limits_apply_when_a_sampler_is_reused[cpu-opth]",
+        "time": "1.979",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_task_sampler_budget",
+        "name": "test_task_limits_apply_when_a_sampler_is_reused[cpu-na]",
+        "time": "0.080",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_task_sampler_budget",
+        "name": "test_task_limits_apply_when_a_sampler_is_reused[cpu-dunbrack]",
+        "time": "0.758",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_task_sampler_budget",
+        "name": "test_task_limits_apply_when_a_sampler_is_reused[cuda-opth]",
+        "time": "0.909",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_task_sampler_budget",
+        "name": "test_task_limits_apply_when_a_sampler_is_reused[cuda-na]",
+        "time": "0.218",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_task_sampler_budget",
+        "name": "test_task_limits_apply_when_a_sampler_is_reused[cuda-dunbrack]",
+        "time": "2.188",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_task_sampler_budget",
+        "name": "test_budget_setter_rejects_noninteger_limits_without_partial_update",
+        "time": "0.029",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_a_borrowed_library_brings_its_chi_definitions[AIB]",
+        "time": "3.541",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_a_borrowed_library_brings_its_chi_definitions[B3K]",
+        "time": "0.424",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_a_borrowed_library_brings_its_chi_definitions[BIL]",
+        "time": "0.409",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_a_borrowed_library_brings_its_chi_definitions[HYP]",
+        "time": "0.379",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_a_borrowed_library_brings_its_chi_definitions[MLE]",
+        "time": "0.404",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_a_modified_nucleotide_borrows_the_base_it_resembles",
+        "time": "0.720",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_the_packer_builds_rotamers_for_a_noncanonical[cpu-B3K]",
+        "time": "9.178",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_the_packer_builds_rotamers_for_a_noncanonical[cpu-BIL]",
+        "time": "7.014",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_the_packer_builds_rotamers_for_a_noncanonical[cpu-HYP]",
+        "time": "4.019",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_the_packer_builds_rotamers_for_a_noncanonical[cpu-MLE]",
+        "time": "3.663",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_the_packer_builds_rotamers_for_a_noncanonical[cpu-PSU]",
+        "time": "4.474",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_the_packer_builds_rotamers_for_a_noncanonical[cpu-RU]",
+        "time": "4.528",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_the_packer_builds_rotamers_for_a_noncanonical[cpu-SEP]",
+        "time": "3.653",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_the_packer_builds_rotamers_for_a_noncanonical[cuda-B3K]",
+        "time": "7.832",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_the_packer_builds_rotamers_for_a_noncanonical[cuda-BIL]",
+        "time": "7.268",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_the_packer_builds_rotamers_for_a_noncanonical[cuda-HYP]",
+        "time": "4.077",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_the_packer_builds_rotamers_for_a_noncanonical[cuda-MLE]",
+        "time": "4.014",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_the_packer_builds_rotamers_for_a_noncanonical[cuda-PSU]",
+        "time": "4.315",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_the_packer_builds_rotamers_for_a_noncanonical[cuda-RU]",
+        "time": "4.517",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_the_packer_builds_rotamers_for_a_noncanonical[cuda-SEP]",
+        "time": "3.997",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_a_borrowed_library_yields_its_own_number_of_rotamers[cpu-B3K]",
+        "time": "6.627",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_a_borrowed_library_yields_its_own_number_of_rotamers[cpu-BIL]",
+        "time": "6.639",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_a_borrowed_library_yields_its_own_number_of_rotamers[cpu-HYP]",
+        "time": "3.304",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_a_borrowed_library_yields_its_own_number_of_rotamers[cpu-MLE]",
+        "time": "3.531",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_a_borrowed_library_yields_its_own_number_of_rotamers[cuda-B3K]",
+        "time": "6.908",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_a_borrowed_library_yields_its_own_number_of_rotamers[cuda-BIL]",
+        "time": "6.892",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_a_borrowed_library_yields_its_own_number_of_rotamers[cuda-HYP]",
+        "time": "3.711",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_a_borrowed_library_yields_its_own_number_of_rotamers[cuda-MLE]",
+        "time": "3.686",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_a_built_rotamer_keeps_its_sidechain_on_the_same_side[cpu-B3K]",
+        "time": "6.850",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_a_built_rotamer_keeps_its_sidechain_on_the_same_side[cpu-BIL]",
+        "time": "6.608",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_a_built_rotamer_keeps_its_sidechain_on_the_same_side[cpu-HYP]",
+        "time": "3.336",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_a_built_rotamer_keeps_its_sidechain_on_the_same_side[cpu-MLE]",
+        "time": "3.294",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_a_built_rotamer_keeps_its_sidechain_on_the_same_side[cuda-B3K]",
+        "time": "7.079",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_a_built_rotamer_keeps_its_sidechain_on_the_same_side[cuda-BIL]",
+        "time": "6.946",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_a_built_rotamer_keeps_its_sidechain_on_the_same_side[cuda-HYP]",
+        "time": "3.714",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_a_built_rotamer_keeps_its_sidechain_on_the_same_side[cuda-MLE]",
+        "time": "3.673",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_hyp_count_contains_two_library_states_and_nine_hydroxyl_angles[cpu]",
+        "time": "2.875",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_noncanonical_rotamers",
+        "name": "test_hyp_count_contains_two_library_states_and_nine_hydroxyl_angles[cuda]",
+        "time": "3.561",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_sampler_cache_settings",
+        "name": "test_changing_budget_rebuilds_both_annotation_levels[cpu-na]",
+        "time": "0.031",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_sampler_cache_settings",
+        "name": "test_changing_budget_rebuilds_both_annotation_levels[cpu-opth]",
+        "time": "0.046",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_sampler_cache_settings",
+        "name": "test_changing_budget_rebuilds_both_annotation_levels[cuda-na]",
+        "time": "0.026",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_sampler_cache_settings",
+        "name": "test_changing_budget_rebuilds_both_annotation_levels[cuda-opth]",
+        "time": "0.097",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_sampler_cache_settings",
+        "name": "test_changing_flip_setting_updates_buildable_types[cpu]",
+        "time": "0.052",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_sampler_cache_settings",
+        "name": "test_changing_flip_setting_updates_buildable_types[cuda]",
+        "time": "0.120",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_sampler_cache_settings",
+        "name": "test_na_element_assignments_are_part_of_annotation_identity[cpu]",
+        "time": "0.025",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_sampler_cache_settings",
+        "name": "test_na_element_assignments_are_part_of_annotation_identity[cuda]",
+        "time": "0.023",
+        "status": "pass"
+      }
+    ]
+  },
+  "ljlk-accumulation": {
+    "suites": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "3",
+        "skipped": "0",
+        "tests": "58",
+        "time": "380.139",
+        "timestamp": "2026-09-11T11:37:05.873049+00:00",
+        "hostname": "slurm-h200-interactive-244-105"
+      }
+    ],
+    "cases": [
+      {
+        "classname": "tmol.tests.score.ljlk.potentials.test_compiled_lj_potential",
+        "name": "test_lj_gradcheck[CNH2-COO-2]",
+        "time": "1.669",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.potentials.test_compiled_lj_potential",
+        "name": "test_lj_gradcheck[CNH2-COO-4]",
+        "time": "0.015",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.potentials.test_compiled_lj_potential",
+        "name": "test_lj_gradcheck[CNH2-COO-5]",
+        "time": "0.013",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.potentials.test_compiled_lj_potential",
+        "name": "test_lj_gradcheck[Ntrp-OOC-2]",
+        "time": "0.013",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.potentials.test_compiled_lj_potential",
+        "name": "test_lj_gradcheck[Ntrp-OOC-4]",
+        "time": "0.013",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.potentials.test_compiled_lj_potential",
+        "name": "test_lj_gradcheck[Ntrp-OOC-5]",
+        "time": "0.013",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.potentials.test_compiled_lj_potential",
+        "name": "test_lj_spotcheck[CNH2-COO]",
+        "time": "0.208",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.potentials.test_compiled_lj_potential",
+        "name": "test_lj_spotcheck[Ntrp-OOC]",
+        "time": "0.017",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.potentials.test_compiled_lk_isotropic_potential",
+        "name": "test_lk_isotropic_gradcheck[CNH2-COO-2]",
+        "time": "0.015",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.potentials.test_compiled_lk_isotropic_potential",
+        "name": "test_lk_isotropic_gradcheck[CNH2-COO-4]",
+        "time": "0.014",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.potentials.test_compiled_lk_isotropic_potential",
+        "name": "test_lk_isotropic_gradcheck[CNH2-COO-5]",
+        "time": "0.014",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.potentials.test_compiled_lk_isotropic_potential",
+        "name": "test_lk_isotropic_gradcheck[Ntrp-OOC-2]",
+        "time": "0.015",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.potentials.test_compiled_lk_isotropic_potential",
+        "name": "test_lk_isotropic_gradcheck[Ntrp-OOC-4]",
+        "time": "0.017",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.potentials.test_compiled_lk_isotropic_potential",
+        "name": "test_lk_isotropic_gradcheck[Ntrp-OOC-5]",
+        "time": "0.014",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.potentials.test_compiled_lk_isotropic_potential",
+        "name": "test_lk_isotropic_gradcheck[CH3-CH3-2]",
+        "time": "0.014",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.potentials.test_compiled_lk_isotropic_potential",
+        "name": "test_lk_isotropic_gradcheck[CH3-CH3-4]",
+        "time": "0.014",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.potentials.test_compiled_lk_isotropic_potential",
+        "name": "test_lk_isotropic_gradcheck[CH3-CH3-5]",
+        "time": "0.014",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.potentials.test_compiled_lk_isotropic_potential",
+        "name": "test_lk_spotcheck[CNH2-COO]",
+        "time": "0.009",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.potentials.test_compiled_lk_isotropic_potential",
+        "name": "test_lk_spotcheck[Ntrp-OOC]",
+        "time": "0.008",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.potentials.test_compiled_lk_isotropic_potential",
+        "name": "test_lk_spotcheck[CH3-CH3]",
+        "time": "0.008",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.test_cpu_pose_accumulation",
+        "name": "test_cpu_pose_total_matches_precise_sum_of_block_pairs[False]",
+        "time": "21.754",
+        "status": "failure"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.test_cpu_pose_accumulation",
+        "name": "test_cpu_pose_total_matches_precise_sum_of_block_pairs[True]",
+        "time": "2.227",
+        "status": "failure"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.test_ljlk_energy_term",
+        "name": "test_smoke[cpu]",
+        "time": "0.007",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.test_ljlk_energy_term",
+        "name": "test_smoke[cuda]",
+        "time": "0.207",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.test_ljlk_energy_term",
+        "name": "test_annotate_heavy_ats_in_tile[cpu]",
+        "time": "0.148",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.test_ljlk_energy_term",
+        "name": "test_annotate_heavy_ats_in_tile[cuda]",
+        "time": "0.418",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.test_ljlk_energy_term.TestLJLKEnergyTerm",
+        "name": "test_whole_pose_scoring_10[cpu]",
+        "time": "0.351",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.test_ljlk_energy_term.TestLJLKEnergyTerm",
+        "name": "test_whole_pose_scoring_10[cuda]",
+        "time": "0.599",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.test_ljlk_energy_term.TestLJLKEnergyTerm",
+        "name": "test_whole_pose_scoring_gradcheck[cpu]",
+        "time": "0.106",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.test_ljlk_energy_term.TestLJLKEnergyTerm",
+        "name": "test_whole_pose_scoring_gradcheck[cuda]",
+        "time": "0.111",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.test_ljlk_energy_term.TestLJLKEnergyTerm",
+        "name": "test_whole_pose_scoring_jagged[cpu]",
+        "time": "0.096",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.test_ljlk_energy_term.TestLJLKEnergyTerm",
+        "name": "test_whole_pose_scoring_jagged[cuda]",
+        "time": "0.110",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.test_ljlk_energy_term.TestLJLKEnergyTerm",
+        "name": "test_block_scoring_matches_whole_pose_scoring[cpu]",
+        "time": "0.040",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.test_ljlk_energy_term.TestLJLKEnergyTerm",
+        "name": "test_block_scoring_matches_whole_pose_scoring[cuda]",
+        "time": "0.038",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.test_ljlk_energy_term.TestLJLKEnergyTerm",
+        "name": "test_block_scoring[cpu]",
+        "time": "0.039",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.test_ljlk_energy_term.TestLJLKEnergyTerm",
+        "name": "test_block_scoring[cuda]",
+        "time": "0.043",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.test_ljlk_energy_term.TestLJLKEnergyTerm",
+        "name": "test_block_scoring_reweighted_gradcheck[cpu]",
+        "time": "0.088",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.test_ljlk_energy_term.TestLJLKEnergyTerm",
+        "name": "test_block_scoring_reweighted_gradcheck[cuda]",
+        "time": "0.099",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cpu-biotin]",
+        "time": "3.132",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cpu-nglycan]",
+        "time": "2.731",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cpu-oglycan]",
+        "time": "5.587",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cuda-biotin]",
+        "time": "2.711",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cuda-nglycan]",
+        "time": "2.925",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cuda-oglycan]",
+        "time": "5.240",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_a_group_is_sampled_as_the_product_of_its_parts[cpu]",
+        "time": "0.543",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_a_group_is_sampled_as_the_product_of_its_parts[cuda]",
+        "time": "0.773",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cpu-biotin]",
+        "time": "10.701",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cpu-nglycan]",
+        "time": "45.668",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cpu-oglycan]",
+        "time": "84.565",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cuda-biotin]",
+        "time": "3.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cuda-nglycan]",
+        "time": "4.837",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cuda-oglycan]",
+        "time": "5.372",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cpu-biotin]",
+        "time": "10.880",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cpu-nglycan]",
+        "time": "46.165",
+        "status": "failure"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cpu-oglycan]",
+        "time": "84.047",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cuda-biotin]",
+        "time": "3.035",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cuda-nglycan]",
+        "time": "4.955",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cuda-oglycan]",
+        "time": "5.291",
+        "status": "pass"
+      }
+    ]
+  },
+  "ljlk-cuda-capture-rerun": {
+    "suites": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "16",
+        "time": "60.757",
+        "timestamp": "2026-09-11T11:45:37.858641+00:00",
+        "hostname": "slurm-h200-interactive-244-105"
+      }
+    ],
+    "cases": [
+      {
+        "classname": "tmol.tests.score.ljlk.test_cpu_pose_accumulation",
+        "name": "test_cpu_pose_total_matches_precise_sum_of_block_pairs[False]",
+        "time": "6.378",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.test_cpu_pose_accumulation",
+        "name": "test_cpu_pose_total_matches_precise_sum_of_block_pairs[True]",
+        "time": "2.016",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cpu-nglycan]",
+        "time": "48.596",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_task_sampler_budget",
+        "name": "test_task_limits_apply_when_a_sampler_is_reused[cpu-False-opth]",
+        "time": "0.288",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_task_sampler_budget",
+        "name": "test_task_limits_apply_when_a_sampler_is_reused[cpu-False-na]",
+        "time": "0.059",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_task_sampler_budget",
+        "name": "test_task_limits_apply_when_a_sampler_is_reused[cpu-False-dunbrack]",
+        "time": "0.128",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_task_sampler_budget",
+        "name": "test_task_limits_apply_when_a_sampler_is_reused[cpu-True-opth]",
+        "time": "0.064",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_task_sampler_budget",
+        "name": "test_task_limits_apply_when_a_sampler_is_reused[cpu-True-na]",
+        "time": "0.057",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_task_sampler_budget",
+        "name": "test_task_limits_apply_when_a_sampler_is_reused[cpu-True-dunbrack]",
+        "time": "0.035",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_task_sampler_budget",
+        "name": "test_task_limits_apply_when_a_sampler_is_reused[cuda-False-opth]",
+        "time": "0.740",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_task_sampler_budget",
+        "name": "test_task_limits_apply_when_a_sampler_is_reused[cuda-False-na]",
+        "time": "0.217",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_task_sampler_budget",
+        "name": "test_task_limits_apply_when_a_sampler_is_reused[cuda-False-dunbrack]",
+        "time": "1.030",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_task_sampler_budget",
+        "name": "test_task_limits_apply_when_a_sampler_is_reused[cuda-True-opth]",
+        "time": "0.111",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_task_sampler_budget",
+        "name": "test_task_limits_apply_when_a_sampler_is_reused[cuda-True-na]",
+        "time": "0.071",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_task_sampler_budget",
+        "name": "test_task_limits_apply_when_a_sampler_is_reused[cuda-True-dunbrack]",
+        "time": "0.045",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_task_sampler_budget",
+        "name": "test_budget_setter_rejects_noninteger_limits_without_partial_update",
+        "time": "0.029",
+        "status": "pass"
+      }
+    ]
+  },
+  "ljlk-final-cuda": {
+    "suites": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "18",
+        "time": "47.727",
+        "timestamp": "2026-09-11T11:48:55.849337+00:00",
+        "hostname": "slurm-h200-interactive-244-105"
+      }
+    ],
+    "cases": [
+      {
+        "classname": "tmol.tests.score.ljlk.test_ljlk_energy_term",
+        "name": "test_smoke[cuda]",
+        "time": "1.429",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.test_ljlk_energy_term",
+        "name": "test_annotate_heavy_ats_in_tile[cuda]",
+        "time": "0.769",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.test_ljlk_energy_term.TestLJLKEnergyTerm",
+        "name": "test_whole_pose_scoring_10[cuda]",
+        "time": "0.887",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.test_ljlk_energy_term.TestLJLKEnergyTerm",
+        "name": "test_whole_pose_scoring_gradcheck[cuda]",
+        "time": "0.505",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.test_ljlk_energy_term.TestLJLKEnergyTerm",
+        "name": "test_whole_pose_scoring_jagged[cuda]",
+        "time": "0.116",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.test_ljlk_energy_term.TestLJLKEnergyTerm",
+        "name": "test_block_scoring_matches_whole_pose_scoring[cuda]",
+        "time": "0.041",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.test_ljlk_energy_term.TestLJLKEnergyTerm",
+        "name": "test_block_scoring[cuda]",
+        "time": "0.044",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.score.ljlk.test_ljlk_energy_term.TestLJLKEnergyTerm",
+        "name": "test_block_scoring_reweighted_gradcheck[cuda]",
+        "time": "0.107",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cuda-biotin]",
+        "time": "6.369",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cuda-nglycan]",
+        "time": "2.774",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cuda-oglycan]",
+        "time": "5.763",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_a_group_is_sampled_as_the_product_of_its_parts[cuda]",
+        "time": "0.790",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cuda-biotin]",
+        "time": "2.962",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cuda-nglycan]",
+        "time": "5.234",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cuda-oglycan]",
+        "time": "5.380",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cuda-biotin]",
+        "time": "3.040",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cuda-nglycan]",
+        "time": "4.969",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cuda-oglycan]",
+        "time": "5.606",
+        "status": "pass"
+      }
+    ]
+  }
+}

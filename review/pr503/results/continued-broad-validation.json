@@ -1,0 +1,85 @@
+{
+  "source": "/mnt/home/kdidi/tmol-pr503-followup/continued-broad-final/tests.xml",
+  "sha256": "e7a1638aea659fb7b2debc82db4e2abd5ca7d4fb550785ca23d8ccef5378fda4",
+  "cases": 1501,
+  "passed": 1478,
+  "skipped": 15,
+  "failed": 8,
+  "failures": [
+    {
+      "name": "tmol.tests.score.test_noncanonical_scoring.test_noncanonical_scores_match_baseline[cpu-alpha_aa]",
+      "message": "tmol/tests/score/test_noncanonical_scoring.py:86: in test_noncanonical_scores_match_baseline\n    assert not moved, \"%s (%s): %s\" % (backbone_class, stem, moved)\nE   AssertionError: alpha_aa (collagen_hyp_1bkv): {'fa_ljatr': (-38.9914, -38.9704), 'fa_ljrep': (25.744, 24.145), 'fa_elec': (1.5479, 1.5368), 'cart_lengths': (5.1244, 4.9185), 'cart_angles': (67.8914, 67.9409)}\nE   assert not {'cart_angles': (67.8914, 67.9409), 'cart_lengths': (5.1244, 4.9185), 'fa_elec': (1.5479, 1.5368), 'fa_ljatr': (-38.9914, -38.9704), ...}"
+    },
+    {
+      "name": "tmol.tests.score.test_noncanonical_scoring.test_noncanonical_scores_match_baseline[cpu-dna]",
+      "message": "tmol/tests/score/test_noncanonical_scoring.py:86: in test_noncanonical_scores_match_baseline\n    assert not moved, \"%s (%s): %s\" % (backbone_class, stem, moved)\nE   AssertionError: dna (na_dna_5mc_1d17): {'fa_ljatr': (-49.4028, -48.9939), 'fa_ljrep': (49.5897, 44.2721), 'fa_lk': (10.7716, 10.1341), 'fa_elec': (-1.2902, -0.162), 'cart_lengths': (253.5855, 11.3001), 'cart_angles': (113.4794, 42.2096), 'lk_ball_iso': (11.6253, 11.1024), 'lk_ball': (-0.5012, -1.0109), 'lk_bridge_uncpl': (0.695, 0.5631), 'na_torsion': (201.2155, 233.1831), 'na_torsion_well': (44.2207, 38.36)}\nE   assert not {'cart_angles': (113.4794, 42.2096), 'cart_lengths': (253.5855, 11.3001), 'fa_elec': (-1.2902, -0.162), 'fa_ljatr': (-49.4028, -48.9939), ...}"
+    },
+    {
+      "name": "tmol.tests.score.test_noncanonical_scoring.test_noncanonical_scores_match_baseline[cpu-nonstandard_aa]",
+      "message": "tmol/tests/score/test_noncanonical_scoring.py:86: in test_noncanonical_scores_match_baseline\n    assert not moved, \"%s (%s): %s\" % (backbone_class, stem, moved)\nE   AssertionError: nonstandard_aa (beta_peptide_3c3g): {'fa_ljatr': (-197.2601, -197.0118), 'fa_ljrep': (122.3519, 121.2596), 'fa_lk': (157.6397, 157.7347), 'fa_elec': (-61.2045, -61.0871), 'hbond': (-28.1303, -28.1426), 'cart_lengths': (247.5734, 248.1202), 'cart_angles': (51.191, 56.3128), 'lk_ball_iso': (184.5954, 184.4134), 'gen_torsions': (44.7902, 46.2714)}\nE   assert not {'cart_angles': (51.191, 56.3128), 'cart_lengths': (247.5734, 248.1202), 'fa_elec': (-61.2045, -61.0871), 'fa_ljatr': (-197.2601, -197.0118), ...}"
+    },
+    {
+      "name": "tmol.tests.score.test_noncanonical_scoring.test_noncanonical_scores_match_baseline[cpu-nonstandard_na]",
+      "message": "tmol/tests/score/test_noncanonical_scoring.py:86: in test_noncanonical_scores_match_baseline\n    assert not moved, \"%s (%s): %s\" % (backbone_class, stem, moved)\nE   AssertionError: nonstandard_na (na_dna_ttd_1ttd): {'fa_ljrep': (123.8579, 123.9824), 'cart_lengths': (43.1817, 42.6805), 'cart_angles': (102.8237, 101.8108)}\nE   assert not {'cart_angles': (102.8237, 101.8108), 'cart_lengths': (43.1817, 42.6805), 'fa_ljrep': (123.8579, 123.9824)}"
+    },
+    {
+      "name": "tmol.tests.score.test_noncanonical_scoring.test_noncanonical_scores_match_baseline[cuda-alpha_aa]",
+      "message": "tmol/tests/score/test_noncanonical_scoring.py:86: in test_noncanonical_scores_match_baseline\n    assert not moved, \"%s (%s): %s\" % (backbone_class, stem, moved)\nE   AssertionError: alpha_aa (collagen_hyp_1bkv): {'fa_ljatr': (-38.9914, -38.9704), 'fa_ljrep': (25.744, 24.1452), 'fa_elec': (1.5479, 1.5369), 'cart_lengths': (5.1244, 4.9178), 'cart_angles': (67.8914, 67.9402)}\nE   assert not {'cart_angles': (67.8914, 67.9402), 'cart_lengths': (5.1244, 4.9178), 'fa_elec': (1.5479, 1.5369), 'fa_ljatr': (-38.9914, -38.9704), ...}"
+    },
+    {
+      "name": "tmol.tests.score.test_noncanonical_scoring.test_noncanonical_scores_match_baseline[cuda-dna]",
+      "message": "tmol/tests/score/test_noncanonical_scoring.py:86: in test_noncanonical_scores_match_baseline\n    assert not moved, \"%s (%s): %s\" % (backbone_class, stem, moved)\nE   AssertionError: dna (na_dna_5mc_1d17): {'fa_ljatr': (-49.4028, -48.9939), 'fa_ljrep': (49.5897, 44.2723), 'fa_lk': (10.7716, 10.1341), 'fa_elec': (-1.2902, -0.162), 'cart_lengths': (253.5855, 11.3002), 'cart_angles': (113.4794, 42.2095), 'lk_ball_iso': (11.6253, 11.1024), 'lk_ball': (-0.5012, -1.0109), 'lk_bridge_uncpl': (0.695, 0.5631), 'na_torsion': (201.2155, 233.1829), 'na_torsion_well': (44.2207, 38.36)}\nE   assert not {'cart_angles': (113.4794, 42.2095), 'cart_lengths': (253.5855, 11.3002), 'fa_elec': (-1.2902, -0.162), 'fa_ljatr': (-49.4028, -48.9939), ...}"
+    },
+    {
+      "name": "tmol.tests.score.test_noncanonical_scoring.test_noncanonical_scores_match_baseline[cuda-nonstandard_aa]",
+      "message": "tmol/tests/score/test_noncanonical_scoring.py:86: in test_noncanonical_scores_match_baseline\n    assert not moved, \"%s (%s): %s\" % (backbone_class, stem, moved)\nE   AssertionError: nonstandard_aa (beta_peptide_3c3g): {'fa_ljatr': (-197.2601, -197.0118), 'fa_ljrep': (122.3519, 121.2598), 'fa_lk': (157.6397, 157.7347), 'fa_elec': (-61.2045, -61.0871), 'hbond': (-28.1303, -28.1427), 'cart_lengths': (247.5734, 248.1199), 'cart_angles': (51.191, 56.3129), 'lk_ball_iso': (184.5954, 184.4134), 'gen_torsions': (44.7902, 46.2714)}\nE   assert not {'cart_angles': (51.191, 56.3129), 'cart_lengths': (247.5734, 248.1199), 'fa_elec': (-61.2045, -61.0871), 'fa_ljatr': (-197.2601, -197.0118), ...}"
+    },
+    {
+      "name": "tmol.tests.score.test_noncanonical_scoring.test_noncanonical_scores_match_baseline[cuda-nonstandard_na]",
+      "message": "tmol/tests/score/test_noncanonical_scoring.py:86: in test_noncanonical_scores_match_baseline\n    assert not moved, \"%s (%s): %s\" % (backbone_class, stem, moved)\nE   AssertionError: nonstandard_na (na_dna_ttd_1ttd): {'fa_ljrep': (123.8579, 123.9822), 'cart_lengths': (43.1817, 42.6802), 'cart_angles': (102.8237, 101.8109)}\nE   assert not {'cart_angles': (102.8237, 101.8109), 'cart_lengths': (43.1817, 42.6802), 'fa_ljrep': (123.8579, 123.9822)}"
+    }
+  ],
+  "job": 252917,
+  "tmol_commit": "4b4ff72d91a0beeb58bc16c98a09ed12abb1e28c",
+  "atomworks_commit": "4af94d0c8be510d49f2a84c2795c6a41fd8f71d3",
+  "examples_cpu": [
+    {"fixture": "ncaa_fixtures/6dmz_mod_d.cif", "device": "cpu", "status": "passed", "atoms": 732, "blocks": 47, "score": 88.4451675415039, "max_abs_gradient": 26.366764068603516, "seconds": 5.48297318816185},
+    {"fixture": "ncaa_fixtures/6dmz_mod_l.cif", "device": "cpu", "status": "passed", "atoms": 732, "blocks": 47, "score": 89.99662017822266, "max_abs_gradient": 26.366777420043945, "seconds": 1.3443865389563143},
+    {"fixture": "ncaa_fixtures/beta_peptide_3c3g.cif", "device": "cpu", "status": "passed", "atoms": 586, "blocks": 31, "score": 192.7799072265625, "max_abs_gradient": 44.516056060791016, "seconds": 7.454816981218755},
+    {"fixture": "ncaa_fixtures/capped_peptide_ace_nh2.cif", "device": "cpu", "status": "passed", "atoms": 19, "blocks": 3, "score": 8.83086109161377, "max_abs_gradient": 35.46403121948242, "seconds": 1.2178587061353028},
+    {"fixture": "ncaa_fixtures/capped_peptide_ace_nme.cif", "device": "cpu", "status": "passed", "atoms": 22, "blocks": 3, "score": 8.862663269042969, "max_abs_gradient": 35.4757080078125, "seconds": 1.1619782280176878},
+    {"fixture": "ncaa_fixtures/collagen_hyp_1bkv.cif", "device": "cpu", "status": "passed", "atoms": 358, "blocks": 29, "score": 38.75164794921875, "max_abs_gradient": 20.076210021972656, "seconds": 1.316899221856147},
+    {"fixture": "ncaa_fixtures/gamma_peptide_1gac.cif", "device": "cpu", "status": "passed", "atoms": 70, "blocks": 5, "score": 178.14292907714844, "max_abs_gradient": 254.95599365234375, "seconds": 1.3524653129279613},
+    {"fixture": "ncaa_fixtures/na_dna_5mc_1d17.cif", "device": "cpu", "status": "passed", "atoms": 195, "blocks": 6, "score": 290.53680419921875, "max_abs_gradient": 148.89097595214844, "seconds": 1.7587281079031527},
+    {"fixture": "ncaa_fixtures/na_dna_8og_183d.cif", "device": "cpu", "status": "passed", "atoms": 316, "blocks": 10, "score": 179.93150329589844, "max_abs_gradient": 582.271728515625, "seconds": 1.6418256820179522},
+    {"fixture": "ncaa_fixtures/na_dna_ttd_1ttd.cif", "device": "cpu", "status": "passed", "atoms": 382, "blocks": 11, "score": 113.6611557006836, "max_abs_gradient": 42.93984603881836, "seconds": 1.5251906369812787},
+    {"fixture": "ncaa_fixtures/na_rna_2ome_310d.cif", "device": "cpu", "status": "passed", "atoms": 212, "blocks": 6, "score": 111.71115112304688, "max_abs_gradient": 67.11653900146484, "seconds": 1.9291067151352763},
+    {"fixture": "ncaa_fixtures/na_rna_psu_1bzt.cif", "device": "cpu", "status": "passed", "atoms": 535, "blocks": 17, "score": 197.62930297851562, "max_abs_gradient": 333.3245849609375, "seconds": 1.50466453935951},
+    {"fixture": "ncaa_fixtures/nmethyl_peptide_6mvz.cif", "device": "cpu", "status": "passed", "atoms": 87, "blocks": 4, "score": 18.82239532470703, "max_abs_gradient": 38.001258850097656, "seconds": 1.3186781983822584},
+    {"fixture": "ncaa_fixtures/phosphopeptide_5ema.cif", "device": "cpu", "status": "passed", "atoms": 106, "blocks": 7, "score": 48.21892166137695, "max_abs_gradient": 35.50484848022461, "seconds": 1.3303382256999612},
+    {"fixture": "covalent_fixtures/lys_biotin_1bdo.cif", "device": "cpu", "status": "passed", "atoms": 1252, "blocks": 81, "score": -84.20890808105469, "max_abs_gradient": 36.110774993896484, "seconds": 1.624647580087185},
+    {"fixture": "covalent_fixtures/nglycan_tree_1ax2.cif", "device": "cpu", "status": "passed", "atoms": 3848, "blocks": 248, "score": 14.05059814453125, "max_abs_gradient": 47.329769134521484, "seconds": 2.879192339256406},
+    {"fixture": "covalent_fixtures/oglycan_sia_1g1s.cif", "device": "cpu", "status": "passed", "atoms": 396, "blocks": 20, "score": 87.7432632446289, "max_abs_gradient": 29.41127586364746, "seconds": 3.7455770247615874},
+    {"fixture": "cif/cyclic_peptide_1jbl.cif", "device": "cpu", "status": "passed", "atoms": 210, "blocks": 14, "score": 42.89794158935547, "max_abs_gradient": 31.84593391418457, "seconds": 0.8971043457277119}
+  ],
+  "examples_cuda": [
+    {"fixture": "ncaa_fixtures/6dmz_mod_d.cif", "device": "cuda", "status": "passed", "atoms": 732, "blocks": 47, "score": 88.44520568847656, "max_abs_gradient": 26.366724014282227, "seconds": 6.440072615165263},
+    {"fixture": "ncaa_fixtures/6dmz_mod_l.cif", "device": "cuda", "status": "passed", "atoms": 732, "blocks": 47, "score": 89.99665832519531, "max_abs_gradient": 26.366735458374023, "seconds": 1.3804962052963674},
+    {"fixture": "ncaa_fixtures/beta_peptide_3c3g.cif", "device": "cuda", "status": "passed", "atoms": 586, "blocks": 31, "score": 192.77975463867188, "max_abs_gradient": 44.516056060791016, "seconds": 7.859195427969098},
+    {"fixture": "ncaa_fixtures/capped_peptide_ace_nh2.cif", "device": "cuda", "status": "passed", "atoms": 19, "blocks": 3, "score": 8.83189868927002, "max_abs_gradient": 35.466007232666016, "seconds": 1.3114521247334778},
+    {"fixture": "ncaa_fixtures/capped_peptide_ace_nme.cif", "device": "cuda", "status": "passed", "atoms": 22, "blocks": 3, "score": 8.863698959350586, "max_abs_gradient": 35.465972900390625, "seconds": 1.29019681410864},
+    {"fixture": "ncaa_fixtures/collagen_hyp_1bkv.cif", "device": "cuda", "status": "passed", "atoms": 358, "blocks": 29, "score": 38.750370025634766, "max_abs_gradient": 20.076326370239258, "seconds": 1.4522483330219984},
+    {"fixture": "ncaa_fixtures/gamma_peptide_1gac.cif", "device": "cuda", "status": "passed", "atoms": 70, "blocks": 5, "score": 178.1428680419922, "max_abs_gradient": 254.95602416992188, "seconds": 1.4880057703703642},
+    {"fixture": "ncaa_fixtures/na_dna_5mc_1d17.cif", "device": "cuda", "status": "passed", "atoms": 195, "blocks": 6, "score": 290.5368347167969, "max_abs_gradient": 148.89096069335938, "seconds": 3.6220032600685954},
+    {"fixture": "ncaa_fixtures/na_dna_8og_183d.cif", "device": "cuda", "status": "passed", "atoms": 316, "blocks": 10, "score": 179.9314727783203, "max_abs_gradient": 582.271728515625, "seconds": 1.8021648982539773},
+    {"fixture": "ncaa_fixtures/na_dna_ttd_1ttd.cif", "device": "cuda", "status": "passed", "atoms": 382, "blocks": 11, "score": 113.66130065917969, "max_abs_gradient": 42.93994903564453, "seconds": 1.7443601908162236},
+    {"fixture": "ncaa_fixtures/na_rna_2ome_310d.cif", "device": "cuda", "status": "passed", "atoms": 212, "blocks": 6, "score": 111.71117401123047, "max_abs_gradient": 67.11654663085938, "seconds": 2.0784849203191698},
+    {"fixture": "ncaa_fixtures/na_rna_psu_1bzt.cif", "device": "cuda", "status": "passed", "atoms": 535, "blocks": 17, "score": 197.62924194335938, "max_abs_gradient": 333.3245849609375, "seconds": 1.6110054519958794},
+    {"fixture": "ncaa_fixtures/nmethyl_peptide_6mvz.cif", "device": "cuda", "status": "passed", "atoms": 87, "blocks": 4, "score": 18.822404861450195, "max_abs_gradient": 38.00126647949219, "seconds": 1.4355465699918568},
+    {"fixture": "ncaa_fixtures/phosphopeptide_5ema.cif", "device": "cuda", "status": "passed", "atoms": 106, "blocks": 7, "score": 48.218910217285156, "max_abs_gradient": 35.50483703613281, "seconds": 1.4076268458738923},
+    {"fixture": "covalent_fixtures/lys_biotin_1bdo.cif", "device": "cuda", "status": "passed", "atoms": 1252, "blocks": 81, "score": -84.20901489257812, "max_abs_gradient": 36.11077880859375, "seconds": 1.6475591133348644},
+    {"fixture": "covalent_fixtures/nglycan_tree_1ax2.cif", "device": "cuda", "status": "passed", "atoms": 3848, "blocks": 248, "score": 14.05126953125, "max_abs_gradient": 47.33009719848633, "seconds": 2.891489963978529},
+    {"fixture": "covalent_fixtures/oglycan_sia_1g1s.cif", "device": "cuda", "status": "passed", "atoms": 396, "blocks": 20, "score": 87.74229431152344, "max_abs_gradient": 29.411008834838867, "seconds": 3.6900424980558455},
+    {"fixture": "cif/cyclic_peptide_1jbl.cif", "device": "cuda", "status": "passed", "atoms": 210, "blocks": 14, "score": 42.897735595703125, "max_abs_gradient": 31.84593391418457, "seconds": 0.9809751762077212}
+  ]
+}

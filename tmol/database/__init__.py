@@ -13,7 +13,7 @@ from .chemical import (  # noqa: F401
 from ._patched_chemdb import PatchedChemicalDatabase  # noqa: F401
 from .scoring import ScoringDatabase  # noqa: F401
 from .scoring._elec import PartialCharges  # noqa: F401
-from .scoring._cartbonded import CartRes  # noqa: F401
+from .scoring._cartbonded import CartRes, ConnectionCartRes  # noqa: F401
 from .scoring._mirrored_dunbrack import with_mirrored_libraries
 
 
@@ -62,16 +62,17 @@ class ParameterDatabase:
         return cls(scoring=scoring, chemical=patched_chemdb)
 
     def with_symmetric_gly(self) -> "ParameterDatabase":
-        """A copy whose glycine backbone tables are mirror-symmetric.
+        """A copy with symmetric glycine backbone tables and C-alpha hydrogens.
 
         Glycine is achiral, but the tables derived from PDB statistics are not,
         so by default a structure and its mirror image score differently. This
-        points glycine at the symmetrized tables instead; every other residue is
-        untouched, and the chirality of the other 19 is carried by their own
-        lookup rows.
+        points glycine at the symmetrized tables instead. Its two C-alpha
+        hydrogen ideal lengths and bonded targets are averaged, so rebuilding
+        glycine also preserves reflection when the equivalent H names exchange.
+        Other residues are untouched.
 
-        Glycine's bbdep-omega tables become uniformly trans, since an achiral
-        residue has no backbone-dependent omega preference to keep.
+        This optional model uses uniformly trans glycine bbdep-omega tables.
+        Uniformity is a modeling choice, not a consequence of achirality.
         """
         rama = self.scoring.rama
         omega = self.scoring.omega_bbdep
@@ -100,10 +101,17 @@ class ParameterDatabase:
                 {"gly": "gly_symm", "prepro": "prepro_gly_symm"},
             ),
         )
+        from ._symmetric_gly import symmetric_gly_geometry
+
+        chemical, cartbonded = symmetric_gly_geometry(
+            self.chemical, self.scoring.cartbonded
+        )
         return attr.evolve(
             self,
+            chemical=chemical,
             scoring=attr.evolve(
                 self.scoring,
+                cartbonded=cartbonded,
                 rama=attr.evolve(rama, uniq_id=rama.content_id()),
                 omega_bbdep=attr.evolve(omega, uniq_id=omega.content_id()),
             ),
@@ -161,6 +169,7 @@ def inject_residue_params(
     partial_charges: Optional[Mapping[str, dict[str, float]]] = None,
     cartbonded_params: Optional[Mapping[str, CartRes]] = None,
     variants: Optional[list] = None,
+    connection_params: Optional[tuple[ConnectionCartRes, ...]] = None,
 ) -> ParameterDatabase:
     """Return a new ParameterDatabase with additional residue type data.
 
@@ -173,6 +182,7 @@ def inject_residue_params(
         atom_types: Optional new AtomType entries (deduplicated by name).
         partial_charges: Per-residue charge dicts ``{res_name: {atom: charge}}``.
         cartbonded_params: Per-residue CartRes ``{res_name: CartRes}``.
+        connection_params: Complete length/angle records for named connection pairs.
         variants: Optional patches the new residues bring with them, applied
             alongside the database's own.
 
@@ -188,9 +198,12 @@ def inject_residue_params(
 
     # patching runs at db load
     # injected residues get all db variants applied here
-    new_patched = param_db.chemical.with_added_residues(
-        residue_types, atom_types=new_atom_types, variants=variants
-    )
+    chemical = param_db.chemical
+    if variants:
+        # Attachments also patch partners already present in the database.
+        chemical = attr.evolve(chemical, atom_types=new_atom_types)
+        chemical = chemical.with_variants_applied(variants)
+    new_patched = chemical.with_added_residues(residue_types, atom_types=new_atom_types)
 
     new_elec = param_db.scoring.elec
     if partial_charges:
@@ -205,9 +218,15 @@ def inject_residue_params(
         )
 
     new_cart = param_db.scoring.cartbonded
-    if cartbonded_params:
-        new_res_params = {**new_cart.residue_params, **cartbonded_params}
-        new_cart = attr.evolve(new_cart, residue_params=new_res_params)
+    if cartbonded_params or connection_params:
+        new_res_params = {**new_cart.residue_params, **(cartbonded_params or {})}
+        new_connections = tuple(
+            dict.fromkeys((*new_cart.connection_params, *(connection_params or ())))
+        )
+        # Scoring annotations are keyed by this content hash. Carrying the
+        # old hash into an extended database can reuse another database's
+        # bonded parameters on an already annotated block type or pose.
+        new_cart = type(new_cart).from_cartres_dict(new_res_params, new_connections)
 
     new_scoring = attr.evolve(
         param_db.scoring,

@@ -313,9 +313,11 @@ class PackerTask:
         self.per_block_is_block_type_allowed = torch.ones_like(
             self.per_block_considered_block_types, dtype=torch.bool
         )
-        # as we add conformer samplers to the task, we assign them an intex
-        self.conformer_samplers = palette.default_conformer_samplers()
-        # this will map from conformer sampler to its index in this task
+        # Each sampler object owns one mask column; equal but distinct sampler
+        # instances remain independent. Own the list even if a palette reuses it.
+        self.conformer_samplers = list(
+            {id(s): s for s in palette.default_conformer_samplers()}.values()
+        )
         self.conformer_sampler_index = {
             id(sampler): i for i, sampler in enumerate(self.conformer_samplers)
         }
@@ -340,13 +342,34 @@ class PackerTask:
         #    from the tip inward at the second
         self.chi_sample_expanded_limit = DEFAULT_CHI_SAMPLE_EXPANDED_LIMIT
         self.chi_sample_limit = DEFAULT_CHI_SAMPLE_LIMIT
+        self.chi_sample_budget = None
 
     def set_chi_sample_budget(self, expanded_limit: int, limit: int):
-        """Bound the rotamers sampled chi enumerate; see tmol.pack.rotamer."""
+        """Set expansion/fallback budgets without mutating reusable samplers.
+
+        Groups count one rotamer per member per conformer, including current.
+        A required library that cannot fit is rejected before the group product
+        is allocated. Sampler-specific defaults apply until this setter is used.
+        The combined count across samplers and allowed types at each physical
+        residue must also fit the larger limit before rows/coordinates merge.
+        """
+        import operator
+
+        try:
+            if isinstance(expanded_limit, bool) or isinstance(limit, bool):
+                raise TypeError
+            expanded_limit, limit = operator.index(expanded_limit), operator.index(
+                limit
+            )
+        except TypeError:
+            raise ValueError(
+                "chi sample budget limits must be positive integers"
+            ) from None
         if expanded_limit < 1 or limit < 1:
-            raise ValueError("chi sample budget limits must be positive")
+            raise ValueError("chi sample budget limits must be positive integers")
         self.chi_sample_expanded_limit = expanded_limit
         self.chi_sample_limit = limit
+        self.chi_sample_budget = (expanded_limit, limit)
 
     def restrict_to_repacking(self):
         # Use the pre-calculated masks to disable packing for
@@ -395,32 +418,30 @@ class PackerTask:
         )
 
     def add_conformer_sampler(self, sampler: ConformerSampler):
-        self.conformer_samplers.append(sampler)
-        self.conformer_sampler_index[id(sampler)] = len(self.conformer_samplers) - 1
-        self.per_block_conformer_sampler_allowed = torch.cat(
-            [
-                self.per_block_conformer_sampler_allowed,
-                torch.ones(
-                    (
-                        self.per_block_conformer_sampler_allowed.shape[0],
-                        self.per_block_conformer_sampler_allowed.shape[1],
-                        1,
-                    ),
-                    dtype=torch.bool,
-                    device=self.device,
-                ),
-            ],
-            dim=-1,
+        """Enable this sampler everywhere, registering its identity once."""
+        index = self.conformer_sampler_index.get(id(sampler))
+        if index is not None:
+            self.per_block_conformer_sampler_allowed[:, :, index].fill_(True)
+            return
+        self.add_conformer_sampler_by_block_mask(
+            sampler, torch.ones_like(self.is_real_block)
         )
 
     def add_conformer_sampler_by_block_mask(
         self, sampler: ConformerSampler, block_type_mask: Tensor[torch.bool][:, :]
     ):
+        """Enable this sampler in the mask, extending any existing selection."""
         assert (
             block_type_mask.shape == self.per_block_n_considered_block_types.shape[:2]
         )
         assert block_type_mask.device == self.per_block_conformer_sampler_allowed.device
 
+        index = self.conformer_sampler_index.get(id(sampler))
+        if index is not None:
+            self.per_block_conformer_sampler_allowed[:, :, index].logical_or_(
+                block_type_mask
+            )
+            return
         self.conformer_samplers.append(sampler)
         self.conformer_sampler_index[id(sampler)] = len(self.conformer_samplers) - 1
         self.per_block_conformer_sampler_allowed = torch.cat(
@@ -497,6 +518,7 @@ class SetPackerTask:
         set_task = cls()
         set_task.pbt = task.pbt
         set_task.device = task.device
+        set_task.chi_sample_budget = task.chi_sample_budget
         set_task.is_real_block = task.is_real_block
         set_task.real_block_pose, set_task.real_block_block = torch.nonzero(
             set_task.is_real_block, as_tuple=True

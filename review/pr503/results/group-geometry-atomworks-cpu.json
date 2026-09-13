@@ -1,0 +1,25 @@
+{
+  "reader": "atomworks",
+  "device": "cpu",
+  "torch": "2.8.0+cpu",
+  "rows": [
+    {
+      "fixture": "biotin",
+      "case": "test_group_conformers_preserve_all_bonds_angles_and_chirality",
+      "status": "pass",
+      "seconds": 11.995978070423007
+    },
+    {
+      "fixture": "nglycan",
+      "case": "test_group_conformers_preserve_all_bonds_angles_and_chirality",
+      "status": "pass",
+      "seconds": 3.035009840503335
+    },
+    {
+      "fixture": "oglycan",
+      "case": "test_group_conformers_preserve_all_bonds_angles_and_chirality",
+      "status": "pass",
+      "seconds": 6.095107625238597
+    }
+  ]
+}

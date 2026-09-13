@@ -1,0 +1,1234 @@
+{
+  "checkout": "/mnt/home/kdidi/projects/tmol-pr503-review",
+  "reader": "atomworks",
+  "diff": "diff --git a/tmol/ligand/_structure_to_smiles.py b/tmol/ligand/_structure_to_smiles.py\nindex 26620ba00..68ace5b81 100644\n--- a/tmol/ligand/_structure_to_smiles.py\n+++ b/tmol/ligand/_structure_to_smiles.py\n@@ -60,9 +60,10 @@ def _sp2_angle_sum(conf, center: int, neighbors: list[int]) -> float | None:\n     \"\"\"Sum of the three bond angles at ``center`` (deg); None if degenerate.\"\"\"\n     cpos = np.asarray(conf.GetAtomPosition(center))\n     vecs = [np.asarray(conf.GetAtomPosition(n)) - cpos for n in neighbors]\n-    if any(np.linalg.norm(v) == 0 for v in vecs):\n+    norms = np.linalg.norm(vecs, axis=1)\n+    if not np.all(np.isfinite(norms) & (norms > 0)):\n         return None\n-    units = [v / np.linalg.norm(v) for v in vecs]\n+    units = np.asarray(vecs) / norms[:, None]\n     total = 0.0\n     for i in range(len(units)):\n         for j in range(i + 1, len(units)):\n@@ -98,7 +99,7 @@ def _infer_carboxylate_bonds(rw: Chem.RWMol, conf) -> int:\n             float(np.linalg.norm(np.asarray(conf.GetAtomPosition(o)) - cpos))\n             for o in term_os\n         ]\n-        if any(d > _CARBOXYL_CO_MAX for d in co_dists):\n+        if not all(0 < d <= _CARBOXYL_CO_MAX for d in co_dists):\n             continue\n         nbrs = [nb.GetIdx() for nb in atom.GetNeighbors()]\n         angle_sum = _sp2_angle_sum(conf, c, nbrs)\n",
+  "commit": "b56ebe7c4b6da66c500d08354c833210899518a6",
+  "packages": {
+    "torch": "2.8.0+cpu",
+    "numpy": "2.5.3",
+    "biotite": "1.6.0",
+    "rdkit": "2026.3.6"
+  },
+  "device": "cpu",
+  "instrumented": false,
+  "threads": 2,
+  "device_name": "cpu",
+  "runs": [
+    {
+      "fixture": "cif/1UBQ.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 4.881161398254335,
+          "samples": [
+            4.881161398254335
+          ]
+        },
+        "prepare": {
+          "median": 1.506319908425212,
+          "samples": [
+            1.506319908425212
+          ]
+        },
+        "construct": {
+          "median": 0.17532898765057325,
+          "samples": [
+            0.17532898765057325
+          ]
+        },
+        "score_setup": {
+          "median": 1.5423076758161187,
+          "samples": [
+            1.5423076758161187
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.10407739225775003,
+          "samples": [
+            0.10407739225775003
+          ]
+        },
+        "score": {
+          "median": 0.013313867151737213,
+          "samples": [
+            0.013313867151737213
+          ]
+        },
+        "score_backward": {
+          "median": 0.024229682981967926,
+          "samples": [
+            0.024229682981967926
+          ]
+        },
+        "rotamers": {
+          "median": 1.9034118931740522,
+          "samples": [
+            1.9034118931740522
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 76,
+      "atoms": 1231,
+      "score": [
+        232.442138671875
+      ],
+      "max_abs_gradient": 72.8786849975586,
+      "rotamers": 2004,
+      "status": "passed",
+      "process_peak_rss_kib": 2124296
+    },
+    {
+      "fixture": "ncaa_fixtures/6dmz_mod_d.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.4984170664101839,
+          "samples": [
+            0.4984170664101839
+          ]
+        },
+        "prepare": {
+          "median": 0.042825691401958466,
+          "samples": [
+            0.042825691401958466
+          ]
+        },
+        "construct": {
+          "median": 0.09918825700879097,
+          "samples": [
+            0.09918825700879097
+          ]
+        },
+        "score_setup": {
+          "median": 1.2285092333331704,
+          "samples": [
+            1.2285092333331704
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.01397098507732153,
+          "samples": [
+            0.01397098507732153
+          ]
+        },
+        "score": {
+          "median": 0.007159963250160217,
+          "samples": [
+            0.007159963250160217
+          ]
+        },
+        "score_backward": {
+          "median": 0.013154895976185799,
+          "samples": [
+            0.013154895976185799
+          ]
+        },
+        "rotamers": {
+          "median": 0.8473941190168262,
+          "samples": [
+            0.8473941190168262
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 47,
+      "atoms": 732,
+      "score": [
+        87.33906555175781
+      ],
+      "max_abs_gradient": 26.32322120666504,
+      "rotamers": 1218,
+      "status": "passed",
+      "process_peak_rss_kib": 2134260
+    },
+    {
+      "fixture": "ncaa_fixtures/6dmz_mod_l.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.11019430961459875,
+          "samples": [
+            0.11019430961459875
+          ]
+        },
+        "prepare": {
+          "median": 0.041588651947677135,
+          "samples": [
+            0.041588651947677135
+          ]
+        },
+        "construct": {
+          "median": 0.09315791074186563,
+          "samples": [
+            0.09315791074186563
+          ]
+        },
+        "score_setup": {
+          "median": 1.2238191310316324,
+          "samples": [
+            1.2238191310316324
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.014228476211428642,
+          "samples": [
+            0.014228476211428642
+          ]
+        },
+        "score": {
+          "median": 0.007243298925459385,
+          "samples": [
+            0.007243298925459385
+          ]
+        },
+        "score_backward": {
+          "median": 0.013421731069684029,
+          "samples": [
+            0.013421731069684029
+          ]
+        },
+        "rotamers": {
+          "median": 0.8470216831192374,
+          "samples": [
+            0.8470216831192374
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 47,
+      "atoms": 732,
+      "score": [
+        88.89090728759766
+      ],
+      "max_abs_gradient": 26.323225021362305,
+      "rotamers": 1261,
+      "status": "passed",
+      "process_peak_rss_kib": 2134688
+    },
+    {
+      "fixture": "ncaa_fixtures/beta_peptide_3c3g.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.3264643270522356,
+          "samples": [
+            0.3264643270522356
+          ]
+        },
+        "prepare": {
+          "median": 5.959469520486891,
+          "samples": [
+            5.959469520486891
+          ]
+        },
+        "construct": {
+          "median": 2.919622641056776,
+          "samples": [
+            2.919622641056776
+          ]
+        },
+        "score_setup": {
+          "median": 0.0891923289746046,
+          "samples": [
+            0.0891923289746046
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.009850198403000832,
+          "samples": [
+            0.009850198403000832
+          ]
+        },
+        "score": {
+          "median": 0.005013993941247463,
+          "samples": [
+            0.005013993941247463
+          ]
+        },
+        "score_backward": {
+          "median": 0.008418274112045765,
+          "samples": [
+            0.008418274112045765
+          ]
+        },
+        "rotamers": {
+          "median": 0.20216274354606867,
+          "samples": [
+            0.20216274354606867
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 31,
+      "atoms": 585,
+      "score": [
+        70.32109832763672
+      ],
+      "max_abs_gradient": 36.30831527709961,
+      "rotamers": 748,
+      "status": "passed",
+      "process_peak_rss_kib": 2326088
+    },
+    {
+      "fixture": "ncaa_fixtures/capped_peptide_ace_nh2.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.07652476243674755,
+          "samples": [
+            0.07652476243674755
+          ]
+        },
+        "prepare": {
+          "median": 0.2719279136508703,
+          "samples": [
+            0.2719279136508703
+          ]
+        },
+        "construct": {
+          "median": 0.08787996601313353,
+          "samples": [
+            0.08787996601313353
+          ]
+        },
+        "score_setup": {
+          "median": 1.5145873427391052,
+          "samples": [
+            1.5145873427391052
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.001305622048676014,
+          "samples": [
+            0.001305622048676014
+          ]
+        },
+        "score": {
+          "median": 0.00041912589222192764,
+          "samples": [
+            0.00041912589222192764
+          ]
+        },
+        "score_backward": {
+          "median": 0.0006701480597257614,
+          "samples": [
+            0.0006701480597257614
+          ]
+        },
+        "rotamers": {
+          "median": 0.8284967634826899,
+          "samples": [
+            0.8284967634826899
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 3,
+      "atoms": 19,
+      "score": [
+        8.84290599822998
+      ],
+      "max_abs_gradient": 35.46399688720703,
+      "rotamers": 3,
+      "status": "passed",
+      "process_peak_rss_kib": 2386760
+    },
+    {
+      "fixture": "ncaa_fixtures/capped_peptide_ace_nme.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.04098109994083643,
+          "samples": [
+            0.04098109994083643
+          ]
+        },
+        "prepare": {
+          "median": 0.2928532473742962,
+          "samples": [
+            0.2928532473742962
+          ]
+        },
+        "construct": {
+          "median": 0.08836530242115259,
+          "samples": [
+            0.08836530242115259
+          ]
+        },
+        "score_setup": {
+          "median": 1.2083976231515408,
+          "samples": [
+            1.2083976231515408
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.001260274089872837,
+          "samples": [
+            0.001260274089872837
+          ]
+        },
+        "score": {
+          "median": 0.00043079350143671036,
+          "samples": [
+            0.00043079350143671036
+          ]
+        },
+        "score_backward": {
+          "median": 0.0006838077679276466,
+          "samples": [
+            0.0006838077679276466
+          ]
+        },
+        "rotamers": {
+          "median": 0.8219319535419345,
+          "samples": [
+            0.8219319535419345
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 3,
+      "atoms": 22,
+      "score": [
+        8.94865894317627
+      ],
+      "max_abs_gradient": 35.47567367553711,
+      "rotamers": 3,
+      "status": "passed",
+      "process_peak_rss_kib": 2387312
+    },
+    {
+      "fixture": "ncaa_fixtures/collagen_hyp_1bkv.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.07366100419312716,
+          "samples": [
+            0.07366100419312716
+          ]
+        },
+        "prepare": {
+          "median": 0.41604649741202593,
+          "samples": [
+            0.41604649741202593
+          ]
+        },
+        "construct": {
+          "median": 0.09083838760852814,
+          "samples": [
+            0.09083838760852814
+          ]
+        },
+        "score_setup": {
+          "median": 1.2043162444606423,
+          "samples": [
+            1.2043162444606423
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.0036539575085043907,
+          "samples": [
+            0.0036539575085043907
+          ]
+        },
+        "score": {
+          "median": 0.0019113225862383842,
+          "samples": [
+            0.0019113225862383842
+          ]
+        },
+        "score_backward": {
+          "median": 0.0029236888512969017,
+          "samples": [
+            0.0029236888512969017
+          ]
+        },
+        "rotamers": {
+          "median": 0.8377291932702065,
+          "samples": [
+            0.8377291932702065
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 29,
+      "atoms": 358,
+      "score": [
+        38.011295318603516
+      ],
+      "max_abs_gradient": 20.08220863342285,
+      "rotamers": 271,
+      "status": "passed",
+      "process_peak_rss_kib": 2387312
+    },
+    {
+      "fixture": "ncaa_fixtures/gamma_peptide_1gac.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.10063532553613186,
+          "samples": [
+            0.10063532553613186
+          ]
+        },
+        "prepare": {
+          "median": 0.4464398492127657,
+          "samples": [
+            0.4464398492127657
+          ]
+        },
+        "construct": {
+          "median": 0.08861688431352377,
+          "samples": [
+            0.08861688431352377
+          ]
+        },
+        "score_setup": {
+          "median": 1.2201029481366277,
+          "samples": [
+            1.2201029481366277
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.0018165791407227516,
+          "samples": [
+            0.0018165791407227516
+          ]
+        },
+        "score": {
+          "median": 0.0007318006828427315,
+          "samples": [
+            0.0007318006828427315
+          ]
+        },
+        "score_backward": {
+          "median": 0.001075994223356247,
+          "samples": [
+            0.001075994223356247
+          ]
+        },
+        "rotamers": {
+          "median": 0.8399973651394248,
+          "samples": [
+            0.8399973651394248
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 5,
+      "atoms": 70,
+      "score": [
+        173.54934692382812
+      ],
+      "max_abs_gradient": 252.61241149902344,
+      "rotamers": 48,
+      "status": "passed",
+      "process_peak_rss_kib": 2387312
+    },
+    {
+      "fixture": "ncaa_fixtures/na_dna_5mc_1d17.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.19114138837903738,
+          "samples": [
+            0.19114138837903738
+          ]
+        },
+        "prepare": {
+          "median": 0.4792534364387393,
+          "samples": [
+            0.4792534364387393
+          ]
+        },
+        "construct": {
+          "median": 0.09156581293791533,
+          "samples": [
+            0.09156581293791533
+          ]
+        },
+        "score_setup": {
+          "median": 1.4717426029965281,
+          "samples": [
+            1.4717426029965281
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.00782988965511322,
+          "samples": [
+            0.00782988965511322
+          ]
+        },
+        "score": {
+          "median": 0.003851349465548992,
+          "samples": [
+            0.003851349465548992
+          ]
+        },
+        "score_backward": {
+          "median": 0.006839887239038944,
+          "samples": [
+            0.006839887239038944
+          ]
+        },
+        "rotamers": {
+          "median": 0.8377817338332534,
+          "samples": [
+            0.8377817338332534
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 6,
+      "atoms": 195,
+      "score": [
+        290.69720458984375
+      ],
+      "max_abs_gradient": 148.89097595214844,
+      "rotamers": 22,
+      "status": "passed",
+      "process_peak_rss_kib": 2390428
+    },
+    {
+      "fixture": "ncaa_fixtures/na_dna_8og_183d.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.09567734599113464,
+          "samples": [
+            0.09567734599113464
+          ]
+        },
+        "prepare": {
+          "median": 0.49507733527570963,
+          "samples": [
+            0.49507733527570963
+          ]
+        },
+        "construct": {
+          "median": 0.09182108007371426,
+          "samples": [
+            0.09182108007371426
+          ]
+        },
+        "score_setup": {
+          "median": 1.436286872252822,
+          "samples": [
+            1.436286872252822
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.008544204756617546,
+          "samples": [
+            0.008544204756617546
+          ]
+        },
+        "score": {
+          "median": 0.0036594076082110405,
+          "samples": [
+            0.0036594076082110405
+          ]
+        },
+        "score_backward": {
+          "median": 0.007567691616714001,
+          "samples": [
+            0.007567691616714001
+          ]
+        },
+        "rotamers": {
+          "median": 0.8466992741450667,
+          "samples": [
+            0.8466992741450667
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 10,
+      "atoms": 316,
+      "score": [
+        181.52169799804688
+      ],
+      "max_abs_gradient": 582.271728515625,
+      "rotamers": 26,
+      "status": "passed",
+      "process_peak_rss_kib": 2390428
+    },
+    {
+      "fixture": "ncaa_fixtures/na_dna_ttd_1ttd.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.05631544440984726,
+          "samples": [
+            0.05631544440984726
+          ]
+        },
+        "prepare": {
+          "median": 0.5989170959219337,
+          "samples": [
+            0.5989170959219337
+          ]
+        },
+        "construct": {
+          "median": 0.09493397641927004,
+          "samples": [
+            0.09493397641927004
+          ]
+        },
+        "score_setup": {
+          "median": 1.2314965575933456,
+          "samples": [
+            1.2314965575933456
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.00977503415197134,
+          "samples": [
+            0.00977503415197134
+          ]
+        },
+        "score": {
+          "median": 0.004195470362901688,
+          "samples": [
+            0.004195470362901688
+          ]
+        },
+        "score_backward": {
+          "median": 0.008585788309574127,
+          "samples": [
+            0.008585788309574127
+          ]
+        },
+        "rotamers": {
+          "median": 0.8403229704126716,
+          "samples": [
+            0.8403229704126716
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 11,
+      "atoms": 382,
+      "score": [
+        99.21690368652344
+      ],
+      "max_abs_gradient": 43.52132034301758,
+      "rotamers": 27,
+      "status": "passed",
+      "process_peak_rss_kib": 2458368
+    },
+    {
+      "fixture": "ncaa_fixtures/na_rna_2ome_310d.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.1004949826747179,
+          "samples": [
+            0.1004949826747179
+          ]
+        },
+        "prepare": {
+          "median": 0.9381773229688406,
+          "samples": [
+            0.9381773229688406
+          ]
+        },
+        "construct": {
+          "median": 0.0968814454972744,
+          "samples": [
+            0.0968814454972744
+          ]
+        },
+        "score_setup": {
+          "median": 1.2835765415802598,
+          "samples": [
+            1.2835765415802598
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.007298093289136887,
+          "samples": [
+            0.007298093289136887
+          ]
+        },
+        "score": {
+          "median": 0.0029867859557271004,
+          "samples": [
+            0.0029867859557271004
+          ]
+        },
+        "score_backward": {
+          "median": 0.006174787878990173,
+          "samples": [
+            0.006174787878990173
+          ]
+        },
+        "rotamers": {
+          "median": 0.8884787056595087,
+          "samples": [
+            0.8884787056595087
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 6,
+      "atoms": 212,
+      "score": [
+        111.12053680419922
+      ],
+      "max_abs_gradient": 67.14707946777344,
+      "rotamers": 33,
+      "status": "passed",
+      "process_peak_rss_kib": 2458368
+    },
+    {
+      "fixture": "ncaa_fixtures/na_rna_psu_1bzt.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.22413831390440464,
+          "samples": [
+            0.22413831390440464
+          ]
+        },
+        "prepare": {
+          "median": 0.4728278201073408,
+          "samples": [
+            0.4728278201073408
+          ]
+        },
+        "construct": {
+          "median": 0.09321732074022293,
+          "samples": [
+            0.09321732074022293
+          ]
+        },
+        "score_setup": {
+          "median": 1.2024707226082683,
+          "samples": [
+            1.2024707226082683
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.014538726769387722,
+          "samples": [
+            0.014538726769387722
+          ]
+        },
+        "score": {
+          "median": 0.0065382178872823715,
+          "samples": [
+            0.0065382178872823715
+          ]
+        },
+        "score_backward": {
+          "median": 0.013988642022013664,
+          "samples": [
+            0.013988642022013664
+          ]
+        },
+        "rotamers": {
+          "median": 0.8547852830961347,
+          "samples": [
+            0.8547852830961347
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 17,
+      "atoms": 535,
+      "score": [
+        180.8675994873047
+      ],
+      "max_abs_gradient": 333.2503967285156,
+      "rotamers": 450,
+      "status": "passed",
+      "process_peak_rss_kib": 2459268
+    },
+    {
+      "fixture": "ncaa_fixtures/nmethyl_peptide_6mvz.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.04447456356137991,
+          "samples": [
+            0.04447456356137991
+          ]
+        },
+        "prepare": {
+          "median": 0.4353315522894263,
+          "samples": [
+            0.4353315522894263
+          ]
+        },
+        "construct": {
+          "median": 0.08895747177302837,
+          "samples": [
+            0.08895747177302837
+          ]
+        },
+        "score_setup": {
+          "median": 1.4535157550126314,
+          "samples": [
+            1.4535157550126314
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.0019153496250510216,
+          "samples": [
+            0.0019153496250510216
+          ]
+        },
+        "score": {
+          "median": 0.0009153904393315315,
+          "samples": [
+            0.0009153904393315315
+          ]
+        },
+        "score_backward": {
+          "median": 0.0012699076905846596,
+          "samples": [
+            0.0012699076905846596
+          ]
+        },
+        "rotamers": {
+          "median": 0.8417164385318756,
+          "samples": [
+            0.8417164385318756
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 4,
+      "atoms": 87,
+      "score": [
+        18.33684539794922
+      ],
+      "max_abs_gradient": 38.00131607055664,
+      "rotamers": 31,
+      "status": "passed",
+      "process_peak_rss_kib": 2459268
+    },
+    {
+      "fixture": "ncaa_fixtures/phosphopeptide_5ema.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.0454437555745244,
+          "samples": [
+            0.0454437555745244
+          ]
+        },
+        "prepare": {
+          "median": 0.4103464325889945,
+          "samples": [
+            0.4103464325889945
+          ]
+        },
+        "construct": {
+          "median": 0.08901206497102976,
+          "samples": [
+            0.08901206497102976
+          ]
+        },
+        "score_setup": {
+          "median": 1.2058495441451669,
+          "samples": [
+            1.2058495441451669
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.0020319856703281403,
+          "samples": [
+            0.0020319856703281403
+          ]
+        },
+        "score": {
+          "median": 0.0008563501760363579,
+          "samples": [
+            0.0008563501760363579
+          ]
+        },
+        "score_backward": {
+          "median": 0.0013335151597857475,
+          "samples": [
+            0.0013335151597857475
+          ]
+        },
+        "rotamers": {
+          "median": 0.8398234322667122,
+          "samples": [
+            0.8398234322667122
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 7,
+      "atoms": 106,
+      "score": [
+        12.730168342590332
+      ],
+      "max_abs_gradient": 35.16481018066406,
+      "rotamers": 340,
+      "status": "passed",
+      "process_peak_rss_kib": 2459268
+    },
+    {
+      "fixture": "covalent_fixtures/lys_biotin_1bdo.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.08472552616149187,
+          "samples": [
+            0.08472552616149187
+          ]
+        },
+        "prepare": {
+          "median": 0.4347118102014065,
+          "samples": [
+            0.4347118102014065
+          ]
+        },
+        "construct": {
+          "median": 0.10602782387286425,
+          "samples": [
+            0.10602782387286425
+          ]
+        },
+        "score_setup": {
+          "median": 1.2686876337975264,
+          "samples": [
+            1.2686876337975264
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.028409079648554325,
+          "samples": [
+            0.028409079648554325
+          ]
+        },
+        "score": {
+          "median": 0.013243870809674263,
+          "samples": [
+            0.013243870809674263
+          ]
+        },
+        "score_backward": {
+          "median": 0.024248342029750347,
+          "samples": [
+            0.024248342029750347
+          ]
+        },
+        "rotamers": {
+          "median": 0.8987094517797232,
+          "samples": [
+            0.8987094517797232
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 81,
+      "atoms": 1252,
+      "score": [
+        -84.30335998535156
+      ],
+      "max_abs_gradient": 36.110774993896484,
+      "rotamers": 2094,
+      "status": "passed",
+      "process_peak_rss_kib": 2459268
+    },
+    {
+      "fixture": "covalent_fixtures/nglycan_tree_1ax2.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.3769573802128434,
+          "samples": [
+            0.3769573802128434
+          ]
+        },
+        "prepare": {
+          "median": 1.6647313963621855,
+          "samples": [
+            1.6647313963621855
+          ]
+        },
+        "construct": {
+          "median": 0.1316737774759531,
+          "samples": [
+            0.1316737774759531
+          ]
+        },
+        "score_setup": {
+          "median": 1.3739173840731382,
+          "samples": [
+            1.3739173840731382
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.09106671344488859,
+          "samples": [
+            0.09106671344488859
+          ]
+        },
+        "score": {
+          "median": 0.048318502493202686,
+          "samples": [
+            0.048318502493202686
+          ]
+        },
+        "score_backward": {
+          "median": 0.09053932316601276,
+          "samples": [
+            0.09053932316601276
+          ]
+        },
+        "rotamers": {
+          "median": 0.9607877274975181,
+          "samples": [
+            0.9607877274975181
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 248,
+      "atoms": 3848,
+      "score": [
+        12.47869873046875
+      ],
+      "max_abs_gradient": 47.329769134521484,
+      "rotamers": 6356,
+      "status": "passed",
+      "process_peak_rss_kib": 2559816
+    },
+    {
+      "fixture": "covalent_fixtures/oglycan_sia_1g1s.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.13349485211074352,
+          "samples": [
+            0.13349485211074352
+          ]
+        },
+        "prepare": {
+          "median": 1.863577775657177,
+          "samples": [
+            1.863577775657177
+          ]
+        },
+        "construct": {
+          "median": 3.057168612256646,
+          "samples": [
+            3.057168612256646
+          ]
+        },
+        "score_setup": {
+          "median": 0.004999280907213688,
+          "samples": [
+            0.004999280907213688
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.006744682788848877,
+          "samples": [
+            0.006744682788848877
+          ]
+        },
+        "score": {
+          "median": 0.003689493052661419,
+          "samples": [
+            0.003689493052661419
+          ]
+        },
+        "score_backward": {
+          "median": 0.0059145912528038025,
+          "samples": [
+            0.0059145912528038025
+          ]
+        },
+        "rotamers": {
+          "median": 0.21078843250870705,
+          "samples": [
+            0.21078843250870705
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 20,
+      "atoms": 396,
+      "score": [
+        88.00868225097656
+      ],
+      "max_abs_gradient": 29.414512634277344,
+      "rotamers": 3599,
+      "status": "passed",
+      "process_peak_rss_kib": 2569032
+    },
+    {
+      "fixture": "cif/cyclic_peptide_1jbl.cif",
+      "device": "cpu",
+      "stages": {
+        "read": {
+          "median": 0.018271193839609623,
+          "samples": [
+            0.018271193839609623
+          ]
+        },
+        "prepare": {
+          "median": 0.03944819234311581,
+          "samples": [
+            0.03944819234311581
+          ]
+        },
+        "construct": {
+          "median": 0.08917299844324589,
+          "samples": [
+            0.08917299844324589
+          ]
+        },
+        "score_setup": {
+          "median": 1.205062858760357,
+          "samples": [
+            1.205062858760357
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.003527836874127388,
+          "samples": [
+            0.003527836874127388
+          ]
+        },
+        "score": {
+          "median": 0.0018939459696412086,
+          "samples": [
+            0.0018939459696412086
+          ]
+        },
+        "score_backward": {
+          "median": 0.0029942160472273827,
+          "samples": [
+            0.0029942160472273827
+          ]
+        },
+        "rotamers": {
+          "median": 0.8410390987992287,
+          "samples": [
+            0.8410390987992287
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 14,
+      "atoms": 210,
+      "score": [
+        31.79490852355957
+      ],
+      "max_abs_gradient": 36.72006607055664,
+      "rotamers": 232,
+      "status": "passed",
+      "process_peak_rss_kib": 2569032
+    }
+  ]
+}

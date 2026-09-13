@@ -1,0 +1,98 @@
+{
+  "baseline": "88209b75f1d567b7473d71060d709bfcae13bc26",
+  "device": "cuda:0",
+  "torch": "2.13.0+cu132",
+  "n_types": 230,
+  "rows": {
+    "before": [
+      {
+        "setup_seconds": 0.2274582120589912,
+        "packed_cache_entries": 1,
+        "max_block_cache_entries": 1,
+        "packed_cache_tensor_bytes": 1618384,
+        "block_cache_numpy_bytes": 995808
+      },
+      {
+        "setup_seconds": 0.09347817627713084,
+        "packed_cache_entries": 2,
+        "max_block_cache_entries": 2,
+        "packed_cache_tensor_bytes": 3170528,
+        "block_cache_numpy_bytes": 1991616
+      },
+      {
+        "setup_seconds": 0.0961282579228282,
+        "packed_cache_entries": 3,
+        "max_block_cache_entries": 3,
+        "packed_cache_tensor_bytes": 4722672,
+        "block_cache_numpy_bytes": 2987424
+      },
+      {
+        "setup_seconds": 0.09620559681206942,
+        "packed_cache_entries": 4,
+        "max_block_cache_entries": 4,
+        "packed_cache_tensor_bytes": 6274816,
+        "block_cache_numpy_bytes": 3983232
+      },
+      {
+        "setup_seconds": 0.09795435098931193,
+        "packed_cache_entries": 5,
+        "max_block_cache_entries": 5,
+        "packed_cache_tensor_bytes": 7826960,
+        "block_cache_numpy_bytes": 4979040
+      },
+      {
+        "setup_seconds": 0.09604344377294183,
+        "packed_cache_entries": 6,
+        "max_block_cache_entries": 6,
+        "packed_cache_tensor_bytes": 9379104,
+        "block_cache_numpy_bytes": 5974848
+      }
+    ],
+    "after": [
+      {
+        "setup_seconds": 0.09878731518983841,
+        "packed_cache_entries": 1,
+        "max_block_cache_entries": 1,
+        "packed_cache_tensor_bytes": 1618384,
+        "block_cache_numpy_bytes": 995808
+      },
+      {
+        "setup_seconds": 0.09405062394216657,
+        "packed_cache_entries": 2,
+        "max_block_cache_entries": 2,
+        "packed_cache_tensor_bytes": 3170528,
+        "block_cache_numpy_bytes": 1991616
+      },
+      {
+        "setup_seconds": 0.09151036478579044,
+        "packed_cache_entries": 2,
+        "max_block_cache_entries": 2,
+        "packed_cache_tensor_bytes": 3170528,
+        "block_cache_numpy_bytes": 1991616
+      },
+      {
+        "setup_seconds": 0.09100748505443335,
+        "packed_cache_entries": 2,
+        "max_block_cache_entries": 2,
+        "packed_cache_tensor_bytes": 3170528,
+        "block_cache_numpy_bytes": 1991616
+      },
+      {
+        "setup_seconds": 0.09193101897835732,
+        "packed_cache_entries": 2,
+        "max_block_cache_entries": 2,
+        "packed_cache_tensor_bytes": 3170528,
+        "block_cache_numpy_bytes": 1991616
+      },
+      {
+        "setup_seconds": 0.09125764993950725,
+        "packed_cache_entries": 2,
+        "max_block_cache_entries": 2,
+        "packed_cache_tensor_bytes": 3170528,
+        "block_cache_numpy_bytes": 1991616
+      }
+    ]
+  },
+  "all_annotation_tensors_exact_match": true,
+  "scope": "cache-reachable array storage only; excludes Python dictionaries/objects, rendered modules, profiler-held snapshots, allocator/native process memory; timings are single-sample diagnostics"
+}

@@ -1,0 +1,38 @@
+{
+  "baseline": "88209b75f1d567b7473d71060d709bfcae13bc26",
+  "source_sha256": "382a1d3956a2f95245f490f585bdd1bf22808c6b1db68001f892b1354247dc63",
+  "device": "cuda:0",
+  "torch": "2.13.0+cu132",
+  "n_types": 230,
+  "n_real_atoms": 4738,
+  "seconds": {
+    "before": [
+      0.07354472908191383,
+      0.07261322662234307,
+      0.07376001169905066,
+      0.07279501128941775,
+      0.07219504681415856,
+      0.07235061172395944,
+      0.07250928371213376
+    ],
+    "after": [
+      0.010277020605280995,
+      0.010243312502279878,
+      0.010284377075731755,
+      0.010242141596972943,
+      0.010149555187672377,
+      0.010254694195464254,
+      0.010266992077231408
+    ]
+  },
+  "medians": {
+    "before": 0.07261322662234307,
+    "after": 0.010254694195464254
+  },
+  "native_scalar_reads": {
+    "before": 4968,
+    "after": 0
+  },
+  "all_annotations_exact_match": true,
+  "scope": "warm block metadata, fresh packed annotations; seven alternating sets of ten calls; separate instrumented scalar count; excludes pose creation, term construction and scoring"
+}

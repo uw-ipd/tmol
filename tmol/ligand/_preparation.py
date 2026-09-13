@@ -6,6 +6,7 @@ This module contains the concrete preparation pipeline implementation.
 
 import itertools
 import logging
+from dataclasses import replace
 from typing import Optional
 
 import attr
@@ -14,7 +15,7 @@ import biotite.structure as struc
 import numpy as np
 from rdkit import Chem
 
-from tmol.database import ParameterDatabase
+from tmol.database import ParameterDatabase, inject_residue_params
 from tmol.database.chemical import AtomAlias
 from tmol.io import CanonicalOrdering
 from tmol.ligand._atom_typing import AtomTypeAssignment, assign_tmol_atom_types
@@ -74,6 +75,23 @@ def _partial_charges_for_residue(param_db, residue_name: str) -> dict[str, float
         for parameter in param_db.scoring.elec.atom_charge_parameters
         if parameter.res == residue_name
     }
+
+
+def _prepare_connection_params(atom_array, param_db, ph, seed):
+    from tmol.ligand._connection_params import generate_conjugate_connection_params
+
+    if atom_array.bonds is None:
+        return param_db, ()
+    records = generate_conjugate_connection_params(
+        atom_array,
+        param_db,
+        ph=ph,
+        seed=seed,
+        existing=param_db.scoring.cartbonded.connection_params,
+    )
+    if records:
+        param_db = inject_residue_params(param_db, [], connection_params=records)
+    return param_db, records
 
 
 def _assert_fragment_names_available(param_db, fragment_preparations) -> None:
@@ -357,8 +375,10 @@ def prepare_polymer_residue(
 
     # cartbonded reaches across the peptide bond by atom name, so the few
     #    backbone atoms it names are renamed and the input names kept as aliases
-    backbone_renames_to_canonical = canonical_alpha_renames(
-        atom_array, connection_atoms
+    backbone_renames_to_canonical = (
+        canonical_alpha_renames(atom_array, connection_atoms)
+        if profile.backbone_type == "alpha_aa"
+        else {}
     )
     atom_aliases = ()
     if backbone_renames_to_canonical:
@@ -502,9 +522,8 @@ def prepare_polymer_residue(
         substitutions.extend(
             (mapping, None)
             for mapping in noncanonical_junction_substitutions(
-                atom_array, profile, connection_atoms
+                residue_type, atom_type_index
             )
-            if set(mapping.values()) <= kept
         )
 
     for substitution in substitutions:
@@ -715,7 +734,10 @@ def _polymer_connection_atoms(res_name, lig, canonical_ordering, chemdb):
     A canonical residue reports its own down and up connections; anything else
     is asked for its backbone, which a sugar or a free ligand does not have.
     """
-    from tmol.ligand._polymer_profile import profile_for_atom_array
+    from tmol.ligand._polymer_profile import (
+        _chain_end_candidates,
+        profile_for_atom_array,
+    )
 
     classes = canonical_ordering.restype_io_equiv_classes
     if res_name in classes:
@@ -733,12 +755,25 @@ def _polymer_connection_atoms(res_name, lig, canonical_ordering, chemdb):
     if lig is None:
         return frozenset()
     profile = profile_for_atom_array(lig.atom_array, lig.connection_atom_names, chemdb)
-    if profile is None or not profile.mainchain_atoms:
+    if profile is None and len(lig.connection_atom_names or ()) > 2:
+        elements = dict(zip(lig.atom_array.atom_name, lig.atom_array.element))
+        pairs = {
+            frozenset((nitrogen, carbonyl))
+            for nitrogen in lig.connection_atom_names
+            if elements[nitrogen] == "N"
+            for carbonyl in _chain_end_candidates(lig.atom_array, nitrogen)
+            if carbonyl in lig.connection_atom_names
+        }
+        # Sidechain crosslinks do not erase an unambiguous peptide backbone.
+        # Resolve every partner from its chemistry, independently of loop order.
+        if len(pairs) == 1:
+            profile = profile_for_atom_array(lig.atom_array, pairs.pop(), chemdb)
+    if profile is None:
         return frozenset()
-    return frozenset((profile.mainchain_atoms[0], profile.mainchain_atoms[-1]))
+    return frozenset(atom for _, atom in profile.connections)
 
 
-def conjugation_atoms(lig, ligands_by_name, canonical_ordering, chemdb):
+def conjugation_atoms(lig, polymer_ports):
     """This residue's attachments that do not land on a polymer chain.
 
     A cap attaches to its neighbour's backbone; a conjugated ligand or a glycan
@@ -752,13 +787,7 @@ def conjugation_atoms(lig, ligands_by_name, canonical_ordering, chemdb):
     conjugations = set()
     for atom, far_side in partners.items():
         if not any(
-            partner_atom
-            in _polymer_connection_atoms(
-                partner_name,
-                ligands_by_name.get(partner_name),
-                canonical_ordering,
-                chemdb,
-            )
+            partner_atom in polymer_ports[partner_name]
             for partner_name, partner_atom in far_side
         ):
             conjugations.add(atom)
@@ -766,25 +795,38 @@ def conjugation_atoms(lig, ligands_by_name, canonical_ordering, chemdb):
 
 
 def _bond_lengths_by_site(atom_array):
-    """``{(residue name, atom): length}`` for each cross-residue bond it declares."""
-    import numpy
+    """Finite, positive measurements of declared cross-residue bonds.
 
+    An unresolved or coincident endpoint supplies no measurement, so it must
+    neither override another instance's observation nor become a patch icoor.
+    """
     if atom_array.bonds is None:
         return {}
+    bonds = atom_array.bonds.as_array()
+    if len(bonds) == 0:
+        return {}
+    starts = struc.get_residue_starts(atom_array, add_exclusive_stop=True)
     lengths = {}
-    names, residues = atom_array.atom_name, atom_array.res_id
-    chains = getattr(atom_array, "chain_id", None)
-    for first, second, *_ in atom_array.bonds.as_array():
-        same_chain = chains is None or chains[first] == chains[second]
-        if same_chain and residues[first] == residues[second]:
-            continue
-        distance = float(
-            numpy.linalg.norm(atom_array.coord[first] - atom_array.coord[second])
-        )
-        for index in (first, second):
-            lengths[
-                (str(atom_array.res_name[index]).strip(), str(names[index]).strip())
-            ] = distance
+    # Bound bond/coordinate temporaries independently of the structure size.
+    # Search residue boundaries instead of allocating an index for every atom.
+    for start in range(0, len(bonds), 4096):
+        pairs = bonds[start : start + 4096, :2]
+        residues = np.searchsorted(starts, pairs, side="right")
+        pairs = pairs[residues[:, 0] != residues[:, 1]]
+        endpoints = atom_array.coord[pairs]
+        resolved = np.isfinite(endpoints).all(axis=(1, 2))
+        pairs, endpoints = pairs[resolved], endpoints[resolved]
+        distances = np.linalg.norm(endpoints[:, 0] - endpoints[:, 1], axis=1)
+        for (first, second), distance in zip(pairs, distances):
+            if not np.isfinite(distance) or distance <= 0:
+                continue
+            for index in (first, second):
+                lengths[
+                    (
+                        str(atom_array.res_name[index]).strip(),
+                        str(atom_array.atom_name[index]).strip(),
+                    )
+                ] = float(distance)
     return lengths
 
 
@@ -814,7 +856,7 @@ def _with_conjugation(prep, atoms, chemdb, lengths):
     )
 
 
-def canonical_conjugation_sites(ligands, ligands_by_name, canonical_ordering, chemdb):
+def canonical_conjugation_sites(ligands, polymer_ports, canonical_ordering):
     """``{residue name: {atom: (component, its attaching atom)}}`` where a
     prepared component attaches to a residue the database already knows.
 
@@ -834,12 +876,7 @@ def canonical_conjugation_sites(ligands, ligands_by_name, canonical_ordering, ch
             for partner_name, partner_atom in partners:
                 if partner_name not in known:
                     continue
-                if partner_atom in _polymer_connection_atoms(
-                    partner_name,
-                    ligands_by_name.get(partner_name),
-                    canonical_ordering,
-                    chemdb,
-                ):
+                if partner_atom in polymer_ports[partner_name]:
                     continue
                 sites.setdefault(partner_name, {})[partner_atom] = (
                     lig,
@@ -850,14 +887,11 @@ def canonical_conjugation_sites(ligands, ligands_by_name, canonical_ordering, ch
 
 def _canonical_residue_array(atom_array, res_name):
     """One residue of this name from the input, for reading its chemistry."""
-    import numpy
-
-    mask = numpy.array([str(n).strip() == res_name for n in atom_array.res_name])
-    if not mask.any():
-        return None
-    ids = atom_array.res_id[mask]
-    first = atom_array[mask][atom_array.res_id[mask] == ids[0]]
-    return first if len(first) else None
+    boundaries = struc.get_residue_starts(atom_array, add_exclusive_stop=True)
+    for start, stop in zip(boundaries, boundaries[1:]):
+        if str(atom_array.res_name[start]).strip() == res_name:
+            return atom_array[start:stop]
+    return None
 
 
 def _site_hydrogen_counts(atom_array, res_name, partners, ph):
@@ -884,11 +918,10 @@ def _site_hydrogen_counts(atom_array, res_name, partners, ph):
     return counts
 
 
-def _inject_canonical_conjugations(param_db, sites, lengths, atom_array=None, ph=7.4):
+def _canonical_conjugation_parameters(
+    param_db, sites, lengths, atom_array=None, ph=7.4
+):
     """Patches and charges for the database residues a component attaches to."""
-    import attr
-
-    from tmol.database import inject_residue_params
     from tmol.ligand._conjugation_patches import (
         charges_for_database_residue,
         conjugation_charge_entries,
@@ -899,11 +932,16 @@ def _inject_canonical_conjugations(param_db, sites, lengths, atom_array=None, ph
     for res_name, partners in sorted(sites.items()):
         atoms = set(partners)
         residue_type = next(
-            (r for r in param_db.chemical.residues if r.name == res_name), None
+            (
+                r
+                for r in param_db.chemical.residues
+                if r.io_equiv_class == res_name and r.name == r.base_name
+            ),
+            None,
         )
         if residue_type is None:
             continue
-        base = charges_for_database_residue(param_db, res_name)
+        base = charges_for_database_residue(param_db, residue_type.name)
         distances = {atom: lengths.get((res_name, atom)) for atom in atoms}
         hydrogens = (
             _site_hydrogen_counts(atom_array, res_name, partners, ph)
@@ -921,12 +959,7 @@ def _inject_canonical_conjugations(param_db, sites, lengths, atom_array=None, ph
                 residue_type, atoms, param_db.chemical, base, hydrogens
             )
         )
-    if not variants:
-        return param_db
-    param_db = attr.evolve(
-        param_db, chemical=param_db.chemical.with_variants_applied(variants)
-    )
-    return inject_residue_params(param_db, residue_types=[], partial_charges=charges)
+    return tuple(variants), charges
 
 
 def _routes_to_polymer_path(
@@ -954,9 +987,13 @@ def _routes_to_polymer_path(
         return True
     if is_polymer_linking_component_type(lig.component_type):
         return True
+    backbone_connections = (
+        (lig.connection_atom_names - (conjugations or frozenset()))
+        if lig.connection_atom_names is not None
+        else None
+    )
     return (
-        profile_for_atom_array(lig.atom_array, lig.connection_atom_names, chemdb)
-        is not None
+        profile_for_atom_array(lig.atom_array, backbone_connections, chemdb) is not None
     )
 
 
@@ -1017,7 +1054,9 @@ def prepare_ligands(  # noqa: C901
     Scans the input AtomArray for residues not in the ParameterDatabase,
     runs each through the unified SMILES→OpenBabel mol2→typing→residue-build
     pipeline, and returns a **new** ParameterDatabase with the ligand data
-    injected.
+    injected. Ligand/glycan attachment lengths and angles use generated capped
+    geometry with the same Cartesian constants as ordinary ligand parameters.
+    Supplied explicit connection records take precedence.
 
     Args:
         atom_array: A biotite AtomArray from a CIF or PDB file.
@@ -1028,7 +1067,8 @@ def prepare_ligands(  # noqa: C901
             mappings are encountered during registration.
         params_files: Optional list of tmol YAML params file paths to
             inject before detection. Residues defined in these files
-            skip the RDKit/OB preparation pipeline.
+            skip residue generation. Missing attachment records are generated;
+            existing records are reused without regeneration.
         params_output: Optional path to write all prepared ligand data
             to a tmol YAML params file for later reuse.
         strict_ligands: If True (default), raise :class:`LigandPreparationError`
@@ -1110,10 +1150,9 @@ def prepare_ligands(  # noqa: C901
 
     params_preparations: list[LigandPreparation] = []
     if params_files:
-        from tmol.ligand._params_file import load_params_file
+        from tmol.ligand._params_file import _load_params_files
 
-        for params_file in params_files:
-            params_preparations.extend(load_params_file(params_file))
+        params_preparations = _load_params_files(params_files)
         param_db = inject_ligand_preparations(
             param_db,
             params_preparations,
@@ -1186,6 +1225,7 @@ def prepare_ligands(  # noqa: C901
 
     if not ligands:
         logger.info("No non-standard residues detected")
+        param_db, _ = _prepare_connection_params(atom_array, param_db, ph, seed)
         if return_fragment_definitions:
             return (
                 param_db,
@@ -1202,11 +1242,21 @@ def prepare_ligands(  # noqa: C901
     prepared_ligands: list[tuple[NonStandardResidueInfo, LigandPreparation]] = []
     prepared_polymers: list[LigandPreparation] = []
     ligands_by_name = {lig.res_name: lig for lig in ligands}
+    partner_names = {
+        name
+        for lig in ligands
+        for partners in (lig.connection_partners or {}).values()
+        for name, _atom in partners
+    }
+    polymer_ports = {
+        name: _polymer_connection_atoms(
+            name, ligands_by_name.get(name), canonical_ordering, param_db.chemical
+        )
+        for name in partner_names
+    }
     bond_lengths = _bond_lengths_by_site(atom_array)
     for lig in ligands:
-        conjugations = conjugation_atoms(
-            lig, ligands_by_name, canonical_ordering, param_db.chemical
-        )
+        conjugations = conjugation_atoms(lig, polymer_ports)
         is_polymer = _routes_to_polymer_path(lig, param_db.chemical, conjugations)
         reason = _ligand_unsupported_reason(lig, supported_elements, is_polymer)
         if reason:
@@ -1223,12 +1273,23 @@ def prepare_ligands(  # noqa: C901
                     canonical_ordering,
                     param_db,
                     ph=ph,
-                    connection_atoms=lig.connection_atom_names,
+                    # An attached sidechain (e.g. BCX's disulfide SG) does
+                    # not change the polymer backbone's two endpoints.
+                    connection_atoms=(
+                        lig.connection_atom_names - conjugations
+                        if lig.connection_atom_names is not None
+                        else None
+                    ),
                     use_ccd=use_ccd,
                     seed=seed,
                 )
             else:
-                prep = _prepare_ligand_via_smiles(lig, ph=ph, seed=seed)
+                prep = _prepare_ligand_via_smiles(
+                    lig,
+                    ph=ph,
+                    seed=seed,
+                    generate_heavy_chi_samples=bool(conjugations),
+                )
         except LigandPreparationError:
             if not is_polymer:
                 raise
@@ -1288,17 +1349,31 @@ def prepare_ligands(  # noqa: C901
             for fragment_prep in definition.fragment_preparations
         ]
         _assert_fragment_names_available(param_db, fragment_preparations)
-        param_db = inject_ligand_preparations(
-            param_db, preparations, strict_atom_types=strict_atom_types
-        )
-        param_db = _inject_canonical_conjugations(
+        partner_patches, partner_charges = _canonical_conjugation_parameters(
             param_db,
-            canonical_conjugation_sites(
-                ligands, ligands_by_name, canonical_ordering, param_db.chemical
-            ),
+            canonical_conjugation_sites(ligands, polymer_ports, canonical_ordering),
             bond_lengths,
             atom_array,
             ph,
+        )
+        # Keep shared partner metadata with the source preparation so export
+        # and direct injection follow the same path.
+        first = preparations[0]
+        preparations[0] = replace(
+            first,
+            adds_patches=(*first.adds_patches, *partner_patches),
+            variant_partial_charges={
+                **(first.variant_partial_charges or {}),
+                **partner_charges,
+            },
+        )
+        param_db = inject_ligand_preparations(
+            param_db, preparations, strict_atom_types=strict_atom_types
+        )
+        param_db, records = _prepare_connection_params(atom_array, param_db, ph, seed)
+        preparations[0] = replace(
+            preparations[0],
+            connection_params=(*preparations[0].connection_params, *records),
         )
         canonical_ordering = rebuild_canonical_ordering(param_db)
 
@@ -1307,8 +1382,10 @@ def prepare_ligands(  # noqa: C901
 
             # Fragment residue types are an in-memory representation in this
             # first API version. Persist only the fully prepared source ligand.
+            sources = {p.residue_type.name for _, p in prepared_ligands}
+            sources.update(p.residue_type.name for p in prepared_polymers)
             write_params_file(
-                [prep for _, prep in prepared_ligands] + prepared_polymers,
+                [p for p in preparations if p.residue_type.name in sources],
                 params_output,
                 format="tmol",
             )

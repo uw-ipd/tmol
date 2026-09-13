@@ -1,0 +1,613 @@
+{
+  "parent_commit": "b538a2e6094b44af76be7df24dc282bd652f073d",
+  "sources_sha256": {
+    "tmol/database/scoring/_mirrored_dunbrack.py": "f5cec5d1a2252f0deb098b0770a6a7bc42f147cbe00ab899ad02ac182ec5ab26",
+    "tmol/tests/database/scoring/test_mirrored_library_scope.py": "673c937c082abc36814aa44b0cb1d78bac215e41216b0d0cb01d2e3e97ad286b",
+    "review/pr503/profile_mirrored_library_generation.py": "d10ffdd709741ae69578af801eeca2d9c1713734f3a7c73322d1fbfea0e99bd9"
+  },
+  "runs": [
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/mirrored-library-scope-before-cpu.xml",
+      "sha256": "255b36f2234d72384190dc90056fc2839d28ec8027c9a4352ed475203364618a",
+      "stage": "Eight pre-fix generation failures",
+      "counts": {
+        "passed": 0,
+        "failure": 8,
+        "error": 0,
+        "skipped": 0
+      },
+      "cases": [
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_no_required_library_is_a_no_op[requested0]",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_no_required_library_is_a_no_op[requested1]",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_generate_only_the_requested_library",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_original_table_name_starting_with_d_does_not_disable_generation",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_incremental_generation_preserves_existing_libraries",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_explicit_target_mapping_is_authoritative",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_generated_name_collision_is_explicit",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_missing_source_table_fails_at_generation",
+          "outcome": "failure"
+        }
+      ]
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/mirrored-library-scope-after-cpu.xml",
+      "sha256": "d59f8747c7062b9a31f6a6a0142fc16629472537e7ef98ed118c05007d82b623",
+      "stage": "Generation fixes with library metadata, D records and all-grid native checks",
+      "counts": {
+        "passed": 24,
+        "failure": 0,
+        "error": 0,
+        "skipped": 3
+      },
+      "cases": [
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_no_required_library_is_a_no_op[requested0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_no_required_library_is_a_no_op[requested1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_generate_only_the_requested_library",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_original_table_name_starting_with_d_does_not_disable_generation",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_incremental_generation_preserves_existing_libraries",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_explicit_target_mapping_is_authoritative",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_generated_name_collision_is_explicit",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_missing_source_table_fails_at_generation",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_dunbrack_mirroring_metadata::test_legacy_binary_defaults_to_original_backbone_orientation",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_dunbrack_mirroring_metadata::test_double_reflection_restores_all_library_data[False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_dunbrack_mirroring_metadata::test_double_reflection_restores_all_library_data[True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_dunbrack_mirroring_metadata::test_reflection_follows_renamed_libraries_through_serialization[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_dunbrack_mirroring_metadata::test_reflection_follows_renamed_libraries_through_serialization[cuda]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_dunbrack_mirroring_metadata::test_mirrored_mean_coefficients_use_the_reflected_angular_branch",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.test_d_amino_acids::test_every_chiral_l_residue_has_a_mirror",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.test_d_amino_acids::test_d_residues_reference_their_l_form",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.test_d_amino_acids::test_d_residues_have_inverted_chirality",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.test_d_amino_acids::test_d_residues_keep_the_l_bond_lengths",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.test_d_amino_acids::test_d_residues_share_the_l_partial_charges",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.test_d_amino_acids::test_d_cartbonded_negates_only_the_impropers",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.test_d_amino_acids::test_d_residues_take_termini_variants",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.test_d_amino_acids::test_l_base_name_resolves_d_forms_without_touching_dna",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.test_d_amino_acids::test_every_polymer_class_has_default_termini",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_mirror_grid::test_reflected_grid_points_neighbors_and_missing_axes[cpu-probability]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_mirror_grid::test_reflected_grid_points_neighbors_and_missing_axes[cpu-chi]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_mirror_grid::test_reflected_grid_points_neighbors_and_missing_axes[cuda-probability]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_mirror_grid::test_reflected_grid_points_neighbors_and_missing_axes[cuda-chi]",
+          "outcome": "skipped"
+        }
+      ]
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/mirrored-library-scope-native-cpu.xml",
+      "sha256": "c5096edb7038a4d5d5dc030b34d8cbc5490e514df5bc919b9adf2b08c1c21169",
+      "stage": "Final scope regressions, target conflict and exact selective native sampling parity",
+      "counts": {
+        "passed": 10,
+        "failure": 0,
+        "error": 0,
+        "skipped": 1
+      },
+      "cases": [
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_no_required_library_is_a_no_op[requested0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_no_required_library_is_a_no_op[requested1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_generate_only_the_requested_library",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_original_table_name_starting_with_d_does_not_disable_generation",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_incremental_generation_preserves_existing_libraries",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_explicit_target_mapping_is_authoritative",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_generated_name_collision_is_explicit",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_missing_source_table_fails_at_generation",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_selective_libraries_preserve_native_sampling[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_selective_libraries_preserve_native_sampling[cuda]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_conflicting_target_requests_are_rejected",
+          "outcome": "passed"
+        }
+      ]
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/mirrored-library-scope-gpu.xml",
+      "sha256": "686b37b434fb245a05122a3416f47e73e80328eda4aaa1c25ce5a1a55ee8a493",
+      "stage": "Final CPU/CUDA library generation, sampling, mirror geometry/energies and actual packing",
+      "counts": {
+        "passed": 54,
+        "failure": 0,
+        "error": 0,
+        "skipped": 1
+      },
+      "cases": [
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_no_required_library_is_a_no_op[requested0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_no_required_library_is_a_no_op[requested1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_generate_only_the_requested_library",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_original_table_name_starting_with_d_does_not_disable_generation",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_incremental_generation_preserves_existing_libraries",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_explicit_target_mapping_is_authoritative",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_generated_name_collision_is_explicit",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_missing_source_table_fails_at_generation",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_selective_libraries_preserve_native_sampling[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_selective_libraries_preserve_native_sampling[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_mirrored_library_scope::test_conflicting_target_requests_are_rejected",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_dunbrack_mirroring_metadata::test_legacy_binary_defaults_to_original_backbone_orientation",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_dunbrack_mirroring_metadata::test_double_reflection_restores_all_library_data[False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_dunbrack_mirroring_metadata::test_double_reflection_restores_all_library_data[True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_dunbrack_mirroring_metadata::test_reflection_follows_renamed_libraries_through_serialization[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_dunbrack_mirroring_metadata::test_reflection_follows_renamed_libraries_through_serialization[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.scoring.test_dunbrack_mirroring_metadata::test_mirrored_mean_coefficients_use_the_reflected_angular_branch",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.test_d_amino_acids::test_every_chiral_l_residue_has_a_mirror",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.test_d_amino_acids::test_d_residues_reference_their_l_form",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.test_d_amino_acids::test_d_residues_have_inverted_chirality",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.test_d_amino_acids::test_d_residues_keep_the_l_bond_lengths",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.test_d_amino_acids::test_d_residues_share_the_l_partial_charges",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.test_d_amino_acids::test_d_cartbonded_negates_only_the_impropers",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.test_d_amino_acids::test_d_residues_take_termini_variants",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.test_d_amino_acids::test_l_base_name_resolves_d_forms_without_touching_dna",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.database.test_d_amino_acids::test_every_polymer_class_has_default_termini",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_mirror_grid::test_reflected_grid_points_neighbors_and_missing_axes[cpu-probability]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_mirror_grid::test_reflected_grid_points_neighbors_and_missing_axes[cpu-chi]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_mirror_grid::test_reflected_grid_points_neighbors_and_missing_axes[cuda-probability]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_mirror_grid::test_reflected_grid_points_neighbors_and_missing_axes[cuda-chi]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_mirror_sampling::test_mirror_library_conformer_counts_and_heavy_geometry[cpu-False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_mirror_sampling::test_mirror_library_conformer_counts_and_heavy_geometry[cpu-True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_mirror_sampling::test_mirror_library_conformer_counts_and_heavy_geometry[cuda-False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_mirror_sampling::test_mirror_library_conformer_counts_and_heavy_geometry[cuda-True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_mirror_sampling::test_shared_missing_backbone_resolves_each_library_orientation[cpu-False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_mirror_sampling::test_shared_missing_backbone_resolves_each_library_orientation[cpu-True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_mirror_sampling::test_shared_missing_backbone_resolves_each_library_orientation[cuda-False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_mirror_sampling::test_shared_missing_backbone_resolves_each_library_orientation[cuda-True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_mirror_sampling::test_glycine_hydrogens_remain_on_opposite_sides_of_the_backbone[cpu-l]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_mirror_sampling::test_glycine_hydrogens_remain_on_opposite_sides_of_the_backbone[cpu-d]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_mirror_sampling::test_glycine_hydrogens_remain_on_opposite_sides_of_the_backbone[cuda-l]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.dunbrack.test_mirror_sampling::test_glycine_hydrogens_remain_on_opposite_sides_of_the_backbone[cuda-d]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_mirror_packing::test_mirrored_conformers_have_the_same_per_term_packing_energies[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_mirror_packing::test_mirrored_conformers_have_the_same_per_term_packing_energies[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_mirror_packing::test_single_position_mirror_packing_reaches_the_enumerated_minimum[cpu]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.test_mirror_packing::test_single_position_mirror_packing_reaches_the_enumerated_minimum[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.test_mirror_image_scoring::test_mirror_image_coordinates_are_exact_negations",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.test_mirror_image_scoring::test_mirror_image_scores_identically[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.test_mirror_image_scoring::test_mirror_image_scores_identically[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.test_mirror_image_scoring::test_repacking_a_d_structure_keeps_it_d[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.test_mirror_image_scoring::test_repacking_a_d_structure_keeps_it_d[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.test_mirror_image_scoring::test_mirror_image_per_term_gradients[cpu-False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.test_mirror_image_scoring::test_mirror_image_per_term_gradients[cpu-True]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.test_mirror_image_scoring::test_mirror_image_per_term_gradients[cuda-False]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.score.test_mirror_image_scoring::test_mirror_image_per_term_gradients[cuda-True]",
+          "outcome": "passed"
+        }
+      ]
+    }
+  ],
+  "profile": {
+    "baseline_commit": "b538a2e6094b44af76be7df24dc282bd652f073d",
+    "baseline_source_sha256": "4010d013c34c520158c451c22aec890de14609cd39170557668972eff8b6e1cf",
+    "candidate_source_sha256": "f5cec5d1a2252f0deb098b0770a6a7bc42f147cbe00ab899ad02ac182ec5ab26",
+    "torch": "2.8.0+cpu",
+    "device": "cpu",
+    "torch_threads": 2,
+    "all_default_values_exact": true,
+    "requested_generated_table_values_exact": true,
+    "cases": {
+      "all_default_D_types": {
+        "new_tensor_storage_bytes": {
+          "before": 30927608,
+          "after": 30927608
+        },
+        "round_median_seconds": {
+          "before": [
+            0.016821643337607384,
+            0.015787752345204353,
+            0.015713981352746487,
+            0.015690214931964874,
+            0.015765848569571972,
+            0.015837838873267174,
+            0.015863758511841297
+          ],
+          "after": [
+            0.015935157425701618,
+            0.015823005698621273,
+            0.016026435419917107,
+            0.01602746732532978,
+            0.015834573656320572,
+            0.015757146291434765,
+            0.015858289785683155
+          ]
+        },
+        "median_seconds": {
+          "before": 0.015787752345204353,
+          "after": 0.015858289785683155
+        },
+        "before_over_after": 0.9955520146603398
+      },
+      "DARG_only": {
+        "new_tensor_storage_bytes": {
+          "before": 30927608,
+          "after": 4279200
+        },
+        "round_median_seconds": {
+          "before": [
+            0.01815854199230671,
+            0.017636559903621674,
+            0.017191413789987564,
+            0.01727727521210909,
+            0.01735019590705633,
+            0.01720932126045227,
+            0.017131363041698933
+          ],
+          "after": [
+            0.0016383277252316475,
+            0.0016208309680223465,
+            0.0016539711505174637,
+            0.0016328506171703339,
+            0.00165630504488945,
+            0.0016520991921424866,
+            0.0016569560393691063
+          ]
+        },
+        "median_seconds": {
+          "before": 0.01727727521210909,
+          "after": 0.0016520991921424866
+        },
+        "before_over_after": 10.457771115851376
+      },
+      "DSER_only": {
+        "new_tensor_storage_bytes": {
+          "before": 30927608,
+          "after": 77784
+        },
+        "round_median_seconds": {
+          "before": [
+            0.017037220299243927,
+            0.017347730696201324,
+            0.01721839513629675,
+            0.017162100411951542,
+            0.0173023734241724,
+            0.017435875721275806,
+            0.017294871620833874
+          ],
+          "after": [
+            0.00010146386921405792,
+            8.563976734876633e-05,
+            8.938554674386978e-05,
+            8.447747677564621e-05,
+            0.00010252557694911957,
+            8.673220872879028e-05,
+            8.901488035917282e-05
+          ]
+        },
+        "median_seconds": {
+          "before": 0.017294871620833874,
+          "after": 8.901488035917282e-05
+        },
+        "before_over_after": 194.29191558815222
+      },
+      "no_D_types": {
+        "new_tensor_storage_bytes": {
+          "before": 30927608,
+          "after": 0
+        },
+        "round_median_seconds": {
+          "before": [
+            0.01713771279901266,
+            0.017337686382234097,
+            0.017156461253762245,
+            0.01740862336009741,
+            0.0180028872564435,
+            0.01711576897650957,
+            0.017222151160240173
+          ],
+          "after": [
+            1.2014061212539673e-07,
+            1.0989606380462646e-07,
+            1.4062970876693726e-07,
+            8.940696716308594e-08,
+            1.4062970876693726e-07,
+            1.2014061212539673e-07,
+            1.210719347000122e-07
+          ]
+        },
+        "median_seconds": {
+          "before": 0.017222151160240173,
+          "after": 1.2014061212539673e-07
+        },
+        "before_over_after": 143349.9534883721
+      }
+    },
+    "limits": "Library generation only, not spline-resolver construction or packing/scoring. Seven alternating warm rounds of three uninstrumented samples. Input/default database construction excluded. New tensor-storage bytes exclude shared input storage, Python metadata, temporary peak allocations and allocator/process overhead. The no-D case is an early return, not a representative whole-application speedup."
+  },
+  "slurm_accounting": [
+    "250526|COMPLETED|0:0|00:01:27|",
+    "250526.batch|COMPLETED|0:0|00:01:27|5155204K"
+  ],
+  "limits": [
+    "Selective and incremental table generation only; does not prune source L tables or change the default chemical database.",
+    "Explicit target lookup rows are authoritative. A generated name collision is rejected; reuse an existing table with an explicit mapping rather than inferring its provenance from the name.",
+    "Eight before failures were collected before the later native-parity and conflicting-target tests were added.",
+    "The prior 311-case mirror checkpoint is separate; final generation validation has 54 passes and one intentional CPU annealer skip."
+  ]
+}

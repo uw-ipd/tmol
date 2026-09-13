@@ -1,0 +1,1033 @@
+[
+  {
+    "fixture": "biotin",
+    "parameter_model": "tmol-mmff94-harmonic-v1",
+    "kind": "conjugation",
+    "blocks": [
+      45,
+      80
+    ],
+    "atoms": [
+      "NZ",
+      "C11"
+    ],
+    "distance": 1.3293358496953005,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 17.201396818799655,
+            "dE_ddelta": -117.17574891548881
+          },
+          {
+            "delta": 0.0,
+            "energy": 9.678734646977347,
+            "dE_ddelta": -33.27749452095745
+          },
+          {
+            "delta": 0.1,
+            "energy": 10.54589791460817,
+            "dE_ddelta": 50.62075987357388
+          }
+        ],
+        "stiffness": 838.9825439453134
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 72.4941632433164,
+            "dE_ddelta": -0.5643831547128908
+          },
+          {
+            "delta": 0.0,
+            "energy": 72.42994016064054,
+            "dE_ddelta": -0.7199002286010296
+          },
+          {
+            "delta": 0.1,
+            "energy": 72.35300905811015,
+            "dE_ddelta": -0.7911023377348321
+          }
+        ],
+        "stiffness": -1.1335959151097064
+      }
+    },
+    "generated_bond": {
+      "x0": 1.369,
+      "K": 838.9825439453125
+    },
+    "cartesian_minimization": [
+      {
+        "displacement": 0.0,
+        "initial_energy": -83.630615234375,
+        "final_energy": -93.65653991699219,
+        "initial_distance": 1.3293358087539673,
+        "final_distance": 1.3602532148361206
+      },
+      {
+        "displacement": 0.5,
+        "initial_energy": -36.836280822753906,
+        "final_energy": -93.997802734375,
+        "initial_distance": 1.8293360471725464,
+        "final_distance": 1.3676115274429321
+      },
+      {
+        "displacement": 1.0,
+        "initial_energy": 119.31964111328125,
+        "final_energy": -92.48760986328125,
+        "initial_distance": 2.329335927963257,
+        "final_distance": 1.3793824911117554
+      }
+    ]
+  },
+  {
+    "fixture": "biotin",
+    "parameter_model": "tmol-mmff94-harmonic-v1",
+    "kind": "peptide_control",
+    "blocks": [
+      0,
+      1
+    ],
+    "atoms": [
+      "C",
+      "N"
+    ],
+    "distance": 1.331865537363326,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 11.40827301674129,
+            "dE_ddelta": -35.76763406385052
+          },
+          {
+            "delta": 0.0,
+            "energy": 9.678734646977347,
+            "dE_ddelta": 1.1768666685712361
+          },
+          {
+            "delta": 0.1,
+            "energy": 11.643646350455578,
+            "dE_ddelta": 38.121367400993066
+          }
+        ],
+        "stiffness": 369.4450073242179
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 72.59748040988366,
+            "dE_ddelta": -3.4930616884720553
+          },
+          {
+            "delta": 0.0,
+            "energy": 72.42994016064054,
+            "dE_ddelta": 0.14494353911415025
+          },
+          {
+            "delta": 0.1,
+            "energy": 72.62391821185545,
+            "dE_ddelta": 3.7068766603712398
+          }
+        ],
+        "stiffness": 35.99969174421647
+      }
+    }
+  },
+  {
+    "fixture": "oglycan",
+    "parameter_model": "tmol-mmff94-harmonic-v1",
+    "kind": "conjugation",
+    "blocks": [
+      11,
+      14
+    ],
+    "atoms": [
+      "OG1",
+      "C1"
+    ],
+    "distance": 1.427074816169938,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 15.754573472353071,
+            "dE_ddelta": -66.05052396992093
+          },
+          {
+            "delta": 0.0,
+            "energy": 12.781657611005421,
+            "dE_ddelta": 6.592206742969111
+          },
+          {
+            "delta": 0.1,
+            "energy": 17.07301482094679,
+            "dE_ddelta": 79.23493745585932
+          }
+        ],
+        "stiffness": 726.4273071289012
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 74.18936504656376,
+            "dE_ddelta": -5.681137388090832
+          },
+          {
+            "delta": 0.0,
+            "energy": 74.18702465238806,
+            "dE_ddelta": 5.555282361795481
+          },
+          {
+            "delta": 0.1,
+            "energy": 75.27572159581142,
+            "dE_ddelta": 16.05325203672214
+          }
+        ],
+        "stiffness": 108.67194712406484
+      }
+    },
+    "generated_bond": {
+      "x0": 1.418,
+      "K": 726.4273071289062
+    }
+  },
+  {
+    "fixture": "oglycan",
+    "parameter_model": "tmol-mmff94-harmonic-v1",
+    "kind": "conjugation",
+    "blocks": [
+      14,
+      19
+    ],
+    "atoms": [
+      "O3",
+      "C1"
+    ],
+    "distance": 1.400206549738843,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 17.706357715429306,
+            "dE_ddelta": -85.56836640068411
+          },
+          {
+            "delta": 0.0,
+            "energy": 12.781657611005421,
+            "dE_ddelta": -12.925635687793264
+          },
+          {
+            "delta": 0.1,
+            "energy": 15.121230577870634,
+            "dE_ddelta": 59.717095025097436
+          }
+        ],
+        "stiffness": 726.4273071289076
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 72.75754449174667,
+            "dE_ddelta": 4.807359150910531
+          },
+          {
+            "delta": 0.0,
+            "energy": 74.18702465238806,
+            "dE_ddelta": 23.8761136289862
+          },
+          {
+            "delta": 0.1,
+            "energy": 77.53741065226158,
+            "dE_ddelta": 43.083138471954996
+          }
+        ],
+        "stiffness": 191.37889660522234
+      }
+    },
+    "generated_bond": {
+      "x0": 1.418,
+      "K": 726.4273071289062
+    }
+  },
+  {
+    "fixture": "oglycan",
+    "parameter_model": "tmol-mmff94-harmonic-v1",
+    "kind": "conjugation",
+    "blocks": [
+      14,
+      15
+    ],
+    "atoms": [
+      "O6",
+      "C1"
+    ],
+    "distance": 1.3795006535978154,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 19.210490552971144,
+            "dE_ddelta": -100.60969477610257
+          },
+          {
+            "delta": 0.0,
+            "energy": 12.781657611005421,
+            "dE_ddelta": -27.966964063210725
+          },
+          {
+            "delta": 0.1,
+            "energy": 13.617097740329003,
+            "dE_ddelta": 44.67576664968109
+          }
+        ],
+        "stiffness": 726.4273071289183
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 73.57543432491737,
+            "dE_ddelta": -2.1001698856620834
+          },
+          {
+            "delta": 0.0,
+            "energy": 74.18702465238806,
+            "dE_ddelta": 14.32984709670251
+          },
+          {
+            "delta": 0.1,
+            "energy": 76.42754654248006,
+            "dE_ddelta": 30.344914376772557
+          }
+        ],
+        "stiffness": 162.22542131217318
+      }
+    },
+    "generated_bond": {
+      "x0": 1.418,
+      "K": 726.4273071289062
+    }
+  },
+  {
+    "fixture": "oglycan",
+    "parameter_model": "tmol-mmff94-harmonic-v1",
+    "kind": "conjugation",
+    "blocks": [
+      15,
+      18
+    ],
+    "atoms": [
+      "O3",
+      "C1"
+    ],
+    "distance": 1.404317296126116,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 17.40774187258932,
+            "dE_ddelta": -82.58220797228465
+          },
+          {
+            "delta": 0.0,
+            "energy": 12.781657611005421,
+            "dE_ddelta": -9.939477259396549
+          },
+          {
+            "delta": 0.1,
+            "energy": 15.41984642071008,
+            "dE_ddelta": 62.70325345349157
+          }
+        ],
+        "stiffness": 726.427307128881
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 76.35471829724978,
+            "dE_ddelta": -27.221692681855362
+          },
+          {
+            "delta": 0.0,
+            "energy": 74.18702465238806,
+            "dE_ddelta": -15.903451412320992
+          },
+          {
+            "delta": 0.1,
+            "energy": 73.20979226278848,
+            "dE_ddelta": -3.5156892922544625
+          }
+        ],
+        "stiffness": 118.5300169480045
+      }
+    },
+    "generated_bond": {
+      "x0": 1.418,
+      "K": 726.4273071289062
+    }
+  },
+  {
+    "fixture": "oglycan",
+    "parameter_model": "tmol-mmff94-harmonic-v1",
+    "kind": "conjugation",
+    "blocks": [
+      15,
+      16
+    ],
+    "atoms": [
+      "O4",
+      "C1"
+    ],
+    "distance": 1.390184647495658,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 18.434376061312342,
+            "dE_ddelta": -92.8485498595136
+          },
+          {
+            "delta": 0.0,
+            "energy": 12.781657611005421,
+            "dE_ddelta": -20.20581914661921
+          },
+          {
+            "delta": 0.1,
+            "energy": 14.393212231988327,
+            "dE_ddelta": 52.43691156627534
+          }
+        ],
+        "stiffness": 726.4273071289446
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 74.37502018479518,
+            "dE_ddelta": -8.2049494214662
+          },
+          {
+            "delta": 0.0,
+            "energy": 74.18702465238806,
+            "dE_ddelta": 4.3607789291258054
+          },
+          {
+            "delta": 0.1,
+            "energy": 75.21960226841489,
+            "dE_ddelta": 16.10215688224989
+          }
+        ],
+        "stiffness": 121.53553151858044
+      }
+    },
+    "generated_bond": {
+      "x0": 1.418,
+      "K": 726.4273071289062
+    }
+  },
+  {
+    "fixture": "oglycan",
+    "parameter_model": "tmol-mmff94-harmonic-v1",
+    "kind": "conjugation",
+    "blocks": [
+      16,
+      17
+    ],
+    "atoms": [
+      "O3",
+      "C2"
+    ],
+    "distance": 1.4512021686091394,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 14.001896706296874,
+            "dE_ddelta": -48.52375630935876
+          },
+          {
+            "delta": 0.0,
+            "energy": 12.781657611005421,
+            "dE_ddelta": 24.118974403528227
+          },
+          {
+            "delta": 0.1,
+            "energy": 18.82569158700232,
+            "dE_ddelta": 96.76170511641538
+          }
+        ],
+        "stiffness": 726.4273071288707
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 75.0941248123772,
+            "dE_ddelta": -16.804314076014595
+          },
+          {
+            "delta": 0.0,
+            "energy": 74.18702465238806,
+            "dE_ddelta": -1.164729550222031
+          },
+          {
+            "delta": 0.1,
+            "energy": 74.88382208847628,
+            "dE_ddelta": 15.152128950928097
+          }
+        ],
+        "stiffness": 159.78221513471345
+      }
+    },
+    "generated_bond": {
+      "x0": 1.418,
+      "K": 726.4273071289062
+    }
+  },
+  {
+    "fixture": "oglycan",
+    "parameter_model": "tmol-mmff94-harmonic-v1",
+    "kind": "peptide_control",
+    "blocks": [
+      0,
+      1
+    ],
+    "atoms": [
+      "C",
+      "N"
+    ],
+    "distance": 1.331990839848117,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 14.506566743028378,
+            "dE_ddelta": -35.72134168644039
+          },
+          {
+            "delta": 0.0,
+            "energy": 12.781657611005421,
+            "dE_ddelta": 1.2231590459826744
+          },
+          {
+            "delta": 0.1,
+            "energy": 14.751198552224855,
+            "dE_ddelta": 38.16765977840572
+          }
+        ],
+        "stiffness": 369.4450073242305
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 75.53397528538126,
+            "dE_ddelta": -26.750182861576636
+          },
+          {
+            "delta": 0.0,
+            "energy": 74.18702465238806,
+            "dE_ddelta": -0.0841892255257406
+          },
+          {
+            "delta": 0.1,
+            "energy": 75.51697561172972,
+            "dE_ddelta": 26.57698467892003
+          }
+        ],
+        "stiffness": 266.63583770248334
+      }
+    }
+  },
+  {
+    "fixture": "nglycan",
+    "parameter_model": "tmol-mmff94-harmonic-v1",
+    "kind": "conjugation",
+    "blocks": [
+      16,
+      239
+    ],
+    "atoms": [
+      "ND2",
+      "C1"
+    ],
+    "distance": 1.452801296798313,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 29.083583885005787,
+            "dE_ddelta": -55.85138296237069
+          },
+          {
+            "delta": 0.0,
+            "energy": 26.854951631249186,
+            "dE_ddelta": 11.278737887239004
+          },
+          {
+            "delta": 0.1,
+            "energy": 31.339331462453575,
+            "dE_ddelta": 78.40885873684859
+          }
+        ],
+        "stiffness": 671.3012084960964
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 273.36006859334975,
+            "dE_ddelta": -10.472293223257651
+          },
+          {
+            "delta": 0.0,
+            "energy": 273.0285441127146,
+            "dE_ddelta": 3.958806842275834
+          },
+          {
+            "delta": 0.1,
+            "energy": 274.1648643322433,
+            "dE_ddelta": 18.779554503463103
+          }
+        ],
+        "stiffness": 146.25923863360376
+      }
+    },
+    "generated_bond": {
+      "x0": 1.436,
+      "K": 671.3012084960938
+    }
+  },
+  {
+    "fixture": "nglycan",
+    "parameter_model": "tmol-mmff94-harmonic-v1",
+    "kind": "conjugation",
+    "blocks": [
+      239,
+      245
+    ],
+    "atoms": [
+      "O3",
+      "C1"
+    ],
+    "distance": 1.3989846665562626,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 31.868412666667826,
+            "dE_ddelta": -86.45597571063173
+          },
+          {
+            "delta": 0.0,
+            "energy": 26.854951631249186,
+            "dE_ddelta": -13.813244997741183
+          },
+          {
+            "delta": 0.1,
+            "energy": 29.10576366711958,
+            "dE_ddelta": 58.82948571514918
+          }
+        ],
+        "stiffness": 726.4273071289045
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 272.75627138695563,
+            "dE_ddelta": -2.5445787131062643
+          },
+          {
+            "delta": 0.0,
+            "energy": 273.0285441127146,
+            "dE_ddelta": 7.965658959869364
+          },
+          {
+            "delta": 0.1,
+            "energy": 274.3364689619536,
+            "dE_ddelta": 18.08914064958778
+          }
+        ],
+        "stiffness": 103.16859681347022
+      }
+    },
+    "generated_bond": {
+      "x0": 1.418,
+      "K": 726.4273071289062
+    }
+  },
+  {
+    "fixture": "nglycan",
+    "parameter_model": "tmol-mmff94-harmonic-v1",
+    "kind": "conjugation",
+    "blocks": [
+      239,
+      240
+    ],
+    "atoms": [
+      "O4",
+      "C1"
+    ],
+    "distance": 1.3847792547844335,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 32.90033256867452,
+            "dE_ddelta": -96.77517473069881
+          },
+          {
+            "delta": 0.0,
+            "energy": 26.854951631249186,
+            "dE_ddelta": -24.132444017808258
+          },
+          {
+            "delta": 0.1,
+            "energy": 28.07384376511289,
+            "dE_ddelta": 48.51028669508228
+          }
+        ],
+        "stiffness": 726.4273071289053
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 271.5389086898136,
+            "dE_ddelta": 6.923776536369186
+          },
+          {
+            "delta": 0.0,
+            "energy": 273.0285441127146,
+            "dE_ddelta": 22.82568355802923
+          },
+          {
+            "delta": 0.1,
+            "energy": 276.0819029634565,
+            "dE_ddelta": 38.06499733745717
+          }
+        ],
+        "stiffness": 155.70610400543993
+      }
+    },
+    "generated_bond": {
+      "x0": 1.418,
+      "K": 726.4273071289062
+    }
+  },
+  {
+    "fixture": "nglycan",
+    "parameter_model": "tmol-mmff94-harmonic-v1",
+    "kind": "conjugation",
+    "blocks": [
+      240,
+      241
+    ],
+    "atoms": [
+      "O4",
+      "C1"
+    ],
+    "distance": 1.3884985330840074,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 32.6301540367123,
+            "dE_ddelta": -94.07338941107653
+          },
+          {
+            "delta": 0.0,
+            "energy": 26.854951631249186,
+            "dE_ddelta": -21.430658698185837
+          },
+          {
+            "delta": 0.1,
+            "energy": 28.34402229707514,
+            "dE_ddelta": 51.2120720147047
+          }
+        ],
+        "stiffness": 726.4273071289062
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 272.32031268957155,
+            "dE_ddelta": -0.9586556810702875
+          },
+          {
+            "delta": 0.0,
+            "energy": 273.0285441127146,
+            "dE_ddelta": 15.038358683813993
+          },
+          {
+            "delta": 0.1,
+            "energy": 275.2974695289536,
+            "dE_ddelta": 30.122372758629812
+          }
+        ],
+        "stiffness": 155.40514219850047
+      }
+    },
+    "generated_bond": {
+      "x0": 1.418,
+      "K": 726.4273071289062
+    }
+  },
+  {
+    "fixture": "nglycan",
+    "parameter_model": "tmol-mmff94-harmonic-v1",
+    "kind": "conjugation",
+    "blocks": [
+      241,
+      242
+    ],
+    "atoms": [
+      "O2",
+      "C1"
+    ],
+    "distance": 1.3781401738411043,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 33.3826135378219,
+            "dE_ddelta": -101.59798442217242
+          },
+          {
+            "delta": 0.0,
+            "energy": 26.854951631249186,
+            "dE_ddelta": -28.95525370928175
+          },
+          {
+            "delta": 0.1,
+            "energy": 27.591562795965537,
+            "dE_ddelta": 43.687477003608784
+          }
+        ],
+        "stiffness": 726.4273071289059
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 275.42147293437847,
+            "dE_ddelta": -32.512199006937315
+          },
+          {
+            "delta": 0.0,
+            "energy": 273.0285441127146,
+            "dE_ddelta": -15.176451002037277
+          },
+          {
+            "delta": 0.1,
+            "energy": 272.40605480266896,
+            "dE_ddelta": 2.75396297356723
+          }
+        ],
+        "stiffness": 176.33080990252273
+      }
+    },
+    "generated_bond": {
+      "x0": 1.418,
+      "K": 726.4273071289062
+    }
+  },
+  {
+    "fixture": "nglycan",
+    "parameter_model": "tmol-mmff94-harmonic-v1",
+    "kind": "conjugation",
+    "blocks": [
+      241,
+      243
+    ],
+    "atoms": [
+      "O3",
+      "C1"
+    ],
+    "distance": 1.3924805340606583,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 32.34089061206701,
+            "dE_ddelta": -91.18075516462352
+          },
+          {
+            "delta": 0.0,
+            "energy": 26.854951631249186,
+            "dE_ddelta": -18.53802445173265
+          },
+          {
+            "delta": 0.1,
+            "energy": 28.633285721720444,
+            "dE_ddelta": 54.10470626115786
+          }
+        ],
+        "stiffness": 726.4273071289068
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 272.12659807364463,
+            "dE_ddelta": 0.8828238369151258
+          },
+          {
+            "delta": 0.0,
+            "energy": 273.0285441127146,
+            "dE_ddelta": 17.085246569301816
+          },
+          {
+            "delta": 0.1,
+            "energy": 275.51640462221803,
+            "dE_ddelta": 32.47262310228329
+          }
+        ],
+        "stiffness": 157.94899632684084
+      }
+    },
+    "generated_bond": {
+      "x0": 1.418,
+      "K": 726.4273071289062
+    }
+  },
+  {
+    "fixture": "nglycan",
+    "parameter_model": "tmol-mmff94-harmonic-v1",
+    "kind": "conjugation",
+    "blocks": [
+      241,
+      244
+    ],
+    "atoms": [
+      "O6",
+      "C1"
+    ],
+    "distance": 1.3960855311996354,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 32.07901377567956,
+            "dE_ddelta": -88.56198680074895
+          },
+          {
+            "delta": 0.0,
+            "energy": 26.854951631249186,
+            "dE_ddelta": -15.919256087858106
+          },
+          {
+            "delta": 0.1,
+            "energy": 28.89516255810793,
+            "dE_ddelta": 56.72347462503291
+          }
+        ],
+        "stiffness": 726.4273071289093
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 274.7990761413065,
+            "dE_ddelta": -25.235747806025397
+          },
+          {
+            "delta": 0.0,
+            "energy": 273.0285441127146,
+            "dE_ddelta": -10.050824334009649
+          },
+          {
+            "delta": 0.1,
+            "energy": 272.80154943901323,
+            "dE_ddelta": 5.512478589034398
+          }
+        ],
+        "stiffness": 153.74113197529897
+      }
+    },
+    "generated_bond": {
+      "x0": 1.418,
+      "K": 726.4273071289062
+    }
+  },
+  {
+    "fixture": "nglycan",
+    "parameter_model": "tmol-mmff94-harmonic-v1",
+    "kind": "peptide_control",
+    "blocks": [
+      0,
+      1
+    ],
+    "atoms": [
+      "C",
+      "N"
+    ],
+    "distance": 1.3286223414800498,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 28.704308253698272,
+            "dE_ddelta": -36.96581659070142
+          },
+          {
+            "delta": 0.0,
+            "energy": 26.854951631249186,
+            "dE_ddelta": -0.02131585827956428
+          },
+          {
+            "delta": 0.1,
+            "energy": 28.700045082042305,
+            "dE_ddelta": 36.92318487414231
+          }
+        ],
+        "stiffness": 369.44500732421864
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 273.48090610338636,
+            "dE_ddelta": -9.354458280421767
+          },
+          {
+            "delta": 0.0,
+            "energy": 273.0285441127146,
+            "dE_ddelta": 0.3479562599193855
+          },
+          {
+            "delta": 0.1,
+            "energy": 273.5476446172011,
+            "dE_ddelta": 9.965062688514308
+          }
+        ],
+        "stiffness": 96.59760484468038
+      }
+    }
+  }
+]

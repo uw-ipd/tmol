@@ -1,0 +1,15 @@
+{
+  "alpha_aa-0.tmol": "84e47a6e73a596ed4615d2654f429284d20065e36307fdf242a177ea3081c1d7",
+  "dna-0.tmol": "9a5799c84d01630577d240cf40a4b3b283254ffc14d4a578fd7685a95a4f49a9",
+  "nonstandard_aa-0.tmol": "fe4653fb0d4c392ae77af46b63ea78baae3a1dbf1c6336127cd0813c1bbcee3b",
+  "nonstandard_na-0.tmol": "fce7d3cb1225db00638683725414f37c3bdbed3152b14057c63dc04372300d64",
+  "alpha_aa-0-opth.npz": "bc5da4853fb658688648e5c721c0606573bcb5e89c427a3deaff6094d705139f",
+  "alpha_aa-0-raw.npz": "06db8a6c9d573b2a017067b7eba99265fb891cbd40e238b634b22eb18fcedbf7",
+  "dna-0-opth.npz": "7b6227a73cb8e4736bdda1c748c5ba6d7cf35518c085b0f78df5bd1ce5b78f07",
+  "dna-0-raw.npz": "6ab22d72c1e7d58023880932b39628042907bd3f55cd01888c733c2b02875ac8",
+  "nonstandard_aa-0-opth.npz": "7b6bb9114b806536cc22cde83b1f1506b2f76b5f2cbbd3205d62cb25ef95d1f3",
+  "nonstandard_aa-0-raw.npz": "22e76c082b47e6026b4ad39fad30700d97dab4e50a267e1a9a9406fc06ac8e3f",
+  "nonstandard_na-0-opth.npz": "fef91d5b19ac6daa91b33d4144071a26bf4c1876938324b4abe6cc83de8453f2",
+  "nonstandard_na-0-raw.npz": "a92e9694cbfa5eaa6358e3c28aead89aa0536a149962a6a64a22fb4f834bee5d",
+  "scores.json": "152079083ba86e14de5f5117ec5323e60e4e5dc9154a5c7ed26e189cd904aa8c"
+}

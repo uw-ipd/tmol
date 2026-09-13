@@ -470,24 +470,21 @@ def _icoor_order(profile, bonds, adj, kept, hydrogens):
     mainchain = icoor_mainchain(profile, kept)
     roots = sidechain_roots(profile, bonds, adj, kept, hydrogens)
 
-    placed = list(mainchain)
+    placed = set(mainchain)
     order = list(mainchain) + ([up_name] if up_name else [])
     # the rest of the backbone: what hangs off the mainchain, and then onward
-    #    through backbone atoms, since a nucleotide's sugar reaches further
-    #    from the mainchain than a carbonyl oxygen does
-    backbone = set(mainchain) | {n for n, _t in profile.backbone_types}
+    #    through every non-sidechain branch. A cap can carry a whole aromatic
+    #    substituent beyond its carbonyl; backbone typing is not a boundary
+    #    on the atom tree's traversal.
     queue = deque(mainchain)
     while queue:
         current = queue.popleft()
         for nbr in sorted(adj.get(current, ())):
             if nbr not in kept or nbr in placed or nbr in hydrogens or nbr in roots:
                 continue
-            if current not in backbone:
-                continue
-            placed.append(nbr)
+            placed.add(nbr)
             order.append(nbr)
-            if nbr in backbone:
-                queue.append(nbr)
+            queue.append(nbr)
 
     # sidechain heavy atoms, breadth first from each root
     sidechain = []
@@ -877,6 +874,18 @@ def to_polymer_residue_type(
     if profile.backbone_type == "alpha_aa":
         rama_reference = dunbrack_reference or RAMA_FALLBACK
 
+    jump_atom = profile.mainchain_atoms[1 if len(profile.mainchain_atoms) > 1 else 0]
+    if profile.polymer_type == "nucleic_acid":
+        # Root on the sugar side of the glycosidic bond, as canonical
+        # nucleotides do. O5' acquires a proton chi at a free 5' terminus:
+        # making it the jump atom turns that chi into a whole-residue motion.
+        # An unclassified nucleotide uses an interior backbone atom instead.
+        jump_atom = (
+            glycosidic[0].b.atom
+            if glycosidic
+            else profile.mainchain_atoms[len(profile.mainchain_atoms) // 2]
+        )
+
     return RawResidueType(
         name=restype.name,
         base_name=restype.base_name,
@@ -890,9 +899,7 @@ def to_polymer_residue_type(
         icoors=icoors,
         properties=properties,
         chi_samples=tuple(chi_samples),
-        default_jump_connection_atom=profile.mainchain_atoms[
-            1 if len(profile.mainchain_atoms) > 1 else 0
-        ],
+        default_jump_connection_atom=jump_atom,
         hydrogens_regenerated=restype.hydrogens_regenerated,
         dunbrack_reference=dunbrack_reference,
         rama_reference=rama_reference,

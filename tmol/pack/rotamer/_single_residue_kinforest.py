@@ -242,7 +242,9 @@ def construct_single_residue_kinforest(restype: RefinedResidueType):
     )
 
 
-def construct_block_group_kinforest(block_types, links, anchor: int = 0):
+def construct_block_group_kinforest(
+    block_types, links, anchor: int = 0, kinforest_data=None
+):
     """Create a kinforest spanning a group of blocks joined by their bonds.
 
     The single-block case of construct_single_residue_kinforest: a conjugated
@@ -254,7 +256,9 @@ def construct_block_group_kinforest(block_types, links, anchor: int = 0):
     the dofs it reports are placeholders; they are overwritten by the values
     measured from the pose.
     """
-    rkd, offsets = block_group_kinforest_data(block_types, links, anchor)
+    rkd, offsets = kinforest_data or block_group_kinforest_data(
+        block_types, links, anchor
+    )
     names = [a.name for bt in block_types for a in bt.atoms]
     ideal = numpy.concatenate(
         [bt.ideal_coords[bt.at_to_icoor_ind] for bt in block_types]

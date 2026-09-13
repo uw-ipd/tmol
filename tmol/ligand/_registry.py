@@ -6,7 +6,8 @@ scoring parameters built by the ligand preparation pipeline.
 
 import logging
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from itertools import chain
 from typing import Optional
 
 from tmol.database import (
@@ -20,12 +21,16 @@ from tmol.database.chemical import (
 from tmol.database.scoring import (
     AngleGroup,
     CartRes,
+    ConnectionCartRes,
     LengthGroup,
 )
 from tmol.io import CanonicalOrdering
 from tmol.ligand._chemistry_tables import get_hbond_properties
 
 logger = logging.getLogger(__name__)
+
+GENERATED_LENGTH_K = 300.0
+GENERATED_ANGLE_K = 80.0
 
 
 def _build_cartbonded_params(  # noqa: C901
@@ -115,7 +120,7 @@ def _build_cartbonded_params(  # noqa: C901
             d = _dist_from_coords(a, b)
             if d is None or d <= 0:
                 continue
-            lengths.append(LengthGroup(atm1=a, atm2=b, x0=d, K=300.0))
+            lengths.append(LengthGroup(atm1=a, atm2=b, x0=d, K=GENERATED_LENGTH_K))
     else:
         # Fallback: icoor tree edges only (legacy behavior).
         for ic in residue_type.icoors:
@@ -123,7 +128,9 @@ def _build_cartbonded_params(  # noqa: C901
                 continue
             if ic.d > 0 and ic.name in atom_names and ic.parent in atom_names:
                 lengths.append(
-                    LengthGroup(atm1=ic.name, atm2=ic.parent, x0=ic.d, K=300.0)
+                    LengthGroup(
+                        atm1=ic.name, atm2=ic.parent, x0=ic.d, K=GENERATED_LENGTH_K
+                    )
                 )
 
     angles = []
@@ -162,7 +169,13 @@ def _build_cartbonded_params(  # noqa: C901
 
                 if angle_rad is not None and angle_rad > 0:
                     angles.append(
-                        AngleGroup(atm1=a1, atm2=center, atm3=a3, x0=angle_rad, K=80.0)
+                        AngleGroup(
+                            atm1=a1,
+                            atm2=center,
+                            atm3=a3,
+                            x0=angle_rad,
+                            K=GENERATED_ANGLE_K,
+                        )
                     )
 
     return CartRes(
@@ -186,13 +199,26 @@ def collect_new_atom_types(
     Sets hbond properties (is_donor, is_acceptor, acceptor_hybridization)
     from the HBOND_PROPERTIES lookup in atom_typing.py.
     """
+    return _collect_new_atom_types(
+        chem_db,
+        ((residue_type.atoms, f"residue {residue_type.name}"),),
+        atom_type_elements,
+        strict_atom_types=strict_atom_types,
+    )
+
+
+def _collect_new_atom_types(
+    chem_db, atom_sources, atom_type_elements=None, *, strict_atom_types=False
+):
+    """Collect types once across sources, including atoms introduced by patches."""
     existing = {at.name for at in chem_db.atom_types}
     needed: dict[str, str] = {}
     hbond_properties = get_hbond_properties()
 
-    for atom in residue_type.atoms:
-        if atom.atom_type not in existing and atom.atom_type not in needed:
-            needed[atom.atom_type] = atom.atom_type
+    for atoms, source in atom_sources:
+        for atom in atoms:
+            if atom.atom_type not in existing:
+                needed.setdefault(atom.atom_type, source)
 
     result = []
     atom_type_elements = atom_type_elements or {}
@@ -203,12 +229,12 @@ def collect_new_atom_types(
             if strict_atom_types:
                 raise ValueError(
                     f"Unknown element mapping for atom type '{name}' while "
-                    f"registering residue {residue_type.name}"
+                    f"registering {needed[name]}"
                 )
             # Heuristic: treat polar-H atom types and any name starting
             # with 'H' as hydrogen, everything else as carbon. The
-            # params-file path always lands here because the file format
-            # encodes atom types but not their elements.
+            # Legacy params files may omit element declarations. Version-5
+            # .tmol files preserve explicit maps and avoid this fallback.
             element = "H" if props.get("is_polarh") or name.startswith("H") else "C"
         result.append(
             AtomType(
@@ -254,14 +280,20 @@ class LigandPreparation:
     cartbonded_params: CartRes
     # Optional element mapping for new atom types this ligand introduces.
     # Populated by the AtomArray path (where atom_type element is known
-    # from the RDKit Mol). The params-file path leaves it None and the
-    # injector falls back to an element heuristic.
+    # from the RDKit Mol) and preserved by .tmol version 5. Legacy files may
+    # omit it, in which case strict injection rejects unknown types.
     atom_type_elements: Optional[dict[str, str]] = None
-    # Patches for this residue's chain ends, scoped to it alone. A backbone the
-    # database's own termini patches were not written for carries its own.
+    # Patches for this residue and any existing residues it attaches to.
+    # Shared bundle metadata is carried once, on its first preparation.
     adds_patches: tuple = ()
     # {variant residue name: {atom: charge}} for those patches
     variant_partial_charges: Optional[dict[str, dict[str, float]]] = None
+    connection_params: tuple[ConnectionCartRes, ...] = ()
+    # Complete CartRes replacements for other exact residue/variant names.
+    additional_cartbonded_params: Optional[dict[str, CartRes]] = None
+    # Explicit exact-name replacement, guarded by the original residue,
+    # effective charges, and bonded-record digest. Ordinary additions omit it.
+    baseline_sha256: Optional[str] = None
 
 
 def _applied_patch(chemdb, base, variant):
@@ -274,8 +306,11 @@ def _applied_patch(chemdb, base, variant):
     """
     present = {a.name for a in variant.atoms}
     absent = {a.name for a in base.atoms} - present
+    suffixes = set(variant.name[len(base.name) + 1 :].split(":"))
     best = None
     for patch in chemdb.variants:
+        if patch.display_name not in suffixes or not patch.applies_to.matches(base):
+            continue
         names = {a.name for a in patch.add_atoms}
         if not names <= present:
             continue
@@ -360,6 +395,102 @@ def terminus_charge_entries(param_db, patched_chemdb, residue_type) -> dict:
     return entries
 
 
+def _unique_preparations(preparations):
+    """One complete definition per name; shared metadata stays on its sources."""
+    unique = {}
+    fields = ("residue_type", "partial_charges", "cartbonded_params", "baseline_sha256")
+    for prep in preparations:
+        name = prep.residue_type.name
+        previous = unique.get(name)
+        if previous is None:
+            unique[name] = prep
+        elif any(getattr(previous, f) != getattr(prep, f) for f in fields):
+            raise ValueError(f"Conflicting residue preparations: {name}")
+    return list(unique.values())
+
+
+def _merge_named_parameters(pairs, kind):
+    merged = {}
+    for name, value in pairs:
+        if name in merged and merged[name] != value:
+            raise ValueError(f"Conflicting {kind}: {name}")
+        merged[name] = value
+    return merged
+
+
+def _merge_partial_charges(mappings):
+    return _charges_from_rows(
+        (res, atom, charge)
+        for mapping in mappings
+        for res, charges in mapping.items()
+        for atom, charge in charges.items()
+    )
+
+
+def _charges_from_rows(rows):
+    """Stream named charges into one map, rejecting conflicting duplicates."""
+    merged = {}
+    for res, atom, charge in rows:
+        charges = merged.setdefault(res, {})
+        if atom in charges and charges[atom] != charge:
+            raise ValueError(f"Conflicting partial charges: {(res, atom)}")
+        charges[atom] = charge
+    return merged
+
+
+def _validate_atom_type_elements(mapping):
+    if not isinstance(mapping, dict) or any(
+        not isinstance(k, str) or not k or not isinstance(v, str) or not v
+        for k, v in mapping.items()
+    ):
+        raise ValueError(
+            "atom_type_elements must map nonempty type names to element strings"
+        )
+    return mapping
+
+
+def _batch_atom_type_elements(preparations, chemical=None):
+    elements = _merge_named_parameters(
+        (
+            item
+            for p in preparations
+            for item in _validate_atom_type_elements(
+                {} if p.atom_type_elements is None else p.atom_type_elements
+            ).items()
+        ),
+        "atom type elements",
+    )
+    if chemical is not None:
+        for atom_type in chemical.atom_types:
+            if (
+                atom_type.name in elements
+                and elements[atom_type.name] != atom_type.element
+            ):
+                raise ValueError(
+                    f"Atom type element disagrees with database: {atom_type.name}"
+                )
+    return elements
+
+
+def _additional_cartbonded_params(preparations):
+    """Collect shared records, rejecting contradictory definitions in one bundle."""
+    # For guarded replacements, shared records describe the original baseline;
+    # their complete target records are installed only after the digest check.
+    own = {
+        p.residue_type.name: p.cartbonded_params
+        for p in preparations
+        if p.baseline_sha256 is None
+    }
+    extra = {}
+    for prep in preparations:
+        for name, params in (prep.additional_cartbonded_params or {}).items():
+            previous = extra.get(name, own.get(name))
+            if previous is not None and previous != params:
+                raise ValueError(f"Conflicting bonded parameters: {name}")
+            extra[name] = params
+    return extra
+
+
 def inject_ligand_preparations(
     param_db: ParameterDatabase,
     preparations: list[LigandPreparation],
@@ -372,11 +503,14 @@ def inject_ligand_preparations(
     prepared ligands (regardless of whether they came from a
     ``.tmol`` file or an AtomArray), this function aggregates their
     residue types, atom types, charges, and cartbonded params and
-    evolves the input ``ParameterDatabase`` exactly once via
+    evolves the input ``ParameterDatabase`` via
     :func:`tmol.database.inject_residue_params`.
 
-    Residues whose name already exists in ``param_db`` are silently
-    skipped so repeat injection is idempotent.
+    Base definitions whose name already exists in ``param_db`` are skipped.
+    Their additional patches, variant charges and connection records are still
+    installed; repeating an identical bundle returns the original database.
+    A preparation with ``baseline_sha256`` instead replaces an exact residue
+    after checking its original parameters (or an already installed result).
 
     Args:
         param_db: Base database (not modified).
@@ -390,29 +524,131 @@ def inject_ligand_preparations(
         A new frozen ``ParameterDatabase`` extended with all provided
         preparations.
     """
+    replacements = [p for p in preparations if p.baseline_sha256 is not None]
+    if not replacements:
+        return _inject_additions(param_db, preparations, strict_atom_types)
+
+    from tmol.ligand._parameter_replacements import (
+        install_replacements,
+        validate_replacements,
+    )
+
+    # Check existing targets before any bundle metadata can reset their charges.
+    validate_replacements(param_db, replacements, allow_missing=True)
+    # Conflicting source metadata is invalid even when an installed target
+    # makes that metadata unnecessary for this particular database.
+    _merge_partial_charges(p.variant_partial_charges or {} for p in preparations)
+    _additional_cartbonded_params(preparations)
+    existing_names = {r.name for r in param_db.chemical.residues}
+    protected = {p.residue_type.name for p in replacements} & existing_names
+    additions = [
+        replace(
+            p,
+            variant_partial_charges={
+                n: q
+                for n, q in (p.variant_partial_charges or {}).items()
+                if n not in protected
+            }
+            or None,
+            additional_cartbonded_params={
+                n: c
+                for n, c in (p.additional_cartbonded_params or {}).items()
+                if n not in protected
+            }
+            or None,
+            connection_params=(),
+        )
+        for p in preparations
+    ]
+    extended = _inject_additions(param_db, additions, strict_atom_types)
+    elements = _batch_atom_type_elements(preparations, extended.chemical)
+    atom_types = _collect_new_atom_types(
+        extended.chemical,
+        (
+            (p.residue_type.atoms, f"residue {p.residue_type.name}")
+            for p in replacements
+        ),
+        elements,
+        strict_atom_types=strict_atom_types,
+    )
+    return install_replacements(
+        extended,
+        replacements,
+        tuple(dict.fromkeys(r for p in preparations for r in p.connection_params)),
+        atom_types=atom_types or None,
+    )
+
+
+def _inject_additions(param_db, preparations, strict_atom_types):
     from tmol.database import inject_residue_params
 
     if not preparations:
         return param_db
 
+    unique = _unique_preparations(p for p in preparations if p.baseline_sha256 is None)
+    elements = _batch_atom_type_elements(preparations, param_db.chemical)
     existing_names = {r.name for r in param_db.chemical.residues}
-    new_preps = [p for p in preparations if p.residue_type.name not in existing_names]
-    if not new_preps:
+    new_preps = [p for p in unique if p.residue_type.name not in existing_names]
+    known_variants = {v.name: v for v in param_db.chemical.variants}
+    variants = []
+    for prep in preparations:
+        for variant in prep.adds_patches:
+            if variant.name in known_variants:
+                if variant != known_variants[variant.name]:
+                    raise ValueError(f"Conflicting patch definition: {variant.name}")
+            else:
+                known_variants[variant.name] = variant
+                variants.append(variant)
+    old_charges = {
+        (p.res, p.atom): p.charge for p in param_db.scoring.elec.atom_charge_parameters
+    }
+    shared_charges = _merge_partial_charges(
+        p.variant_partial_charges or {} for p in preparations
+    )
+    extra_charges = {
+        name: changed
+        for name, charges in shared_charges.items()
+        if (
+            changed := {
+                a: q for a, q in charges.items() if old_charges.get((name, a)) != q
+            }
+        )
+    }
+    known_connections = set(param_db.scoring.cartbonded.connection_params)
+    connections = tuple(
+        dict.fromkeys(
+            record
+            for prep in preparations
+            for record in prep.connection_params
+            if record not in known_connections
+        )
+    )
+    additional_cart = {
+        name: params
+        for name, params in _additional_cartbonded_params(preparations).items()
+        if param_db.scoring.cartbonded.residue_params.get(name) != params
+    }
+    if (
+        not new_preps
+        and not variants
+        and not extra_charges
+        and not connections
+        and not additional_cart
+    ):
         return param_db
 
-    new_atom_types: list[AtomType] = []
-    seen_at: set[str] = set()
-    for prep in new_preps:
-        for at in collect_new_atom_types(
-            param_db.chemical,
-            prep.residue_type,
-            atom_type_elements=prep.atom_type_elements,
-            strict_atom_types=strict_atom_types,
-        ):
-            if at.name in seen_at:
-                continue
-            seen_at.add(at.name)
-            new_atom_types.append(at)
+    new_atom_types = _collect_new_atom_types(
+        param_db.chemical,
+        chain(
+            (
+                (p.residue_type.atoms, f"residue {p.residue_type.name}")
+                for p in new_preps
+            ),
+            ((chain(v.add_atoms, v.modify_atoms), f"patch {v.name}") for v in variants),
+        ),
+        elements,
+        strict_atom_types=strict_atom_types,
+    )
 
     for prep in new_preps:
         logger.info(
@@ -422,15 +658,27 @@ def inject_ligand_preparations(
             len(prep.residue_type.bonds),
         )
 
+    charges = (
+        _charges_with_termini(
+            param_db, new_preps, (*param_db.chemical.atom_types, *new_atom_types)
+        )
+        if new_preps
+        else {}
+    )
+    for name, delta in extra_charges.items():
+        # The initial maps may be owned by reusable frozen preparations.
+        charges[name] = {**charges.get(name, {}), **delta}
     return inject_residue_params(
         param_db,
         residue_types=[p.residue_type for p in new_preps],
         atom_types=new_atom_types or None,
-        variants=[v for p in new_preps for v in p.adds_patches] or None,
-        partial_charges=_charges_with_termini(
-            param_db, new_preps, (*param_db.chemical.atom_types, *new_atom_types)
-        ),
-        cartbonded_params={p.residue_type.name: p.cartbonded_params for p in new_preps},
+        variants=variants or None,
+        partial_charges=charges,
+        cartbonded_params={
+            **{p.residue_type.name: p.cartbonded_params for p in new_preps},
+            **additional_cart,
+        },
+        connection_params=connections,
     )
 
 

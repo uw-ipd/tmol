@@ -1,6 +1,7 @@
 import torch
 import numpy
 import attrs
+from collections import OrderedDict
 
 from itertools import permutations
 
@@ -21,6 +22,29 @@ debug = False
 # residue connection
 CROSS_RES_PREFIX = "+"
 
+# Retain a common pair of parameter configurations, not every fitted database
+# ever used on this block/packed set. Rendered modules own their tensor snapshots.
+_ANNOTATION_CACHE_SIZE = 2
+
+
+def _annotations(owner):
+    cache = getattr(owner, "cartbonded_annotations", None)
+    if not isinstance(cache, OrderedDict):
+        cache = OrderedDict(cache or ())
+        owner.cartbonded_annotations = cache
+    while len(cache) > _ANNOTATION_CACHE_SIZE:
+        cache.popitem(last=False)
+    return cache
+
+
+def _remember(owner, key, value):
+    cache = _annotations(owner)
+    cache[key] = value
+    cache.move_to_end(key)
+    while len(cache) > _ANNOTATION_CACHE_SIZE:
+        cache.popitem(last=False)
+    return value
+
 
 @attrs.define(auto_attribs=True, slots=True, frozen=True)
 class CartBondedBlockAnnotations:
@@ -38,8 +62,14 @@ class CartBondedPackedBlockTypesAnnotations:
     cartbonded_subgraph_type_offsets: torch.Tensor
     cartbonded_max_subgraphs_per_block: int
     cartbonded_atom_unique_id_index: dict
+    atom_unique_ids: torch.Tensor
     cartbonded_params_hash_keys: torch.Tensor
     cartbonded_params_hash_values: torch.Tensor
+    connection_hash_keys: torch.Tensor
+    connection_spans: torch.Tensor
+    connection_paths: torch.Tensor
+    atom_is_rosetta: torch.Tensor
+    rosetta_typed: frozenset
 
 
 class CartBondedEnergyTerm(AtomTypeDependentTerm):
@@ -60,7 +90,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         self.improper_roots = find_improper_roots(param_db.scoring.cartbonded)
 
         self.cart_database = param_db.scoring.cartbonded
-        self.rosetta_typed = param_db.scoring.genbonded.rosetta_typed
+        self.rosetta_typed = frozenset(param_db.scoring.genbonded.rosetta_typed)
         self.hash = self.cart_database.hash
         self.device = device
 
@@ -187,17 +217,10 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(CartBondedEnergyTerm, self).setup_block_type(block_type)
-        if (
-            hasattr(block_type, "cartbonded_annotations")
-            and self.hash in block_type.cartbonded_annotations
-        ):
-            return
-
-        # if hasattr(block_type, "cartbonded_subgraphs"):
-        #     assert hasattr(block_type, "cartbonded_subgraph_type_counts")
-        #     assert hasattr(block_type, "cartbonded_subgraph_type_offsets")
-        #     assert hasattr(block_type, "cartbonded_params")
-        #     return
+        cache = _annotations(block_type)
+        if self.hash in cache:
+            cache.move_to_end(self.hash)
+            return cache[self.hash]
 
         # Get the subgraphs for this block type
         lengths, angles, torsions, improper = self.find_subgraphs(
@@ -216,35 +239,56 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         )
 
         # Fetch the params from the database, updating the atom id store if necessary
-        cartbonded_params = self.get_params_for_res(block_type.base_name)
+        # An exact patched name replaces this residue's complete CartRes.
+        # Keep its atom namespace separate so the unpatched type, other
+        # variants and other score terms can retain their existing parameters.
+        parameter_name = self._parameter_name(block_type)
+        cartbonded_params = self.get_params_for_res(parameter_name)
         cb_block_ann = CartBondedBlockAnnotations(
             cartbonded_subgraphs=cart_subgraphs,
             cartbonded_subgraph_type_counts=cart_subgraph_type_counts,
             cartbonded_subgraph_type_offsets=cart_subgraph_type_offsets,
             cartbonded_params=cartbonded_params,
         )
-        if not hasattr(block_type, "cartbonded_annotations"):
-            setattr(block_type, "cartbonded_annotations", {})
-        block_type.cartbonded_annotations[self.hash] = cb_block_ann
+        return _remember(block_type, self.hash, cb_block_ann)
+
+    def _parameter_name(self, block_type):
+        if block_type.is_ligand_fragment:
+            records = self.cart_database.residue_params
+            # Fragment preparations carry the source ligand's complete
+            # CartRes. Equal records must share its namespace so paths across
+            # a cut still resolve to the original ligand parameters. This
+            # also covers separately deserialized copies of those records.
+            if records.get(block_type.name) == records.get(block_type.base_name):
+                return block_type.base_name
+        return (
+            block_type.name
+            if block_type.name in self.cart_database.residue_params
+            else block_type.base_name
+        )
+
+    def _cartbonded_atom_ids(self, packed_block_types, id_index):
+        """Reuse ordinary IDs unless an exact variant needs its own namespace."""
+        ids = packed_block_types.atom_unique_ids
+        overrides = [
+            (i, bt)
+            for i, bt in enumerate(packed_block_types.active_block_types)
+            if self._parameter_name(bt) != bt.base_name
+        ]
+        if not overrides:
+            return ids
+        array = ids.cpu().numpy().copy()
+        for i, bt in overrides:
+            for j, atom in enumerate(bt.atoms):
+                name = self.get_atom_unique_id_name(bt.name, atom.name)
+                array[i, j] = id_index.setdefault(name, len(id_index))
+        return torch.from_numpy(array).to(self.device)
 
     def setup_packed_block_types(
         self, packed_block_types: PackedBlockTypes
     ):  # noqa: C901
         super(CartBondedEnergyTerm, self).setup_packed_block_types(packed_block_types)
 
-        if not hasattr(packed_block_types, "cartbonded_atom_is_rosetta"):
-            # A planarity centre the Rosetta terms type is theirs; one they do
-            # not is the generic term's, which carries its own improper for it.
-            rosetta_typed = self.rosetta_typed
-            bts = packed_block_types.active_block_types
-            max_atoms = max((len(bt.atoms) for bt in bts), default=1)
-            mask = numpy.zeros((len(bts), max(max_atoms, 1)), dtype=numpy.int32)
-            for i, bt in enumerate(bts):
-                for j, atom in enumerate(bt.atoms):
-                    mask[i, j] = atom.atom_type in rosetta_typed
-            packed_block_types.cartbonded_atom_is_rosetta = torch.tensor(
-                mask, dtype=torch.int32, device=self.device
-            )
         if not hasattr(packed_block_types, "cartbonded_is_fragment"):
             packed_block_types.cartbonded_is_fragment = torch.tensor(
                 [
@@ -254,24 +298,30 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
                 dtype=torch.int32,
                 device=self.device,
             )
+        cache = _annotations(packed_block_types)
+        previous = cache.get(self.hash)
         if (
-            hasattr(packed_block_types, "cartbonded_annotations")
-            and self.hash in packed_block_types.cartbonded_annotations
+            previous is not None
+            and previous.cartbonded_params_hash_values.device
+            == self.atom_type_resolver.params.is_hydrogen.device
         ):
-            return
-
-        # if hasattr(packed_block_types, "cartbonded_subgraphs"):
-        #     assert hasattr(packed_block_types, "cartbonded_subgraph_offsets")
-        #     assert hasattr(packed_block_types, "cartbonded_max_subgraphs_per_block")
-        #     assert hasattr(packed_block_types, "cartbonded_atom_unique_id_index")
-        #     assert hasattr(packed_block_types, "cartbonded_params_hash_keys")
-        #     assert hasattr(packed_block_types, "cartbonded_params_hash_values")
-        #     return
+            if previous.rosetta_typed != self.rosetta_typed:
+                previous = attrs.evolve(
+                    previous,
+                    atom_is_rosetta=self._ownership_mask(packed_block_types),
+                    rosetta_typed=self.rosetta_typed,
+                )
+            packed_block_types.cartbonded_atom_is_rosetta = previous.atom_is_rosetta
+            return _remember(packed_block_types, self.hash, previous)
+        # Capture returned block annotations; cache eviction or another setup
+        # must not switch the parameters while this packed set is assembled.
+        block_annotations = [
+            self.setup_block_type(bt) for bt in packed_block_types.active_block_types
+        ]
 
         # Aggregate the subgraphs and collect metadata
         total_subgraphs = sum(
-            bt.cartbonded_annotations[self.hash].cartbonded_subgraphs.shape[0]
-            for bt in packed_block_types.active_block_types
+            annotation.cartbonded_subgraphs.shape[0] for annotation in block_annotations
         )
         subgraphs = numpy.full((total_subgraphs, 4), -1, dtype=numpy.int32)
         subgraph_offsets = []
@@ -279,9 +329,8 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         subgraph_type_offsets = []
         offset = 0
         max_subgraphs_per_block = 0
-        for block_type in packed_block_types.active_block_types:
+        for bt_params in block_annotations:
             subgraph_offsets.append(offset)
-            bt_params = block_type.cartbonded_annotations[self.hash]
             n_subgraphs = bt_params.cartbonded_subgraphs.shape[0]
             subgraph_type_counts.append(bt_params.cartbonded_subgraph_type_counts)
             subgraph_type_offsets.append(bt_params.cartbonded_subgraph_type_offsets)
@@ -307,6 +356,9 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         # we will be adding new "wildcard" atom ids, so we will copy the
         # atom_unique_id_index annotation
         cbet_atom_unique_id_index = packed_block_types.atom_unique_id_index.copy()
+        atom_unique_ids = self._cartbonded_atom_ids(
+            packed_block_types, cbet_atom_unique_id_index
+        )
 
         # get the params not associated with any specific residue
         wildcard_params = self.get_params_for_res("wildcard").items()
@@ -318,8 +370,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
                 if at not in cbet_atom_unique_id_index:
                     cbet_atom_unique_id_index[at] = len(cbet_atom_unique_id_index)
 
-        for bt in packed_block_types.active_block_types:
-            bt_params = bt.cartbonded_annotations[self.hash]
+        for bt_params in block_annotations:
 
             for key in bt_params.cartbonded_params:
                 for at in key:
@@ -328,20 +379,17 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
 
         # Calculate the total number of params
         n_total_params = sum(
-            [
-                len(bt.cartbonded_annotations[self.hash].cartbonded_params)
-                for bt in packed_block_types.active_block_types
-            ]
+            [len(annotation.cartbonded_params) for annotation in block_annotations]
         ) + len(wildcard_params)
 
         # Construct the params hash with the given scaling factor
-        hash_keys, hash_values = make_hashtable_keys_values(n_total_params, 2, 5, 7)
+        hash_keys, hash_values = make_hashtable_keys_values(
+            max(n_total_params, 1), 2, 5, 7
+        )
 
         # Fill the hash table
         cur_val = 0
-        for bt in packed_block_types.active_block_types:
-
-            bt_params = bt.cartbonded_annotations[self.hash]
+        for bt_params in block_annotations:
             for key_w_str, value in bt_params.cartbonded_params.items():
                 key = tuple(cbet_atom_unique_id_index[at] for at in key_w_str)
                 add_to_hashtable(hash_keys, hash_values, cur_val, key, value)
@@ -351,6 +399,21 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             key = tuple(cbet_atom_unique_id_index[at] for at in key_w_str)
             add_to_hashtable(hash_keys, hash_values, cur_val, key, value)
             cur_val += 1
+
+        from ._connection_parameters import compile_connection_parameters
+
+        connection_keys, connection_spans, connection_paths, connection_values = (
+            compile_connection_parameters(
+                self.cart_database.connection_params,
+                packed_block_types,
+                len(hash_values),
+            )
+        )
+        hash_values = (
+            numpy.concatenate((hash_values, connection_values), axis=0)
+            if len(connection_values)
+            else hash_values
+        )
 
         hash_keys_tensor = torch.from_numpy(hash_keys).to(device=self.device)
         hash_values_tensor = torch.from_numpy(hash_values).to(device=self.device)
@@ -362,12 +425,36 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             cartbonded_subgraph_type_offsets=subgraph_type_offsets,
             cartbonded_max_subgraphs_per_block=max_subgraphs_per_block,
             cartbonded_atom_unique_id_index=cbet_atom_unique_id_index,
+            atom_unique_ids=atom_unique_ids,
             cartbonded_params_hash_keys=hash_keys_tensor,
             cartbonded_params_hash_values=hash_values_tensor,
+            connection_hash_keys=torch.from_numpy(connection_keys).to(self.device),
+            connection_spans=torch.from_numpy(connection_spans).to(self.device),
+            connection_paths=torch.from_numpy(connection_paths).to(self.device),
+            atom_is_rosetta=self._ownership_mask(packed_block_types),
+            rosetta_typed=self.rosetta_typed,
         )
-        if not hasattr(packed_block_types, "cartbonded_annotations"):
-            setattr(packed_block_types, "cartbonded_annotations", {})
-        packed_block_types.cartbonded_annotations[self.hash] = cb_pbt_ann
+        packed_block_types.cartbonded_atom_is_rosetta = cb_pbt_ann.atom_is_rosetta
+        return _remember(packed_block_types, self.hash, cb_pbt_ann)
+
+    def _ownership_mask(self, packed_block_types):
+        for annotation in _annotations(packed_block_types).values():
+            if (
+                annotation.rosetta_typed == self.rosetta_typed
+                and annotation.atom_is_rosetta.device
+                == self.atom_type_resolver.params.is_hydrogen.device
+            ):
+                return annotation.atom_is_rosetta
+        # A planarity centre the Rosetta terms type is theirs; one they do
+        # not is the generic term's, which carries its own improper for it.
+        rosetta_typed = self.rosetta_typed
+        bts = packed_block_types.active_block_types
+        max_atoms = max((len(bt.atoms) for bt in bts), default=1)
+        mask = numpy.zeros((len(bts), max(max_atoms, 1)), dtype=numpy.int32)
+        for i, bt in enumerate(bts):
+            for j, atom in enumerate(bt.atoms):
+                mask[i, j] = atom.atom_type in rosetta_typed
+        return torch.tensor(mask, dtype=torch.int32, device=self.device)
 
     def setup_poses(self, poses: PoseStack):
         super(CartBondedEnergyTerm, self).setup_poses(poses)
@@ -385,18 +472,18 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
     def get_score_term_attributes(self, pose_stack):
         pbt = pose_stack.packed_block_types
 
-        def _t(ts):
-            return tuple(map(lambda t: t.to(torch.float), ts))
-
-        pbt_cb_ann = pbt.cartbonded_annotations[self.hash]
+        pbt_cb_ann = self.setup_packed_block_types(pbt)
         return [
             pose_stack.inter_residue_connections,
             pbt.atom_paths_from_conn,
-            pbt.atom_unique_ids,
+            pbt_cb_ann.atom_unique_ids,
             pbt.atom_wildcard_ids,
-            pbt.cartbonded_atom_is_rosetta,
+            pbt_cb_ann.atom_is_rosetta,
             pbt.cartbonded_is_fragment,
             pbt.atom_cross_ids,
+            pbt_cb_ann.connection_hash_keys,
+            pbt_cb_ann.connection_spans,
+            pbt_cb_ann.connection_paths,
             pbt_cb_ann.cartbonded_params_hash_keys,
             pbt_cb_ann.cartbonded_params_hash_values,
             pbt_cb_ann.cartbonded_subgraphs,

@@ -12,6 +12,7 @@ residue type they were generated for.
 """
 
 import attr
+import networkx
 
 from tmol.database.chemical import (
     Atom,
@@ -26,8 +27,8 @@ from tmol.database.chemical import (
 
 CONNECTION_PREFIX = "conj_"
 
-# the bond a conjugation makes is sp3-sp3, so its torsion is sampled
-#    staggered, as the proton chi it replaces was
+# Generic staggered attachment grid; this is not a fitted distribution for
+# every glycosidic, amide or other conjugated bond.
 LINKAGE_SAMPLES = (60.0, -60.0, 180.0)
 
 
@@ -109,20 +110,32 @@ def _icoor_for(residue_type, name):
     return next((ic for ic in residue_type.icoors if ic.name == name), None)
 
 
-def _linkage_torsion(name, frame, atom, chi_name):
-    """The torsion the new bond turns, framed as the departing hydrogen was.
+def _linkage_torsion(name, frame, atom, chi_name, across_connection=False):
+    """A bonded attachment torsion, with a connection-spanning axis if needed.
 
-    Rotating it swings whatever is attached, so it is not a proton chi: the
-    packer owns it, optH does not.
+    A ring bond cannot turn independently to reposition its attachment. At
+    such sites, sample the new bond instead. The group packer owns this chi.
     """
-    return (
-        Torsion(
+    if across_connection:
+        # At an anomeric/ring carbon the departing H's axis is a ring bond.
+        # Move the attached group about the new bond, preserving the ring.
+        torsion = Torsion(
+            name=chi_name,
+            a=UnresolvedAtom(atom=frame.grand_parent),
+            b=UnresolvedAtom(atom=atom),
+            c=UnresolvedAtom(connection=name, bond_sep_from_conn=0),
+            d=UnresolvedAtom(connection=name, bond_sep_from_conn=1),
+        )
+    else:
+        torsion = Torsion(
             name=chi_name,
             a=UnresolvedAtom(atom=frame.great_grand_parent),
             b=UnresolvedAtom(atom=frame.grand_parent),
             c=UnresolvedAtom(atom=atom),
             d=UnresolvedAtom(connection=name, bond_sep_from_conn=0),
-        ),
+        )
+    return (
+        torsion,
         ChiSamples(
             chi_dihedral=chi_name,
             samples=LINKAGE_SAMPLES,
@@ -189,8 +202,30 @@ def conjugation_patch(
 
     torsions, chi_samples = (), ()
     if chi_name is not None and frame.grand_parent and frame.great_grand_parent:
-        torsion, sample = _linkage_torsion(name, frame, atom, chi_name)
-        torsions, chi_samples = (torsion,), (sample,)
+        graph = networkx.Graph((a, b) for a, b, *_ in residue_type.bonds)
+        graph.remove_nodes_from(gone)
+        element = _element_for_atom(residue_type, chemdb)
+        neighbors = sorted(n for n in graph[atom] if element[n] != "H")
+        if neighbors:
+            b = frame.grand_parent if frame.grand_parent in neighbors else neighbors[0]
+            references = sorted(
+                (n for n in graph[b] if n != atom),
+                key=lambda n: (element[n] == "H", n),
+            )
+            bridges = {frozenset(edge) for edge in networkx.bridges(graph)}
+            across = frozenset((b, atom)) not in bridges or not references
+            # An icoor may refer to another hydrogen on the same centre.
+            # Torsion samples need a bonded four-atom path instead.
+            a = (
+                frame.great_grand_parent
+                if frame.great_grand_parent in references
+                else references[0] if references else b
+            )
+            torsion_frame = attr.evolve(frame, grand_parent=b, great_grand_parent=a)
+            torsion, sample = _linkage_torsion(
+                name, torsion_frame, atom, chi_name, across_connection=across
+            )
+            torsions, chi_samples = (torsion,), (sample,)
 
     return VariantType(
         name=f"{CONNECTION_PREFIX}{residue_type.base_name}_{atom}",

@@ -1,5 +1,6 @@
 import torch
 
+from .._annotation_cache import AnnotationKey, cached_annotation, store_annotation
 from .._atom_type_dependent_term import AtomTypeDependentTerm
 from .._bond_dependent_term import BondDependentTerm
 from ._params import LJLKTypeParams, LJLKGlobalParams
@@ -26,11 +27,24 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         )
         super(LJLKEnergyTerm, self).__init__(param_db=param_db, device=device)
         self.type_params = ljlk_param_resolver.type_params
+        self._ljlk_param_resolver = ljlk_param_resolver
         self.global_params = ljlk_param_resolver.global_params
         self._max_dis = float(param_db.scoring.ljlk.global_parameters.max_dis)
         self.tile_size = LJLKEnergyTerm.tile_size
         self.soft_repulsive = False
-        self.rosetta_typed = param_db.scoring.genbonded.rosetta_typed
+        self.rosetta_typed = frozenset(param_db.scoring.genbonded.rosetta_typed)
+        self._ljlk_block_key = AnnotationKey.from_sources(
+            param_db.chemical, settings=(self.tile_size,)
+        )
+        self._ljlk_packed_key = AnnotationKey.from_sources(
+            param_db.chemical,
+            param_db.scoring.ljlk,
+            settings=(
+                self.type_params.lj_radius.device,
+                self.tile_size,
+                self.rosetta_typed,
+            ),
+        )
 
     @classmethod
     def class_name(cls):
@@ -50,23 +64,35 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
             self.soft_repulsive = options["soft_rep"]
 
     def setup_block_type(self, block_type: RefinedResidueType):
-        super(LJLKEnergyTerm, self).setup_block_type(block_type)
-        if hasattr(block_type, "ljlk_heavy_atoms_in_tile"):
-            assert hasattr(block_type, "ljlk_n_heavy_atoms_in_tile")
-            return
+        self._ljlk_param_resolver.validate_block_type(block_type)
+        atom_params = super(LJLKEnergyTerm, self).setup_block_type(block_type)
+        cached = cached_annotation(block_type, "_ljlk_annotation", self._ljlk_block_key)
+        if cached is not None:
+            return cached
         heavy_atoms_in_tile, n_in_tile = tile_subset_indices(
-            block_type.heavy_atom_inds, self.tile_size
+            atom_params[1], self.tile_size
         )
         setattr(block_type, "ljlk_heavy_atoms_in_tile", heavy_atoms_in_tile)
         setattr(block_type, "ljlk_n_heavy_atoms_in_tile", n_in_tile)
+        return store_annotation(
+            block_type,
+            "_ljlk_annotation",
+            self._ljlk_block_key,
+            (heavy_atoms_in_tile, n_in_tile),
+        )
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
-        super(LJLKEnergyTerm, self).setup_packed_block_types(packed_block_types)
-        if hasattr(packed_block_types, "ljlk_heavy_atoms_in_tile"):
-            assert hasattr(packed_block_types, "ljlk_n_heavy_atoms_in_tile")
-            assert hasattr(packed_block_types, "ljlk_bond_separation")
-            assert hasattr(packed_block_types, "ljlk_all_atoms_ligand_typed")
-            return
+        atom_params = super(LJLKEnergyTerm, self).setup_packed_block_types(
+            packed_block_types
+        )
+        cached = cached_annotation(
+            packed_block_types, "_ljlk_annotation", self._ljlk_packed_key
+        )
+        if cached is not None:
+            return cached
+        blocks = [
+            self.setup_block_type(bt) for bt in packed_block_types.active_block_types
+        ]
         max_n_tiles = (packed_block_types.max_n_atoms - 1) // self.tile_size + 1
         heavy_atoms_in_tile = torch.full(
             (packed_block_types.n_types, max_n_tiles * self.tile_size),
@@ -84,11 +110,11 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         def _t(arr):
             return torch.tensor(arr, dtype=torch.int32, device=self.device)
 
-        for i, rt in enumerate(packed_block_types.active_block_types):
-            i_n_tiles = rt.ljlk_n_heavy_atoms_in_tile.shape[0]
+        for i, (heavy, counts) in enumerate(blocks):
+            i_n_tiles = counts.shape[0]
             i_n_tile_ats = i_n_tiles * self.tile_size
-            heavy_atoms_in_tile[i, :i_n_tile_ats] = _t(rt.ljlk_heavy_atoms_in_tile)
-            n_heavy_ats_in_tile[i, :i_n_tiles] = _t(rt.ljlk_n_heavy_atoms_in_tile)
+            heavy_atoms_in_tile[i, :i_n_tile_ats] = _t(heavy)
+            n_heavy_ats_in_tile[i, :i_n_tiles] = _t(counts)
 
         setattr(packed_block_types, "ljlk_heavy_atoms_in_tile", heavy_atoms_in_tile)
         setattr(packed_block_types, "ljlk_n_heavy_atoms_in_tile", n_heavy_ats_in_tile)
@@ -102,7 +128,7 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         rosetta_typed = self.rosetta_typed
         ljlk_bond_separation = packed_block_types.bond_separation.clone()
         for i, bt in enumerate(packed_block_types.active_block_types):
-            n = packed_block_types.n_atoms[i]
+            n = len(bt.atoms)
             ligand = torch.tensor(
                 [a.atom_type not in rosetta_typed for a in bt.atoms],
                 dtype=torch.bool,
@@ -124,6 +150,18 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
                 device=self.device,
             ),
         )
+        return store_annotation(
+            packed_block_types,
+            "_ljlk_annotation",
+            self._ljlk_packed_key,
+            (
+                n_heavy_ats_in_tile,
+                heavy_atoms_in_tile,
+                atom_params[0],
+                ljlk_bond_separation,
+                packed_block_types.ljlk_all_atoms_ligand_typed,
+            ),
+        )
 
     def setup_poses(self, poses: PoseStack):
         super(LJLKEnergyTerm, self).setup_poses(poses)
@@ -139,6 +177,8 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         return ljlk_rotamer_scores
 
     def get_score_term_attributes(self, pose_stack):
+        annotation = self.setup_packed_block_types(pose_stack.packed_block_types)
+
         def _t(ts):
             return tuple(map(lambda t: t.to(torch.float), ts))
 
@@ -179,13 +219,13 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
             pose_stack.min_block_bondsep,
             pose_stack.inter_block_bondsep,
             pose_stack.packed_block_types.n_atoms,
-            pose_stack.packed_block_types.ljlk_n_heavy_atoms_in_tile,
-            pose_stack.packed_block_types.ljlk_heavy_atoms_in_tile,
-            pose_stack.packed_block_types.atom_types,
+            annotation[0],
+            annotation[1],
+            annotation[2],
             pose_stack.packed_block_types.n_conn,
             pose_stack.packed_block_types.conn_atom,
-            pose_stack.packed_block_types.ljlk_bond_separation,
-            pose_stack.packed_block_types.ljlk_all_atoms_ligand_typed,
+            annotation[3],
+            annotation[4],
             type_params,
             global_params,
             # max_dis as host scalar for detect-neighbors call

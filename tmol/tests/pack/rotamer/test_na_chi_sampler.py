@@ -155,3 +155,29 @@ def test_na_build_rotamers(fixture, request, default_database, torch_device):
     assert rotamer_set is not None
     assert rotamer_set.coords.shape[0] > 0
     assert not bool(torch.any(torch.isnan(rotamer_set.coords)))
+
+
+def test_na_sampler_ignores_sampling_work_for_non_nucleotides(
+    default_database, torch_device, monkeypatch
+):
+    import copy
+    import tmol.pack.rotamer._na_chi_sampler as implementation
+
+    sampler = NaChiRotamerSampler.from_database(default_database, torch_device)
+    pbt = default_packed_block_types(torch_device)
+    # TYR has real proton sampling, but is owned by a different sampler.
+    source = next(bt for bt in pbt.active_block_types if bt.name == "TYR")
+    rt = copy.copy(source)
+    if hasattr(rt, "na_chi_sampler_params"):
+        object.__delattr__(rt, "na_chi_sampler_params")
+    assert rt.chi_samples
+
+    def unexpected_tree(_rt):
+        raise AssertionError("NA sampler must not construct a protein chi tree")
+
+    monkeypatch.setattr(
+        implementation, "construct_single_residue_kinforest", unexpected_tree
+    )
+    sampler.annotate_residue_type(rt)
+    assert rt.na_chi_sampler_params["base"] == -1
+    assert rt.na_chi_sampler_params["proton_chi"] == []

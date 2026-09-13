@@ -1,0 +1,18 @@
+{
+  "checked_at_utc": "2026-09-12T03:38:36Z",
+  "pr": 503,
+  "upstream_head": "0593a93b07d80b0302383163d2d98c78e315ab98",
+  "upstream_branch": "dimaio/noncanonicals_through_ligand_pipeline",
+  "latest_upstream_commit_time": "2026-09-11T19:56:35Z",
+  "followup_head": "ea4e906bc6e5aa881f5a56c06549c568ed10dfea",
+  "verification": [
+    "GitHub PR API head",
+    "Fetched refs/pull/503/head into origin/pr503-latest",
+    "Direct git ls-remote of author branch",
+    "git merge-base --is-ancestor upstream HEAD succeeded",
+    "git merge --no-edit origin/pr503-latest returned Already up to date."
+  ],
+  "new_commits_to_merge": 0,
+  "prior_merge_commit": "841d594d5",
+  "note": "The existing cap/conjugation update is already merged and audited. Two local spline-performance/test changes remain uncommitted while validation runs."
+}

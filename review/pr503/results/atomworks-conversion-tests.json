@@ -1,0 +1,1120 @@
+{
+  "atomworks-conversion-tests": {
+    "suites": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "52",
+        "time": "4.108",
+        "timestamp": "2026-09-11T13:10:39.746921+00:00",
+        "hostname": "slurm-login-0"
+      }
+    ],
+    "cases": [
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_conversion_keeps_source_and_output_independent[N[C@@H](C)C(=O)O-keep]",
+        "time": "0.100",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_conversion_keeps_source_and_output_independent[N[C@@H](C)C(=O)O-remove]",
+        "time": "0.082",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_conversion_keeps_source_and_output_independent[N[C@@H](C)C(=O)O-infer]",
+        "time": "0.092",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_conversion_keeps_source_and_output_independent[c1ccncc1-keep]",
+        "time": "0.081",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_conversion_keeps_source_and_output_independent[c1ccncc1-remove]",
+        "time": "0.075",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_conversion_keeps_source_and_output_independent[c1ccncc1-infer]",
+        "time": "0.077",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_conversion_keeps_source_and_output_independent[C[N+](C)(C)C-keep]",
+        "time": "0.076",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_conversion_keeps_source_and_output_independent[C[N+](C)(C)C-remove]",
+        "time": "0.076",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_conversion_keeps_source_and_output_independent[C[N+](C)(C)C-infer]",
+        "time": "0.076",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_conversion_keeps_source_and_output_independent[[Na+].[Cl-]-keep]",
+        "time": "0.071",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_conversion_keeps_source_and_output_independent[[Na+].[Cl-]-remove]",
+        "time": "0.072",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_conversion_keeps_source_and_output_independent[[Na+].[Cl-]-infer]",
+        "time": "0.099",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_coordinate_policy_is_explicit[None-1.0]",
+        "time": "0.076",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_coordinate_policy_is_explicit[None-nan]",
+        "time": "0.074",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_coordinate_policy_is_explicit[None-inf]",
+        "time": "0.079",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_coordinate_policy_is_explicit[False-1.0]",
+        "time": "0.076",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_coordinate_policy_is_explicit[False-nan]",
+        "time": "0.078",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_coordinate_policy_is_explicit[False-inf]",
+        "time": "0.075",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_coordinate_policy_is_explicit[True-1.0]",
+        "time": "0.075",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_coordinate_policy_is_explicit[True-nan]",
+        "time": "0.077",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_coordinate_policy_is_explicit[True-inf]",
+        "time": "0.077",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_empty_array_conversion",
+        "time": "0.077",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_conversion_preserves_enantiomer",
+        "time": "0.078",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[nan-0]",
+        "time": "0.073",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[nan-1]",
+        "time": "0.072",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[nan-2]",
+        "time": "0.072",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[nan-3]",
+        "time": "0.070",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[inf-0]",
+        "time": "0.072",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[inf-1]",
+        "time": "0.073",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[inf-2]",
+        "time": "0.073",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[inf-3]",
+        "time": "0.074",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[-inf-0]",
+        "time": "0.074",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[-inf-1]",
+        "time": "0.075",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[-inf-2]",
+        "time": "0.072",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[-inf-3]",
+        "time": "0.072",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_coincident_geometry_does_not_repair[1]",
+        "time": "0.073",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_coincident_geometry_does_not_repair[2]",
+        "time": "0.070",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_coincident_geometry_does_not_repair[3]",
+        "time": "0.069",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_finite_planar_geometry_repairs_both_oxygen_charges",
+        "time": "0.071",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_nonplanar_short_bonds_do_not_repair",
+        "time": "0.071",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_invalid_motif_does_not_disable_other_finite_motifs",
+        "time": "0.074",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_protonation.TestNormalizeRadicalOxygens",
+        "name": "test_radical_carboxylate_becomes_anion",
+        "time": "0.083",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_protonation.TestNormalizeRadicalOxygens",
+        "name": "test_noop_on_normal_mol",
+        "time": "0.074",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_protonation.TestDimorphitePhosphate",
+        "name": "test_phosphate_monoester_deprotonates_at_ph74",
+        "time": "0.077",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_protonation.TestHistidineTautomer",
+        "name": "test_capture_uses_positional_keys_for_duplicate_residue_ids",
+        "time": "0.071",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_protonation.TestHistidineTautomer",
+        "name": "test_hd1_only",
+        "time": "0.069",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_protonation.TestHistidineTautomer",
+        "name": "test_he2_only",
+        "time": "0.069",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_protonation.TestHistidineTautomer",
+        "name": "test_both_hd1_and_he2",
+        "time": "0.071",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_protonation.TestHistidineTautomer",
+        "name": "test_hn_closer_to_nd1",
+        "time": "0.070",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_protonation.TestHistidineTautomer",
+        "name": "test_apply_keeps_both_protons",
+        "time": "0.072",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_protonation.TestHistidineTautomer",
+        "name": "test_apply_nd1_prunes_he2",
+        "time": "0.071",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_protonation.TestCarboxylateCorrection",
+        "name": "test_gem_diol_carboxylate_corrected",
+        "time": "0.070",
+        "status": "pass"
+      }
+    ]
+  },
+  "atomworks-rdkit-existing": {
+    "suites": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "19",
+        "time": "8.108",
+        "timestamp": "2026-09-11T13:13:47.896385+00:00",
+        "hostname": "slurm-login-0"
+      }
+    ],
+    "cases": [
+      {
+        "classname": "tests.io.tools.test_rdkit",
+        "name": "test_smiles_to_rdkit_to_atom_array[C1=NC(=C2C(=N1)N(C=N2)C3C(C(C(O3)COP(=O)(O)O)O)O)N]",
+        "time": "0.154",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit",
+        "name": "test_smiles_to_rdkit_to_atom_array[C1=CC=CC=C1]",
+        "time": "0.085",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit",
+        "name": "test_smiles_to_rdkit_to_atom_array[c1cc(c[n+](c1)[C@H]2[C@@H]([C@@H]([C@H](O2)CO[P@@](=O)([O-])O[P@@](=O)(O)OC[C@@H]3[C@H]([C@H]([C@@H](O3)n4cnc5c4ncnc5N)O)O)O)O)C(=O)N]",
+        "time": "0.204",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit",
+        "name": "test_smiles_to_atom_array_to_rdkit[C1=NC(=C2C(=N1)N(C=N2)C3C(C(C(O3)COP(=O)(O)O)O)O)N]",
+        "time": "0.200",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit",
+        "name": "test_smiles_to_atom_array_to_rdkit[C1=CC=CC=C1]",
+        "time": "0.085",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit",
+        "name": "test_smiles_to_atom_array_to_rdkit[c1cc(c[n+](c1)[C@H]2[C@@H]([C@@H]([C@H](O2)CO[P@@](=O)([O-])O[P@@](=O)(O)OC[C@@H]3[C@H]([C@H]([C@@H](O3)n4cnc5c4ncnc5N)O)O)O)O)C(=O)N]",
+        "time": "0.243",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit",
+        "name": "test_atom_array_rdkit_interconversion[test_atom_array0]",
+        "time": "0.080",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit",
+        "name": "test_atom_array_rdkit_interconversion[test_atom_array1]",
+        "time": "0.084",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit",
+        "name": "test_fixing_molecules",
+        "time": "0.288",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit",
+        "name": "test_fingerprints",
+        "time": "2.126",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit",
+        "name": "test_chirality_detection_from_ccd",
+        "time": "0.431",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit",
+        "name": "test_chirality_detection_from_smiles",
+        "time": "0.080",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit",
+        "name": "test_chriality_in_spoofed_rdkit_molecules",
+        "time": "0.074",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit",
+        "name": "test_atom_array_to_rdkit_bond_inference[35N]",
+        "time": "0.149",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit",
+        "name": "test_atom_array_to_rdkit_bond_inference[GDP]",
+        "time": "0.129",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit",
+        "name": "test_atom_array_to_rdkit_bond_inference[ATP]",
+        "time": "0.139",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit",
+        "name": "test_atom_array_to_rdkit_bond_inference[SAM]",
+        "time": "0.126",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit",
+        "name": "test_atom_array_to_rdkit_bond_inference[FMN]",
+        "time": "0.137",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit",
+        "name": "test_nhyd_with_explicit_hydrogens",
+        "time": "0.076",
+        "status": "pass"
+      }
+    ]
+  },
+  "tmol-geometry-correction-tests": {
+    "suites": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "43",
+        "time": "0.869",
+        "timestamp": "2026-09-11T13:10:41.471864+00:00",
+        "hostname": "slurm-login-0"
+      }
+    ],
+    "cases": [
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[nan-0]",
+        "time": "0.004",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[nan-1]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[nan-2]",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[nan-3]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[inf-0]",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[inf-1]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[inf-2]",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[inf-3]",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[-inf-0]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[-inf-1]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[-inf-2]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[-inf-3]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_coincident_geometry_does_not_repair[1]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_coincident_geometry_does_not_repair[2]",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_coincident_geometry_does_not_repair[3]",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_finite_planar_geometry_repairs_both_oxygen_charges",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_nonplanar_short_bonds_do_not_repair",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_invalid_motif_does_not_disable_other_finite_motifs",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_ligand_unit_coverage.TestDetectHelpers",
+        "name": "test_strip_metals_removes_metal_atoms",
+        "time": "0.004",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_ligand_unit_coverage.TestDetectHelpers",
+        "name": "test_strip_metals_no_op_without_metals",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_ligand_unit_coverage.TestDetectHelpers",
+        "name": "test_rdkit_bond_to_biotite_type_orders",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_ligand_unit_coverage.TestDetectHelpers",
+        "name": "test_rdkit_bond_to_biotite_type_quadruple_and_fallback",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_ligand_unit_coverage.TestDetectHelpers",
+        "name": "test_infer_res_name_from_mol2",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_ligand_unit_coverage.TestDetectHelpers",
+        "name": "test_source_subtype_from_mol2_atom_type",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_ligand_unit_coverage.TestDetectHelpers",
+        "name": "test_mol2_charge_model_from_text",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_ligand_unit_coverage.TestDetectHelpers",
+        "name": "test_mol2_single_bond_ids",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_ligand_unit_coverage.TestDetectHelpers",
+        "name": "test_charge_model_is_authoritative",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_ligand_unit_coverage.TestDetectHelpers",
+        "name": "test_normalize_radical_oxygens",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_ligand_unit_coverage.TestDetectHelpers",
+        "name": "test_dimorphite_protonate_smiles",
+        "time": "0.003",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_ligand_unit_coverage.TestStructureToSmiles",
+        "name": "test_mol_to_smiles_returns_none_on_failure",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_ligand_unit_coverage.TestStructureToSmiles",
+        "name": "test_smiles_from_atom_array_raises_when_no_smiles",
+        "time": "0.460",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_ligand_unit_coverage.TestAuthoritativeCharges",
+        "name": "test_maps_by_index",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_ligand_unit_coverage.TestAuthoritativeCharges",
+        "name": "test_raises_without_charges",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_ligand_unit_coverage.TestAuthoritativeCharges",
+        "name": "test_raises_on_count_mismatch",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_ligand_unit_coverage.TestAuthoritativeCharges",
+        "name": "test_raises_on_missing_atom",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_ligand_unit_coverage.TestEquivalenceElementFromName",
+        "name": "test_infer_element_from_name",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_ligand_unit_coverage.TestLigandAtomArrayToRdkitMol",
+        "name": "test_empty_array_raises",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_ligand_unit_coverage.TestLigandAtomArrayToRdkitMol",
+        "name": "test_no_bonds_raises",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_ligand_unit_coverage.TestLigandAtomArrayToRdkitMol",
+        "name": "test_topology_only_any_bonds_raises",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_ligand_unit_coverage.TestPreparationHelpers",
+        "name": "test_prepare_single_ligand_requires_protonation_and_charges",
+        "time": "0.003",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_ligand_unit_coverage.TestPreparationHelpers",
+        "name": "test_residue_covers_cif_heavy_atoms_empty_is_true",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_ligand_unit_coverage.TestParamsIo",
+        "name": "test_read_rosetta_params_file",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_ligand_unit_coverage.TestParamsIo",
+        "name": "test_write_params_file_rejects_unknown_format",
+        "time": "0.001",
+        "status": "pass"
+      }
+    ]
+  },
+  "atomworks-chemistry-baseline": {
+    "suites": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "12",
+        "skipped": "0",
+        "tests": "41",
+        "time": "3.803",
+        "timestamp": "2026-09-11T13:13:12.117696+00:00",
+        "hostname": "slurm-login-0"
+      }
+    ],
+    "cases": [
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_conversion_keeps_source_and_output_independent[N[C@@H](C)C(=O)O-keep]",
+        "time": "0.124",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_conversion_keeps_source_and_output_independent[N[C@@H](C)C(=O)O-remove]",
+        "time": "0.087",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_conversion_keeps_source_and_output_independent[N[C@@H](C)C(=O)O-infer]",
+        "time": "0.082",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_conversion_keeps_source_and_output_independent[c1ccncc1-keep]",
+        "time": "0.084",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_conversion_keeps_source_and_output_independent[c1ccncc1-remove]",
+        "time": "0.084",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_conversion_keeps_source_and_output_independent[c1ccncc1-infer]",
+        "time": "0.093",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_conversion_keeps_source_and_output_independent[C[N+](C)(C)C-keep]",
+        "time": "0.083",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_conversion_keeps_source_and_output_independent[C[N+](C)(C)C-remove]",
+        "time": "0.083",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_conversion_keeps_source_and_output_independent[C[N+](C)(C)C-infer]",
+        "time": "0.106",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_conversion_keeps_source_and_output_independent[[Na+].[Cl-]-keep]",
+        "time": "0.103",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_conversion_keeps_source_and_output_independent[[Na+].[Cl-]-remove]",
+        "time": "0.102",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_conversion_keeps_source_and_output_independent[[Na+].[Cl-]-infer]",
+        "time": "0.096",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_coordinate_policy_is_explicit[None-1.0]",
+        "time": "0.103",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_coordinate_policy_is_explicit[None-nan]",
+        "time": "0.100",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_coordinate_policy_is_explicit[None-inf]",
+        "time": "0.105",
+        "status": "fail"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_coordinate_policy_is_explicit[False-1.0]",
+        "time": "0.114",
+        "status": "fail"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_coordinate_policy_is_explicit[False-nan]",
+        "time": "0.102",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_coordinate_policy_is_explicit[False-inf]",
+        "time": "0.099",
+        "status": "fail"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_coordinate_policy_is_explicit[True-1.0]",
+        "time": "0.099",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_coordinate_policy_is_explicit[True-nan]",
+        "time": "0.095",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_coordinate_policy_is_explicit[True-inf]",
+        "time": "0.096",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_empty_array_conversion",
+        "time": "0.096",
+        "status": "fail"
+      },
+      {
+        "classname": "tests.io.tools.test_rdkit_conversion_contract",
+        "name": "test_conversion_preserves_enantiomer",
+        "time": "0.094",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[nan-0]",
+        "time": "0.095",
+        "status": "fail"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[nan-1]",
+        "time": "0.091",
+        "status": "fail"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[nan-2]",
+        "time": "0.128",
+        "status": "fail"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[nan-3]",
+        "time": "0.107",
+        "status": "fail"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[inf-0]",
+        "time": "0.074",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[inf-1]",
+        "time": "0.076",
+        "status": "fail"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[inf-2]",
+        "time": "0.074",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[inf-3]",
+        "time": "0.072",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[-inf-0]",
+        "time": "0.072",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[-inf-1]",
+        "time": "0.080",
+        "status": "fail"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[-inf-2]",
+        "time": "0.078",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[-inf-3]",
+        "time": "0.076",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_coincident_geometry_does_not_repair[1]",
+        "time": "0.076",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_coincident_geometry_does_not_repair[2]",
+        "time": "0.074",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_coincident_geometry_does_not_repair[3]",
+        "time": "0.077",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_finite_planar_geometry_repairs_both_oxygen_charges",
+        "time": "0.073",
+        "status": "fail"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_nonplanar_short_bonds_do_not_repair",
+        "time": "0.071",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_geometry_correction_missing_atoms",
+        "name": "test_invalid_motif_does_not_disable_other_finite_motifs",
+        "time": "0.075",
+        "status": "fail"
+      }
+    ]
+  },
+  "tmol-chemistry-baseline": {
+    "suites": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "7",
+        "skipped": "0",
+        "tests": "18",
+        "time": "0.243",
+        "timestamp": "2026-09-11T13:13:15.655958+00:00",
+        "hostname": "slurm-login-0"
+      }
+    ],
+    "cases": [
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[nan-0]",
+        "time": "0.004",
+        "status": "fail"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[nan-1]",
+        "time": "0.002",
+        "status": "fail"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[nan-2]",
+        "time": "0.002",
+        "status": "fail"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[nan-3]",
+        "time": "0.002",
+        "status": "fail"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[inf-0]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[inf-1]",
+        "time": "0.002",
+        "status": "fail"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[inf-2]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[inf-3]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[-inf-0]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[-inf-1]",
+        "time": "0.002",
+        "status": "fail"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[-inf-2]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_missing_geometry_does_not_change_bonds_or_charges[-inf-3]",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_coincident_geometry_does_not_repair[1]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_coincident_geometry_does_not_repair[2]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_coincident_geometry_does_not_repair[3]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_finite_planar_geometry_repairs_both_oxygen_charges",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_nonplanar_short_bonds_do_not_repair",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.ligand.test_geometry_correction_missing_atoms",
+        "name": "test_invalid_motif_does_not_disable_other_finite_motifs",
+        "time": "0.002",
+        "status": "fail"
+      }
+    ]
+  }
+}

@@ -479,7 +479,7 @@ def biotite_from_pose_stack(
     return structure
 
 
-def _map_atoms_to_canonical(co, atom_res_inds, res_names, atom_names):
+def _map_atoms_to_canonical(co, atom_res_inds, res_names, atom_names, elements):
     """Map Biotite atom names to canonical ordering indices.
 
     Returns (valid_atom_mask, valid_atom_inds, valid_res_inds).
@@ -487,14 +487,25 @@ def _map_atoms_to_canonical(co, atom_res_inds, res_names, atom_names):
 
     atom_inds = []
     valid = []
-    unmapped: dict[str, list[str]] = {}
+    unmapped = set()
     for i, (resname, atname) in enumerate(zip(res_names, atom_names)):
         mapping = co.restypes_atom_index_mapping.get(resname, {})
         idx = mapping.get(atname, -1)
         atom_inds.append(idx)
         valid.append(idx >= 0)
-        if idx < 0:
-            unmapped.setdefault(resname, []).append(atname)
+        if idx < 0 and str(elements[i]).strip().upper() not in ("H", "D"):
+            unmapped.add((int(atom_res_inds[i]), str(resname), str(atname)))
+
+    if unmapped:
+        details = ", ".join(
+            f"{resname} at residue index {res}: {name}"
+            for res, resname, name in sorted(unmapped)
+        )
+        raise ValueError(
+            "Heavy atoms are absent from the selected chemical definitions: "
+            f"{details}. Supply a matching chemical definition or correct the "
+            "input atom names; these atoms cannot be silently discarded."
+        )
 
     valid_atom_mask = numpy.array(valid)
     atom_inds_arr = numpy.array(atom_inds)
@@ -512,10 +523,14 @@ def _template_array(structure):
     return structure
 
 
-def _covalent_bonds_for_poses(bonds, n_poses, torch_device):
-    """Stamp one [res1, atom1, res2, atom2] table with each pose's index."""
+def _bonds_for_poses(bonds, n_poses, torch_device):
+    """Prefix each bond row with its pose index."""
+    if bonds is None:
+        return None
     if bonds.shape[0] == 0:
-        return torch.zeros((0, 5), dtype=torch.int64, device=torch_device)
+        return torch.zeros(
+            (0, bonds.shape[1] + 1), dtype=torch.int64, device=torch_device
+        )
     repeated = numpy.tile(bonds, (n_poses, 1))
     pose_column = numpy.repeat(numpy.arange(n_poses), bonds.shape[0])
     return torch.tensor(
@@ -528,26 +543,22 @@ def _covalent_bonds_for_poses(bonds, n_poses, torch_device):
 def _covalent_bonds_from_biotite(
     array, co, atom_res_inds, restype_for_res, valid_atom_mask, valid_atom_inds
 ):
-    """Cross-residue bonds the input declares that no other channel carries.
+    """Declared cross-residue bonds, including nonsequential polymer links.
 
-    Backbone links and disulfides are left out: the first reach the pose
-    through the sequential connection logic, the second through
-    find_disulfides. Both are recognized from the canonical ordering rather
-    than by atom name, so a modified residue's backbone is excluded too.
+    Disulfides use the dedicated variant-selection channel, preserving declared
+    bonds even when the sulfur coordinates are unresolved or far apart.
     """
     if array.bonds is None:
-        return numpy.zeros((0, 4), dtype=numpy.int64)
+        return numpy.zeros((0, 4), dtype=numpy.int64), None
 
     atom_canonical_ind = numpy.full(array.array_length(), -1, dtype=numpy.int64)
     atom_canonical_ind[valid_atom_mask] = valid_atom_inds
 
-    conn_inds = co.polymer_conn_inds
-    down_atom = numpy.array(conn_inds.down_atom_for_co_restype, dtype=numpy.int64)
-    up_atom = numpy.array(conn_inds.up_atom_for_co_restype, dtype=numpy.int64)
     cys_classes = frozenset(co.cys_inds.cys_co_aa_inds)
     sg_atom = co.cys_inds.sg_atom_for_co_cys
 
     found = []
+    disulfides = []
     for atom1, atom2, _order in array.bonds.as_array():
         res1, res2 = int(atom_res_inds[atom1]), int(atom_res_inds[atom2])
         if res1 == res2:
@@ -557,25 +568,22 @@ def _covalent_bonds_from_biotite(
         if canonical1 < 0 or canonical2 < 0:
             continue
         restype1, restype2 = restype_for_res[res1], restype_for_res[res2]
-        is_backbone = (
-            canonical1 == up_atom[restype1] and canonical2 == down_atom[restype2]
-        ) or (canonical2 == up_atom[restype2] and canonical1 == down_atom[restype1])
-        if is_backbone:
-            continue
         if (
             canonical1 == sg_atom
             and canonical2 == sg_atom
             and restype1 in cys_classes
             and restype2 in cys_classes
         ):
+            disulfides.append(tuple(sorted((res1, res2))))
             continue
         if res1 > res2:
             res1, canonical1, res2, canonical2 = res2, canonical2, res1, canonical1
         found.append((res1, canonical1, res2, canonical2))
 
-    if not found:
-        return numpy.zeros((0, 4), dtype=numpy.int64)
-    return numpy.array(sorted(set(found)), dtype=numpy.int64)
+    return (
+        numpy.array(sorted(set(found)), dtype=numpy.int64).reshape(-1, 4),
+        numpy.array(sorted(set(disulfides)), dtype=numpy.int64).reshape(-1, 2),
+    )
 
 
 def _res_names_for_structure(
@@ -584,6 +592,89 @@ def _res_names_for_structure(
     if isinstance(biotite_structure, biotite.structure.AtomArrayStack):
         return biotite_structure[0].res_name
     return biotite_structure.res_name
+
+
+def _validate_filtered_covalent_partners(array, co, atom_res, valid_res, res_names):
+    """Allow sequential backbone gaps, but not a dangling chemical partner.
+
+    This runs only when a non-water residue is removed. Complete structures
+    and ordinary water filtering need no extra bond-table scan.
+    """
+    if array.bonds is None:
+        return
+    removed = ~valid_res & (res_names != "HOH")
+    if not numpy.any(removed):
+        return
+    bonds = array.bonds.as_array()
+    if not len(bonds):
+        return
+    ends = atom_res[bonds[:, :2]]
+    crosses = (removed[ends[:, 0]] & valid_res[ends[:, 1]]) | (
+        removed[ends[:, 1]] & valid_res[ends[:, 0]]
+    )
+    type_indices = {name: i for i, name in enumerate(co.restype_io_equiv_classes)}
+    connections = co.polymer_conn_inds
+    for first, second, order in bonds[crosses]:
+        if order == biotite.structure.BondType.COORDINATION:
+            continue
+        first_res, second_res = atom_res[[first, second]]
+        # Orient the candidate in input residue order, preserving insertion codes.
+        if first_res > second_res:
+            first, second = second, first
+            first_res, second_res = second_res, first_res
+        first_name, second_name = array.res_name[[first, second]]
+        first_type = type_indices.get(first_name)
+        second_type = type_indices.get(second_name)
+        if (
+            second_res == first_res + 1
+            and array.chain_id[first] == array.chain_id[second]
+            and first_type is not None
+            and second_type is not None
+        ):
+            first_atom = co.restypes_atom_index_mapping[first_name].get(
+                array.atom_name[first], -1
+            )
+            second_atom = co.restypes_atom_index_mapping[second_name].get(
+                array.atom_name[second], -1
+            )
+            if (
+                first_atom >= 0
+                and second_atom >= 0
+                and (
+                    (
+                        first_atom == connections.up_atom_for_co_restype[first_type]
+                        and second_atom
+                        == connections.down_atom_for_co_restype[second_type]
+                    )
+                    or (
+                        # Reordering an explicitly numbered chain does not turn
+                        # an ordinary gap into a cyclic/crosslinked attachment.
+                        # Require the source sequence direction; a backward link
+                        # in forward residue order still closes a cycle.
+                        first_atom == connections.down_atom_for_co_restype[first_type]
+                        and second_atom
+                        == connections.up_atom_for_co_restype[second_type]
+                        and (array.res_id[first], array.ins_code[first])
+                        > (array.res_id[second], array.ins_code[second])
+                    )
+                )
+            ):
+                continue
+
+        def label(index):
+            return (
+                f"{array.res_name[index]} {array.chain_id[index]}:"
+                f"{array.res_id[index]}{array.ins_code[index]}"
+                f"/{array.atom_name[index]}"
+            )
+
+        raise ValueError(
+            "Cannot discard an incomplete or unsupported residue while retaining "
+            "its covalent partner: declared bond "
+            f"{label(first)} -- {label(second)} would be lost. "
+            "Supply the required backbone coordinates/chemical definition, or "
+            "explicitly select a complete covalent component before construction."
+        )
 
 
 def _filter_supported_atoms_and_connectivity(  # noqa: C901
@@ -642,7 +733,11 @@ def _filter_supported_atoms_and_connectivity(  # noqa: C901
             )
             valid_res[i] = False
 
-    valid_atoms = valid_res[get_all_residue_positions(biotite_structure)]
+    atom_res = get_all_residue_positions(biotite_structure)
+    _validate_filtered_covalent_partners(
+        _template_array(biotite_structure), co, atom_res, valid_res, biotite_residues
+    )
+    valid_atoms = valid_res[atom_res]
 
     # A kept residue whose neighbor was dropped has an unknown connection on
     # that side; the ends of the kept set are termini, so they are marked after
@@ -738,19 +833,46 @@ def _break_connections_for_missing_density(
             not_connected[i + 1, 0] = True
 
 
+def _orient_polymer_gap_flags(not_connected, chain_id, restypes, bonds, co):
+    """Translate input-neighbor gap flags to chemical down/up on reversed chains.
+
+    Declared adjacent polymer bonds establish direction. Non-polymer links and
+    cyclic closures do not vote; mixed directions have no single chain ordering.
+    """
+    if not len(bonds) or not numpy.any(not_connected):
+        return
+    first, a, second, b = bonds.T
+    conn = co.polymer_conn_inds
+    up = numpy.asarray(conn.up_atom_for_co_restype)[restypes]
+    down = numpy.asarray(conn.down_atom_for_co_restype)[restypes]
+    adjacent = (second == first + 1) & (chain_id[first] == chain_id[second])
+    forward = adjacent & (a == up[first]) & (b == down[second])
+    reverse = adjacent & (a == down[first]) & (b == up[second])
+    for chain in numpy.unique(chain_id[first[reverse]]):
+        if not numpy.any(forward & (chain_id[first] == chain)):
+            members = chain_id == chain
+            not_connected[members] = not_connected[members, ::-1]
+
+
 def _extract_residue_metadata(
     biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
     not_connected,
-    torch_device: torch.device,
 ):
     biotite_residue_starts = biotite.structure.get_residue_starts(biotite_structure)
 
-    chain_starts = biotite.structure.get_chain_starts(biotite_structure)
-    n_atoms = biotite_structure.array_length()
-    per_atom_chain_idx = numpy.zeros(n_atoms, dtype=int)
-    for i, start in enumerate(chain_starts):
-        per_atom_chain_idx[start:] = i
-    biotite_chain_id_for_res = per_atom_chain_idx[biotite_residue_starts]
+    # Residue labels are not chain identities. Biotite's get_chain_starts also
+    # splits whenever res_id decreases, turning a reversed chain into one chain
+    # per residue. Work at residue granularity and retain explicit symmetry IDs.
+    keys = ["chain_id"]
+    if "sym_id" in biotite_structure.get_annotation_categories():
+        keys.append("sym_id")
+    boundaries = numpy.zeros(max(0, len(biotite_residue_starts) - 1), dtype=bool)
+    for key in keys:
+        values = biotite_structure.get_annotation(key)[biotite_residue_starts]
+        boundaries |= values[1:] != values[:-1]
+    biotite_chain_id_for_res = numpy.cumsum(numpy.r_[0, boundaries])[
+        : len(biotite_residue_starts)
+    ]
 
     if len(biotite_chain_id_for_res) > 1:
         res_is_disconnected_from_neighbor = (
@@ -759,9 +881,6 @@ def _extract_residue_metadata(
         not_connected[1:, 0] &= ~res_is_disconnected_from_neighbor
         not_connected[:-1, 1] &= ~res_is_disconnected_from_neighbor
 
-    res_not_connected_1 = torch.tensor(
-        not_connected, dtype=torch.bool, device=torch_device
-    ).unsqueeze(0)
     biotite_chain_labels = biotite_structure.chain_id[biotite_residue_starts]
     biotite_insertion_codes = biotite_structure.ins_code[biotite_residue_starts]
     biotite_residue_labels, biotite_residues = biotite.structure.get_residues(
@@ -773,8 +892,6 @@ def _extract_residue_metadata(
         biotite_insertion_codes,
         biotite_residue_labels,
         biotite_residues,
-        res_not_connected_1,
-        not_connected,
     )
 
 
@@ -909,7 +1026,7 @@ def canonical_form_from_biotite(
             - chain_labels: Original chain identifiers from the structure
             - atom_occupancy: Optional tensor of atom occupancy values
             - atom_b_factor: Optional tensor of atom B-factor values
-            - disulfides: None (not handled in this conversion)
+            - disulfides: Explicit cysteine sulfur bonds, including unresolved SG
             - res_not_connected: Tensor describing whether two consecutive residues
               should be treated as chemically bonded.
 
@@ -927,9 +1044,7 @@ def canonical_form_from_biotite(
         biotite_insertion_codes,
         biotite_residue_labels,
         biotite_residues,
-        res_not_connected_1,
-        not_connected,
-    ) = _extract_residue_metadata(biotite_structure, not_connected, torch_device)
+    ) = _extract_residue_metadata(biotite_structure, not_connected)
 
     atom_res_inds = get_all_residue_positions(biotite_structure)
     biotite_name_for_atom = biotite_structure.atom_name
@@ -943,8 +1058,9 @@ def canonical_form_from_biotite(
         atom_res_inds,
         biotite_res_name_for_atom,
         biotite_name_for_atom,
+        biotite_structure.element,
     )
-    covalent_bonds_np = _covalent_bonds_from_biotite(
+    covalent_bonds_np, disulfides_np = _covalent_bonds_from_biotite(
         _template_array(biotite_structure),
         co,
         atom_res_inds,
@@ -1007,11 +1123,14 @@ def canonical_form_from_biotite(
             missing_density_distance_threshold,
             polymeric,
         )
-        res_not_connected_1 = torch.tensor(
-            not_connected, dtype=torch.bool, device=torch_device
-        ).unsqueeze(0)
-
-    res_not_connected = res_not_connected_1.repeat(n_poses, 1, 1)
+    _orient_polymer_gap_flags(
+        not_connected, biotite_chain_id_for_res, tmol_restypes, covalent_bonds_np, co
+    )
+    res_not_connected = (
+        torch.tensor(not_connected, dtype=torch.bool, device=torch_device)
+        .unsqueeze(0)
+        .repeat(n_poses, 1, 1)
+    )
 
     # Return CanonicalForm with all converted data
     return CanonicalForm(
@@ -1023,11 +1142,9 @@ def canonical_form_from_biotite(
         residue_insertion_codes=biotite_insertion_codes.astype(object),
         atom_occupancy=biotite_occupancy,
         atom_b_factor=biotite_b_factors,
-        disulfides=None,
+        disulfides=_bonds_for_poses(disulfides_np, n_poses, torch_device),
         res_not_connected=res_not_connected,
-        covalent_bonds=_covalent_bonds_for_poses(
-            covalent_bonds_np, n_poses, torch_device
-        ),
+        covalent_bonds=_bonds_for_poses(covalent_bonds_np, n_poses, torch_device),
     )
 
 

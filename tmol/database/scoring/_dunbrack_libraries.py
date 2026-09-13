@@ -1,6 +1,6 @@
 import attr
 import torch
-from typing import Tuple
+from typing import Tuple, Optional
 
 from tmol.types import Tensor
 
@@ -19,6 +19,11 @@ class RotamericDataForAA:
     backbone_dihedral_start: Tensor[float][:]
     backbone_dihedral_step: Tensor[float][:]
     rotamer_alias: Tensor[int][:, :]
+    # Probability-order cells are selected in the source grid before reflection.
+    backbone_is_mirrored: bool = False
+    # A reflected grid may have a different origin. Keep its source origin
+    # for source-cell selection; None denotes the stored grid's own origin.
+    backbone_source_start: Optional[Tensor[float][:]] = None
 
     def __repr__(self):
         return "testing __repr__ for RotamericDataForAA"
@@ -89,4 +94,13 @@ class DunbrackRotamerLibrary:
                 (RotamericDataForAA, f"{_OLD}.RotamericDataForAA"),
             ]
         ):
-            return torch.load(fname, mmap=True)
+            library = torch.load(fname, mmap=True)
+        # Older binary records predate this field. These are newly loaded,
+        # owned objects; no source file or previously shared record is changed.
+        for entry in (*library.rotameric_libraries, *library.semi_rotameric_libraries):
+            data = entry.rotameric_data
+            if not hasattr(data, "backbone_is_mirrored"):
+                object.__setattr__(data, "backbone_is_mirrored", False)
+            if not hasattr(data, "backbone_source_start"):
+                object.__setattr__(data, "backbone_source_start", None)
+        return library

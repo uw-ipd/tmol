@@ -1,0 +1,236 @@
+{
+  "date_utc": "2026-09-12T07:07:10.676316+00:00",
+  "parent_commit": "b1c4834d8382cc5efc11479042adf311896f4fbe",
+  "upstream_head": "0593a93b07d80b0302383163d2d98c78e315ab98",
+  "source_sha256": {
+    "tmol/score/elec/_params.py": "b8909a1b971212011e33a7f6d8f207aed60b9fe05e5ec7df81f25300afecb7d8",
+    "tmol/database/default/scoring/elec.yaml": "9caa76ba9d859d6d6d872bad5e3a2adb5201bc1f2ceafba30de2533d09ac9f7f",
+    "tmol/tests/score/elec/test_charge_coverage.py": "d1aa624bd0f7e4be9992da4390c664c2aa3834180ba45a2fcee1f97f3eef5fb2",
+    "review/pr503/check_missing_charges.py": "14d27c003474ee6296c9bfd6e35403082883d471455eb1bd1105aeece600dc9a",
+    "review/pr503/profile_charge_coverage.py": "8ab4bae8cef09cbf484a4a50e3d1f256e2ad4d3305d1c992b9fb2f8a4a63d463",
+    "review/pr503/profile_parameter_coverage.py": "68974198cbd96d31b5cfbff4f91ecac304c3a6c5d41201c96af676a7b7006833"
+  },
+  "contract": [
+    "A missing residue charge table raises the existing missing-atom KeyError instead of yielding implicit zero charges.",
+    "Every used charge must be finite in its float32 scoring representation.",
+    "Exact combined variant, individual patch and base lookup precedence is unchanged.",
+    "Unused invalid rows and explicitly uncharged residues remain supported.",
+    "HOH was the only default residue without charge records. Three explicit zero records preserve its historical values; no fitted water model is introduced."
+  ],
+  "before": {
+    "path": "/mnt/home/kdidi/tmol-pr503-followup/charge-coverage-before.xml",
+    "sha256": "c254c74268477748b4c9492639541374c9b1142f0c578db489b117de3594136f",
+    "passed": 1,
+    "failed": [
+      "test_missing_residue_charges_raise[cpu]",
+      "test_used_nonfinite_charge_rejected[cpu-nan]",
+      "test_used_nonfinite_charge_rejected[cpu-inf]",
+      "test_used_nonfinite_charge_rejected[cpu--inf]",
+      "test_used_nonfinite_charge_rejected[cpu-1e+100]",
+      "test_reused_packed_set_does_not_hide_missing_charges[cpu]",
+      "test_default_water_charges_are_explicit[cpu]"
+    ],
+    "skipped": 8
+  },
+  "before_interpretation": "Six behavioral regressions plus one new explicit-HOH-row requirement fail; one explicit-zero/unused-bad-row control passes.",
+  "initial_collection_error": {
+    "path": "/mnt/home/kdidi/tmol-pr503-followup/charge-coverage-cpu.log",
+    "sha256": "8a6293e128d2aa3e436acfd0bb8feddd3628e0a426eb1dd7d9e342b7f6c4256d",
+    "exit_code": 4,
+    "explanation": "The command included a nonexistent database test_elec.py path; no tests ran. Corrected command results are recorded separately."
+  },
+  "final_cpu": {
+    "path": "/mnt/home/kdidi/tmol-pr503-followup/charge-coverage-cpu-final.xml",
+    "sha256": "68fc4b469d937ecffd0e1fd148c6a3f36091cd1e687ef998b0cd5b46a6feebe9",
+    "passed": 44,
+    "failed": [],
+    "skipped": 43
+  },
+  "slurm": {
+    "job_id": 251056,
+    "state": "COMPLETED",
+    "exit_code": "0:0",
+    "elapsed": "00:03:49",
+    "max_rss_kib": 5513168,
+    "node": "slurm-h200-244-047",
+    "tests": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/charge-coverage-gpu.xml",
+      "sha256": "d197eb12e03de2e93785951f2a57555ed2f5c4b1e0a2c1d4ba55a3c1bf813e9f",
+      "passed": 267,
+      "failed": [],
+      "skipped": 7
+    },
+    "script": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/charge-coverage-check.sh",
+      "sha256": "83cc3bde5885d502e1e84d77300daa20ec780602ca8803909c9ed33470782bbd"
+    },
+    "log": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/charge-coverage-251056.log",
+      "sha256": "6094c5ed119bc7791d6fd3c85fef788cd3d56556228a40abc8dd9633a06ca447"
+    }
+  },
+  "native": {
+    "cpu": {
+      "before": {
+        "path": "/mnt/home/kdidi/tmol-pr503-followup/missing-charges-native-before.json",
+        "sha256": "e28ded469ea7a62489664c406ba0710985f9535f04cada82bc57355aa23dcd49"
+      },
+      "after": {
+        "path": "/mnt/home/kdidi/tmol-pr503-followup/missing-charges-native-after.json",
+        "sha256": "55283add64ddecf08faaebb5aa6797c62c3938f79ece6e5ddcc3dac2a724034d"
+      },
+      "complete_energy": [
+        [
+          -0.670818567276001
+        ]
+      ],
+      "before_missing_energy": [
+        [
+          0.0
+        ]
+      ],
+      "before_missing_gradients_all_zero": true,
+      "complete_energy_and_all_gradients_exact": true,
+      "after_error": "'Elec charge for atom ALA,N not found'"
+    },
+    "cuda": {
+      "before": {
+        "path": "/mnt/home/kdidi/tmol-pr503-followup/missing-charges-native-gpu-before.json",
+        "sha256": "fb24a834765fcbb05d255d8ae1788786ae5ab69d861f6d97f837859c5fd59075"
+      },
+      "after": {
+        "path": "/mnt/home/kdidi/tmol-pr503-followup/missing-charges-native-gpu-after.json",
+        "sha256": "6553a5859e6ed746794584aa1eb2721f62e83abff43dc391b525fdf11907a525"
+      },
+      "complete_energy": [
+        [
+          -0.6708174347877502
+        ]
+      ],
+      "before_missing_energy": [
+        [
+          0.0
+        ]
+      ],
+      "before_missing_gradients_all_zero": true,
+      "complete_energy_and_all_gradients_exact": true,
+      "after_error": "'Elec charge for atom ALA,N not found'"
+    }
+  },
+  "atomworks": {
+    "path": "/mnt/home/kdidi/tmol-pr503-followup/charge-coverage-atomworks-matrix/measurements.json",
+    "sha256": "c2e853c161ce9286bf86976254167e3e529eeac157b34cb1e0e6106cc452e2f5",
+    "source_head": "adcbfd760897a0059ef7dff813da91720c0f4b26",
+    "device": "cpu",
+    "passed": 19,
+    "failed": 0,
+    "packages": {
+      "torch": "2.8.0+cpu",
+      "numpy": "2.5.3",
+      "biotite": "1.6.0",
+      "rdkit": "2026.3.6"
+    },
+    "scope": "Current optional reader, preparation, construction, scoring, gradients and rotamers; one repeat per fixture, no new reader-parity or scientific-fit claim."
+  },
+  "benchmark": {
+    "path": "/mnt/home/kdidi/tmol-pr503-followup/charge-coverage-profile.json",
+    "sha256": "881f5c58542cd697e23cf5b20f0ba7a00c1a32334013c6a24964ed0fa44dc52c",
+    "result": {
+      "baseline": "b1c4834d8382cc5efc11479042adf311896f4fbe",
+      "source_sha256": "4ab799d6f8bfe286fd774b0076d30651b08b4a6ce354f8561944a75de2245a07",
+      "all_default_charges_exact": true,
+      "n_types": 230,
+      "n_atoms": 4738,
+      "measurements": {
+        "ALA": {
+          "seconds": {
+            "before": [
+              2.7462840080261232e-06,
+              2.7801841497421263e-06,
+              2.7602538466453554e-06,
+              2.7142465114593507e-06,
+              2.6758760213851927e-06,
+              2.7842819690704345e-06,
+              2.663955092430115e-06,
+              2.8703361749649048e-06,
+              2.898462116718292e-06
+            ],
+            "after": [
+              5.372241139411926e-06,
+              5.34597784280777e-06,
+              5.470402538776398e-06,
+              5.2461400628089905e-06,
+              5.282089114189148e-06,
+              5.288049578666687e-06,
+              5.3122639656066895e-06,
+              5.408190190792084e-06,
+              5.45848160982132e-06
+            ]
+          },
+          "medians": {
+            "before": 2.7602538466453554e-06,
+            "after": 5.34597784280777e-06
+          },
+          "allocations": {
+            "before": {
+              "python_retained_bytes": 232,
+              "python_peak_bytes": 1568
+            },
+            "after": {
+              "python_retained_bytes": 288,
+              "python_peak_bytes": 1960
+            }
+          }
+        },
+        "default_catalog": {
+          "seconds": {
+            "before": [
+              0.0010021857917308808,
+              0.0010138815268874168,
+              0.00102040134370327,
+              0.0010214569047093391,
+              0.0010531410574913026,
+              0.0010162653401494027,
+              0.0010231755673885345,
+              0.0010173065587878228,
+              0.0010375736281275749
+            ],
+            "after": [
+              0.0016418993473052979,
+              0.0016213219612836837,
+              0.0016580618917942046,
+              0.0016353372484445572,
+              0.0017841871827840804,
+              0.0017153268679976463,
+              0.001639457419514656,
+              0.0016275594010949136,
+              0.0016388345509767532
+            ]
+          },
+          "medians": {
+            "before": 0.00102040134370327,
+            "after": 0.001639457419514656
+          },
+          "allocations": {
+            "before": {
+              "python_retained_bytes": 46520,
+              "python_peak_bytes": 48077
+            },
+            "after": {
+              "python_retained_bytes": 46608,
+              "python_peak_bytes": 48485
+            }
+          }
+        }
+      },
+      "scope": "Nine alternating warm rounds of five calls. Host charge lookup only; excludes constructor, packed geometry, transfer, scoring, and native/RSS/GPU storage. Validation overhead is reported, not a speedup. Before catalog omits HOH as in the pinned parent; after explicitly stores the same zero charges."
+    }
+  },
+  "limitations": [
+    "Charge coverage and finiteness do not prove provenance, physical validity, net charge or scientific fit.",
+    "The zero HOH electrostatic model is preserved, not independently validated.",
+    "Validation adds approximately 2.6 microseconds per ALA and 0.62 ms across all 230 default types in the host lookup benchmark; no speedup is claimed.",
+    "No new forward/backward kernel work or native scoring changes.",
+    "Hydrogen-bond mapping and pair coverage remain a separate audit; chemical donor flags are not an exact mapper-coverage contract."
+  ]
+}

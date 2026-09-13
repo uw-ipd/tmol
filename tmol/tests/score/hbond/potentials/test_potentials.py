@@ -1,11 +1,9 @@
 import pytest
 from pytest import approx
-from toolz import valmap
 
 import numpy
 import torch
 from tmol.tests import gradcheck, VectorizedOp
-from tmol.utility import _signature
 
 from tmol.score import AcceptorHybridization
 
@@ -17,16 +15,17 @@ _hbond_global_param_dict = dict(
     threshold_distance=6.0,
 )
 
-_global_param_table = torch.tensor(
+_global_param_table = numpy.array(
     [
         _hbond_global_param_dict["hb_sp2_range_span"],
         _hbond_global_param_dict["hb_sp2_BAH180_rise"],
         _hbond_global_param_dict["hb_sp2_outer_width"],
         _hbond_global_param_dict["hb_sp3_softmax_fade"],
         _hbond_global_param_dict["threshold_distance"],
+        3.0,  # maximum H-A distance; the point kernel does not prune neighbors
     ],
-    dtype=torch.double,
-).unsqueeze(0)
+    dtype=numpy.float64,
+)
 
 
 def poly_from_lists(coeffs, range, bounds):
@@ -333,57 +332,30 @@ def hbsc_subset(params):
     )
 
 
-@pytest.mark.xfail(
-    reason="hbond_score_V_dV C++ function expects struct args (pair_params, polynomials, "
-    "global_params) that don't match the test's tensor/list format"
+@pytest.mark.parametrize(
+    "hybridization,expected", [("sp2", -2.40), ("sp3", -2.00), ("ring", -2.17)]
 )
-def test_hbond_point_scores(compiled, sp2_params, sp3_params, ring_params):
-    assert compiled.hbond_score_V_dV(**hbsc_subset(sp2_params))[0] == approx(
-        -2.40, abs=0.01
-    )
-    assert compiled.hbond_score_V_dV(**hbsc_subset(sp3_params))[0] == approx(
-        -2.00, abs=0.01
-    )
-    assert compiled.hbond_score_V_dV(**hbsc_subset(ring_params))[0] == approx(
-        -2.17, abs=0.01
-    )
+def test_hbond_point_scores(compiled, request, hybridization, expected):
+    params = hbsc_subset(request.getfixturevalue(f"{hybridization}_params"))
+    assert compiled.hbond_score_V_dV(**params)[0] == approx(expected, abs=0.01)
 
 
-@pytest.mark.xfail(
-    reason="hbond_score_V_dV takes struct args (pair_params, polynomials, global_params) "
-    "that cannot be numpy.vectorized for VectorizedOp gradcheck"
+@pytest.mark.parametrize(
+    "hybridization,expected", [("sp2", -2.40), ("sp3", -2.00), ("ring", -2.17)]
 )
-def test_hbond_point_scores_gradcheck(compiled, sp2_params, sp3_params, ring_params):
-    def _t(t):
-        return torch.tensor(t).to(dtype=torch.double)
-
-    def targs(params):
-        params = hbsc_subset(params)
-        args = (
-            _signature(compiled.hbond_score_V_dV).bind(**valmap(_t, params)).arguments
+def test_hbond_point_scores_gradcheck(compiled, request, hybridization, expected):
+    params = hbsc_subset(request.getfixturevalue(f"{hybridization}_params"))
+    args = tuple(
+        torch.tensor(
+            value,
+            dtype=torch.double,
+            requires_grad=name in ("D", "H", "A", "B", "B0"),
         )
-
-        args["D"] = args["D"].requires_grad_(True)
-        args["H"] = args["H"].requires_grad_(True)
-        args["A"] = args["A"].requires_grad_(True)
-        args["B"] = args["B"].requires_grad_(True)
-        args["B0"] = args["B0"].requires_grad_(True)
-        # args["acceptor_hybridization"] = args["acceptor_hybridization"].to(
-        #    dtype=torch.int32
-        # )
-
-        return tuple(args.values())
-
+        for name, value in params.items()
+    )
     op = VectorizedOp(compiled.hbond_score_V_dV)
-
-    assert float(op(*targs(sp2_params))) == approx(-2.40, abs=0.01)
-    gradcheck(op, targs(sp2_params))
-
-    assert float(op(*targs(sp3_params))) == approx(-2.00, abs=0.01)
-    gradcheck(op, targs(sp3_params))
-
-    assert float(op(*targs(ring_params))) == approx(-2.17, abs=0.01)
-    gradcheck(op, targs(ring_params))
+    assert float(op(*args)) == approx(expected, abs=0.01)
+    gradcheck(op, args)
 
 
 def test_AH_dist_gradcheck(compiled, sp2_params, sp3_params, ring_params):

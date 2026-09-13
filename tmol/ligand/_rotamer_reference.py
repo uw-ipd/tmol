@@ -15,6 +15,7 @@ import cattr
 import numpy
 
 from tmol.chemical import RefinedResidueType
+from tmol.utility.weak_identity_cache import WeakIdentityLRU
 
 # every atom is weighted by how far it sits from the sidechain root, halving
 #    per bond: an error at chi1 swings the whole sidechain where one at the far
@@ -635,15 +636,16 @@ def reference_profiles(chemical_database, library_names) -> list:
     return profiles
 
 
-_PROFILE_CACHE = {}
+_PROFILE_CACHE = WeakIdentityLRU()
 
 
 def _cached_profiles(chemical_database, library_names) -> list:
-    """reference_profiles memoized, since every residue asks for the same set."""
-    key = (id(chemical_database), tuple(sorted(library_names)))
-    if key not in _PROFILE_CACHE:
-        _PROFILE_CACHE[key] = reference_profiles(chemical_database, library_names)
-    return _PROFILE_CACHE[key]
+    names = tuple(sorted(library_names))
+    return _PROFILE_CACHE.get_or_create(
+        chemical_database,
+        names,
+        lambda: reference_profiles(chemical_database, names),
+    )
 
 
 def library_chi_count(name, chemical_database, library_names) -> int:

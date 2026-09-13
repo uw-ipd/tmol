@@ -1,0 +1,473 @@
+{
+  "date_utc": "2026-09-12T13:50:47.335353+00:00",
+  "parent_commit": "ee7d4512f5de3fd5da839d5ccd2b2bcdcc3c5bb8",
+  "upstream_head": "0593a93b07d80b0302383163d2d98c78e315ab98",
+  "upstream_sync": "Fresh GitHub API check, fetch and merge; still already up to date.",
+  "source_sha256": {
+    "tmol/score/hbond/_params.py": "5ae8a8cd1598ca21045d17eb73e78d7efa4e2221a2a4b75056ce44b02bd34a13",
+    "tmol/tests/score/hbond/test_parameter_table_validation.py": "ac3bedc70cee69580af2f55af7ec891f39a287ef1e3cfd8b50ce822d75a77309",
+    "tmol/tests/score/hbond/test_empty_family_scoring.py": "1499ad3a09da7d4614aed64db4ddc037b29ee4e12c32646afae0fe9c3f9d706e",
+    "tmol/tests/score/test_nonbonded_parameter_identity.py": "71c43be55e2c9c44540ae3a13ff76c2b20c749b410d13c3449a233a58102291d",
+    "review/pr503/check_hbond_pair_table.py": "99ab35c49f59e27ebb3f117471b267a9fe633fd82c9a4a9a2b2cb989c5ddcd41",
+    "review/pr503/profile_hbond_tables.py": "cb930e14bdcbd74aca8899a455aaad16ef3784fd69b54535170417579b553ea0",
+    "review/pr503/profile_parameter_coverage.py": "68974198cbd96d31b5cfbff4f91ecac304c3a6c5d41201c96af676a7b7006833"
+  },
+  "contract": [
+    "Every declared donor/acceptor family combination requires a pair row, matching the pre-existing default coverage test contract.",
+    "Family and polynomial references are checked explicitly; selected polynomials must be finite in float64 and family weights finite in float32.",
+    "Later donor/acceptor, polynomial and pair definitions retain their existing precedence.",
+    "Chemical donor flags do not imply hydrogen-bond mapper coverage; existing mapper semantics are unchanged.",
+    "Empty donor or acceptor families can omit polynomials and give zero native energy and gradients.",
+    "Each final tensor is assembled on the host and copied once. Values, strides, dtype and logical table storage are unchanged for complete valid models."
+  ],
+  "before": {
+    "path": "/mnt/home/kdidi/tmol-pr503-followup/hbond-tables-before.xml",
+    "sha256": "daa782470d863d46317ca675a329fd2aab3f621bf1fe77535d320c0bc880245c",
+    "passed": 1,
+    "failed": [
+      "test_missing_declared_pair_rejected[cpu-HBondParamResolver]",
+      "test_missing_declared_pair_rejected[cpu-CompactedHBondDatabase]",
+      "test_nonfinite_referenced_polynomial_rejected[cpu-c_0-nan]",
+      "test_nonfinite_referenced_polynomial_rejected[cpu-xmin-inf]",
+      "test_nonfinite_referenced_polynomial_rejected[cpu-min_val--inf]",
+      "test_nonfinite_family_weight_rejected[cpu-nan-donor]",
+      "test_nonfinite_family_weight_rejected[cpu-nan-acceptor]",
+      "test_nonfinite_family_weight_rejected[cpu-1e+100-donor]",
+      "test_nonfinite_family_weight_rejected[cpu-1e+100-acceptor]",
+      "test_unknown_pair_reference_is_actionable[cpu-donor_type]",
+      "test_unknown_pair_reference_is_actionable[cpu-acceptor_type]",
+      "test_unknown_pair_reference_is_actionable[cpu-AHdist]",
+      "test_empty_family_can_omit_polynomials[cpu-donor]",
+      "test_empty_family_can_omit_polynomials[cpu-acceptor]",
+      "test_empty_family_can_omit_polynomials[cpu-both]"
+    ],
+    "skipped": 16
+  },
+  "before_interpretation": "Seven silent-acceptance cases, five pre-existing errors made actionable (two overflow weights and three unknown references), three newly supported empty-family cases; one duplicate-precedence control already passed.",
+  "initial_focused_cpu": {
+    "path": "/mnt/home/kdidi/tmol-pr503-followup/hbond-tables-cpu.xml",
+    "sha256": "9fee00b4b2215937e86241b18040a5bcd3ddd248f2d0e8b5b479269d945166fa",
+    "passed": 24,
+    "failed": [],
+    "skipped": 22
+  },
+  "broad_cpu_before_final_allocation_cleanup": {
+    "path": "/mnt/home/kdidi/tmol-pr503-followup/hbond-tables-cpu-final.xml",
+    "sha256": "5029c4f848c8a72db222f7101ca5068d9464727578653b6bd46db7a0ab9f72f0",
+    "passed": 97,
+    "failed": [],
+    "skipped": 85
+  },
+  "final_focused_cpu": {
+    "path": "/mnt/home/kdidi/tmol-pr503-followup/hbond-tables-cpu-focused-final.xml",
+    "sha256": "1dfbd89fd3674618fd82be02bd6162b1338c86f4089232304a534d3e6db9f448",
+    "passed": 18,
+    "failed": [],
+    "skipped": 16
+  },
+  "empty_native_cpu": {
+    "path": "/mnt/home/kdidi/tmol-pr503-followup/hbond-empty-native-cpu.xml",
+    "sha256": "8d178cd726afdba9ae820d5d22983e9144059c5a8182fe91d5802e8dee0b232b",
+    "passed": 3,
+    "failed": [],
+    "skipped": 3
+  },
+  "slurm": {
+    "job_id": 251872,
+    "partition": "interactive",
+    "scheduling": "Submitted to hpc-low; scheduler estimated 2026-09-15. Updated the same pending job to interactive with a 15-minute limit; no duplicate or cancelled run.",
+    "state": "COMPLETED",
+    "exit_code": "0:0",
+    "elapsed": "00:04:08",
+    "max_rss_kib": 4008584,
+    "node": "slurm-h200-interactive-244-105",
+    "tests": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/hbond-tables-gpu.xml",
+      "sha256": "364ba19c8c99bb9496d847a87e632bfaa9b0681db28cdd23182d6e4e9d436048",
+      "passed": 281,
+      "failed": [],
+      "skipped": 7
+    },
+    "script": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/hbond-tables-check.sh",
+      "sha256": "0a82bf348003775a50ea8e1fd74dd2779d578c8d349a7eb9da7f6633430be16d"
+    },
+    "log": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/hbond-tables-251872.log",
+      "sha256": "9d21c623abd41ea2a1b4f0a56c2497a435d75cbd8573eaa0a1318dd09228df07"
+    }
+  },
+  "empty_native_slurm": {
+    "job_id": 251878,
+    "partition": "interactive",
+    "state": "COMPLETED",
+    "exit_code": "0:0",
+    "elapsed": "00:00:18",
+    "max_rss_kib": 1976412,
+    "tests": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/hbond-empty-native-gpu.xml",
+      "sha256": "0171a6226b74ad48d43441916c3b388ff6f9a41c587d4b80482fb5c784020abc",
+      "passed": 6,
+      "failed": [],
+      "skipped": 0
+    },
+    "reason": "Added the native empty-family test after the main job collected tests; separate CPU/CUDA check covers all six cases.",
+    "script": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/hbond-empty-check.sh",
+      "sha256": "3535a8b1584ecb72337273a9b85281353dd90fea7cffbb4a0239837b7b28b3e0"
+    },
+    "log": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/hbond-empty-251878.log",
+      "sha256": "74de2a72661340bf47e90984caaa9e3bbed057c015afa3933f8b11ae77e80d61"
+    }
+  },
+  "native": {
+    "cpu": {
+      "before": {
+        "path": "/mnt/home/kdidi/tmol-pr503-followup/hbond-native-before.json",
+        "sha256": "075b1b31e8086c85d8d112c56ecd605fa754454f93a59e284587d77677c140d3"
+      },
+      "after": {
+        "path": "/mnt/home/kdidi/tmol-pr503-followup/hbond-native-after-final.json",
+        "sha256": "1f46b9de05fb811f3feffeea4555afc0f024c3fc54b23db18c24650c4bfc6565"
+      },
+      "complete_energy_before": [
+        [
+          -60.01485824584961
+        ]
+      ],
+      "complete_energy_after": [
+        [
+          -60.01485824584961
+        ]
+      ],
+      "complete_energy_max_difference": 0.0,
+      "complete_gradient_max_difference": 0.0,
+      "complete_energy_and_gradient_close": true,
+      "rtol": 2e-06,
+      "atol": 2e-06,
+      "missing_pair_before_energy_and_gradients_nonfinite": true,
+      "missing_pair_after_error": "Missing HBond pair parameters: hbdon_PBA, hbacc_PBA"
+    },
+    "cuda": {
+      "before": {
+        "path": "/mnt/home/kdidi/tmol-pr503-followup/hbond-native-gpu-before.json",
+        "sha256": "b245c6d7e4851286ea9afe4b2f086903ae50c74b86cded8283f79828be22b6a1"
+      },
+      "after": {
+        "path": "/mnt/home/kdidi/tmol-pr503-followup/hbond-native-gpu-after.json",
+        "sha256": "10ee43b21488d2f38852a3acf9443e830564bbdf7df761ddd22276686f4a844b"
+      },
+      "complete_energy_before": [
+        [
+          -60.01485824584961
+        ]
+      ],
+      "complete_energy_after": [
+        [
+          -60.014854431152344
+        ]
+      ],
+      "complete_energy_max_difference": 3.814697265625e-06,
+      "complete_gradient_max_difference": 0.0,
+      "complete_energy_and_gradient_close": true,
+      "rtol": 2e-06,
+      "atol": 2e-06,
+      "missing_pair_before_energy_and_gradients_nonfinite": true,
+      "missing_pair_after_error": "Missing HBond pair parameters: hbdon_PBA, hbacc_PBA"
+    }
+  },
+  "atomworks": {
+    "path": "/mnt/home/kdidi/tmol-pr503-followup/hbond-tables-atomworks-matrix/measurements.json",
+    "sha256": "3dd7cd55bb76c593c8db8fecb4b669ed691b641d06cd5d2750e2ac1b4273ce29",
+    "source_head": "adcbfd760897a0059ef7dff813da91720c0f4b26",
+    "device": "cpu",
+    "passed": 19,
+    "failed": 0,
+    "scope": "Current optional reader through preparation, construction, scoring, gradients and rotamers; one repeat each."
+  },
+  "benchmarks": {
+    "cpu": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/hbond-tables-profile-cpu-final.json",
+      "sha256": "dbc0821fb31f385e072189f6892a7e3737b7b27ee4cddce9bd8a4f16706617bf",
+      "result": {
+        "baseline": "ee7d4512f5de3fd5da839d5ccd2b2bcdcc3c5bb8",
+        "source_sha256": "31fd5cebbc1e2853ead16fcf93ba2d67dddc24f3c6305e88274e818a9bf5d22c",
+        "device": "cpu",
+        "torch": "2.8.0+cpu",
+        "checks": {
+          "default": {
+            "exact_tensor_fields": [
+              "resolver.pair_params.donor_weight",
+              "resolver.pair_params.acceptor_weight",
+              "resolver.pair_params.acceptor_hybridization",
+              "resolver.pair_params.AHdist.range",
+              "resolver.pair_params.AHdist.bound",
+              "resolver.pair_params.AHdist.coeffs",
+              "resolver.pair_params.cosBAH.range",
+              "resolver.pair_params.cosBAH.bound",
+              "resolver.pair_params.cosBAH.coeffs",
+              "resolver.pair_params.cosAHD.range",
+              "resolver.pair_params.cosAHD.bound",
+              "resolver.pair_params.cosAHD.coeffs",
+              "compact.global_param_table",
+              "compact.pair_param_table",
+              "compact.pair_poly_table"
+            ],
+            "exact_strides": true,
+            "tensor_bytes": 129048
+          },
+          "reversed": {
+            "exact_tensor_fields": [
+              "resolver.pair_params.donor_weight",
+              "resolver.pair_params.acceptor_weight",
+              "resolver.pair_params.acceptor_hybridization",
+              "resolver.pair_params.AHdist.range",
+              "resolver.pair_params.AHdist.bound",
+              "resolver.pair_params.AHdist.coeffs",
+              "resolver.pair_params.cosBAH.range",
+              "resolver.pair_params.cosBAH.bound",
+              "resolver.pair_params.cosBAH.coeffs",
+              "resolver.pair_params.cosAHD.range",
+              "resolver.pair_params.cosAHD.bound",
+              "resolver.pair_params.cosAHD.coeffs",
+              "compact.global_param_table",
+              "compact.pair_param_table",
+              "compact.pair_poly_table"
+            ],
+            "exact_strides": true,
+            "tensor_bytes": 129048
+          }
+        },
+        "measurements": {
+          "resolver": {
+            "seconds": {
+              "before": [
+                0.06450041414548953,
+                0.06439628886679809,
+                0.06473944367220004,
+                0.06519771243135135,
+                0.06397424141565959,
+                0.06421733057747285,
+                0.0643665473908186,
+                0.064083450473845,
+                0.0642353082075715
+              ],
+              "after": [
+                0.0008376920595765114,
+                0.0007445039227604866,
+                0.0007956347738703092,
+                0.0007129892085989317,
+                0.0008107076088587443,
+                0.000735944447418054,
+                0.0008718939498066902,
+                0.0007418567935625712,
+                0.0008030791456500689
+              ]
+            },
+            "medians": {
+              "before": 0.0643665473908186,
+              "after": 0.0007956347738703092
+            },
+            "allocations": {
+              "before": {
+                "python_retained_bytes": 9497,
+                "python_peak_bytes": 55101
+              },
+              "after": {
+                "python_retained_bytes": 5109,
+                "python_peak_bytes": 53253
+              }
+            }
+          },
+          "compact": {
+            "seconds": {
+              "before": [
+                0.061912741201619305,
+                0.0617087014640371,
+                0.06110822316259146,
+                0.062176091286043324,
+                0.06313308080037434,
+                0.06278796369830768,
+                0.06500912612924974,
+                0.063672359722356,
+                0.06306784879416227
+              ],
+              "after": [
+                0.0010815452163418133,
+                0.0008948619167009989,
+                0.000989639510711034,
+                0.0009810129801432292,
+                0.001116291619837284,
+                0.0009697694331407547,
+                0.0011354911451538403,
+                0.0009080019469062487,
+                0.001025767686466376
+              ]
+            },
+            "medians": {
+              "before": 0.06278796369830768,
+              "after": 0.000989639510711034
+            },
+            "allocations": {
+              "before": {
+                "python_retained_bytes": 12665,
+                "python_peak_bytes": 60760
+              },
+              "after": {
+                "python_retained_bytes": 13258,
+                "python_peak_bytes": 58922
+              }
+            }
+          }
+        },
+        "scope": "Nine alternating warm process rounds of three cold table constructions. Cache lookup hits are excluded; compact includes resolver construction. Allocation tracing measures Python heap only, excluding native/RSS/GPU memory. Tensor values, strides and logical bytes are checked separately. No fitting or scoring speedup claim."
+      }
+    },
+    "cuda": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/hbond-tables-profile-gpu.json",
+      "sha256": "a12f016de5df12ec0b70443aa4afe201050981aa3a57fb1105e19273c155b023",
+      "result": {
+        "baseline": "ee7d4512f5de3fd5da839d5ccd2b2bcdcc3c5bb8",
+        "source_sha256": "31fd5cebbc1e2853ead16fcf93ba2d67dddc24f3c6305e88274e818a9bf5d22c",
+        "device": "cuda:0",
+        "torch": "2.13.0+cu132",
+        "checks": {
+          "default": {
+            "exact_tensor_fields": [
+              "resolver.pair_params.donor_weight",
+              "resolver.pair_params.acceptor_weight",
+              "resolver.pair_params.acceptor_hybridization",
+              "resolver.pair_params.AHdist.range",
+              "resolver.pair_params.AHdist.bound",
+              "resolver.pair_params.AHdist.coeffs",
+              "resolver.pair_params.cosBAH.range",
+              "resolver.pair_params.cosBAH.bound",
+              "resolver.pair_params.cosBAH.coeffs",
+              "resolver.pair_params.cosAHD.range",
+              "resolver.pair_params.cosAHD.bound",
+              "resolver.pair_params.cosAHD.coeffs",
+              "compact.global_param_table",
+              "compact.pair_param_table",
+              "compact.pair_poly_table"
+            ],
+            "exact_strides": true,
+            "tensor_bytes": 129048
+          },
+          "reversed": {
+            "exact_tensor_fields": [
+              "resolver.pair_params.donor_weight",
+              "resolver.pair_params.acceptor_weight",
+              "resolver.pair_params.acceptor_hybridization",
+              "resolver.pair_params.AHdist.range",
+              "resolver.pair_params.AHdist.bound",
+              "resolver.pair_params.AHdist.coeffs",
+              "resolver.pair_params.cosBAH.range",
+              "resolver.pair_params.cosBAH.bound",
+              "resolver.pair_params.cosBAH.coeffs",
+              "resolver.pair_params.cosAHD.range",
+              "resolver.pair_params.cosAHD.bound",
+              "resolver.pair_params.cosAHD.coeffs",
+              "compact.global_param_table",
+              "compact.pair_param_table",
+              "compact.pair_poly_table"
+            ],
+            "exact_strides": true,
+            "tensor_bytes": 129048
+          }
+        },
+        "measurements": {
+          "resolver": {
+            "seconds": {
+              "before": [
+                0.07810892863199115,
+                0.0784273346265157,
+                0.07821845154588421,
+                0.07863076295082767,
+                0.07935975833485524,
+                0.07815243303775787,
+                0.07727349006260435,
+                0.0767612944667538,
+                0.07754463795572519
+              ],
+              "after": [
+                0.0010826634243130684,
+                0.0010448829270899296,
+                0.0010852506384253502,
+                0.0010476036307712395,
+                0.0011006129595140617,
+                0.0010455480466286342,
+                0.0010171839967370033,
+                0.0009951496807237465,
+                0.0011152319299678008
+              ]
+            },
+            "medians": {
+              "before": 0.07815243303775787,
+              "after": 0.0010476036307712395
+            },
+            "allocations": {
+              "before": {
+                "python_retained_bytes": 11397,
+                "python_peak_bytes": 55752
+              },
+              "after": {
+                "python_retained_bytes": 5429,
+                "python_peak_bytes": 53532
+              }
+            }
+          },
+          "compact": {
+            "seconds": {
+              "before": [
+                0.07871367270126939,
+                0.07890092333157857,
+                0.07958426931872964,
+                0.07843316563715537,
+                0.07826490498458345,
+                0.0789330347130696,
+                0.07874973739186923,
+                0.078751674387604,
+                0.07830043835565448
+              ],
+              "after": [
+                0.0014885809893409412,
+                0.0013937110391755898,
+                0.001426788978278637,
+                0.0014662256774803002,
+                0.0013834810815751553,
+                0.00134420037890474,
+                0.0016199653036892414,
+                0.001398744061589241,
+                0.0013889656402170658
+              ]
+            },
+            "medians": {
+              "before": 0.07874973739186923,
+              "after": 0.001398744061589241
+            },
+            "allocations": {
+              "before": {
+                "python_retained_bytes": 14534,
+                "python_peak_bytes": 61822
+              },
+              "after": {
+                "python_retained_bytes": 13079,
+                "python_peak_bytes": 58775
+              }
+            }
+          }
+        },
+        "scope": "Nine alternating warm process rounds of three cold table constructions. Cache lookup hits are excluded; compact includes resolver construction. Allocation tracing measures Python heap only, excluding native/RSS/GPU memory. Tensor values, strides and logical bytes are checked separately. No fitting or scoring speedup claim."
+      }
+    }
+  },
+  "limitations": [
+    "This validates pair-table integrity, not scientific provenance, physical ranges or fit.",
+    "The completeness contract is over explicitly declared HBond families; a deliberately reduced model must reduce its family declarations and corresponding mappings/pairs consistently.",
+    "Global parameter finiteness, polynomial physical shape and donor/acceptor hybridization consistency across shared families are not comprehensively audited by these checks.",
+    "Cold table-construction speedups exclude cache hits, fitting, preparation and scoring kernels.",
+    "Python allocation tracing and logical tensor bytes do not measure total RSS or GPU allocator peaks.",
+    "CPU native control is exact; CUDA energy differs by 3.814697265625e-06 with exact gradients, within the existing comparison tolerance."
+  ]
+}

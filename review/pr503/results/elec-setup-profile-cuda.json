@@ -1,0 +1,109 @@
+{
+  "baseline": "20742270fd3b527a30e89ec7b0f3b0e42abfd5a6",
+  "device": "cuda:0",
+  "torch": "2.13.0+cu132",
+  "default_types_checked": 230,
+  "source_sha256": {
+    "tmol/score/elec/_params.py": "4ab799d6f8bfe286fd774b0076d30651b08b4a6ce354f8561944a75de2245a07",
+    "tmol/score/elec/_elec_energy_term.py": "11d1267cc3b8731440f4b1bea90911e1d8020906f050f943f52bdde53a11fb8e"
+  },
+  "measurements": [
+    {
+      "stage": "warm_score_attributes",
+      "iterations": 200,
+      "seconds": {
+        "baseline": [
+          6.71551120467484e-05,
+          6.750436034053565e-05,
+          6.726692197844386e-05,
+          6.72875763848424e-05,
+          6.706454558297992e-05,
+          6.71145785599947e-05,
+          6.708186585456133e-05
+        ],
+        "candidate": [
+          9.577651508152484e-07,
+          9.472412057220936e-07,
+          9.000161662697792e-07,
+          8.969195187091827e-07,
+          9.513809345662594e-07,
+          9.362190030515194e-07,
+          9.546498768031596e-07
+        ]
+      },
+      "median_seconds": {
+        "baseline": 6.71551120467484e-05,
+        "candidate": 9.472412057220936e-07
+      },
+      "python_peak_bytes": {
+        "baseline": 876,
+        "candidate": 312
+      }
+    },
+    {
+      "stage": "term_constructor",
+      "iterations": 30,
+      "seconds": {
+        "baseline": [
+          0.003072239427516858,
+          0.0030812529070923726,
+          0.003074017663796743,
+          0.003075078098724286,
+          0.0030766008576999107,
+          0.0030818596016615627,
+          0.0030771360422174134
+        ],
+        "candidate": [
+          0.0029996998763332765,
+          0.0029950765116761127,
+          0.0029984560950348776,
+          0.0029996900353580712,
+          0.0029967920699467262,
+          0.0030000594134132067,
+          0.002996655631189545
+        ]
+      },
+      "median_seconds": {
+        "baseline": 0.0030766008576999107,
+        "candidate": 0.0029984560950348776
+      },
+      "python_peak_bytes": {
+        "baseline": 424168,
+        "candidate": 423928
+      }
+    },
+    {
+      "stage": "two_charge_switches",
+      "iterations": 30,
+      "seconds": {
+        "forced_rebuild": [
+          0.031073956300194064,
+          0.03113759683134655,
+          0.031275168899446724,
+          0.031124517104278007,
+          0.031094527958581846,
+          0.031191577653711042,
+          0.031207892826447883
+        ],
+        "reuse_geometry": [
+          0.012588044519846638,
+          0.012433363931874435,
+          0.012456151858593027,
+          0.012482014500225585,
+          0.012475810401762525,
+          0.012467629710833232,
+          0.012447548704221845
+        ]
+      },
+      "median_seconds": {
+        "forced_rebuild": 0.03113759683134655,
+        "reuse_geometry": 0.012467629710833232
+      },
+      "python_peak_bytes": {
+        "forced_rebuild": 1085926,
+        "reuse_geometry": 74225
+      }
+    }
+  ],
+  "scope": "Warm setup only; traced Python peaks exclude tensor/native allocations. Charge-switch reference forces a correct rebuild using candidate code, not the stale baseline cache."
+}

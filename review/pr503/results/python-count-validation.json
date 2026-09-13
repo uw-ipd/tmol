@@ -1,0 +1,974 @@
+{
+  "parent_commit": "61057b989a83158945540745da5d33b62639bc56",
+  "upstream_head": "0593a93b07d80b0302383163d2d98c78e315ab98",
+  "final_sources_sha256": {
+    "tmol/pack/rotamer/_chi_budget.py": "1259e469ac17ff08b8689bc298ad9f7cf994a179039fb2daf25f405cb740f979",
+    "tmol/pack/rotamer/_na_chi_sampler.py": "804793b8b965804414e9113fb888ad76e44c113521e57bc3b36667be24bc52c1",
+    "tmol/tests/pack/rotamer/test_python_count_limits.py": "a3da7cc965a63ffd1ddfc9fe250025a064208381d1646f1001b9595b08784405"
+  },
+  "runs": [
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/python-count-before.xml",
+      "sha256": "d71c2e4197b8ace7f0b383ce1f9e1733cd4b97049af717981b62a1e11776cbd1",
+      "slurm_job": null,
+      "counts": {
+        "passed": 9,
+        "failure": 8,
+        "error": 0,
+        "skipped": 17
+      },
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "8",
+          "skipped": "17",
+          "tests": "34",
+          "time": "3.641",
+          "timestamp": "2026-09-11T22:48:35.592652+00:00",
+          "hostname": "slurm-login-0"
+        }
+      ],
+      "cases": [
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_invalid_sample_counts_cannot_size_allocations[cpu-values0]",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_invalid_sample_counts_cannot_size_allocations[cpu-values1]",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_invalid_sample_counts_cannot_size_allocations[cpu-values2]",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_invalid_sample_counts_cannot_size_allocations[cpu-values3]",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_invalid_sample_counts_cannot_size_allocations[cuda-values0]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_invalid_sample_counts_cannot_size_allocations[cuda-values1]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_invalid_sample_counts_cannot_size_allocations[cuda-values2]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_invalid_sample_counts_cannot_size_allocations[cuda-values3]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cpu-values0-dtype0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cpu-values0-dtype1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cpu-values1-dtype0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cpu-values1-dtype1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cpu-values2-dtype0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cpu-values2-dtype1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cpu-values3-dtype0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cpu-values3-dtype1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cuda-values0-dtype0]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cuda-values0-dtype1]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cuda-values1-dtype0]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cuda-values1-dtype1]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cuda-values2-dtype0]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cuda-values2-dtype1]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cuda-values3-dtype0]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cuda-values3-dtype1]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_per_type_budget_remains_separate_from_total[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_per_type_budget_remains_separate_from_total[cuda]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_nucleotide_counts_checked_before_cast_and_row_allocation[cpu-4294967296]",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_nucleotide_counts_checked_before_cast_and_row_allocation[cpu-2147483648]",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_nucleotide_counts_checked_before_cast_and_row_allocation[cpu-4611686018427387904]",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_nucleotide_counts_checked_before_cast_and_row_allocation[cpu--1]",
+          "outcome": "failure"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_nucleotide_counts_checked_before_cast_and_row_allocation[cuda-4294967296]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_nucleotide_counts_checked_before_cast_and_row_allocation[cuda-2147483648]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_nucleotide_counts_checked_before_cast_and_row_allocation[cuda-4611686018427387904]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_nucleotide_counts_checked_before_cast_and_row_allocation[cuda--1]",
+          "outcome": "skipped"
+        }
+      ]
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/python-count-cpu.xml",
+      "sha256": "ffcce6e37233f396cd6edce153d2411bd076b98878d2a6e2bca833c09cc8aca1",
+      "slurm_job": null,
+      "counts": {
+        "passed": 37,
+        "failure": 0,
+        "error": 0,
+        "skipped": 36
+      },
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "36",
+          "tests": "73",
+          "time": "5.353",
+          "timestamp": "2026-09-11T22:49:26.820964+00:00",
+          "hostname": "slurm-login-0"
+        }
+      ],
+      "cases": [
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_invalid_sample_counts_cannot_size_allocations[cpu-values0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_invalid_sample_counts_cannot_size_allocations[cpu-values1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_invalid_sample_counts_cannot_size_allocations[cpu-values2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_invalid_sample_counts_cannot_size_allocations[cpu-values3]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_invalid_sample_counts_cannot_size_allocations[cuda-values0]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_invalid_sample_counts_cannot_size_allocations[cuda-values1]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_invalid_sample_counts_cannot_size_allocations[cuda-values2]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_invalid_sample_counts_cannot_size_allocations[cuda-values3]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cpu-values0-dtype0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cpu-values0-dtype1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cpu-values1-dtype0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cpu-values1-dtype1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cpu-values2-dtype0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cpu-values2-dtype1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cpu-values3-dtype0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cpu-values3-dtype1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cuda-values0-dtype0]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cuda-values0-dtype1]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cuda-values1-dtype0]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cuda-values1-dtype1]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cuda-values2-dtype0]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cuda-values2-dtype1]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cuda-values3-dtype0]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cuda-values3-dtype1]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_per_type_budget_remains_separate_from_total[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_per_type_budget_remains_separate_from_total[cuda]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_nucleotide_counts_checked_before_cast_and_row_allocation[cpu-4294967296]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_nucleotide_counts_checked_before_cast_and_row_allocation[cpu-2147483648]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_nucleotide_counts_checked_before_cast_and_row_allocation[cpu-4611686018427387904]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_nucleotide_counts_checked_before_cast_and_row_allocation[cpu--1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_nucleotide_counts_checked_before_cast_and_row_allocation[cuda-4294967296]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_nucleotide_counts_checked_before_cast_and_row_allocation[cuda-2147483648]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_nucleotide_counts_checked_before_cast_and_row_allocation[cuda-4611686018427387904]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_nucleotide_counts_checked_before_cast_and_row_allocation[cuda--1]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_builds_for_nucleotides_only[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_builds_for_nucleotides_only[cuda]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_chi_sit_at_scored_minima[cpu-dna_pdb]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_chi_sit_at_scored_minima[cpu-rna_pdb]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_chi_sit_at_scored_minima[cuda-dna_pdb]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_chi_sit_at_scored_minima[cuda-rna_pdb]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_syn_is_rna_only[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_syn_is_rna_only[cuda]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_expands_proton_chis[cpu-dna_pdb-1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_expands_proton_chis[cpu-rna_pdb-2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_expands_proton_chis[cuda-dna_pdb-1]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_expands_proton_chis[cuda-rna_pdb-2]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_chi_level_widens_the_rotamer_set[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_chi_level_widens_the_rotamer_set[cuda]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_build_rotamers[cpu-dna_pdb]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_build_rotamers[cpu-rna_pdb]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_build_rotamers[cuda-dna_pdb]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_build_rotamers[cuda-rna_pdb]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_ignores_sampling_work_for_non_nucleotides[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_ignores_sampling_work_for_non_nucleotides[cuda]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cpu-False-opth]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cpu-False-na]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cpu-False-dunbrack]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cpu-True-opth]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cpu-True-na]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cpu-True-dunbrack]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cuda-False-opth]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cuda-False-na]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cuda-False-dunbrack]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cuda-True-opth]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cuda-True-na]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cuda-True-dunbrack]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_budget_setter_rejects_noninteger_limits_without_partial_update",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_combined_task_limit_is_checked_before_merging[cpu-samplers]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_combined_task_limit_is_checked_before_merging[cpu-design]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_combined_task_limit_is_checked_before_merging[cuda-samplers]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_combined_task_limit_is_checked_before_merging[cuda-design]",
+          "outcome": "skipped"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_combined_limit_is_per_residue_and_pose[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_combined_limit_is_per_residue_and_pose[cuda]",
+          "outcome": "skipped"
+        }
+      ]
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/python-count-gpu.xml",
+      "sha256": "8c70cdc6bf3767a449cb1b50ff9b3fe9c55490d07ebfa81128b219f56f66ef85",
+      "slurm_job": 249685,
+      "counts": {
+        "passed": 104,
+        "failure": 0,
+        "error": 0,
+        "skipped": 0
+      },
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "104",
+          "time": "99.089",
+          "timestamp": "2026-09-11T22:49:53.151558+00:00",
+          "hostname": "slurm-h200-238-029"
+        }
+      ],
+      "cases": [
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_invalid_sample_counts_cannot_size_allocations[cpu-values0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_invalid_sample_counts_cannot_size_allocations[cpu-values1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_invalid_sample_counts_cannot_size_allocations[cpu-values2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_invalid_sample_counts_cannot_size_allocations[cpu-values3]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_invalid_sample_counts_cannot_size_allocations[cuda-values0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_invalid_sample_counts_cannot_size_allocations[cuda-values1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_invalid_sample_counts_cannot_size_allocations[cuda-values2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_invalid_sample_counts_cannot_size_allocations[cuda-values3]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cpu-values0-dtype0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cpu-values0-dtype1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cpu-values1-dtype0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cpu-values1-dtype1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cpu-values2-dtype0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cpu-values2-dtype1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cpu-values3-dtype0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cpu-values3-dtype1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cuda-values0-dtype0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cuda-values0-dtype1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cuda-values1-dtype0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cuda-values1-dtype1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cuda-values2-dtype0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cuda-values2-dtype1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cuda-values3-dtype0]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_valid_sample_count_boundaries[cuda-values3-dtype1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_per_type_budget_remains_separate_from_total[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_per_type_budget_remains_separate_from_total[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_nucleotide_counts_checked_before_cast_and_row_allocation[cpu-4294967296]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_nucleotide_counts_checked_before_cast_and_row_allocation[cpu-2147483648]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_nucleotide_counts_checked_before_cast_and_row_allocation[cpu-4611686018427387904]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_nucleotide_counts_checked_before_cast_and_row_allocation[cpu--1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_nucleotide_counts_checked_before_cast_and_row_allocation[cuda-4294967296]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_nucleotide_counts_checked_before_cast_and_row_allocation[cuda-2147483648]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_nucleotide_counts_checked_before_cast_and_row_allocation[cuda-4611686018427387904]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_python_count_limits::test_nucleotide_counts_checked_before_cast_and_row_allocation[cuda--1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_builds_for_nucleotides_only[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_builds_for_nucleotides_only[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_chi_sit_at_scored_minima[cpu-dna_pdb]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_chi_sit_at_scored_minima[cpu-rna_pdb]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_chi_sit_at_scored_minima[cuda-dna_pdb]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_chi_sit_at_scored_minima[cuda-rna_pdb]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_syn_is_rna_only[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_syn_is_rna_only[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_expands_proton_chis[cpu-dna_pdb-1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_expands_proton_chis[cpu-rna_pdb-2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_expands_proton_chis[cuda-dna_pdb-1]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_expands_proton_chis[cuda-rna_pdb-2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_chi_level_widens_the_rotamer_set[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_chi_level_widens_the_rotamer_set[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_build_rotamers[cpu-dna_pdb]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_build_rotamers[cpu-rna_pdb]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_build_rotamers[cuda-dna_pdb]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_build_rotamers[cuda-rna_pdb]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_ignores_sampling_work_for_non_nucleotides[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_na_chi_sampler::test_na_sampler_ignores_sampling_work_for_non_nucleotides[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_opth_sampler::test_opth_builds_cartesian_product_for_multiple_proton_chis",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_opth_sampler::test_optH_rotamer_sampler_flipNHQ[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_opth_sampler::test_optH_rotamer_sampler_flipNHQ[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_opth_sampler::test_optH_rotamer_sampler_no_flipNHQ[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_opth_sampler::test_optH_rotamer_sampler_no_flipNHQ[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_sampler_cache_settings::test_changing_budget_rebuilds_both_annotation_levels[cpu-na]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_sampler_cache_settings::test_changing_budget_rebuilds_both_annotation_levels[cpu-opth]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_sampler_cache_settings::test_changing_budget_rebuilds_both_annotation_levels[cuda-na]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_sampler_cache_settings::test_changing_budget_rebuilds_both_annotation_levels[cuda-opth]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_sampler_cache_settings::test_changing_flip_setting_updates_buildable_types[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_sampler_cache_settings::test_changing_flip_setting_updates_buildable_types[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_sampler_cache_settings::test_na_element_assignments_are_part_of_annotation_identity[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_sampler_cache_settings::test_na_element_assignments_are_part_of_annotation_identity[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cpu-False-opth]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cpu-False-na]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cpu-False-dunbrack]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cpu-True-opth]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cpu-True-na]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cpu-True-dunbrack]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cuda-False-opth]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cuda-False-na]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cuda-False-dunbrack]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cuda-True-opth]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cuda-True-na]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_task_limits_apply_when_a_sampler_is_reused[cuda-True-dunbrack]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_budget_setter_rejects_noninteger_limits_without_partial_update",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_combined_task_limit_is_checked_before_merging[cpu-samplers]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_combined_task_limit_is_checked_before_merging[cpu-design]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_combined_task_limit_is_checked_before_merging[cuda-samplers]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_combined_task_limit_is_checked_before_merging[cuda-design]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_combined_limit_is_per_residue_and_pose[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.rotamer.test_task_sampler_budget::test_combined_limit_is_per_residue_and_pose[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_optH[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_optH[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_w_cst[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_w_cst[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_w_empty_interaction_graph[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_w_empty_interaction_graph[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_w_dslf[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_w_dslf[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers2[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers2[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_irregular_sized_poses[cpu]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_rotamers_irregular_sized_poses[cuda]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_a_capped_structure[cpu-capped_peptide_ace_nme]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_a_capped_structure[cpu-capped_peptide_ace_nh2]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_a_capped_structure[cuda-capped_peptide_ace_nme]",
+          "outcome": "passed"
+        },
+        {
+          "case": "tmol.tests.pack.test_pack_rotamers::test_pack_a_capped_structure[cuda-capped_peptide_ace_nh2]",
+          "outcome": "passed"
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/python-count-249685.log",
+      "sha256": "e360771b43a70755a365583d01792d5926c4c9442b24357e2c6ea40354cc3d58",
+      "bytes": 1968
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/python-count-before.log",
+      "sha256": "ee85d8148691128acc180c4becbf5ba7ae157ec301dd3297ceba071714f34748",
+      "bytes": 15998
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/python-count-before.xml",
+      "sha256": "d71c2e4197b8ace7f0b383ce1f9e1733cd4b97049af717981b62a1e11776cbd1",
+      "bytes": 22891
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/python-count-cpu.log",
+      "sha256": "5f450c4b77ebda6b27fcaed2d51f2b1faa90b0760695d22a688a719427c5f918",
+      "bytes": 690
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/python-count-cpu.xml",
+      "sha256": "ffcce6e37233f396cd6edce153d2411bd076b98878d2a6e2bca833c09cc8aca1",
+      "bytes": 17879
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/python-count-gpu.xml",
+      "sha256": "8c70cdc6bf3767a449cb1b50ff9b3fe9c55490d07ebfa81128b219f56f66ef85",
+      "bytes": 15317
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/python-count.sh",
+      "sha256": "10517849890c07374dfefe06c09632c63f7c33e20dc50bd4ba33338671772f29",
+      "bytes": 1009
+    }
+  ],
+  "slurm_accounting": "JobID|JobName|Partition|State|ExitCode|Elapsed|AllocCPUS|ReqMem|MaxRSS|NodeList\n249685|tmol-python-count|hpc-mid|COMPLETED|0:0|00:01:54|4|32G||slurm-h200-238-029\n249685.batch|batch||COMPLETED|0:0|00:01:54|4||3961408K|slurm-h200-238-029\n",
+  "limits": [
+    "Index capacity is distinct from available memory and sampling policy.",
+    "Synthetic invalid count metadata exercises the real nucleotide sampler without constructing enormous libraries; repeat_interleave is blocked in those tests.",
+    "Validation retains one device-to-host transfer for count/budget checks; no performance or memory benchmark is claimed.",
+    "Runs overlap and must not be summed as unique coverage."
+  ]
+}

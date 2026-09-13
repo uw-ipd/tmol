@@ -1,0 +1,887 @@
+{
+  "parent_commit": "d0d19b405e0aaeedd4c5ad68c7948850ede87f3b",
+  "upstream_head": "0f4c3bc426bca78e8681f0b730fa23c3e26ef261",
+  "runs": [
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/gen-identity-gpu.xml",
+      "sha256": "31fc9df0daa9c63ba4a8773478fe978f5538d75f08226008179239306032c29f",
+      "slurm_job": 249000,
+      "suite": {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "4",
+        "tests": "123",
+        "time": "121.706",
+        "timestamp": "2026-09-11T20:07:05.179770+00:00",
+        "hostname": "slurm-h200-interactive-244-105"
+      },
+      "cases": [
+        {
+          "name": "test_smoke[cpu]",
+          "classname": "tmol.tests.score.genbonded.test_genbonded_energy_term",
+          "seconds": 1.249,
+          "status": "passed"
+        },
+        {
+          "name": "test_smoke[cuda]",
+          "classname": "tmol.tests.score.genbonded.test_genbonded_energy_term",
+          "seconds": 0.252,
+          "status": "passed"
+        },
+        {
+          "name": "test_annotate_restypes[cpu]",
+          "classname": "tmol.tests.score.genbonded.test_genbonded_energy_term",
+          "seconds": 0.425,
+          "status": "passed"
+        },
+        {
+          "name": "test_annotate_restypes[cuda]",
+          "classname": "tmol.tests.score.genbonded.test_genbonded_energy_term",
+          "seconds": 0.249,
+          "status": "passed"
+        },
+        {
+          "name": "test_canonical_protein_scores_no_gen_torsions[cpu]",
+          "classname": "tmol.tests.score.genbonded.test_genbonded_energy_term",
+          "seconds": 0.33,
+          "status": "passed"
+        },
+        {
+          "name": "test_canonical_protein_scores_no_gen_torsions[cuda]",
+          "classname": "tmol.tests.score.genbonded.test_genbonded_energy_term",
+          "seconds": 0.617,
+          "status": "passed"
+        },
+        {
+          "name": "test_gradcheck_on_noncanonical_backbones[cpu-alpha_aa]",
+          "classname": "tmol.tests.score.genbonded.test_genbonded_energy_term",
+          "seconds": 8.83,
+          "status": "passed"
+        },
+        {
+          "name": "test_gradcheck_on_noncanonical_backbones[cpu-dna]",
+          "classname": "tmol.tests.score.genbonded.test_genbonded_energy_term",
+          "seconds": 3.416,
+          "status": "passed"
+        },
+        {
+          "name": "test_gradcheck_on_noncanonical_backbones[cpu-nonstandard_aa]",
+          "classname": "tmol.tests.score.genbonded.test_genbonded_energy_term",
+          "seconds": 6.301,
+          "status": "passed"
+        },
+        {
+          "name": "test_gradcheck_on_noncanonical_backbones[cpu-nonstandard_na]",
+          "classname": "tmol.tests.score.genbonded.test_genbonded_energy_term",
+          "seconds": 3.516,
+          "status": "passed"
+        },
+        {
+          "name": "test_gradcheck_on_noncanonical_backbones[cuda-alpha_aa]",
+          "classname": "tmol.tests.score.genbonded.test_genbonded_energy_term",
+          "seconds": 4.718,
+          "status": "passed"
+        },
+        {
+          "name": "test_gradcheck_on_noncanonical_backbones[cuda-dna]",
+          "classname": "tmol.tests.score.genbonded.test_genbonded_energy_term",
+          "seconds": 3.771,
+          "status": "passed"
+        },
+        {
+          "name": "test_gradcheck_on_noncanonical_backbones[cuda-nonstandard_aa]",
+          "classname": "tmol.tests.score.genbonded.test_genbonded_energy_term",
+          "seconds": 6.56,
+          "status": "passed"
+        },
+        {
+          "name": "test_gradcheck_on_noncanonical_backbones[cuda-nonstandard_na]",
+          "classname": "tmol.tests.score.genbonded.test_genbonded_energy_term",
+          "seconds": 3.569,
+          "status": "passed"
+        },
+        {
+          "name": "test_lookup_reference_preserves_canonical_chi_ownership",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.005,
+          "status": "passed"
+        },
+        {
+          "name": "test_intra_improper_uses_physical_center_ownership[Nbb]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.004,
+          "status": "passed"
+        },
+        {
+          "name": "test_intra_improper_uses_physical_center_ownership[Nad]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.004,
+          "status": "passed"
+        },
+        {
+          "name": "test_invalid_reference_is_rejected[missing_type]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.005,
+          "status": "passed"
+        },
+        {
+          "name": "test_invalid_reference_is_rejected[HN]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.005,
+          "status": "passed"
+        },
+        {
+          "name": "test_invalid_reference_is_rejected[C*]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.005,
+          "status": "passed"
+        },
+        {
+          "name": "test_invalid_reference_is_rejected[]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.005,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cpu-False-False-False]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.617,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cpu-False-False-True]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.615,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cpu-False-True-False]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.612,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cpu-False-True-True]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.616,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cpu-True-False-False]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.612,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cpu-True-False-True]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.61,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cpu-True-True-False]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.613,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cpu-True-True-True]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.613,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cuda-False-False-False]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.989,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cuda-False-False-True]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.743,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cuda-False-True-False]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.735,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cuda-False-True-True]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.758,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cuda-True-False-False]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.743,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cuda-True-False-True]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.742,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cuda-True-True-False]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.741,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_amide_reference_energy_and_gradient[cuda-True-True-True]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.744,
+          "status": "passed"
+        },
+        {
+          "name": "test_rotamer_attachment_improper_reference[cpu-False]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 1.443,
+          "status": "passed"
+        },
+        {
+          "name": "test_rotamer_attachment_improper_reference[cpu-True]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 1.436,
+          "status": "passed"
+        },
+        {
+          "name": "test_rotamer_attachment_improper_reference[cuda-False]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 1.542,
+          "status": "passed"
+        },
+        {
+          "name": "test_rotamer_attachment_improper_reference[cuda-True]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 1.539,
+          "status": "passed"
+        },
+        {
+          "name": "test_reference_bundle_version_and_roundtrip[False]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.08,
+          "status": "passed"
+        },
+        {
+          "name": "test_reference_bundle_version_and_roundtrip[True]",
+          "classname": "tmol.tests.score.genbonded.test_generic_type_references",
+          "seconds": 0.042,
+          "status": "passed"
+        },
+        {
+          "name": "test_block_annotation_tracks_ownership_and_elements",
+          "classname": "tmol.tests.score.genbonded.test_parameter_identity",
+          "seconds": 0.013,
+          "status": "passed"
+        },
+        {
+          "name": "test_database_tables_are_shared_bounded_and_do_not_retain_owner[cpu]",
+          "classname": "tmol.tests.score.genbonded.test_parameter_identity",
+          "seconds": 2.807,
+          "status": "passed"
+        },
+        {
+          "name": "test_database_tables_are_shared_bounded_and_do_not_retain_owner[cuda]",
+          "classname": "tmol.tests.score.genbonded.test_parameter_identity",
+          "seconds": 0.823,
+          "status": "passed"
+        },
+        {
+          "name": "test_rotamer_database_scaling_and_module_snapshot[cpu]",
+          "classname": "tmol.tests.score.genbonded.test_parameter_identity",
+          "seconds": 1.217,
+          "status": "passed"
+        },
+        {
+          "name": "test_rotamer_database_scaling_and_module_snapshot[cuda]",
+          "classname": "tmol.tests.score.genbonded.test_parameter_identity",
+          "seconds": 0.518,
+          "status": "passed"
+        },
+        {
+          "name": "test_database_scaling_on_reused_pose[cpu-False-False]",
+          "classname": "tmol.tests.score.genbonded.test_parameter_identity",
+          "seconds": 0.761,
+          "status": "passed"
+        },
+        {
+          "name": "test_database_scaling_on_reused_pose[cpu-False-True]",
+          "classname": "tmol.tests.score.genbonded.test_parameter_identity",
+          "seconds": 0.757,
+          "status": "passed"
+        },
+        {
+          "name": "test_database_scaling_on_reused_pose[cpu-True-False]",
+          "classname": "tmol.tests.score.genbonded.test_parameter_identity",
+          "seconds": 0.754,
+          "status": "passed"
+        },
+        {
+          "name": "test_database_scaling_on_reused_pose[cpu-True-True]",
+          "classname": "tmol.tests.score.genbonded.test_parameter_identity",
+          "seconds": 0.757,
+          "status": "passed"
+        },
+        {
+          "name": "test_database_scaling_on_reused_pose[cuda-False-False]",
+          "classname": "tmol.tests.score.genbonded.test_parameter_identity",
+          "seconds": 0.765,
+          "status": "passed"
+        },
+        {
+          "name": "test_database_scaling_on_reused_pose[cuda-False-True]",
+          "classname": "tmol.tests.score.genbonded.test_parameter_identity",
+          "seconds": 0.773,
+          "status": "passed"
+        },
+        {
+          "name": "test_database_scaling_on_reused_pose[cuda-True-False]",
+          "classname": "tmol.tests.score.genbonded.test_parameter_identity",
+          "seconds": 0.769,
+          "status": "passed"
+        },
+        {
+          "name": "test_database_scaling_on_reused_pose[cuda-True-True]",
+          "classname": "tmol.tests.score.genbonded.test_parameter_identity",
+          "seconds": 0.776,
+          "status": "passed"
+        },
+        {
+          "name": "test_install_checks_baseline_and_does_not_apply_twice[biotin]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.504,
+          "status": "passed"
+        },
+        {
+          "name": "test_local_bundle_roundtrip_preserves_correction_and_baseline[biotin]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.171,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_local_parameters_preserve_instance_identity[biotin]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.078,
+          "status": "passed"
+        },
+        {
+          "name": "test_biotin_local_changes_and_canonical_ownership[biotin]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.028,
+          "status": "passed"
+        },
+        {
+          "name": "test_attached_asparagine_is_not_flipped_independently[biotin]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.001,
+          "status": "skipped"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[biotin-cpu-False]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 1.307,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[biotin-cpu-True]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 2.696,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[biotin-cuda-False]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 1.58,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[biotin-cuda-True]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 3.296,
+          "status": "passed"
+        },
+        {
+          "name": "test_install_checks_baseline_and_does_not_apply_twice[nglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 1.882,
+          "status": "passed"
+        },
+        {
+          "name": "test_local_bundle_roundtrip_preserves_correction_and_baseline[nglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.413,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_local_parameters_preserve_instance_identity[nglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.278,
+          "status": "passed"
+        },
+        {
+          "name": "test_biotin_local_changes_and_canonical_ownership[nglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.001,
+          "status": "skipped"
+        },
+        {
+          "name": "test_attached_asparagine_is_not_flipped_independently[nglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.012,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[nglycan-cpu-False]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 1.644,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[nglycan-cpu-True]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 4.399,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[nglycan-cuda-False]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 2.134,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[nglycan-cuda-True]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 3.559,
+          "status": "passed"
+        },
+        {
+          "name": "test_install_checks_baseline_and_does_not_apply_twice[oglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 2.128,
+          "status": "passed"
+        },
+        {
+          "name": "test_local_bundle_roundtrip_preserves_correction_and_baseline[oglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.371,
+          "status": "passed"
+        },
+        {
+          "name": "test_generated_local_parameters_preserve_instance_identity[oglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.218,
+          "status": "passed"
+        },
+        {
+          "name": "test_biotin_local_changes_and_canonical_ownership[oglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.001,
+          "status": "skipped"
+        },
+        {
+          "name": "test_attached_asparagine_is_not_flipped_independently[oglycan]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 0.001,
+          "status": "skipped"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[oglycan-cpu-False]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 2.895,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[oglycan-cpu-True]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 6.35,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[oglycan-cuda-False]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 2.915,
+          "status": "passed"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[oglycan-cuda-True]",
+          "classname": "tmol.tests.ligand.test_local_conjugate_params",
+          "seconds": 3.422,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligand_from_mol2_registers_residue",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.02,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligand_from_cif_uses_default_db_when_omitted",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.507,
+          "status": "passed"
+        },
+        {
+          "name": "test_nonstandard_residue_info_from_mol2_block_roundtrips",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.004,
+          "status": "passed"
+        },
+        {
+          "name": "test_write_params_from_mol2_both_formats",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.02,
+          "status": "passed"
+        },
+        {
+          "name": "test_write_params_file_rosetta_list_to_directory",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.006,
+          "status": "passed"
+        },
+        {
+          "name": "test_tmol_params_roundtrip_and_inject",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.036,
+          "status": "passed"
+        },
+        {
+          "name": "test_tmol_loader_accepts_minor_version_difference",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.045,
+          "status": "passed"
+        },
+        {
+          "name": "test_tmol_loader_warns_when_no_charges",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.044,
+          "status": "passed"
+        },
+        {
+          "name": "test_tmol_loader_rejects_bad_files[- a\\n- b\\n-Expected mapping]",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.002,
+          "status": "passed"
+        },
+        {
+          "name": "test_tmol_loader_rejects_bad_files[chemical: {}\\n-no 'version' field]",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.002,
+          "status": "passed"
+        },
+        {
+          "name": "test_tmol_loader_rejects_bad_files[version: \"4.0\"\\nchemical: {}\\n-incompatible]",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.002,
+          "status": "passed"
+        },
+        {
+          "name": "test_tmol_loader_rejects_bad_files[version: \"1.0\"\\nresidues: []\\n-deprecated flat schema]",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.002,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligand_from_smiles_registers[acetanilide]",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.239,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligand_from_smiles_registers[aminopyridine]",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.096,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligand_from_smiles_registers[benzamide]",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.119,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligand_from_smiles_registers[benzene]",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.048,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligand_from_smiles_registers[benzoic_acid]",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.076,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligand_from_smiles_registers[chlorobromobenzene]",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.05,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligand_from_smiles_registers[cyclopropanecarboxamide]",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.075,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligand_from_smiles_registers[ethanolamine]",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.082,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligand_from_smiles_registers[furan]",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.052,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligand_from_smiles_registers[imidazole]",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.043,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligand_from_smiles_registers[methanesulfonamide]",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.07,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligand_from_smiles_registers[nitrobenzene]",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.096,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligand_from_smiles_registers[pyridine]",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.05,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligand_from_smiles_registers[pyrrole]",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.041,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligand_from_smiles_registers[thiophene]",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.046,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligand_from_smiles_registers[trifluoromethylbenzene]",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.083,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligand_from_cif_inputs[ada]",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.411,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligand_from_cif_inputs[cdk2]",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.356,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligand_from_cif_inputs[cox2]",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.381,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligand_from_cif_inputs[hivrt]",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.377,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligand_from_cif_inputs[src]",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.638,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligand_from_cif_inputs[egfr]",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.393,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligands_writes_params_output",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.374,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligands_accepts_single_model_stack",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.455,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligands_rejects_multi_model_stack",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.004,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligands_strict_raises_on_unpreparable_ligand",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.008,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligands_lenient_skips_unpreparable_ligand",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.007,
+          "status": "passed"
+        },
+        {
+          "name": "test_prepare_ligands_with_params_files_skips_reprep",
+          "classname": "tmol.tests.ligand.test_ligand_entry_paths",
+          "seconds": 0.029,
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/gen-identity-slots-cpu.xml",
+      "sha256": "2c678b57440cfa2d1d1f7101ba1633fb417f6c02713ef55bf41cc01d4a4dce9a",
+      "slurm_job": null,
+      "suite": {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "6",
+        "tests": "13",
+        "time": "10.660",
+        "timestamp": "2026-09-11T20:12:15.651505+00:00",
+        "hostname": "slurm-login-0"
+      },
+      "cases": [
+        {
+          "name": "test_block_annotation_tracks_ownership_and_elements",
+          "classname": "tmol.tests.score.genbonded.test_parameter_identity",
+          "seconds": 1.221,
+          "status": "passed"
+        },
+        {
+          "name": "test_database_tables_are_shared_bounded_and_do_not_retain_owner[cpu]",
+          "classname": "tmol.tests.score.genbonded.test_parameter_identity",
+          "seconds": 3.627,
+          "status": "passed"
+        },
+        {
+          "name": "test_database_tables_are_shared_bounded_and_do_not_retain_owner[cuda]",
+          "classname": "tmol.tests.score.genbonded.test_parameter_identity",
+          "seconds": 0.001,
+          "status": "skipped"
+        },
+        {
+          "name": "test_rotamer_database_scaling_and_module_snapshot[cpu]",
+          "classname": "tmol.tests.score.genbonded.test_parameter_identity",
+          "seconds": 2.359,
+          "status": "passed"
+        },
+        {
+          "name": "test_rotamer_database_scaling_and_module_snapshot[cuda]",
+          "classname": "tmol.tests.score.genbonded.test_parameter_identity",
+          "seconds": 0.001,
+          "status": "skipped"
+        },
+        {
+          "name": "test_database_scaling_on_reused_pose[cpu-False-False]",
+          "classname": "tmol.tests.score.genbonded.test_parameter_identity",
+          "seconds": 0.641,
+          "status": "passed"
+        },
+        {
+          "name": "test_database_scaling_on_reused_pose[cpu-False-True]",
+          "classname": "tmol.tests.score.genbonded.test_parameter_identity",
+          "seconds": 0.646,
+          "status": "passed"
+        },
+        {
+          "name": "test_database_scaling_on_reused_pose[cpu-True-False]",
+          "classname": "tmol.tests.score.genbonded.test_parameter_identity",
+          "seconds": 0.644,
+          "status": "passed"
+        },
+        {
+          "name": "test_database_scaling_on_reused_pose[cpu-True-True]",
+          "classname": "tmol.tests.score.genbonded.test_parameter_identity",
+          "seconds": 0.643,
+          "status": "passed"
+        },
+        {
+          "name": "test_database_scaling_on_reused_pose[cuda-False-False]",
+          "classname": "tmol.tests.score.genbonded.test_parameter_identity",
+          "seconds": 0.002,
+          "status": "skipped"
+        },
+        {
+          "name": "test_database_scaling_on_reused_pose[cuda-False-True]",
+          "classname": "tmol.tests.score.genbonded.test_parameter_identity",
+          "seconds": 0.001,
+          "status": "skipped"
+        },
+        {
+          "name": "test_database_scaling_on_reused_pose[cuda-True-False]",
+          "classname": "tmol.tests.score.genbonded.test_parameter_identity",
+          "seconds": 0.001,
+          "status": "skipped"
+        },
+        {
+          "name": "test_database_scaling_on_reused_pose[cuda-True-True]",
+          "classname": "tmol.tests.score.genbonded.test_parameter_identity",
+          "seconds": 0.001,
+          "status": "skipped"
+        }
+      ]
+    }
+  ],
+  "sources_sha256": {
+    "tmol/score/genbonded/_genbonded_energy_term.py": "366d05343f9a6f5070a4ea3f933c1ddbf144aaaa0401c56849c19a634784f7f4",
+    "tmol/tests/score/genbonded/test_parameter_identity.py": "659fa70fc91765318eba5385f25f5e8eb7cb0d42bf5347a4300e213bd89a09bb",
+    "review/pr503/profile_generic_setup.py": "3414e0b9d73295406af1eb4b432b86a14e8cf40f202d4457f7b89261f819f854"
+  },
+  "logs": {
+    "/mnt/home/kdidi/tmol-pr503-followup/gen-identity-before.log": "c7f82ceb443e5b32fc15f0d903746abce88c6dea5bc94e44de3ee86ff1dd36ee",
+    "/mnt/home/kdidi/tmol-pr503-followup/gen-identity-after.log": "8726a10b967c9377ad6d26f02c7184982370c07092228bd2894f0597186e232d",
+    "/mnt/home/kdidi/tmol-pr503-followup/gen-identity-expanded-cpu.log": "1123696b6d7915bdabf66690ed31c2320da6a1cbd190c420aa290551385fa6cc",
+    "/mnt/home/kdidi/tmol-pr503-followup/gen-identity-final-cpu.log": "eea55634e34d66717584d69423ea257c25d97ab8c058c54764afa7747d72bd14",
+    "/mnt/home/kdidi/tmol-pr503-followup/gen-identity-slots-cpu.log": "e8c360aafe232eb00c68ce87fd05936fa04a5d8df2d416611741cc4084a0aa2f",
+    "/mnt/home/kdidi/tmol-pr503-followup/gen-identity-249000.log": "2669020cbd0346f1f920e4bd18444f085f10d499b4bf859d1c1b622c4d64ec4a",
+    "/mnt/home/kdidi/tmol-pr503-followup/generic-setup-cprofile.log": "7e7ea872882004d890bf5bbca9ee5ce52fd50b8d607c7ccb565b32c32f55ac71",
+    "/mnt/home/kdidi/tmol-pr503-followup/generic-setup-final-cpu.log": "3d59cba47655f5d73981375d5fc5680bfe7c9274d8e107999d1203d34d3bb688",
+    "/mnt/home/kdidi/tmol-pr503-followup/generic-setup-249001.log": "f856f16f0ad47f8e74221fa08e813f75fe561269ee105cdc0fe7d797df6a771f"
+  },
+  "controlled_before": {
+    "failed": 4,
+    "skipped": 4,
+    "scope": "reused jagged KK/KKK; synthetic generic ownership and scaled coefficients on d0d19b405"
+  },
+  "post_gpu_changes": [
+    "Removed unused duplicate type-name list",
+    "Made Python annotation record slotted; final CPU identity/lifetime suite rerun"
+  ],
+  "performance_scope": "seven alternating sets of ten packed sets; warm shared blocks/database; parent annotations measured fresh and reused; exact tensor comparison; excludes pose creation, module rendering, float64 copies and allocator overhead",
+  "remaining": [
+    "Cartbonded per-database annotation dictionaries",
+    "Shared parent atom-type annotation identity",
+    "Full chemistry/default integration and completion requirements in FOLLOWUP.md"
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "reader": "atomworks",
+  "device": "cuda:0",
+  "torch": "2.13.0+cu132",
+  "rows": [
+    {
+      "fixture": "biotin",
+      "case": "test_group_conformers_preserve_all_bonds_angles_and_chirality",
+      "status": "pass",
+      "seconds": 11.752417344134301
+    },
+    {
+      "fixture": "biotin",
+      "case": "test_the_bond_survives_packing",
+      "status": "pass",
+      "seconds": 3.8496817210689187
+    },
+    {
+      "fixture": "biotin",
+      "case": "test_the_packers_energy_matches_what_the_pose_scores",
+      "status": "pass",
+      "seconds": 2.9407294639386237
+    },
+    {
+      "fixture": "nglycan",
+      "case": "test_group_conformers_preserve_all_bonds_angles_and_chirality",
+      "status": "pass",
+      "seconds": 3.22023540828377
+    },
+    {
+      "fixture": "nglycan",
+      "case": "test_the_bond_survives_packing",
+      "status": "pass",
+      "seconds": 4.905550884082913
+    },
+    {
+      "fixture": "nglycan",
+      "case": "test_the_packers_energy_matches_what_the_pose_scores",
+      "status": "pass",
+      "seconds": 5.140039632096887
+    },
+    {
+      "fixture": "oglycan",
+      "case": "test_group_conformers_preserve_all_bonds_angles_and_chirality",
+      "status": "pass",
+      "seconds": 5.159751657862216
+    },
+    {
+      "fixture": "oglycan",
+      "case": "test_the_bond_survives_packing",
+      "status": "pass",
+      "seconds": 5.314255705103278
+    },
+    {
+      "fixture": "oglycan",
+      "case": "test_the_packers_energy_matches_what_the_pose_scores",
+      "status": "pass",
+      "seconds": 5.244304537307471
+    }
+  ]
+}

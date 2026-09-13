@@ -1,0 +1,592 @@
+{
+  "group-geometry": {
+    "suites": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "51",
+        "time": "385.711",
+        "timestamp": "2026-09-11T12:45:14.472216+00:00",
+        "hostname": "slurm-h200-interactive-244-105"
+      }
+    ],
+    "cases": [
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_chemical_geometry",
+        "name": "test_group_conformers_preserve_all_bonds_angles_and_chirality[cpu-biotin]",
+        "time": "7.741",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_chemical_geometry",
+        "name": "test_group_conformers_preserve_all_bonds_angles_and_chirality[cpu-nglycan]",
+        "time": "2.783",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_chemical_geometry",
+        "name": "test_group_conformers_preserve_all_bonds_angles_and_chirality[cpu-oglycan]",
+        "time": "5.356",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_chemical_geometry",
+        "name": "test_group_conformers_preserve_all_bonds_angles_and_chirality[cuda-biotin]",
+        "time": "3.418",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_chemical_geometry",
+        "name": "test_group_conformers_preserve_all_bonds_angles_and_chirality[cuda-nglycan]",
+        "time": "2.842",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_chemical_geometry",
+        "name": "test_group_conformers_preserve_all_bonds_angles_and_chirality[cuda-oglycan]",
+        "time": "5.196",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype0-biotin]",
+        "time": "0.597",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype0-nglycan]",
+        "time": "1.805",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype0-oglycan]",
+        "time": "4.623",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype1-biotin]",
+        "time": "0.588",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype1-nglycan]",
+        "time": "1.823",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype1-oglycan]",
+        "time": "4.398",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype0-biotin]",
+        "time": "0.577",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype0-nglycan]",
+        "time": "1.906",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype0-oglycan]",
+        "time": "4.514",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype1-biotin]",
+        "time": "0.667",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype1-nglycan]",
+        "time": "1.926",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype1-oglycan]",
+        "time": "4.830",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_reused_sampler_keeps_real_pose_groups_independent[cpu]",
+        "time": "1.464",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_reused_sampler_keeps_real_pose_groups_independent[cuda]",
+        "time": "1.534",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_budget_preserves_owner_when_chi_names_repeat",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_independent_library_does_not_remove_child_chi",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_budget_retains_a_proton_placement_and_rejects_oversize_library",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_group_budget_keeps_correct_residue_and_linkage",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_anchor_library_keeps_identical_block_numbers_in_different_poses[cpu]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_anchor_library_keeps_identical_block_numbers_in_different_poses[cuda]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_kinforest_cache_is_scoped_to_packed_block_types",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_lockstep_rejects_mismatched_counts_before_native_scoring[cpu]",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_lockstep_rejects_mismatched_counts_before_native_scoring[cuda]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_group_collapse_accepts_exclusive_end_offset[cpu]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_group_collapse_accepts_exclusive_end_offset[cuda]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cpu-biotin]",
+        "time": "1.286",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cpu-nglycan]",
+        "time": "2.696",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cpu-oglycan]",
+        "time": "4.564",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cuda-biotin]",
+        "time": "1.444",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cuda-nglycan]",
+        "time": "2.699",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cuda-oglycan]",
+        "time": "4.742",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_a_group_is_sampled_as_the_product_of_its_parts[cpu]",
+        "time": "0.597",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_a_group_is_sampled_as_the_product_of_its_parts[cuda]",
+        "time": "0.771",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cpu-biotin]",
+        "time": "10.831",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cpu-nglycan]",
+        "time": "45.754",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cpu-oglycan]",
+        "time": "84.169",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cuda-biotin]",
+        "time": "2.930",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cuda-nglycan]",
+        "time": "4.943",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cuda-oglycan]",
+        "time": "5.533",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cpu-biotin]",
+        "time": "10.727",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cpu-nglycan]",
+        "time": "45.738",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cpu-oglycan]",
+        "time": "84.099",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cuda-biotin]",
+        "time": "2.944",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cuda-nglycan]",
+        "time": "5.055",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cuda-oglycan]",
+        "time": "5.318",
+        "status": "pass"
+      }
+    ]
+  },
+  "group-input": {
+    "suites": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "42",
+        "time": "32.817",
+        "timestamp": "2026-09-11T12:53:56.811010+00:00",
+        "hostname": "slurm-h200-interactive-244-105"
+      }
+    ],
+    "cases": [
+      {
+        "classname": "tmol.tests.test_covalent_components",
+        "name": "test_fixture_declares_its_covalent_links[lys_ligand]",
+        "time": "0.313",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.test_covalent_components",
+        "name": "test_fixture_declares_its_covalent_links[nglycan_tree]",
+        "time": "0.068",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.test_covalent_components",
+        "name": "test_fixture_declares_its_covalent_links[oglycan_sia]",
+        "time": "0.015",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.test_covalent_components",
+        "name": "test_attachment_atoms_are_detected[lys_ligand]",
+        "time": "1.317",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.test_covalent_components",
+        "name": "test_attachment_atoms_are_detected[nglycan_tree]",
+        "time": "0.077",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.test_covalent_components",
+        "name": "test_attachment_atoms_are_detected[oglycan_sia]",
+        "time": "0.016",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.test_covalent_components",
+        "name": "test_covalent_components_prepare[lys_ligand]",
+        "time": "2.402",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.test_covalent_components",
+        "name": "test_covalent_components_prepare[nglycan_tree]",
+        "time": "1.623",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.test_covalent_components",
+        "name": "test_covalent_components_prepare[oglycan_sia]",
+        "time": "1.873",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.test_covalent_components",
+        "name": "test_free_oligosaccharide_still_prepares",
+        "time": "1.611",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.test_covalent_components",
+        "name": "test_backbone_and_disulfide_bonds_are_not_declared[cyclic_peptide_1jbl]",
+        "time": "1.239",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.test_covalent_components",
+        "name": "test_backbone_and_disulfide_bonds_are_not_declared[1UBQ]",
+        "time": "0.031",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.test_covalent_components",
+        "name": "test_attachment_bonds_reach_canonical_form[lys_ligand]",
+        "time": "0.457",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.test_covalent_components",
+        "name": "test_attachment_bonds_reach_canonical_form[nglycan_tree]",
+        "time": "1.687",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.test_covalent_components",
+        "name": "test_attachment_bonds_reach_canonical_form[oglycan_sia]",
+        "time": "1.769",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.test_covalent_components",
+        "name": "test_every_attachment_site_becomes_a_connection[lys_ligand]",
+        "time": "0.427",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.test_covalent_components",
+        "name": "test_every_attachment_site_becomes_a_connection[nglycan_tree]",
+        "time": "1.628",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.test_covalent_components",
+        "name": "test_every_attachment_site_becomes_a_connection[oglycan_sia]",
+        "time": "1.759",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.test_covalent_components",
+        "name": "test_canonical_partner_gains_its_own_connection[lys_ligand]",
+        "time": "0.428",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.test_covalent_components",
+        "name": "test_canonical_partner_gains_its_own_connection[nglycan_tree]",
+        "time": "1.626",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.test_covalent_components",
+        "name": "test_canonical_partner_gains_its_own_connection[oglycan_sia]",
+        "time": "1.761",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.test_covalent_components",
+        "name": "test_a_component_gets_one_variant_per_combination_of_sites[lys_ligand]",
+        "time": "0.430",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.test_covalent_components",
+        "name": "test_a_component_gets_one_variant_per_combination_of_sites[nglycan_tree]",
+        "time": "1.618",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.test_covalent_components",
+        "name": "test_a_component_gets_one_variant_per_combination_of_sites[oglycan_sia]",
+        "time": "1.755",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.test_covalent_components",
+        "name": "test_conjugation_conserves_charge[lys_ligand]",
+        "time": "0.740",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.test_covalent_components",
+        "name": "test_conjugation_conserves_charge[nglycan_tree]",
+        "time": "1.844",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.test_covalent_components",
+        "name": "test_conjugation_conserves_charge[oglycan_sia]",
+        "time": "1.821",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.test_covalent_components",
+        "name": "test_retyping_leaves_the_unconjugated_residue_alone",
+        "time": "1.698",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_topology_inventory",
+        "name": "test_group_records_all_internal_and_external_bonds[cpu-4-conjugations0-other0-polymers0]",
+        "time": "0.005",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_topology_inventory",
+        "name": "test_group_records_all_internal_and_external_bonds[cpu-3-conjugations1-other1-polymers1]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_topology_inventory",
+        "name": "test_group_records_all_internal_and_external_bonds[cpu-2-conjugations2-other2-polymers2]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_topology_inventory",
+        "name": "test_group_records_all_internal_and_external_bonds[cpu-3-conjugations3-other3-polymers3]",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_topology_inventory",
+        "name": "test_group_records_all_internal_and_external_bonds[cpu-5-conjugations4-other4-polymers4]",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_topology_inventory",
+        "name": "test_group_records_all_internal_and_external_bonds[cpu-3-conjugations5-other5-polymers5]",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_topology_inventory",
+        "name": "test_group_records_all_internal_and_external_bonds[cpu-1-conjugations6-other6-polymers6]",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_topology_inventory",
+        "name": "test_group_records_all_internal_and_external_bonds[cuda-4-conjugations0-other0-polymers0]",
+        "time": "0.223",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_topology_inventory",
+        "name": "test_group_records_all_internal_and_external_bonds[cuda-3-conjugations1-other1-polymers1]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_topology_inventory",
+        "name": "test_group_records_all_internal_and_external_bonds[cuda-2-conjugations2-other2-polymers2]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_topology_inventory",
+        "name": "test_group_records_all_internal_and_external_bonds[cuda-3-conjugations3-other3-polymers3]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_topology_inventory",
+        "name": "test_group_records_all_internal_and_external_bonds[cuda-5-conjugations4-other4-polymers4]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_topology_inventory",
+        "name": "test_group_records_all_internal_and_external_bonds[cuda-3-conjugations5-other5-polymers5]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_topology_inventory",
+        "name": "test_group_records_all_internal_and_external_bonds[cuda-1-conjugations6-other6-polymers6]",
+        "time": "0.002",
+        "status": "pass"
+      }
+    ]
+  }
+}

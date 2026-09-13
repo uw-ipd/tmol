@@ -2,6 +2,7 @@
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include <vector>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
@@ -444,9 +445,15 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
           output[1][p][b1][b2] = cta_total_ljrep;                             \
           output[2][p][b1][b2] = cta_total_lk;                                \
         } else {                                                              \
-          accumulate<D, Real>::add(output[0][p][0][0], cta_total_ljatr);      \
-          accumulate<D, Real>::add(output[1][p][0][0], cta_total_ljrep);      \
-          accumulate<D, Real>::add(output[2][p][0][0], cta_total_lk);         \
+          if constexpr (D == tmol::Device::CPU) {                           \
+            cpu_pose_accum[3 * p] += cta_total_ljatr;                         \
+            cpu_pose_accum[3 * p + 1] += cta_total_ljrep;                     \
+            cpu_pose_accum[3 * p + 2] += cta_total_lk;                        \
+          } else {                                                          \
+            accumulate<D, Real>::add(output[0][p][0][0], cta_total_ljatr);    \
+            accumulate<D, Real>::add(output[1][p][0][0], cta_total_ljrep);    \
+            accumulate<D, Real>::add(output[2][p][0][0], cta_total_lk);       \
+          }                                                                 \
         }                                                                     \
       }                                                                       \
     });                                                                       \
@@ -779,6 +786,16 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
   }
   auto output = output_t.view;
 
+  // CPU workgroups execute serially. Accumulate their totals in double so
+  // thousands of small block-pair terms are not rounded away in a large
+  // float pose total. Atom-pair math, derivatives and returned dtype stay Real.
+  // The CUDA path does not allocate or access this host scratch storage.
+  std::vector<double> cpu_pose_totals;
+  if constexpr (D == tmol::Device::CPU) {
+    if (!output_block_pair_energies) cpu_pose_totals.resize(3 * n_poses, 0.0);
+  }
+  double* cpu_pose_accum = cpu_pose_totals.data();
+
   // Optimal launch box on v100 and a100 is nt=32, vt=1
   LAUNCH_BOX_32;
   // Define nt and reduce_t
@@ -903,7 +920,8 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
     // the tile
     auto eval_interres_atom_pair_scores = ([=] EVAL_INTERRES_ATOM_PAIR_SCORES);
 
-    auto store_calculated_energies = ([=] STORE_POSE_CALCULATED_ENERGIES);
+    auto store_calculated_energies =
+        ([=, cpu_pose_accum = cpu_pose_accum] STORE_POSE_CALCULATED_ENERGIES);
 
     auto load_tile_invariant_intrares_data =
         ([=] LOAD_TILE_INVARIANT_INTRARES_DATA);
@@ -1074,7 +1092,8 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
 
     auto eval_interres_atom_pair_scores = ([=] EVAL_INTERRES_ATOM_PAIR_SCORES);
 
-    auto store_calculated_energies = ([=] STORE_POSE_CALCULATED_ENERGIES);
+    auto store_calculated_energies =
+        ([=, cpu_pose_accum = cpu_pose_accum] STORE_POSE_CALCULATED_ENERGIES);
 
     auto load_tile_invariant_intrares_data =
         ([=] LOAD_TILE_INVARIANT_INTRARES_DATA);
@@ -1154,6 +1173,16 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
   } else {
     DeviceOperations<D>::template foreach_workgroup<launch_t>(
         mgr, n_poses * max_n_upper_triangle_inds, eval_energies);
+  }
+
+  if constexpr (D == tmol::Device::CPU) {
+    if (!output_block_pair_energies) {
+      for (int p = 0; p < n_poses; ++p) {
+        for (int term = 0; term < 3; ++term) {
+          output[term][p][0][0] = cpu_pose_accum[3 * p + term];
+        }
+      }
+    }
   }
 
   return {output_t, dV_dcoords_t, scratch_rot_neighbors_t};

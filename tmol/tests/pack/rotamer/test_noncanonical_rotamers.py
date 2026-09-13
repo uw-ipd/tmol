@@ -173,11 +173,10 @@ _NUCLEOTIDES = ("PSU", "RU")
 # 3 of isoleucine's 9. A borrowed library is read at a neutral backbone rather
 # than the residue's own, so the count is a property of the library and the
 # cutoff, not of the structure the residue came from. HYP is proline's two,
-# both of which survive, times the three samples of its own hydroxyl chi.
+# both of which survive, times three hydroxyl means and three expansion offsets.
+# The native sampler uses its buried state by default, including +/-20 degrees.
 _EXPECTED_ROTAMERS = {
-    # PRO's two rotamers times the hydroxyl proton chi: three samples, each
-    #    expanded by +/-20 degrees since the product stays under the budget
-    "HYP": 2 * 9,
+    "HYP": 2 * 3 * 3,
     "MLE": 4,
     "B3K": 26,
     "BIL": 3,
@@ -195,6 +194,7 @@ def _pose_with(code: str, torch_device):
         torch_device,
         prepare_ligands=True,
         param_db=param_db,
+        ligand_seed=20250828,
         return_context=True,
     )
     block_types = poses.packed_block_types.active_block_types
@@ -210,7 +210,7 @@ def _pose_with(code: str, torch_device):
     return poses, context, blocks[0]
 
 
-def _rotamers(poses, samplers):
+def _rotamers(poses, samplers, chemical_db):
     from tmol.pack import PackerPalette, PackerTask, SetPackerTask
     from tmol.pack.rotamer import build_rotamers
 
@@ -221,7 +221,7 @@ def _rotamers(poses, samplers):
     poses, rotamer_set = build_rotamers(
         poses,
         SetPackerTask.from_packer_task(task),
-        ParameterDatabase.get_default().chemical,
+        chemical_db,
     )
     return poses, rotamer_set
 
@@ -241,7 +241,7 @@ def test_the_packer_builds_rotamers_for_a_noncanonical(
         NaChiRotamerSampler,
     )
 
-    poses, _context, (pose, block) = _pose_with(code, torch_device)
+    poses, context, (pose, block) = _pose_with(code, torch_device)
     samplers = [dun_sampler, FixedAAChiSampler(), IncludeCurrentSampler()]
     if code in _NUCLEOTIDES:
         samplers.append(
@@ -249,7 +249,9 @@ def test_the_packer_builds_rotamers_for_a_noncanonical(
                 ParameterDatabase.get_default(), torch_device
             )
         )
-    _poses, rotamer_set = _rotamers(poses, samplers)
+    _poses, rotamer_set = _rotamers(
+        poses, samplers, context.parameter_database.chemical
+    )
 
     assert rotamer_set is not None
     assert int(rotamer_set.n_rots_for_block[pose, block]) > 0
@@ -262,8 +264,10 @@ def test_a_borrowed_library_yields_its_own_number_of_rotamers(
     """Borrowing a library means sampling every rotamer that library defines."""
     from tmol.pack.rotamer import FixedAAChiSampler
 
-    poses, _context, (pose, block) = _pose_with(code, torch_device)
-    _poses, rotamer_set = _rotamers(poses, [dun_sampler, FixedAAChiSampler()])
+    poses, context, (pose, block) = _pose_with(code, torch_device)
+    _poses, rotamer_set = _rotamers(
+        poses, [dun_sampler, FixedAAChiSampler()], context.parameter_database.chemical
+    )
 
     assert int(rotamer_set.n_rots_for_block[pose, block]) == _EXPECTED_ROTAMERS[code]
 
@@ -290,8 +294,10 @@ def test_a_built_rotamer_keeps_its_sidechain_on_the_same_side(
     """
     from tmol.pack.rotamer import FixedAAChiSampler
 
-    poses, _context, (pose, block) = _pose_with(code, torch_device)
-    _poses, rotamer_set = _rotamers(poses, [dun_sampler, FixedAAChiSampler()])
+    poses, context, (pose, block) = _pose_with(code, torch_device)
+    _poses, rotamer_set = _rotamers(
+        poses, [dun_sampler, FixedAAChiSampler()], context.parameter_database.chemical
+    )
 
     block_type = poses.packed_block_types.active_block_types[
         int(poses.block_type_ind64[pose, block])
@@ -316,3 +322,26 @@ def test_a_built_rotamer_keeps_its_sidechain_on_the_same_side(
         at = int(offsets[rot])
         built = _signed_volume(coords, *[at + i for i in where])
         assert built * expected > 0, f"{code}: rotamer {rot - first} is mirrored"
+
+
+def test_hyp_count_contains_two_library_states_and_nine_hydroxyl_angles(
+    torch_device, dun_sampler
+):
+    import torch
+    from tmol.pack import PackerPalette, PackerTask, SetPackerTask
+
+    poses, context, (pose, block) = _pose_with("HYP", torch_device)
+    task = PackerTask(poses, PackerPalette())
+    task.restrict_to_repacking()
+    task.add_conformer_sampler(dun_sampler)
+    task = SetPackerTask.from_packer_task(task)
+    _counts, gbt, _atoms, chi = dun_sampler.sample_chi_for_poses(poses, task)
+    selected = (task.cons_bt_pose[gbt] == pose) & (task.cons_bt_block[gbt] == block)
+    angles = chi[selected]
+    assert angles.shape[0] == 18
+    assert torch.unique(angles[:, :3], dim=0).shape[0] == 2
+    hydroxyl = sorted(float(a) % 360 for a in torch.rad2deg(torch.unique(angles[:, 3])))
+    expected = sorted(
+        (mean + offset) % 360 for mean in (60, 180, 300) for offset in (-20, 0, 20)
+    )
+    assert hydroxyl == pytest.approx(expected, abs=1e-3)

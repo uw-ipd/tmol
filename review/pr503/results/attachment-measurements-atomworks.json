@@ -1,0 +1,21 @@
+{
+  "reader": "atomworks",
+  "device": "cpu",
+  "rows": [
+    {
+      "missing": "NZ",
+      "status": "pass",
+      "seconds": 14.223478296771646
+    },
+    {
+      "missing": "C11",
+      "status": "pass",
+      "seconds": 0.78320371825248
+    },
+    {
+      "missing": "both",
+      "status": "pass",
+      "seconds": 0.7781919790431857
+    }
+  ]
+}

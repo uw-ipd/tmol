@@ -1,0 +1,104 @@
+{
+  "production": "102cda060",
+  "atomworks": "4af94d0c8be510d49f2a84c2795c6a41fd8f71d3",
+  "scope": "Incremental CPU checks; earlier selections precede later edits. Final topology selection covers committed code. CUDA/broad job 253074 pending.",
+  "checks": {
+    "patch-support-cpu": {
+      "tests": 17,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1,
+      "sha256": "920fb8c66a0bd28beba81a40f38f4ab5ea819521c9e705a098108d9cfa823d89",
+      "raw_xml": "/mnt/home/kdidi/tmol-pr503-followup/patch-support-cpu.xml"
+    },
+    "patch-support-ligand-cpu": {
+      "tests": 838,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 116,
+      "sha256": "9901b5e94707c14604cce24fd40a433a4882143abd6aaf3edded34079e52098e",
+      "raw_xml": "/mnt/home/kdidi/tmol-pr503-followup/patch-support-ligand-cpu.xml"
+    },
+    "bond-authority-focused": {
+      "tests": 32,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 5,
+      "sha256": "3f51e28b9454ed711dbf977615477ba256f2f7dcbbea64a7fdf84a063c1c6886",
+      "raw_xml": "/mnt/home/kdidi/tmol-pr503-followup/bond-authority-focused.xml"
+    },
+    "terminal-nucleotide-regression-cpu": {
+      "tests": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 3,
+      "sha256": "5f170db5fb4a2e5796f9a202da5b2c98bd7e4d0268e9f43ee48c8e4b0ed76c2e",
+      "raw_xml": "/mnt/home/kdidi/tmol-pr503-followup/terminal-nucleotide-regression-cpu.xml"
+    },
+    "explicit-topology-focused-cpu": {
+      "tests": 77,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 35,
+      "sha256": "2c42ef0182d2175b9d6570a37d153df9f06fc4c931186ca77d12ae527349fe8d",
+      "raw_xml": "/mnt/home/kdidi/tmol-pr503-followup/explicit-topology-focused-cpu.xml"
+    },
+    "shared-author-reader-cpu": {
+      "tests": 47,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 7,
+      "sha256": "516d4d6db6bde530f8d5d078678bc81a5b485bee830db79ecb87d5d1d2e3215a",
+      "raw_xml": "/mnt/home/kdidi/tmol-pr503-followup/shared-author-reader-cpu.xml"
+    },
+    "generic-torsion-direction-cpu": {
+      "tests": 72,
+      "failures": 2,
+      "errors": 0,
+      "skipped": 28,
+      "sha256": "662fa36bd3e0f32390ee511d4b684757da501d5be912d6a02735aeee767415ea",
+      "raw_xml": "/mnt/home/kdidi/tmol-pr503-followup/generic-torsion-direction-cpu.xml"
+    },
+    "generic-reference-bundle-cpu": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "sha256": "0a294dd22b70280cf71de015888c96ca8b628657084bdb8d3809afd5b3e29503",
+      "raw_xml": "/mnt/home/kdidi/tmol-pr503-followup/generic-reference-bundle-cpu.xml"
+    },
+    "shared-bond-contract-cpu": {
+      "tests": 46,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 7,
+      "sha256": "0c0e6633bd81b1c08563b7054701a687ddd832ba15b024c4bb0726a60c537b52",
+      "raw_xml": "/mnt/home/kdidi/tmol-pr503-followup/shared-bond-contract-cpu.xml"
+    },
+    "explicit-topology-final-cpu": {
+      "tests": 48,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 18,
+      "sha256": "f68efb0ac7dba8e3764cef42528793ab14bd10478ab0bfbb65c53ef8d92def99",
+      "raw_xml": "/mnt/home/kdidi/tmol-pr503-followup/explicit-topology-final-cpu.xml"
+    },
+    "model-notebook-final-cpu": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1,
+      "sha256": "ebaad57bad2b0ecc9ed9b558bc2685649e88f90ff61a45683920e69a1c5b1d72",
+      "raw_xml": "/mnt/home/kdidi/tmol-pr503-followup/model-notebook-final-cpu.xml"
+    },
+    "model-notebook-gpu": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "sha256": "12c476e1e0ea9282f3aba2a23f2484e3e180d9d5668c3859525a2114df4964c3",
+      "raw_xml": "/mnt/home/kdidi/tmol-pr503-followup/model-notebook-gpu.xml"
+    }
+  },
+  "retained_failures": "generic-torsion-direction-cpu contains two stale bundle-version assertions; corrected schema version and element-metadata roundtrip pass in generic-reference-bundle-cpu. No scientific golden changed."
+}

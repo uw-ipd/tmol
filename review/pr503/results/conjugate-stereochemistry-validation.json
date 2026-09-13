@@ -1,0 +1,503 @@
+{
+  "tmol": "dc366bcee",
+  "atomworks": "4af94d0c",
+  "scope": "Review-prototype capped conjugate chemistry; default preparation and scoring remain unchanged",
+  "before": {
+    "revision": "cdca836b2",
+    "result": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/conjugate-stereo-before.xml",
+      "sha256": "11678ddb88c497af29e4d8d1569c389276f99d8ea61353234cba6b7c76b80e5f",
+      "passed": 0,
+      "skipped": 0,
+      "failures": [
+        {
+          "name": "test_capped_generation_preserves_observed_stereochemistry[biotin]",
+          "message": "assert False\n +  where False = any(<generator object test_capped_generation_preserves_observed_stereochemistry.<locals>.<genexpr> at 0x7303271f4e10>)"
+        },
+        {
+          "name": "test_capped_generation_preserves_observed_stereochemistry[nglycan]",
+          "message": "assert False\n +  where False = any(<generator object test_capped_generation_preserves_observed_stereochemistry.<locals>.<genexpr> at 0x730376e2c520>)"
+        },
+        {
+          "name": "test_capped_generation_preserves_observed_stereochemistry[oglycan]",
+          "message": "assert False\n +  where False = any(<generator object test_capped_generation_preserves_observed_stereochemistry.<locals>.<genexpr> at 0x7303271f58a0>)"
+        }
+      ]
+    }
+  },
+  "after_cpu": {
+    "path": "/mnt/home/kdidi/tmol-pr503-followup/conjugate-stereo-named-cpu.xml",
+    "sha256": "c86f07e380889c06265d95d00445edcb0074a1b05f15fca2bf494a667d546770",
+    "passed": 53,
+    "skipped": 22,
+    "failures": []
+  },
+  "intermediate_attempts": {
+    "CIP-priority context keys rejected equivalent MAN configurations": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/conjugate-stereo-final-cpu.xml",
+      "sha256": "8490b1471560bcf9d0196dbb2e3741fa9d23c4fbe5acc4686e6f80fe605ea147",
+      "passed": 42,
+      "skipped": 22,
+      "failures": [
+        {
+          "name": "test_generated_records_ignore_coordinates_and_instance_numbering[nglycan]",
+          "message": "ValueError: Incompatible conjugate chemistry shares residue identity ('MAN', ('conj_C1',))"
+        },
+        {
+          "name": "test_duplicate_groups_parameterized_once_per_call[nglycan]",
+          "message": "ValueError: Incompatible conjugate chemistry shares residue identity ('MAN', ('conj_C1',))"
+        },
+        {
+          "name": "test_generated_record_bundle_preserves_model_provenance[nglycan]",
+          "message": "ValueError: Incompatible conjugate chemistry shares residue identity ('MAN', ('conj_C1',))"
+        },
+        {
+          "name": "test_attachment_bond_order_must_match_patched_type[nglycan]",
+          "message": "AssertionError: Regex pattern did not match.\n  Expected regex: 'Attachment bond order differs'\n  Actual message: \"Incompatible conjugate chemistry shares residue identity ('MAN', ('conj_C1',))\""
+        },
+        {
+          "name": "test_generated_attachment_energy_and_gradients[nglycan-cpu-False]",
+          "message": "ValueError: Incompatible conjugate chemistry shares residue identity ('MAN', ('conj_C1',))"
+        },
+        {
+          "name": "test_generated_attachment_energy_and_gradients[nglycan-cpu-True]",
+          "message": "ValueError: Incompatible conjugate chemistry shares residue identity ('MAN', ('conj_C1',))"
+        },
+        {
+          "name": "test_install_checks_baseline_and_does_not_apply_twice[nglycan]",
+          "message": "ValueError: Incompatible conjugate chemistry shares residue identity ('MAN', ('conj_C1',))"
+        },
+        {
+          "name": "test_local_bundle_roundtrip_preserves_correction_and_baseline[nglycan]",
+          "message": "ValueError: Incompatible conjugate chemistry shares residue identity ('MAN', ('conj_C1',))"
+        },
+        {
+          "name": "test_generated_local_parameters_preserve_instance_identity[nglycan]",
+          "message": "ValueError: Incompatible conjugate chemistry shares residue identity ('MAN', ('conj_C1',))"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[nglycan-cpu-False]",
+          "message": "ValueError: Incompatible conjugate chemistry shares residue identity ('MAN', ('conj_C1',))"
+        },
+        {
+          "name": "test_corrected_attachment_pose_charge_geometry_and_gradient[nglycan-cpu-True]",
+          "message": "ValueError: Incompatible conjugate chemistry shares residue identity ('MAN', ('conj_C1',))"
+        }
+      ]
+    },
+    "Initial preservation exposed stale NaN/provenance identity assertions": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/conjugate-stereo-cpu.xml",
+      "sha256": "fa7497a3ff7c7fd6389bfdb7a5d308db20d77830daae7dbaea88ed8d41d524d3",
+      "passed": 47,
+      "skipped": 22,
+      "failures": [
+        {
+          "name": "test_generated_records_ignore_coordinates_and_instance_numbering[biotin]",
+          "message": "assert (ConnectionCa...2026.03.6\"}')) == (ConnectionCa...2026.03.6\"}'))\n  \n  At index 0 diff: ConnectionCartRes(block_type1='BTN:conj_C11', connection1='conj_C11', block_type2='LYS:conj_NZ', connection2='conj_NZ', length_parameters=(LengthGroup(atm1=np.str_('C11'), atm2='+NZ', x0=1.369, K=838.9825425, type=0),), angle_parameters=(AngleGroup(atm1='C10', atm2='C11', atm3='+NZ', x0=1.9675969322358073, K=141.62958, type=1), AngleGroup(atm1='O11', atm2='C11', atm3='+NZ', x0=2.21922105049583, K=130.54677750000002, type=1), AngleGroup(atm1='+CE', atm2='+NZ', atm3='C11', x0=2.087413785385218, K=118.1685825, type=1), AngleGroup(atm1='+HZ1', atm2='+NZ', a...\n  \n  ...Full output truncated (2 lines hidden), use '-vv' to show"
+        },
+        {
+          "name": "test_generated_records_ignore_coordinates_and_instance_numbering[nglycan]",
+          "message": "assert (ConnectionCa...03.6\"}'), ...) == (ConnectionCa...03.6\"}'), ...)\n  \n  At index 0 diff: ConnectionCartRes(block_type1='ASN:conj_ND2', connection1='conj_ND2', block_type2='NAG:conj_C1:conj_O3:conj_O4', connection2='conj_C1', length_parameters=(LengthGroup(atm1='ND2', atm2='+C1', x0=1.436, K=671.3011799999999, type=0),), angle_parameters=(AngleGroup(atm1='CG', atm2='ND2', atm3='+C1', x0=2.087413785385218, K=118.1685825, type=1), AngleGroup(atm1='HD22', atm2='ND2', atm3='+C1', x0=2.0955470196995116, K=79.45074000000001, type=1), AngleGroup(atm1='+C2', atm2='+C1', atm3='ND2', x0=1.9191640454929646, K=151.12912500000002, type=1), AngleGroup(atm...\n  \n  ...Full output truncated (2 lines hidden), use '-vv' to show"
+        },
+        {
+          "name": "test_generated_records_ignore_coordinates_and_instance_numbering[oglycan]",
+          "message": "assert (ConnectionCa...03.6\"}'), ...) == (ConnectionCa...03.6\"}'), ...)\n  \n  At index 0 diff: ConnectionCartRes(block_type1='FUC:conj_C1', connection1='conj_C1', block_type2='NAG:conj_C1:conj_O3:conj_O4', connection2='conj_O3', length_parameters=(LengthGroup(atm1=np.str_('C1'), atm2='+O3', x0=1.418, K=726.4273274999999, type=0),), angle_parameters=(AngleGroup(atm1='C2', atm2='C1', atm3='+O3', x0=1.8872768800590283, K=142.78104, type=1), AngleGroup(atm1='HC2', atm2='C1', atm3='+O3', x0=1.895026141937883, K=112.41128250000001, type=1), AngleGroup(atm1='O5', atm2='C1', atm3='+O3', x0=1.9437382813610449, K=166.38597, type=1), AngleGroup(atm1='+C3', ...\n  \n  ...Full output truncated (2 lines hidden), use '-vv' to show"
+        },
+        {
+          "name": "test_generated_local_parameters_preserve_instance_identity[biotin]",
+          "message": "AssertionError: assert ConjugatePara...f94-delta-v1') == ConjugatePara...f94-delta-v1')\n  \n  Omitting 2 identical items, use -vv to show\n  Differing attributes:\n  ['connections']\n  \n  Drill down into differing attribute connections:\n    connections: (ConnectionCartRes(block_type1='BTN:conj_C11', connection1='conj_C11', block_type2='LYS:conj_NZ', connection2='conj_NZ', length_parameters=(LengthGroup(atm1=np.str_('C11'), atm2='+NZ', x0=1.369, K=838.9825425, type=0),), angle_parameters=(AngleGroup(atm1='C10', atm2='C11', atm3='+NZ', x0=1.9675969322358073, K=141.62958, type=1), AngleGroup(atm1='O11', atm2='C11', atm3='+NZ', x0=2.21922105049583, K=130.54677750000002, type=1), Angl...\n  \n  ...Full output truncated (3 lines hidden), use '-vv' to show"
+        },
+        {
+          "name": "test_generated_local_parameters_preserve_instance_identity[nglycan]",
+          "message": "AssertionError: assert ConjugatePara...f94-delta-v1') == ConjugatePara...f94-delta-v1')\n  \n  Omitting 2 identical items, use -vv to show\n  Differing attributes:\n  ['connections']\n  \n  Drill down into differing attribute connections:\n    connections: (ConnectionCartRes(block_type1='ASN:conj_ND2', connection1='conj_ND2', block_type2='NAG:conj_C1:conj_O3:conj_O4', connection2='conj_C1', length_parameters=(LengthGroup(atm1='ND2', atm2='+C1', x0=1.436, K=671.3011799999999, type=0),), angle_parameters=(AngleGroup(atm1='CG', atm2='ND2', atm3='+C1', x0=2.087413785385218, K=118.1685825, type=1), AngleGroup(atm1='HD22', atm2='ND2', atm3='+C1', x0=2.0955470196995116, K=79.45074000000001...\n  \n  ...Full output truncated (3 lines hidden), use '-vv' to show"
+        },
+        {
+          "name": "test_generated_local_parameters_preserve_instance_identity[oglycan]",
+          "message": "AssertionError: assert ConjugatePara...f94-delta-v1') == ConjugatePara...f94-delta-v1')\n  \n  Omitting 2 identical items, use -vv to show\n  Differing attributes:\n  ['connections']\n  \n  Drill down into differing attribute connections:\n    connections: (ConnectionCartRes(block_type1='FUC:conj_C1', connection1='conj_C1', block_type2='NAG:conj_C1:conj_O3:conj_O4', connection2='conj_O3', length_parameters=(LengthGroup(atm1=np.str_('C1'), atm2='+O3', x0=1.418, K=726.4273274999999, type=0),), angle_parameters=(AngleGroup(atm1='C2', atm2='C1', atm3='+O3', x0=1.8872768800590283, K=142.78104, type=1), AngleGroup(atm1='HC2', atm2='C1', atm3='+O3', x0=1.895026141937883, K=112.411282500000...\n  \n  ...Full output truncated (3 lines hidden), use '-vv' to show"
+        }
+      ]
+    }
+  },
+  "frank_native_geometry": {
+    "method": "Frank SMILES/mol2 generated geometry; K=300 lengths, K=80 angles",
+    "diagnostic_only": true,
+    "device": "cpu",
+    "seed": 20250828,
+    "tmol_revision": "0077c1a10 plus capped-model stereo preservation",
+    "limitations": [
+      "Not installed by default",
+      "Topology validation still requires MMFF coverage",
+      "Mapped chemistry comparison preserves specified stereochemistry and allows resonance"
+    ],
+    "fixtures": {
+      "biotin": {
+        "status": "passed",
+        "records": 4,
+        "whole_pose_and_weighted_pair_energy_and_gradient": true,
+        "lengths": [
+          1.3822509820766928,
+          1.3822509820766928,
+          1.3822509820766928,
+          1.3822509820766928
+        ],
+        "seconds": 13.18853456620127
+      },
+      "oglycan": {
+        "status": "passed",
+        "records": 9,
+        "whole_pose_and_weighted_pair_energy_and_gradient": true,
+        "lengths": [
+          1.42509708754701,
+          1.4200736921969295,
+          1.4299558370895173,
+          1.428320596874432,
+          1.4210147292767652,
+          1.4111682761661928,
+          1.4111682761661928,
+          1.4111682761661928,
+          1.4111682761661928
+        ],
+        "seconds": 9.082702938467264
+      },
+      "nglycan": {
+        "status": "passed",
+        "records": 11,
+        "whole_pose_and_weighted_pair_energy_and_gradient": true,
+        "lengths": [
+          1.4495519984798393,
+          1.4495519984798393,
+          1.4495519984798393,
+          1.4495519984798393,
+          1.4355215155940049,
+          1.433490894818029,
+          1.4252759013111895,
+          1.4281554329947674,
+          1.4259131132263367,
+          1.4285751547535457,
+          1.418221404834147
+        ],
+        "seconds": 3.9248968539759517
+      }
+    },
+    "script_path": "/mnt/home/kdidi/tmol-pr503-followup/check_frank_stereo_native_geometry.py",
+    "script_sha256": "a7d80197b140f5fc94717f0d0c3839990f94d005a056ea1fd8081a4e7480f4d1"
+  },
+  "gpu": {
+    "job": 253105,
+    "revision": "dc366bcee",
+    "status": "passed",
+    "passed": 65,
+    "skipped": 10,
+    "path": "/mnt/home/kdidi/tmol-pr503-followup/stereo-followup.xml",
+    "sha256": "362ddec7495897a80a5ad2a7a5a3697c24ef89ef7cd31933465503496b1d54c1"
+  },
+  "limitations": [
+    "Unresolved stereochemistry needs explicit reference/policy before default generation",
+    "No default attachment/local parameter integration",
+    "Non-tetrahedral or ambiguous external-neighbor configurations are explicitly rejected by this private generator"
+  ],
+  "frank_native_geometry_cuda": {
+    "method": "Frank SMILES/mol2 generated geometry; K=300 lengths, K=80 angles",
+    "diagnostic_only": true,
+    "device": "cuda",
+    "seed": 20250828,
+    "tmol_revision": "dc366bcee",
+    "limitations": [
+      "Not installed by default",
+      "Topology validation still requires MMFF coverage",
+      "Mapped chemistry comparison preserves specified stereochemistry and allows resonance"
+    ],
+    "fixtures": {
+      "biotin": {
+        "status": "passed",
+        "records": 4,
+        "whole_pose_and_weighted_pair_energy_and_gradient": true,
+        "lengths": [
+          1.3790148927923591,
+          1.3790148927923591,
+          1.3790148927923591,
+          1.3790148927923591
+        ],
+        "seconds": 8.35733848111704
+      },
+      "oglycan": {
+        "status": "passed",
+        "records": 9,
+        "whole_pose_and_weighted_pair_energy_and_gradient": true,
+        "lengths": [
+          1.4310202431946477,
+          1.4234376091740644,
+          1.4339440068957565,
+          1.4383071164056256,
+          1.4385818942775541,
+          1.4198011427451271,
+          1.4198011427451271,
+          1.4198011427451271,
+          1.4198011427451271
+        ],
+        "seconds": 10.651129330974072
+      },
+      "nglycan": {
+        "status": "passed",
+        "records": 11,
+        "whole_pose_and_weighted_pair_energy_and_gradient": true,
+        "lengths": [
+          1.450801689521372,
+          1.450801689521372,
+          1.450801689521372,
+          1.450801689521372,
+          1.4360867213349113,
+          1.4330940330990216,
+          1.4204726574124915,
+          1.4266976406800072,
+          1.422949469357561,
+          1.4308120081759568,
+          1.4138923895219497
+        ],
+        "seconds": 4.118542263284326
+      }
+    },
+    "job": 253106,
+    "script_path": "/mnt/home/kdidi/tmol-pr503-followup/check_frank_stereo_native_geometry_cuda.py",
+    "script_sha256": "e939510a9df0737f56fee8d1c03d0eaf27720551852947973def7ff2b354c7ae"
+  },
+  "input_class_followup": {
+    "revision": "9a91bce6b",
+    "before": {
+      "tmol": "dc366bcee",
+      "method": "Frank geometry diagnostic; default unchanged",
+      "rows": [
+        {
+          "fixture": "ncaa_fixtures/6dmz_mod_d.cif",
+          "status": "failed",
+          "error": "Unprepared residue 0 (DAR) in a conjugate model",
+          "traceback": "Traceback (most recent call last):\n  File \"/mnt/home/kdidi/tmol-pr503-followup/check_frank_geometry_example_coverage.py\", line 98, in <module>\n    records=connection.generate_conjugate_connection_params(array,db,_model_consumer=generate_geometry)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/tmol/ligand/_connection_params.py\", line 342, in generate_conjugate_connection_params\n    for model in iter_capped_conjugate_models(atom_array, chem):\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/tmol/ligand/_conjugate_model.py\", line 82, in iter_capped_conjugate_models\n    ci = _polymer_connection(definition(ri), str(atom_array.atom_name[first]))\n                             ^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/tmol/ligand/_conjugate_model.py\", line 69, in definition\n    raise ValueError(\nValueError: Unprepared residue 0 (DAR) in a conjugate model\n",
+          "seconds": 8.31645816937089
+        },
+        {
+          "fixture": "ncaa_fixtures/6dmz_mod_l.cif",
+          "status": "no_attachment_records",
+          "records": 0,
+          "seconds": 0.44829088263213634
+        },
+        {
+          "fixture": "ncaa_fixtures/beta_peptide_3c3g.cif",
+          "status": "no_attachment_records",
+          "records": 0,
+          "seconds": 5.7941094590350986
+        },
+        {
+          "fixture": "ncaa_fixtures/capped_peptide_ace_nh2.cif",
+          "status": "no_attachment_records",
+          "records": 0,
+          "seconds": 0.29564077593386173
+        },
+        {
+          "fixture": "ncaa_fixtures/capped_peptide_ace_nme.cif",
+          "status": "no_attachment_records",
+          "records": 0,
+          "seconds": 0.24298155680298805
+        },
+        {
+          "fixture": "ncaa_fixtures/collagen_hyp_1bkv.cif",
+          "status": "no_attachment_records",
+          "records": 0,
+          "seconds": 0.46046636160463095
+        },
+        {
+          "fixture": "ncaa_fixtures/gamma_peptide_1gac.cif",
+          "status": "failed",
+          "error": "Unprepared residue 3 (DAL) in a conjugate model",
+          "traceback": "Traceback (most recent call last):\n  File \"/mnt/home/kdidi/tmol-pr503-followup/check_frank_geometry_example_coverage.py\", line 98, in <module>\n    records=connection.generate_conjugate_connection_params(array,db,_model_consumer=generate_geometry)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/tmol/ligand/_connection_params.py\", line 342, in generate_conjugate_connection_params\n    for model in iter_capped_conjugate_models(atom_array, chem):\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/tmol/ligand/_conjugate_model.py\", line 83, in iter_capped_conjugate_models\n    cj = _polymer_connection(definition(rj), str(atom_array.atom_name[second]))\n                             ^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/tmol/ligand/_conjugate_model.py\", line 69, in definition\n    raise ValueError(\nValueError: Unprepared residue 3 (DAL) in a conjugate model\n",
+          "seconds": 0.5484297452494502
+        },
+        {
+          "fixture": "ncaa_fixtures/na_dna_5mc_1d17.cif",
+          "status": "no_attachment_records",
+          "records": 0,
+          "seconds": 0.7001531152054667
+        },
+        {
+          "fixture": "ncaa_fixtures/na_dna_8og_183d.cif",
+          "status": "no_attachment_records",
+          "records": 0,
+          "seconds": 0.6016352940350771
+        },
+        {
+          "fixture": "ncaa_fixtures/na_dna_ttd_1ttd.cif",
+          "status": "no_attachment_records",
+          "records": 0,
+          "seconds": 0.6502421097829938
+        },
+        {
+          "fixture": "ncaa_fixtures/na_rna_2ome_310d.cif",
+          "status": "no_attachment_records",
+          "records": 0,
+          "seconds": 1.0210388535633683
+        },
+        {
+          "fixture": "ncaa_fixtures/na_rna_psu_1bzt.cif",
+          "status": "failed",
+          "error": "Unprepared residue 0 (U) in a conjugate model",
+          "traceback": "Traceback (most recent call last):\n  File \"/mnt/home/kdidi/tmol-pr503-followup/check_frank_geometry_example_coverage.py\", line 98, in <module>\n    records=connection.generate_conjugate_connection_params(array,db,_model_consumer=generate_geometry)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/tmol/ligand/_connection_params.py\", line 342, in generate_conjugate_connection_params\n    for model in iter_capped_conjugate_models(atom_array, chem):\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/tmol/ligand/_conjugate_model.py\", line 82, in iter_capped_conjugate_models\n    ci = _polymer_connection(definition(ri), str(atom_array.atom_name[first]))\n                             ^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/tmol/ligand/_conjugate_model.py\", line 69, in definition\n    raise ValueError(\nValueError: Unprepared residue 0 (U) in a conjugate model\n",
+          "seconds": 0.6966350134462118
+        },
+        {
+          "fixture": "ncaa_fixtures/nmethyl_peptide_6mvz.cif",
+          "status": "no_attachment_records",
+          "records": 0,
+          "seconds": 0.47793117817491293
+        },
+        {
+          "fixture": "ncaa_fixtures/phosphopeptide_5ema.cif",
+          "status": "no_attachment_records",
+          "records": 0,
+          "seconds": 0.44699759874492884
+        },
+        {
+          "fixture": "covalent_fixtures/lys_biotin_1bdo.cif",
+          "status": "generated",
+          "records": 4,
+          "seconds": 1.0077094435691833
+        },
+        {
+          "fixture": "covalent_fixtures/nglycan_tree_1ax2.cif",
+          "status": "generated",
+          "records": 11,
+          "seconds": 3.0764606231823564
+        },
+        {
+          "fixture": "covalent_fixtures/oglycan_sia_1g1s.cif",
+          "status": "generated",
+          "records": 9,
+          "seconds": 2.882770669646561
+        },
+        {
+          "fixture": "cif/cyclic_peptide_1jbl.cif",
+          "status": "no_attachment_records",
+          "records": 0,
+          "seconds": 0.024795079603791237
+        }
+      ]
+    },
+    "after": {
+      "tmol": "9a91bce6b",
+      "method": "Frank geometry diagnostic; default unchanged",
+      "rows": [
+        {
+          "fixture": "ncaa_fixtures/6dmz_mod_d.cif",
+          "status": "no_attachment_records",
+          "records": 0,
+          "seconds": 7.908520299009979
+        },
+        {
+          "fixture": "ncaa_fixtures/6dmz_mod_l.cif",
+          "status": "no_attachment_records",
+          "records": 0,
+          "seconds": 0.44378388952463865
+        },
+        {
+          "fixture": "ncaa_fixtures/beta_peptide_3c3g.cif",
+          "status": "no_attachment_records",
+          "records": 0,
+          "seconds": 5.752035113051534
+        },
+        {
+          "fixture": "ncaa_fixtures/capped_peptide_ace_nh2.cif",
+          "status": "no_attachment_records",
+          "records": 0,
+          "seconds": 0.28462349716573954
+        },
+        {
+          "fixture": "ncaa_fixtures/capped_peptide_ace_nme.cif",
+          "status": "no_attachment_records",
+          "records": 0,
+          "seconds": 0.23062538634985685
+        },
+        {
+          "fixture": "ncaa_fixtures/collagen_hyp_1bkv.cif",
+          "status": "no_attachment_records",
+          "records": 0,
+          "seconds": 0.46019789204001427
+        },
+        {
+          "fixture": "ncaa_fixtures/gamma_peptide_1gac.cif",
+          "status": "no_attachment_records",
+          "records": 0,
+          "seconds": 0.5372753674164414
+        },
+        {
+          "fixture": "ncaa_fixtures/na_dna_5mc_1d17.cif",
+          "status": "no_attachment_records",
+          "records": 0,
+          "seconds": 0.675015696324408
+        },
+        {
+          "fixture": "ncaa_fixtures/na_dna_8og_183d.cif",
+          "status": "no_attachment_records",
+          "records": 0,
+          "seconds": 0.5753588750958443
+        },
+        {
+          "fixture": "ncaa_fixtures/na_dna_ttd_1ttd.cif",
+          "status": "no_attachment_records",
+          "records": 0,
+          "seconds": 0.6206485237926245
+        },
+        {
+          "fixture": "ncaa_fixtures/na_rna_2ome_310d.cif",
+          "status": "no_attachment_records",
+          "records": 0,
+          "seconds": 1.0196002088487148
+        },
+        {
+          "fixture": "ncaa_fixtures/na_rna_psu_1bzt.cif",
+          "status": "no_attachment_records",
+          "records": 0,
+          "seconds": 0.7280203392729163
+        },
+        {
+          "fixture": "ncaa_fixtures/nmethyl_peptide_6mvz.cif",
+          "status": "no_attachment_records",
+          "records": 0,
+          "seconds": 0.4970340058207512
+        },
+        {
+          "fixture": "ncaa_fixtures/phosphopeptide_5ema.cif",
+          "status": "no_attachment_records",
+          "records": 0,
+          "seconds": 0.46995370648801327
+        },
+        {
+          "fixture": "covalent_fixtures/lys_biotin_1bdo.cif",
+          "status": "generated",
+          "records": 4,
+          "seconds": 1.0331578254699707
+        },
+        {
+          "fixture": "covalent_fixtures/nglycan_tree_1ax2.cif",
+          "status": "generated",
+          "records": 11,
+          "seconds": 3.3635498452931643
+        },
+        {
+          "fixture": "covalent_fixtures/oglycan_sia_1g1s.cif",
+          "status": "generated",
+          "records": 9,
+          "seconds": 3.021844151429832
+        },
+        {
+          "fixture": "cif/cyclic_peptide_1jbl.cif",
+          "status": "no_attachment_records",
+          "records": 0,
+          "seconds": 0.023150411434471607
+        }
+      ]
+    },
+    "regression": {
+      "passed": 3,
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/conjugate-input-classes-cpu.xml",
+      "sha256": "3555647c97d93784e57d9272f4c92ffebeca246ed01539816370409d91e79728"
+    }
+  }
+}

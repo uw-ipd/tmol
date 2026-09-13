@@ -1,0 +1,155 @@
+# Guarded residue replacements
+
+Ordinary preparations still add residue definitions and their patch/scoring
+metadata. An existing base definition is skipped. A preparation can now opt
+into replacing an **exact residue name** by supplying `baseline_sha256` along
+with its complete residue definition, atom charges and bonded record.
+
+The guard accepts either the original baseline or the complete requested
+result. A different baseline raises before any bundle metadata can reset its
+charges. Identical reloads return the same database object. All operations
+leave the input database unchanged.
+
+This is parameter delivery, not a new default force field. The private coupled
+MMFF generator remains opt-in; its scientific charge policy, three-block
+angles and context-dependent residue naming still need resolution.
+
+## Using the coupled generator
+
+Starting with `array` and its ordinarily prepared `database`:
+
+```python
+from tmol.ligand import load_params_file, write_params_file
+from tmol.ligand._local_conjugate_params import generate_conjugate_parameters
+from tmol.ligand._registry import LigandPreparation, inject_ligand_preparations
+
+result = generate_conjugate_parameters(array, database)
+corrections = [
+    LigandPreparation(
+        residue_type=row.residue_type,
+        partial_charges=row.partial_charges,
+        cartbonded_params=row.cartbonded_params,
+        baseline_sha256=row.baseline_sha256,
+        connection_params=result.connections if i == 0 else (),
+    )
+    for i, row in enumerate(result.residues)
+]
+write_params_file(corrections, "corrections.tmol", format="tmol")
+corrected = inject_ligand_preparations(database, load_params_file("corrections.tmol"))
+assert inject_ligand_preparations(corrected, corrections) is corrected
+```
+
+A correction-only bundle requires its baseline residue names to exist. To
+create a standalone bundle, retain the ordinary preparations exported with
+`prepare_ligands(..., params_output="baseline.tmol")`, then write
+`load_params_file("baseline.tmol") + corrections` together. Loading that file
+through `prepare_ligands(..., params_files=[...])` installs ordinary definitions
+and patches first, validates the resulting baseline, and installs corrections.
+Addition/replacement list order does not change the named parameters. Ordinary
+residue insertion order can still change database indices.
+
+## Format and scope
+
+Guarded bundles require `.tmol` version **4.0** or later. Their residue/charge/bonded target
+records retain the usual schema. `chemical.replacement_baselines` maps exact
+residue names to baseline digests. If a combined bundle also carries old patch
+parameters for those names, `elec.replacement_baseline_charges` and
+`cartbonded.replacement_baseline_params` preserve that addition-stage metadata
+separately from complete target records. These mappings may only name guarded
+residues. Existing target residues are checked before those old values can be
+applied. Connection conflicts are rejected as well.
+
+The digest covers the complete `RawResidueType`, effective atom charges under
+the resolver's exact/patch/base precedence, and the selected local `CartRes`.
+Declared scalar types and JSON string encoding make it stable across NumPy
+strings, Python strings, and serialization of integer-valued float fields.
+The digest has its own `tmol-residue-replacement-v1` domain tag. It does **not**
+cover every atom-type definition, score weight or global force-field table.
+It therefore cannot establish scientific compatibility by itself.
+
+Versions 1–4 remain readable. Writers choose the oldest supported format that
+preserves the supplied metadata: version 2 for ordinary bundles without element
+maps, version 3 for generic references, version 4 for guarded replacements, and
+version **5** for declared atom-type elements. Older readers reject the newer
+required major version. Rosetta `.params` export rejects replacements because
+it cannot carry their guard.
+Experimental private conjugate results made with the earlier representation-
+dependent digest must be regenerated; ordinary legacy bundles are unaffected.
+
+A replacement applies to its exact named type, including any explicitly
+supplied terminal forms. It does not automatically correct other variants or
+resolve two chemically different attachments that share one type name.
+
+## Validation and cost
+
+The replacement tests exercise biotin, N-glycans and O-glycans; fresh/prepared/
+corrected databases; reversed bundle order; public preparation; baseline
+mismatches; incomplete charges/bonded records; duplicate/conflicting records;
+legacy readers; exact coordinates; and native scores and gradients. CUDA
+comparisons include repeated unchanged-database evaluations to characterize
+reduction roundoff. Default chemistry selection and scoring kernels are
+unchanged.
+
+`profile_parameter_replacements.py` compares the previous private installer
+with the shared implementation on the same generated parameters. It uses each
+implementation's own baseline digest and excludes chemistry generation from
+timing. The shared installer hashes the completed bonded database once instead
+of twice. Python traced allocation measurements are not process RSS or GPU
+memory. See [results/parameter-replacement-validation.json](results/parameter-replacement-validation.json)
+for the executable checks, timings and remaining limitations.
+
+## Multiple sources
+
+A batch now coalesces identical complete definitions before residue patching.
+Definitions of one name that disagree on chemistry, charges, bonded records or
+replacement baseline are rejected. This applies to contradictions within the
+batch even when a residue of that name is already installed; a single ordinary
+existing definition is still skipped as before. Intentional exact updates use
+the explicit replacement contract above.
+
+Shared patches retain source order. Compatible atom-type element maps and
+per-atom charge assignments merge; contradictory assignments are rejected.
+Disjoint charge assignments for the same residue survive export. Updating a
+shared charge map does not mutate the input preparation's dictionaries.
+
+The file APIs read each normalized supplied `Path` once per batch (including
+mixed string/`Path` spellings of the same path). Distinct paths are read and
+checked independently. There is no persistent file cache, so a later batch
+reads the file again. Overlapping distinct files are covered through public
+preparation and native scoring/gradient checks.
+
+
+## Declared atom-type elements
+
+Version 5 stores `chemical.atom_type_elements` as a shared mapping from type
+name to element string. The loader carries it once on the first preparation,
+and batch registration combines all supplied maps. Declarations must be
+nonempty strings and must agree with existing atom-type elements in the target
+database. Missing legacy maps retain the earlier behavior: strict registration
+rejects unknown types; lenient registration uses the existing name heuristic.
+
+Type collection scans each batch once, including `add_atoms` and `modify_atoms`
+from newly introduced patches. New patch types are installed before constructing
+the patched residue graph. Known types and explicit replacements use the same
+collector. This supports chemical element registration; a custom type still
+needs appropriate scoring parameters and any other required chemical properties.
+
+Scoring setup rejects a real atom whose type is absent from the chemical
+database. LJ/solvation and LK-ball also reject used types with missing or
+non-finite LJLK fields, including values that overflow their float32 kernel
+representation. Errors identify the residue, atom, type and affected fields.
+Unused incomplete entries remain allowed, as do finite zero-valued virtual-atom
+parameters. These checks establish coverage and finiteness, not a scientific
+fit or validation of parameter ranges. The low-level padding sentinel is unchanged.
+
+Electrostatics requires an applicable finite charge for every real atom, using
+the existing exact-variant, individual-patch, then base lookup order. An entirely
+missing residue table now raises the same missing-atom error as a partial table.
+An intentionally uncharged residue must supply explicit zeros. The default HOH
+records now store their historical zeros explicitly; they are not a fitted water
+charge model. Unused rows do not impose coverage requirements on a pose.
+
+Rosetta `.params` continues to reference external atom-type definitions and
+cannot carry this element map. Use `.tmol` to preserve the declaration in the
+bundle. The version-5 reader rejects element metadata mislabeled as an older
+format, and the preceding version-4 reader rejects version-5 bundles.

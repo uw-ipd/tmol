@@ -1,4 +1,5 @@
 import attr
+from typing import Union
 
 import numpy
 import pandas
@@ -15,8 +16,16 @@ from tmol.types import (
 )
 from tmol.database.scoring import HBondDatabase
 from tmol.database.chemical import ChemicalDatabase
+from tmol.database import PatchedChemicalDatabase
 
 from .._chemical_database import AcceptorHybridization
+from tmol.utility.weak_identity_cache import WeakIdentityLRU
+
+
+def _resolved_device(device):
+    if device.type == "cuda" and device.index is None:
+        return torch.device("cuda", torch.cuda.current_device())
+    return torch.device("cpu") if device.type == "cpu" else device
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -76,7 +85,7 @@ class HBondPairParams(TensorGroup, ValidateAttrs):
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class HBondParamResolver(ValidateAttrs):
-    _from_db_cache = {}
+    _from_db_cache = WeakIdentityLRU()
 
     donor_type_index: pandas.Index = attr.ib()
     acceptor_type_index: pandas.Index = attr.ib()
@@ -86,21 +95,21 @@ class HBondParamResolver(ValidateAttrs):
 
     @classmethod
     @validate_args
-    @toolz.functoolz.memoize(
-        cache=_from_db_cache,
-        key=lambda args, kwargs: (
-            id(args[1]),
-            id(args[2]),
-            args[3].type,
-            args[3].index,
-        ),
-    )
     def from_database(
         cls,
-        chemical_database: ChemicalDatabase,
+        chemical_database: Union[ChemicalDatabase, PatchedChemicalDatabase],
         hbond_database: HBondDatabase,
         device: torch.device,
     ):
+        device = _resolved_device(device)
+        return cls._from_db_cache.get_or_create_many(
+            (chemical_database, hbond_database),
+            device,
+            lambda: cls._from_database(chemical_database, hbond_database, device),
+        )
+
+    @classmethod
+    def _from_database(cls, chemical_database, hbond_database, device):
         donors = {g.name: g for g in hbond_database.donor_type_params}
         donor_type_index = pandas.Index(list(donors))
 
@@ -115,59 +124,100 @@ class HBondParamResolver(ValidateAttrs):
             for g in hbond_database.acceptor_atom_types
         }
 
-        pair_params = HBondPairParams.full((len(donors), len(acceptors)), numpy.nan)
-
-        # Denormalize donor/acceptor weight and class into pair parameter table
-        for name, g in donors.items():
-            (i,) = donor_type_index.get_indexer([name])
-            pair_params.donor_weight[i, :] = g.weight
-
-        for name, g in acceptors.items():
-            (i,) = acceptor_type_index.get_indexer([name])
-            pair_params.acceptor_weight[:, i] = g.weight
-            pair_params.acceptor_hybridization[:, i] = int(
-                AcceptorHybridization._index.get_indexer_for(
-                    [acceptor_type_hybridization[name]]
-                )[0]
-            )
-
-        # Get polynomial parameters indexed by polynomial name
-        poly_params = HBondPolyParams(
-            **toolz.merge_with(
-                numpy.vstack,
-                [
-                    {
-                        "range": [p.xmin, p.xmax],
-                        "bound": [p.min_val, p.max_val],
-                        # polynomial.hh expects order `c_10, c_9, ..., c_0`
-                        "coeffs": [getattr(p, f"c_{n}") for n in range(10, -1, -1)],
-                    }
-                    for p in hbond_database.polynomial_parameters
-                ],
-            )
-        )
-
-        poly_params = {
-            p.name: poly_params[i]
-            for i, p in enumerate(hbond_database.polynomial_parameters)
+        # Preserve the historical last-definition-wins rules while ordering the
+        # dense table once. Repeated advanced-index assignment is unnecessary.
+        poly_values = {
+            p.name: [p.xmin, p.xmax, p.min_val, p.max_val]
+            + [getattr(p, f"c_{n}") for n in range(10, -1, -1)]
+            for p in hbond_database.polynomial_parameters
         }
+        kinds = ("AHdist", "cosBAH", "cosAHD")
+        pairs = {}
+        for row in hbond_database.pair_parameters:
+            if row.donor_type not in donors or row.acceptor_type not in acceptors:
+                raise ValueError(
+                    f"HBond pair references unknown family: "
+                    f"{row.donor_type}, {row.acceptor_type}"
+                )
+            for kind in kinds:
+                name = getattr(row, kind)
+                if name not in poly_values:
+                    raise ValueError(
+                        f"HBond pair references unknown polynomial {name!r}"
+                    )
+            pairs[row.donor_type, row.acceptor_type] = row
+        rows = []
+        for donor in donors:
+            for acceptor in acceptors:
+                row = pairs.get((donor, acceptor))
+                if row is None:
+                    raise ValueError(
+                        f"Missing HBond pair parameters: {donor}, {acceptor}"
+                    )
+                rows.append(row)
+        shape = (len(donors), len(acceptors))
 
-        # Denormalize polynomial parameters into pair parameter table
-        for pp in hbond_database.pair_parameters:
-            (di,) = donor_type_index.get_indexer([pp.donor_type])
-            assert di >= 0
+        def weights(records, kind):
+            with numpy.errstate(over="ignore"):
+                values = numpy.array(
+                    [g.weight for g in records.values()], dtype=numpy.float32
+                )
+            invalid = ~numpy.isfinite(values)
+            if invalid.any():
+                names = [name for name, bad in zip(records, invalid) if bad]
+                raise ValueError(
+                    f"HBond {kind} weights {names} are non-finite in float32"
+                )
+            return values
 
-            (ai,) = acceptor_type_index.get_indexer([pp.acceptor_type])
-            assert ai >= 0
+        def tensor(values, dtype):
+            return torch.tensor(values, dtype=dtype, device=device)
 
-            pair_params[di, ai].AHdist[:] = poly_params[pp.AHdist]
-            pair_params[di, ai].cosBAH[:] = poly_params[pp.cosBAH]
-            pair_params[di, ai].cosAHD[:] = poly_params[pp.cosAHD]
+        # Gather on the host, then copy each final tensor once. Polynomial
+        # coefficients retain double precision and descending-power order.
+        def pack_polynomial(kind):
+            names = [getattr(row, kind) for row in rows]
+            values = numpy.array(
+                [poly_values[name] for name in names], dtype=numpy.float64
+            ).reshape(shape + (15,))
+            invalid = ~numpy.isfinite(values).all(axis=-1).ravel()
+            if invalid.any():
+                names = list(
+                    dict.fromkeys(name for name, bad in zip(names, invalid) if bad)
+                )
+                raise ValueError(
+                    f"HBond polynomials {names} contain non-finite parameters"
+                )
+            return HBondPolyParams(
+                range=tensor(values[..., :2], torch.float64),
+                bound=tensor(values[..., 2:4], torch.float64),
+                coeffs=tensor(values[..., 4:], torch.float64),
+            )
+
+        hybridization = AcceptorHybridization._index.get_indexer(
+            [acceptor_type_hybridization[name] for name in acceptors]
+        )
+        if (hybridization < 0).any():
+            raise ValueError("HBond acceptor family has unknown hybridization")
+        pair_params = HBondPairParams(
+            donor_weight=tensor(
+                numpy.broadcast_to(weights(donors, "donor")[:, None], shape),
+                torch.float32,
+            ),
+            acceptor_weight=tensor(
+                numpy.broadcast_to(weights(acceptors, "acceptor")[None, :], shape),
+                torch.float32,
+            ),
+            acceptor_hybridization=tensor(
+                numpy.broadcast_to(hybridization[None, :], shape), torch.int32
+            ),
+            **{kind: pack_polynomial(kind) for kind in kinds},
+        )
 
         return cls(
             donor_type_index=donor_type_index,
             acceptor_type_index=acceptor_type_index,
-            pair_params=pair_params.to(device),
+            pair_params=pair_params,
             device=device,
         )
 
@@ -176,7 +226,7 @@ class HBondParamResolver(ValidateAttrs):
 class CompactedHBondDatabase(ValidateAttrs):
     """Store the hbond evaluation parameters in a compact form"""
 
-    _from_db_cache = {}
+    _from_db_cache = WeakIdentityLRU()
 
     global_param_table: Tensor[torch.float32][:, :]
     pair_param_table: Tensor[torch.float32][:, :, :]
@@ -184,22 +234,21 @@ class CompactedHBondDatabase(ValidateAttrs):
 
     @classmethod
     @validate_args
-    @toolz.functoolz.memoize(
-        cache=_from_db_cache,
-        key=lambda args, kwargs: (
-            id(args[1]),
-            id(args[2]),
-            args[3].type,
-            args[3].index,
-        ),
-    )
     def from_database(
         cls,
-        chemical_database: ChemicalDatabase,
+        chemical_database: Union[ChemicalDatabase, PatchedChemicalDatabase],
         hbond_database: HBondDatabase,
         device: torch.device,
-        /,  # force positional arguments prior to the / so that we can properly form a cache key
     ):
+        device = _resolved_device(device)
+        return cls._from_db_cache.get_or_create_many(
+            (chemical_database, hbond_database),
+            device,
+            lambda: cls._from_database(chemical_database, hbond_database, device),
+        )
+
+    @classmethod
+    def _from_database(cls, chemical_database, hbond_database, device):
         def _p(t):
             return torch.nn.Parameter(t, requires_grad=False)
 
@@ -213,11 +262,17 @@ class CompactedHBondDatabase(ValidateAttrs):
             n: torch.tensor(v, device=device).expand(1).to(dtype=torch.float32)
             for n, v in attr.asdict(hbond_database.global_parameters).items()
         }
-        max_ahdis = max(
+        resolver = HBondParamResolver.from_database(
+            chemical_database, hbond_database, device
+        )
+        distances = [
             p.xmax
             for p in hbond_database.polynomial_parameters
             if p.dimension == "hbgd_AHdist"
-        )
+        ]
+        if not distances and resolver.pair_params.donor_weight.numel():
+            raise ValueError("HBond pair table has no AHdist polynomial range")
+        max_ahdis = max(distances, default=0.0)
 
         # also store the distance of the longest possible hbond
         # by reading the set of hbond polynomials
@@ -237,9 +292,6 @@ class CompactedHBondDatabase(ValidateAttrs):
             ).unsqueeze(0)
         )
 
-        resolver = HBondParamResolver.from_database(
-            chemical_database, hbond_database, device
-        )
         pp = resolver.pair_params
 
         # Note: acceptor_hybridization is an integer, but can be exactly represented

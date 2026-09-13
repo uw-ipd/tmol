@@ -12,6 +12,8 @@ bonded to a sidechain at all, forms no group and is left alone.
 """
 
 import attr
+from collections import OrderedDict
+import networkx
 import numpy
 import torch
 
@@ -23,82 +25,208 @@ from tmol.pose._conjugated_groups import (  # noqa: F401
 )
 
 
-def group_sampled_chi(group, pose_stack, expanded_limit, limit):
+def group_atom_context(group, pose_stack):
+    """Local residue types, group atom offsets and connection partners."""
+    pbt = pose_stack.packed_block_types
+    indices = pose_stack.block_type_ind[group.pose, list(group.blocks)].tolist()
+    types = [pbt.active_block_types[index] for index in indices]
+    offsets = numpy.cumsum([0] + [bt.n_atoms for bt in types])
+    partners = {}
+    for a, ac, b, bc in group.links:
+        partners[a, ac] = (b, bc)
+        partners[b, bc] = (a, ac)
+    return types, offsets, partners
+
+
+def resolve_group_atom(uaid, owner, block_types, offsets, partners):
+    """Resolve a torsion atom into the group's concatenated atom numbering."""
+    atom, conn, sep = (int(v) for v in uaid)
+    if conn != -1:
+        partner = partners.get((owner, conn))
+        if partner is None:
+            return -1
+        owner, conn = partner
+        downstream = block_types[owner].atom_downstream_of_conn
+        if not 0 <= sep < downstream.shape[1]:
+            return -1
+        atom = int(downstream[conn, sep])
+    return int(offsets[owner]) + atom if atom >= 0 else -1
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class GroupSamplingTopology:
+    block_types: list
+    offsets: numpy.ndarray
+    partners: dict
+    kinforest: object
+    # Unordered axis -> its child in the rooted tree, for budget depth.
+    movable_axes: dict
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class GroupSamplingPlan:
+    group: ConjugatedGroup
+    topology: GroupSamplingTopology
+    owners: tuple
+
+
+def group_sampling_topology(group, pose_stack, fixed_owners=()):
+    """Independent axes that preserve cycles and fixed external attachments.
+
+    Cycle edges cannot turn independently. A bridge can turn only if its
+    moving subtree contains no fixed atom. External connection atoms and their
+    neighbors stay fixed to preserve the boundary's bonds and bond angles.
+    Polymer backbones with external attachments stay fixed; a freely attached
+    polymer member can move with the group. Every atom in a task-frozen member
+    stays fixed; its owner index is part of the cached constraint identity.
+    """
+    pbt = pose_stack.packed_block_types
+    indices = tuple(pose_stack.block_type_ind[group.pose, list(group.blocks)].tolist())
+    key = (
+        indices,
+        group.links,
+        tuple((a, c) for a, c, _b, _bc in group.external_links),
+        tuple(fixed_owners),
+    )
+    cache = getattr(pbt, "conjugated_sampling_topology_cache", None)
+    if cache is None:
+        cache = OrderedDict()
+        pbt.conjugated_sampling_topology_cache = cache
+    if key not in cache:
+        cache[key] = _group_sampling_topology(group, pose_stack, fixed_owners)
+        if len(cache) > 32:
+            cache.popitem(last=False)
+    cache.move_to_end(key)
+    return cache[key]
+
+
+def _group_sampling_topology(group, pose_stack, fixed_owners=()):
+    from tmol.kinematics import block_group_kinforest_data
+
+    types, offsets, partners = group_atom_context(group, pose_stack)
+    rkd, offsets = block_group_kinforest_data(types, group.links, anchor=0)
+    graph = networkx.Graph()
+    graph.add_nodes_from(range(int(offsets[-1])))
+    for i, bt in enumerate(types):
+        graph.add_edges_from(numpy.asarray(bt.bond_indices) + offsets[i])
+    for a, ac, b, bc in group.links:
+        graph.add_edge(
+            int(offsets[a]) + int(types[a].ordered_connection_atoms[ac]),
+            int(offsets[b]) + int(types[b].ordered_connection_atoms[bc]),
+        )
+    fixed = numpy.zeros(int(offsets[-1]), dtype=bool)
+    fixed[rkd.jump_atom] = True
+    for owner in fixed_owners:
+        fixed[int(offsets[owner]) : int(offsets[owner + 1])] = True
+    backbone_owners = {0}
+    for owner, conn, _partner, _partner_conn in group.external_links:
+        atom = int(offsets[owner]) + int(types[owner].ordered_connection_atoms[conn])
+        fixed[atom] = True
+        fixed[list(graph[atom])] = True
+        backbone_owners.add(owner)
+    for owner in backbone_owners:
+        bt = types[owner]
+        polymer = getattr(getattr(bt, "properties", None), "polymer", None)
+        mainchain = set(getattr(polymer, "mainchain_atoms", None) or ())
+        for atom, definition in enumerate(bt.atoms):
+            if definition.name in mainchain:
+                fixed[int(offsets[owner]) + atom] = True
+    for child in reversed(rkd.bfto_2_orig):
+        parent = rkd.preds[child]
+        if parent >= 0:
+            fixed[parent] |= fixed[child]
+    axes = {}
+    for a, b in networkx.bridges(graph):
+        child = a if rkd.preds[a] == b else b
+        if not fixed[child]:
+            axes[frozenset((a, b))] = int(child)
+    return GroupSamplingTopology(types, offsets, partners, rkd, axes)
+
+
+def group_sampled_chi(
+    group,
+    pose_stack,
+    expanded_limit,
+    limit,
+    library_size=1,
+    reserve_current=False,
+    topology=None,
+    exclude_axes=(),
+    include_anchor=False,
+    sampled_members=None,
+):
     """Which chi of a group's attached blocks survive the budget.
 
     The whole group enumerates one product, so the budget is applied across it
     rather than to each block: seven sugars of six chi each would otherwise
     multiply out. Chi freeze from the tip of the group inward, using depth in
     the kinforest that builds the group, so the linkage torsions nearest the
-    anchor -- the ones that move the most atoms -- are the last to go. The
-    anchor's own chi are not here; they come from its rotamer library.
+    anchor -- the ones that move the most atoms -- are the last to go. Library
+    axes are excluded. Additional anchor axes may be included explicitly.
 
-    The budget counts rotamers, not conformers. A group conformer places every
-    one of its blocks, so it costs one rotamer per block, and what scoring and
-    the interaction graph pay for is that total. Dividing the limit by the
-    number of blocks is what keeps a seven-sugar tree the same size as a
-    one-sugar one.
+    The budget counts rotamers, not conformers. Every active member costs one
+    rotamer per conformer; inactive members each cost one background rotamer.
+    Subtract that background cost before dividing by the active member count.
 
     Returns a list of (index within the group, ChiSamples) for the survivors.
     """
-    from tmol.kinematics import block_group_kinforest_data
-    from tmol.pack.rotamer._chi_budget import apply_chi_sample_budget, chi_depths
+    from tmol.pack.rotamer._chi_budget import _budgeted_chi_samples, chi_depths
 
-    pbt = pose_stack.packed_block_types
-    block_types = [
-        pbt.active_block_types[int(pose_stack.block_type_ind[group.pose, b])]
-        for b in group.blocks
-    ]
-    rkd, offsets = block_group_kinforest_data(block_types, group.links, anchor=0)
+    topology = topology or group_sampling_topology(group, pose_stack)
+    block_types, offsets, partners = (
+        topology.block_types,
+        topology.offsets,
+        topology.partners,
+    )
 
-    entries, depths_in, owners = [], [], []
-    for i, bt in enumerate(block_types):
-        if i == 0:
-            continue  # the anchor samples from its library, not from chi_samples
-        for cs in bt.chi_samples:
+    selected = []
+    seen = set(exclude_axes)
+    # Prefer the downstream owner's definition when both sides name one axis.
+    for i, bt in reversed(list(enumerate(block_types))):
+        if i == 0 and not include_anchor:
+            continue
+        for j, cs in enumerate(bt.chi_samples):
             if cs.is_proton:
                 continue
-            entries.append(cs)
-            owners.append(i)
-            depths_in.append(
-                int(offsets[i]) + bt.torsion_to_uaids[cs.chi_dihedral][2][0]
-            )
-
-    if not entries:
+            atoms = [
+                resolve_group_atom(u, i, block_types, offsets, partners)
+                for u in bt.torsion_to_uaids[cs.chi_dihedral][1:3]
+            ]
+            if min(atoms) < 0:
+                raise ValueError(f"Cannot resolve group torsion {cs.chi_dihedral}")
+            axis = frozenset(atoms)
+            if axis in seen or axis not in topology.movable_axes:
+                continue
+            seen.add(axis)
+            selected.append((i, j, cs, topology.movable_axes[axis]))
+    selected.sort(key=lambda item: item[:2])
+    entries = [item[2] for item in selected]
+    owners = [item[0] for item in selected]
+    depths = chi_depths(topology.kinforest, [item[3] for item in selected])
+    # Only active members carry a copy of each conformer.
+    n_blocks = len(group.blocks) if sampled_members is None else sampled_members
+    fixed_members = len(group.blocks) - n_blocks
+    expanded_limit = (expanded_limit - fixed_members) // n_blocks
+    limit = (limit - fixed_members) // n_blocks
+    # With no library axes, a one-state budget keeps the input itself. There
+    # is no need to reserve a second identical empty-product conformer.
+    if (
+        reserve_current
+        and library_size == 1
+        and not exclude_axes
+        and max(expanded_limit, limit) == 1
+    ):
         return []
-
-    # the anchor's own chi come from its rotamer library and multiply whatever
-    #    the tree enumerates, so the budget has to know how many there are; the
-    #    library's chi are its torsions less the ones conjugation added
-    anchor = block_types[0]
-    n_conjugations = sum(1 for _, _, child, _ in group.links if child == 0) + sum(
-        1 for parent, _, _, _ in group.links if parent == 0
-    )
-    n_anchor_chi = (
-        sum(1 for t in anchor.torsions if t.name.startswith("chi")) - n_conjugations
-    )
-
-    depths = chi_depths(rkd, depths_in)
-    # every block of the group carries a copy of each conformer
-    n_blocks = max(len(group.blocks), 1)
-    kept = apply_chi_sample_budget(
+    reserve_current = reserve_current and bool(entries or exclude_axes)
+    kept = _budgeted_chi_samples(
         entries,
         depths,
-        max(expanded_limit // n_blocks, 1),
-        max(limit // n_blocks, 1),
-        n_library_chi=max(n_anchor_chi, 0),
+        max(expanded_limit - int(reserve_current), 0),
+        max(limit - int(reserve_current), 0),
+        library_size=library_size,
     )
 
-    # the budget returns copies, in order, with the frozen chi dropped; walk
-    #    the two lists together to recover which block each survivor belongs to
-    result = []
-    i = 0
-    for owner, cs in zip(owners, entries):
-        if i < len(kept) and kept[i].chi_dihedral == cs.chi_dihedral:
-            result.append((owner, kept[i]))
-            i += 1
-    assert i == len(kept), "budgeted chi did not line up with the group's chi"
-    return result
+    return [(owners[index], cs) for index, cs in kept]
 
 
 def protect_conjugated_anchors(task, pose_stack, exclude=()):
@@ -127,7 +255,7 @@ def protect_conjugated_anchors(task, pose_stack, exclude=()):
 
 
 def add_conjugated_group_sampler(task, pose_stack, sampler=None, exclude=()):
-    """Attach the group sampler and keep other samplers off the anchors.
+    """Attach the group sampler and keep independent samplers off its members.
 
     A group is sampled as one unit. When a rotamer library is available the
     anchor is sampled along with it, its library chi multiplying the tree's
@@ -156,9 +284,9 @@ def add_conjugated_group_sampler(task, pose_stack, sampler=None, exclude=()):
     with_anchor = sampler.library_sampler is not None
 
     sampled = numpy.zeros((pose_stack.n_poses, pose_stack.max_n_blocks), dtype=bool)
-    anchors = numpy.zeros_like(sampled)
+    members = numpy.zeros_like(sampled)
     for group in groups:
-        anchors[group.pose, group.anchor] = True
+        members[group.pose, list(group.blocks)] = True
         for block in group.blocks if with_anchor else group.blocks[1:]:
             sampled[group.pose, block] = True
 
@@ -170,11 +298,15 @@ def add_conjugated_group_sampler(task, pose_stack, sampler=None, exclude=()):
     # a sampler that hands back the pose's own conformation is only harmless on
     #    an anchor the group does not sample: once the group samples it, that
     #    extra rotamer would put the anchor out of step with its members
-    keep = () if with_anchor else (FallbackSampler, IncludeCurrentSampler)
     for other in list(task.conformer_samplers):
-        if other is sampler or other in exclude or isinstance(other, keep):
+        if other is sampler or other in exclude:
             continue
-        task.disable_sampler_by_block_mask(other, _mask(anchors))
+        mask = (
+            sampled
+            if isinstance(other, (FallbackSampler, IncludeCurrentSampler))
+            else members
+        )
+        task.disable_sampler_by_block_mask(other, _mask(mask))
     return sampler
 
 
@@ -274,10 +406,18 @@ def collapse_group_rotamers(pose_stack, rotamer_set, groups):
     #    range: the interaction graph recovers a block's rotamer count by
     #    differencing consecutive blocks' offsets, so a rotamer left sitting in
     #    a gap is silently charged to whichever block precedes it.
-    orig_to_compact = torch.cumsum(keep.to(torch.int64), 0) - keep.to(torch.int64)
+    # Include the exclusive end: trailing zero-rotamer blocks and empty poses
+    # can have an offset equal to n_rots.
+    orig_to_compact = torch.cat(
+        (torch.zeros(1, dtype=torch.int64, device=device), keep.cumsum(0))
+    )
     compact_to_orig = torch.nonzero(keep).view(-1)
 
-    compact_rot_offset_for_block = orig_to_compact[rot_offset.to(torch.int64)]
+    compact_rot_offset_for_block = torch.where(
+        rot_offset >= 0,
+        orig_to_compact[rot_offset.clamp_min(0).to(torch.int64)],
+        rot_offset,
+    )
     compact_rot_offset_for_pose = orig_to_compact[
         rotamer_set.rot_offset_for_pose.to(torch.int64)
     ]

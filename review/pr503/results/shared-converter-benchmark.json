@@ -1,0 +1,41 @@
+{
+  "scope": "Isolated AtomArray-to-RDKit conversion; synthetic saturated carbon chains, finite coordinates, nine warm repetitions, identical chemistry and coordinates. tracemalloc excludes native allocations. Baseline converter loaded from dev59afb1e2 with the same current runtime dependencies.",
+  "rows": [
+    {
+      "atoms": 20,
+      "unused_annotations": 0,
+      "seconds": {
+        "dev_59afb1e2": 0.00022990908473730087,
+        "shared_774056c7": 0.00012250617146492004
+      },
+      "python_traced_peak_bytes": {
+        "dev_59afb1e2": 7805,
+        "shared_774056c7": 2852
+      }
+    },
+    {
+      "atoms": 200,
+      "unused_annotations": 0,
+      "seconds": {
+        "dev_59afb1e2": 0.0018118210136890411,
+        "shared_774056c7": 0.000985695980489254
+      },
+      "python_traced_peak_bytes": {
+        "dev_59afb1e2": 30794,
+        "shared_774056c7": 7914
+      }
+    },
+    {
+      "atoms": 3000,
+      "unused_annotations": 32,
+      "seconds": {
+        "dev_59afb1e2": 0.058919623494148254,
+        "shared_774056c7": 0.014115872792899609
+      },
+      "python_traced_peak_bytes": {
+        "dev_59afb1e2": 49261442,
+        "shared_774056c7": 176302
+      }
+    }
+  ]
+}

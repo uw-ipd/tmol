@@ -1,0 +1,122 @@
+id	status	resolution
+1	Fixed	Supply the missing cyclic-search implementation and verify clean import and cyclic construction.
+2	Fixed; scientific scope limited	Use the Rosetta mixed-chirality disulfide distribution with shared derivatives; check LL/DD/LD/DL, permutation and reflection.
+3	Fixed	Key group anchors by pose and block in both producers and consumers.
+4	Fixed	Separate the anchor-library cardinality multiplier from independently numbered child chi samples.
+5	Fixed	Carry original sample indices through budget selection instead of reconstructing ownership from chi names.
+6	Fixed	Validate declared joint-member counts before native pair enumeration and remove per-block scalar reads.
+7	Fixed	Use an exclusive-endpoint prefix map and preserve negative sentinels for empty trailing blocks.
+8	Fixed for explicit per-residue limits	Propagate task limits through conversion using private sampler views; check actual library, group and aggregate counts before final row allocation. Default and whole-task/pair-memory policies remain open.
+9	Fixed	Own group-tree caches on their PackedBlockTypes instead of reusing local indices across databases.
+10	Fixed	Use contiguous residue boundaries, including insertion codes, for completion, representatives and cross-residue detection.
+11	Fixed	Select one canonical attachment residue instance without merging equally numbered residues across chains.
+12	Fixed	Identify hydrogens by element so digit-prefixed hydrogen names do not invalidate heavy-atom templates.
+13	Fixed and optimized	Frame hashed values by type and length, preserve tensor metadata boundaries and hash buffer views without a full bytes copy.
+14	Fixed	Include sampler configuration and chemistry in annotation validity; retain only the latest tables and isolate task overrides.
+15	Optimized	Hoist invariant group-tree tensors and batch forward/inverse kinematics in bounded chunks; retain scalar-reference parity tests.
+16	Optimized	Concatenate CIF pieces once, assemble bonds once, cache component templates per read and lazily select representatives.
+17	Partially addressed by 35	Preserve cyclic and external constraints by restricting independent axes; alternative ring puckers and a general closure sampler remain outside the implemented contract.
+18	Simplified	Share connection-centred cartbonded improper enumeration and lookup across all four native score/gradient paths.
+19	Simplified	Remove duplicated surviving-torsion and chi filtering after atom removal.
+20	Fixed by 29	Replace unbounded integer-identity profile caches with the shared bounded weak-owner cache.
+21	Fixed	Make group-packing tests and examples use the returned preparation context's parameter_database.
+22	Fixed	Align terminal-cap representation and candidate classification; validate ACE/NH2/NME construction, geometry, scoring, gradients and packing.
+23	Open validation/provenance issue	Preserve failing score goldens; separate fresh-preparation discrepancies from pinned-input numerical replay instead of silently refreshing references.
+24	Improved validation	Measure signed stereocentre volumes in offered and packed D conformers and verify mirrored-library use; full-atom mirror matching is added in 73–76.
+25	Resolved upstream; merged	Retain Frank's corrected fold-tree edge expectations at conjugation branch points.
+26	Fixed	Select explicit fragment candidates and let the exact original-instance cut-bond mapping own restoration.
+27	Resolved upstream and independently checked	Use 18 HYP states and separately verify two library states times nine hydroxyl angles; preserve explicit-budget checks.
+28	Fixed	Root generated nucleotide jump trees on the sugar side so terminal proton sampling cannot rotate the heavy structure.
+29	Fixed; bounded retention	Share bounded weak-identity caches across alpha, nucleotide and rotamer-reference profiles, with expiry, eviction and simultaneous-miss checks.
+30	Fixed	Use actual connection-spanning axes for sugar-ring attachments and resolve central atoms in group-wide numbering.
+31	Fixed	Derive attachment torsion frames from bonded heavy-atom paths and verify requested Cartesian dihedrals.
+32	Fixed and shared	Import the AtomWorks finite/nondegenerate carboxylate correction; unresolved atoms cannot authorize a bond-order rewrite.
+33	Fixed	Recognize polymer anchors from declared polymer properties after both terminal ports are patched away.
+34	Fixed	Generate existing generic non-ring heavy-chi samples for movable internal branches of conjugated ligands.
+35	Fixed for preserving current constraints	Retain every internal/external edge; restrict axes with bridge/subtree checks, project constrained library coordinates and deduplicate; keep the current conformer when nothing can move.
+36	Fixed	Disable independent samplers on every group-owned member, retaining the intentional library-free primary-anchor exception; 51 rejects later conflicting ownership.
+37	Fixed within supported chemical types	Apply sampler/task/allowed-type masks before enumeration and use fixed members as geometric constraints; emit joint rows only for active members.
+38	Default Frank-convention generation validated on CPU/CUDA	Use capped ideal geometry and shared K300/K80 constants; retain mixed polymer ports and actual attachment partners, supplied references and export provenance. Final focused selection: 155 passes; all 36 example minimization trials pass. Broader corpus coverage remains incomplete. Local chemistry remains 43.
+39	Fixed and shared	Use AtomWorks bounded compiled rule-provider ownership with tmol scientific data; no per-pH query retention and owned mutable public results.
+40	Fixed	Recompute cartbonded content identity on parameter injection so reused poses score the new fit.
+41	Fixed	Persist canonical-partner patches/charges, explicit connection records and provenance; reload them even when base residues already exist, preserving numeric geometry and bond order.
+42	Fixed and optimized	Register one reusable YAML flow-mapping class instead of retaining one class per exported atom/parameter row.
+43	Replacement mechanism implemented; Frank model selected, corrections pending	Preserve Frank's typing/charge and Rosetta/generic ownership conventions when completing local attachment chemistry. The private MMFF-delta prototype is diagnostic-only; coupled default corrections remain incomplete.
+44	Fixed with an explicit tradeoff	Preserve input atom annotations and long names during capping; add a cheaper topology-only path for model generation. Coordinate-producing capping pays a small metadata-preservation cost.
+45	Fixed	Key electrostatic annotations by source/typing configuration, snapshot rendered tensors and support complete multi-patch variant charge/count-pair rows.
+46	Fixed for invalid observations	Ignore unresolved/coincident attachment measurements, retain earlier valid observations and use full residue identity; process geometry in chunks. Distinct valid context-specific observations still require a broader policy.
+47	Fixed after upstream update	Preserve explicitly declared links between repeated fragment types; remove only exact expansion-owned cuts rather than every equal-base-name link.
+48	Fixed after upstream update	Retain all valid fragment states independently of their input ordering using explicit fragment identity.
+49	Fixed mechanism; automatic chemistry remains 43	Enumerate generic connection impropers according to the centre's scoring ownership; add explicit per-atom generic lookup references without transferring canonical proper-torsion ownership.
+50	Fixed	Resolve missing-atom construction references through any declared connection name, preserving absent polymer-end fallback.
+51	Fixed and shared	Carry producer-declared joint-conformer groups through merge, reject overlapping/additional owners before allocation, and share one validated mask across energy enumeration and collapse.
+52	Fixed	Use actual ASN/GLN/HIS flip axes and disable flips moving covalently attached atoms; share eligibility with fallback/root selection.
+53	Fixed and optimized	Snapshot generic bonded annotations by database and element mapping; share database-wide inter-block tables through a bounded weak cache.
+54	Fixed	Include Rosetta/generic ownership in cartbonded annotation snapshots; share identical masks across fits and preserve older rendered modules.
+55	Bounded retention	Keep two recent cartbonded configurations per block/packed set; rebuild evicted configurations while existing modules retain valid snapshots.
+56	Optimized	Use host atom-type indices and hydrogen flags for common atom setup, removing thousands of device-scalar reads and repeated name lookup.
+57	Fixed after latest upstream update	Validate peptide junction element/bond roles on the final reconstructed graph; reject phosphate-as-nitrogen substitution and retain generated hydrogen angle rows.
+58	Partially addressed	Map a changed complete local junction frame even when its connection atom is still named C/N. Simultaneously renamed partner frames remain a parameter-coverage question.
+59	Simplified after latest upstream update	Build cap hydrogens through the existing native connection-ancestor representation; remove the extra Python coordinate pass and four dense packed fields while matching upstream hydrogen conventions.
+60	Fixed	Refresh nonbonded atom indices and pair exclusions for catalog/ownership changes using weak identities and rendered snapshots.
+61	Fixed	Snapshot hydrogen-bond and LK-ball annotation records so reusing shared block types cannot change an older scorer.
+62	Bounded retention	Use a multi-owner weak-identity LRU for both hydrogen-bond resolver caches, capped at 32 entries with normalized device identities.
+63	Optimized	Prepare donor/acceptor host lookup catalogs once and transfer LK-ball host parameters once per term instead of per residue.
+64	Fixed allocation boundary	Check native Dunbrack count products, prefix sums and library-size narrowing before allocation, reusing existing buffers and synchronization points.
+65	Fixed allocation boundary	Retain nucleotide counts in int64, validate products/individual counts/totals and reject invalid counts before narrowing or allocating rows.
+66	Fixed and optimized	Key Dunbrack sampler annotations by weak resolver identity; gather small metadata on the host once and simplify common probability selection and sampler equality.
+67	Fixed	Honor the sampler's buildability predicate for polymers with explicit heavy chi and no library; preserve gapped chi slots and derive roots from sampled axes.
+68	Fixed and optimized with tradeoffs	Key mainchain fingerprints by actual sampler roots and chemical owner; preserve unions of nonnested source regions, refresh stale fingerprints and correct the packed cache guard.
+69	Bounded retention	Replace the global Dunbrack resolver memoizer with a four-entry weak-owner LRU; release private derived tables when callers release their database/resolver.
+70	Fixed and optimized	Key Dunbrack scoring annotations by resolver, retain rendered snapshots and assemble host annotation tables before one transfer per field.
+71	Simplified and optimized	Gather DOF-copy indices on device through a shared atom map, reuse owned buffers, and repair the self-comparing source oracle and fixture considered-type assumptions.
+72	Simplified and optimized	Keep chi assignment and static ring-offset lookup on device; use sparse selection and support noncontiguous chi columns.
+73	Fixed for the validated mirror contract	Correct reflected ordering cells and chirality-aware missing-angle defaults; combine with 75–76 for one-to-one full-atom conformers, score matrices and a controlled exhaustive packing check.
+74	Fixed	Share periodic lookup with an exclusive upper endpoint and a guard against division rounding to an out-of-range bin.
+75	Fixed	Persist explicit library reflection metadata, reflect chi-mean unwrapping before fitting and score periodic chi-minus-mean differences.
+76	Fixed; symmetry remains opt-in	Rebuild both glycine alpha hydrogens; average their equivalent ideal/bonded parameters only in the explicit symmetric-glycine database.
+77	Fixed and optimized	Generate only missing requested D mappings/libraries, preserve explicit targets and existing objects, reject ambiguous names and avoid work for no-op requests.
+78	Fixed; minimal databases supported	Use rank/stride-correct genuinely empty tensors and offsets for absent statistical-library families without dummy tables or dihedrals.
+79	Fixed	Carry actual reflected grid origins and declared semirotameric spacing, preserving sampling-cell metadata and serialization without resampling.
+80	Fixed	Address the selected metadata vector correctly, interpolate using actual padded tensor strides and fit into owned contiguous coefficients.
+81	Fixed	Correct short-period spline initialization so small grids interpolate their supplied samples; preserve the large-grid branch.
+82	Optimized with measured device tradeoffs	Reuse periodic indices in spline interpolation, selecting bounded caches for CPU/2D CUDA and base indices for larger CUDA stencils; preserve accumulation order.
+83	Fixed and simplified	Own sampler lists, register each object once and union enabled masks; preserve distinct equal samplers and prevent palette mutation.
+84	Fixed and optimized	Validate unique library names, residue mappings and declared targets before fitting; build one metadata mapping and permit intentionally omitted lookup rows.
+85	Simplified and optimized	Share IncludeCurrent/Fallback copying, enumerate only copied atoms, eliminate unrelated-database padding costs and remove global CUDA barriers.
+86	Implemented explicit guarded semantics	Persist typed baseline guards for exact residue replacements; reject stale targets and install public/private bundles with one whole-database cartbonded rebuild.
+87	Fixed and optimized	Coalesce identical residue/charge/bonded definitions, reject contradictions, stream shared charge merges, load repeated paths once and avoid mutating inputs.
+88	Fixed and optimized	Persist declared custom atom-type elements in version-5 bundles, collect types from residues/patch additions/modifications/replacements together and reject incompatible element declarations.
+89	Fixed and optimized setup	Validate used real-atom types and finite LJ/solvation fields before scoring; preserve unused incomplete rows and virtual zeros, and reuse validated indices/heavy lists during packed setup.
+90	Fixed with small validation cost	Require applicable finite charges instead of silently zeroing missing residue tables; store the existing three zero HOH charges explicitly without introducing a water model.
+91	Fixed and optimized	Validate complete declared donor/acceptor pair coverage, references and finite selected data; preserve last-definition precedence and empty-family support while assembling tables in bulk.
+92	Fixed	Reject removed/retained sidechain, disulfide, cyclic and cross-chain covalent boundaries; preserve ordinary forward peptide gaps. The Schiff-base fixture now errors instead of scoring a severed component.
+93	Fixed with a bounded reader guard	Reject unmapped non-H/D atoms and check source heavy-atom names after AtomWorks completion. Native modified-1a8o author CG is preserved; label XYZ cannot silently disappear. The reader guard is an inventory check, not full atom/bond provenance.
+94	Fixed and simplified	Traverse all retained non-sidechain heavy branches and use set membership for placed atoms. The 6q9t 4SO cap/partner regression has complete finite heavy-atom geometry.
+95	Fixed	Require the actual variant suffix and patch applicability to the base type. LLP terminal OXT receives the correct charge; native whole-file 7MKV scoring and minimization pass.
+96	Fixed for identified conjugations	Exclude conjugation endpoints from chemistry-derived backbone profiling and use the same filtered ports in polymer preparation. BCX N/C remains a peptide backbone while SG remains connected as a disulfide.
+97	Fixed in shared construction	Pass the complete missing-atom mask and compose a valid fixed-frame backup without replacing a sampled torsion. Conditional-generation N/CA/C inputs with unresolved CB now build finite HA coordinates, scores and derivatives.
+98	Shared required dependency	Reuse parsed chemical-type annotations and the current AtomWorks ParseConfig reader; delegate authored CIF chemistry too. The immutable companion pin requires a release before public package publication.
+99	Fixed in AtomWorks #349; ambiguous alternatives explicit	Keep chemically equivalent leaving branches distinct and displace only the declared bond-order budget. Preserve observed 8OG OP2; the source-atom guard and AF3 OXT normalization issue remain.
+100	Fixed; explicit hydrogen policy	Both bonded CIF readers default to rebuilding H while retaining finite histidine evidence, including DHI. Expose preserve explicitly; 1IZC passes CUDA scoring/minimization through both routes.
+101	Fixed with explicit scientific policy	Use one AtomWorks engine with tmol rule ordering/pKa data, pH/precision and variant budget; 774 mapped-state comparisons match the pre-sharing tmol engine. The inherited conjugated-amide/aniline vendor self-test discrepancy remains a documented scientific-rule review item.
+102	Fixed in AtomWorks #349	Resolve finite HIS/DHIS evidence before H removal, enforce ring H counts and charges before AddHs, and preserve cross-residue bonds and repeated/assembly identity.
+103	Fixed in AtomWorks #349	Restore reaction-source atom properties, input order and conformer coordinates before returning sanitized molecular variants.
+104	Fixed in AtomWorks #349	Retain molecular fallback states instead of reconstructing them from SMILES; exercise invalid-final-state fallback identity.
+105	Fixed in tmol adapter	Preserve finite input histidine ring H through AtomWorks parsing so native tautomer selection receives the observed evidence.
+106	Simplified in AtomWorks #349	Remove redundant template graph rematching and consume the identity-preserving protonated molecule directly.
+107	Shared and optimized	Use AtomWorks RDKit conversion with explicit H/coordinate controls, owned retained annotations and bulk conformer positions; remove tmol bond-map/restoration duplication.
+108	Shared with explicit authority	Use AtomWorks authored-CIF chemistry without CCD supplementation; preserve tmol template semantics and remove the second component/bond-category parser.
+109	Fixed in AtomWorks #349	Keep carbon valence at four despite stale source charge, then correct charge; full authored 1j8z workflow passes.
+110	Fixed in AtomWorks #349	Neutralize disconnected components independently and combine all products; retain maps, order, properties and conformers without copying the common connected input.
+111	Fixed in AtomWorks #349	Exclude cache location/save/load controls from chemical parse identity; unchanged integrated cache test passes.
+112	Optimized in AtomWorks #349	Use integer contiguous-residue indices and reuse bond extraction; preserve assembly identity and reduce string allocation.
+113	Fixed in tmol	Restrict alpha renaming to alpha profiles and retain cap frame names; complete 1xvk now prepares, scores and minimizes with the subsequent topology/lookup fixes.
+114	Targeted topology fix validated on CPU/CUDA; broader contexts pending	Preserve explicit polymer links and occupied-port termini. Complete 1xvk scores/minimizes through both readers on CPU/CUDA; malformed 1AYM source links are handled separately in finding 119. Model definitions and patched candidates now resolve declared DAR/DAL/U input classes; three complete-file regressions pass.
+115	Fixed	Remove proximity-inferred conjugations and consume the supplied bond graph. Recognize terminal nucleotide backbones before peptide caps; complete 145d retains 24 DNA blocks and 20 phosphodiester links and passes CPU scoring/minimization.
+116	Patch support guard implemented; alternate frames remain open	Reject unsupported new and retained torsion frames before patch mutation. The original 1AYM missing-H crash is gone; both readers expose its conflicting declared MYR partners (119).
+117	Generic torsion lookup validated on CPU/CUDA	Share reversed matches and multiplicity/source-order rank with the CPU lookup; use the actual central bond bin for 3+1 paths. Fix the 70.621246 energy change under 1xvk residue reversal; cross-block ring metadata remains a separate limitation.
+118	Fixed and optimized	Restrict mol2 aromatic flags to ring atoms/bonds; reuse AtomWorks to repair unresolved Tripos carboxylate carbonyls, avoiding repair for already valid inputs. Acetate/biphenyl integrated before/after tests and 115 semantic/typing cases pass.
+119	Fixed; original input remains rejected	Check port occupancy before graph writes. Complete 1AYM declares two different GLY partners for MYR C1; both-reader regression requires an explicit conflict error and unchanged source bonds.
+120	Review-prototype fix; observed tetrahedral states validated	Capture observed stereochemistry before discarding capped-model coordinates; retain it through protonation and generation, include it in deduplication, and reject incompatible named local handedness. Three before/after integrated regressions pass; unresolved stereochemistry and coupled local chemistry remain open.
+121	Fixed on tested CPU stack	Replace nondeterministic repeated-index refinement gathers with index_select and shared distance/chiral-volume helpers. Four prior regeneration failures pass; weights/settings/goldens unchanged. Cross-version reproducibility and inherited score provenance remain open.

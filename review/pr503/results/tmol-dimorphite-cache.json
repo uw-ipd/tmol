@@ -1,0 +1,41 @@
+{
+  "rdkit": "2026.03.6",
+  "source_sha256": {
+    "before": "f15cbcd4698ced5b8d6ff4630b71e7d5c39ed39357ed968f76a684388c933d52",
+    "after": "1f6d4b7520b6a98eb56974bebb6e73d6364ab99f2e64651db2527933e44eb1d3"
+  },
+  "ordered_inventory_matches": 21,
+  "all_rule_state_configurations_matched": 15,
+  "seconds_per_molecule": {
+    "before": [
+      0.0005086864300426982,
+      0.000509013022695269,
+      0.0005041076757368588,
+      0.0005067732362520127,
+      0.000502579543916952,
+      0.0005102407009828658,
+      0.0005185816525703384
+    ],
+    "after": [
+      0.00052036281142916,
+      0.0005253310359659649,
+      0.0005254143050738743,
+      0.0005265867514979271,
+      0.0005300242542510941,
+      0.0005303601867386273,
+      0.0005307908480366071
+    ]
+  },
+  "median_speed_ratio": 0.9660068898347524,
+  "ph_sweep_calls": 500,
+  "memory": {
+    "before": {
+      "retained_python_bytes": 16104673,
+      "peak_python_bytes": 17140906
+    },
+    "after": {
+      "retained_python_bytes": 64783,
+      "peak_python_bytes": 1067856
+    }
+  }
+}

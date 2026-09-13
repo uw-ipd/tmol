@@ -1,0 +1,135 @@
+[
+  {
+    "fixture": "biotin",
+    "kind": "conjugation",
+    "blocks": [
+      45,
+      80
+    ],
+    "atoms": [
+      "NZ",
+      "C11"
+    ],
+    "distance": 1.3293358496953005,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 9.018773086597074,
+            "dE_ddelta": 2.220446049250313e-16
+          },
+          {
+            "delta": 0.0,
+            "energy": 9.018773086597083,
+            "dE_ddelta": 3.3306690738754696e-15
+          },
+          {
+            "delta": 0.1,
+            "energy": 9.018773086597085,
+            "dE_ddelta": 1.5543122344752192e-15
+          }
+        ],
+        "stiffness": 6.661338147750939e-15
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 71.21723561784631,
+            "dE_ddelta": -7.105427357601002e-15
+          },
+          {
+            "delta": 0.0,
+            "energy": 71.21723561784631,
+            "dE_ddelta": -7.105427357601002e-15
+          },
+          {
+            "delta": 0.1,
+            "energy": 71.21723561784631,
+            "dE_ddelta": 0.0
+          }
+        ],
+        "stiffness": 3.552713678800501e-14
+      }
+    },
+    "cartesian_minimization": [
+      {
+        "displacement": 0.0,
+        "initial_energy": -84.5667724609375,
+        "final_energy": -93.61332702636719,
+        "initial_distance": 1.3293358087539673,
+        "final_distance": 1.6583514213562012
+      },
+      {
+        "displacement": 0.5,
+        "initial_energy": -81.88949584960938,
+        "final_energy": -93.9415283203125,
+        "initial_distance": 1.8293360471725464,
+        "final_distance": 2.1203856468200684
+      },
+      {
+        "displacement": 1.0,
+        "initial_energy": -74.72346496582031,
+        "final_energy": -91.96067810058594,
+        "initial_distance": 2.329335927963257,
+        "final_distance": 2.5580549240112305
+      }
+    ]
+  },
+  {
+    "fixture": "biotin",
+    "kind": "peptide_control",
+    "blocks": [
+      0,
+      1
+    ],
+    "atoms": [
+      "C",
+      "N"
+    ],
+    "distance": 1.331865537363326,
+    "probes": {
+      "stretch": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 10.74831145636103,
+            "dE_ddelta": -35.76763406385051
+          },
+          {
+            "delta": 0.0,
+            "energy": 9.018773086597083,
+            "dE_ddelta": 1.1768666685712477
+          },
+          {
+            "delta": 0.1,
+            "energy": 10.983684790075316,
+            "dE_ddelta": 38.121367400993094
+          }
+        ],
+        "stiffness": 369.445007324218
+      },
+      "bend": {
+        "samples": [
+          {
+            "delta": -0.1,
+            "energy": 71.38477567396684,
+            "dE_ddelta": -3.4930595516678125
+          },
+          {
+            "delta": 0.0,
+            "energy": 71.21723561784633,
+            "dE_ddelta": 0.14494525561850935
+          },
+          {
+            "delta": 0.1,
+            "energy": 71.41121381795578,
+            "dE_ddelta": 3.706877918291916
+          }
+        ],
+        "stiffness": 35.99968734979864
+      }
+    }
+  }
+]

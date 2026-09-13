@@ -1,6 +1,5 @@
 import numpy
 import numba
-import toolz
 import torch
 
 from typing import List, Tuple
@@ -107,8 +106,23 @@ def _build_ring_chi_phi_c_corrections(pbt):
                 rt.rotamer_kinforest.dofs_ideal[kfo, 3]
             )
 
+    # Retain only the device table; sampled conformers never need a host lookup.
+    corrections = torch.as_tensor(corrections, device=pbt.device)
     object.__setattr__(pbt, "_ring_chi_phi_c_corrections", corrections)
     return corrections
+
+
+def _kinforest_device_indices(pbt, device):
+    """One RTO-to-KFO device table shared by DOF copying and chi correction."""
+    if not hasattr(pbt, "_kinforest_device_indices"):
+        object.__setattr__(
+            pbt,
+            "_kinforest_device_indices",
+            torch.as_tensor(
+                pbt.rotamer_kinforest.kinforest_idx, dtype=torch.int64, device=device
+            ),
+        )
+    return pbt._kinforest_device_indices
 
 
 def _chi4_and_kfo_device_tables(pbt, device):
@@ -118,9 +132,7 @@ def _chi4_and_kfo_device_tables(pbt, device):
             torch.as_tensor(_build_chi4_by_defining_atom(pbt), device=device).to(
                 torch.int64
             ),
-            torch.as_tensor(pbt.rotamer_kinforest.kinforest_idx, device=device).to(
-                torch.int64
-            ),
+            _kinforest_device_indices(pbt, device),
         )
         object.__setattr__(pbt, "_chi4_kfo_device_tables", tables)
     return pbt._chi4_kfo_device_tables
@@ -563,111 +575,90 @@ def merge_conformer_samples(
     List[Tensor[torch.bool][:]],
     List[Tensor[torch.int64][:]],
 ]:
-    """Merge the lists of conformers as described by different conformer samplers.
+    """Merge sampler rows in considered-type, sampler, then source-row order.
 
-    The conformer_samples variable is a list of tuples:
-     - elem 0: Tensor[int][:] <-- the number of rotamers for each pose for each block for each block type
-        where each buildable block type for each real residue is given a global index
-     - elem 1: Tensor[int][:] <-- the global block-type index for each rotamer
-     - elem 2+: Extra data that the chi sampler needs to preserve, where the first dimension
-       is rotamer index based on elem 1's rotamer indices; the mapping from orig rotamer indices
-       to merged rotamer indices will be constructed by this routine
+    Each sampler supplies a count per considered type and its source rows in
+    ascending considered-type order. Prefix offsets locate each row directly;
+    the returned destinations map original sampler rows into the merged arrays.
     """
-    # deprecated notes:
-    # chi_samples
-    # 0. n_rots_for_rt
-    # 1. rt_for_rotamer
-    # 2. chi_defining_atom_for_rotamer
-    # 3. chi_for_rotamers
-
-    # everything needs to be on the same device
-    torch.set_printoptions(threshold=10000)
-    for samples in conformer_samples:
-        assert samples[0].device == samples[1].device
-        assert conformer_samples[0][0].device == samples[0].device
-
+    if not conformer_samples:
+        raise ValueError("At least one conformer sampler is required")
     device = conformer_samples[0][0].device
+    count_dtype = conformer_samples[0][0].dtype
+    index_dtype = conformer_samples[0][1].dtype
+    for counts, indices, *_ in conformer_samples:
+        if counts.device != device or indices.device != device:
+            raise ValueError("Conformer samples must share a device")
+        if counts.dtype not in (torch.int32, torch.int64) or indices.dtype not in (
+            torch.int32,
+            torch.int64,
+        ):
+            raise ValueError("Conformer sample counts and indices must be integers")
+        count_dtype = torch.promote_types(count_dtype, counts.dtype)
+        index_dtype = torch.promote_types(index_dtype, indices.dtype)
 
-    # pre-merge offsets for each gbt in the set of conformers from the same sampler
-    gbt_n_rot_offsets = []  # formerly rt_nrot_offsets
-    for samples in conformer_samples:
-        gbt_n_rot_offsets.append(exclusive_cumsum1d(samples[0]).to(torch.int64))
+    n_conformers = sum(sample[1].numel() for sample in conformer_samples)
+    if (
+        max(n_conformers, conformer_samples[0][0].numel())
+        > torch.iinfo(torch.int32).max
+    ):
+        raise ValueError("Conformer sample counts exceed native 32-bit indexing")
+    counts = torch.stack([sample[0].to(torch.int64) for sample in conformer_samples])
+    source_ends = counts.cumsum(dim=1)
+    expected_types = torch.arange(counts.shape[1], device=device)
+    valid = []
+    for i, sample in enumerate(conformer_samples):
+        indices = sample[1]
+        if indices.numel() == 0:
+            valid.append(counts.new_ones((), dtype=torch.bool))
+            continue
+        # Clamp both ends while counts are still unvalidated. Invalid source
+        # counts must produce a diagnostic, not an out-of-bounds device read.
+        starts = (source_ends[i] - counts[i]).clamp(0, indices.numel() - 1)
+        ends = (source_ends[i] - 1).clamp(0, indices.numel() - 1)
+        boundaries_match = (indices[starts] == expected_types) & (
+            indices[ends] == expected_types
+        )
+        # Monotonic rows with matching interval endpoints must match throughout.
+        valid.append(
+            ((counts[i] == 0) | boundaries_match).all()
+            & (indices[1:] >= indices[:-1]).all()
+        )
+    totals = counts.sum(dim=1)
+    minima = counts.amin(dim=1) if counts.shape[1] else totals
+    maxima = counts.amax(dim=1) if counts.shape[1] else totals
+    summary = torch.stack((totals, minima, maxima, torch.stack(valid)), dim=1).tolist()
+    for sample, (total, minimum, maximum, ordered) in zip(conformer_samples, summary):
+        available = sample[1].numel()
+        # A matching sum alone can wrap even when every int64 count is positive.
+        if minimum < 0 or maximum > available or total != available:
+            raise ValueError("Conformer sample counts do not match the source rows")
+        if not ordered:
+            raise ValueError("Conformer source rows do not match ordered sample counts")
 
-    all_gbt_for_conformer_unsorted = torch.cat(
-        [samples[1] for samples in conformer_samples]
-    )
-    max_n_conformers_per_gbt_per_sampler = max(
-        torch.max(samples[0]).item() for samples in conformer_samples
-    )
-
-    # create an "index" for each conformer on each GBT
-    # so that we can sort these indices and come up with an ordering
-    # of all of the conformers that will group all of the conformers
-    # belonging to a single GBT into a contiguous segment;
-    # This is accomplished by "spreading out" all of the rotamers for a single GBT
-    # by the maximum possible number of rotamers that could be built for any one
-    # GBT (i.e. n-samplers x max-n-confs-per-gbt-per-sampler x gbt-index),
-    # then finding which block of conformers for the given sampler
-    # (i.e. max-n-confs-per-gbt-per-sampler * sampler-index),
-    # and finally, incrementing each individual sample by its position in the
-    # list of rotamers for that GBT, which is readily computed as
-    # arange(sampler_n_rots) - gbt_n_rot_offsets[gbt_index]
-    # and note that gbt_index is what's stored in samples[1]
-    n_conformer_samplers = len(conformer_samples)
-    sort_index_for_conformer = torch.cat(
-        [
-            samples[1].to(torch.int64)
-            * n_conformer_samplers
-            * max_n_conformers_per_gbt_per_sampler
-            + i * max_n_conformers_per_gbt_per_sampler
-            + torch.arange(samples[1].shape[0], dtype=torch.int64, device=device)
-            - gbt_n_rot_offsets[i][samples[1].to(torch.int64)]
-            for i, samples in enumerate(conformer_samples)
-        ]
-    )
-
-    sampler_for_conformer_unsorted = torch.cat(
-        [
-            torch.full((samples[1].shape[0],), i, dtype=torch.int64, device=device)
-            for i, samples in enumerate(conformer_samples)
-        ]
-    )
-    argsort_ind_for_conformer = torch.argsort(sort_index_for_conformer)
-
-    # testing: remove this, probably
-    sort_ind_for_conformer_sorted = sort_index_for_conformer[argsort_ind_for_conformer]
-    uniq_sort_ind_for_conformer = torch.unique(sort_ind_for_conformer_sorted)
-    assert (
-        uniq_sort_ind_for_conformer.shape[0] == sort_ind_for_conformer_sorted.shape[0]
-    )
-
-    sampler_for_conformer = sampler_for_conformer_unsorted[argsort_ind_for_conformer]
-
-    # list of boolean tensors for each of the samplers: did you build the given rotamer
-    conformer_built_by_sampler = [
-        sampler_for_conformer == i for i in range(n_conformer_samplers)
-    ]
-    # list of index tensors reporting the final index of the conformers built by the samplers
-    new_ind_for_sampler_rotamer = [
-        torch.nonzero(built_by_sampler, as_tuple=True)[0]
-        for built_by_sampler in conformer_built_by_sampler
-    ]
-
-    all_gbt_for_conformer_sorted = all_gbt_for_conformer_unsorted[
-        argsort_ind_for_conformer
-    ]
-
-    # ok, now we need to figure out how many rotamers each gbt is getting.
-    n_rots_for_gbt = toolz.reduce(
-        torch.add, [samples[0] for samples in conformer_samples]
-    )
+    merged_counts = counts.sum(dim=0)
+    merged_offsets = merged_counts.cumsum(dim=0) - merged_counts
+    # Destination start minus source start, for each sampler/considered type.
+    # Inclusive scans cancel the current cell in the two exclusive prefixes.
+    destination_offsets = merged_offsets + counts.cumsum(dim=0) - source_ends
+    sampler_for_conformer = torch.empty(n_conformers, dtype=torch.int64, device=device)
+    gbt_for_conformer = torch.empty(n_conformers, dtype=index_dtype, device=device)
+    destinations = []
+    for i, sample in enumerate(conformer_samples):
+        indices = sample[1].to(torch.int64)
+        destination = destination_offsets[i, indices] + torch.arange(
+            indices.numel(), dtype=torch.int64, device=device
+        )
+        sampler_for_conformer[destination] = i
+        gbt_for_conformer[destination] = indices.to(index_dtype)
+        destinations.append(destination)
 
     return (
-        n_rots_for_gbt,
+        merged_counts.to(count_dtype),
         sampler_for_conformer,
-        all_gbt_for_conformer_sorted,
-        conformer_built_by_sampler,
-        new_ind_for_sampler_rotamer,
+        gbt_for_conformer,
+        [sampler_for_conformer == i for i in range(len(conformer_samples))],
+        destinations,
     )
 
 
@@ -749,6 +740,50 @@ def get_rotamer_origin_data(task: SetPackerTask, gbt_for_rot: Tensor[torch.int32
     )
 
 
+def _correlated_groups_for_samples(task, samples):
+    """Validate producer-declared correspondence before allocating coordinates."""
+    from tmol.pack.rotamer._rotamer_set import CorrelatedBlockGroup
+
+    declarations = [
+        (i, gbts)
+        for i, sample in enumerate(samples)
+        for gbts in sample[2].get("correlated_gbts", ())
+        if gbts
+    ]
+    if not declarations:
+        return ()
+    pose_of = task.cons_bt_pose.cpu().numpy()
+    block_of = task.cons_bt_block.cpu().numpy()
+    counts = numpy.stack([sample[0].cpu().numpy() for sample in samples])
+    total = {}
+    for gbt, count in enumerate(counts.sum(axis=0)):
+        key = int(pose_of[gbt]), int(block_of[gbt])
+        total[key] = total.get(key, 0) + int(count)
+    groups, claimed = [], set()
+    for sampler, gbts in declarations:
+        if len(set(gbts)) != len(gbts) or any(g < 0 or g >= len(pose_of) for g in gbts):
+            raise ValueError("Invalid correlated considered-block indices")
+        poses = {int(pose_of[g]) for g in gbts}
+        blocks = tuple(int(block_of[g]) for g in gbts)
+        if len(poses) != 1 or len(set(blocks)) != len(blocks):
+            raise ValueError(
+                "A correlated group must contain distinct blocks in one pose"
+            )
+        pose = poses.pop()
+        expected = int(counts[sampler, gbts[0]])
+        if expected < 1 or any(int(counts[sampler, g]) != expected for g in gbts):
+            raise ValueError("Correlated members have differing rotamer counts")
+        members = {(pose, block) for block in blocks}
+        if members & claimed or any(total[key] != expected for key in members):
+            raise ValueError(
+                "Independent or overlapping samplers add rotamers to a correlated group"
+            )
+        claimed.update(members)
+        if len(blocks) > 1:
+            groups.append(CorrelatedBlockGroup(pose, blocks))
+    return tuple(groups)
+
+
 def build_rotamers(poses: PoseStack, task: SetPackerTask, chem_db: ChemicalDatabase):
     # step 1: replace the existing PBT in the Pose w/ a new one in case
     #     there will possibly be new block types in the repacked Pose;
@@ -788,6 +823,12 @@ def build_rotamers(poses: PoseStack, task: SetPackerTask, chem_db: ChemicalDatab
     conformer_samples = [
         sampler.create_samples_for_poses(poses, task) for sampler in samplers
     ]
+
+    correlated_groups = _correlated_groups_for_samples(task, conformer_samples)
+
+    from tmol.pack.rotamer._chi_budget import check_task_sample_budget
+
+    check_task_sample_budget(task, conformer_samples)
 
     # Step 5
     (
@@ -915,5 +956,6 @@ def build_rotamers(poses: PoseStack, task: SetPackerTask, chem_db: ChemicalDatab
             block_ind_for_rot=block_ind_for_rot,
             coord_offset_for_rot=n_atoms_offset_for_conformer_torch.to(torch.int32),
             coords=rotamer_coords,
+            correlated_groups=correlated_groups,
         ),
     )

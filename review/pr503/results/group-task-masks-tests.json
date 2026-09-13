@@ -1,0 +1,2402 @@
+{
+  "broad_initial": {
+    "note": "Slurm 243626; 12 test-helper failures superseded by the final run. All other cases passed. Helper lacked production guard for absent group collapse.",
+    "source": "/mnt/home/kdidi/tmol-pr503-followup/group-task-masks.xml",
+    "suites": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "12",
+        "skipped": "0",
+        "tests": "175",
+        "time": "652.974",
+        "timestamp": "2026-09-11T14:04:19.982167+00:00",
+        "hostname": "slurm-h200-interactive-244-105"
+      }
+    ],
+    "cases": [
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners0-packing]",
+        "time": "7.057",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners0-sampler]",
+        "time": "1.255",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners1-packing]",
+        "time": "1.239",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners1-sampler]",
+        "time": "1.234",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners2-packing]",
+        "time": "1.234",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners2-sampler]",
+        "time": "1.231",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners3-packing]",
+        "time": "1.230",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners3-sampler]",
+        "time": "1.237",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners4-packing]",
+        "time": "1.228",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners4-sampler]",
+        "time": "1.225",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners0-packing]",
+        "time": "3.014",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners0-sampler]",
+        "time": "1.402",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners1-packing]",
+        "time": "1.386",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners1-sampler]",
+        "time": "1.400",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners2-packing]",
+        "time": "1.482",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners2-sampler]",
+        "time": "1.399",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners3-packing]",
+        "time": "1.395",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners3-sampler]",
+        "time": "1.395",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners4-packing]",
+        "time": "1.587",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners4-sampler]",
+        "time": "1.383",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners0-packing]",
+        "time": "1.222",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners0-sampler]",
+        "time": "1.221",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners1-packing]",
+        "time": "1.220",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners1-sampler]",
+        "time": "1.220",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners2-packing]",
+        "time": "1.229",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners2-sampler]",
+        "time": "1.222",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners3-packing]",
+        "time": "1.222",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners3-sampler]",
+        "time": "1.221",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners4-packing]",
+        "time": "1.224",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners4-sampler]",
+        "time": "1.215",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners0-packing]",
+        "time": "1.372",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners0-sampler]",
+        "time": "1.377",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners1-packing]",
+        "time": "1.374",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners1-sampler]",
+        "time": "1.370",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners2-packing]",
+        "time": "1.375",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners2-sampler]",
+        "time": "1.373",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners3-packing]",
+        "time": "1.372",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners3-sampler]",
+        "time": "1.372",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners4-packing]",
+        "time": "1.364",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners4-sampler]",
+        "time": "1.371",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners0-packing]",
+        "time": "1.367",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners0-sampler]",
+        "time": "1.573",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners1-packing]",
+        "time": "1.369",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners1-sampler]",
+        "time": "1.361",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners2-packing]",
+        "time": "1.363",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners2-sampler]",
+        "time": "1.373",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners3-packing]",
+        "time": "1.375",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners3-sampler]",
+        "time": "1.364",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners4-packing]",
+        "time": "1.361",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners4-sampler]",
+        "time": "1.357",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners0-packing]",
+        "time": "1.559",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners0-sampler]",
+        "time": "1.525",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners1-packing]",
+        "time": "1.517",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners1-sampler]",
+        "time": "1.518",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners2-packing]",
+        "time": "1.515",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners2-sampler]",
+        "time": "1.516",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners3-packing]",
+        "time": "1.525",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners3-sampler]",
+        "time": "1.551",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners4-packing]",
+        "time": "1.529",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners4-sampler]",
+        "time": "1.528",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[free-cpu-fixed_owners0]",
+        "time": "1.254",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[free-cpu-fixed_owners1]",
+        "time": "1.265",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[free-cuda-fixed_owners0]",
+        "time": "1.411",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[free-cuda-fixed_owners1]",
+        "time": "1.594",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[cycle-cpu-fixed_owners0]",
+        "time": "1.234",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[cycle-cpu-fixed_owners1]",
+        "time": "1.238",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[cycle-cuda-fixed_owners0]",
+        "time": "1.414",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[cycle-cuda-fixed_owners1]",
+        "time": "1.402",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[external-cpu-fixed_owners0]",
+        "time": "1.379",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[external-cpu-fixed_owners1]",
+        "time": "1.386",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[external-cuda-fixed_owners0]",
+        "time": "1.535",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[external-cuda-fixed_owners1]",
+        "time": "1.531",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[free-cpu-fixed_owners0]",
+        "time": "3.252",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[free-cpu-fixed_owners1]",
+        "time": "2.410",
+        "status": "failure"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[free-cpu-fixed_owners2]",
+        "time": "2.402",
+        "status": "failure"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[free-cuda-fixed_owners0]",
+        "time": "3.005",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[free-cuda-fixed_owners1]",
+        "time": "2.776",
+        "status": "failure"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[free-cuda-fixed_owners2]",
+        "time": "2.767",
+        "status": "failure"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[cycle-cpu-fixed_owners0]",
+        "time": "2.406",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[cycle-cpu-fixed_owners1]",
+        "time": "2.634",
+        "status": "failure"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[cycle-cpu-fixed_owners2]",
+        "time": "2.383",
+        "status": "failure"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[cycle-cuda-fixed_owners0]",
+        "time": "3.006",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[cycle-cuda-fixed_owners1]",
+        "time": "2.776",
+        "status": "failure"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[cycle-cuda-fixed_owners2]",
+        "time": "2.757",
+        "status": "failure"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[external-cpu-fixed_owners0]",
+        "time": "2.818",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[external-cpu-fixed_owners1]",
+        "time": "2.553",
+        "status": "failure"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[external-cpu-fixed_owners2]",
+        "time": "2.531",
+        "status": "failure"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[external-cuda-fixed_owners0]",
+        "time": "2.958",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[external-cuda-fixed_owners1]",
+        "time": "2.912",
+        "status": "failure"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[external-cuda-fixed_owners2]",
+        "time": "2.904",
+        "status": "failure"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_constraints",
+        "name": "test_constrained_group_builds_rotamers[cpu-free]",
+        "time": "1.277",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_constraints",
+        "name": "test_constrained_group_builds_rotamers[cpu-cycle]",
+        "time": "1.316",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_constraints",
+        "name": "test_constrained_group_builds_rotamers[cpu-external]",
+        "time": "1.462",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_constraints",
+        "name": "test_constrained_group_builds_rotamers[cuda-free]",
+        "time": "1.462",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_constraints",
+        "name": "test_constrained_group_builds_rotamers[cuda-cycle]",
+        "time": "1.486",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_constraints",
+        "name": "test_constrained_group_builds_rotamers[cuda-external]",
+        "time": "1.638",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_constraints",
+        "name": "test_constrained_group_packing_preserves_geometry_and_energy[cpu-free]",
+        "time": "2.520",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_constraints",
+        "name": "test_constrained_group_packing_preserves_geometry_and_energy[cpu-cycle]",
+        "time": "2.416",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_constraints",
+        "name": "test_constrained_group_packing_preserves_geometry_and_energy[cpu-external]",
+        "time": "2.574",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_constraints",
+        "name": "test_constrained_group_packing_preserves_geometry_and_energy[cuda-free]",
+        "time": "3.044",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_constraints",
+        "name": "test_constrained_group_packing_preserves_geometry_and_energy[cuda-cycle]",
+        "time": "2.797",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_constraints",
+        "name": "test_constrained_group_packing_preserves_geometry_and_energy[cuda-external]",
+        "time": "2.943",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_chemical_geometry",
+        "name": "test_group_conformers_preserve_all_bonds_angles_and_chirality[cpu-biotin]",
+        "time": "1.574",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_chemical_geometry",
+        "name": "test_group_conformers_preserve_all_bonds_angles_and_chirality[cpu-nglycan]",
+        "time": "2.758",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_chemical_geometry",
+        "name": "test_group_conformers_preserve_all_bonds_angles_and_chirality[cpu-oglycan]",
+        "time": "4.681",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_chemical_geometry",
+        "name": "test_group_conformers_preserve_all_bonds_angles_and_chirality[cuda-biotin]",
+        "time": "1.487",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_chemical_geometry",
+        "name": "test_group_conformers_preserve_all_bonds_angles_and_chirality[cuda-nglycan]",
+        "time": "3.069",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_chemical_geometry",
+        "name": "test_group_conformers_preserve_all_bonds_angles_and_chirality[cuda-oglycan]",
+        "time": "4.921",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_budget_preserves_owner_when_chi_names_repeat",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_independent_library_does_not_remove_child_chi",
+        "time": "0.014",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_budget_retains_a_proton_placement_and_rejects_oversize_library",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_group_budget_keeps_correct_residue_and_linkage",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_anchor_library_keeps_identical_block_numbers_in_different_poses[cpu]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_anchor_library_keeps_identical_block_numbers_in_different_poses[cuda]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_kinforest_cache_is_scoped_to_packed_block_types",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_lockstep_rejects_mismatched_counts_before_native_scoring[cpu]",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_lockstep_rejects_mismatched_counts_before_native_scoring[cuda]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_group_collapse_accepts_exclusive_end_offset[cpu]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_group_collapse_accepts_exclusive_end_offset[cuda]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_constrained_library_projection_preserves_first_distinct_states",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_topology_cache_separates_external_constraints_and_is_bounded",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_topology_inventory",
+        "name": "test_group_records_all_internal_and_external_bonds[cpu-4-conjugations0-other0-polymers0]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_topology_inventory",
+        "name": "test_group_records_all_internal_and_external_bonds[cpu-3-conjugations1-other1-polymers1]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_topology_inventory",
+        "name": "test_group_records_all_internal_and_external_bonds[cpu-2-conjugations2-other2-polymers2]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_topology_inventory",
+        "name": "test_group_records_all_internal_and_external_bonds[cpu-3-conjugations3-other3-polymers3]",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_topology_inventory",
+        "name": "test_group_records_all_internal_and_external_bonds[cpu-5-conjugations4-other4-polymers4]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_topology_inventory",
+        "name": "test_group_records_all_internal_and_external_bonds[cpu-3-conjugations5-other5-polymers5]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_topology_inventory",
+        "name": "test_group_records_all_internal_and_external_bonds[cpu-1-conjugations6-other6-polymers6]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_topology_inventory",
+        "name": "test_group_records_all_internal_and_external_bonds[cuda-4-conjugations0-other0-polymers0]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_topology_inventory",
+        "name": "test_group_records_all_internal_and_external_bonds[cuda-3-conjugations1-other1-polymers1]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_topology_inventory",
+        "name": "test_group_records_all_internal_and_external_bonds[cuda-2-conjugations2-other2-polymers2]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_topology_inventory",
+        "name": "test_group_records_all_internal_and_external_bonds[cuda-3-conjugations3-other3-polymers3]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_topology_inventory",
+        "name": "test_group_records_all_internal_and_external_bonds[cuda-5-conjugations4-other4-polymers4]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_topology_inventory",
+        "name": "test_group_records_all_internal_and_external_bonds[cuda-3-conjugations5-other5-polymers5]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_topology_inventory",
+        "name": "test_group_records_all_internal_and_external_bonds[cuda-1-conjugations6-other6-polymers6]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype0-biotin]",
+        "time": "0.605",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype0-nglycan]",
+        "time": "1.879",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype0-oglycan]",
+        "time": "4.580",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype1-biotin]",
+        "time": "0.609",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype1-nglycan]",
+        "time": "1.906",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cpu-dtype1-oglycan]",
+        "time": "4.585",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype0-biotin]",
+        "time": "0.694",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype0-nglycan]",
+        "time": "2.103",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype0-oglycan]",
+        "time": "4.944",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype1-biotin]",
+        "time": "0.662",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype1-nglycan]",
+        "time": "2.078",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_group_and_member_batches_match_scalar_calls[cuda-dtype1-oglycan]",
+        "time": "4.716",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_reused_sampler_keeps_real_pose_groups_independent[cpu-biotin]",
+        "time": "1.507",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_reused_sampler_keeps_real_pose_groups_independent[cpu-free]",
+        "time": "1.433",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_reused_sampler_keeps_real_pose_groups_independent[cpu-cycle]",
+        "time": "1.378",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_reused_sampler_keeps_real_pose_groups_independent[cpu-external]",
+        "time": "1.530",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_reused_sampler_keeps_real_pose_groups_independent[cuda-biotin]",
+        "time": "1.695",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_reused_sampler_keeps_real_pose_groups_independent[cuda-free]",
+        "time": "1.628",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_reused_sampler_keeps_real_pose_groups_independent[cuda-cycle]",
+        "time": "1.573",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_batched_kinematics",
+        "name": "test_reused_sampler_keeps_real_pose_groups_independent[cuda-external]",
+        "time": "1.731",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cpu-biotin]",
+        "time": "1.337",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cpu-nglycan]",
+        "time": "2.828",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cpu-oglycan]",
+        "time": "4.987",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cuda-biotin]",
+        "time": "1.496",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cuda-nglycan]",
+        "time": "2.802",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_every_member_of_a_group_gets_the_same_rotamers[cuda-oglycan]",
+        "time": "4.896",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_a_group_is_sampled_as_the_product_of_its_parts[cpu]",
+        "time": "0.687",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_a_group_is_sampled_as_the_product_of_its_parts[cuda]",
+        "time": "0.795",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cpu-biotin]",
+        "time": "10.742",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cpu-nglycan]",
+        "time": "45.811",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cpu-oglycan]",
+        "time": "84.393",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cuda-biotin]",
+        "time": "3.018",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cuda-nglycan]",
+        "time": "4.841",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_bond_survives_packing[cuda-oglycan]",
+        "time": "5.262",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cpu-biotin]",
+        "time": "10.800",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cpu-nglycan]",
+        "time": "45.929",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cpu-oglycan]",
+        "time": "84.362",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cuda-biotin]",
+        "time": "3.009",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cuda-nglycan]",
+        "time": "4.877",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.test_conjugated_group_packing",
+        "name": "test_the_packers_energy_matches_what_the_pose_scores[cuda-oglycan]",
+        "time": "5.633",
+        "status": "pass"
+      }
+    ]
+  },
+  "final_cpu_cuda": {
+    "note": "Slurm 243810; final production code and test helper, CPU and H200 CUDA. Includes no-library, rigid-member and mixed-mask batch cases.",
+    "source": "/mnt/home/kdidi/tmol-pr503-followup/group-task-masks-final.xml",
+    "suites": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "121",
+        "time": "184.211",
+        "timestamp": "2026-09-11T14:15:27.677665+00:00",
+        "hostname": "slurm-h200-interactive-244-105"
+      }
+    ],
+    "cases": [
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners0-packing]",
+        "time": "7.157",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners0-sampler]",
+        "time": "1.277",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners1-packing]",
+        "time": "1.260",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners1-sampler]",
+        "time": "1.265",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners2-packing]",
+        "time": "1.261",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners2-sampler]",
+        "time": "1.257",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners3-packing]",
+        "time": "1.256",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners3-sampler]",
+        "time": "1.278",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners4-packing]",
+        "time": "1.276",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners4-sampler]",
+        "time": "1.262",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners0-packing]",
+        "time": "3.035",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners0-sampler]",
+        "time": "1.421",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners1-packing]",
+        "time": "1.416",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners1-sampler]",
+        "time": "1.432",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners2-packing]",
+        "time": "1.425",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners2-sampler]",
+        "time": "1.418",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners3-packing]",
+        "time": "1.416",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners3-sampler]",
+        "time": "1.417",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners4-packing]",
+        "time": "1.602",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cuda-fixed_owners4-sampler]",
+        "time": "1.400",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners0-packing]",
+        "time": "1.240",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners0-sampler]",
+        "time": "1.237",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners1-packing]",
+        "time": "1.236",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners1-sampler]",
+        "time": "1.243",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners2-packing]",
+        "time": "1.243",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners2-sampler]",
+        "time": "1.237",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners3-packing]",
+        "time": "1.243",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners3-sampler]",
+        "time": "1.257",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners4-packing]",
+        "time": "1.245",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners4-sampler]",
+        "time": "1.244",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners0-packing]",
+        "time": "1.402",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners0-sampler]",
+        "time": "1.403",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners1-packing]",
+        "time": "1.405",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners1-sampler]",
+        "time": "1.393",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners2-packing]",
+        "time": "1.399",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners2-sampler]",
+        "time": "1.400",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners3-packing]",
+        "time": "1.401",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners3-sampler]",
+        "time": "1.397",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners4-packing]",
+        "time": "1.386",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cuda-fixed_owners4-sampler]",
+        "time": "1.395",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners0-packing]",
+        "time": "1.398",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners0-sampler]",
+        "time": "1.596",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners1-packing]",
+        "time": "1.397",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners1-sampler]",
+        "time": "1.385",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners2-packing]",
+        "time": "1.385",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners2-sampler]",
+        "time": "1.388",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners3-packing]",
+        "time": "1.399",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners3-sampler]",
+        "time": "1.391",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners4-packing]",
+        "time": "1.380",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners4-sampler]",
+        "time": "1.386",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners0-packing]",
+        "time": "1.581",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners0-sampler]",
+        "time": "1.543",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners1-packing]",
+        "time": "1.550",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners1-sampler]",
+        "time": "1.550",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners2-packing]",
+        "time": "1.674",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners2-sampler]",
+        "time": "1.582",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners3-packing]",
+        "time": "1.552",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners3-sampler]",
+        "time": "1.549",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners4-packing]",
+        "time": "1.541",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cuda-fixed_owners4-sampler]",
+        "time": "1.561",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[free-cpu-fixed_owners0]",
+        "time": "1.275",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[free-cpu-fixed_owners1]",
+        "time": "1.276",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[free-cuda-fixed_owners0]",
+        "time": "1.592",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[free-cuda-fixed_owners1]",
+        "time": "1.404",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[cycle-cpu-fixed_owners0]",
+        "time": "1.235",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[cycle-cpu-fixed_owners1]",
+        "time": "1.233",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[cycle-cuda-fixed_owners0]",
+        "time": "1.388",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[cycle-cuda-fixed_owners1]",
+        "time": "1.389",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[external-cpu-fixed_owners0]",
+        "time": "1.385",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[external-cpu-fixed_owners1]",
+        "time": "1.383",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[external-cuda-fixed_owners0]",
+        "time": "1.533",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[external-cuda-fixed_owners1]",
+        "time": "1.526",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[free-cpu-fixed_owners0]",
+        "time": "3.235",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[free-cpu-fixed_owners1]",
+        "time": "2.433",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[free-cpu-fixed_owners2]",
+        "time": "2.633",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[free-cuda-fixed_owners0]",
+        "time": "3.063",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[free-cuda-fixed_owners1]",
+        "time": "2.925",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[free-cuda-fixed_owners2]",
+        "time": "2.866",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[cycle-cpu-fixed_owners0]",
+        "time": "2.522",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[cycle-cpu-fixed_owners1]",
+        "time": "2.492",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[cycle-cpu-fixed_owners2]",
+        "time": "2.652",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[cycle-cuda-fixed_owners0]",
+        "time": "2.826",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[cycle-cuda-fixed_owners1]",
+        "time": "2.807",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[cycle-cuda-fixed_owners2]",
+        "time": "2.813",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[external-cpu-fixed_owners0]",
+        "time": "2.623",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[external-cpu-fixed_owners1]",
+        "time": "2.657",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[external-cpu-fixed_owners2]",
+        "time": "2.745",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[external-cuda-fixed_owners0]",
+        "time": "3.007",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[external-cuda-fixed_owners1]",
+        "time": "2.975",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[external-cuda-fixed_owners2]",
+        "time": "2.929",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_reused_sampler_and_batched_masks_are_pose_local[free-cpu]",
+        "time": "1.508",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_reused_sampler_and_batched_masks_are_pose_local[free-cuda]",
+        "time": "1.728",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_reused_sampler_and_batched_masks_are_pose_local[cycle-cpu]",
+        "time": "1.513",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_reused_sampler_and_batched_masks_are_pose_local[cycle-cuda]",
+        "time": "1.741",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_reused_sampler_and_batched_masks_are_pose_local[external-cpu]",
+        "time": "1.668",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_reused_sampler_and_batched_masks_are_pose_local[external-cuda]",
+        "time": "1.870",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_member_without_its_own_chi_does_not_add_independent_fallback[free-cpu]",
+        "time": "1.569",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_member_without_its_own_chi_does_not_add_independent_fallback[free-cuda]",
+        "time": "1.689",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_member_without_its_own_chi_does_not_add_independent_fallback[cycle-cpu]",
+        "time": "1.357",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_member_without_its_own_chi_does_not_add_independent_fallback[cycle-cuda]",
+        "time": "1.544",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_member_without_its_own_chi_does_not_add_independent_fallback[external-cpu]",
+        "time": "1.469",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_member_without_its_own_chi_does_not_add_independent_fallback[external-cuda]",
+        "time": "1.690",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_library_free_group_preserves_entire_anchor[free-cpu]",
+        "time": "0.987",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_library_free_group_preserves_entire_anchor[free-cuda]",
+        "time": "1.058",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_library_free_group_preserves_entire_anchor[cycle-cpu]",
+        "time": "0.975",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_library_free_group_preserves_entire_anchor[cycle-cuda]",
+        "time": "1.077",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_library_free_group_preserves_entire_anchor[external-cpu]",
+        "time": "1.219",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_library_free_group_preserves_entire_anchor[external-cuda]",
+        "time": "1.182",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_budget_preserves_owner_when_chi_names_repeat",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_independent_library_does_not_remove_child_chi",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_budget_retains_a_proton_placement_and_rejects_oversize_library",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_group_budget_keeps_correct_residue_and_linkage",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_anchor_library_keeps_identical_block_numbers_in_different_poses[cpu]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_anchor_library_keeps_identical_block_numbers_in_different_poses[cuda]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_kinforest_cache_is_scoped_to_packed_block_types",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_lockstep_rejects_mismatched_counts_before_native_scoring[cpu]",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_lockstep_rejects_mismatched_counts_before_native_scoring[cuda]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_group_collapse_accepts_exclusive_end_offset[cpu]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_group_collapse_accepts_exclusive_end_offset[cuda]",
+        "time": "0.005",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_constrained_library_projection_preserves_first_distinct_states",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_topology_cache_separates_external_constraints_and_is_bounded",
+        "time": "0.002",
+        "status": "pass"
+      }
+    ]
+  },
+  "standalone_cpu": {
+    "note": "Before the extra rigid/no-library cases; superseded where overlapping by final CPU/CUDA run.",
+    "source": "/mnt/home/kdidi/tmol-pr503-followup/group-task-masks-final-cpu.xml",
+    "suites": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "58",
+        "time": "76.433",
+        "timestamp": "2026-09-11T14:06:14.564928+00:00",
+        "hostname": "slurm-login-0"
+      }
+    ],
+    "cases": [
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners0-packing]",
+        "time": "6.710",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners0-sampler]",
+        "time": "1.223",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners1-packing]",
+        "time": "1.220",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners1-sampler]",
+        "time": "1.204",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners2-packing]",
+        "time": "1.210",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners2-sampler]",
+        "time": "1.201",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners3-packing]",
+        "time": "1.193",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners3-sampler]",
+        "time": "1.208",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners4-packing]",
+        "time": "1.199",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[free-cpu-fixed_owners4-sampler]",
+        "time": "1.188",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners0-packing]",
+        "time": "1.175",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners0-sampler]",
+        "time": "1.425",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners1-packing]",
+        "time": "1.173",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners1-sampler]",
+        "time": "1.172",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners2-packing]",
+        "time": "1.175",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners2-sampler]",
+        "time": "1.176",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners3-packing]",
+        "time": "1.172",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners3-sampler]",
+        "time": "1.178",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners4-packing]",
+        "time": "1.175",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[cycle-cpu-fixed_owners4-sampler]",
+        "time": "1.167",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners0-packing]",
+        "time": "1.344",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners0-sampler]",
+        "time": "1.350",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners1-packing]",
+        "time": "1.337",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners1-sampler]",
+        "time": "1.331",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners2-packing]",
+        "time": "1.340",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners2-sampler]",
+        "time": "1.341",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners3-packing]",
+        "time": "1.348",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners3-sampler]",
+        "time": "1.344",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners4-packing]",
+        "time": "1.336",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masks_preserve_frozen_members_and_group_geometry[external-cpu-fixed_owners4-sampler]",
+        "time": "1.325",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[free-cpu-fixed_owners0]",
+        "time": "1.201",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[free-cpu-fixed_owners1]",
+        "time": "1.446",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[cycle-cpu-fixed_owners0]",
+        "time": "1.189",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[cycle-cpu-fixed_owners1]",
+        "time": "1.173",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[external-cpu-fixed_owners0]",
+        "time": "1.331",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_budget_counts_active_and_background_rotamers[external-cpu-fixed_owners1]",
+        "time": "1.342",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[free-cpu-fixed_owners0]",
+        "time": "2.694",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[free-cpu-fixed_owners1]",
+        "time": "2.172",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[free-cpu-fixed_owners2]",
+        "time": "2.193",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[cycle-cpu-fixed_owners0]",
+        "time": "2.445",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[cycle-cpu-fixed_owners1]",
+        "time": "2.151",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[cycle-cpu-fixed_owners2]",
+        "time": "2.137",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[external-cpu-fixed_owners0]",
+        "time": "2.286",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[external-cpu-fixed_owners1]",
+        "time": "2.279",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_masked_group_packing_preserves_geometry_and_energy[external-cpu-fixed_owners2]",
+        "time": "2.282",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_reused_sampler_and_batched_masks_are_pose_local[free-cpu]",
+        "time": "1.422",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_reused_sampler_and_batched_masks_are_pose_local[cycle-cpu]",
+        "time": "1.403",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_task_masks",
+        "name": "test_reused_sampler_and_batched_masks_are_pose_local[external-cpu]",
+        "time": "1.808",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_budget_preserves_owner_when_chi_names_repeat",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_independent_library_does_not_remove_child_chi",
+        "time": "0.003",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_budget_retains_a_proton_placement_and_rejects_oversize_library",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_group_budget_keeps_correct_residue_and_linkage",
+        "time": "0.001",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_anchor_library_keeps_identical_block_numbers_in_different_poses[cpu]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_kinforest_cache_is_scoped_to_packed_block_types",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_lockstep_rejects_mismatched_counts_before_native_scoring[cpu]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_group_collapse_accepts_exclusive_end_offset[cpu]",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_constrained_library_projection_preserves_first_distinct_states",
+        "time": "0.002",
+        "status": "pass"
+      },
+      {
+        "classname": "tmol.tests.pack.rotamer.test_group_sampling_regressions",
+        "name": "test_topology_cache_separates_external_constraints_and_is_bounded",
+        "time": "0.002",
+        "status": "pass"
+      }
+    ]
+  },
+  "atomworks_protonation": {
+    "note": "AtomWorks 44641189, CPU identity and protonation tests.",
+    "source": "/mnt/home/kdidi/tmol-pr503-followup/atomworks-dimorphite-identity.xml",
+    "suites": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "34",
+        "time": "2.510",
+        "timestamp": "2026-09-11T14:14:21.582654+00:00",
+        "hostname": "slurm-login-0"
+      }
+    ],
+    "cases": [
+      {
+        "classname": "tests.io.utils.test_dimorphite_identity",
+        "name": "test_protonation_preserves_mapped_heavy_atoms[CC(=O)[O-]-2.0]",
+        "time": "0.086",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_dimorphite_identity",
+        "name": "test_protonation_preserves_mapped_heavy_atoms[CC(=O)[O-]-7.4]",
+        "time": "0.069",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_dimorphite_identity",
+        "name": "test_protonation_preserves_mapped_heavy_atoms[CC(=O)[O-]-12.0]",
+        "time": "0.069",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_dimorphite_identity",
+        "name": "test_protonation_preserves_mapped_heavy_atoms[CC[NH3+]-2.0]",
+        "time": "0.067",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_dimorphite_identity",
+        "name": "test_protonation_preserves_mapped_heavy_atoms[CC[NH3+]-7.4]",
+        "time": "0.068",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_dimorphite_identity",
+        "name": "test_protonation_preserves_mapped_heavy_atoms[CC[NH3+]-12.0]",
+        "time": "0.089",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_dimorphite_identity",
+        "name": "test_protonation_preserves_mapped_heavy_atoms[CCN=[N+]=[N-]-2.0]",
+        "time": "0.069",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_dimorphite_identity",
+        "name": "test_protonation_preserves_mapped_heavy_atoms[CCN=[N+]=[N-]-7.4]",
+        "time": "0.069",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_dimorphite_identity",
+        "name": "test_protonation_preserves_mapped_heavy_atoms[CCN=[N+]=[N-]-12.0]",
+        "time": "0.071",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_dimorphite_identity",
+        "name": "test_protonation_preserves_mapped_heavy_atoms[CC[N+](=O)[O-]-2.0]",
+        "time": "0.070",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_dimorphite_identity",
+        "name": "test_protonation_preserves_mapped_heavy_atoms[CC[N+](=O)[O-]-7.4]",
+        "time": "0.068",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_dimorphite_identity",
+        "name": "test_protonation_preserves_mapped_heavy_atoms[CC[N+](=O)[O-]-12.0]",
+        "time": "0.067",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_dimorphite_identity",
+        "name": "test_protonation_preserves_mapped_heavy_atoms[N[C@@H](CS)C(=O)O-2.0]",
+        "time": "0.068",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_dimorphite_identity",
+        "name": "test_protonation_preserves_mapped_heavy_atoms[N[C@@H](CS)C(=O)O-7.4]",
+        "time": "0.067",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_dimorphite_identity",
+        "name": "test_protonation_preserves_mapped_heavy_atoms[N[C@@H](CS)C(=O)O-12.0]",
+        "time": "0.067",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_dimorphite_identity",
+        "name": "test_protonation_preserves_mapped_heavy_atoms[N[C@@H](Cc1cnc[nH]1)C(=O)O-2.0]",
+        "time": "0.069",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_dimorphite_identity",
+        "name": "test_protonation_preserves_mapped_heavy_atoms[N[C@@H](Cc1cnc[nH]1)C(=O)O-7.4]",
+        "time": "0.069",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_dimorphite_identity",
+        "name": "test_protonation_preserves_mapped_heavy_atoms[N[C@@H](Cc1cnc[nH]1)C(=O)O-12.0]",
+        "time": "0.070",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_dimorphite_identity",
+        "name": "test_protonation_preserves_mapped_heavy_atoms[N[C@@H](COP(=O)(O)O)C(=O)O-2.0]",
+        "time": "0.068",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_dimorphite_identity",
+        "name": "test_protonation_preserves_mapped_heavy_atoms[N[C@@H](COP(=O)(O)O)C(=O)O-7.4]",
+        "time": "0.069",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_dimorphite_identity",
+        "name": "test_protonation_preserves_mapped_heavy_atoms[N[C@@H](COP(=O)(O)O)C(=O)O-12.0]",
+        "time": "0.069",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_dimorphite_identity",
+        "name": "test_neutralization_preserves_azide_charge_separation",
+        "time": "0.067",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_dimorphite_identity",
+        "name": "test_variants_keep_enumeration_order_and_owned_molecules",
+        "time": "0.068",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_protonation.TestNormalizeRadicalOxygens",
+        "name": "test_radical_carboxylate_becomes_anion",
+        "time": "0.075",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_protonation.TestNormalizeRadicalOxygens",
+        "name": "test_noop_on_normal_mol",
+        "time": "0.066",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_protonation.TestDimorphitePhosphate",
+        "name": "test_phosphate_monoester_deprotonates_at_ph74",
+        "time": "0.067",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_protonation.TestHistidineTautomer",
+        "name": "test_capture_uses_positional_keys_for_duplicate_residue_ids",
+        "time": "0.066",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_protonation.TestHistidineTautomer",
+        "name": "test_hd1_only",
+        "time": "0.064",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_protonation.TestHistidineTautomer",
+        "name": "test_he2_only",
+        "time": "0.063",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_protonation.TestHistidineTautomer",
+        "name": "test_both_hd1_and_he2",
+        "time": "0.065",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_protonation.TestHistidineTautomer",
+        "name": "test_hn_closer_to_nd1",
+        "time": "0.065",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_protonation.TestHistidineTautomer",
+        "name": "test_apply_keeps_both_protons",
+        "time": "0.066",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_protonation.TestHistidineTautomer",
+        "name": "test_apply_nd1_prunes_he2",
+        "time": "0.066",
+        "status": "pass"
+      },
+      {
+        "classname": "tests.io.utils.test_protonation.TestCarboxylateCorrection",
+        "name": "test_gem_diol_carboxylate_corrected",
+        "time": "0.065",
+        "status": "pass"
+      }
+    ]
+  }
+}

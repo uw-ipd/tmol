@@ -69,8 +69,8 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             gen_hbond_bases,
         )
 
-        common_args = args[:-2]
-        pose_stack = args[-2]
+        common_args = args[:-3]
+        pose_stack, hbond_params = args[-3:-1]
         block_pair_scoring = args[-1]
         coords_dtype = common_args[0].dtype
         pair_param_table, pair_poly_table, global_param_table = self._param_tables(
@@ -96,12 +96,12 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
                 pose_stack.packed_block_types.n_all_bonds,
                 pose_stack.packed_block_types.all_bonds,
                 pose_stack.packed_block_types.atom_all_bond_ranges,
-                pose_stack.packed_block_types.hbpbt_params.tile_n_donH,
-                pose_stack.packed_block_types.hbpbt_params.tile_n_acc,
-                pose_stack.packed_block_types.hbpbt_params.tile_donH_inds,
-                pose_stack.packed_block_types.hbpbt_params.tile_acc_inds,
-                pose_stack.packed_block_types.hbpbt_params.tile_acceptor_hybridization,
-                pose_stack.packed_block_types.hbpbt_params.is_hydrogen,
+                hbond_params.tile_n_donH,
+                hbond_params.tile_n_acc,
+                hbond_params.tile_donH_inds,
+                hbond_params.tile_acc_inds,
+                hbond_params.tile_acceptor_hybridization,
+                hbond_params.is_hydrogen,
             )
 
         return hbond_pose_scores(
@@ -116,14 +116,14 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             pose_stack.packed_block_types.all_bonds,
             pose_stack.packed_block_types.atom_all_bond_ranges,
             pose_stack.packed_block_types.bond_separation,
-            pose_stack.packed_block_types.hbpbt_params.tile_n_donH,
-            pose_stack.packed_block_types.hbpbt_params.tile_n_acc,
-            pose_stack.packed_block_types.hbpbt_params.tile_donH_inds,
-            pose_stack.packed_block_types.hbpbt_params.tile_acc_inds,
-            pose_stack.packed_block_types.hbpbt_params.tile_donorH_type,
-            pose_stack.packed_block_types.hbpbt_params.tile_acceptor_type,
-            pose_stack.packed_block_types.hbpbt_params.tile_acceptor_hybridization,
-            pose_stack.packed_block_types.hbpbt_params.is_hydrogen,
+            hbond_params.tile_n_donH,
+            hbond_params.tile_n_acc,
+            hbond_params.tile_donH_inds,
+            hbond_params.tile_acc_inds,
+            hbond_params.tile_donorH_type,
+            hbond_params.tile_acceptor_type,
+            hbond_params.tile_acceptor_hybridization,
+            hbond_params.is_hydrogen,
             pair_param_table,
             pair_poly_table,
             global_param_table,
@@ -138,8 +138,8 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             gen_hbond_bases,
         )
 
-        common_args = args[:-2]
-        pose_stack = args[-2]
+        common_args = args[:-3]
+        pose_stack, hbond_params = args[-3:-1]
         block_pair_scoring = args[-1]
         coords_dtype = common_args[0].dtype
         pair_param_table, pair_poly_table, global_param_table = self._param_tables(
@@ -162,12 +162,12 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
                 pose_stack.packed_block_types.n_all_bonds,
                 pose_stack.packed_block_types.all_bonds,
                 pose_stack.packed_block_types.atom_all_bond_ranges,
-                pose_stack.packed_block_types.hbpbt_params.tile_n_donH,
-                pose_stack.packed_block_types.hbpbt_params.tile_n_acc,
-                pose_stack.packed_block_types.hbpbt_params.tile_donH_inds,
-                pose_stack.packed_block_types.hbpbt_params.tile_acc_inds,
-                pose_stack.packed_block_types.hbpbt_params.tile_acceptor_hybridization,
-                pose_stack.packed_block_types.hbpbt_params.is_hydrogen,
+                hbond_params.tile_n_donH,
+                hbond_params.tile_n_acc,
+                hbond_params.tile_donH_inds,
+                hbond_params.tile_acc_inds,
+                hbond_params.tile_acceptor_hybridization,
+                hbond_params.is_hydrogen,
             )
 
         return hbond_rotamer_scores(
@@ -182,14 +182,14 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             pose_stack.packed_block_types.all_bonds,
             pose_stack.packed_block_types.atom_all_bond_ranges,
             pose_stack.packed_block_types.bond_separation,
-            pose_stack.packed_block_types.hbpbt_params.tile_n_donH,
-            pose_stack.packed_block_types.hbpbt_params.tile_n_acc,
-            pose_stack.packed_block_types.hbpbt_params.tile_donH_inds,
-            pose_stack.packed_block_types.hbpbt_params.tile_acc_inds,
-            pose_stack.packed_block_types.hbpbt_params.tile_donorH_type,
-            pose_stack.packed_block_types.hbpbt_params.tile_acceptor_type,
-            pose_stack.packed_block_types.hbpbt_params.tile_acceptor_hybridization,
-            pose_stack.packed_block_types.hbpbt_params.is_hydrogen,
+            hbond_params.tile_n_donH,
+            hbond_params.tile_n_acc,
+            hbond_params.tile_donH_inds,
+            hbond_params.tile_acc_inds,
+            hbond_params.tile_donorH_type,
+            hbond_params.tile_acceptor_type,
+            hbond_params.tile_acceptor_hybridization,
+            hbond_params.is_hydrogen,
             pair_param_table,
             pair_poly_table,
             global_param_table,
@@ -205,4 +205,8 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         return self.rotamer_score_hbond
 
     def get_score_term_attributes(self, pose_stack: PoseStack):
-        return [pose_stack]
+        self.setup_packed_block_types(pose_stack.packed_block_types)
+        annotation = HBondDependentTerm.setup_packed_block_types(
+            self, pose_stack.packed_block_types
+        )
+        return [pose_stack, annotation]

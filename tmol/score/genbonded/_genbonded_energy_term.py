@@ -11,13 +11,15 @@ Key differences from CartBondedEnergyTerm:
     (tag=0 proper, tag=1 improper).  Shape per entry: Vec<Int,5> for the
     4-atom subgraph + type tag, Vec<Real,5> for parameters.
   - Inter-block torsion parameters are stored in a hash table keyed by
-    (type1, type2, type3, type4, bond_type_int) so that bond-type-specific
-    entries are preferred over wildcard ('~') entries.
+    (type1, type2, type3, type4, bond_bin), with the same parameter
+    priority and reversed matches as the CPU database lookup.
   - Bond type of the central bond is tracked through the pipeline and used
     for both intra (Python-time lookup) and inter (GPU-time hash lookup).
 """
 
 import math
+import weakref
+from dataclasses import dataclass
 from itertools import permutations
 
 import torch
@@ -28,6 +30,7 @@ from typing import List
 from tmol.score import AtomTypeDependentTerm
 
 from tmol.database import ParameterDatabase
+from tmol.database.scoring._genbonded import _bond_btidx
 
 from tmol.score.genbonded.potentials import (
     genbonded_pose_scores,
@@ -35,6 +38,7 @@ from tmol.score.genbonded.potentials import (
 )
 
 from tmol.chemical import BondType, RefinedResidueType
+from tmol.chemical import MAX_PATHS_FROM_CONNECTION
 from tmol.pose import (
     PackedBlockTypes,
     PoseStack,
@@ -45,29 +49,37 @@ from tmol.score.common import (
 )
 from tmol.score.na_torsion import scored_torsion_bonds
 from tmol.score.backbone_torsion import omega_connection
+from tmol.utility.weak_identity_cache import WeakIdentityLRU
 
 # Maximum hierarchy depth for any atom type (concrete -> class -> X).
 MAX_HIER_DEPTH = 4
 
-# Bond-type character to integer encoding (must match impl.hh GB_BOND_WILDCARD etc.)
-BOND_CHAR_TO_INT = {
-    "~": 0,  # wildcard
-    "-": 1,  # SINGLE
-    "=": 2,  # DOUBLE
-    "#": 3,  # TRIPLE
-    "@": 4,  # RING
-    ":": 5,  # AROMATIC
-}
+_INTER_TABLE_CACHE = WeakIdentityLRU()
 
-# IntEnum value -> single-char representation used in the database file
-BOND_TYPE_TO_CHAR = {
-    int(BondType.SINGLE): "-",
-    int(BondType.DOUBLE): "=",
-    int(BondType.TRIPLE): "#",
-    int(BondType.AROMATIC): ":",
-}
 
-GB_WILDCARD_BOND_INT = 0
+@dataclass(frozen=True, slots=True)
+class _ParameterAnnotation:
+    database: weakref.ReferenceType
+    elements: tuple
+    device: object
+    values: tuple
+
+
+_PACKED_FIELDS = (
+    "genbonded_intra_subgraphs",
+    "genbonded_intra_subgraph_offsets",
+    "genbonded_intra_params",
+    "genbonded_atom_type_hierarchy",
+    "genbonded_atom_is_rosetta",
+    "genbonded_connection_bond_bins",
+    "genbonded_conn_scored_elsewhere",
+    "genbonded_source_atom_index",
+    "genbonded_source_block_type_index",
+    "genbonded_inter_torsion_hash_keys",
+    "genbonded_inter_torsion_hash_values",
+    "genbonded_inter_improper_hash_keys",
+    "genbonded_inter_improper_hash_values",
+)
 
 
 class GenBondedEnergyTerm(AtomTypeDependentTerm):
@@ -83,10 +95,11 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
         # (concrete, generic, and wildcard), so the mapping is stable and fixed
         # regardless of which block types are later loaded.
         self._type_to_idx = self.gen_database.make_type_to_idx()
-        self._all_type_names = self.gen_database.all_type_names()
         self._element_for_atom_type = {
             at.name: at.element for at in param_db.chemical.atom_types
         }
+        self._element_key = tuple(sorted(self._element_for_atom_type.items()))
+        self._database_ref = weakref.ref(self.gen_database)
 
     @classmethod
     def class_name(cls):
@@ -179,8 +192,25 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
         return impropers
 
     def get_atom_chem_type(self, block_type: RefinedResidueType, atom_idx: int) -> str:
-        """Return the chemical atom type string for *atom_idx* in *block_type*."""
-        return block_type.atoms[atom_idx].atom_type
+        """Return the generic lookup reference, independently of ownership."""
+        atom = block_type.atoms[atom_idx]
+        return atom.atom_type if atom.genbonded_type is None else atom.genbonded_type
+
+    def _validate_generic_references(self, block_type):
+        for atom in block_type.atoms:
+            reference = atom.genbonded_type
+            if reference is None:
+                continue
+            if (
+                reference not in self.gen_database.atom_hierarchy
+                or reference not in self._element_for_atom_type
+                or self._element_for_atom_type[reference]
+                != self._element_for_atom_type[atom.atom_type]
+            ):
+                raise ValueError(
+                    f"{block_type.name} atom {atom.name}: invalid genbonded_type "
+                    f"{reference!r} for atom type {atom.atom_type!r}"
+                )
 
     def resolve_torsion_params(self, block_type: RefinedResidueType, torsions):
         """For each torsion tuple (i,j,k,l), look up its genbonded parameters.
@@ -206,13 +236,16 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
         rosetta_typed = self.gen_database.rosetta_typed
         na_bonds = scored_torsion_bonds(block_type, self._element_for_atom_type)
 
-        for i, j, k, l in torsions:
+        for i, j, k, last in torsions:
             t1 = self.get_atom_chem_type(block_type, i)
             t2 = self.get_atom_chem_type(block_type, j)
             t3 = self.get_atom_chem_type(block_type, k)
-            t4 = self.get_atom_chem_type(block_type, l)
+            t4 = self.get_atom_chem_type(block_type, last)
 
-            if t2 in rosetta_typed and t3 in rosetta_typed:
+            if (
+                block_type.atoms[j].atom_type in rosetta_typed
+                and block_type.atoms[k].atom_type in rosetta_typed
+            ):
                 continue
             if frozenset((int(j), int(k))) in na_bonds:
                 continue
@@ -229,7 +262,7 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
                 t1, t2, t3, t4, bond_type_int, is_ring
             )
             if entry is not None:
-                kept.append((i, j, k, l))
+                kept.append((i, j, k, last))
                 # Rosetta's calculate_offset() zeros the minimum when the
                 # database offset is 0 and nk_nonzero(k1,k2,k3) > 1.
                 # Non-zero database offsets override this entirely.
@@ -256,15 +289,16 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
 
         Impropers with no matching database entry are dropped.
 
-        No Rosetta/ligand partition is applied: every improper entry is centred
-        on a concrete generic type, which no Rosetta type's hierarchy reaches, so
-        a Rosetta-centred improper can never match.
+        A Rosetta-typed center belongs to the Rosetta terms even when it has
+        an explicit generic lookup reference for neighboring interactions.
         """
         kept = []
         rows = []
 
         for quad in impropers:
             center, n1, n2, n3 = quad
+            if block_type.atoms[center].atom_type in self.gen_database.rosetta_typed:
+                continue
             tc = self.get_atom_chem_type(block_type, center)
             t1 = self.get_atom_chem_type(block_type, n1)
             t2 = self.get_atom_chem_type(block_type, n2)
@@ -304,10 +338,16 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(GenBondedEnergyTerm, self).setup_block_type(block_type)
-        if hasattr(block_type, "genbonded_intra_subgraphs"):
-            assert hasattr(block_type, "genbonded_intra_params")
-            assert hasattr(block_type, "genbonded_atom_type_hierarchy")
-            return
+        previous = getattr(block_type, "_genbonded_parameters", None)
+        if (
+            previous is not None
+            and previous.database() is self.gen_database
+            and previous.elements == self._element_key
+        ):
+            return previous
+
+        # Validate once, before publishing any partially constructed annotation.
+        self._validate_generic_references(block_type)
 
         # --- Proper torsions ---
         all_torsions = self.find_torsion_subgraphs(block_type.bond_indices)
@@ -331,8 +371,8 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
         combined_subgraphs = []
         combined_params = []
 
-        for (i, j, k, l), p in zip(kept_torsions, torsion_params):
-            combined_subgraphs.append([0, int(i), int(j), int(k), int(l)])
+        for atoms, p in zip(kept_torsions, torsion_params):
+            combined_subgraphs.append([0, *map(int, atoms)])
             combined_params.append(
                 [float(p[0]), float(p[1]), float(p[2]), float(p[3]), float(p[4])]
             )
@@ -348,9 +388,6 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
             intra_subgraphs = numpy.zeros((0, 5), dtype=numpy.int32)
             intra_params = numpy.zeros((0, 5), dtype=numpy.float32)
 
-        setattr(block_type, "genbonded_intra_subgraphs", intra_subgraphs)
-        setattr(block_type, "genbonded_intra_params", intra_params)
-
         # --- Per-atom hierarchy index array ---
         # Shape: (n_atoms, MAX_HIER_DEPTH) – integer indices into all_type_names.
         # Allows the GPU kernel to walk the type hierarchy for inter-block
@@ -361,7 +398,23 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
             atype = self.get_atom_chem_type(block_type, atom_idx)
             hier_arr[atom_idx] = self.atom_hierarchy_indices(atype)
 
-        setattr(block_type, "genbonded_atom_type_hierarchy", hier_arr)
+        annotation = _ParameterAnnotation(
+            self._database_ref,
+            self._element_key,
+            None,
+            (intra_subgraphs, intra_params, hier_arr),
+        )
+        for name, value in zip(
+            (
+                "genbonded_intra_subgraphs",
+                "genbonded_intra_params",
+                "genbonded_atom_type_hierarchy",
+            ),
+            annotation.values,
+        ):
+            setattr(block_type, name, value)
+        block_type._genbonded_parameters = annotation
+        return annotation
 
     # ------------------------------------------------------------------
     # Packed-block-types setup
@@ -371,26 +424,25 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
         self, packed_block_types: PackedBlockTypes
     ):
         super(GenBondedEnergyTerm, self).setup_packed_block_types(packed_block_types)
-        if hasattr(packed_block_types, "genbonded_intra_subgraphs"):
-            assert hasattr(packed_block_types, "genbonded_intra_subgraph_offsets")
-            assert hasattr(packed_block_types, "genbonded_intra_params")
-            assert hasattr(packed_block_types, "genbonded_atom_type_hierarchy")
-            assert hasattr(packed_block_types, "genbonded_connection_bond_types")
-            assert hasattr(packed_block_types, "genbonded_source_atom_index")
-            assert hasattr(packed_block_types, "genbonded_source_block_type_index")
-            assert hasattr(packed_block_types, "genbonded_inter_torsion_hash_keys")
-            assert hasattr(packed_block_types, "genbonded_inter_torsion_hash_values")
-            assert hasattr(packed_block_types, "genbonded_inter_improper_hash_keys")
-            assert hasattr(packed_block_types, "genbonded_inter_improper_hash_values")
-            return
+        previous = getattr(packed_block_types, "_genbonded_parameters", None)
+        if (
+            previous is not None
+            and previous.database() is self.gen_database
+            and previous.elements == self._element_key
+            and previous.device == self.device
+        ):
+            return previous
 
         block_types = packed_block_types.active_block_types
+        # Capture each returned annotation, so another setup cannot switch the
+        # parameters while this packed set is being assembled.
+        block_values = [self.setup_block_type(bt).values for bt in block_types]
         n_block_types = len(block_types)
 
         # ------------------------------------------------------------------
         # 1. Aggregate intra-block subgraphs (proper + improper, combined).
         # ------------------------------------------------------------------
-        total_intra = sum(bt.genbonded_intra_subgraphs.shape[0] for bt in block_types)
+        total_intra = sum(values[0].shape[0] for values in block_values)
         # TPack does not like stride 0 — ensure at least 1 row.
         total_intra = max(total_intra, 1)
 
@@ -398,12 +450,12 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
         intra_params = numpy.zeros((total_intra, 5), dtype=numpy.float32)
         intra_offsets = []
         offset = 0
-        for bt in block_types:
+        for graphs, parameters, _hierarchy in block_values:
             intra_offsets.append(offset)
-            n = bt.genbonded_intra_subgraphs.shape[0]
+            n = graphs.shape[0]
             if n > 0:
-                intra_subgraphs[offset : offset + n] = bt.genbonded_intra_subgraphs
-                intra_params[offset : offset + n] = bt.genbonded_intra_params
+                intra_subgraphs[offset : offset + n] = graphs
+                intra_params[offset : offset + n] = parameters
             offset += n
 
         # ------------------------------------------------------------------
@@ -413,14 +465,14 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
         # Needed by the GPU kernel for inter-block hash-table lookup.
         # ------------------------------------------------------------------
         max_atoms = max(
-            (bt.genbonded_atom_type_hierarchy.shape[0] for bt in block_types),
+            (values[2].shape[0] for values in block_values),
             default=0,
         )
         atom_hier = numpy.full(
             (n_block_types, max(max_atoms, 1), MAX_HIER_DEPTH), -1, dtype=numpy.int32
         )
-        for bt_idx, bt in enumerate(block_types):
-            h = bt.genbonded_atom_type_hierarchy  # (n_atoms, MAX_HIER_DEPTH)
+        for bt_idx, values in enumerate(block_values):
+            h = values[2]  # (n_atoms, MAX_HIER_DEPTH)
             n = h.shape[0]
             atom_hier[bt_idx, :n, :] = h
 
@@ -435,20 +487,15 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
             for atom_idx, atom in enumerate(bt.atoms):
                 atom_is_rosetta[bt_idx, atom_idx] = atom.atom_type in rosetta_typed
 
-        # ------------------------------------------------------------------
-        # 3. Connection bond-type tensor.
-        #
-        # Shape: (n_block_types, max_n_conns) int32.
-        # gen_connection_bond_types[bt][conn_idx] = bond type int (0=wildcard,
-        # 1=SINGLE, 2=DOUBLE, etc.) for the bond crossing connection conn_idx.
-        # Used by the GPU kernel to encode the central bond in hash lookups.
-        # ------------------------------------------------------------------
+        # Slot zero describes the connection; later slots describe each path's
+        # local central bond for 3+1 torsions, including its ring membership.
         max_n_conns = max(
             (len(bt.connections) for bt in block_types),
             default=0,
         )
-        conn_bond_types = numpy.zeros(
-            (n_block_types, max(max_n_conns, 1)), dtype=numpy.int32
+        conn_bond_bins = numpy.zeros(
+            (n_block_types, max(max_n_conns, 1), MAX_PATHS_FROM_CONNECTION + 1),
+            dtype=numpy.int32,
         )
         # backbone_torsion claims the torsion across one connection by name, and
         # that bond can be mixed-typed, which atom types alone cannot detect.
@@ -457,8 +504,17 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
         )
         for bt_idx, bt in enumerate(block_types):
             n_conns = len(bt.connections)
-            if n_conns > 0:
-                conn_bond_types[bt_idx, :n_conns] = bt.connection_bond_types
+            for conn, paths in enumerate(bt.atom_paths_from_conn):
+                conn_bond_bins[bt_idx, conn, 0] = _bond_btidx(
+                    int(bt.connection_bond_types[conn]), False
+                )
+                for path, (first, second, third) in enumerate(paths):
+                    if third < 0:
+                        continue
+                    bond = (int(first), int(second))
+                    conn_bond_bins[bt_idx, conn, path + 1] = _bond_btidx(
+                        bt.bond_to_type[bond], bt.bond_to_ringness[bond]
+                    )
             omega_conn = omega_connection(bt)
             if 0 <= omega_conn < n_conns:
                 conn_scored_elsewhere[bt_idx, omega_conn] = 1
@@ -482,54 +538,71 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
                     atom.name, atom_idx
                 )
 
-        # ------------------------------------------------------------------
-        # 4. Inter-block torsion hash table.
-        #
-        # Keyed by (type_idx_1, type_idx_2, type_idx_3, type_idx_4, bond_type_int).
-        # 5 key elements + 1 value-index slot -> Vec<Int,6> in the C++ kernel,
-        # matching hash_lookup<Int, 5, D>.
-        #
-        # Wildcard entries (bond='~') are stored under bond_type_int=0.
-        # At GPU time the kernel tries the specific bond type first, then
-        # falls back to wildcard (GB_BOND_WILDCARD=0).
-        #
-        # hash_keys:   (n_entries * SCALE, 6) int32
-        # hash_values: (n_entries, 5) float32  [k1, k2, k3, k4, offset]
-        # ------------------------------------------------------------------
-        n_torsion_entries = len(self.gen_database.torsions)
-        type_to_idx = self._type_to_idx
-        SCALE = 2  # hash table load factor
+        def to_dev(arr):
+            return torch.from_numpy(arr).to(device=self.device)
 
-        if n_torsion_entries > 0:
-            # key_len=6: 5 key slots (4 atom types + 1 bond type) + 1 value-index slot.
-            # This matches hash_lookup<Int, 5, D> which expects Vec<Int,6>.
-            hash_keys, hash_values = make_hashtable_keys_values(
-                n_torsion_entries, SCALE, key_len=6, value_len=5
-            )
-            for val_idx, entry in enumerate(self.gen_database.torsions):
-                et1, et2, et3, et4 = entry.atoms
-                # Only insert if all 4 types are known.
-                if any(t not in type_to_idx for t in (et1, et2, et3, et4)):
-                    continue
-                bond_int = BOND_CHAR_TO_INT.get(entry.bond, GB_WILDCARD_BOND_INT)
-                key = (
-                    type_to_idx[et1],
-                    type_to_idx[et2],
-                    type_to_idx[et3],
-                    type_to_idx[et4],
-                    bond_int,
+        inter_tables = _INTER_TABLE_CACHE.get_or_create(
+            self.gen_database, self.device, self._build_inter_tables
+        )
+        values = (
+            tuple(
+                to_dev(arr)
+                for arr in (
+                    intra_subgraphs,
+                    numpy.asarray(intra_offsets, dtype=numpy.int32),
+                    intra_params,
+                    atom_hier,
+                    atom_is_rosetta,
+                    conn_bond_bins,
+                    conn_scored_elsewhere,
+                    source_atom_index,
+                    source_block_type_index,
                 )
-                offset = entry.offset
-                if abs(offset) < 1e-6:
-                    offset = self._calculate_offset(
-                        entry.k1, entry.k2, entry.k3, entry.k4
-                    )
-                values = (entry.k1, entry.k2, entry.k3, entry.k4, offset)
-                add_to_hashtable(hash_keys, hash_values, val_idx, key, values)
-        else:
-            # Empty hash table placeholders (1 entry, 2-slot table, 6-wide keys).
-            hash_keys = numpy.full((2, 6), -1, dtype=numpy.int32)
-            hash_values = numpy.zeros((1, 5), dtype=numpy.float32)
+            )
+            + inter_tables
+        )
+        annotation = _ParameterAnnotation(
+            self._database_ref, self._element_key, self.device, values
+        )
+        for name, value in zip(_PACKED_FIELDS, values):
+            setattr(packed_block_types, name, value)
+        packed_block_types._genbonded_parameters = annotation
+        return annotation
+
+    def _build_inter_tables(self):
+        """Database-wide tables, shared without retaining their database owner."""
+        # The CPU index owns bond coverage, reversed matches, and precedence.
+        # Values sorted by that priority let native lookup compare integer ranks.
+        index = self.gen_database._torsion_index
+        ranked = sorted(
+            {
+                (priority, entry)
+                for bucket in index.values()
+                for priority, _, entry in bucket
+            },
+            key=lambda row: row[0],
+        )
+        ranks = {}
+        for rank, (_, entry) in enumerate(ranked):
+            ranks.setdefault(entry, rank)
+        keys = {}
+        for types, bucket in index.items():
+            encoded = tuple(self._type_to_idx[t] for t in types)
+            for _, bins, entry in bucket:
+                for bond_bin in bins:
+                    key = (*encoded, bond_bin)
+                    keys.setdefault(key, ranks[entry])
+        SCALE = 2
+        type_to_idx = self._type_to_idx
+        hash_keys = numpy.full((max(len(keys) * SCALE, 2), 6), -1, dtype=numpy.int32)
+        hash_values = numpy.zeros((max(len(ranked), 1), 5), dtype=numpy.float32)
+        for rank, (_, entry) in enumerate(ranked):
+            offset = entry.offset
+            if abs(offset) < 1e-6:
+                offset = self._calculate_offset(entry.k1, entry.k2, entry.k3, entry.k4)
+            hash_values[rank] = (entry.k1, entry.k2, entry.k3, entry.k4, offset)
+        for key, rank in keys.items():
+            add_to_hashtable(hash_keys, hash_values, rank, key, hash_values[rank])
 
         # Inter-block impropers are keyed by center type followed by an ordered
         # permutation of the three neighbor types. Store all six permutations;
@@ -565,76 +638,14 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
             improper_hash_keys = numpy.full((2, 5), -1, dtype=numpy.int32)
             improper_hash_values = numpy.zeros((1, 5), dtype=numpy.float32)
 
-        # ------------------------------------------------------------------
-        # 5. Store everything on packed_block_types.
-        # ------------------------------------------------------------------
-        def to_dev(arr):
-            return torch.from_numpy(arr).to(device=self.device)
-
-        setattr(
-            packed_block_types,
-            "genbonded_intra_subgraphs",
-            to_dev(intra_subgraphs),
-        )
-        setattr(
-            packed_block_types,
-            "genbonded_intra_subgraph_offsets",
-            to_dev(numpy.asarray(intra_offsets, dtype=numpy.int32)),
-        )
-        setattr(
-            packed_block_types,
-            "genbonded_intra_params",
-            to_dev(intra_params),
-        )
-        setattr(
-            packed_block_types,
-            "genbonded_atom_type_hierarchy",
-            to_dev(atom_hier),
-        )
-        setattr(
-            packed_block_types,
-            "genbonded_atom_is_rosetta",
-            to_dev(atom_is_rosetta),
-        )
-        setattr(
-            packed_block_types,
-            "genbonded_connection_bond_types",
-            to_dev(conn_bond_types),
-        )
-        setattr(
-            packed_block_types,
-            "genbonded_conn_scored_elsewhere",
-            to_dev(conn_scored_elsewhere),
-        )
-        setattr(
-            packed_block_types,
-            "genbonded_source_atom_index",
-            to_dev(source_atom_index),
-        )
-        setattr(
-            packed_block_types,
-            "genbonded_source_block_type_index",
-            to_dev(source_block_type_index),
-        )
-        setattr(
-            packed_block_types,
-            "genbonded_inter_torsion_hash_keys",
-            to_dev(hash_keys),
-        )
-        setattr(
-            packed_block_types,
-            "genbonded_inter_torsion_hash_values",
-            to_dev(hash_values),
-        )
-        setattr(
-            packed_block_types,
-            "genbonded_inter_improper_hash_keys",
-            to_dev(improper_hash_keys),
-        )
-        setattr(
-            packed_block_types,
-            "genbonded_inter_improper_hash_values",
-            to_dev(improper_hash_values),
+        return tuple(
+            torch.from_numpy(arr).to(device=self.device)
+            for arr in (
+                hash_keys,
+                hash_values,
+                improper_hash_keys,
+                improper_hash_values,
+            )
         )
 
     # ------------------------------------------------------------------
@@ -656,21 +667,9 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
 
     def get_score_term_attributes(self, pose_stack: PoseStack):
         pbt = pose_stack.packed_block_types
-
+        parameters = self.setup_packed_block_types(pbt)
         return [
             pose_stack.inter_residue_connections,
             pbt.atom_paths_from_conn,
-            pbt.genbonded_intra_subgraphs,
-            pbt.genbonded_intra_subgraph_offsets,
-            pbt.genbonded_intra_params,
-            pbt.genbonded_atom_type_hierarchy,
-            pbt.genbonded_atom_is_rosetta,
-            pbt.genbonded_connection_bond_types,
-            pbt.genbonded_conn_scored_elsewhere,
-            pbt.genbonded_source_atom_index,
-            pbt.genbonded_source_block_type_index,
-            pbt.genbonded_inter_torsion_hash_keys,
-            pbt.genbonded_inter_torsion_hash_values,
-            pbt.genbonded_inter_improper_hash_keys,
-            pbt.genbonded_inter_improper_hash_values,
+            *parameters.values,
         ]

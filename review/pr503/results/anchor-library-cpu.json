@@ -1,0 +1,108 @@
+{
+  "baseline_commit": "c2a9b4c1c",
+  "candidate_commit": "c2a9b4c1c9f509d4cf755ce6a69549b95a61002d",
+  "candidate_diff": "diff --git a/tmol/pack/rotamer/_conjugated_chi_sampler.py b/tmol/pack/rotamer/_conjugated_chi_sampler.py\nindex 7ea653348..7fa4c86d3 100644\n--- a/tmol/pack/rotamer/_conjugated_chi_sampler.py\n+++ b/tmol/pack/rotamer/_conjugated_chi_sampler.py\n@@ -13,6 +13,7 @@ be bonded to a sidechain to be here at all.\n \"\"\"\n \n import attr\n+from copy import copy\n import itertools\n import math\n import numpy\n@@ -475,16 +476,16 @@ class ConjugatedChiSampler(ChiSampler):\n         if self.library_sampler is None:\n             return {}\n         index = task.conformer_sampler_index[id(self.library_sampler)]\n-        allowed = task.per_block_conformer_sampler_allowed\n-        saved = allowed[:, :, index].clone()\n+        # Only anchors need this extra library pass. Keep the caller's task\n+        # immutable, including while the library is executing or raises.\n+        library_task = copy(task)\n+        allowed = torch.zeros_like(task.per_block_conformer_sampler_allowed)\n+        library_task.per_block_conformer_sampler_allowed = allowed\n         for group in groups:\n             allowed[group.pose, group.anchor, index] = True\n-        try:\n-            _n, gbt_for_rot, chi_atoms, chi = self.library_sampler.sample_chi_for_poses(\n-                pose_stack, task\n-            )\n-        finally:\n-            allowed[:, :, index] = saved\n+        _n, gbt_for_rot, chi_atoms, chi = self.library_sampler.sample_chi_for_poses(\n+            pose_stack, library_task\n+        )\n \n         pose_of = task.cons_bt_pose.cpu().numpy()\n         block_of = task.cons_bt_block.cpu().numpy()\n",
+  "device": "cpu",
+  "torch": "2.8.0+cpu",
+  "rows": [
+    {
+      "fixture": "lys_biotin_1bdo",
+      "n_groups": 1,
+      "library_rows": {
+        "before": 1781,
+        "after": 60
+      },
+      "seconds": {
+        "before": [
+          0.001868157647550106,
+          0.0019262665882706642,
+          0.001966385170817375,
+          0.0019119028002023697,
+          0.001895408146083355,
+          0.0018866444006562233,
+          0.0018643708899617195
+        ],
+        "after": [
+          0.0013217972591519356,
+          0.0012991530820727348,
+          0.0012833783403038979,
+          0.0013082465156912804,
+          0.0013029081746935844,
+          0.0012939255684614182,
+          0.0012752963230013847
+        ]
+      },
+      "medians": {
+        "before": 0.001895408146083355,
+        "after": 0.0012991530820727348
+      },
+      "exact_anchor_output_match": true
+    },
+    {
+      "fixture": "oglycan_sia_1g1s",
+      "n_groups": 1,
+      "library_rows": {
+        "before": 3028,
+        "after": 3
+      },
+      "seconds": {
+        "before": [
+          0.0015840763226151466,
+          0.0016064783558249474,
+          0.0015636049211025238,
+          0.0015733195468783379,
+          0.0015468774363398552,
+          0.0015793582424521446,
+          0.001582232303917408
+        ],
+        "after": [
+          0.0008867159485816956,
+          0.0008859848603606224,
+          0.0008752290159463882,
+          0.0008791042491793633,
+          0.0008758893236517906,
+          0.0008740872144699097,
+          0.0008784634992480278
+        ]
+      },
+      "medians": {
+        "before": 0.0015793582424521446,
+        "after": 0.0008784634992480278
+      },
+      "exact_anchor_output_match": true
+    },
+    {
+      "fixture": "nglycan_tree_1ax2",
+      "n_groups": 1,
+      "library_rows": {
+        "before": 5849,
+        "after": 66
+      },
+      "seconds": {
+        "before": [
+          0.003976468928158283,
+          0.004702109843492508,
+          0.004354231990873814,
+          0.0039212750270962715,
+          0.003987395204603672,
+          0.0038628866896033287,
+          0.0039010345935821533
+        ],
+        "after": [
+          0.0023454204201698303,
+          0.0031927181407809258,
+          0.003110562451183796,
+          0.002176225185394287,
+          0.0022196508944034576,
+          0.0021688826382160187,
+          0.0021811621263623238
+        ]
+      },
+      "medians": {
+        "before": 0.003976468928158283,
+        "after": 0.0022196508944034576
+      },
+      "exact_anchor_output_match": true
+    }
+  ]
+}

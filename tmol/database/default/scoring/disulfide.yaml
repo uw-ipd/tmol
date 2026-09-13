@@ -30,3 +30,10 @@ global_parameters:
   wt_ang: 0.1
   wt_len: 0.1
   shift: 2.0
+  # Mixed D/L S-S torsion: Rosetta FullatomDisulfideParams13, radians.
+  dss_mixed_logA1: -28.1535
+  dss_mixed_kappa1: 25.9429
+  dss_mixed_mu1: -1.5707963267948966
+  dss_mixed_logA2: -28.1535
+  dss_mixed_kappa2: 25.9429
+  dss_mixed_mu2: 1.5707963267948966

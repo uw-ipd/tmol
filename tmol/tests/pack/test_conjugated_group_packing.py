@@ -13,7 +13,6 @@ import torch
 
 from tmol.io import pose_stack_from_biotite
 from tmol.io._cif import atom_array_from_cif
-from tmol.database import ParameterDatabase
 from tmol.pack import PackerTask, PackerPalette, pack_rotamers
 from tmol.pack._impose_rotamers import (
     chosen_rotamer_for_block,
@@ -37,9 +36,6 @@ FIXTURES = {
     "oglycan": "oglycan_sia_1g1s",
     "nglycan": "nglycan_tree_1ax2",
 }
-
-# groups big enough that a full pack is only practical on the gpu
-BIG = {"oglycan", "nglycan"}
 
 
 def _pose(stem, device):
@@ -89,7 +85,7 @@ def test_every_member_of_a_group_gets_the_same_rotamers(fixture, torch_device):
     pair one member's conformer with another's.
     """
     pose_stack, ctx = _pose(FIXTURES[fixture], torch_device)
-    param_db = getattr(ctx, "param_db", None) or ParameterDatabase.get_default()
+    param_db = ctx.parameter_database
     task, sampler = _task(pose_stack, param_db, torch_device)
 
     pose_stack, rotamer_set = build_rotamers(
@@ -112,7 +108,7 @@ def test_every_member_of_a_group_gets_the_same_rotamers(fixture, torch_device):
 def test_a_group_is_sampled_as_the_product_of_its_parts(torch_device):
     """The count is the anchor's library rotamers times the tree's conformers."""
     pose_stack, ctx = _pose(FIXTURES["biotin"], torch_device)
-    param_db = getattr(ctx, "param_db", None) or ParameterDatabase.get_default()
+    param_db = ctx.parameter_database
     task, sampler = _task(pose_stack, param_db, torch_device)
     set_task = SetPackerTask.from_packer_task(task)
 
@@ -143,15 +139,26 @@ def test_a_group_is_sampled_as_the_product_of_its_parts(torch_device):
         #    conformer the group came in with
         assert (conformers.shape[0] - 1) % n_tree == 0
         assert conformers.shape[1] == len(columns)
+        assert conformers.shape[0] * len(group.blocks) <= max(
+            sampler.chi_sample_expanded_limit, sampler.chi_sample_limit
+        )
+        # An explicit task budget must survive conversion without changing
+        # the sampler the caller may reuse for another pose/task.
+        task.set_chi_sample_budget(1, 1)
+        restricted = SetPackerTask.from_packer_task(task)
+        assert restricted.chi_sample_budget == (1, 1)
+        with pytest.raises(ValueError, match="Sampling budget"):
+            sampler.group_conformers(
+                pose_stack, anchor_chi, restricted.chi_sample_budget
+            )
+        assert sampler.chi_sample_limit == 1000
 
 
 @pytest.mark.parametrize("fixture", sorted(FIXTURES))
 def test_the_bond_survives_packing(fixture, torch_device):
     """Every bond joining a group's blocks keeps its length through a pack."""
-    if fixture in BIG and torch_device.type == "cpu":
-        pytest.skip(f"{fixture}'s group is too big to pack on cpu; cuda covers it")
     pose_stack, ctx = _pose(FIXTURES[fixture], torch_device)
-    param_db = getattr(ctx, "param_db", None) or ParameterDatabase.get_default()
+    param_db = ctx.parameter_database
     sfxn = beta2016_score_function(torch_device, param_db=param_db)
 
     groups = find_conjugated_groups(pose_stack)
@@ -176,12 +183,16 @@ def test_the_packers_energy_matches_what_the_pose_scores(fixture, torch_device):
     are assembled; if any pair energy is dropped or double counted there, the
     number the packer works from stops describing the structure it picks.
     """
-    if fixture in BIG and torch_device.type == "cpu":
-        pytest.skip(f"{fixture}'s group is too big to pack on cpu; cuda covers it")
     pose_stack, ctx = _pose(FIXTURES[fixture], torch_device)
-    param_db = getattr(ctx, "param_db", None) or ParameterDatabase.get_default()
+    _pack_and_check_score(pose_stack, ctx.parameter_database, torch_device)
+
+
+def _pack_and_check_score(pose_stack, param_db, torch_device, task=None):
+    """Return the imposed pose after checking the annealer's complete energy."""
     sfxn = beta2016_score_function(torch_device, param_db=param_db)
-    task, _ = _task(pose_stack, param_db, torch_device)
+    default_task = task is None
+    if default_task:
+        task, _ = _task(pose_stack, param_db, torch_device)
     set_task = SetPackerTask.from_packer_task(task)
 
     pose_stack, rotamer_set = build_rotamers(pose_stack, set_task, param_db.chemical)
@@ -198,7 +209,8 @@ def test_the_packers_energy_matches_what_the_pose_scores(fixture, torch_device):
     ) = _calculate_packer_energies(
         pose_stack, sfxn, rotamer_set, set_task, verbose=False
     )
-    assert collapse is not None, "the group should have been folded together"
+    if default_task:
+        assert collapse is not None, "the group should have been folded together"
 
     scores, assignments = run_simulated_annealing(tables)
     # blocks treated as background are left out of the packer's tables
@@ -212,21 +224,23 @@ def test_the_packers_energy_matches_what_the_pose_scores(fixture, torch_device):
         bc_rot_to_orig_rot,
         assignments,
     )
-    new_pose_stack = write_group_members(
-        new_pose_stack,
-        rotamer_set,
-        collapse,
-        chosen_rotamer_for_block(
-            pose_stack,
-            rotamer_for_nonmolten_block,
-            n_molten_blocks_per_pose,
-            bc_rot_offset_for_molten_block,
-            bc_rot_to_orig_rot,
-            assignments[:, 0, :],
-        ),
-    )
+    if collapse is not None:
+        new_pose_stack = write_group_members(
+            new_pose_stack,
+            rotamer_set,
+            collapse,
+            chosen_rotamer_for_block(
+                pose_stack,
+                rotamer_for_nonmolten_block,
+                n_molten_blocks_per_pose,
+                bc_rot_offset_for_molten_block,
+                bc_rot_to_orig_rot,
+                assignments[:, 0, :],
+            ),
+        )
 
     wpsm = sfxn.render_whole_pose_scoring_module(new_pose_stack)
     torch.testing.assert_close(
         scores[:, 0], wpsm(new_pose_stack.coords), atol=1e-3, rtol=1e-5
     )
+    return new_pose_stack

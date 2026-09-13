@@ -185,28 +185,22 @@ def test_merge_fingerprints(default_database):  # noqa: C901
     # we should see that, when mapping proline onto a leucine,
     # that proline has a -1 for the HA atom of leucine's mainchain.
     # we should see that otherwise the standard set of atoms
-    # map to each other, except for glycine which uses 2HA to map
-    # to HA.
+    # map to each other. Glycine rebuilds both alpha hydrogens, so neither
+    # can supply or receive a copied alpha-hydrogen DOF during design.
 
     assert hasattr(pbt, "mc_fingerprints")
 
     standard_mc_atoms = ["N", "H", "CA", "HA", "C", "O"]
-    glycine_mc_atoms = ["N", "H", "CA", "HA2", "C", "O"]
+    glycine_mc_atoms = ["N", "H", "CA", "C", "O"]
 
     standard_mc_atoms_w_pro = ["N", "CA", "HA", "C", "O"]
-    glycine_mc_atoms_w_pro = ["N", "CA", "HA2", "C", "O"]
 
     def which_atoms(orig_rt, target_rt):
         if orig_rt.name == "PRO":
-            if target_rt.name == "GLY":
-                return glycine_mc_atoms_w_pro
-            else:
-                return standard_mc_atoms_w_pro
-        else:
-            if target_rt.name == "GLY":
-                return glycine_mc_atoms
-            else:
-                return standard_mc_atoms
+            return standard_mc_atoms_w_pro
+        if orig_rt.name == "GLY":
+            return glycine_mc_atoms
+        return standard_mc_atoms
 
     assert dun_sampler.sampler_name() in pbt.mc_fingerprints.sampler_mapping
     dun_sampler_ind = pbt.mc_fingerprints.sampler_mapping[dun_sampler.sampler_name()]
@@ -220,14 +214,13 @@ def test_merge_fingerprints(default_database):  # noqa: C901
     # fd seems like (n_samplers, n_mcs, pbt.n_types, max_n_mc_atoms)
     assert pbt.mc_fingerprints.atom_mapping.shape == (
         2,
-        2,
+        3,
         21,
         6,
     )
 
     for i, rt_orig in enumerate(pbt.active_block_types):
-        orig_rt_sampler = pbt.mc_fingerprints.max_sampler[i]
-        orig_max_fp = pbt.mc_fingerprints.max_fingerprint[i]
+        orig_max_fp = pbt.mc_fingerprints.source_fingerprint[i]
         orig_mc_ats = which_atoms(rt_orig, rt_orig)
 
         for j, rt_new in enumerate(pbt.active_block_types):
@@ -240,9 +233,7 @@ def test_merge_fingerprints(default_database):  # noqa: C901
             # now the atom mapping:
             # print(rt_new.atom_to_idx)
             for k in range(6):
-                k_orig = pbt.mc_fingerprints.atom_mapping[
-                    orig_rt_sampler, orig_max_fp, i, k
-                ]
+                k_orig = pbt.mc_fingerprints.source_atom_mapping[i, k]
                 k_new = pbt.mc_fingerprints.atom_mapping[
                     new_rt_sampler, orig_max_fp, j, k
                 ]

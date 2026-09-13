@@ -49,12 +49,12 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 //     gen_atom_type_hierarchy      : (N_block_types, max_atoms, MAX_HIER_DEPTH)
 //     Int
 //                                    per-atom type-index hierarchy
-//     gen_connection_bond_types    : (N_block_types, max_n_conns) Int
-//                                    bond-type int for each connection
+//     gen_connection_bond_bins    : (N_block_types, max_n_conns, N_paths+1) Int
+//                                    bond bin of the connection and each local path
 //     gen_source_atom_index        : (N_block_types, max_n_atoms) Int
 //                                    atom order in the prepared whole ligand
 //     gen_inter_torsion_hash_keys  : (N_hash_entries,) Vec<Int,6>
-//                                    {t1,t2,t3,t4,bond_type,val_idx}
+//                                    {t1,t2,t3,t4,bond_bin,priority_rank}
 //     gen_inter_torsion_hash_values: (N_torsion_entries,) Vec<Real,5>
 //     {k1,k2,k3,k4,off}
 //
@@ -96,7 +96,7 @@ struct GenBondedPoseScoreDispatch {
       // Inter-block torsions (hash table)
       TView<Vec<Int, 4>, 2, D> gen_atom_type_hierarchy,
       TView<Int, 2, D> gen_atom_is_rosetta,
-      TView<Int, 2, D> gen_connection_bond_types,
+      TView<Int, 3, D> gen_connection_bond_bins,
       TView<Int, 2, D> gen_conn_scored_elsewhere,
       TView<Int, 2, D> gen_source_atom_index,
       TView<Int, 1, D> gen_source_block_type_index,
@@ -135,7 +135,7 @@ struct GenBondedPoseScoreDispatch {
       TView<Vec<Real, 5>, 1, D> gen_intra_params,
       TView<Vec<Int, 4>, 2, D> gen_atom_type_hierarchy,
       TView<Int, 2, D> gen_atom_is_rosetta,
-      TView<Int, 2, D> gen_connection_bond_types,
+      TView<Int, 3, D> gen_connection_bond_bins,
       TView<Int, 2, D> gen_conn_scored_elsewhere,
       TView<Int, 2, D> gen_source_atom_index,
       TView<Int, 1, D> gen_source_block_type_index,
@@ -182,7 +182,7 @@ struct GenBondedRotamerScoreDispatch {
       TView<Vec<Real, 5>, 1, D> gen_intra_params,
       TView<Vec<Int, 4>, 2, D> gen_atom_type_hierarchy,
       TView<Int, 2, D> gen_atom_is_rosetta,
-      TView<Int, 2, D> gen_connection_bond_types,
+      TView<Int, 3, D> gen_connection_bond_bins,
       TView<Int, 2, D> gen_conn_scored_elsewhere,
       TView<Int, 2, D> gen_source_atom_index,
       TView<Int, 1, D> gen_source_block_type_index,
@@ -224,7 +224,7 @@ struct GenBondedRotamerScoreDispatch {
       TView<Vec<Real, 5>, 1, D> gen_intra_params,
       TView<Vec<Int, 4>, 2, D> gen_atom_type_hierarchy,
       TView<Int, 2, D> gen_atom_is_rosetta,
-      TView<Int, 2, D> gen_connection_bond_types,
+      TView<Int, 3, D> gen_connection_bond_bins,
       TView<Int, 2, D> gen_conn_scored_elsewhere,
       TView<Int, 2, D> gen_source_atom_index,
       TView<Int, 1, D> gen_source_block_type_index,

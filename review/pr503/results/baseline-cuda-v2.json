@@ -1,0 +1,1304 @@
+{
+  "checkout": "/mnt/home/kdidi/projects/tmol-pr503-perf-baseline",
+  "reader": "tmol",
+  "commit": "96ff844e82ecb7dff0958d6b419e7aa2a946694a",
+  "packages": {
+    "torch": "2.13.0+cu132",
+    "numpy": "2.1.0",
+    "biotite": "1.6.0",
+    "rdkit": "2026.3.6"
+  },
+  "device": "cuda:0",
+  "instrumented": false,
+  "threads": 2,
+  "device_name": "NVIDIA H200",
+  "runs": [
+    {
+      "fixture": "cif/1UBQ.cif",
+      "device": "cuda:0",
+      "stages": {
+        "read": {
+          "median": 0.7493553538806736,
+          "samples": [
+            0.7493553538806736
+          ]
+        },
+        "prepare": {
+          "median": 1.8578447010368109,
+          "samples": [
+            1.8578447010368109
+          ]
+        },
+        "construct": {
+          "median": 0.6245937063358724,
+          "samples": [
+            0.6245937063358724
+          ]
+        },
+        "score_setup": {
+          "median": 1.4962816769257188,
+          "samples": [
+            1.4962816769257188
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.30887673422694206,
+          "samples": [
+            0.30887673422694206
+          ]
+        },
+        "score": {
+          "median": 0.0008447687141597271,
+          "samples": [
+            0.0013431189581751823,
+            0.0008923579007387161,
+            0.0008365870453417301,
+            0.0008447687141597271,
+            0.0008374857716262341
+          ]
+        },
+        "score_backward": {
+          "median": 0.0014732382260262966,
+          "samples": [
+            0.0015298030339181423,
+            0.0014903601258993149,
+            0.0014631003141403198,
+            0.001471955794841051,
+            0.0014732382260262966
+          ]
+        },
+        "rotamers": {
+          "median": 2.534145952668041,
+          "samples": [
+            2.534145952668041
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 76,
+      "atoms": 1231,
+      "score": [
+        232.4425048828125
+      ],
+      "max_abs_gradient": 72.88468933105469,
+      "rotamers": 2004,
+      "status": "passed",
+      "process_peak_rss_kib": 2194568,
+      "peak_gpu_allocated_bytes": 237177344
+    },
+    {
+      "fixture": "ncaa_fixtures/6dmz_mod_d.cif",
+      "device": "cuda:0",
+      "stages": {
+        "read": {
+          "median": 1.3383070710115135,
+          "samples": [
+            1.3383070710115135
+          ]
+        },
+        "prepare": {
+          "median": 0.10083536989986897,
+          "samples": [
+            0.10083536989986897
+          ]
+        },
+        "construct": {
+          "median": 0.10565096000209451,
+          "samples": [
+            0.10565096000209451
+          ]
+        },
+        "score_setup": {
+          "median": 1.1592914620414376,
+          "samples": [
+            1.1592914620414376
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.002773808781057596,
+          "samples": [
+            0.002773808781057596
+          ]
+        },
+        "score": {
+          "median": 0.0008354638703167439,
+          "samples": [
+            0.0010355301201343536,
+            0.0008275606669485569,
+            0.0008354638703167439,
+            0.000847639050334692,
+            0.0008347840048372746
+          ]
+        },
+        "score_backward": {
+          "median": 0.0014740708284080029,
+          "samples": [
+            0.0014858059585094452,
+            0.0014806822873651981,
+            0.0014740708284080029,
+            0.0014648246578872204,
+            0.001432723831385374
+          ]
+        },
+        "rotamers": {
+          "median": 0.8722034911625087,
+          "samples": [
+            0.8722034911625087
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 47,
+      "atoms": 732,
+      "score": [
+        88.44515991210938
+      ],
+      "max_abs_gradient": 26.366724014282227,
+      "rotamers": 1218,
+      "status": "passed",
+      "process_peak_rss_kib": 2906312,
+      "peak_gpu_allocated_bytes": 232472064
+    },
+    {
+      "fixture": "ncaa_fixtures/6dmz_mod_l.cif",
+      "device": "cuda:0",
+      "stages": {
+        "read": {
+          "median": 0.2927096951752901,
+          "samples": [
+            0.2927096951752901
+          ]
+        },
+        "prepare": {
+          "median": 0.0974161559715867,
+          "samples": [
+            0.0974161559715867
+          ]
+        },
+        "construct": {
+          "median": 0.10499024391174316,
+          "samples": [
+            0.10499024391174316
+          ]
+        },
+        "score_setup": {
+          "median": 1.3004150190390646,
+          "samples": [
+            1.3004150190390646
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.002595866098999977,
+          "samples": [
+            0.002595866098999977
+          ]
+        },
+        "score": {
+          "median": 0.0008347430266439915,
+          "samples": [
+            0.0010081157088279724,
+            0.0008748560212552547,
+            0.0008297562599182129,
+            0.0008347430266439915,
+            0.000824212096631527
+          ]
+        },
+        "score_backward": {
+          "median": 0.0014442680403590202,
+          "samples": [
+            0.0014746608212590218,
+            0.0014671520330011845,
+            0.001443346031010151,
+            0.0014442680403590202,
+            0.0014425930567085743
+          ]
+        },
+        "rotamers": {
+          "median": 0.8707232400774956,
+          "samples": [
+            0.8707232400774956
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 47,
+      "atoms": 732,
+      "score": [
+        89.99667358398438
+      ],
+      "max_abs_gradient": 26.366735458374023,
+      "rotamers": 1261,
+      "status": "passed",
+      "process_peak_rss_kib": 2906312,
+      "peak_gpu_allocated_bytes": 232807936
+    },
+    {
+      "fixture": "ncaa_fixtures/beta_peptide_3c3g.cif",
+      "device": "cuda:0",
+      "stages": {
+        "read": {
+          "median": 0.03079705312848091,
+          "samples": [
+            0.03079705312848091
+          ]
+        },
+        "prepare": {
+          "median": 5.298459872603416,
+          "samples": [
+            5.298459872603416
+          ]
+        },
+        "construct": {
+          "median": 2.764016080647707,
+          "samples": [
+            2.764016080647707
+          ]
+        },
+        "score_setup": {
+          "median": 0.0038478211499750614,
+          "samples": [
+            0.0038478211499750614
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.0028786780312657356,
+          "samples": [
+            0.0028786780312657356
+          ]
+        },
+        "score": {
+          "median": 0.0015186211094260216,
+          "samples": [
+            0.0017174170352518559,
+            0.001528576947748661,
+            0.0015186211094260216,
+            0.0014840569347143173,
+            0.0014901431277394295
+          ]
+        },
+        "score_backward": {
+          "median": 0.0017798813059926033,
+          "samples": [
+            0.0017422805540263653,
+            0.0017767767421901226,
+            0.0017846440896391869,
+            0.0017898366786539555,
+            0.0017798813059926033
+          ]
+        },
+        "rotamers": {
+          "median": 0.1921052150428295,
+          "samples": [
+            0.1921052150428295
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 31,
+      "atoms": 586,
+      "score": [
+        191.37783813476562
+      ],
+      "max_abs_gradient": 41.26164627075195,
+      "rotamers": 725,
+      "status": "passed",
+      "process_peak_rss_kib": 3071676,
+      "peak_gpu_allocated_bytes": 344969216
+    },
+    {
+      "fixture": "ncaa_fixtures/capped_peptide_ace_nh2.cif",
+      "device": "cuda:0",
+      "stages": {
+        "read": {
+          "median": 0.07448824495077133,
+          "samples": [
+            0.07448824495077133
+          ]
+        },
+        "prepare": {
+          "median": 0.3452322571538389,
+          "samples": [
+            0.3452322571538389
+          ]
+        }
+      },
+      "status": "failed",
+      "error": "Traceback (most recent call last):\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/review/pr503/profile_workloads.py\", line 94, in measure\n    pose, stages[\"construct\"] = timed(\n                                ^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/review/pr503/profile_workloads.py\", line 43, in timed\n    result = fn()\n             ^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/review/pr503/profile_workloads.py\", line 95, in <lambda>\n    lambda: pose_stack_from_biotite(array, device, context=context, no_optH=True),\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/decorator/__init__.py\", line 247, in fun\n    return caller(func, *(extras + args), **kw)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/types/_functional.py\", line 27, in validate_f\n    retval = f(*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/io/_pose_stack_from_biotite.py\", line 283, in pose_stack_from_biotite\n    result = pose_stack_from_canonical_form(\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/decorator/__init__.py\", line 247, in fun\n    return caller(func, *(extras + args), **kw)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/types/_functional.py\", line 27, in validate_f\n    retval = f(*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/io/_pose_stack_construction.py\", line 296, in pose_stack_from_canonical_form\n    ) = assign_block_types(\n        ^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/decorator/__init__.py\", line 247, in fun\n    return caller(func, *(extras + args), **kw)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/types/_functional.py\", line 27, in validate_f\n    retval = f(*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/io/details/_select_from_canonical.py\", line 71, in assign_block_types\n    block_type_ind64 = select_best_block_type_candidate(\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/decorator/__init__.py\", line 247, in fun\n    return caller(func, *(extras + args), **kw)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/types/_functional.py\", line 27, in validate_f\n    retval = f(*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/io/details/_select_from_canonical.py\", line 733, in select_best_block_type_candidate\n    raise RuntimeError(err_msg + \"Best candidate exceeds failure threshold\")\nRuntimeError: failed to resolve a block type from the candidates available\nBest candidate exceeds failure threshold\n",
+      "process_peak_rss_kib": 3074748,
+      "peak_gpu_allocated_bytes": 336576000
+    },
+    {
+      "fixture": "ncaa_fixtures/capped_peptide_ace_nme.cif",
+      "device": "cuda:0",
+      "stages": {
+        "read": {
+          "median": 0.026453068014234304,
+          "samples": [
+            0.026453068014234304
+          ]
+        },
+        "prepare": {
+          "median": 0.3723907792009413,
+          "samples": [
+            0.3723907792009413
+          ]
+        }
+      },
+      "status": "failed",
+      "error": "Traceback (most recent call last):\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/review/pr503/profile_workloads.py\", line 94, in measure\n    pose, stages[\"construct\"] = timed(\n                                ^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/review/pr503/profile_workloads.py\", line 43, in timed\n    result = fn()\n             ^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-review/review/pr503/profile_workloads.py\", line 95, in <lambda>\n    lambda: pose_stack_from_biotite(array, device, context=context, no_optH=True),\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/decorator/__init__.py\", line 247, in fun\n    return caller(func, *(extras + args), **kw)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/types/_functional.py\", line 27, in validate_f\n    retval = f(*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/io/_pose_stack_from_biotite.py\", line 283, in pose_stack_from_biotite\n    result = pose_stack_from_canonical_form(\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/decorator/__init__.py\", line 247, in fun\n    return caller(func, *(extras + args), **kw)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/types/_functional.py\", line 27, in validate_f\n    retval = f(*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/io/_pose_stack_construction.py\", line 296, in pose_stack_from_canonical_form\n    ) = assign_block_types(\n        ^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/decorator/__init__.py\", line 247, in fun\n    return caller(func, *(extras + args), **kw)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/types/_functional.py\", line 27, in validate_f\n    retval = f(*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/io/details/_select_from_canonical.py\", line 71, in assign_block_types\n    block_type_ind64 = select_best_block_type_candidate(\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/decorator/__init__.py\", line 247, in fun\n    return caller(func, *(extras + args), **kw)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/types/_functional.py\", line 27, in validate_f\n    retval = f(*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^\n  File \"/mnt/home/kdidi/projects/tmol-pr503-perf-baseline/tmol/io/details/_select_from_canonical.py\", line 733, in select_best_block_type_candidate\n    raise RuntimeError(err_msg + \"Best candidate exceeds failure threshold\")\nRuntimeError: failed to resolve a block type from the candidates available\nBest candidate exceeds failure threshold\n",
+      "process_peak_rss_kib": 3075772,
+      "peak_gpu_allocated_bytes": 336576000
+    },
+    {
+      "fixture": "ncaa_fixtures/collagen_hyp_1bkv.cif",
+      "device": "cuda:0",
+      "stages": {
+        "read": {
+          "median": 0.05708690686151385,
+          "samples": [
+            0.05708690686151385
+          ]
+        },
+        "prepare": {
+          "median": 0.47585017839446664,
+          "samples": [
+            0.47585017839446664
+          ]
+        },
+        "construct": {
+          "median": 0.10744399717077613,
+          "samples": [
+            0.10744399717077613
+          ]
+        },
+        "score_setup": {
+          "median": 1.1798068918287754,
+          "samples": [
+            1.1798068918287754
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.0025657769292593002,
+          "samples": [
+            0.0025657769292593002
+          ]
+        },
+        "score": {
+          "median": 0.0009538140147924423,
+          "samples": [
+            0.001124807633459568,
+            0.0009859800338745117,
+            0.0009538140147924423,
+            0.0009484677575528622,
+            0.0009448952041566372
+          ]
+        },
+        "score_backward": {
+          "median": 0.0014703227207064629,
+          "samples": [
+            0.001470782794058323,
+            0.0014674258418381214,
+            0.0014703227207064629,
+            0.0014833910390734673,
+            0.0014219689182937145
+          ]
+        },
+        "rotamers": {
+          "median": 0.8915774831548333,
+          "samples": [
+            0.8915774831548333
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 29,
+      "atoms": 358,
+      "score": [
+        38.7503776550293
+      ],
+      "max_abs_gradient": 20.076326370239258,
+      "rotamers": 271,
+      "status": "passed",
+      "process_peak_rss_kib": 3102396,
+      "peak_gpu_allocated_bytes": 461343232
+    },
+    {
+      "fixture": "ncaa_fixtures/gamma_peptide_1gac.cif",
+      "device": "cuda:0",
+      "stages": {
+        "read": {
+          "median": 0.08213522611185908,
+          "samples": [
+            0.08213522611185908
+          ]
+        },
+        "prepare": {
+          "median": 0.49948370596393943,
+          "samples": [
+            0.49948370596393943
+          ]
+        },
+        "construct": {
+          "median": 0.09958886075764894,
+          "samples": [
+            0.09958886075764894
+          ]
+        },
+        "score_setup": {
+          "median": 1.164171066135168,
+          "samples": [
+            1.164171066135168
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.002538704313337803,
+          "samples": [
+            0.002538704313337803
+          ]
+        },
+        "score": {
+          "median": 0.0014910437166690826,
+          "samples": [
+            0.001642460934817791,
+            0.0015036566182971,
+            0.001487520057708025,
+            0.001483566127717495,
+            0.0014910437166690826
+          ]
+        },
+        "score_backward": {
+          "median": 0.0017211129888892174,
+          "samples": [
+            0.0016758088022470474,
+            0.0017211129888892174,
+            0.0017494438216090202,
+            0.0024178563617169857,
+            0.0017177611589431763
+          ]
+        },
+        "rotamers": {
+          "median": 0.8949853982776403,
+          "samples": [
+            0.8949853982776403
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 5,
+      "atoms": 70,
+      "score": [
+        177.65496826171875
+      ],
+      "max_abs_gradient": 254.95602416992188,
+      "rotamers": 48,
+      "status": "passed",
+      "process_peak_rss_kib": 3103420,
+      "peak_gpu_allocated_bytes": 460756480
+    },
+    {
+      "fixture": "ncaa_fixtures/na_dna_5mc_1d17.cif",
+      "device": "cuda:0",
+      "stages": {
+        "read": {
+          "median": 0.10894113406538963,
+          "samples": [
+            0.10894113406538963
+          ]
+        },
+        "prepare": {
+          "median": 0.5899453689344227,
+          "samples": [
+            0.5899453689344227
+          ]
+        },
+        "construct": {
+          "median": 0.10324906278401613,
+          "samples": [
+            0.10324906278401613
+          ]
+        },
+        "score_setup": {
+          "median": 1.6763771530240774,
+          "samples": [
+            1.6763771530240774
+          ]
+        },
+        "first_forward_backward": {
+          "median": 1.6839951388537884,
+          "samples": [
+            1.6839951388537884
+          ]
+        },
+        "score": {
+          "median": 0.0044769179075956345,
+          "samples": [
+            0.005460456013679504,
+            0.0044769179075956345,
+            0.004557531792670488,
+            0.00432159099727869,
+            0.004169031046330929
+          ]
+        },
+        "score_backward": {
+          "median": 0.009193656966090202,
+          "samples": [
+            0.009786868933588266,
+            0.00955578126013279,
+            0.009193656966090202,
+            0.00914151594042778,
+            0.009098107926547527
+          ]
+        },
+        "rotamers": {
+          "median": 0.9032985460944474,
+          "samples": [
+            0.9032985460944474
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 6,
+      "atoms": 195,
+      "score": [
+        290.5368347167969
+      ],
+      "max_abs_gradient": 148.89096069335938,
+      "rotamers": 22,
+      "status": "passed",
+      "process_peak_rss_kib": 3232444,
+      "peak_gpu_allocated_bytes": 460547072
+    },
+    {
+      "fixture": "ncaa_fixtures/na_dna_8og_183d.cif",
+      "device": "cuda:0",
+      "stages": {
+        "read": {
+          "median": 0.0649768179282546,
+          "samples": [
+            0.0649768179282546
+          ]
+        },
+        "prepare": {
+          "median": 0.572122098878026,
+          "samples": [
+            0.572122098878026
+          ]
+        },
+        "construct": {
+          "median": 0.10403502220287919,
+          "samples": [
+            0.10403502220287919
+          ]
+        },
+        "score_setup": {
+          "median": 1.1795903760939837,
+          "samples": [
+            1.1795903760939837
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.01092631695792079,
+          "samples": [
+            0.01092631695792079
+          ]
+        },
+        "score": {
+          "median": 0.0041300090961158276,
+          "samples": [
+            0.004473941866308451,
+            0.0041300090961158276,
+            0.004093265160918236,
+            0.00407697819173336,
+            0.004202489275485277
+          ]
+        },
+        "score_backward": {
+          "median": 0.009011934977024794,
+          "samples": [
+            0.009011934977024794,
+            0.00902030523866415,
+            0.00894903065636754,
+            0.00895166676491499,
+            0.00910575594753027
+          ]
+        },
+        "rotamers": {
+          "median": 0.8991662310436368,
+          "samples": [
+            0.8991662310436368
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 10,
+      "atoms": 316,
+      "score": [
+        179.93148803710938
+      ],
+      "max_abs_gradient": 582.271728515625,
+      "rotamers": 26,
+      "status": "passed",
+      "process_peak_rss_kib": 3233468,
+      "peak_gpu_allocated_bytes": 260667392
+    },
+    {
+      "fixture": "ncaa_fixtures/na_dna_ttd_1ttd.cif",
+      "device": "cuda:0",
+      "stages": {
+        "read": {
+          "median": 0.04478933895006776,
+          "samples": [
+            0.04478933895006776
+          ]
+        },
+        "prepare": {
+          "median": 0.6627214751206338,
+          "samples": [
+            0.6627214751206338
+          ]
+        },
+        "construct": {
+          "median": 0.10955955600365996,
+          "samples": [
+            0.10955955600365996
+          ]
+        },
+        "score_setup": {
+          "median": 1.2108215782791376,
+          "samples": [
+            1.2108215782791376
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.010872846934944391,
+          "samples": [
+            0.010872846934944391
+          ]
+        },
+        "score": {
+          "median": 0.004082347732037306,
+          "samples": [
+            0.004429827444255352,
+            0.004081161227077246,
+            0.0040725418366491795,
+            0.004082347732037306,
+            0.004188296850770712
+          ]
+        },
+        "score_backward": {
+          "median": 0.009006702806800604,
+          "samples": [
+            0.008955155964940786,
+            0.008988766930997372,
+            0.009038814809173346,
+            0.009006702806800604,
+            0.009085165336728096
+          ]
+        },
+        "rotamers": {
+          "median": 0.8850532881915569,
+          "samples": [
+            0.8850532881915569
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 11,
+      "atoms": 382,
+      "score": [
+        113.66128540039062
+      ],
+      "max_abs_gradient": 42.93994903564453,
+      "rotamers": 27,
+      "status": "passed",
+      "process_peak_rss_kib": 3234492,
+      "peak_gpu_allocated_bytes": 275529216
+    },
+    {
+      "fixture": "ncaa_fixtures/na_rna_2ome_310d.cif",
+      "device": "cuda:0",
+      "stages": {
+        "read": {
+          "median": 0.05410788068547845,
+          "samples": [
+            0.05410788068547845
+          ]
+        },
+        "prepare": {
+          "median": 1.0394609868526459,
+          "samples": [
+            1.0394609868526459
+          ]
+        },
+        "construct": {
+          "median": 0.11401267815381289,
+          "samples": [
+            0.11401267815381289
+          ]
+        },
+        "score_setup": {
+          "median": 1.2094858358614147,
+          "samples": [
+            1.2094858358614147
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.01063064020127058,
+          "samples": [
+            0.01063064020127058
+          ]
+        },
+        "score": {
+          "median": 0.004120381083339453,
+          "samples": [
+            0.004501703195273876,
+            0.004120381083339453,
+            0.0040831719525158405,
+            0.004193958826363087,
+            0.004069039132446051
+          ]
+        },
+        "score_backward": {
+          "median": 0.00898641487583518,
+          "samples": [
+            0.008978792931884527,
+            0.008986722212284803,
+            0.00898641487583518,
+            0.009095279034227133,
+            0.008935925085097551
+          ]
+        },
+        "rotamers": {
+          "median": 0.9257637662813067,
+          "samples": [
+            0.9257637662813067
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 6,
+      "atoms": 212,
+      "score": [
+        111.7111587524414
+      ],
+      "max_abs_gradient": 67.11654663085938,
+      "rotamers": 33,
+      "status": "passed",
+      "process_peak_rss_kib": 3247804,
+      "peak_gpu_allocated_bytes": 403488768
+    },
+    {
+      "fixture": "ncaa_fixtures/na_rna_psu_1bzt.cif",
+      "device": "cuda:0",
+      "stages": {
+        "read": {
+          "median": 0.148071541916579,
+          "samples": [
+            0.148071541916579
+          ]
+        },
+        "prepare": {
+          "median": 0.5550095797516406,
+          "samples": [
+            0.5550095797516406
+          ]
+        },
+        "construct": {
+          "median": 0.10827705031260848,
+          "samples": [
+            0.10827705031260848
+          ]
+        },
+        "score_setup": {
+          "median": 1.181930537801236,
+          "samples": [
+            1.181930537801236
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.010927022900432348,
+          "samples": [
+            0.010927022900432348
+          ]
+        },
+        "score": {
+          "median": 0.004128974862396717,
+          "samples": [
+            0.00447410624474287,
+            0.004250938072800636,
+            0.004114081151783466,
+            0.004128974862396717,
+            0.004114596638828516
+          ]
+        },
+        "score_backward": {
+          "median": 0.0090044429525733,
+          "samples": [
+            0.009237510152161121,
+            0.008954706601798534,
+            0.008958050981163979,
+            0.009004990104585886,
+            0.0090044429525733
+          ]
+        },
+        "rotamers": {
+          "median": 0.9000855921767652,
+          "samples": [
+            0.9000855921767652
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 17,
+      "atoms": 535,
+      "score": [
+        197.6292266845703
+      ],
+      "max_abs_gradient": 333.3245849609375,
+      "rotamers": 450,
+      "status": "passed",
+      "process_peak_rss_kib": 3266236,
+      "peak_gpu_allocated_bytes": 531557888
+    },
+    {
+      "fixture": "ncaa_fixtures/nmethyl_peptide_6mvz.cif",
+      "device": "cuda:0",
+      "stages": {
+        "read": {
+          "median": 0.027741797734051943,
+          "samples": [
+            0.027741797734051943
+          ]
+        },
+        "prepare": {
+          "median": 0.5012423531152308,
+          "samples": [
+            0.5012423531152308
+          ]
+        },
+        "construct": {
+          "median": 0.1003271508961916,
+          "samples": [
+            0.1003271508961916
+          ]
+        },
+        "score_setup": {
+          "median": 1.41355833504349,
+          "samples": [
+            1.41355833504349
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.0026640077121555805,
+          "samples": [
+            0.0026640077121555805
+          ]
+        },
+        "score": {
+          "median": 0.00173167884349823,
+          "samples": [
+            0.0019407058134675026,
+            0.0017624860629439354,
+            0.00173167884349823,
+            0.0017311722040176392,
+            0.0017172899097204208
+          ]
+        },
+        "score_backward": {
+          "median": 0.001966283656656742,
+          "samples": [
+            0.001944331917911768,
+            0.0019843331538140774,
+            0.0019750697538256645,
+            0.0019645318388938904,
+            0.001966283656656742
+          ]
+        },
+        "rotamers": {
+          "median": 0.8972757211886346,
+          "samples": [
+            0.8972757211886346
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 4,
+      "atoms": 87,
+      "score": [
+        18.822406768798828
+      ],
+      "max_abs_gradient": 38.00126647949219,
+      "rotamers": 31,
+      "status": "passed",
+      "process_peak_rss_kib": 3275452,
+      "peak_gpu_allocated_bytes": 530428416
+    },
+    {
+      "fixture": "ncaa_fixtures/phosphopeptide_5ema.cif",
+      "device": "cuda:0",
+      "stages": {
+        "read": {
+          "median": 0.051339064724743366,
+          "samples": [
+            0.051339064724743366
+          ]
+        },
+        "prepare": {
+          "median": 0.47041607880964875,
+          "samples": [
+            0.47041607880964875
+          ]
+        },
+        "construct": {
+          "median": 0.10094916727393866,
+          "samples": [
+            0.10094916727393866
+          ]
+        },
+        "score_setup": {
+          "median": 1.1753987898118794,
+          "samples": [
+            1.1753987898118794
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.002629455178976059,
+          "samples": [
+            0.002629455178976059
+          ]
+        },
+        "score": {
+          "median": 0.000834267120808363,
+          "samples": [
+            0.0010016453452408314,
+            0.0008735246956348419,
+            0.000834267120808363,
+            0.0008325851522386074,
+            0.0008210730738937855
+          ]
+        },
+        "score_backward": {
+          "median": 0.0014766319654881954,
+          "samples": [
+            0.0014720279723405838,
+            0.0015054070390760899,
+            0.0014766319654881954,
+            0.001443915069103241,
+            0.0014787586405873299
+          ]
+        },
+        "rotamers": {
+          "median": 0.8843210688792169,
+          "samples": [
+            0.8843210688792169
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 7,
+      "atoms": 106,
+      "score": [
+        48.21890640258789
+      ],
+      "max_abs_gradient": 35.50483703613281,
+      "rotamers": 340,
+      "status": "passed",
+      "process_peak_rss_kib": 3275452,
+      "peak_gpu_allocated_bytes": 262226432
+    },
+    {
+      "fixture": "covalent_fixtures/lys_biotin_1bdo.cif",
+      "device": "cuda:0",
+      "stages": {
+        "read": {
+          "median": 0.025327139999717474,
+          "samples": [
+            0.025327139999717474
+          ]
+        },
+        "prepare": {
+          "median": 0.5040177432820201,
+          "samples": [
+            0.5040177432820201
+          ]
+        },
+        "construct": {
+          "median": 0.11554687889292836,
+          "samples": [
+            0.11554687889292836
+          ]
+        },
+        "score_setup": {
+          "median": 1.181259984150529,
+          "samples": [
+            1.181259984150529
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.002587670926004648,
+          "samples": [
+            0.002587670926004648
+          ]
+        },
+        "score": {
+          "median": 0.001346058677881956,
+          "samples": [
+            0.001512689981609583,
+            0.0013622529804706573,
+            0.001346058677881956,
+            0.0013407832011580467,
+            0.0013299789279699326
+          ]
+        },
+        "score_backward": {
+          "median": 0.0016575600020587444,
+          "samples": [
+            0.0016117109917104244,
+            0.0016459128819406033,
+            0.001669206190854311,
+            0.0016594631597399712,
+            0.0016575600020587444
+          ]
+        },
+        "rotamers": {
+          "median": 0.9543963526375592,
+          "samples": [
+            0.9543963526375592
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 81,
+      "atoms": 1252,
+      "score": [
+        -84.2088623046875
+      ],
+      "max_abs_gradient": 36.11077880859375,
+      "rotamers": 2094,
+      "status": "passed",
+      "process_peak_rss_kib": 3279548,
+      "peak_gpu_allocated_bytes": 399879168
+    },
+    {
+      "fixture": "covalent_fixtures/nglycan_tree_1ax2.cif",
+      "device": "cuda:0",
+      "stages": {
+        "read": {
+          "median": 0.06291462201625109,
+          "samples": [
+            0.06291462201625109
+          ]
+        },
+        "prepare": {
+          "median": 1.7192781302146614,
+          "samples": [
+            1.7192781302146614
+          ]
+        },
+        "construct": {
+          "median": 0.16563071915879846,
+          "samples": [
+            0.16563071915879846
+          ]
+        },
+        "score_setup": {
+          "median": 1.3347474178299308,
+          "samples": [
+            1.3347474178299308
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.0031972071155905724,
+          "samples": [
+            0.0031972071155905724
+          ]
+        },
+        "score": {
+          "median": 0.0021756980568170547,
+          "samples": [
+            0.00227746507152915,
+            0.002183130942285061,
+            0.0021668830886483192,
+            0.0021756980568170547,
+            0.0021677156910300255
+          ]
+        },
+        "score_backward": {
+          "median": 0.002644000109285116,
+          "samples": [
+            0.0026279669255018234,
+            0.0026568989269435406,
+            0.0026415279135107994,
+            0.002644182648509741,
+            0.002644000109285116
+          ]
+        },
+        "rotamers": {
+          "median": 1.392292944714427,
+          "samples": [
+            1.392292944714427
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 248,
+      "atoms": 3848,
+      "score": [
+        14.05145263671875
+      ],
+      "max_abs_gradient": 47.33009719848633,
+      "rotamers": 10580,
+      "status": "passed",
+      "process_peak_rss_kib": 3279548,
+      "peak_gpu_allocated_bytes": 457509376
+    },
+    {
+      "fixture": "covalent_fixtures/oglycan_sia_1g1s.cif",
+      "device": "cuda:0",
+      "stages": {
+        "read": {
+          "median": 0.015541720669716597,
+          "samples": [
+            0.015541720669716597
+          ]
+        },
+        "prepare": {
+          "median": 1.9000309761613607,
+          "samples": [
+            1.9000309761613607
+          ]
+        },
+        "construct": {
+          "median": 2.789695384912193,
+          "samples": [
+            2.789695384912193
+          ]
+        },
+        "score_setup": {
+          "median": 0.0033631487749516964,
+          "samples": [
+            0.0033631487749516964
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.0030131107196211815,
+          "samples": [
+            0.0030131107196211815
+          ]
+        },
+        "score": {
+          "median": 0.002143263816833496,
+          "samples": [
+            0.0023238048888742924,
+            0.0021687159314751625,
+            0.002143263816833496,
+            0.002137797884643078,
+            0.0021324739791452885
+          ]
+        },
+        "score_backward": {
+          "median": 0.0024454258382320404,
+          "samples": [
+            0.0024141757749021053,
+            0.0024549500085413456,
+            0.002412778791040182,
+            0.002458243165165186,
+            0.0024454258382320404
+          ]
+        },
+        "rotamers": {
+          "median": 0.2553933830931783,
+          "samples": [
+            0.2553933830931783
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 20,
+      "atoms": 396,
+      "score": [
+        87.74254608154297
+      ],
+      "max_abs_gradient": 29.411008834838867,
+      "rotamers": 3599,
+      "status": "passed",
+      "process_peak_rss_kib": 3289788,
+      "peak_gpu_allocated_bytes": 421998080
+    },
+    {
+      "fixture": "cif/cyclic_peptide_1jbl.cif",
+      "device": "cuda:0",
+      "stages": {
+        "read": {
+          "median": 0.006875789258629084,
+          "samples": [
+            0.006875789258629084
+          ]
+        },
+        "prepare": {
+          "median": 0.10687376139685512,
+          "samples": [
+            0.10687376139685512
+          ]
+        },
+        "construct": {
+          "median": 0.10147372633218765,
+          "samples": [
+            0.10147372633218765
+          ]
+        },
+        "score_setup": {
+          "median": 1.1556442729197443,
+          "samples": [
+            1.1556442729197443
+          ]
+        },
+        "first_forward_backward": {
+          "median": 0.0026571620255708694,
+          "samples": [
+            0.0026571620255708694
+          ]
+        },
+        "score": {
+          "median": 0.0008311141282320023,
+          "samples": [
+            0.0010442417114973068,
+            0.0008579152636229992,
+            0.0008289068937301636,
+            0.0008311141282320023,
+            0.0008154399693012238
+          ]
+        },
+        "score_backward": {
+          "median": 0.0014959312975406647,
+          "samples": [
+            0.0015383949503302574,
+            0.0014959312975406647,
+            0.0014787567779421806,
+            0.0014607198536396027,
+            0.0014997771941125393
+          ]
+        },
+        "rotamers": {
+          "median": 0.8676997954025865,
+          "samples": [
+            0.8676997954025865
+          ]
+        }
+      },
+      "batch": 1,
+      "blocks": 14,
+      "atoms": 210,
+      "score": [
+        42.897735595703125
+      ],
+      "max_abs_gradient": 31.84593391418457,
+      "rotamers": 232,
+      "status": "passed",
+      "process_peak_rss_kib": 3289788,
+      "peak_gpu_allocated_bytes": 279094272
+    }
+  ],
+  "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "raw_measurement_path": "/mnt/home/kdidi/tmol-pr503-followup/baseline-cuda-v2/measurements.json"
+}

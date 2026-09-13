@@ -1,0 +1,20 @@
+[
+  {
+    "source": "atomworks_dev",
+    "status": "failed",
+    "error": "Exception",
+    "message": "CCNc1ccccc1 is not CC[NH2+]c1ccccc1 at pH -10000000 - -10000000; it is CCNc1ccccc1"
+  },
+  {
+    "source": "tmol_before_sharing",
+    "status": "failed",
+    "error": "Exception",
+    "message": "CCNc1ccccc1 is not CC[NH2+]c1ccccc1 at pH -10000000 - -10000000; it is CCNc1ccccc1"
+  },
+  {
+    "source": "atomworks_shared",
+    "status": "failed",
+    "error": "Exception",
+    "message": "CCNc1ccccc1 is not CC[NH2+]c1ccccc1 at pH -10000000 - -10000000; it is CCNc1ccccc1"
+  }
+]

@@ -14,6 +14,78 @@ the same rule; only the tree differs.
 """
 
 import attr
+from copy import copy
+
+
+def sampler_for_task(sampler, task):
+    """Apply an explicit task budget to a private sampler/task view."""
+    budget = getattr(task, "chi_sample_budget", None)
+    if budget is None or budget == (
+        sampler.chi_sample_expanded_limit,
+        sampler.chi_sample_limit,
+    ):
+        return sampler, task
+    configured = attr.evolve(
+        sampler, chi_sample_expanded_limit=budget[0], chi_sample_limit=budget[1]
+    )
+    private_task = copy(task)
+    private_task.conformer_sampler_index = dict(task.conformer_sampler_index)
+    private_task.conformer_sampler_index[id(configured)] = task.conformer_sampler_index[
+        id(sampler)
+    ]
+    return configured, private_task
+
+
+def checked_sample_count(counts, expanded_limit, limit):
+    """Check index capacity and budget before narrowing counts or allocating rows."""
+    import torch
+
+    if counts.numel() == 0:
+        return 0
+    capacity = torch.iinfo(torch.int32).max
+    if counts.numel() > capacity:
+        raise ValueError(f"Sampling count exceeds index capacity {capacity}")
+    smallest, largest = torch.aminmax(counts)
+    total, smallest, largest = torch.stack(
+        (counts.sum(dtype=torch.int64), smallest, largest)
+    ).tolist()
+    # Check each count before trusting the sum: invalid int64 inputs can wrap
+    # even an int64 reduction. Valid counts and lengths cannot overflow it.
+    if smallest < 0 or largest > capacity or total > capacity:
+        raise ValueError(
+            f"Sampling count exceeds index capacity {capacity} "
+            "or contains a negative count"
+        )
+    maximum = max(expanded_limit, limit)
+    if largest > maximum:
+        raise ValueError(
+            f"Sampling budget {maximum} cannot fit the required library states"
+        )
+    return total
+
+
+def check_task_sample_budget(task, samples):
+    """Bound each physical residue's combined sampler/type rows before merging."""
+    budget = getattr(task, "chi_sample_budget", None)
+    if budget is None:
+        return
+    import torch
+
+    n_poses, n_blocks = task.per_block_orig_block_type.shape
+    if n_poses * n_blocks == 0:
+        return
+    counts = torch.stack([sample[0].to(torch.int64) for sample in samples]).sum(dim=0)
+    per_block = torch.zeros(n_poses * n_blocks, dtype=torch.int64, device=counts.device)
+    per_block.index_add_(0, task.cons_bt_pose * n_blocks + task.cons_bt_block, counts)
+    largest, index = per_block.max(dim=0)
+    largest, index = torch.stack((largest, index)).tolist()
+    maximum = max(budget)
+    if largest > maximum:
+        raise ValueError(
+            f"Sampling budget {maximum} cannot fit {largest} combined rotamers "
+            f"at pose {index // n_blocks} block {index % n_blocks} "
+            "across samplers and allowed residue types"
+        )
 
 
 def n_conformers(samples, expanded: bool) -> int:
@@ -27,7 +99,12 @@ def n_conformers(samples, expanded: bool) -> int:
 
 
 def apply_chi_sample_budget(
-    samples, depths, expanded_limit, limit, n_library_chi: int = 0
+    samples,
+    depths,
+    expanded_limit,
+    limit,
+    n_library_chi: int = 0,
+    library_size: int = 1,
 ):
     """Trim sampled chi so the rotamers they enumerate stay bounded.
 
@@ -35,20 +112,42 @@ def apply_chi_sample_budget(
     ``n_library_chi`` how many chi a borrowed rotamer library already defines.
     The expansions are kept while the product stays under ``expanded_limit``
     and dropped at ``limit``; past it, chi freeze from the tip inward. A proton
-    chi is never frozen: its hydrogen has no other source of placement, and
-    optH reads the same samples.
+    chi retains at least one mean, so its hydrogen is still placed. Library
+    multiplicity is explicit; the number of chi cannot predict a library's size.
     """
-    # a chi the borrowed library defines is read from the library, not sampled
+    return tuple(
+        cs
+        for _, cs in _budgeted_chi_samples(
+            samples,
+            depths,
+            expanded_limit,
+            limit,
+            n_library_chi=n_library_chi,
+            library_size=library_size,
+        )
+    )
+
+
+def _budgeted_chi_samples(
+    samples, depths, expanded_limit, limit, n_library_chi=0, library_size=1
+):
+    """Return (input index, sample) pairs, preserving ownership across blocks.
+
+    ``n_library_chi`` excludes chi already supplied by the same block's library.
+    ``library_size`` accounts for an independent library in a group product
+    without excluding identically named chi on its attached blocks.
+    """
     kept = [
-        (cs, d)
-        for cs, d in zip(samples, depths)
+        (i, cs, d)
+        for i, (cs, d) in enumerate(zip(samples, depths, strict=True))
         if cs.is_proton or int(cs.chi_dihedral[3:]) > n_library_chi
     ]
-    samples = [cs for cs, _ in kept]
-    depths = [d for _, d in kept]
-    library = 3**n_library_chi
+    indices = [i for i, _, _ in kept]
+    samples = [cs for _, cs, _ in kept]
+    depths = [d for _, _, d in kept]
+    library = library_size
     if library * n_conformers(samples, True) <= expanded_limit:
-        return tuple(samples)
+        return tuple(zip(indices, samples))
 
     samples = [attr.evolve(cs, expansions=()) for cs in samples]
     order = sorted(
@@ -56,11 +155,27 @@ def apply_chi_sample_budget(
         key=lambda i: (depths[i], int(samples[i].chi_dihedral[3:])),
         reverse=True,
     )
+    total = library * n_conformers(samples, False)
     for index in order:
-        if library * n_conformers(samples, False) <= limit:
+        if total <= limit:
             break
+        total //= len(samples[index].samples)
         samples[index] = None
-    return tuple(cs for cs in samples if cs is not None)
+    # A proton still needs a placement, not every alternative placement.
+    for index in sorted(
+        (i for i, cs in enumerate(samples) if cs is not None and cs.is_proton),
+        key=lambda i: (depths[i], int(samples[i].chi_dihedral[3:])),
+        reverse=True,
+    ):
+        if total <= limit:
+            break
+        total //= len(samples[index].samples)
+        samples[index] = attr.evolve(samples[index], samples=samples[index].samples[:1])
+    if total > limit:
+        raise ValueError(
+            f"Sampling budget {limit} cannot fit the required {library} library states"
+        )
+    return tuple((i, cs) for i, cs in zip(indices, samples) if cs is not None)
 
 
 def chi_depths(rkd, chi_atoms):

@@ -70,6 +70,16 @@ def _load_complex_cif(target: str):
     )
     if isinstance(structure, struc.AtomArrayStack):
         structure = structure[0]
+    # These exported fixtures reuse blank chain labels when residue numbering
+    # restarts. Biotite's inferred peptide bonds must respect those chain breaks.
+    starts = struc.get_chain_starts(structure, add_exclusive_stop=True)
+    chain = numpy.repeat(numpy.arange(len(starts) - 1), numpy.diff(starts))
+    for first, second, _ in structure.bonds.as_array():
+        if chain[first] != chain[second] and {
+            structure.atom_name[first],
+            structure.atom_name[second],
+        } == {"C", "N"}:
+            structure.bonds.remove_bond(int(first), int(second))
     return structure
 
 

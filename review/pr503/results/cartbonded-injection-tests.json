@@ -1,0 +1,24 @@
+{
+  "before_commit": "6099de244",
+  "before_cpu": {
+    "failed": 4,
+    "passed": 0,
+    "failure": "Injected parameters produce zero score difference instead of independent harmonic prediction"
+  },
+  "after_cpu": {
+    "passed": 4
+  },
+  "slurm_job": 245573,
+  "cpu_cuda": {
+    "passed": 14,
+    "deselected": 20
+  },
+  "coverage": [
+    "Both annotation orders on the same pose",
+    "Whole-pose and weighted block-pair scores",
+    "Independent harmonic energy and coordinate gradients",
+    "Source database unchanged",
+    "Existing manual cartbonded replacement",
+    "Independent connection-improper energy/gradient"
+  ]
+}

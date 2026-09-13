@@ -1,0 +1,542 @@
+{
+  "date_utc": "2026-09-12T06:52:41.582199+00:00",
+  "parent_commit": "9ceaeeb1f422292f58be65a5f8503bb49ce241f9",
+  "upstream_head": "0593a93b07d80b0302383163d2d98c78e315ab98",
+  "upstream_sync": "Fresh GitHub API head check, fetch refs/pull/503/head and git merge FETCH_HEAD: already up to date; merged previously by 841d594d5.",
+  "source_sha256": {
+    "tmol/score/_chemical_database.py": "dd46bf21607ecf20fedf7cc3bbcea27ece8b6fc78bd3b7a578dd3390ad27908e",
+    "tmol/score/_atom_type_dependent_term.py": "fd54b51f0665ee68e1a6995e4b1f11492150c84c0fdffef25c63533ae05448ef",
+    "tmol/score/hbond/_hbond_dependent_term.py": "ce7fe13ba9daa3cddf187237a08fd95b94419af2d5b2a8ee2b8b9cf371ff783f",
+    "tmol/score/ljlk/_params.py": "e41435af26882439b8eaf119ae0e9ab6cdfff35e59915c5976741aebf92bbd2c",
+    "tmol/score/ljlk/_ljlk_energy_term.py": "3624883c7a51d2cb8597e737ddf3b40b75bd67d256bb2fc8dac9c857d55bcd50",
+    "tmol/score/lk_ball/_lk_ball_energy_term.py": "e4c2ca956df5093cf521e6095f67dd2ec816d945f2f0527fb14e1a534b2aa2c1",
+    "tmol/tests/score/test_atom_type_parameter_coverage.py": "6995ad612f71a3c7ef19b676b7f77da1a57cdc2ea581752f2147fddd86f4c9c0",
+    "review/pr503/check_missing_scoring_parameters.py": "2bbd0e3b05bc142416e6985b04195efc1ebc0a37f6609e85a7ea0efc4fda8ea8",
+    "review/pr503/profile_parameter_coverage.py": "68974198cbd96d31b5cfbff4f91ecac304c3a6c5d41201c96af676a7b7006833"
+  },
+  "contract": [
+    "Real atoms must resolve to a registered chemical atom type; low-level type_idx padding semantics remain unchanged.",
+    "Used LJLK types must have finite lj_radius, lj_wdepth, lk_dgfree, lk_lambda and lk_volume in float32.",
+    "Unknown types and missing/non-finite parameters raise ValueError with residue/atom/type/field context before native scoring.",
+    "Unused incomplete LJLK rows, finite zero virtual rows and the low-level None/NaN sentinel remain allowed.",
+    "Packed LJLK annotation keys include the scoring database so previous valid setup cannot conceal changed coverage.",
+    "Packed atom-type setup reuses validated chemical-source block annotations and heavy-atom indices."
+  ],
+  "before": {
+    "path": "/mnt/home/kdidi/tmol-pr503-followup/parameter-coverage-before.xml",
+    "sha256": "7cf44c517ed47b03cf822ec3b890beaf96f5fe56a34a5abd09200a46d5972b91",
+    "passed": 3,
+    "failed": [
+      "test_used_unregistered_chemical_type_rejected[cpu-AtomTypeDependentTerm]",
+      "test_used_unregistered_chemical_type_rejected[cpu-HBondEnergyTerm]",
+      "test_used_unregistered_chemical_type_rejected[cpu-LJLKEnergyTerm]",
+      "test_used_unregistered_chemical_type_rejected[cpu-LKBallEnergyTerm]",
+      "test_used_incomplete_ljlk_type_rejected[cpu-missing-LJLKEnergyTerm]",
+      "test_used_incomplete_ljlk_type_rejected[cpu-missing-LKBallEnergyTerm]",
+      "test_used_incomplete_ljlk_type_rejected[cpu-nan-LJLKEnergyTerm]",
+      "test_used_incomplete_ljlk_type_rejected[cpu-nan-LKBallEnergyTerm]",
+      "test_used_incomplete_ljlk_type_rejected[cpu-inf-LJLKEnergyTerm]",
+      "test_used_incomplete_ljlk_type_rejected[cpu-inf-LKBallEnergyTerm]",
+      "test_used_incomplete_ljlk_type_rejected[cpu-float32_overflow-LJLKEnergyTerm]",
+      "test_used_incomplete_ljlk_type_rejected[cpu-float32_overflow-LKBallEnergyTerm]",
+      "test_cached_packed_annotation_does_not_hide_missing_parameters[cpu-LJLKEnergyTerm]",
+      "test_cached_packed_annotation_does_not_hide_missing_parameters[cpu-LKBallEnergyTerm]"
+    ],
+    "skipped": 17
+  },
+  "before_scope": "Initial 14 failing regressions and 3 passing controls. Final tests additionally cover every floating field and an empty table.",
+  "initial_cpu": {
+    "path": "/mnt/home/kdidi/tmol-pr503-followup/parameter-coverage-cpu.xml",
+    "sha256": "7f0e93c7ad312c18f721330de8a21aa5a93a32c8881d5be32c8c435e46aa5d7a",
+    "passed": 26,
+    "failed": [],
+    "skipped": 25
+  },
+  "final_cpu": {
+    "path": "/mnt/home/kdidi/tmol-pr503-followup/parameter-coverage-cpu-final.xml",
+    "sha256": "f45405a9a41214741db70af8bf04c5a0528e7f06b8a5c6451c7cd19a784d79fb",
+    "passed": 93,
+    "failed": [],
+    "skipped": 92
+  },
+  "final_slurm": {
+    "job_id": 251032,
+    "state": "COMPLETED",
+    "exit_code": "0:0",
+    "elapsed": "00:03:04",
+    "max_rss_kib": 5090972,
+    "node": "slurm-h200-244-049",
+    "tests": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/parameter-coverage-gpu.xml",
+      "sha256": "82e49b70e4ec382114f519722cc0b376b9d3ae796ac16b522c70bc5d5ae8aa10",
+      "passed": 298,
+      "failed": [],
+      "skipped": 3
+    },
+    "script": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/parameter-coverage-check.sh",
+      "sha256": "a9144f99dcf186a6b9fa3115a4d6f02452e8aca2f575f15d0e1531e4e7dff126"
+    },
+    "log": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/parameter-coverage-251032.log",
+      "sha256": "4f966b2358c618db2e0207ca64ca6caf6428fbb3b956f67234bfc06c6c0fa377"
+    }
+  },
+  "atomworks": {
+    "path": "/mnt/home/kdidi/tmol-pr503-followup/parameter-coverage-atomworks-matrix/measurements.json",
+    "sha256": "b2b92c6023e49de4e8f2a86a7faa565e869a8609e59bab8d218cb60fc2ca380c",
+    "atomworks_head": "adcbfd760897a0059ef7dff813da91720c0f4b26",
+    "source_worktree": "/mnt/home/kdidi/projects/atomworks-tmol-pr503-review",
+    "source_clean": true,
+    "device": "cpu",
+    "packages": {
+      "torch": "2.8.0+cpu",
+      "numpy": "2.5.3",
+      "biotite": "1.6.0",
+      "rdkit": "2026.3.6"
+    },
+    "passed": 19,
+    "failed": 0,
+    "scope": "Current optional AtomWorks path: read, prepare, construct, score, gradients, rotamers. One repeat each; no new reader-parity or scientific-fit claim."
+  },
+  "native_reproduction": {
+    "before": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/missing-parameters-native-before.json",
+      "sha256": "7fdab4a28e8a4fa202c0acc3efef14954cd32e2bf5937bf14c5bf021f094dc4f",
+      "result": {
+        "revision": "9ceaeeb1f422292f58be65a5f8503bb49ce241f9",
+        "cases": {
+          "LJLKEnergyTerm:complete": {
+            "outcome": "scored",
+            "energy": [
+              -0.5521348118782043,
+              0.11237916350364685,
+              0.3149237632751465
+            ],
+            "energy_finite": true,
+            "gradient_finite": true
+          },
+          "LJLKEnergyTerm:missing_CH3": {
+            "outcome": "scored",
+            "energy": [
+              "nan",
+              0.11237916350364685,
+              "nan"
+            ],
+            "energy_finite": false,
+            "gradient_finite": false
+          },
+          "LKBallEnergyTerm:complete": {
+            "outcome": "scored",
+            "energy": [
+              0.5750460028648376,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "energy_finite": true,
+            "gradient_finite": true
+          },
+          "LKBallEnergyTerm:missing_CH3": {
+            "outcome": "scored",
+            "energy": [
+              "nan",
+              "nan",
+              "nan",
+              0.0
+            ],
+            "energy_finite": false,
+            "gradient_finite": false
+          }
+        }
+      }
+    },
+    "after": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/missing-parameters-native-after.json",
+      "sha256": "56c778febe90d2db0da5d57ba0000c270fdaea9aab7c1310c5c3c99db76b97f0",
+      "result": {
+        "revision": "working-tree",
+        "cases": {
+          "LJLKEnergyTerm:complete": {
+            "outcome": "scored",
+            "energy": [
+              -0.5521348118782043,
+              0.11237916350364685,
+              0.3149237632751465
+            ],
+            "energy_finite": true,
+            "gradient_finite": true
+          },
+          "LJLKEnergyTerm:missing_CH3": {
+            "outcome": "rejected_at_setup",
+            "error": "Residue ALA has missing or non-finite LJLK parameters: CB (CH3): lj_radius, lj_wdepth, lk_dgfree, lk_lambda, lk_volume"
+          },
+          "LKBallEnergyTerm:complete": {
+            "outcome": "scored",
+            "energy": [
+              0.5750460028648376,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "energy_finite": true,
+            "gradient_finite": true
+          },
+          "LKBallEnergyTerm:missing_CH3": {
+            "outcome": "rejected_at_setup",
+            "error": "Residue ALA has missing or non-finite LJLK parameters: CB (CH3): lj_radius, lj_wdepth, lk_dgfree, lk_lambda, lk_volume"
+          }
+        }
+      }
+    }
+  },
+  "benchmarks": {
+    "cpu": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/parameter-coverage-profile-cpu.json",
+      "sha256": "57fa15c18a594e5dd4ff66109a9020862cb7031f615f34e974589911377ecfc5",
+      "result": {
+        "baseline": "9ceaeeb1f422292f58be65a5f8503bb49ce241f9",
+        "source_sha256": {
+          "tmol/score/_atom_type_dependent_term.py": "ada0217486b40fa12a05f944962680e44c226fca8a226247e1ecf6bfdaf9e1f7",
+          "tmol/score/ljlk/_params.py": "6470134a6930f2fdf89d14aebc7324bcbb54e8630d43656e4ffbca1887bf7465"
+        },
+        "device": "cpu",
+        "torch": "2.8.0+cpu",
+        "packed": {
+          "ALA": {
+            "n_types": 1,
+            "real_atoms": 10,
+            "exact_annotations": true,
+            "seconds": {
+              "before": [
+                9.447764605283738e-05,
+                9.30890440940857e-05,
+                8.615069091320038e-05,
+                8.60726460814476e-05,
+                8.230898529291153e-05,
+                8.571837097406387e-05,
+                9.644050151109695e-05,
+                9.933076798915864e-05,
+                9.883604943752288e-05
+              ],
+              "after": [
+                3.86945903301239e-05,
+                3.717038780450821e-05,
+                3.9179623126983645e-05,
+                3.722254186868668e-05,
+                3.966018557548523e-05,
+                3.454852849245071e-05,
+                4.257671535015106e-05,
+                3.468059003353119e-05,
+                3.730282187461853e-05
+              ]
+            },
+            "medians": {
+              "before": 9.30890440940857e-05,
+              "after": 3.730282187461853e-05
+            },
+            "allocations": {
+              "before": {
+                "python_retained_bytes": 4757,
+                "python_peak_bytes": 10706
+              },
+              "after": {
+                "python_retained_bytes": 4806,
+                "python_peak_bytes": 5085
+              }
+            }
+          },
+          "default_catalog": {
+            "n_types": 230,
+            "real_atoms": 4738,
+            "exact_annotations": true,
+            "seconds": {
+              "before": [
+                0.0075207119807600975,
+                0.007618710957467556,
+                0.007503545843064785,
+                0.007570002973079681,
+                0.007675585150718689,
+                0.007716801762580871,
+                0.007481316290795803,
+                0.007546342723071575,
+                0.007487329095602036
+              ],
+              "after": [
+                0.002800161950290203,
+                0.002798042818903923,
+                0.00278041772544384,
+                0.0027888989076018333,
+                0.0028058845549821855,
+                0.0027903269976377485,
+                0.0027873804792761803,
+                0.0027733653783798217,
+                0.002757943794131279
+              ]
+            },
+            "medians": {
+              "before": 0.007546342723071575,
+              "after": 0.0027888989076018333
+            },
+            "allocations": {
+              "before": {
+                "python_retained_bytes": 170124,
+                "python_peak_bytes": 382047
+              },
+              "after": {
+                "python_retained_bytes": 167992,
+                "python_peak_bytes": 312444
+              }
+            }
+          }
+        },
+        "resolver": {
+          "exact_tensor_fields": [
+            "global_params.max_dis",
+            "global_params.lj_dlin_sigma_factor",
+            "global_params.lj_dlin_sigma_factor_soft",
+            "global_params.lj_hbond_OH_donor_dis",
+            "global_params.lj_hbond_dis",
+            "global_params.lj_hbond_hdis",
+            "global_params.lk_min_dis2sigma",
+            "global_params.lkb_water_dist",
+            "global_params.lkb_water_angle_sp2",
+            "global_params.lkb_water_angle_sp3",
+            "global_params.lkb_water_angle_ring",
+            "global_params.lkb_water_tors_sp2",
+            "global_params.lkb_water_tors_sp3",
+            "global_params.lkb_water_tors_ring",
+            "type_params.lj_radius",
+            "type_params.lj_wdepth",
+            "type_params.lk_dgfree",
+            "type_params.lk_lambda",
+            "type_params.lk_volume",
+            "type_params.is_acceptor",
+            "type_params.acceptor_hybridization",
+            "type_params.is_donor",
+            "type_params.is_hydroxyl",
+            "type_params.is_polarh",
+            "type_params.is_hydrogen",
+            "type_params.is_carbon_lk"
+          ],
+          "seconds": {
+            "before": [
+              0.0021781675517559052,
+              0.0022578146308660507,
+              0.0022187309339642526,
+              0.0022373855113983153,
+              0.0022375697270035745,
+              0.002191193401813507,
+              0.002227987349033356,
+              0.0022138096392154694,
+              0.002260063961148262
+            ],
+            "after": [
+              0.0023250482976436616,
+              0.002341216988861561,
+              0.0023583190515637396,
+              0.002356862835586071,
+              0.0023149352520704268,
+              0.0022988647222518923,
+              0.002325551211833954,
+              0.002306254021823406,
+              0.0023707680404186247
+            ]
+          },
+          "medians": {
+            "before": 0.002227987349033356,
+            "after": 0.002325551211833954
+          },
+          "allocations": {
+            "before": {
+              "python_retained_bytes": 17544,
+              "python_peak_bytes": 58692
+            },
+            "after": {
+              "python_retained_bytes": 17943,
+              "python_peak_bytes": 58606
+            }
+          }
+        },
+        "scope": "Nine alternating warm rounds of five calls; packed setup reuses warm block annotations and fresh shallow packed copies. Resolver includes chemical lookup and device transfers. Python allocation tracing excludes native/RSS/GPU allocations. No whole-workflow speedup claim."
+      }
+    },
+    "gpu": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/parameter-coverage-profile-gpu.json",
+      "sha256": "4fa8c2f00395bbc23a5f49bb212e32bc5ff8b47e560a33e3522b0c21cb77978d",
+      "result": {
+        "baseline": "9ceaeeb1f422292f58be65a5f8503bb49ce241f9",
+        "source_sha256": {
+          "tmol/score/_atom_type_dependent_term.py": "ada0217486b40fa12a05f944962680e44c226fca8a226247e1ecf6bfdaf9e1f7",
+          "tmol/score/ljlk/_params.py": "6470134a6930f2fdf89d14aebc7324bcbb54e8630d43656e4ffbca1887bf7465"
+        },
+        "device": "cuda:0",
+        "torch": "2.13.0+cu132",
+        "packed": {
+          "ALA": {
+            "n_types": 1,
+            "real_atoms": 10,
+            "exact_annotations": true,
+            "seconds": {
+              "before": [
+                0.00015262309461832045,
+                0.00015884246677160262,
+                0.00015204008668661116,
+                0.00015460867434740065,
+                0.00015140920877456664,
+                0.0001507693901658058,
+                0.00014859754592180252,
+                0.0001523638144135475,
+                0.0001481998711824417
+              ],
+              "after": [
+                0.00010253507643938064,
+                0.00010016504675149917,
+                0.00010168030858039855,
+                9.749103337526321e-05,
+                9.876377880573273e-05,
+                9.69981774687767e-05,
+                9.951945394277572e-05,
+                9.616576135158539e-05,
+                9.89191234111786e-05
+              ]
+            },
+            "medians": {
+              "before": 0.00015204008668661116,
+              "after": 9.89191234111786e-05
+            },
+            "allocations": {
+              "before": {
+                "python_retained_bytes": 4889,
+                "python_peak_bytes": 10706
+              },
+              "after": {
+                "python_retained_bytes": 4872,
+                "python_peak_bytes": 5688
+              }
+            }
+          },
+          "default_catalog": {
+            "n_types": 230,
+            "real_atoms": 4738,
+            "exact_annotations": true,
+            "seconds": {
+              "before": [
+                0.009992125071585178,
+                0.010022300854325294,
+                0.0100340336561203,
+                0.010046723112463952,
+                0.009977420978248119,
+                0.010013081319630145,
+                0.010022864490747452,
+                0.010032316856086253,
+                0.01000624056905508
+              ],
+              "after": [
+                0.003366882726550102,
+                0.0033410293981432915,
+                0.0033522747457027436,
+                0.0033544935286045074,
+                0.003367001749575138,
+                0.0033382080495357514,
+                0.0033766824752092363,
+                0.0033667165786027907,
+                0.0033712586387991904
+              ]
+            },
+            "medians": {
+              "before": 0.010022300854325294,
+              "after": 0.0033667165786027907
+            },
+            "allocations": {
+              "before": {
+                "python_retained_bytes": 168245,
+                "python_peak_bytes": 380750
+              },
+              "after": {
+                "python_retained_bytes": 168318,
+                "python_peak_bytes": 312564
+              }
+            }
+          }
+        },
+        "resolver": {
+          "exact_tensor_fields": [
+            "global_params.max_dis",
+            "global_params.lj_dlin_sigma_factor",
+            "global_params.lj_dlin_sigma_factor_soft",
+            "global_params.lj_hbond_OH_donor_dis",
+            "global_params.lj_hbond_dis",
+            "global_params.lj_hbond_hdis",
+            "global_params.lk_min_dis2sigma",
+            "global_params.lkb_water_dist",
+            "global_params.lkb_water_angle_sp2",
+            "global_params.lkb_water_angle_sp3",
+            "global_params.lkb_water_angle_ring",
+            "global_params.lkb_water_tors_sp2",
+            "global_params.lkb_water_tors_sp3",
+            "global_params.lkb_water_tors_ring",
+            "type_params.lj_radius",
+            "type_params.lj_wdepth",
+            "type_params.lk_dgfree",
+            "type_params.lk_lambda",
+            "type_params.lk_volume",
+            "type_params.is_acceptor",
+            "type_params.acceptor_hybridization",
+            "type_params.is_donor",
+            "type_params.is_hydroxyl",
+            "type_params.is_polarh",
+            "type_params.is_hydrogen",
+            "type_params.is_carbon_lk"
+          ],
+          "seconds": {
+            "before": [
+              0.003099623881280422,
+              0.003117208182811737,
+              0.003101872093975544,
+              0.0031115813180804253,
+              0.0031109577044844627,
+              0.0030903536826372147,
+              0.0030975885689258575,
+              0.003098628856241703,
+              0.0031003162264823915
+            ],
+            "after": [
+              0.003210490010678768,
+              0.0032064320519566538,
+              0.003201162815093994,
+              0.0032010383903980253,
+              0.003200865909457207,
+              0.00320865735411644,
+              0.0032012425363063812,
+              0.0031917298212647436,
+              0.003216150589287281
+            ]
+          },
+          "medians": {
+            "before": 0.0031003162264823915,
+            "after": 0.0032012425363063812
+          },
+          "allocations": {
+            "before": {
+              "python_retained_bytes": 16610,
+              "python_peak_bytes": 57836
+            },
+            "after": {
+              "python_retained_bytes": 16797,
+              "python_peak_bytes": 57729
+            }
+          }
+        },
+        "scope": "Nine alternating warm rounds of five calls; packed setup reuses warm block annotations and fresh shallow packed copies. Resolver includes chemical lookup and device transfers. Python allocation tracing excludes native/RSS/GPU allocations. No whole-workflow speedup claim."
+      }
+    }
+  },
+  "limitations": [
+    "Coverage and finiteness do not establish force-field provenance, admissible physical parameter ranges or scientific accuracy.",
+    "No changes to default attachment model; pending scientific parameter-source choice remains unresolved.",
+    "Other scoring families may have different missing-parameter conventions and are not certified by this stage.",
+    "Setup speedups exclude scoring and full preparation; Python allocation measurements exclude native/RSS/GPU storage.",
+    "Resolver construction adds approximately 0.10 ms for host validation in both benchmark environments."
+  ]
+}

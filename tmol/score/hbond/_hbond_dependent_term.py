@@ -3,6 +3,8 @@ import numpy
 import torch
 import pandas
 
+from .._annotation_cache import AnnotationKey, cached_annotation, store_annotation
+
 from tmol.database import ParameterDatabase
 from tmol.database.scoring import HBondDatabase
 
@@ -20,6 +22,15 @@ from tmol.types import (
     NDArray,
     Tensor,
 )
+
+
+def _map_hbond_types(mapper, column, type_index, atom_types):
+    try:
+        names = mapper.reindex(atom_types)[column]
+        names = names.where(pandas.notnull(names), None).to_numpy()
+    except KeyError:
+        names = numpy.full(len(atom_types), None, dtype=object)
+    return type_index.get_indexer(names)
 
 
 def attached_H_for_don(atom_is_hydrogen, D_idx, bonds, bond_spans):
@@ -110,58 +121,62 @@ class HBondDependentTerm(BondDependentTerm):
         self.atom_type_resolver = AtomTypeParamResolver.from_database(
             param_db.chemical, torch.device("cpu")
         )
+        self._hbond_atom_type_index = self.atom_type_resolver.index
+        self._hbond_hybridization = (
+            self.atom_type_resolver.params.acceptor_hybridization.numpy().astype(
+                numpy.int32
+            )
+        )
+        self._hbond_is_hydrogen = (
+            self.atom_type_resolver.params.is_hydrogen.numpy().astype(numpy.int32)
+        )
         self.hbond_database = param_db.scoring.hbond
         self.hbond_resolver = HBondParamResolver.from_database(
             param_db.chemical, self.hbond_database, device
         )
+        # Map the chemical catalog once; residue annotation only gathers rows.
+        self._hbond_acceptor_types = _map_hbond_types(
+            self.hbond_database.acceptor_type_mapper,
+            "acc_type",
+            self.hbond_resolver.acceptor_type_index,
+            self._hbond_atom_type_index,
+        )
+        self._hbond_donor_types = _map_hbond_types(
+            self.hbond_database.donor_type_mapper,
+            "don_type",
+            self.hbond_resolver.donor_type_index,
+            self._hbond_atom_type_index,
+        )
         self.device = device
+        self._hbond_block_key = AnnotationKey.from_sources(
+            param_db.chemical, param_db.scoring.hbond, settings=(self.tile_size,)
+        )
+        self._hbond_packed_key = AnnotationKey.from_sources(
+            param_db.chemical,
+            param_db.scoring.hbond,
+            settings=(
+                self.hbond_resolver.pair_params.donor_weight.device,
+                self.tile_size,
+            ),
+        )
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(HBondDependentTerm, self).setup_block_type(block_type)
 
-        if hasattr(block_type, "hbbt_params"):
-            return
-
-        atom_types = [x.atom_type for x in block_type.atoms]
-        atom_type_idx = self.atom_type_resolver.type_idx(atom_types)
-        atom_type_params = self.atom_type_resolver.params[atom_type_idx]
-        ahnp = atom_type_params.acceptor_hybridization.cpu().numpy()
-        atom_acceptor_hybridization = ahnp.astype(numpy.int32)[None, :]
-
-        def map_names(mapper, col_name, type_index):
-            # step 1: map atom type names to hbtype names
-            # step 2: map hbtype names to hbtype indices
-            is_hbtype = numpy.full(len(atom_types), 0, dtype=numpy.int32)
-            hbtype_ind = numpy.full(len(atom_types), 0, dtype=numpy.int32)
-            hbtype_names = numpy.full(len(atom_types), None, dtype=object)
-            try:
-                # if there are no atoms that register as acceptors/donors,
-                # pandas will throw a KeyError (annoying!)
-                hbtype_df = mapper.reindex(atom_types)[col_name]
-                hbtype_df = hbtype_df.where((pandas.notnull(hbtype_df)), None)
-                hbtype_names[:] = numpy.array(hbtype_df)
-            except KeyError:
-                pass
-            hbtype_ind = type_index.get_indexer(hbtype_names)
-            is_hbtype = hbtype_ind != -1
-
-            return is_hbtype, hbtype_ind
-
-        is_acc, acc_type = map_names(
-            self.hbond_database.acceptor_type_mapper,
-            "acc_type",
-            self.hbond_resolver.acceptor_type_index,
+        cached = cached_annotation(
+            block_type, "_hbond_annotation", self._hbond_block_key
         )
-        is_don, don_type = map_names(
-            self.hbond_database.donor_type_mapper,
-            "don_type",
-            self.hbond_resolver.donor_type_index,
-        )
+        if cached is not None:
+            return cached
+
+        atom_type_idx = self.atom_type_resolver.block_type_indices(block_type)
+        atom_acceptor_hybridization = self._hbond_hybridization[atom_type_idx][None, :]
+        acc_type = self._hbond_acceptor_types[atom_type_idx]
+        don_type = self._hbond_donor_types[atom_type_idx]
+        is_acc, is_don = acc_type != -1, don_type != -1
 
         A_idx = numpy.nonzero(is_acc)[0].astype(dtype=numpy.int32)
-        is_hydrogen = (
-            atom_type_params.is_hydrogen.cpu().numpy().astype(dtype=numpy.int32)
-        )
+        is_hydrogen = self._hbond_is_hydrogen[atom_type_idx]
 
         tile_size = HBondDependentTerm.tile_size
         tiled_acc_orig_inds, tile_n_acc = arg_tile_subset_indices(
@@ -263,20 +278,29 @@ class HBondDependentTerm(BondDependentTerm):
             is_hydrogen=is_hydrogen,
         )
         setattr(block_type, "hbbt_params", hbbt_params)
+        return store_annotation(
+            block_type, "_hbond_annotation", self._hbond_block_key, hbbt_params
+        )
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(HBondDependentTerm, self).setup_packed_block_types(packed_block_types)
 
-        if hasattr(packed_block_types, "hbpbt_params"):
-            return
+        cached = cached_annotation(
+            packed_block_types, "_hbond_annotation", self._hbond_packed_key
+        )
+        if cached is not None:
+            return cached
 
         pbt = packed_block_types
         tile_size = HBondDependentTerm.tile_size
         max_n_tiles = (pbt.max_n_atoms - 1) // tile_size + 1
-        for bt in pbt.active_block_types:
-            assert hasattr(bt, "hbbt_params")
-            assert bt.hbbt_params.tile_n_donH.shape[0] <= max_n_tiles
-            assert bt.hbbt_params.tile_n_acc.shape[0] <= max_n_tiles
+        blocks = [
+            HBondDependentTerm.setup_block_type(self, bt)
+            for bt in pbt.active_block_types
+        ]
+        for params in blocks:
+            assert params.tile_n_donH.shape[0] <= max_n_tiles
+            assert params.tile_n_acc.shape[0] <= max_n_tiles
 
         tile_n_donH = numpy.zeros((pbt.n_types, max_n_tiles), dtype=numpy.int32)
         tile_n_don_hvy = numpy.zeros((pbt.n_types, max_n_tiles), dtype=numpy.int32)
@@ -313,7 +337,7 @@ class HBondDependentTerm(BondDependentTerm):
         )
 
         for i, block_type in enumerate(packed_block_types.active_block_types):
-            i_hb_params = block_type.hbbt_params
+            i_hb_params = blocks[i]
             i_n_tiles = i_hb_params.tile_n_donH.shape[0]
             i_n_ats = block_type.n_atoms
 
@@ -357,3 +381,6 @@ class HBondDependentTerm(BondDependentTerm):
         )
 
         setattr(packed_block_types, "hbpbt_params", params)
+        return store_annotation(
+            packed_block_types, "_hbond_annotation", self._hbond_packed_key, params
+        )

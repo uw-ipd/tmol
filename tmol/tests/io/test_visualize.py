@@ -201,4 +201,4 @@ def test_query_selection_uses_mask_method_when_available():
 
 def test_query_selection_requires_mask_method():
     with pytest.raises(TypeError, match=r"callable mask\(\)"):
-        visualize._selection_mask(_atom_array(), "chain A", "protein")
+        visualize._selection_mask(SimpleNamespace(mask=None), "chain A", "protein")

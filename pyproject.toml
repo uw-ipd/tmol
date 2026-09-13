@@ -58,11 +58,14 @@ dependencies = [
     "astor>=0.8",
     # Structure I/O
     "biotite>=1.4.0",
+    "atomworks @ git+ssh://git@github.com/baker-laboratory/atomworks-dev.git@4af94d0c8be510d49f2a84c2795c6a41fd8f71d3",
     # Ligand preparation
     "rdkit>=2024.3",
 ]
 
 [project.optional-dependencies]
+# Compatibility extra: shared chemistry and parsing are core dependencies.
+atomworks = []
 # OpenBabel powers the SMILES -> 3D mol2 ligand-preparation path (conformer
 # search + MMFF94 charges). The CIF/mol2 paths use RDKit and do not need it;
 # it is imported lazily by ligand preparation, so it stays an

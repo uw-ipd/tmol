@@ -1,0 +1,9 @@
+{
+  "scope": "Synthetic contiguous residues; identical bond indices; nine warm repetitions. tracemalloc excludes native allocations.",
+  "baseline": "774056c7",
+  "rows": [
+    {"atoms": 1000, "baseline": {"median_seconds": 0.001348697580397129, "python_traced_peak_bytes": 1373471}, "candidate": {"median_seconds": 3.42419371008873e-05, "python_traced_peak_bytes": 48444}},
+    {"atoms": 10000, "baseline": {"median_seconds": 0.01727289706468582, "python_traced_peak_bytes": 13613504}, "candidate": {"median_seconds": 0.000186944380402565, "python_traced_peak_bytes": 437188}},
+    {"atoms": 100000, "baseline": {"median_seconds": 0.17722054291516542, "python_traced_peak_bytes": 136013505}, "candidate": {"median_seconds": 0.0016798796132206917, "python_traced_peak_bytes": 3780811}}
+  ]
+}

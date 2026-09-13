@@ -3,9 +3,9 @@
 A D residue's rotamer statistics are its L counterpart's read at negated
 backbone and sidechain torsions. Mirroring the libraries -- rather than the
 packed tensors the scoring kernels read -- means the existing packing code
-builds every offset and index for the D libraries exactly as it does for the L
-ones, the kernels are untouched, and the rotamer builder gets D rotamers for
-free because it reads the same tables.
+builds offsets and indices for D libraries using the same layout as L ones.
+Explicit reflection metadata lets sampling choose ordering cells in the source
+grid and lets spline fitting choose the reflected chi-mean branch.
 
 Under phi,psi,chi -> -phi,-psi,-chi:
 
@@ -71,12 +71,11 @@ def mirror_wells(wells: torch.Tensor, n_per_column: torch.Tensor) -> torch.Tenso
 
 
 def reflect(table: torch.Tensor, dims, start, step) -> torch.Tensor:
-    """Reflect a periodic table through the origin along ``dims``.
+    """Permute reflected points onto the grid from ``reflected_grid_start``.
 
-    Bin k covers start + k*step, so the bin holding -x is (c - k) modulo the
-    number of bins, with c = -2*start/step. Grids differ in registration
-    between the backbone and the non-rotameric chi, so the shift is derived
-    rather than assumed.
+    Point k moves to (c - k) modulo the number of bins, where c is the nearest
+    integer to -2*start/step. Changing the target origin to -start-c*step
+    preserves the exact reflected coordinates even for nonaligned grids.
     """
     out = table
     for dim, dim_start, dim_step in zip(dims, start, step):
@@ -84,6 +83,11 @@ def reflect(table: torch.Tensor, dims, start, step) -> torch.Tensor:
         c = int(round(-2.0 * float(dim_start) / float(dim_step)))
         out = torch.roll(torch.flip(out, (dim,)), (c - n + 1) % n, dims=dim)
     return out
+
+
+def reflected_grid_start(start, step):
+    """Choose the exact reflected origin nearest the original origin."""
+    return -start - round(-2.0 * start / step) * step
 
 
 def _backbone_dims(data: RotamericDataForAA):
@@ -98,6 +102,14 @@ def _backbone_dims(data: RotamericDataForAA):
 
 def mirror_rotameric_data(data: RotamericDataForAA) -> RotamericDataForAA:
     dims, start, step = _backbone_dims(data)
+    target_start = [reflected_grid_start(s, d) for s, d in zip(start, step)]
+    # The default aligned grids retain the same tensor and physical origin.
+    target_start = (
+        data.backbone_dihedral_start
+        if target_start == start
+        else data.backbone_dihedral_start.new_tensor(target_start)
+    )
+    was_mirrored = getattr(data, "backbone_is_mirrored", False)
     # the rotamer table and its aliases share one count per chi, or an alias
     #    will redirect onto a well tuple that no row carries
     counts = wells_per_chi(data)
@@ -105,6 +117,9 @@ def mirror_rotameric_data(data: RotamericDataForAA) -> RotamericDataForAA:
     alias = data.rotamer_alias
     return attr.evolve(
         data,
+        backbone_is_mirrored=not was_mirrored,
+        backbone_dihedral_start=target_start,
+        backbone_source_start=None if was_mirrored else data.backbone_dihedral_start,
         rotamers=mirror_wells(data.rotamers, counts),
         rotamer_probabilities=reflect(data.rotamer_probabilities, dims, start, step),
         rotamer_means=-reflect(data.rotamer_means, dims, start, step),
@@ -153,7 +168,9 @@ def mirror_semi_rotameric_library(
     return SemiRotamericAADunbrackLibrary(
         table_name=d_table_name(library.table_name),
         rotameric_data=mirror_rotameric_data(data),
-        non_rot_chi_start=library.non_rot_chi_start,
+        non_rot_chi_start=reflected_grid_start(
+            library.non_rot_chi_start, library.non_rot_chi_step
+        ),
         non_rot_chi_step=library.non_rot_chi_step,
         non_rot_chi_period=library.non_rot_chi_period,
         rotameric_chi_rotamers=mirror_wells(
@@ -168,40 +185,74 @@ def mirror_semi_rotameric_library(
 def with_mirrored_libraries(
     library: DunbrackRotamerLibrary, d_residue_names
 ) -> DunbrackRotamerLibrary:
-    """Append the mirrored libraries and the lookup rows that reach them.
+    """Append only required mirrored libraries and their missing lookup rows.
 
     ``d_residue_names`` maps an L residue name to the name of the D residue
     type that mirrors it; a residue whose L form has no rotamer library keeps
-    none, as glycine and alanine do.
+    none, as glycine and alanine do. Existing target mappings are authoritative.
+    A generated table name must be free: an explicit lookup can reuse an
+    existing table without guessing its provenance from a name prefix.
     """
-    covered = {m.dun_table_name for m in library.dun_lookup}
-    if any(name.startswith(D_PREFIX) for name in covered):
+    if not d_residue_names:
         return library
 
+    tables = {}
+    for lib in (*library.rotameric_libraries, *library.semi_rotameric_libraries):
+        if lib.table_name in tables:
+            raise ValueError(f"Duplicate Dunbrack table name: {lib.table_name}")
+        tables[lib.table_name] = lib
+    existing = {}
+    for row in library.dun_lookup:
+        if row.residue_name in existing:
+            raise ValueError(f"Duplicate Dunbrack residue mapping: {row.residue_name}")
+        existing[row.residue_name] = row.dun_table_name
+
     lookup = list(library.dun_lookup)
+    required = set()
+    added = {}
     for mapping in library.dun_lookup:
         d_name = d_residue_names.get(mapping.residue_name)
-        if d_name is None:
+        if d_name is None or d_name in existing:
             continue
-        lookup.append(
-            DunMappingParams(
-                dun_table_name=d_table_name(mapping.dun_table_name),
-                residue_name=d_name,
+        source = mapping.dun_table_name
+        target = d_table_name(source)
+        if d_name in added:
+            if added[d_name] != target:
+                raise ValueError(
+                    f"Conflicting mirrored libraries requested for {d_name}"
+                )
+            continue
+        if source not in tables:
+            raise ValueError(f"Missing source Dunbrack table: {source}")
+        if target in tables:
+            raise ValueError(
+                f"Mirrored Dunbrack table name collision: {target}; "
+                f"provide an explicit mapping for {d_name} to reuse a table"
             )
-        )
+        required.add(source)
+        added[d_name] = target
+        lookup.append(DunMappingParams(dun_table_name=target, residue_name=d_name))
+
+    if not added:
+        return library
 
     return attr.evolve(
         library,
         dun_lookup=tuple(lookup),
         rotameric_libraries=(
             *library.rotameric_libraries,
-            *(mirror_rotameric_library(lib) for lib in library.rotameric_libraries),
+            *(
+                mirror_rotameric_library(lib)
+                for lib in library.rotameric_libraries
+                if lib.table_name in required
+            ),
         ),
         semi_rotameric_libraries=(
             *library.semi_rotameric_libraries,
             *(
                 mirror_semi_rotameric_library(lib)
                 for lib in library.semi_rotameric_libraries
+                if lib.table_name in required
             ),
         ),
     )

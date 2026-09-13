@@ -1,0 +1,518 @@
+{
+  "date_utc": "2026-09-12T05:42:39.422423+00:00",
+  "parent_commit": "165d1fe708d7d83084a9aa258e040076779ea88a",
+  "upstream_head": "0593a93b07d80b0302383163d2d98c78e315ab98",
+  "upstream_status": "Fresh API/fetch/merge: already up to date; prior merge 841d594d5 retained.",
+  "source_sha256": {
+    "tmol/ligand/_parameter_replacements.py": "91d9424a419efac2b16dc4af83c89396f412e1fcda6d4b869f9d6bc100034247",
+    "tmol/ligand/_registry.py": "d3d3e51fbcadf90b85aa8e6b4da59e6e37cc509627aa44e625a1ad917a780b2c",
+    "tmol/ligand/_local_conjugate_params.py": "6e4363541a0a5d85dd2bfc908dd1fbf713df5e67c987540c4f0f3f375a7180a2",
+    "tmol/ligand/_params_io.py": "a5a95fc483a6896d57e706d70b021797fda64038b66d86548bfb1e1204168a7d",
+    "tmol/ligand/_params_file.py": "24f22f49587c8a9a48eb18f1ac78733aa7599c6fc3a2896002ee8f1a026d9e06",
+    "tmol/tests/ligand/test_parameter_replacements.py": "389ca96b866cf5595a9ed23315255112d9e50bc615cda44c11d4ca0301ea7ae7",
+    "tmol/tests/ligand/test_local_conjugate_params.py": "350c9c9d14af96fad91422b027b85640ce7d479732b317a6ed98159ba8c23657",
+    "tmol/tests/ligand/test_ligand_entry_paths.py": "999004a80a2df0c7ae7da470d5c8740516f6cb024b454a9081ae3ada2a132ae4",
+    "review/pr503/profile_parameter_replacements.py": "94176806527a629002390d56b81e64d240ec7174484397eb0fc2a29c3bc173fc"
+  },
+  "scope": "Explicit baseline-checked exact-residue replacements through ordinary .tmol delivery. No default chemistry model or scoring kernel change.",
+  "contract": {
+    "new_format": "4.0 only for guarded replacements; ordinary/generic-reference writers remain 2.0/3.0",
+    "fingerprint": "tmol-residue-replacement-v1: JSON of typed complete residue, effective atom charges and local bonded record",
+    "baseline_check": "Before addition metadata can reset existing targets, then after adding any absent baseline types",
+    "idempotent": "Identical combined or correction-only reload returns same database object",
+    "atomic": "Input database is unchanged on success and rejected mismatches",
+    "conflicts": [
+      "different original baseline",
+      "incomplete/nonfinite atom charges",
+      "missing explicit bonded record",
+      "ambiguous/conflicting replacements",
+      "incompatible connection parameters"
+    ],
+    "preserves": [
+      "old patch charges and bonded records in combined bundles",
+      "shared patch order",
+      "types, charges, local bonded terms, connection terms and icoors"
+    ],
+    "old_reader_check": "Version-3 reader from clean ea4e906bc worktree rejects a generated version-4 coupled bundle as incompatible",
+    "rosetta_export": "Rejected because .params cannot preserve replacement guard"
+  },
+  "tests": {
+    "cpu": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/parameter-replacement-checked-cpu.xml",
+      "sha256": "191ae934f7c306b4e34a755d3f13c653330d2b39cfab305f186d574ee598cc8d",
+      "passed": 119,
+      "failed": [],
+      "skipped": 18,
+      "native_differences": {
+        "test_native_replacement_bundle_scores_and_builds_identically[biotin-cpu]": {
+          "score_max_abs": 0.0,
+          "repeat_score_max_abs": 0.0,
+          "gradient_max_abs": 0.0,
+          "repeat_gradient_max_abs": 0.0
+        },
+        "test_native_replacement_bundle_scores_and_builds_identically[nglycan-cpu]": {
+          "score_max_abs": 0.0,
+          "repeat_score_max_abs": 0.0,
+          "gradient_max_abs": 0.0,
+          "repeat_gradient_max_abs": 0.0
+        },
+        "test_native_replacement_bundle_scores_and_builds_identically[oglycan-cpu]": {
+          "score_max_abs": 0.0,
+          "repeat_score_max_abs": 0.0,
+          "gradient_max_abs": 0.0,
+          "repeat_gradient_max_abs": 0.0
+        }
+      }
+    },
+    "gpu": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/parameter-replacement-gpu.xml",
+      "sha256": "69c98095b25bf0e71f391e60cfa3b4aafe5d79f8aacb68f270e13913b1df7d08",
+      "passed": 208,
+      "failed": [],
+      "skipped": 8,
+      "native_differences": {
+        "test_native_replacement_bundle_scores_and_builds_identically[biotin-cpu]": {
+          "score_max_abs": 0.0,
+          "repeat_score_max_abs": 0.0,
+          "gradient_max_abs": 0.0,
+          "repeat_gradient_max_abs": 0.0
+        },
+        "test_native_replacement_bundle_scores_and_builds_identically[biotin-cuda]": {
+          "score_max_abs": 0.000274658203125,
+          "repeat_score_max_abs": 0.000274658203125,
+          "gradient_max_abs": 1.9073486328125e-06,
+          "repeat_gradient_max_abs": 1.9073486328125e-06
+        },
+        "test_native_replacement_bundle_scores_and_builds_identically[nglycan-cpu]": {
+          "score_max_abs": 0.0,
+          "repeat_score_max_abs": 0.0,
+          "gradient_max_abs": 0.0,
+          "repeat_gradient_max_abs": 0.0
+        },
+        "test_native_replacement_bundle_scores_and_builds_identically[nglycan-cuda]": {
+          "score_max_abs": 0.00048828125,
+          "repeat_score_max_abs": 0.0013427734375,
+          "gradient_max_abs": 3.814697265625e-06,
+          "repeat_gradient_max_abs": 3.814697265625e-06
+        },
+        "test_native_replacement_bundle_scores_and_builds_identically[oglycan-cpu]": {
+          "score_max_abs": 0.0,
+          "repeat_score_max_abs": 0.0,
+          "gradient_max_abs": 0.0,
+          "repeat_gradient_max_abs": 0.0
+        },
+        "test_native_replacement_bundle_scores_and_builds_identically[oglycan-cuda]": {
+          "score_max_abs": 0.0,
+          "repeat_score_max_abs": 1.52587890625e-05,
+          "gradient_max_abs": 1.9073486328125e-06,
+          "repeat_gradient_max_abs": 1.9073486328125e-06
+        }
+      }
+    }
+  },
+  "focused_metadata": {
+    "path": "/mnt/home/kdidi/tmol-pr503-followup/parameter-replacement-metadata-cpu.xml",
+    "sha256": "ecf832e7bfb25bb351bf8240978762ec2736baadd715619d0a0bb697e878e8da",
+    "passed": 24,
+    "failed": [],
+    "skipped": 0,
+    "native_differences": {}
+  },
+  "intermediate_runs": {
+    "initial_cpu": "Original repr-based hash rejected NumPy string baselines after YAML reload; retained initial/second logs.",
+    "third_cpu": "Reversed bundle exposed patch ownership reordering; loader now preserves shared patch file order.",
+    "fourth_cpu": "Test compared residue tuple insertion order; corrected oracle compares named types while retaining exact patch order.",
+    "initial_gpu": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/parameter-replacement-initial-gpu.xml",
+      "sha256": "0b26eef7b67d75fd1b1420db77c4abfcc808d80f84ef7823764538c68c7b1bc3",
+      "passed": 195,
+      "failed": [
+        "test_native_replacement_bundle_scores_and_builds_identically[biotin-cuda]",
+        "test_native_replacement_bundle_scores_and_builds_identically[nglycan-cuda]",
+        "test_native_replacement_bundle_scores_and_builds_identically[oglycan-cuda]",
+        "test_tmol_loader_rejects_bad_files[version: \"4.0\"\\nchemical: {}\\n-incompatible]"
+      ],
+      "skipped": 8,
+      "native_differences": {
+        "test_native_replacement_bundle_scores_and_builds_identically[biotin-cpu]": {},
+        "test_native_replacement_bundle_scores_and_builds_identically[biotin-cuda]": {},
+        "test_native_replacement_bundle_scores_and_builds_identically[nglycan-cpu]": {},
+        "test_native_replacement_bundle_scores_and_builds_identically[nglycan-cuda]": {},
+        "test_native_replacement_bundle_scores_and_builds_identically[oglycan-cpu]": {},
+        "test_native_replacement_bundle_scores_and_builds_identically[oglycan-cuda]": {}
+      }
+    },
+    "roundoff_gpu": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/parameter-replacement-roundoff-gpu.xml",
+      "sha256": "3c67346e54d628164c66229ed1e3e2f3e78602bc6c01680ed549ab8bf0f6424f",
+      "passed": 199,
+      "failed": [],
+      "skipped": 8,
+      "native_differences": {
+        "test_native_replacement_bundle_scores_and_builds_identically[biotin-cpu]": {
+          "score_max_abs": 0.0,
+          "repeat_score_max_abs": 0.0,
+          "gradient_max_abs": 0.0,
+          "repeat_gradient_max_abs": 0.0
+        },
+        "test_native_replacement_bundle_scores_and_builds_identically[biotin-cuda]": {
+          "score_max_abs": 3.0517578125e-05,
+          "repeat_score_max_abs": 9.1552734375e-05,
+          "gradient_max_abs": 2.86102294921875e-06,
+          "repeat_gradient_max_abs": 2.86102294921875e-06
+        },
+        "test_native_replacement_bundle_scores_and_builds_identically[nglycan-cpu]": {
+          "score_max_abs": 0.0,
+          "repeat_score_max_abs": 0.0,
+          "gradient_max_abs": 0.0,
+          "repeat_gradient_max_abs": 0.0
+        },
+        "test_native_replacement_bundle_scores_and_builds_identically[nglycan-cuda]": {
+          "score_max_abs": 0.000244140625,
+          "repeat_score_max_abs": 0.0008544921875,
+          "gradient_max_abs": 3.814697265625e-06,
+          "repeat_gradient_max_abs": 3.814697265625e-06
+        },
+        "test_native_replacement_bundle_scores_and_builds_identically[oglycan-cpu]": {
+          "score_max_abs": 0.0,
+          "repeat_score_max_abs": 0.0,
+          "gradient_max_abs": 0.0,
+          "repeat_gradient_max_abs": 0.0
+        },
+        "test_native_replacement_bundle_scores_and_builds_identically[oglycan-cuda]": {
+          "score_max_abs": 1.52587890625e-05,
+          "repeat_score_max_abs": 1.52587890625e-05,
+          "gradient_max_abs": 9.5367431640625e-07,
+          "repeat_gradient_max_abs": 1.9073486328125e-06
+        }
+      }
+    },
+    "metadata_before_fix": {
+      "path": "/mnt/home/kdidi/tmol-pr503-followup/parameter-replacement-final-cpu.xml",
+      "sha256": "55b92f57d2971f5c61557886bdcd1e2f12fb6ca01db1d7634a778e39bc58e073",
+      "passed": 116,
+      "failed": [
+        "test_explicit_baseline_bonded_records_survive_combined_export[biotin]",
+        "test_explicit_baseline_bonded_records_survive_combined_export[nglycan]",
+        "test_explicit_baseline_bonded_records_survive_combined_export[oglycan]"
+      ],
+      "skipped": 18,
+      "native_differences": {
+        "test_native_replacement_bundle_scores_and_builds_identically[biotin-cpu]": {
+          "score_max_abs": 0.0,
+          "repeat_score_max_abs": 0.0,
+          "gradient_max_abs": 0.0,
+          "repeat_gradient_max_abs": 0.0
+        },
+        "test_native_replacement_bundle_scores_and_builds_identically[nglycan-cpu]": {
+          "score_max_abs": 0.0,
+          "repeat_score_max_abs": 0.0,
+          "gradient_max_abs": 0.0,
+          "repeat_gradient_max_abs": 0.0
+        },
+        "test_native_replacement_bundle_scores_and_builds_identically[oglycan-cpu]": {
+          "score_max_abs": 0.0,
+          "repeat_score_max_abs": 0.0,
+          "gradient_max_abs": 0.0,
+          "repeat_gradient_max_abs": 0.0
+        }
+      }
+    },
+    "notes": "Initial CUDA bitwise assertions failed at float32 reduction scale; unchanged-database repeats now recorded and standard float32 tolerance used. CPU and built-coordinate assertions stay exact. Unknown-future-version test updated from 4 to 99. Additional baseline bonded records needed separation from target-record conflict checks."
+  },
+  "scheduler": "JobID|State|ExitCode|Elapsed|MaxRSS\n250930|FAILED|1:0|00:02:52|\n250930.batch|FAILED|1:0|00:02:52|4795112K\n250948|COMPLETED|0:0|00:02:45|\n250948.batch|COMPLETED|0:0|00:02:45|3497972K\n250953|COMPLETED|0:0|00:02:48|\n250953.batch|COMPLETED|0:0|00:02:48|3338456K\n",
+  "benchmark": {
+    "baseline": "165d1fe70",
+    "repeats": 15,
+    "cases": {
+      "biotin": {
+        "previous_private": {
+          "median_ms": 18.529036082327366,
+          "samples_ms": [
+            18.467292189598083,
+            19.21410672366619,
+            19.16627399623394,
+            18.68144702166319,
+            18.520002253353596,
+            19.998556934297085,
+            18.382292240858078,
+            23.263445124030113,
+            18.529036082327366,
+            18.349112011492252,
+            18.30133982002735,
+            18.56775488704443,
+            18.44205427914858,
+            18.711112439632416,
+            18.422593362629414
+          ],
+          "python_retained_bytes": 132745,
+          "python_peak_bytes": 2143411
+        },
+        "current_private": {
+          "median_ms": 11.320539750158787,
+          "samples_ms": [
+            11.074435897171497,
+            11.191203258931637,
+            11.122578755021095,
+            11.320539750158787,
+            11.500864289700985,
+            11.198444291949272,
+            11.424236930906773,
+            11.203942820429802,
+            11.343864724040031,
+            12.299966998398304,
+            11.267980560660362,
+            11.655909940600395,
+            11.613323353230953,
+            11.4249587059021,
+            11.311025358736515
+          ],
+          "python_retained_bytes": 134369,
+          "python_peak_bytes": 2063112
+        },
+        "current_ordinary": {
+          "median_ms": 16.098043881356716,
+          "samples_ms": [
+            16.073266975581646,
+            16.134969890117645,
+            16.091303899884224,
+            16.186007298529148,
+            16.152297146618366,
+            16.18372369557619,
+            16.098043881356716,
+            15.897450037300587,
+            15.985063277184963,
+            16.10873080790043,
+            15.879563055932522,
+            16.102691181004047,
+            16.024253331124783,
+            15.982648357748985,
+            16.11886639147997
+          ],
+          "python_retained_bytes": 134441,
+          "python_peak_bytes": 2073344
+        },
+        "ordinary_repeat": {
+          "median_ms": 9.859400801360607,
+          "samples_ms": [
+            9.918831288814545,
+            10.796775110065937,
+            10.038463398814201,
+            9.746789932250977,
+            9.744876995682716,
+            9.67788603156805,
+            9.75231733173132,
+            9.544041939079762,
+            9.90222580730915,
+            10.36507822573185,
+            10.684935376048088,
+            9.72795207053423,
+            9.859400801360607,
+            10.233709588646889,
+            9.72552876919508
+          ],
+          "python_retained_bytes": 115488,
+          "python_peak_bytes": 313523
+        }
+      },
+      "nglycan": {
+        "previous_private": {
+          "median_ms": 28.25443260371685,
+          "samples_ms": [
+            27.968188747763634,
+            28.330359607934952,
+            28.200000524520874,
+            28.049231506884098,
+            28.37073989212513,
+            28.25443260371685,
+            29.259619303047657,
+            29.01314664632082,
+            30.469927936792374,
+            28.569101355969906,
+            28.02929189056158,
+            28.20851467549801,
+            29.162541963160038,
+            27.928387746214867,
+            28.040548786520958
+          ],
+          "python_retained_bytes": 155273,
+          "python_peak_bytes": 2520359
+        },
+        "current_private": {
+          "median_ms": 17.036610282957554,
+          "samples_ms": [
+            17.088928259909153,
+            17.75143574923277,
+            16.80283434689045,
+            16.788562759757042,
+            17.411649227142334,
+            17.561946995556355,
+            17.036610282957554,
+            17.015717923641205,
+            16.78994484245777,
+            17.369404435157776,
+            16.85414183884859,
+            17.157452180981636,
+            17.067315988242626,
+            16.922646202147007,
+            16.813349910080433
+          ],
+          "python_retained_bytes": 155865,
+          "python_peak_bytes": 2437868
+        },
+        "current_ordinary": {
+          "median_ms": 27.748134918510914,
+          "samples_ms": [
+            28.24545931071043,
+            26.57940983772278,
+            26.398655958473682,
+            26.70876681804657,
+            28.00541464239359,
+            28.631705790758133,
+            27.6607321575284,
+            27.88019459694624,
+            28.388457372784615,
+            28.40003464370966,
+            26.348939165472984,
+            27.726802974939346,
+            27.82647404819727,
+            27.748134918510914,
+            26.581202633678913
+          ],
+          "python_retained_bytes": 155993,
+          "python_peak_bytes": 2449292
+        },
+        "ordinary_repeat": {
+          "median_ms": 19.904534332454205,
+          "samples_ms": [
+            24.310865439474583,
+            20.165211521089077,
+            20.083005540072918,
+            19.594553858041763,
+            21.027879789471626,
+            20.807264372706413,
+            19.61531490087509,
+            19.75701004266739,
+            19.451777450740337,
+            19.420339725911617,
+            19.458968192338943,
+            20.50473541021347,
+            19.904534332454205,
+            21.14019077271223,
+            19.249549135565758
+          ],
+          "python_retained_bytes": 132232,
+          "python_peak_bytes": 325309
+        }
+      },
+      "oglycan": {
+        "previous_private": {
+          "median_ms": 26.132521219551563,
+          "samples_ms": [
+            26.132521219551563,
+            26.77208185195923,
+            26.22856665402651,
+            25.885896757245064,
+            26.060661301016808,
+            25.810102000832558,
+            25.914900936186314,
+            26.813415810465813,
+            26.045680046081543,
+            27.92927995324135,
+            26.84604562819004,
+            26.125450618565083,
+            26.32666565477848,
+            25.811624713242054,
+            26.20189543813467
+          ],
+          "python_retained_bytes": 152089,
+          "python_peak_bytes": 2490259
+        },
+        "current_private": {
+          "median_ms": 16.256054863333702,
+          "samples_ms": [
+            16.842614859342575,
+            17.047876492142677,
+            17.037762328982353,
+            16.147099435329437,
+            16.568888910114765,
+            16.81317947804928,
+            16.035469248890877,
+            16.153297387063503,
+            16.308443620800972,
+            16.108529642224312,
+            16.203945502638817,
+            16.12230110913515,
+            16.256054863333702,
+            16.229072585701942,
+            16.459583304822445
+          ],
+          "python_retained_bytes": 152993,
+          "python_peak_bytes": 2408512
+        },
+        "current_ordinary": {
+          "median_ms": 25.973058305680752,
+          "samples_ms": [
+            24.3917778134346,
+            25.845655240118504,
+            27.04739011824131,
+            25.445659644901752,
+            27.205280028283596,
+            26.024477556347847,
+            26.06007270514965,
+            25.881060399115086,
+            25.973058305680752,
+            25.06101317703724,
+            26.97636280208826,
+            26.074113324284554,
+            26.05294156819582,
+            24.693096056580544,
+            24.416356347501278
+          ],
+          "python_retained_bytes": 153105,
+          "python_peak_bytes": 2419632
+        },
+        "ordinary_repeat": {
+          "median_ms": 17.755450680851936,
+          "samples_ms": [
+            18.7082476913929,
+            18.579863011837006,
+            17.461664974689484,
+            17.603058367967606,
+            18.39732564985752,
+            17.611731775105,
+            17.775321379303932,
+            18.300317227840424,
+            17.649449408054352,
+            17.694287933409214,
+            17.994483932852745,
+            17.50579196959734,
+            17.347050830721855,
+            17.755932174623013,
+            17.755450680851936
+          ],
+          "python_retained_bytes": 130504,
+          "python_peak_bytes": 357496
+        }
+      }
+    }
+  },
+  "benchmark_scope": {
+    "comparison": "Original private installer loaded from parent AST, using its original digest; shared private and ordinary installers receive scientifically identical parameters.",
+    "equivalence": "Complete chemical, charge and bonded databases asserted equal before timing.",
+    "timing": "15 warm CPU calls per method/fixture, generation excluded, GC outside timing; shared host, no CPU affinity.",
+    "memory": "tracemalloc extra Python peak/retained allocation for one call, excluding preexisting input database; neither RSS nor CUDA memory.",
+    "change": "Build/hash completed bonded database once rather than twice; retain explicit normalized baseline validation.",
+    "raw_path": "/mnt/home/kdidi/tmol-pr503-followup/parameter-replacement-profile.json",
+    "raw_sha256": "a1e72868519f24130b881245ba91b4a6c6674e5136195e57c2376147784ad47d"
+  },
+  "remaining_limits": [
+    "Private MMFF model remains opt-in; user choice of default attachment parameter source is pending.",
+    "No independent force-field refit or scientific validation.",
+    "Three-block angles and chemistry contexts sharing one residue name remain open.",
+    "Fingerprint excludes global scoring tables, score weights and referenced atom-type definitions.",
+    "Only explicitly named variants are replaced; new variants are not automatically corrected.",
+    "Earlier experimental private results with representation-dependent baseline digests require regeneration.",
+    "Default attachment stiffness and original noncanonical reference-test failures remain unresolved."
+  ]
+}

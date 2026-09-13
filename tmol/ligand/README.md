@@ -246,6 +246,41 @@ extends a database directly. Prefer context reuse over file round-trips when the
 ligand topology is fixed within a run; use `.tmol` when you need persistence
 across runs or manual control.
 
+Conjugate exports include patches and charges for canonical attachment partners,
+even when those partners' base residue definitions already come from the standard
+database. Explicit `ConnectionCartRes` records are stored under
+`cartbonded.connection_params`, including their provenance. The loader carries
+shared additions once in the returned preparation list; inject the whole list to
+restore the bundle. Adding the bundle after its source ligand has already been
+registered still installs its attachment metadata. Numeric internal coordinates
+and bond order in the definition are preserved during export.
+The writer emits format version 2.0 for attachment metadata, or 3.0 when atoms
+(including patch atoms) contain an explicit `genbonded_type` reference. Older
+readers reject these versions rather than silently dropping chemistry. This
+reader accepts versions 1–3; it cannot recover metadata an older writer omitted.
+
+An atom's optional `genbonded_type` controls only generic bonded parameter lookup.
+Its `atom_type` still controls nonbonded typing and the generic term’s ownership
+checks. Changing physical types also requires reviewing any retained, named
+`CartRes` torsions; a lookup reference does not rewrite those records. A reference must be a known concrete type of the same element. This
+lets, for example, an amide's canonical carbon and hydrogen neighbors supply
+appropriate generic lookup types without transferring their canonical torsions
+to the generic term. Rosetta `.params` export rejects these references because
+that format cannot preserve them.
+
+Persisting explicit connection records does not generate them: automatic bonded
+parameter generation for conjugates is still under development.
+
+An exact patched name in `cartbonded.residue_params`, such as `LYS:conj_NZ`,
+supplies a complete `CartRes` replacement for that type; other forms of lysine
+keep their base parameters. Use a copy of the base record with the needed rows
+changed when making a local correction. This does not merge partial records or
+infer applicability to other combinations of patches. Existing wildcard lookup
+and explicit connection-record precedence still apply. A preparation can carry
+such records for a partner in `additional_cartbonded_params`; they are retained
+on export/reload even when the partner's base definition comes from the standard
+database. Conflicting bonded definitions within a bundle raise an error.
+
 ## Pipeline Overview
 
 All three input modes converge on a single typing/build/inject core.

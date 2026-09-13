@@ -438,7 +438,7 @@ def test_fragment_mapping_is_stable_for_atom_array_stack(torch_device):
     assert len({e.block_ind for e in split_mapping.entries}) == 2
 
 
-def test_fragmented_ligand_minimize_and_pack_e2e():
+def test_fragmented_ligand_minimize_and_pack_e2e(torch_device):
     from tmol import run_cart_min
     from tmol.ops import (
         build_coord_mask_for_mask_and_interacting_atoms,
@@ -449,7 +449,6 @@ def test_fragmented_ligand_minimize_and_pack_e2e():
         calculate_fragment_interactions,
     )
 
-    torch_device = torch.device("cpu")
     structure, params_path, preparation = _load_fixture()
     annotated = _annotate_at_bridge(structure, preparation)
     pose, context, mapping = _build(
@@ -503,14 +502,15 @@ def test_fragmented_ligand_minimize_and_pack_e2e():
         ("ace", "multi"),
     ],
 )
-def test_fragmented_ligand_ddg_and_total_pose_parity(target, fragmentation):
+def test_fragmented_ligand_ddg_and_total_pose_parity(
+    target, fragmentation, torch_device
+):
     from tmol.ops import calculate_block_pair_ddg
     from tmol.score import (
         beta2016_score_function,
         calculate_fragment_interactions,
     )
 
-    torch_device = torch.device("cpu")
     structure, params_path, preparation = _load_fixture(target)
     annotated = (
         _annotate_at_bridge(structure, preparation)

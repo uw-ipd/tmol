@@ -522,6 +522,12 @@ class RefinedResidueType(RawResidueType):
                     atom_downstream_of_conn[i, :] = i_conn_atom
                 else:
                     assert mc_ats[0] == self.connections[i].atom
+                    if len(mc_ats) == 1:
+                        # A cap has no atom farther along its backbone. Keep
+                        # the undefined-depth sentinel instead of repeating
+                        # the connection atom into a degenerate torsion.
+                        atom_downstream_of_conn[i, 0] = i_conn_atom
+                        continue
                     for j in range(self.n_atoms):
                         atom_downstream_of_conn[i, j] = self.atom_to_idx[
                             mc_ats[j] if j < len(mc_ats) else mc_ats[-1]
@@ -537,6 +543,9 @@ class RefinedResidueType(RawResidueType):
                     atom_downstream_of_conn[i, :] = i_conn_atom
                 else:
                     assert mc_ats[-1] == self.connections[i].atom
+                    if len(mc_ats) == 1:
+                        atom_downstream_of_conn[i, 0] = i_conn_atom
+                        continue
                     for j in range(self.n_atoms):
                         atom_downstream_of_conn[i, j] = self.atom_to_idx[
                             (

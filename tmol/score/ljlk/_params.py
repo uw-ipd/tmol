@@ -2,6 +2,7 @@ import attr
 import cattr
 
 import pandas
+import numpy
 
 import torch
 
@@ -81,6 +82,23 @@ class LJLKParamResolver(ValidateAttrs):
 
     device: torch.device
 
+    invalid_type_parameters: dict = attr.ib(factory=dict)
+
+    def validate_block_type(self, block_type):
+        """Require finite parameters only for atom types used by this block."""
+        if not self.invalid_type_parameters:
+            return
+        invalid = [
+            f"{atom.name} ({atom.atom_type}): {', '.join(fields)}"
+            for atom in block_type.atoms
+            if (fields := self.invalid_type_parameters.get(atom.atom_type))
+        ]
+        if invalid:
+            raise ValueError(
+                f"Residue {block_type.name} has missing or non-finite LJLK parameters: "
+                + "; ".join(invalid)
+            )
+
     @classmethod
     @validate_args
     def from_database(
@@ -121,13 +139,27 @@ class LJLKParamResolver(ValidateAttrs):
         # Pack the tuple of type parameters into a dataframe and reindex via
         # the param resolver type index. This appends a "nan" row at the end of
         # the frame for the invalid/None entry added above.
+        fields = ("lj_radius", "lj_wdepth", "lk_dgfree", "lk_lambda", "lk_volume")
         param_records = (
             pandas.DataFrame.from_records(
-                cattr.unstructure(ljlk_database.atom_type_parameters)
+                cattr.unstructure(ljlk_database.atom_type_parameters),
+                columns=("name", *fields),
             )
             .set_index("name")
             .reindex(index=atom_type_index)
         )
+
+        # Check the representation used by the kernels, before any device copy.
+        # Unused chemical types may lack parameters; the trailing None row is
+        # deliberately NaN for low-level padded lookups.
+        with numpy.errstate(over="ignore"):
+            values = param_records[list(fields)].to_numpy(dtype=numpy.float32)
+        finite = numpy.isfinite(values)
+        invalid_type_parameters = {
+            name: tuple(field for field, valid in zip(fields, finite[i]) if not valid)
+            for i in numpy.flatnonzero(~finite.all(axis=1))
+            if (name := atom_type_index[i]) is not None
+        }
 
         # Rosetta's Etable::initialize_carbontypes_to_linearize_fasol
         is_carbon_lk = torch.tensor(
@@ -145,12 +177,8 @@ class LJLKParamResolver(ValidateAttrs):
             is_hydroxyl=atom_type_resolver.params.is_hydroxyl,
             is_polarh=atom_type_resolver.params.is_polarh,
             **{
-                f.name: torch.tensor(
-                    param_records[f.name].values, dtype=f.type.dtype, device=device
-                )
-                for f in attr.fields(LJLKTypeParams)
-                if f.name
-                in ("lj_radius", "lj_wdepth", "lk_dgfree", "lk_lambda", "lk_volume")
+                name: torch.tensor(values[:, i], dtype=torch.float32, device=device)
+                for i, name in enumerate(fields)
             },
             is_hydrogen=atom_type_resolver.params.is_hydrogen,
             is_carbon_lk=is_carbon_lk,
@@ -161,4 +189,5 @@ class LJLKParamResolver(ValidateAttrs):
             global_params=global_params,
             type_params=type_params,
             device=device,
+            invalid_type_parameters=invalid_type_parameters,
         )

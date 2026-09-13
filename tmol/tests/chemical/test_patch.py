@@ -762,3 +762,44 @@ def test_validate_restype_bad_icoor(default_unpatched_chemical_database):
         assert str(err) == gold_err
         threw = True
     assert threw
+
+
+def test_terminal_and_conjugation_patches_preserve_torsion_support_in_either_order():
+    from pathlib import Path
+    from tmol.database import ParameterDatabase
+    from tmol.database.chemical import ChemicalDatabase
+    from tmol.database._patched_chemdb import validate_raw_residue
+    from tmol.ligand._conjugation_patches import conjugation_patch
+    from tmol.ligand._params_file import _load_params_files
+    from tmol.ligand._registry import inject_ligand_preparations
+
+    path = (
+        Path(__file__).parents[3]
+        / "review/pr503/fixtures/noncanonical-score-replay/dna-0.tmol"
+    )
+    (prep,) = _load_params_files([str(path)])
+    db = inject_ligand_preparations(ParameterDatabase.get_default(), [prep])
+    base = next(r for r in db.chemical.residues if r.name == "5CM")
+    conjugation = conjugation_patch(base, "C5'", db.chemical, chi_name="chi20")
+    assert conjugation.add_torsions[0].a.atom == "P"
+    termini = tuple(v for v in db.chemical.variants if v.applies_to.matches(base))
+    inventories = []
+    for variants in ((conjugation, *termini), (*termini, conjugation)):
+        unpatched = ChemicalDatabase(
+            element_types=db.chemical.element_types,
+            atom_types=db.chemical.atom_types,
+            residues=(base,),
+            variants=variants,
+        )
+        patched = PatchedChemicalDatabase.from_chem_db(unpatched)
+        forms = {frozenset(r.name.split(":")) for r in patched.residues}
+        assert frozenset(("5CM", "conj_C5'")) in forms
+        assert frozenset(("5CM", "na5prime")) in forms
+        assert not any({"na5prime", "conj_C5'"} <= names for names in forms)
+        for residue in patched.residues:
+            validate_raw_residue(residue)
+            if "conj_C5'" in residue.name:
+                assert "chi20" in {t.name for t in residue.torsions}
+                assert "chi20" in {c.chi_dihedral for c in residue.chi_samples}
+        inventories.append(forms)
+    assert inventories[0] == inventories[1]

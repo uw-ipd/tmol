@@ -1,6 +1,8 @@
 #pragma once
 
 #include <Eigen/Core>
+#include <cmath>
+#include <limits>
 #include <tuple>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
@@ -17,6 +19,7 @@
 #include <tmol/extern/moderngpu/operators.hxx>
 
 #include <ATen/Tensor.h>
+#include <c10/util/Exception.h>
 
 namespace tmol {
 namespace pack {
@@ -32,6 +35,78 @@ template <
     typename Real,
     typename Int>
 struct DunbrackChiSampler {
+  static EIGEN_DEVICE_FUNC void backbone_lookup_coordinate(
+      Real dihedral,
+      Real start,
+      Real source_start,
+      Real step,
+      Real period,
+      Real& coordinate,
+      Int& bin,
+      bool mirrored,
+      Int axis) {
+    // Missing terminal torsions use the source library's neutral angles.
+    // A reflected table resolves its own defaults, even when L and D types
+    // are both considered at one input residue.
+    if (dihedral != dihedral) {
+      dihedral = axis == 0 ? Real(-M_PI / 3.0) : Real(M_PI / 3.0);
+    } else if (mirrored) {
+      dihedral = -dihedral;
+    }
+    Real wrapped = dihedral - (mirrored ? source_start : start);
+    while (wrapped < 0) wrapped += period;
+    while (wrapped >= period) wrapped -= period;
+    coordinate = wrapped / step;
+    // Division can round a value just below the endpoint up to the bin count.
+    Int const n_bins = Int(period / step + Real(0.5));
+    if (coordinate >= n_bins) coordinate = 0;
+    bin = Int(coordinate);
+    if (mirrored) {
+      // The generated grid reflects point k to (origin - k) modulo n_bins.
+      // Select the source cell first: independently flooring the reflected
+      // coordinate chooses the adjacent cell, and ceil is unstable at grid
+      // boundaries because the two coordinate calculations round separately.
+      Int const origin = Int(std::round(-(source_start + start) / step));
+      coordinate = Real(origin) - coordinate;
+      while (coordinate < 0) coordinate += n_bins;
+      while (coordinate >= n_bins) coordinate -= n_bins;
+      bin = (origin - bin) % n_bins;
+      if (bin < 0) bin += n_bins;
+    }
+  }
+
+  // Negative values mark invalid/overflowed counts and survive every later sum.
+  static EIGEN_DEVICE_FUNC Int checked_count_product(Int a, Int b) {
+    if (a < 0 || b < 0) return -1;
+    if constexpr (sizeof(Int) < sizeof(int64_t)) {
+      int64_t const product = int64_t(a) * int64_t(b);
+      return product > std::numeric_limits<Int>::max() ? Int(-1) : Int(product);
+    } else {
+      if (b != 0 && a > std::numeric_limits<Int>::max() / b) return -1;
+      return a * b;
+    }
+  }
+
+  static Int checked_count_offsets(
+      ContextManager& mgr,
+      TView<Int, 1, D> counts,
+      TView<Int, 1, D> offsets) {
+    if (counts.size(0) == 0) return 0;
+    auto add = [] EIGEN_DEVICE_FUNC(Int a, Int b) -> Int {
+      if (a < 0 || b < 0 || a > std::numeric_limits<Int>::max() - b) return -1;
+      return a + b;
+    };
+    Int const total =
+        Dispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+            mgr, counts.data(), offsets.data(), counts.size(0), add);
+    TORCH_CHECK(
+        total >= 0,
+        "Dunbrack sampling count exceeds index capacity ",
+        std::numeric_limits<Int>::max(),
+        " or contains a negative count");
+    return total;
+  }
+
   static auto
   f(ContextManager& mgr,
     TView<Vec<Real, 3>, 1, D> coords,
@@ -47,6 +122,8 @@ struct DunbrackChiSampler {
     TView<Vec<Real, 2>, 1, D> rotameric_bb_start,          // ntable-set entries
     TView<Vec<Real, 2>, 1, D> rotameric_bb_step,           // ntable-set entries
     TView<Vec<Real, 2>, 1, D> rotameric_bb_periodicity,    // ntable-set entries
+    TView<Vec<Real, 2>, 1, D> rotameric_bb_source_start,
+    TView<bool, 1, D> rotameric_bb_is_mirrored,
     TView<Real, 4, D> /*semirotameric_tables*/,            // n-semirot-tabset
     TView<Vec<int64_t, 3>, 1, D> /*semirot_table_sizes*/,  // n-semirot-tabset
     TView<Vec<int64_t, 3>, 1, D> /*semirot_table_strides*/,  // n-semirot-tabset
@@ -75,7 +152,8 @@ struct DunbrackChiSampler {
     TView<Real, 3, D> non_dunbrack_expansion_for_buildable_restype,
     TView<Int, 2, D> non_dunbrack_expansion_counts_for_buildable_restype,
     TView<Real, 1, D> prob_cumsum_limit_for_buildable_restype,
-    TView<Int, 1, D> nchi_for_buildable_restype  // inc. hydroxyl chi, e.g.
+    TView<Int, 1, D> nchi_for_buildable_restype,  // inc. hydroxyl chi, e.g.
+    int64_t max_samples_per_restype
 
     )
       -> std::tuple<
@@ -83,6 +161,12 @@ struct DunbrackChiSampler {
           TPack<Int, 1, D>,
           TPack<Int, 1, D>,
           TPack<Real, 2, D> > {
+    TORCH_CHECK(
+        rotameric_bb_is_mirrored.size(0) == rotameric_bb_start.size(0),
+        "Dunbrack reflection metadata must cover every table set");
+    TORCH_CHECK(
+        rotameric_bb_source_start.size(0) == rotameric_bb_start.size(0),
+        "Dunbrack source origins must cover every table set");
     // construct the list of chi for the rotamers that should be built
     // in 7 stages.
     // 1. State which AAs at which positions
@@ -178,13 +262,8 @@ struct DunbrackChiSampler {
 
     // Exclusive cumulative sum of n_possible_rotamers_per_restype.
     // Get total number of possible rotamers over all residue types
-    Int const n_possible_rotamers =
-        Dispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
-            mgr,
-            n_possible_rotamers_per_brt.data(),
-            possible_rotamer_offset_for_brt.data(),
-            n_brt,
-            mgpu::plus_t<Int>());
+    Int const n_possible_rotamers = checked_count_offsets(
+        mgr, n_possible_rotamers_per_brt, possible_rotamer_offset_for_brt);
 
     // There are some things we need to know about the ith possible rotamer:
     //   1. What buildable_residue type does it come from?
@@ -202,18 +281,10 @@ struct DunbrackChiSampler {
         Int at1 = dihedral_atom_inds[i][1];
         Int at2 = dihedral_atom_inds[i][2];
         Int at3 = dihedral_atom_inds[i][3];
-        Real dihe = 0;
+        Real dihe = std::numeric_limits<Real>::quiet_NaN();
         if (at0 >= 0 && at1 >= 0 && at2 >= 0 && at3 >= 0) {
           dihe = score::common::dihedral_angle<Real>::V(
               coords[at0], coords[at1], coords[at2], coords[at3]);
-        } else if (dihe_ind == 0) {
-          // neutral phi in radians, as suggested by Roland Dunbrack, -60
-          // degrees
-          dihe = -M_PI / 3.0;
-        } else if (dihe_ind == 1) {
-          // neutral psi in radians, as suggested by Roland Dunbrack, +60
-          // degrees
-          dihe = M_PI / 3.0;
         }
         backbone_dihedrals[i] = dihe;
       }
@@ -242,6 +313,8 @@ struct DunbrackChiSampler {
         rotameric_bb_start,
         rotameric_bb_step,
         rotameric_bb_periodicity,
+        rotameric_bb_source_start,
+        rotameric_bb_is_mirrored,
         n_rotamers_for_tableset_offsets,
         sorted_rotamer_2_rotamer,
         bubl_and_rottable_set_for_buildable_restype,
@@ -297,6 +370,15 @@ struct DunbrackChiSampler {
         n_rotamers_to_build_per_brt,
         n_rotamers_to_build_per_brt_offsets);
 
+    if (max_samples_per_restype > 0) {
+      Int const maximum = Dispatch<D>::reduce(
+          mgr, n_rotamers_to_build_per_brt.data(), n_brt, mgpu::maximum_t<Int>());
+      TORCH_CHECK(
+          maximum <= max_samples_per_restype,
+          "Sampling budget ", max_samples_per_restype,
+          " cannot fit the required ", maximum, " Dunbrack library/extra-chi states");
+    }
+
     // Get a mapping from rotamer index to buildable restype
     auto brt_for_rotamer_tp = TPack<Int, 1, D>::zeros(n_rotamers);
     auto brt_for_rotamer = brt_for_rotamer_tp.view;
@@ -320,6 +402,8 @@ struct DunbrackChiSampler {
         rotameric_bb_start,
         rotameric_bb_step,
         rotameric_bb_periodicity,
+        rotameric_bb_source_start,
+        rotameric_bb_is_mirrored,
 
         sorted_rotamer_2_rotamer,
         nchi_for_tableset,
@@ -360,8 +444,10 @@ struct DunbrackChiSampler {
       Int rottable_set = bubl_and_rottable_set_for_buildable_restype[brt][1];
       // fd  a residue with no rotamer library builds from its own chi samples
       //     alone: one base rotamer, which those samples then expand
-      n_possible_rotamers_per_brt[brt] =
+      int64_t const count =
           rottable_set < 0 ? 1 : n_rotamers_for_tableset[rottable_set];
+      n_possible_rotamers_per_brt[brt] =
+          count < 0 || count > std::numeric_limits<Int>::max() ? Int(-1) : Int(count);
     };
 
     Dispatch<D>::template forall<launch_t>(
@@ -415,6 +501,8 @@ struct DunbrackChiSampler {
       TView<Vec<Real, 2>, 1, D> rotameric_bb_start,
       TView<Vec<Real, 2>, 1, D> rotameric_bb_step,
       TView<Vec<Real, 2>, 1, D> rotameric_bb_periodicity,
+      TView<Vec<Real, 2>, 1, D> rotameric_bb_source_start,
+      TView<bool, 1, D> rotameric_bb_is_mirrored,
       TView<Int, 1, D> n_rotamers_for_tableset_offsets,
       TView<int64_t, 3, D> sorted_rotamer_2_rotamer,
       TView<Int, 2, D> bubl_and_rottable_set_for_buildable_restype,
@@ -443,24 +531,19 @@ struct DunbrackChiSampler {
         return;
       }
 
-      // Caclulate the phi/psi bin indices
-      // This needs to be turned into a function...
-      Vec<Real, 2> bbdihe, bbstep;
+      Vec<Real, 2> bbdihe;
       Vec<Int, 2> bin_index;
       for (int ii = 0; ii < 2; ++ii) {
-        Real wrap_iidihe = backbone_dihedrals[2 * bbi + ii]
-                           - rotameric_bb_start[table_set][ii];
-        while (wrap_iidihe < 0) {
-          wrap_iidihe += 2 * M_PI;
-        }
-        Real ii_period = rotameric_bb_periodicity[table_set][ii];
-        while (wrap_iidihe > ii_period) {
-          wrap_iidihe -= ii_period;
-        }
-
-        bbstep[ii] = rotameric_bb_step[table_set][ii];
-        bbdihe[ii] = wrap_iidihe / bbstep[ii];
-        bin_index[ii] = int(bbdihe[ii]);
+        backbone_lookup_coordinate(
+            backbone_dihedrals[2 * bbi + ii],
+            rotameric_bb_start[table_set][ii],
+            rotameric_bb_source_start[table_set][ii],
+            rotameric_bb_step[table_set][ii],
+            rotameric_bb_periodicity[table_set][ii],
+            bbdihe[ii],
+            bin_index[ii],
+            rotameric_bb_is_mirrored[table_set],
+            ii);
       }
 
       // Look up the index of the rotamer: we know where the rotamer is in
@@ -481,10 +564,8 @@ struct DunbrackChiSampler {
       TensorAccessor<Real, 2, D> rotprob_slice(
           rotameric_prob_tables.data()
               + rot_table_ind * rotameric_prob_tables.stride(0),
-          rotprob_table_sizes.data()->data()
-              + rot_table_ind * rotprob_table_sizes.stride(0),
-          rotprob_table_strides.data()->data()
-              + rot_table_ind * rotprob_table_strides.stride(0));
+          rotprob_table_sizes[rot_table_ind].data(),
+          rotprob_table_strides[rot_table_ind].data());
       auto prob_and_derivs =
           tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
               rotprob_slice, bbdihe);
@@ -601,7 +682,7 @@ struct DunbrackChiSampler {
         Int ii_expansion =
             non_dunbrack_expansion_counts_for_buildable_restype[brt][ii];
         if (ii_expansion != 0) {
-          n_expansions *= ii_expansion;
+          n_expansions = checked_count_product(n_expansions, ii_expansion);
         }
       }
 
@@ -609,27 +690,20 @@ struct DunbrackChiSampler {
         expansion_dim_prods_for_brt[brt][ii] = n_expansions;
         // for now, only consider +/- 1 standard deviation sampling
         if (chi_expansion_for_buildable_restype[brt][ii]) {
-          n_expansions *= 3;
+          n_expansions = checked_count_product(n_expansions, Int(3));
         }
       }
 
       n_expansions_for_brt[brt] = n_expansions;
-      n_rotamers_to_build_per_brt[brt] *= n_expansions;
+      n_rotamers_to_build_per_brt[brt] = checked_count_product(
+          n_rotamers_to_build_per_brt[brt], n_expansions);
     };
 
     Dispatch<D>::template forall<launch_t>(
         mgr, n_brt, count_expansions_for_brt);
 
-    // Exclusive cumumaltive sum
-    Int const n_rotamers =
-        Dispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
-            mgr,
-            n_rotamers_to_build_per_brt.data(),
-            n_rotamers_to_build_per_brt_offsets.data(),
-            n_brt,
-            mgpu::plus_t<Int>());
-
-    return n_rotamers;
+    return checked_count_offsets(
+        mgr, n_rotamers_to_build_per_brt, n_rotamers_to_build_per_brt_offsets);
   }
 
   static void map_from_rotamer_index_to_brt(
@@ -671,6 +745,8 @@ struct DunbrackChiSampler {
       TView<Vec<Real, 2>, 1, D> rotameric_bb_start,
       TView<Vec<Real, 2>, 1, D> rotameric_bb_step,
       TView<Vec<Real, 2>, 1, D> rotameric_bb_periodicity,
+      TView<Vec<Real, 2>, 1, D> rotameric_bb_source_start,
+      TView<bool, 1, D> rotameric_bb_is_mirrored,
 
       TView<int64_t, 3, D> sorted_rotamer_2_rotamer,
       TView<Int, 1, D> nchi_for_tableset,
@@ -715,25 +791,22 @@ struct DunbrackChiSampler {
       //     to read it at: every chi comes from the residue's own samples
       bool const has_library = table_set >= 0;
 
-      Vec<Real, 2> bbdihe, bbstep;
+      Vec<Real, 2> bbdihe;
       Vec<Int, 2> bin_index;
       bbdihe[0] = bbdihe[1] = 0;
       bin_index[0] = bin_index[1] = 0;
       if (has_library) {
         for (int ii = 0; ii < 2; ++ii) {
-          Real wrap_iidihe = backbone_dihedrals[2 * res + ii]
-                             - rotameric_bb_start[table_set][ii];
-          while (wrap_iidihe < 0) {
-            wrap_iidihe += 2 * M_PI;
-          }
-          Real ii_period = rotameric_bb_periodicity[table_set][ii];
-          while (wrap_iidihe > ii_period) {
-            wrap_iidihe -= ii_period;
-          }
-
-          bbstep[ii] = rotameric_bb_step[table_set][ii];
-          bbdihe[ii] = wrap_iidihe / bbstep[ii];
-          bin_index[ii] = int(bbdihe[ii]);
+          backbone_lookup_coordinate(
+              backbone_dihedrals[2 * res + ii],
+              rotameric_bb_start[table_set][ii],
+              rotameric_bb_source_start[table_set][ii],
+              rotameric_bb_step[table_set][ii],
+              rotameric_bb_periodicity[table_set][ii],
+              bbdihe[ii],
+              bin_index[ii],
+              rotameric_bb_is_mirrored[table_set],
+              ii);
         }
       }
 
@@ -776,10 +849,8 @@ struct DunbrackChiSampler {
           TensorAccessor<Real, 2, D> rotmean_slice(
               rotameric_mean_tables.data()
                   + (rot_table_start + ii) * rotameric_mean_tables.stride(0),
-              rotmean_table_sizes.data()->data()
-                  + (rot_table_start + ii) * rotmean_table_sizes.stride(0),
-              rotmean_table_strides.data()->data()
-                  + (rot_table_start + ii) * rotmean_table_strides.stride(0));
+              rotmean_table_sizes[rot_table_start + ii].data(),
+              rotmean_table_strides[rot_table_start + ii].data());
 
           auto mean_and_derivs =
               tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
@@ -790,10 +861,8 @@ struct DunbrackChiSampler {
             TensorAccessor<Real, 2, D> rotsdev_slice(
                 rotameric_sdev_tables.data()
                     + (rot_table_start + ii) * rotameric_sdev_tables.stride(0),
-                rotmean_table_sizes.data()->data()
-                    + (rot_table_start + ii) * rotmean_table_sizes.stride(0),
-                rotmean_table_strides.data()->data()
-                    + (rot_table_start + ii) * rotmean_table_strides.stride(0));
+                rotmean_table_sizes[rot_table_start + ii].data(),
+                rotmean_table_strides[rot_table_start + ii].data());
             auto sdev_and_derivs =
                 tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::
                     interpolate(rotsdev_slice, bbdihe);
