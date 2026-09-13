@@ -84,11 +84,29 @@ def test_pose_stack_from_and_to_biotite_1ubq_no_opth_smoke(biotite_1ubq, torch_d
     biotite_from_pose_stack(pose_stack)
 
 
-def test_pose_stack_from_and_to_biotite_multiple_poses_smoke(
-    biotite_1r21, torch_device
+@pytest.mark.parametrize("n_models", [1, 3, 23])
+def test_pose_stack_from_and_to_biotite_multiple_poses(
+    biotite_1r21, torch_device, n_models
 ):
-    pose_stack = pose_stack_from_biotite(biotite_1r21, torch_device=torch_device)
-    biotite_from_pose_stack(pose_stack)
+    from tmol import beta2016_score_function
+
+    source = biotite_1r21[:n_models]
+    canonical = canonical_form_from_biotite(source, torch_device)
+    single = canonical_form_from_biotite(source[0], torch_device)
+    torch.testing.assert_close(canonical.coords[0], single.coords[0], equal_nan=True)
+    pose = pose_stack_from_biotite(source, torch_device, no_optH=True)
+    restored = biotite_from_pose_stack(pose)
+    restored_coords = restored.coord
+    if restored_coords.ndim == 2:
+        restored_coords = restored_coords[None]
+    assert restored_coords.shape[0] == n_models
+    coords = pose.coords.detach().clone().requires_grad_()
+    scores = beta2016_score_function(torch_device).render_whole_pose_scoring_module(
+        pose
+    )(coords)
+    scores.sum().backward()
+    assert torch.isfinite(scores).all()
+    assert torch.isfinite(coords.grad).all()
 
 
 def test_canonical_form_multipose_metadata_propagation(biotite_1r21, torch_device):
@@ -138,7 +156,10 @@ def test_canonical_form_multipose_metadata_propagation(biotite_1r21, torch_devic
         with pytest.raises(ValueError, match="different metadata"):
             biotite_from_canonical_form(attr.evolve(cf, **{field: changed}), co)
     empty = attr.evolve(cf, coords=torch.full_like(cf.coords, float("nan")))
-    assert biotite_from_canonical_form(empty, co).array_length() == 0
+    empty_array = biotite_from_canonical_form(empty, co)
+    assert empty_array.array_length() == 0
+    empty_canonical = canonical_form_from_biotite(empty_array, torch_device, co=co)
+    assert empty_canonical.res_types.shape == (biotite_1r21.stack_depth(), 0)
 
 
 def test_pose_stack_from_biotite_1ubq_slice_smoke(biotite_1ubq, torch_device):

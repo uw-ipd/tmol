@@ -519,8 +519,8 @@ def _map_atoms_to_canonical(co, atom_res_inds, res_names, atom_names, elements):
             "input atom names; these atoms cannot be silently discarded."
         )
 
-    valid_atom_mask = numpy.array(valid)
-    atom_inds_arr = numpy.array(atom_inds)
+    valid_atom_mask = numpy.array(valid, dtype=bool)
+    atom_inds_arr = numpy.array(atom_inds, dtype=numpy.int64)
     return (
         valid_atom_mask,
         atom_inds_arr[valid_atom_mask],
@@ -705,7 +705,7 @@ def _filter_supported_atoms_and_connectivity(  # noqa: C901
 
     res_names = _res_names_for_structure(biotite_structure)
     biotite_residue_starts = biotite.structure.get_residue_starts(biotite_structure)
-    valid_res = numpy.array([name not in to_remove for name in res_names])[
+    valid_res = numpy.array([name not in to_remove for name in res_names], dtype=bool)[
         biotite_residue_starts
     ]
 
@@ -930,17 +930,10 @@ def _populate_canonical_coords(
         dtype=torch.float32,
         device=torch_device,
     )
-    biotite_coords = torch.tensor(biotite_structure.coord, device=torch_device)
-
-    if n_poses == 1:
-        tmol_coords[0, valid_res_inds, valid_atom_inds] = biotite_coords[
-            valid_atom_mask
-        ]
-    else:
-        for pose_ind in range(n_poses):
-            tmol_coords[pose_ind, valid_res_inds, valid_atom_inds] = biotite_coords[
-                pose_ind
-            ][valid_atom_mask]
+    biotite_coords = torch.as_tensor(biotite_structure.coord, device=torch_device)
+    if biotite_coords.ndim == 2:
+        biotite_coords = biotite_coords.unsqueeze(0)
+    tmol_coords[:, valid_res_inds, valid_atom_inds] = biotite_coords[:, valid_atom_mask]
     return tmol_coords, n_poses
 
 
