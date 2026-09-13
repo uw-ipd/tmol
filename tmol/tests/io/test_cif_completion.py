@@ -93,9 +93,9 @@ def test_inserted_atoms_remap_existing_cross_residue_bonds():
     original = struc.concatenate([first, second])
     original.bonds.add_bond(0, 2, struc.BondType.SINGLE)
     original_bonds = original.bonds.as_array().copy()
-    result = _cif._inserted(
-        original, [0, 2], {0: (["C3"], template), 2: (["C3"], template)}
-    )
+    template.set_annotation("atom_name", np.array(["C1", "C2", "UNRESOLVED_CARBON"]))
+    result = _cif.with_unresolved_atoms(original, {"ZZZ": template}, use_ccd=False)
+    assert list(result.atom_name) == ["C1", "C2", "UNRESOLVED_CARBON"] * 2
     assert {tuple(b) for b in result.bonds.as_array()} == {
         (0, 1, 1),
         (0, 3, 1),

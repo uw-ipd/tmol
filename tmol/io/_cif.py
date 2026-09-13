@@ -49,6 +49,11 @@ def component_chemistry_from_block(block, *, use_ccd=False) -> dict:
     from atomworks.io.utils.ccd import build_ccd_entries_from_cif_block
 
     entries = build_ccd_entries_from_cif_block(block, supplement_from_ccd=use_ccd)
+    return _completion_templates(entries)
+
+
+def _completion_templates(entries):
+    """Normalize owned templates for tmol's author-identifier completion policy."""
     for array in entries.values():
         # Preserve the legacy template contract; structure-level metadata is
         # attached separately before parameter preparation.
@@ -155,7 +160,10 @@ def atom_array_from_cif(
             Applies to bonded reading; without bonds the raw coordinates are kept.
 
     Returns:
-        A biotite AtomArray.
+        An AtomWorks AtomArrayPlus when reading bonds, retaining the component
+        templates needed for unresolved stereochemistry. Slicing, copying and
+        AtomWorks concatenation preserve these templates. Coordinate-only reading
+        returns a plain Biotite AtomArray.
     """
     if assembly_id is not None:
         if not isinstance(assembly_id, str) or not assembly_id:
@@ -202,9 +210,16 @@ def atom_array_from_cif(
     array = _with_component_type_annotation(array, block)
     if not include_bonds:
         return array
-    return with_unresolved_atoms(
-        array, component_chemistry_from_block(block, use_ccd=use_ccd), use_ccd=use_ccd
+    if not use_ccd:
+        from atomworks.io.utils.ccd import build_ccd_entries_from_cif_block
+
+        array._custom_ccd_registry = build_ccd_entries_from_cif_block(
+            block, supplement_from_ccd=False
+        )
+    templates = _completion_templates(
+        {name: entry.copy() for name, entry in array._custom_ccd_registry.items()}
     )
+    return with_unresolved_atoms(array, templates, use_ccd=use_ccd)
 
 
 def _with_component_type_annotation(array, block):
@@ -366,6 +381,8 @@ def _inserted(atom_array, starts, additions: dict):
     as the template declares, so the result is bonded throughout rather than
     only where the density reached.
     """
+    from atomworks.io.utils.atom_array_plus import concatenate_atom_array_plus
+
     boundaries = list(starts) + [atom_array.array_length()]
 
     # final layout: each residue's own atoms, then the ones it did not resolve
@@ -386,7 +403,7 @@ def _inserted(atom_array, starts, additions: dict):
             added_at[(int(begin), name)] = total
             total += 1
 
-    combined = struc.concatenate(pieces)
+    combined = concatenate_atom_array_plus(pieces)
 
     bond_tables = []
     if atom_array.bonds is not None:
@@ -423,7 +440,7 @@ def _placeholder_atoms(atom_array, begin, missing, template):
     for field in atom_array.get_annotation_categories():
         source = atom_array.get_annotation(field)
         if field == "atom_name":
-            value = np.array(missing, dtype=source.dtype)
+            value = np.array(missing, dtype=str)
         elif field == "element":
             value = np.array([element.get(n, "") for n in missing], dtype=source.dtype)
         else:

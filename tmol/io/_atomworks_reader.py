@@ -40,6 +40,7 @@ def read_cif(
         ccd_mirror_path=None,
         add_id_and_entity_annotations=False,
         keep_cif_block=True,
+        return_atom_array_plus=True,
     )
     author_annotations = {
         "atom_name": "auth_atom_id",

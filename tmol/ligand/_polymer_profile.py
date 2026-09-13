@@ -17,6 +17,7 @@ import numpy
 import biotite.structure as struc
 from rdkit import Chem
 from rdkit.Chem import rdFMCS
+from atomworks.io.utils.atom_array_plus import concatenate_atom_array_plus
 
 from tmol.utility.weak_identity_cache import WeakIdentityLRU
 
@@ -1765,7 +1766,9 @@ def complete_backbone_from_reference(atom_array, profile, param_db):
                 field, numpy.full(len(added), source[0], dtype=source.dtype)
             )
 
-    combined = atom_array + added
+    combined = concatenate_atom_array_plus(
+        [atom_array, added], on_annotation_mismatch_policy="drop"
+    )
     index = {str(n): i for i, n in enumerate(combined.atom_name)}
     bonds = struc.BondList(combined.array_length())
     if atom_array.bonds is not None:

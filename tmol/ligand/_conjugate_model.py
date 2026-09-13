@@ -12,6 +12,12 @@ import biotite.structure as struc
 import networkx as nx
 import numpy as np
 from rdkit import Chem
+from atomworks.io.tools.rdkit import (
+    ccd_template_to_rdkit,
+    transfer_tetrahedral_stereochemistry,
+)
+from atomworks.io.utils.atom_array_plus import concatenate_atom_array_plus
+from atomworks.io.utils.leaving_atoms import get_leaving_atom_groups
 
 from tmol.ligand._polymer_profile import cap_residue, profile_for_atom_array
 from tmol.ligand._conjugation_patches import connection_name
@@ -117,6 +123,7 @@ def iter_capped_conjugate_models(atom_array, chemical_database):
         links_by_residue.setdefault(ri, []).append((first, second, int(order)))
         graph.add_edge(ri, rj)
 
+    references = {}
     for members in nx.connected_components(graph):
         group_links = tuple(
             link for ri in sorted(members) for link in links_by_residue.get(ri, ())
@@ -129,6 +136,7 @@ def iter_capped_conjugate_models(atom_array, chemical_database):
             chemical_database,
             group_links,
             tuple((port(a)[1], port(b)[1]) for a, b, _ in group_links),
+            references,
         )
 
 
@@ -140,6 +148,7 @@ def _capped_group(
     chemical_database,
     group_links,
     connection_names,
+    references,
 ):
     # Release per-residue slices and cap buffers before the caller parameterizes
     # the returned model; a suspended generator would otherwise retain them.
@@ -188,7 +197,7 @@ def _capped_group(
             for name in prepared.atom_name
         )
         source_residues.extend([ri] * len(prepared))
-    combined = struc.concatenate(arrays)
+    combined = concatenate_atom_array_plus(arrays, on_annotation_mismatch_policy="drop")
     remap = {old: new for new, old in enumerate(source_atoms) if old >= 0}
     if any(a not in remap or b not in remap for a, b, _ in group_links):
         raise ValueError("Capping removed an atom involved in an attachment")
@@ -204,6 +213,9 @@ def _capped_group(
     retained = source_atoms >= 0
     combined.coord[retained] = atom_array.coord[source_atoms[retained]]
     molecule = rdkit_mol_from_ligand_atom_array(combined)
+    _restore_template_stereochemistry(
+        molecule, atom_array, source_atoms, starts, members, references
+    )
     molecule.RemoveAllConformers()
     combined.coord[:] = np.nan
     return CappedConjugateModel(
@@ -214,6 +226,77 @@ def _capped_group(
         group_links,
         connection_names,
     )
+
+
+def _restore_template_stereochemistry(
+    molecule, source, source_atoms, starts, members, references
+):
+    """Use authored templates and declared leaving groups for unresolved centers."""
+    templates = getattr(source, "_custom_ccd_registry", {})
+    if not templates or np.isfinite(molecule.GetConformer().GetPositions()).all():
+        return
+    if molecule.GetNumAtoms() != len(source_atoms):
+        raise ValueError("Template stereo requires retained conjugate atom indices")
+    for ri in sorted(members):
+        start, stop = starts[ri : ri + 2]
+        name = str(source.res_name[start])
+        template = templates.get(name)
+        if template is None:
+            continue
+        if name not in references:
+            reference = ccd_template_to_rdkit(template, hydrogen_policy="remove")
+            references[name] = (
+                reference,
+                {
+                    atom.GetProp("atom_name"): atom.GetIdx()
+                    for atom in reference.GetAtoms()
+                },
+                get_leaving_atom_groups(template),
+            )
+        reference, reference_names, leaving = references[name]
+        retained = np.flatnonzero((source_atoms >= start) & (source_atoms < stop))
+        actual = {str(source.atom_name[source_atoms[i]]): int(i) for i in retained}
+        if not actual.keys() <= reference_names.keys():
+            continue
+        mapping = {reference_names[name]: index for name, index in actual.items()}
+        for atom in reference.GetAtoms():
+            center = mapping.get(atom.GetIdx())
+            if center is None or atom.GetChiralTag() == Chem.ChiralType.CHI_UNSPECIFIED:
+                continue
+            target = molecule.GetAtomWithIdx(center)
+            if target.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED:
+                continue
+            neighbors = {
+                n.GetIdx(): mapping.get(n.GetIdx()) for n in atom.GetNeighbors()
+            }
+            missing = [i for i, mapped in neighbors.items() if mapped is None]
+            if missing:
+                if len(missing) != 1:
+                    continue
+                missing_name = reference.GetAtomWithIdx(missing[0]).GetProp("atom_name")
+                if not any(
+                    missing_name in group and actual.keys().isdisjoint(group)
+                    for group in leaving.get(atom.GetProp("atom_name"), ())
+                ):
+                    continue
+                replacements = [
+                    n.GetIdx()
+                    for n in target.GetNeighbors()
+                    if n.GetIdx() not in neighbors.values()
+                ]
+                if len(replacements) != 1:
+                    continue
+                replacement = replacements[0]
+                original = source_atoms[replacement]
+                if original < 0 or start <= original < stop:
+                    continue
+                neighbors[missing[0]] = replacement
+            transfer_tetrahedral_stereochemistry(
+                molecule,
+                reference,
+                {atom.GetIdx(): center, **neighbors},
+                replaced_atoms=missing,
+            )
 
 
 def capped_conjugate_models(atom_array, chemical_database):

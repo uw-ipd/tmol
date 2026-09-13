@@ -22,6 +22,10 @@ DATA = Path(__file__).parents[1] / "data" / "atomworks_regressions"
 
 
 def test_partial_sugar_ring_completion_preserves_chemical_identity():
+    from rdkit import Chem
+    from tmol.ligand import prepare_ligands
+    from tmol.ligand._conjugate_model import capped_conjugate_models
+
     inventories = []
     for reader in ("tmol", "atomworks"):
         array = atom_array_from_cif(
@@ -44,6 +48,45 @@ def test_partial_sugar_ring_completion_preserves_chemical_identity():
         }
         ring = ("C1", "C2", "C3", "C4", "C5", "O5", "C1")
         assert all(frozenset(pair) in bonds for pair in zip(ring[:-1], ring[1:]))
+        template = array._custom_ccd_registry["MAN"]
+        stereo = dict(zip(template.atom_name, template.stereo))
+        assert [stereo[name] for name in ("C1", "C2", "C3", "C4", "C5")] == [
+            "S",
+            "S",
+            "S",
+            "S",
+            "R",
+        ]
+        # Metals are excluded only after checking they have no covalent bonds.
+        metal = np.isin(array.element, ["CA"])
+        assert not metal[array.bonds.as_array()[:, :2]].any()
+        supported = array[~metal & (array.res_name != "HOH")]
+        supplied = supported.coord.copy()
+        template_before = template.copy()
+        db, _ = prepare_ligands(supported, seed=20260909)
+        starts = struc.get_residue_starts(supported, add_exclusive_stop=True)
+        last_man = max(
+            i for i in range(len(starts) - 1) if supported.res_name[starts[i]] == "MAN"
+        )
+        start, stop = starts[last_man : last_man + 2]
+        centers = {
+            i
+            for i in range(start, stop)
+            if supported.atom_name[i] in ("C1", "C2", "C3", "C4", "C5")
+        }
+        assigned = set()
+        for model in capped_conjugate_models(supported, db.chemical):
+            for local, source_index in enumerate(model.source_atom_indices):
+                if source_index in centers:
+                    assert (
+                        model.molecule.GetAtomWithIdx(local).GetChiralTag()
+                        != Chem.ChiralType.CHI_UNSPECIFIED
+                    )
+                    assigned.add(source_index)
+        assert assigned == centers
+        np.testing.assert_array_equal(supported.coord, supplied)
+        assert template.equal_annotations(template_before)
+        np.testing.assert_array_equal(template.coord, template_before.coord)
     assert inventories[0] == inventories[1]
 
 
