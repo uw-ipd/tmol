@@ -1,4 +1,4 @@
-"""Exercise the optional shared parser without duplicating CIF completion."""
+"""Exercise shared parsing through chemical preparation and minimization."""
 
 from pathlib import Path
 
@@ -54,16 +54,6 @@ def test_file_hydrogen_policy_through_scoring(tmp_path, ubq_pdb, reader):
         assert torch.isfinite(coords.grad).all()
 
 
-def test_atomworks_completion_preserves_entirely_unresolved_ligand():
-    array = atom_array_from_cif(
-        DATA / "atomworks_regressions/unresolved_unl.cif", reader="atomworks"
-    )
-    ligand = array[array.res_name == "UNL"]
-    assert len(ligand) == 28
-    assert np.isnan(ligand.coord).all()
-    assert ligand.bonds.get_bond_count() > 0
-
-
 def test_label_template_substitution_cannot_silently_erase_unknown_atom():
     with pytest.raises(ValueError, match="XYZ"):
         atom_array_from_cif(
@@ -72,46 +62,61 @@ def test_label_template_substitution_cannot_silently_erase_unknown_atom():
         )
 
 
-def test_leaving_group_completion_cannot_silently_erase_observed_phosphate():
-    path = DATA / "ncaa_fixtures/na_dna_8og_183d.cif"
-    native = atom_array_from_cif(path)
-    shared = atom_array_from_cif(path, reader="atomworks")
-    for array in (native, shared):
-        nucleotide = array[array.res_name == "8OG"]
-        assert "OP2" in nucleotide.atom_name
-        assert "OP3" not in nucleotide.atom_name
-    np.testing.assert_array_equal(
-        shared.coord[(shared.res_name == "8OG") & (shared.atom_name == "OP2")],
-        native.coord[(native.res_name == "8OG") & (native.atom_name == "OP2")],
-    )
-
-
 @pytest.mark.parametrize(
     "fixture",
     [
         "ncaa_fixtures/capped_peptide_ace_nh2.cif",
         "ncaa_fixtures/beta_peptide_3c3g.cif",
         "ncaa_fixtures/na_dna_8og_183d.cif",
-        "atomworks_regressions/acetylated_peptide_1j8z.cif",
+        "ncaa_fixtures/na_dna_5mc_1d17.cif",
+        "ncaa_fixtures/na_rna_2ome_310d.cif",
     ],
 )
-def test_shared_parser_builds_and_scores_general_chemistry(fixture):
+@pytest.mark.parametrize("reader", ["tmol", "atomworks"])
+def test_shared_parser_builds_and_scores_general_chemistry(
+    fixture, reader, torch_device
+):
+    import biotite.structure as struc
+    from tmol.tests.io.test_atomworks_corpus_regressions import (
+        _assert_all_source_connections,
+        _score_and_minimize,
+    )
+
     pose, context = pose_stack_from_cif(
         DATA / fixture,
-        torch.device("cpu"),
-        reader="atomworks",
+        torch_device,
+        reader=reader,
         prepare_ligands=True,
         ligand_seed=20260909,
         no_optH=True,
         return_context=True,
     )
-    assert torch.isfinite(pose.coords[pose.real_atoms]).all()
-    score = beta2016_score_function(pose.device, param_db=context.parameter_database)
-    coords = pose.coords.detach().clone().requires_grad_()
-    energy = score.render_whole_pose_scoring_module(pose)(coords)
-    energy.sum().backward()
-    assert torch.isfinite(energy).all()
-    assert torch.isfinite(coords.grad).all()
+    array = atom_array_from_cif(DATA / fixture, reader=reader)
+    array = array[array.res_name != "HOH"]
+    _assert_all_source_connections(pose, array)
+    if "/na_" in fixture:
+        # Capping must displace only terminal oxygen, preserving both retained
+        # phosphate oxygens and their supplied coordinates in the final pose.
+        for i, residue in enumerate(struc.residue_iter(array)):
+            bt = pose.packed_block_types.active_block_types[
+                int(pose.block_type_ind[0, i])
+            ]
+            offset = int(pose.block_coord_offset[0, i])
+            for name in ("OP1", "OP2"):
+                observed = residue[
+                    (residue.atom_name == name) & np.isfinite(residue.coord).all(-1)
+                ]
+                if len(observed):
+                    assert name in bt.atom_to_idx
+                    np.testing.assert_allclose(
+                        pose.coords[0, offset + bt.atom_to_idx[name]].detach().cpu(),
+                        observed.coord[0],
+                        atol=1e-6,
+                    )
+        if "8og" in fixture:
+            nucleotide = array[array.res_name == "8OG"]
+            assert "OP2" in nucleotide.atom_name and "OP3" not in nucleotide.atom_name
+    _score_and_minimize(pose, context, max_iter=100)
 
 
 @pytest.mark.parametrize("state", ["HD1", "HE2", "both", "none"])

@@ -1297,13 +1297,16 @@ def cap_residue(atom_array, profile: PolymerProfile, *, include_coordinates=True
     keep = numpy.array([str(e) != "H" for e in atom_array.element])
     # A complete free terminus can carry a hydroxyl that polymerization
     # displaces. Replace that group when adding the connection's cap; retaining
-    # it would give a carbonyl carbon five bonds. Sidechain acids are untouched.
+    # it would overfill a carbonyl or phosphate. The backbone reference keeps
+    # the nucleotide's retained phosphate oxygens distinct from its terminal OH.
     adj, double, elements = _heavy_adjacency(atom_array)
     displaced = set()
+    retained_backbone = {name for name, _ in profile.backbone_types}
     for _connection, anchor in profile.connections:
-        if elements.get(anchor) != "C" or not any(
+        carbonyl = elements.get(anchor) == "C" and any(
             elements.get(n) == "O" for n in double.get(anchor, ())
-        ):
+        )
+        if not carbonyl and elements.get(anchor) != "P":
             continue
         leaving = [
             n
@@ -1311,6 +1314,7 @@ def cap_residue(atom_array, profile: PolymerProfile, *, include_coordinates=True
             if elements.get(n) == "O"
             and len(adj[n]) == 1
             and n not in double.get(anchor, ())
+            and (carbonyl or n not in retained_backbone)
         ]
         if len(leaving) > 1:
             raise ValueError(

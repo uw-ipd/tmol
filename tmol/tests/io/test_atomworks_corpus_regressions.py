@@ -21,83 +21,61 @@ from tmol.score import beta2016_score_function
 DATA = Path(__file__).parents[1] / "data" / "atomworks_regressions"
 
 
-def test_partial_sugar_ring_completion_preserves_chemical_identity():
-    from rdkit import Chem
-    from tmol.ligand import prepare_ligands
-    from tmol.ligand._conjugate_model import capped_conjugate_models
-
-    inventories = []
-    for reader in ("tmol", "atomworks"):
-        array = atom_array_from_cif(
-            DATA / "partial_sugar_rings_2msb.cif.gz", reader=reader
-        )
-        sugars = [
-            r
-            for r in struc.residue_iter(array)
-            if r.res_name[0] in ("NAG", "BMA", "MAN")
-        ]
-        inventories.append([frozenset(r.atom_name) for r in sugars])
-        partial = sugars[-1]
-        assert partial.res_name[0] == "MAN"
-        assert len(partial) == 11
-        assert {"C1", "C2", "C3", "C4", "C5", "O5"} <= set(partial.atom_name)
-        assert set(partial.atom_name[np.isfinite(partial.coord).all(axis=-1)]) == {"C1"}
-        bonds = {
-            frozenset((str(partial.atom_name[a]), str(partial.atom_name[b])))
-            for a, b, _ in partial.bonds.as_array()
-        }
-        ring = ("C1", "C2", "C3", "C4", "C5", "O5", "C1")
-        assert all(frozenset(pair) in bonds for pair in zip(ring[:-1], ring[1:]))
-        template = array._custom_ccd_registry["MAN"]
-        stereo = dict(zip(template.atom_name, template.stereo))
-        assert [stereo[name] for name in ("C1", "C2", "C3", "C4", "C5")] == [
-            "S",
-            "S",
-            "S",
-            "S",
-            "R",
-        ]
-        # Metals are excluded only after checking they have no covalent bonds.
-        metal = np.isin(array.element, ["CA"])
-        assert not metal[array.bonds.as_array()[:, :2]].any()
-        supported = array[~metal & (array.res_name != "HOH")]
-        supplied = supported.coord.copy()
-        template_before = template.copy()
-        db, _ = prepare_ligands(supported, seed=20260909)
-        starts = struc.get_residue_starts(supported, add_exclusive_stop=True)
-        last_man = max(
-            i for i in range(len(starts) - 1) if supported.res_name[starts[i]] == "MAN"
-        )
-        start, stop = starts[last_man : last_man + 2]
-        centers = {
-            i
-            for i in range(start, stop)
-            if supported.atom_name[i] in ("C1", "C2", "C3", "C4", "C5")
-        }
-        assigned = set()
-        for model in capped_conjugate_models(supported, db.chemical):
-            for local, source_index in enumerate(model.source_atom_indices):
-                if source_index in centers:
-                    assert (
-                        model.molecule.GetAtomWithIdx(local).GetChiralTag()
-                        != Chem.ChiralType.CHI_UNSPECIFIED
-                    )
-                    assigned.add(source_index)
-        assert assigned == centers
-        np.testing.assert_array_equal(supported.coord, supplied)
-        assert template.equal_annotations(template_before)
-        np.testing.assert_array_equal(template.coord, template_before.coord)
-    assert inventories[0] == inventories[1]
-
-
 @pytest.mark.parametrize("reader", ["tmol", "atomworks"])
 def test_partial_sugar_rings_construct_score_and_minimize(
     reader, torch_device, monkeypatch
 ):
     from tmol.io import build_context_from_biotite
     from tmol.io.details import _build_missing_nonpolymer_atoms as completion
+    from rdkit import Chem
+    from tmol.ligand._conjugate_model import capped_conjugate_models
 
     array = atom_array_from_cif(DATA / "partial_sugar_rings_2msb.cif.gz", reader=reader)
+    sugars = [
+        r for r in struc.residue_iter(array) if r.res_name[0] in ("NAG", "BMA", "MAN")
+    ]
+    other = atom_array_from_cif(
+        DATA / "partial_sugar_rings_2msb.cif.gz",
+        reader="atomworks" if reader == "tmol" else "tmol",
+    )
+    assert [frozenset(r.atom_name) for r in sugars] == [
+        frozenset(r.atom_name)
+        for r in struc.residue_iter(other)
+        if r.res_name[0] in ("NAG", "BMA", "MAN")
+    ]
+    partial = sugars[-1]
+    assert partial.res_name[0] == "MAN"
+    assert set(partial.atom_name) == {
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "O2",
+        "O3",
+        "O4",
+        "O5",
+        "O6",
+    }
+    assert {"C1", "C2", "C3", "C4", "C5", "O5"} <= set(partial.atom_name)
+    assert set(partial.atom_name[np.isfinite(partial.coord).all(axis=-1)]) == {"C1"}
+    bonds = {
+        frozenset((str(partial.atom_name[a]), str(partial.atom_name[b])))
+        for a, b, _ in partial.bonds.as_array()
+    }
+    ring = ("C1", "C2", "C3", "C4", "C5", "O5", "C1")
+    assert all(frozenset(pair) in bonds for pair in zip(ring[:-1], ring[1:]))
+    template = array._custom_ccd_registry["MAN"]
+    stereo = dict(zip(template.atom_name, template.stereo))
+    assert [stereo[name] for name in ("C1", "C2", "C3", "C4", "C5")] == [
+        "S",
+        "S",
+        "S",
+        "S",
+        "R",
+    ]
+    template_before = template.copy()
     metal = array.element == "CA"
     assert not metal[array.bonds.as_array()[:, :2]].any()
     array = array[~metal & (array.res_name != "HOH")]
@@ -105,6 +83,28 @@ def test_partial_sugar_rings_construct_score_and_minimize(
     context = build_context_from_biotite(
         array, torch_device, prepare_ligands=True, ligand_seed=20260909
     )
+    starts = struc.get_residue_starts(array, add_exclusive_stop=True)
+    last_man = max(
+        i for i in range(len(starts) - 1) if array.res_name[starts[i]] == "MAN"
+    )
+    start, stop = starts[last_man : last_man + 2]
+    centers = {
+        i
+        for i in range(start, stop)
+        if array.atom_name[i] in ("C1", "C2", "C3", "C4", "C5")
+    }
+    assigned = set()
+    for model in capped_conjugate_models(array, context.parameter_database.chemical):
+        for local, source_index in enumerate(model.source_atom_indices):
+            if source_index in centers:
+                assert (
+                    model.molecule.GetAtomWithIdx(local).GetChiralTag()
+                    != Chem.ChiralType.CHI_UNSPECIFIED
+                )
+                assigned.add(source_index)
+    assert assigned == centers
+    assert template.equal_annotations(template_before)
+    np.testing.assert_array_equal(template.coord, template_before.coord)
     original = completion.build_missing_nonpolymer_atoms
     calls = []
 
@@ -258,6 +258,7 @@ def test_terminal_and_linked_glycans_construct_score_and_minimize(
     assert not array.hetero[~retained].any()
     _assert_all_source_connections(pose, array[retained])
     glycans, terminal = 0, 0
+    stereocenters = []
     for bi, residue in enumerate(struc.residue_iter(array[retained])):
         bt = pose.packed_block_types.active_block_types[int(pose.block_type_ind[0, bi])]
         offset = int(pose.block_coord_offset[0, bi])
@@ -305,6 +306,13 @@ def test_terminal_and_linked_glycans_construct_score_and_minimize(
                 }
             )
             if len(heavy) == 3:
+                stereocenters.append(
+                    (
+                        offset + ai,
+                        np.asarray(heavy) + offset,
+                        np.linalg.det(ideal[heavy] - ideal[ai]),
+                    )
+                )
                 assert (
                     np.linalg.det(ideal[heavy] - ideal[ai])
                     * np.linalg.det(xyz[heavy] - xyz[ai])
@@ -312,9 +320,13 @@ def test_terminal_and_linked_glycans_construct_score_and_minimize(
                 )
     assert glycans == count
     assert terminal == (1 if pdb == "1en2" else 5)
-    _score_and_minimize(
+    _, minimized = _score_and_minimize(
         pose, context, max_iter=100 if torch_device.type == "cuda" else 10
     )
+
+    xyz = minimized.coords[0].detach().cpu().numpy()
+    for center, neighbors, handedness in stereocenters:
+        assert handedness * np.linalg.det(xyz[neighbors] - xyz[center]) > 0
 
 
 @pytest.mark.parametrize("reader", ["tmol", "atomworks"])
@@ -815,8 +827,9 @@ def test_conflicting_myristate_connections_are_reported(reader, torch_device):
     np.testing.assert_array_equal(array.bonds.as_array(), before)
 
 
-def test_entirely_unresolved_ligand_keeps_its_chemical_identity():
-    array = atom_array_from_cif(DATA / "unresolved_unl.cif")
+@pytest.mark.parametrize("reader", ["tmol", "atomworks"])
+def test_entirely_unresolved_ligand_keeps_its_chemical_identity(reader):
+    array = atom_array_from_cif(DATA / "unresolved_unl.cif", reader=reader)
     ligand = array[array.res_name == "UNL"]
     assert len(ligand) == 28
     assert np.isnan(ligand.coord).all()
@@ -826,6 +839,7 @@ def test_entirely_unresolved_ligand_keeps_its_chemical_identity():
         pose_stack_from_cif(
             DATA / "unresolved_unl.cif",
             torch.device("cpu"),
+            reader=reader,
             prepare_ligands=True,
             ligand_seed=20260909,
             no_optH=True,
@@ -835,25 +849,21 @@ def test_entirely_unresolved_ligand_keeps_its_chemical_identity():
 @pytest.mark.parametrize(
     "filename", ["conditional_generation.cif", "acetylated_peptide_1j8z.cif"]
 )
+@pytest.mark.parametrize("reader", ["tmol", "atomworks"])
 def test_backbone_only_and_crosslinked_modified_peptides_build_and_score(
-    filename, torch_device
+    filename, torch_device, reader
 ):
     path = DATA / filename
     pose, context = pose_stack_from_cif(
         path,
         torch_device,
+        reader=reader,
         prepare_ligands=True,
         ligand_seed=20260909,
         no_optH=True,
         return_context=True,
     )
-    assert torch.isfinite(pose.coords[pose.real_atoms]).all()
-    coords = pose.coords.detach().clone().requires_grad_()
-    score = beta2016_score_function(torch_device, param_db=context.parameter_database)
-    energy = score.render_whole_pose_scoring_module(pose)(coords)
-    energy.sum().backward()
-    assert torch.isfinite(energy).all()
-    assert torch.isfinite(coords.grad).all()
+    _score_and_minimize(pose, context)
     if filename == "acetylated_peptide_1j8z.cif":
         types = [
             pose.packed_block_types.active_block_types[int(i)]
