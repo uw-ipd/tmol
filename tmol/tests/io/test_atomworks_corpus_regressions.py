@@ -84,7 +84,21 @@ def test_macrocycle_preserves_every_bond_across_residue_order(reader, torch_devi
     assert np.isfinite(residue.compute_ideal_coords()).all()
     starts = struc.get_residue_starts(array, add_exclusive_stop=True)
     assert len(starts) - 1 == 18
-    atom_res = np.repeat(np.arange(18), np.diff(starts))
+    energies = []
+    for order in (np.arange(18), np.arange(18)[::-1]):
+        indices = np.concatenate([np.arange(starts[i], starts[i + 1]) for i in order])
+        pose = pose_stack_from_biotite(
+            array[indices], torch_device, context=context, no_optH=True
+        )
+        _assert_all_source_connections(pose, array[indices])
+        energies.append(_score_and_minimize(pose, context))
+    torch.testing.assert_close(energies[0], energies[1], atol=0.002, rtol=1e-5)
+
+
+def _assert_all_source_connections(pose, array):
+    starts = struc.get_residue_starts(array, add_exclusive_stop=True)
+    assert int((pose.block_type_ind >= 0).sum()) == len(starts) - 1
+    atom_res = np.repeat(np.arange(len(starts) - 1), np.diff(starts))
     expected = {
         frozenset(
             (
@@ -95,38 +109,70 @@ def test_macrocycle_preserves_every_bond_across_residue_order(reader, torch_devi
         for a, b, _ in array.bonds.as_array()
         if atom_res[a] != atom_res[b]
     }
-    assert len(expected) == 18
-    energies = []
-    for order in (np.arange(18), np.arange(18)[::-1]):
-        indices = np.concatenate([np.arange(starts[i], starts[i + 1]) for i in order])
-        pose = pose_stack_from_biotite(
-            array[indices], torch_device, context=context, no_optH=True
+    types = [
+        pose.packed_block_types.active_block_types[int(i)]
+        for i in pose.block_type_ind[0]
+    ]
+    actual = {
+        frozenset(
+            (
+                (block, types[block].connections[conn].atom),
+                (partner, types[partner].connections[port].atom),
+            )
         )
-        types = [
-            pose.packed_block_types.active_block_types[int(i)]
-            for i in pose.block_type_ind[0]
-        ]
-        actual = set()
-        for block, connections in enumerate(
-            pose.inter_residue_connections[0].cpu().tolist()
-        ):
-            for conn, (partner, port) in enumerate(connections):
-                if partner >= 0:
-                    actual.add(
-                        frozenset(
-                            (
-                                (
-                                    int(order[block]),
-                                    types[block].connections[conn].atom,
-                                ),
-                                (
-                                    int(order[partner]),
-                                    types[partner].connections[port].atom,
-                                ),
-                            )
-                        )
-                    )
-        assert actual == expected
+        for block, row in enumerate(pose.inter_residue_connections[0].cpu().tolist())
+        for conn, (partner, port) in enumerate(row)
+        if partner >= 0
+    }
+    assert actual == expected
+
+
+@pytest.mark.parametrize("reader", ["tmol", "atomworks"])
+def test_repeated_glycans_share_transferable_attachment_targets(reader, torch_device):
+    from tmol.io import build_context_from_biotite
+    from tmol.ligand._connection_params import generate_conjugate_connection_params
+
+    array = atom_array_from_cif(DATA / "repeated_glycans_6mub.cif.gz", reader=reader)
+    array = array[array.res_name != "HOH"]
+    context = build_context_from_biotite(
+        array, torch_device, prepare_ligands=True, ligand_seed=20260909
+    )
+    database = context.parameter_database
+    records = database.scoring.cartbonded.connection_params
+    assert any(
+        r.block_type1 == "MAN:conj_C1" and r.block_type2 == "MAN:conj_C1:conj_O2"
+        for r in records
+    )
+    assert all(p.K == 300 for r in records for p in r.length_parameters)
+    assert all(p.K == 80 for r in records for p in r.angle_parameters)
+    starts = struc.get_residue_starts(array, add_exclusive_stop=True)
+    reversed_array = array[
+        np.concatenate([np.arange(a, b) for a, b in zip(starts[-2::-1], starts[:0:-1])])
+    ]
+    # Both repeated sites and separately prepared poses must agree, independent
+    # of encounter order or random seed. Supplied records cannot mask regeneration.
+    assert (
+        generate_conjugate_connection_params(reversed_array, database, seed=1)
+        == records
+    )
+    energies = []
+    for source in (array, reversed_array):
+        pose = pose_stack_from_biotite(
+            source, torch_device, context=context, no_optH=True
+        )
+        # The full input includes entirely unresolved protein residues. The
+        # constructor excludes them; it must retain every observed residue and
+        # every glycan, including all their declared attachment bonds.
+        starts = struc.get_residue_starts(source, add_exclusive_stop=True)
+        retained = np.concatenate(
+            [
+                np.full(b - a, np.isfinite(source.coord[a:b]).any() or source.hetero[a])
+                for a, b in zip(starts[:-1], starts[1:])
+            ]
+        )
+        assert not np.isfinite(source.coord[~retained]).any()
+        assert not source.hetero[~retained].any()
+        _assert_all_source_connections(pose, source[retained])
         energies.append(_score_and_minimize(pose, context))
     torch.testing.assert_close(energies[0], energies[1], atol=0.002, rtol=1e-5)
 
@@ -169,11 +215,12 @@ def test_unrecognized_hydrogen_names_can_be_rebuilt(element):
     assert len(atoms) == len(residues) == 1
 
 
-def test_schiff_base_requires_resolved_stereochemistry_for_attachment_parameters():
-    # Default attachment generation now rejects the incomplete chemical state
-    # before construction can filter its lysine partner. Constructor filtering
-    # remains independently covered in test_filtered_covalent_partners.py.
-    with pytest.raises(ValueError, match="unspecified stereochemistry"):
+def test_schiff_base_reports_incompatible_attachment_hydrogen_state():
+    # The protonated imine and the inherited lysine patch disagree on attached
+    # hydrogens. Ideal-target lookup must expose that local chemistry gap; it
+    # must not create a conformer or invent an unspecified stereochemical state.
+    # Incomplete covalent partner filtering is independently tested.
+    with pytest.raises(ValueError, match="Attachment atom/hydrogen mapping differs"):
         pose_stack_from_cif(
             DATA / "schiff_base_double_bond.cif",
             torch.device("cpu"),

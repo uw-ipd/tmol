@@ -81,5 +81,15 @@
     "transformation": "none; complete compressed source",
     "sha256": "99861fb9f6556f4b19f68787df1c5078414308c45d911b80496edc62b6dedac9",
     "bytes": 195275
+  },
+  {
+    "fixture": "repeated_glycans_6mub.cif.gz",
+    "source": "tests/io/test_outputs/6mub_new.cif",
+    "source_repository": "atomworks-dev",
+    "source_commit": "a1bda7edfcf325bc140091889b9745220adb5eba",
+    "sha256": "228b05365bd69fabe8eb511c36919b1fd871c636ce533dccda5aad62485fff17",
+    "bytes": 606589,
+    "compression": "gzip; decompressed bytes identical to source",
+    "compressed_sha256": "a4e8d178eeddcd0d5f3edaf67d9dcfa80ebdadd5789651f4e80b218ccf6cf30b"
   }
 ]

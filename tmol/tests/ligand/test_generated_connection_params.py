@@ -105,8 +105,7 @@ def test_generated_records_ignore_coordinates_and_instance_numbering(conjugate_i
     assert generate_conjugate_connection_params(original + second, database) == expected
     for record in expected:
         provenance = json.loads(record.provenance)
-        assert provenance["method"] == "tmol-generated-geometry-cartbonded-v1"
-        assert provenance["seed"] == 0
+        assert provenance["method"] == "tmol-generator-ideals-cartbonded-v1"
         assert provenance["length_K"] == 300.0
         assert provenance["angle_K"] == 80.0
         assert provenance["ph"] == 7.4
@@ -225,7 +224,7 @@ def test_generated_record_bundle_preserves_model_provenance(
         pytest.fail("Supplied attachment parameters must not be regenerated")
 
     monkeypatch.setattr(
-        _connection_params, "generated_conjugate_coordinates", unexpected_generation
+        _connection_params, "_parameterized_model", unexpected_generation
     )
     reused, _ = prepare_ligands(array, params_files=[str(path)], seed=123)
     assert reused.scoring.cartbonded.connection_params == restored[0].connection_params

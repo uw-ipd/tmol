@@ -26,3 +26,11 @@ Successful numerical checks do not independently validate the force field.
 `terminal_nucleotide_145d.cif` is the complete RCSB entry used by that suite. Its first MCY must retain a DNA backbone and 5-prime patch, without proximity-inferred conjugations. The regression checks all 20 phosphodiester links and finite scoring/minimization of the 24 nucleotide blocks.
 
 `conflicting_myristate_1aym.cif.gz` preserves the complete compressed entry. Its `struct_conn` category declares MYR C1 bonded to both GLY N and CA. After explicit free-zinc exclusion, construction must report both partners rather than overwrite the one MYR port. This is an input-conflict regression, not a successful whole-complex minimization.
+
+`repeated_glycans_6mub.cif.gz` is losslessly compressed from the complete authored
+AtomWorks fixture. Two MAN–MAN links share a patched type pair but have different
+geometry in one generated conformer. Their transferable bond/angle targets must
+come from the conformer generator's ideals, not individual strained sites. Both
+readers retain every observed non-water residue, every glycan and their source
+connections (entirely unresolved protein residues are explicitly excluded), produce identical
+records after residue reversal/seed changes, and score/minimize both orders.

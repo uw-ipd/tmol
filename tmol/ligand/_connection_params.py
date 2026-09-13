@@ -1,6 +1,7 @@
 """Harmonic attachment parameters derived from complete capped chemistry.
 
-Generated geometry and constants match the ordinary ligand Cartesian generator.
+Ideal targets come from the ordinary conformer generator; Cartesian stiffness
+uses the ordinary ligand constants. Targets must not inherit conformer strain.
 The alternate MMFF harmonic source is retained for private diagnostic consumers.
 """
 
@@ -18,7 +19,7 @@ from tmol.database.scoring._content_hash import content_hash
 from tmol.ligand._conjugate_model import iter_capped_conjugate_models
 from tmol.ligand._conjugation_patches import CONNECTION_PREFIX
 from tmol.ligand._dimorphite_dl import ProtSubstructFuncs, protonate_mol_variants
-from tmol.ligand._conjugate_geometry import generated_conjugate_coordinates
+from tmol.ligand._conformer_generation import _mmff_bonds_angles
 from tmol.ligand._registry import GENERATED_LENGTH_K, GENERATED_ANGLE_K
 
 # RDKit MMFF/Params.h, MDYNE_A_TO_KCAL_MOL. At equilibrium the bond and
@@ -84,7 +85,7 @@ def _residue_mapping(model, mol, heavy_map, locals_, restype, elements, neighbor
     return result
 
 
-def _connection_record(mol, props, first, second, maps, names, adjacency, coords=None):
+def _connection_record(mol, props, first, second, maps, names, adjacency, ideals=None):
     connections = [
         next(c for c in rt.connections if c.name == name)
         for rt, name in zip((first, second), names)
@@ -119,13 +120,15 @@ def _connection_record(mol, props, first, second, maps, names, adjacency, coords
         raise ValueError(
             "Attachment bond order differs from its patched connection type"
         )
-    if coords is None:
+    if ideals is None:
         bond = props.GetMMFFBondStretchParams(mol, *indices)
         if bond is None:
             raise ValueError("Missing MMFF94 attachment bond parameter")
         length, length_k = bond[2], MMFF_HARMONIC_CONVERSION * bond[1]
     else:
-        length = float(np.linalg.norm(coords[indices[0]] - coords[indices[1]]))
+        length = ideals[0].get(tuple(sorted(indices)))
+        if length is None:
+            raise ValueError("Missing conformer-generator attachment bond target")
         length_k = GENERATED_LENGTH_K
     if not math.isfinite(length) or length <= 0:
         raise ValueError("Generated attachment bond has degenerate geometry")
@@ -133,7 +136,7 @@ def _connection_record(mol, props, first, second, maps, names, adjacency, coords
     angles = []
     for side in (0, 1):
         for neighbor in neighbors[side]:
-            if coords is None:
+            if ideals is None:
                 values = props.GetMMFFAngleBendParams(
                     mol, maps[side][neighbor], indices[side], indices[1 - side]
                 )
@@ -144,15 +147,17 @@ def _connection_record(mol, props, first, second, maps, names, adjacency, coords
                     MMFF_HARMONIC_CONVERSION * values[1],
                 )
             else:
-                a = coords[maps[side][neighbor]] - coords[indices[side]]
-                b = coords[indices[1 - side]] - coords[indices[side]]
-                if min(np.linalg.norm(a), np.linalg.norm(b)) <= 0:
+                outer = sorted((maps[side][neighbor], indices[1 - side]))
+                target = ideals[1].get((outer[0], indices[side], outer[1]))
+                if target is None:
                     raise ValueError(
-                        "Generated attachment angle has degenerate geometry"
+                        "Missing conformer-generator attachment angle target"
                     )
-                angle, angle_k = (
-                    math.atan2(float(np.linalg.norm(np.cross(a, b))), float(a @ b)),
-                    GENERATED_ANGLE_K,
+                angle = math.radians(target)
+                angle_k = GENERATED_ANGLE_K
+            if not math.isfinite(angle) or not 0 < angle <= math.pi:
+                raise ValueError(
+                    "Generated attachment angle has invalid ideal geometry"
                 )
             prefix, far = ("", "+") if side == 0 else ("+", "")
             angles.append(
@@ -265,8 +270,7 @@ def _model_records(
     ph,
     consumer=None,
     *,
-    parameter_source="generated-geometry",
-    seed=0,
+    parameter_source="generator-ideals",
     existing=frozenset(),
 ):
     locals_by_residue, sites, links, candidates = _model_members(
@@ -309,11 +313,13 @@ def _model_records(
             )
     if consumer is not None:
         consumer(model, mol, props, heavy_map, candidates, mappings, adjacency)
-    coords = (
-        generated_conjugate_coordinates(mol, seed)
-        if parameter_source == "generated-geometry"
-        else None
-    )
+    ideals = None
+    if parameter_source == "generator-ideals":
+        bonds, angles, _ = _mmff_bonds_angles(mol, props)
+        ideals = (
+            {tuple(sorted((i, j))): value for i, j, value in bonds},
+            {(min(i, k), j, max(i, k)): value for i, j, k, value in angles},
+        )
     unmapped = Chem.Mol(mol)
     for atom in unmapped.GetAtoms():
         atom.SetAtomMapNum(0)
@@ -324,7 +330,7 @@ def _model_records(
         if (first.name, ca) > (second.name, cb):
             rts, names, maps = rts[::-1], names[::-1], maps[::-1]
         record = _connection_record(
-            mol, props, *rts, maps, names, [adjacency[rt.name] for rt in rts], coords
+            mol, props, *rts, maps, names, [adjacency[rt.name] for rt in rts], ideals
         )
         yield record, chemical_smiles
 
@@ -367,7 +373,7 @@ def generate_conjugate_connection_params(
     *,
     ph=7.4,
     seed=0,
-    parameter_source="generated-geometry",
+    parameter_source="generator-ideals",
     existing=(),
     _model_consumer=None,
 ):
@@ -378,12 +384,14 @@ def generate_conjugate_connection_params(
     this function does not rename input residues or invent context selection.
     Existing non-conjugation connections are not assigned new records. Pairs
     covered by ``existing`` records retain those parameters without regeneration.
-    The default source uses generated ideal geometry and the ordinary ligand
-    Cartesian constants. ``mmff94-harmonic`` is a private diagnostic alternative.
+    The default source reuses the conformer generator's ideal bond/angle
+    targets and the ordinary ligand Cartesian constants, without embedding or
+    minimizing a whole conjugate. These targets are independent of ``seed``.
+    ``mmff94-harmonic`` is a private diagnostic alternative.
     """
     if not math.isfinite(ph):
         raise ValueError("Conjugate protonation pH must be finite")
-    if parameter_source not in ("generated-geometry", "mmff94-harmonic"):
+    if parameter_source not in ("generator-ideals", "mmff94-harmonic"):
         raise ValueError(f"Unknown conjugate parameter source: {parameter_source}")
     chem = parameter_database.chemical
     candidates, adjacency = defaultdict(list), {}
@@ -420,7 +428,6 @@ def generate_conjugate_connection_params(
             ph,
             _model_consumer,
             parameter_source=parameter_source,
-            seed=seed,
             existing=existing,
         ):
             key = (
@@ -458,13 +465,10 @@ def generate_conjugate_connection_params(
         ),
     }
 
-    if parameter_source == "generated-geometry":
-        from openbabel import openbabel
-
+    if parameter_source == "generator-ideals":
         method = {
-            "method": "tmol-generated-geometry-cartbonded-v1",
-            "openbabel": openbabel.OBReleaseVersion(),
-            "seed": seed,
+            "method": "tmol-generator-ideals-cartbonded-v1",
+            "geometry_source": "_conformer_generation._mmff_bonds_angles",
             "length_K": GENERATED_LENGTH_K,
             "angle_K": GENERATED_ANGLE_K,
         }
