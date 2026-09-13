@@ -521,7 +521,9 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">_coefficients_from_coordinate_tables</span><span class="p">(</span><span class="n">coordinates</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Compute coefficients for a same-rank sequence of CPU tables."""</span>
 
-        <span class="n">coeffs</span> <span class="o">=</span> <span class="p">[</span><span class="n">table</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">coordinates</span><span class="p">]</span>
+        <span class="n">coeffs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">memory_format</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">contiguous_format</span><span class="p">)</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">coordinates</span>
+        <span class="p">]</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">coeffs</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">coeffs</span>
         <span class="n">ndim</span> <span class="o">=</span> <span class="n">coeffs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">ndim</span>
