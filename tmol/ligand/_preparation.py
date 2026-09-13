@@ -379,7 +379,7 @@ def prepare_polymer_residue(
     )
     from tmol.ligand._terminus_patches import patch_charge_entries, terminus_patches
     from tmol.ligand._polymer_profile import (
-        canonical_alpha_renames,
+        canonical_backbone_renames,
         complete_backbone_from_reference,
         cap_backbone_substitution,
         cap_residue,
@@ -422,12 +422,10 @@ def prepare_polymer_residue(
             "match no supported backbone"
         )
 
-    # cartbonded reaches across the peptide bond by atom name, so the few
-    #    backbone atoms it names are renamed and the input names kept as aliases
-    backbone_renames_to_canonical = (
-        canonical_alpha_renames(atom_array, connection_atoms)
-        if profile.backbone_type == "alpha_aa"
-        else {}
+    # Scoring and reference completion use canonical backbone names. Preserve
+    # source names as aliases so construction still accepts the original input.
+    backbone_renames_to_canonical = canonical_backbone_renames(
+        atom_array, profile, param_db.chemical, connection_atoms
     )
     atom_aliases = ()
     if backbone_renames_to_canonical:

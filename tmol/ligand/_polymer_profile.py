@@ -806,6 +806,30 @@ def generic_polymer_profile(path, element=None, chemdb=None) -> PolymerProfile:
 _CANONICAL_ALPHA_BACKBONE = ("N", "CA", "C", "O")
 
 
+def canonical_backbone_renames(atom_array, profile, chemdb, connection_atoms=None):
+    """Resolve declared backbone aliases before donating missing reference atoms."""
+    if profile.backbone_type == "alpha_aa":
+        return canonical_alpha_renames(atom_array, connection_atoms)
+    reference = next(
+        (r for r in chemdb.residues if r.name == profile.reference_restype), None
+    )
+    if reference is None:
+        return {}
+    names = set(atom_array.atom_name)
+    backbone = {name for name, _ in profile.backbone_types}
+    renames = {}
+    for alias in reference.atom_aliases:
+        if alias.name not in backbone or alias.alt_name not in names:
+            continue
+        if alias.name in names or alias.name in renames.values():
+            raise ValueError(
+                f"{atom_array.res_name[0]}: multiple atoms map to backbone "
+                f"atom {alias.name!r}, including {alias.alt_name!r}"
+            )
+        renames[alias.alt_name] = alias.name
+    return renames
+
+
 def canonical_alpha_renames(atom_array, connection_atoms=None) -> dict:
     """``{actual name: canonical name}`` for an alpha backbone, or empty.
 

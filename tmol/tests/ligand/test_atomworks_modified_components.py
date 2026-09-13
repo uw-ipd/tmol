@@ -364,6 +364,57 @@ def test_internal_representative_keeps_terminal_oxygen_names(reader, torch_devic
     np.testing.assert_array_equal(array.coord, supplied)
 
 
+@pytest.mark.parametrize("reader", ["tmol", "atomworks"])
+def test_modified_nucleotide_aliases_construct_score_and_minimize(reader, torch_device):
+    from collections import Counter
+
+    array = atom_array_from_cif(
+        DATA / "modified_nucleotide_aliases_1d9d.cif.gz", reader=reader
+    )
+    metal = np.isin(np.char.upper(array.element), ("ZN", "MG"))
+    assert not metal[array.bonds.as_array()[:, :2]].any()
+    array = array[~metal & (array.res_name != "HOH")]
+    supplied, names = array.coord.copy(), array.atom_name.copy()
+    context = build_context_from_biotite(
+        array, torch_device, prepare_ligands=True, ligand_seed=20260909
+    )
+    pose = pose_stack_from_biotite(array, torch_device, context=context, no_optH=True)
+    copies = []
+    for bi, ti in enumerate(pose.block_type_ind[0].tolist()):
+        bt = pose.packed_block_types.active_block_types[ti]
+        if bt.base_name not in {"U31", "C31"}:
+            continue
+        copies.append(bt.base_name)
+        aliases = {a.alt_name: a.name for a in bt.atom_aliases}
+        assert aliases["O1P"] == "OP2"
+        assert aliases["O2P"] == "OP1"
+        assert not {"O1P", "O2P"} & set(bt.atom_to_idx)
+        neighbors = {b if a == "P" else a for a, b, *_ in bt.bonds if "P" in (a, b)}
+        assert neighbors == {"OP1", "OP2", "O5'"}
+        residue = array[
+            (array.chain_id == pose.pdb_info.chain_labels[0, bi])
+            & (array.res_id == int(pose.pdb_info.residue_labels[0, bi]))
+            & (array.ins_code == pose.pdb_info.residue_insertion_codes[0, bi])
+            & np.isfinite(array.coord).all(-1)
+            & ~np.isin(array.element, ("H", "D"))
+        ]
+        assert len(residue) > 0
+        offset = int(pose.block_coord_offset[0, bi])
+        indices = [
+            offset + bt.atom_to_idx[aliases.get(str(n), str(n))]
+            for n in residue.atom_name
+        ]
+        np.testing.assert_array_equal(
+            pose.coords[0, indices].detach().cpu(), residue.coord
+        )
+    expected = array.res_name[struc.get_residue_starts(array)]
+    assert Counter(copies) == Counter(n for n in expected if n in {"U31", "C31"})
+    assert set(copies) == {"U31", "C31"}
+    _score_and_minimize(pose, context, max_iter=100)
+    np.testing.assert_array_equal(array.coord, supplied)
+    np.testing.assert_array_equal(array.atom_name, names)
+
+
 def test_aromatic_acyl_cap_keeps_every_heavy_atom_in_its_tree():
     path = DATA / "modified_components_6q9t.cif"
     array = atom_array_from_cif(path)

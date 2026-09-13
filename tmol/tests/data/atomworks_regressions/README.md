@@ -10,7 +10,8 @@ The structure files retain their original experimental/generated metadata.
 | `schiff_base_double_bond.cif` | Prepare the declared double attachment and its hydrogen inventory; report the missing lysine backbone instead of discarding one covalent partner. |
 | `unknown_heavy_atom_1a8o.cif` | Distinguish the conflicting author CG / label XYZ identities; retain the author coordinate and reject unknown label atoms or parser deletion. |
 | `unresolved_unl.cif` | Retain all 28 unresolved ligand heavy atoms at NaN; explicitly reject unanchored ligand placement. |
-| `modified_components_6q9t.cif` | Traverse the whole aromatic acyl cap in the covalently connected 4SO–A1IJ4 pair. The targeted test explicitly selects this pair; the original also contains zinc. |
+| `modified_components_6q9t.cif` | Traverse the whole aromatic 4SO–A1IJ4 cap. A full-input workflow also preserves internal/terminal QUK oxygen names and exact coordinates through missing-sidechain packing, then scores/minimizes both residue orders. Free metals and entirely unresolved protein residues are excluded. |
+| `modified_nucleotide_aliases_1d9d.cif.gz` | Complete RCSB entry from AtomWorks IO tests. Resolve declared U31/C31 phosphate aliases before reference completion, avoiding duplicate phosphate oxygens; retain observed coordinates and score/minimize through both readers. Free zinc/magnesium are excluded; AtomWorks additionally retains entirely unresolved residues that construction excludes. |
 | `plp_enzyme_7mkv.cif` | Match LLP terminal patches by scope and suffix, and supply finite charge coverage for every LLP variant. |
 | `acetylated_peptide_1j8z.cif` | Recognize the BCX backbone separately from its disulfide attachment; retain the peptide connections and score it. |
 | `conditional_generation.cif` | Rebuild missing sidechains and alpha hydrogens from valid backbone coordinates; check finite scores and gradients. |

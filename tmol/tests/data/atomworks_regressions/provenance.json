@@ -188,5 +188,14 @@
     "transformation": "none; complete compressed mirror entry",
     "sha256": "b633ee769469c230f28e63691a196ab79e71728d4975f4378e8e182b4dd63331",
     "bytes": 69717
+  },
+  {
+    "fixture": "modified_nucleotide_aliases_1d9d.cif.gz",
+    "source": "https://files.rcsb.org/download/1D9D.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO tests",
+    "retrieved": "2026-09-12",
+    "transformation": "none; complete compressed source",
+    "sha256": "5671f72a9e2b26f1526678479c179305a4c7c08c5372b6a693946045e81ea1a2",
+    "bytes": 148933
   }
 ]
