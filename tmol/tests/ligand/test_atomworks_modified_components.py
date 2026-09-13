@@ -297,8 +297,6 @@ def test_chromophore_with_one_terminal_patch_constructs_and_minimizes(
 
 @pytest.mark.parametrize("reader", ["tmol", "atomworks"])
 def test_internal_representative_keeps_terminal_oxygen_names(reader, torch_device):
-    from tmol.score import beta2016_score_function
-
     array = atom_array_from_cif(DATA / "modified_components_6q9t.cif", reader=reader)
     metal = np.isin(np.char.upper(array.element), ("ZN", "NA", "MG", "CA"))
     assert not metal[array.bonds.as_array()[:, :2]].any()
@@ -313,8 +311,7 @@ def test_internal_representative_keeps_terminal_oxygen_names(reader, torch_devic
             ]
         )
     ]
-    definitions, energies = [], []
-    reference_pose = None
+    definitions, parameters = [], []
     for source in (array, reverse):
         context = build_context_from_biotite(
             source, torch_device, prepare_ligands=True, ligand_seed=20260909
@@ -328,6 +325,24 @@ def test_internal_representative_keeps_terminal_oxygen_names(reader, torch_devic
         assert {"O", "OXT"} <= set(terminal.atom_to_idx)
         assert "O1" not in terminal.atom_to_idx
         definitions.append(terminal)
+        db = context.parameter_database
+        # Compare the actual records exactly: packing is stochastic and repeated
+        # identical whole-pose CUDA scores vary with floating-point accumulation.
+        parameters.append(
+            (
+                {r.name: r for r in db.chemical.residues if r.base_name == "QUK"},
+                {
+                    name: rows
+                    for name, rows in db.scoring.cartbonded.residue_params.items()
+                    if name.split(":")[0] == "QUK"
+                },
+                {
+                    (r.res, r.atom): r.charge
+                    for r in db.scoring.elec.atom_charge_parameters
+                    if r.res.split(":")[0] == "QUK"
+                },
+            )
+        )
         copies = []
         for bi, ti in enumerate(pose.block_type_ind[0].tolist()):
             bt = pose.packed_block_types.active_block_types[ti]
@@ -349,18 +364,10 @@ def test_internal_representative_keeps_terminal_oxygen_names(reader, torch_devic
             )
         assert sorted(copies) == ["QUK", "QUK:cterm"]
         _score_and_minimize(pose, context, max_iter=100)
-        # Missing protein sidechains are packed stochastically. Compare fresh
-        # parameter contexts on the same completed geometry, so this checks
-        # preparation order without requiring identical packing trajectories.
-        if reference_pose is None:
-            reference_pose = pose
-        score = beta2016_score_function(
-            torch_device, param_db=context.parameter_database
-        ).render_whole_pose_scoring_module(reference_pose)
-        energies.append(score(reference_pose.coords).detach())
     assert definitions[0].atoms == definitions[1].atoms
     assert definitions[0].bonds == definitions[1].bonds
-    torch.testing.assert_close(energies[0], energies[1])
+    assert definitions[0].icoors == definitions[1].icoors
+    assert parameters[0] == parameters[1]
     np.testing.assert_array_equal(array.coord, supplied)
 
 

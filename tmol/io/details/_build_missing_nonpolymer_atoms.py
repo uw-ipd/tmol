@@ -55,7 +55,7 @@ def _sampled_attachment_frame(bt, names, ideal, observed, downstream):
         if third is None:
             continue
         reference = ideal[[bt.icoors_index[name] for name in (*names, torsion.a.atom)]]
-        actual = torch.stack((*observed, third))
+        actual = torch.stack((*observed, third)).to(dtype=ideal.dtype)
         if _anchor_triangle(reference, actual) is None:
             continue
         phi = math.radians(samples[torsion.name][0])
@@ -115,7 +115,8 @@ def build_missing_nonpolymer_atoms(pbt, coords, targets, offsets, types, connect
                 observed.append(xyz)
         if len(names) < 2:
             continue
-        ideal = coords.new_tensor(bt.ideal_coords)
+        # These small frame products must not use reduced-precision CUDA matmul.
+        ideal = coords.new_tensor(bt.ideal_coords, dtype=torch.float64)
         if not torch.isfinite(ideal).all():
             continue
         rotation = None
@@ -128,7 +129,7 @@ def build_missing_nonpolymer_atoms(pbt, coords, targets, offsets, types, connect
             reference, actual, rotation = sampled
         else:
             reference = ideal[[bt.icoors_index[name] for name in names]]
-            actual = torch.stack(observed)
+            actual = torch.stack(observed).to(dtype=ideal.dtype)
             triangle = _anchor_triangle(reference, actual)
             if triangle is None:
                 continue
@@ -141,7 +142,7 @@ def build_missing_nonpolymer_atoms(pbt, coords, targets, offsets, types, connect
             targets[pi, bi, : bt.n_atoms] & torch.isnan(current).any(-1)
         ).flatten()
         generated = (ideal[bt.at_to_icoor_ind] - reference[0]) @ transform + actual[0]
-        updates.append(generated[missing])
+        updates.append(generated[missing].to(dtype=coords.dtype))
         indices.append(torch.stack((torch.full_like(missing, pi), offset + missing)))
     if not updates:
         return coords
