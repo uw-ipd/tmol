@@ -71,6 +71,7 @@ def test_label_template_substitution_cannot_silently_erase_unknown_atom():
         "ncaa_fixtures/na_dna_5mc_1d17.cif",
         "ncaa_fixtures/na_rna_2ome_310d.cif",
         "atomworks_regressions/hydrolase_intermediate_1tqh.cif.gz",
+        "atomworks_regressions/phosphate_charge_4js1.cif.gz",
     ],
 )
 @pytest.mark.parametrize("reader", ["tmol", "atomworks"])
@@ -153,6 +154,24 @@ def test_shared_parser_builds_and_scores_general_chemistry(
                 np.testing.assert_array_equal(
                     pose.coords[0, indices].detach().cpu(), residue.coord
                 )
+    if "4js1" in fixture:
+        from tmol.tests.ligand.test_local_conjugate_params import _charges
+
+        for bi, residue in enumerate(struc.residue_iter(array)):
+            if residue.res_name[0] != "PO4":
+                continue
+            bt = pose.packed_block_types.active_block_types[
+                int(pose.block_type_ind[0, bi])
+            ]
+            assert set(bt.atom_to_idx) == {"P", "O1", "O2", "O3", "O4"}
+            assert sum(
+                _charges(context.parameter_database, bt).values()
+            ) == pytest.approx(-3, abs=1e-8)
+            offset = int(pose.block_coord_offset[0, bi])
+            indices = [offset + bt.atom_to_idx[str(n)] for n in residue.atom_name]
+            np.testing.assert_array_equal(
+                pose.coords[0, indices].detach().cpu(), residue.coord
+            )
     _score_and_minimize(pose, context, max_iter=100)
 
 

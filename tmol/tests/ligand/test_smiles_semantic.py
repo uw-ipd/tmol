@@ -30,7 +30,9 @@ from tmol.tests.ligand._parity_helpers import (
 _SEED = load_parity_manifest()
 
 
-@pytest.mark.parametrize("smiles", ["CC(=O)[O-]", "c1ccc(-c2ccccc2)cc1"])
+@pytest.mark.parametrize(
+    "smiles", ["CC(=O)[O-]", "c1ccc(-c2ccccc2)cc1", "O=P([O-])([O-])[O-]"]
+)
 def test_mol2_roundtrip_preserves_delocalized_chemistry_and_scores(smiles):
     import torch
     from rdkit import Chem

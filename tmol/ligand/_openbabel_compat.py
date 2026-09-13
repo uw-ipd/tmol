@@ -16,6 +16,7 @@ caller invokes them without OB installed.
 from __future__ import annotations
 
 import logging
+import math
 from pathlib import Path
 from typing import Optional
 
@@ -180,30 +181,49 @@ _CHARGE_MODEL_FALLBACKS = ("eem",)
 
 
 def _compute_charges_with_fallback(openbabel, pymol, forcefield: str, smiles: str):
-    """Compute charges for molecule, falling back on failure.
+    """Compute finite, charge-conserving charges, falling back on failure.
 
     Returns the name of the model actually used.
 
     Raises:
         ValueError: If neither the primary model nor any fallback succeeds.
     """
-    primary = openbabel.OBChargeModel.FindType(forcefield)
-    if primary is not None and primary.ComputeCharges(pymol.OBMol):
-        return forcefield
-
-    for name in _CHARGE_MODEL_FALLBACKS:
+    for name in (forcefield, *_CHARGE_MODEL_FALLBACKS):
         model = openbabel.OBChargeModel.FindType(name)
+        pymol.OBMol.DeleteData("PartialCharges")
         if model is None or not model.ComputeCharges(pymol.OBMol):
             continue
-        logger.warning(
-            "%s partial charges are unavailable for SMILES %r; falling back to "
-            "%r. These charges come from a different model and are not directly "
-            "comparable to %s charges.",
-            forcefield,
-            smiles,
-            name,
-            forcefield,
-        )
+        charges = [
+            atom.GetPartialCharge() for atom in openbabel.OBMolAtomIter(pymol.OBMol)
+        ]
+        if (
+            not all(math.isfinite(q) for q in charges)
+            or abs(sum(charges) - pymol.OBMol.GetTotalCharge()) > 1e-4
+        ):
+            logger.warning(
+                "Rejecting %s partial charges for %r: total %s does not match formal charge %s",
+                name,
+                smiles,
+                sum(charges),
+                pymol.OBMol.GetTotalCharge(),
+            )
+            continue
+        if name != forcefield:
+            logger.warning(
+                "%s partial charges are unavailable for SMILES %r; falling back to "
+                "%r. These charges come from a different model and are not directly "
+                "comparable to %s charges.",
+                forcefield,
+                smiles,
+                name,
+                forcefield,
+            )
+        # Some models (including EEM) omit this tag, making the mol2 writer
+        # incorrectly label their computed charges as Gasteiger.
+        provenance = openbabel.OBPairData()
+        provenance.SetAttribute("PartialCharges")
+        provenance.SetValue(name)
+        pymol.OBMol.CloneData(provenance)
         return name
 
     raise ValueError(

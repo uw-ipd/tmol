@@ -14,6 +14,7 @@ from atomworks.io.tools.rdkit import (
     BIOTITE_BOND_TYPE_TO_RDKIT,
     atom_array_to_rdkit,
     assign_stereochemistry_from_3d,
+    fix_charge_based_on_valence,
 )
 from rdkit import Chem
 
@@ -363,6 +364,7 @@ def rdkit_mol_from_ligand_atom_array(
         # Last-resort normalizations that rewrite source bond orders; only the
         # SMILES fallback path enables these (see docstring).
         _normalize_exocyclic_aromatic_imine(mol)
+        mol = fix_charge_based_on_valence(mol)
     _assign_formal_charges_from_valence(mol)
 
     assign_stereochemistry_from_3d(mol)

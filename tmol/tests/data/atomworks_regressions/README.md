@@ -140,3 +140,8 @@ SER–4PA intermediate (four single bonds at CAI, OAD charge −1), declared
 connections, supplied ligand coordinates and 100-step minimization through both
 readers. The label reader additionally restores five entirely unresolved protein
 residues; the regression explicitly accounts for their construction exclusion.
+
+`phosphate_charge_4js1.cif.gz` retains the complete source with its inconsistent
+formal charge on a double-bonded phosphate oxygen. The shared workflow checks
+phosphate charge conservation, observed coordinates, complete construction,
+scoring, gradients and 100-step minimization through both readers.

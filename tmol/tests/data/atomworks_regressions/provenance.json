@@ -223,5 +223,13 @@
     "transformation": "none; complete compressed source",
     "sha256": "0086cf08b16f27d42223d0bf42ed9848b46662acc223e68d0dc90bfdbcd53632",
     "bytes": 121703
+  },
+  {
+    "fixture": "phosphate_charge_4js1.cif.gz",
+    "source": "https://files.rcsb.org/download/4JS1.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO tests",
+    "transformation": "none; complete compressed source",
+    "sha256": "d0871eca33d5a59ed3678b35bc2ea682ced5bf08c8fa15482ac3ffea4422d934",
+    "bytes": 161575
   }
 ]
