@@ -943,6 +943,25 @@ def build_rotamers(poses: PoseStack, task: SetPackerTask, chem_db: ChemicalDatab
         block_ind_for_rot,
     ) = get_rotamer_origin_data(task, gbt_for_conformer_torch)
 
+    # Current/fallback rows must preserve the input, including frozen blocks.
+    # Gather only real copied atoms, without a padded conformer-by-atom array.
+    copied = [
+        indices
+        for indices, samples in zip(new_ind_for_sampler_rotamer, conformer_samples)
+        if samples[2].get("copy_input_coordinates", False)
+    ]
+    if copied:
+        copied = torch.cat(copied)
+        sizes = n_atoms_for_conformer[copied].long()
+        owner = torch.repeat_interleave(sizes)
+        atom = torch.arange(owner.numel(), device=pbt.device)
+        atom -= (torch.cumsum(sizes, 0) - sizes)[owner]
+        rot = copied[owner]
+        pose = pose_for_rot[rot]
+        source = poses.block_coord_offset[pose, block_ind_for_rot[rot]] + atom
+        destination = n_atoms_offset_for_conformer_torch[rot] + atom
+        rotamer_coords[destination] = poses.coords[pose, source]
+
     return (
         poses,
         RotamerSet(

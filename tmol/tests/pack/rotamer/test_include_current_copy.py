@@ -149,5 +149,5 @@ def test_current_conformers_reconstruct_ragged_pose_coordinates(
             rotamers.coords[rotamer_offset : rotamer_offset + n_atoms],
             poses.coords[pose, original_offset : original_offset + n_atoms],
             rtol=0,
-            atol=2e-5,
+            atol=0,
         )

@@ -696,7 +696,7 @@ def terminus_patches(
             a.name: e.get("input_name")
             for a, e in zip(
                 (a for a in add_atoms if not a.atom_type.startswith("H")),
-                _terminal_group_heavy(chemistry),
+                _terminal_group_heavy(chemistry, add_atoms),
             )
         }
         reserved = set(heavy_names.values()) - {None}
@@ -726,7 +726,7 @@ def terminus_patches(
     return generated
 
 
-def _terminal_group_heavy(chemistry):
+def _terminal_group_heavy(chemistry, atoms):
     """The heavy atoms of the terminal group the patch is responsible for.
 
     A C-terminus patch removes the carbonyl oxygen it matched and adds both of
@@ -737,14 +737,28 @@ def _terminal_group_heavy(chemistry):
     heavy = [
         e for e in chemistry["heavy"] if e["element"] in chemistry["added_elements"]
     ]
-    # the atom the residue does not have goes first, then the ones off the
-    #    backbone: a terminal group hangs off the mainchain rather than being
-    #    part of it. Within an element the atoms are equivalent, so which takes
-    #    which name does not matter
+    # For unmatched names, prefer the added atom, then off-backbone atoms:
+    # a terminal group hangs off the mainchain rather than being part of it.
     mainchain = chemistry.get("mainchain", ())
-    return sorted(
+    heavy = sorted(
         heavy, key=lambda e: (e["in_base"], e["name"] in mainchain, e["name"] or "")
     )
+    names = [a.name for a in atoms if not a.atom_type.startswith("H")]
+    if len(heavy) < len(names):
+        return heavy
+    # Preserve exact source/template matches before assigning equivalent atoms.
+    # Otherwise an unknown added oxygen consumes the template's O slot and
+    # forces an internal representative's future OXT to be called O1.
+    remaining, matched = list(heavy), {}
+    for i, name in enumerate(names):
+        entry = next((e for e in remaining if e.get("input_name") == name), None)
+        if entry is not None:
+            matched[i] = entry
+            remaining.remove(entry)
+    ordered = [
+        matched[i] if i in matched else remaining.pop(0) for i in range(len(names))
+    ]
+    return ordered + remaining
 
 
 def _terminal_add_atoms(template, chemistry):
@@ -757,7 +771,7 @@ def _terminal_add_atoms(template, chemistry):
     heavy = [a for a in template.add_atoms if not a.atom_type.startswith("H")]
     hydrogens = [a for a in template.add_atoms if a.atom_type.startswith("H")]
 
-    spare = _terminal_group_heavy(chemistry)
+    spare = _terminal_group_heavy(chemistry, template.add_atoms)
     out = []
     for atom, replacement in zip(heavy, spare + [None] * len(heavy)):
         atom_type = replacement["atom_type"] if replacement else atom.atom_type
@@ -828,7 +842,7 @@ def _fallback_delta(variant, patch, chemistry):
     Every other atom has no entry and falls back to the in-chain row, which is
     what the elec resolver does for a variant that does not mention an atom.
     """
-    spare = _terminal_group_heavy(chemistry)
+    spare = _terminal_group_heavy(chemistry, patch.add_atoms)
     hydrogens = {
         a.name for a in patch.add_atoms if a.atom_type == chemistry["hydrogen_type"]
     }
@@ -868,7 +882,7 @@ def _computed_delta(variant, patch, chemistry):
     heavy_charge = dict(chemistry["heavy_charge"])
     # the patch's own atoms are named by the patch; the terminal molecule knows
     #    them by the cap names it was built with, in the same order
-    spare = _terminal_group_heavy(chemistry)
+    spare = _terminal_group_heavy(chemistry, patch.add_atoms)
     hydrogens = {
         a.name for a in patch.add_atoms if a.atom_type == chemistry["hydrogen_type"]
     }

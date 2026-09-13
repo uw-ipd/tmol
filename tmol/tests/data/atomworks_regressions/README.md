@@ -114,6 +114,9 @@ survive construction, including residues distinguished by author insertion codes
 
 `partial_sugar_rings_2msb.cif.gz` is the complete 2MSB mirror entry. The parser
 regression compares both readers' sugar inventories and verifies the complete
-ring and NaN mask of a MAN residue with only C1 resolved. Full scoring/minimization
-remains limited by unresolved stereochemistry and construction frames in two
-glycans; this fixture does not claim those stages pass.
+ring and NaN mask of a MAN residue with only C1 resolved. Both readers now
+construct, score and minimize the full organic structure for 100 iterations.
+The integrated test checks ring geometry and handedness, exact supplied
+coordinates, and finite-difference gradients through the construction anchors.
+A singly anchored attachment uses its first declared linkage torsion sample as
+a starting conformer; insufficient or degenerate references stay unresolved.

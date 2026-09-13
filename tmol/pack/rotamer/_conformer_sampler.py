@@ -85,6 +85,11 @@ class ConformerSampler:
         must correspond across all members. Merging rejects additional states
         from other samplers on those blocks. Without a declaration, samples are
         independent even when their residues are covalently connected.
+
+        Producers of unchanged input conformers may set
+        ``copy_input_coordinates=True``. Their rows must use the original block
+        type; Cartesian coordinates are copied exactly after DOF construction
+        to avoid rounding from an unnecessary inverse/forward kinematics cycle.
         """
         raise NotImplementedError()
 
