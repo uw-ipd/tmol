@@ -163,6 +163,12 @@ def test_charge_model_no_charges_fails_auto(tmp_path) -> None:
     with pytest.raises(FixtureMismatch) as exc:
         require_paired_fixture(mol2, params, expected_charge_model="auto")
     assert "charge model" in str(exc.value)
+    from tmol.ligand import nonstandard_residue_info_from_mol2, prepare_single_ligand
+
+    info = nonstandard_residue_info_from_mol2(mol2)
+    assert info.partial_charges is None and not info.skip_protonation
+    with pytest.raises(ValueError, match="authoritative partial charges"):
+        prepare_single_ligand(info)
 
 
 def test_dud80_ace_1_charge_model_enforced() -> None:

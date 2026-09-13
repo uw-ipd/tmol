@@ -288,11 +288,7 @@ def _charge_model_is_authoritative(model: str) -> bool:
 
     PLI fixtures and legacy mol2s use Gasteiger; MMFF94/AM1-BCC/etc. are OK.
     """
-    if not model:
-        return False
-    if model == "GASTEIGER":
-        return False
-    return True
+    return model not in ("", "NO_CHARGES", "GASTEIGER")
 
 
 def nonstandard_residue_info_from_mol2(
