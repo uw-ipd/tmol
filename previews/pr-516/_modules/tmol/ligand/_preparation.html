@@ -833,6 +833,7 @@
 <span class="sd">    through a sidechain carbon.</span>
 <span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._polymer_builder</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">add_capped_junction_parameters</span><span class="p">,</span>
         <span class="n">backbone_renames</span><span class="p">,</span>
         <span class="n">to_polymer_residue_type</span><span class="p">,</span>
     <span class="p">)</span>
@@ -1035,6 +1036,16 @@
                 <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">residue_type</span><span class="o">.</span><span class="n">atoms</span>
             <span class="p">),</span>
         <span class="p">)</span>
+
+    <span class="n">cartbonded_params</span> <span class="o">=</span> <span class="n">add_capped_junction_parameters</span><span class="p">(</span>
+        <span class="n">cartbonded_params</span><span class="p">,</span>
+        <span class="n">prep</span><span class="o">.</span><span class="n">cartbonded_params</span><span class="p">,</span>
+        <span class="n">profile</span><span class="p">,</span>
+        <span class="n">kept</span><span class="p">,</span>
+        <span class="n">renamed</span><span class="p">,</span>
+        <span class="n">references</span><span class="p">,</span>
+        <span class="n">elements</span><span class="p">,</span>
+    <span class="p">)</span>
 
     <span class="k">for</span> <span class="n">substitution</span> <span class="ow">in</span> <span class="n">substitutions</span><span class="p">:</span>
         <span class="n">rows</span> <span class="o">=</span> <span class="n">substituted_wildcard_rows</span><span class="p">(</span>
