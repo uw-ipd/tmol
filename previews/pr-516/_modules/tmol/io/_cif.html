@@ -770,10 +770,13 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">with_unresolved_atoms</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">declared</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">use_ccd</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""``atom_array`` plus the declared atoms it does not resolve, at NaN.</span>
 
-<span class="sd">    Only declared leaving groups at this instance's connections are absent by</span>
-<span class="sd">    chemistry. Unresolved ring and sidechain atoms retain their chemical identity.</span>
+<span class="sd">    Declared leaving groups and unobserved acyl-substitution branches are</span>
+<span class="sd">    absent at their connection sites. Other unresolved atoms retain identity.</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.leaving_atoms</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_leaving_atom_groups</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.leaving_atoms</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">get_absent_acyl_leaving_groups</span><span class="p">,</span>
+        <span class="n">get_leaving_atom_groups</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._polymer_profile</span><span class="w"> </span><span class="kn">import</span> <span class="n">completed_connection_atoms</span>
 
     <span class="n">boundaries</span> <span class="o">=</span> <span class="n">struc</span><span class="o">.</span><span class="n">get_residue_starts</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">add_exclusive_stop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -837,6 +840,10 @@
             <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">leaving</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="p">()):</span>
                 <span class="k">if</span> <span class="n">present</span><span class="o">.</span><span class="n">isdisjoint</span><span class="p">(</span><span class="n">group</span><span class="p">):</span>
                     <span class="n">missing</span><span class="o">.</span><span class="n">difference_update</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">get_absent_acyl_leaving_groups</span><span class="p">(</span>
+            <span class="n">template</span><span class="p">,</span> <span class="n">residue</span><span class="p">,</span> <span class="nb">set</span><span class="p">(</span><span class="n">ends</span> <span class="ow">or</span> <span class="p">())</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">missing</span><span class="o">.</span><span class="n">difference_update</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
         <span class="n">missing</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">missing</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
             <span class="n">additions</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">start</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">missing</span><span class="p">,</span> <span class="n">template</span><span class="p">)</span>

@@ -520,12 +520,17 @@ themselves make a ligand parameterization usable by Rosetta.</p>
 <p>Each returns a new <code class="docutils literal notranslate"><span class="pre">(ParameterDatabase,</span> <span class="pre">CanonicalOrdering)</span></code>. The input database
 is not mutated.</p>
 <p>MOL2 and CIF input use their bond tables to derive chemistry; source heavy-atom
-names are retained. All three preparation paths apply pH-dependent protonation
-(default pH 7.4), generate conformers and calculate MMFF94 charges. Hydrogens or
-partial charges in a MOL2 file do not prove that its protonation matches that pH.
-For deliberately prepared MOL2 inputs, use <code class="docutils literal notranslate"><span class="pre">protonate=False</span></code> to preserve the
-supplied state; complete molecules with supported force-field charges also
-retain those charges and geometry. <code class="docutils literal notranslate"><span class="pre">write_params_from_mol2()</span></code> uses the same policy.</p>
+names are retained. CIF and SMILES preparation apply pH-dependent protonation
+(default pH 7.4), generate conformers and calculate MMFF94 charges.</p>
+<p>MOL2 preparation and <code class="docutils literal notranslate"><span class="pre">write_params_from_mol2()</span></code> share three modes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">mode=&quot;auto&quot;</span></code> (default): preserve complete inputs with supported, finite,
+charge-conserving partial charges; otherwise run the preparation pipeline.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mode=&quot;keep&quot;</span></code>: require prepared input and preserve its protonation and charges.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mode=&quot;regenerate&quot;</span></code>: always run pH-dependent preparation, including for
+neutralized phosphate inputs with explicit hydrogens and valid partial charges.</p></li>
+</ul>
+<p>A MOL2 charge-model label alone does not establish the intended protonation pH.</p>
 </section>
 <section id="loading-complexes">
 <h2>Loading Complexes<a class="headerlink" href="#loading-complexes" title="Link to this heading">#</a></h2>
