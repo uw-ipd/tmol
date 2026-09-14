@@ -10,6 +10,20 @@ guidance, and search workloads should bind their fixed topology once with
 :func:`tmol.io.prepare_pose_stack_from_atom37`; its returned callable accepts
 each coordinate batch and optimizes hydrogens by default.
 
+Use :func:`tmol.io.atom_array_from_file` or
+:func:`tmol.io.pose_stack_from_file` for PDB, CIF, compressed CIF and binary CIF.
+These share AtomWorks parsing, chemical annotations and NaN completion with the
+annotated-array input path. Set ``prepare_ligands=True`` for general chemistry
+and ``return_context=True`` to retain the resulting parameter database for scoring
+or repeated construction. PDB cannot embed custom component definitions; use CIF
+when residue names need file-specific chemical definitions.
+
+:func:`tmol.io.pose_stack_from_pdb` accepts paths, text and lists of lines through
+the same file path. It preserves supplied hydrogen coordinates and disables
+hydrogen optimization by default; CIF/file entry points default to rebuilding
+hydrogens. Set ``hydrogen_policy`` and ``no_optH`` explicitly when comparing files.
+Low-level PDB atom-record/DataFrame utilities retain their canonical-only contract.
+
 .. automodule:: tmol.io
    :members:
    :imported-members:

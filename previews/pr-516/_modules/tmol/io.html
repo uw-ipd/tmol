@@ -441,6 +441,7 @@
 <span></span><span class="sd">"""Structure conversion between external formats and TMol poses."""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -509,8 +510,10 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_element_from_atom_name</span>  <span class="c1"># noqa: F401</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._cif</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: F401</span>
     <span class="n">atom_array_from_cif</span><span class="p">,</span>
+    <span class="n">atom_array_from_file</span><span class="p">,</span>
     <span class="n">component_chemistry_from_cif</span><span class="p">,</span>
     <span class="n">pose_stack_from_cif</span><span class="p">,</span>
+    <span class="n">pose_stack_from_file</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">._pose_stack_from_biotite</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: F401</span>
     <span class="n">Atom37MappingError</span><span class="p">,</span>
@@ -531,6 +534,7 @@
 <span class="p">)</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">"atom_array_from_file"</span><span class="p">,</span>
     <span class="s2">"Atom37MappingError"</span><span class="p">,</span>
     <span class="s2">"CanonicalForm"</span><span class="p">,</span>
     <span class="s2">"CanonicalOrdering"</span><span class="p">,</span>
@@ -556,6 +560,7 @@
     <span class="s2">"packed_block_types_for_atomworks"</span><span class="p">,</span>
     <span class="s2">"packed_block_types_for_biotite"</span><span class="p">,</span>
     <span class="s2">"pose_stack_from_atomworks"</span><span class="p">,</span>
+    <span class="s2">"pose_stack_from_file"</span><span class="p">,</span>
     <span class="s2">"prepare_pose_stack_from_atom37"</span><span class="p">,</span>
     <span class="s2">"pose_stack_from_atom37_and_biotite"</span><span class="p">,</span>
     <span class="s2">"pose_stack_from_biotite"</span><span class="p">,</span>
@@ -578,36 +583,40 @@
 <a class="viewcode-back" href="../../api/io.html#tmol.io.pose_stack_from_pdb">[docs]</a>
 <span class="nd">@validate_args</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">pose_stack_from_pdb</span><span class="p">(</span>
-    <span class="n">pdb_lines_or_fname</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">],</span>
+    <span class="n">pdb_lines_or_fname</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">residue_start</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">residue_end</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">res_not_connected</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Construct a PoseStack given the contents of a PDB file or the name of a PDB file,</span>
-<span class="sd">    using the full set of residue types contained in tmol's chemical.yaml file.</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PoseStack</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PoseStack</span><span class="p">,</span> <span class="n">PoseBuildContext</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Read PDB through AtomWorks and the shared annotated-array constructor.</span>
 
-<span class="sd">    Optionally, a subset of the residues in the range from residue_start to residue_end-1</span>
-<span class="sd">    can be requested.</span>
-<span class="sd">    Any additional keyword arguments will be passed to pose_stack_from_canonical_form</span>
+<span class="sd">    Accept a path, PDB text or a list of lines. Residue slicing uses a half-open</span>
+<span class="sd">    index range. Additional keywords follow :func:`pose_stack_from_file`, including</span>
+<span class="sd">    ``prepare_ligands`` and ``return_context``. Supplied hydrogens are retained</span>
+<span class="sd">    and hydrogen optimization is disabled unless explicitly requested.</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_device</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">io</span>
 
-    <span class="n">device</span> <span class="o">=</span> <span class="n">resolve_device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-    <span class="n">co</span> <span class="o">=</span> <span class="n">default_canonical_ordering</span><span class="p">()</span>
-    <span class="n">pbt</span> <span class="o">=</span> <span class="n">default_packed_block_types</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-    <span class="n">cf</span> <span class="o">=</span> <span class="n">canonical_form_from_pdb</span><span class="p">(</span>
-        <span class="n">co</span><span class="p">,</span>
-        <span class="n">pdb_lines_or_fname</span><span class="p">,</span>
+    <span class="n">source</span> <span class="o">=</span> <span class="n">pdb_lines_or_fname</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="n">source</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">source</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="ow">in</span> <span class="n">source</span><span class="p">:</span>
+        <span class="n">source</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+    <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">"no_optH"</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+    <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">"hydrogen_policy"</span><span class="p">,</span> <span class="s2">"preserve"</span><span class="p">)</span>
+    <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">"missing_density_distance_threshold"</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">res_not_connected</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">"res_not_connected"</span><span class="p">]</span> <span class="o">=</span> <span class="n">res_not_connected</span>
+    <span class="k">return</span> <span class="n">pose_stack_from_file</span><span class="p">(</span>
+        <span class="n">source</span><span class="p">,</span>
         <span class="n">device</span><span class="p">,</span>
         <span class="n">residue_start</span><span class="o">=</span><span class="n">residue_start</span><span class="p">,</span>
         <span class="n">residue_end</span><span class="o">=</span><span class="n">residue_end</span><span class="p">,</span>
-        <span class="n">res_not_connected</span><span class="o">=</span><span class="n">res_not_connected</span><span class="p">,</span>
-    <span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">pose_stack_from_canonical_form</span><span class="p">(</span><span class="n">co</span><span class="p">,</span> <span class="n">pbt</span><span class="p">,</span> <span class="o">*</span><span class="n">cf</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span></div>
 
 </pre></div>
 
