@@ -2213,6 +2213,7 @@
     <span class="o">*</span><span class="p">,</span>
     <span class="n">param_db</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ParameterDatabase</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">ph</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">7.4</span><span class="p">,</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">strict_atom_types</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">use_ccd</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -2232,6 +2233,7 @@
 <span class="sd">            containing multiple residues.</span>
 <span class="sd">        param_db: Base database (not modified); defaults to the tmol default.</span>
 <span class="sd">        ph: Target pH for protonation.</span>
+<span class="sd">        seed: Reproducible conformer seed, shared with the MOL2/SMILES entry paths.</span>
 <span class="sd">        strict_atom_types: Fail on unknown atom-type element mappings.</span>
 <span class="sd">        res_name: Optional residue name override.</span>
 <span class="sd">        use_ccd: Allow dictionary supplementation for a recognized component code.</span>
@@ -2241,7 +2243,7 @@
 <span class="sd">        A ``(ParameterDatabase, CanonicalOrdering)`` with the ligand injected.</span>
 <span class="sd">    """</span>
     <span class="n">lig</span> <span class="o">=</span> <span class="n">_ligand_info_from_cif</span><span class="p">(</span><span class="n">cif_path</span><span class="p">,</span> <span class="n">res_name</span><span class="p">,</span> <span class="n">use_ccd</span><span class="o">=</span><span class="n">use_ccd</span><span class="p">)</span>
-    <span class="n">prep</span> <span class="o">=</span> <span class="n">_prepare_ligand_via_smiles</span><span class="p">(</span><span class="n">lig</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">)</span>
+    <span class="n">prep</span> <span class="o">=</span> <span class="n">_prepare_ligand_via_smiles</span><span class="p">(</span><span class="n">lig</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">_inject_single</span><span class="p">(</span><span class="n">prep</span><span class="p">,</span> <span class="n">param_db</span><span class="p">,</span> <span class="n">strict_atom_types</span><span class="p">)</span></div>
 
 
