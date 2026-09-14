@@ -939,6 +939,14 @@
     <span class="n">torch_device</span> <span class="o">=</span> <span class="n">resolve_device</span><span class="p">(</span><span class="n">torch_device</span><span class="p">)</span>
     <span class="c1"># aliased names are resolved before ligand detection, or the residue the</span>
     <span class="c1">#    alias points at would be prepared as a nonstandard one</span>
+    <span class="k">if</span> <span class="n">ligand_params_files</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">prepare_ligands</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._params_file</span><span class="w"> </span><span class="kn">import</span> <span class="n">inject_params_files</span>
+
+        <span class="n">param_db</span> <span class="o">=</span> <span class="n">inject_params_files</span><span class="p">(</span>
+            <span class="n">param_db</span> <span class="ow">or</span> <span class="n">ParameterDatabase</span><span class="o">.</span><span class="n">get_default</span><span class="p">(),</span>
+            <span class="n">ligand_params_files</span><span class="p">,</span>
+            <span class="n">strict_atom_types</span><span class="o">=</span><span class="n">strict_atom_types</span><span class="p">,</span>
+        <span class="p">)</span>
     <span class="n">chemdb</span> <span class="o">=</span> <span class="p">(</span><span class="n">param_db</span> <span class="ow">or</span> <span class="n">ParameterDatabase</span><span class="o">.</span><span class="n">get_default</span><span class="p">())</span><span class="o">.</span><span class="n">chemical</span>
     <span class="n">biotite_structure</span> <span class="o">=</span> <span class="n">_normalize_input_identifiers</span><span class="p">(</span>
         <span class="n">biotite_structure</span><span class="p">,</span>
@@ -1102,9 +1110,9 @@
     <span class="n">torch_device</span> <span class="o">=</span> <span class="n">resolve_device</span><span class="p">(</span><span class="n">torch_device</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">context</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">param_db</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">param_db</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">ligand_params_files</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">"Pass either context= or param_db=, not both; the context "</span>
+                <span class="s2">"Pass either context= or param_db=/ligand_params_files, not both; the context "</span>
                 <span class="s2">"already carries its parameter database."</span>
             <span class="p">)</span>
         <span class="k">if</span> <span class="n">prepare_ligands</span><span class="p">:</span>

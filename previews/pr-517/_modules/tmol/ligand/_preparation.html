@@ -1962,6 +1962,17 @@
             <span class="s2">"Preparing </span><span class="si">%s</span><span class="s2"> (declared type: </span><span class="si">%s</span><span class="s2">)"</span><span class="p">,</span> <span class="n">lig</span><span class="o">.</span><span class="n">res_name</span><span class="p">,</span> <span class="n">lig</span><span class="o">.</span><span class="n">component_type</span>
         <span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
+            <span class="n">bonds</span> <span class="o">=</span> <span class="n">lig</span><span class="o">.</span><span class="n">atom_array</span><span class="o">.</span><span class="n">bonds</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lig</span><span class="o">.</span><span class="n">atom_array</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="p">(</span>
+                <span class="n">bonds</span> <span class="ow">is</span> <span class="kc">None</span>
+                <span class="ow">or</span> <span class="n">bonds</span><span class="o">.</span><span class="n">get_bond_count</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span>
+                <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">bonds</span><span class="o">.</span><span class="n">as_array</span><span class="p">()[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="n">struc</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">ANY</span><span class="p">)</span>
+            <span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">lig</span><span class="o">.</span><span class="n">res_name</span><span class="si">}</span><span class="s2">: parameter generation requires chemical bond orders. "</span>
+                    <span class="s2">"Supply a typed CIF/MOL2, enable use_ccd for a CCD component, "</span>
+                    <span class="s2">"or load its prepared .tmol parameters with params_files."</span>
+                <span class="p">)</span>
             <span class="k">if</span> <span class="n">is_polymer</span><span class="p">:</span>
                 <span class="n">prep</span> <span class="o">=</span> <span class="n">prepare_polymer_residue</span><span class="p">(</span>
                     <span class="n">lig</span><span class="o">.</span><span class="n">atom_array</span><span class="p">,</span>
@@ -2154,12 +2165,12 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_ligand_info_from_cif</span><span class="p">(</span>
-    <span class="n">cif_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="n">cif_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">use_ccd</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NonStandardResidueInfo</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Read one ligand through the shared format, identity and completion path."""</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_array_from_cif</span>
 
-    <span class="n">arr</span> <span class="o">=</span> <span class="n">atom_array_from_cif</span><span class="p">(</span><span class="n">cif_path</span><span class="p">,</span> <span class="n">use_ccd</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">hydrogen_policy</span><span class="o">=</span><span class="s2">"preserve"</span><span class="p">)</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">atom_array_from_cif</span><span class="p">(</span><span class="n">cif_path</span><span class="p">,</span> <span class="n">use_ccd</span><span class="o">=</span><span class="n">use_ccd</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">struc</span><span class="o">.</span><span class="n">get_residue_count</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Single-ligand preparation requires exactly one residue"</span><span class="p">)</span>
     <span class="n">resolved</span> <span class="o">=</span> <span class="p">(</span><span class="n">res_name</span> <span class="ow">or</span> <span class="nb">str</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
@@ -2204,12 +2215,13 @@
     <span class="n">ph</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">7.4</span><span class="p">,</span>
     <span class="n">strict_atom_types</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">use_ccd</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">ParameterDatabase</span><span class="p">,</span> <span class="n">CanonicalOrdering</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Prepare a single ligand from a CIF file and inject it into a database.</span>
 
 <span class="sd">    Runs the same full pipeline as :func:`prepare_ligand_from_smiles`; the only</span>
 <span class="sd">    CIF-specific step is the front end. A SMILES is derived from the CIF ligand's</span>
-<span class="sd">    explicit bond table (never geometry perception, never a CCD lookup) and run</span>
+<span class="sd">    bond table (optionally supplemented from CCD, never geometry perception) and run</span>
 <span class="sd">    through the SMILES -&gt; mol2 -&gt; params path (protonation, 3D conformer, MMFF94</span>
 <span class="sd">    charges). The prepared residue's heavy-atom names are then mapped back to the</span>
 <span class="sd">    CIF atom names via the atom-order map carried through the round-trip.</span>
@@ -2222,11 +2234,13 @@
 <span class="sd">        ph: Target pH for protonation.</span>
 <span class="sd">        strict_atom_types: Fail on unknown atom-type element mappings.</span>
 <span class="sd">        res_name: Optional residue name override.</span>
+<span class="sd">        use_ccd: Allow dictionary supplementation for a recognized component code.</span>
+<span class="sd">            False (default) requires authored bonds and permits custom residue codes.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        A ``(ParameterDatabase, CanonicalOrdering)`` with the ligand injected.</span>
 <span class="sd">    """</span>
-    <span class="n">lig</span> <span class="o">=</span> <span class="n">_ligand_info_from_cif</span><span class="p">(</span><span class="n">cif_path</span><span class="p">,</span> <span class="n">res_name</span><span class="p">)</span>
+    <span class="n">lig</span> <span class="o">=</span> <span class="n">_ligand_info_from_cif</span><span class="p">(</span><span class="n">cif_path</span><span class="p">,</span> <span class="n">res_name</span><span class="p">,</span> <span class="n">use_ccd</span><span class="o">=</span><span class="n">use_ccd</span><span class="p">)</span>
     <span class="n">prep</span> <span class="o">=</span> <span class="n">_prepare_ligand_via_smiles</span><span class="p">(</span><span class="n">lig</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">_inject_single</span><span class="p">(</span><span class="n">prep</span><span class="p">,</span> <span class="n">param_db</span><span class="p">,</span> <span class="n">strict_atom_types</span><span class="p">)</span></div>
 

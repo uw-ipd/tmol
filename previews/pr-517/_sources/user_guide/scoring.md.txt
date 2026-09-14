@@ -26,15 +26,11 @@ import biotite.structure as struc
 import biotite.structure.io
 import torch
 
-from tmol.io import pose_stack_from_biotite
+from tmol.io import atom_array_from_file, pose_stack_from_biotite
 from tmol.score import beta2016_score_function
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-structure = biotite.structure.io.load_structure(
-    "1ubq.cif", model=1, include_bonds=True
-)
-if isinstance(structure, struc.AtomArrayStack):
-    structure = structure[0]
+structure = atom_array_from_file("1ubq.cif")
 pose_stack = pose_stack_from_biotite(structure, device)
 
 sfxn = beta2016_score_function(device)
