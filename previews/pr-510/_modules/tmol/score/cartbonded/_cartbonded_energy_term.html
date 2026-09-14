@@ -422,7 +422,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">attrs</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderedDict</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">permutations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">permutations</span><span class="p">,</span> <span class="n">product</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">AtomTypeDependentTerm</span>
 
@@ -483,6 +483,8 @@
     <span class="n">cartbonded_max_subgraphs_per_block</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">cartbonded_atom_unique_id_index</span><span class="p">:</span> <span class="nb">dict</span>
     <span class="n">atom_unique_ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">atom_wildcard_ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">atom_cross_ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="n">cartbonded_params_hash_keys</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="n">cartbonded_params_hash_values</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="n">connection_hash_keys</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
@@ -858,24 +860,25 @@
         <span class="c1"># Collect each parameter key once. Residue variants with the same base</span>
         <span class="c1"># name share parameter dictionaries, and hash lookup uses the first</span>
         <span class="c1"># inserted value for duplicate keys.</span>
-        <span class="n">padded_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_padded_param_key</span>
-        <span class="n">unique_params</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">named_params</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">annotation</span> <span class="ow">in</span> <span class="n">block_annotations</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">key_w_str</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">annotation</span><span class="o">.</span><span class="n">cartbonded_params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="n">key</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">cbet_atom_unique_id_index</span><span class="p">[</span><span class="n">at</span><span class="p">]</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">key_w_str</span><span class="p">)</span>
-                <span class="n">unique_params</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">padded_key</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
+                <span class="n">named_params</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key_w_str</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">key_w_str</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">wildcard_params</span><span class="p">:</span>
-            <span class="n">key</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">cbet_atom_unique_id_index</span><span class="p">[</span><span class="n">at</span><span class="p">]</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">key_w_str</span><span class="p">)</span>
-            <span class="n">unique_params</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">padded_key</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
-
+            <span class="n">named_params</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key_w_str</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="n">atom_wildcard_ids</span><span class="p">,</span> <span class="n">atom_cross_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reference_params</span><span class="p">(</span>
+            <span class="n">packed_block_types</span><span class="p">,</span> <span class="n">cbet_atom_unique_id_index</span><span class="p">,</span> <span class="n">named_params</span>
+        <span class="p">)</span>
+        <span class="n">padded_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_padded_param_key</span>
         <span class="n">hash_keys</span><span class="p">,</span> <span class="n">hash_values</span> <span class="o">=</span> <span class="n">make_hashtable_keys_values</span><span class="p">(</span>
-            <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">unique_params</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span>
+            <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">named_params</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span>
         <span class="p">)</span>
         <span class="n">param_key_to_index</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">for</span> <span class="n">cur_val</span><span class="p">,</span> <span class="p">(</span><span class="n">padded</span><span class="p">,</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">unique_params</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+        <span class="k">for</span> <span class="n">cur_val</span><span class="p">,</span> <span class="p">(</span><span class="n">key_w_str</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">named_params</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">cbet_atom_unique_id_index</span><span class="p">[</span><span class="n">at</span><span class="p">]</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">key_w_str</span><span class="p">)</span>
             <span class="n">add_to_hashtable</span><span class="p">(</span><span class="n">hash_keys</span><span class="p">,</span> <span class="n">hash_values</span><span class="p">,</span> <span class="n">cur_val</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
-            <span class="n">param_key_to_index</span><span class="p">[</span><span class="n">padded</span><span class="p">]</span> <span class="o">=</span> <span class="n">cur_val</span>
+            <span class="n">param_key_to_index</span><span class="p">[</span><span class="n">padded_key</span><span class="p">(</span><span class="n">key</span><span class="p">)]</span> <span class="o">=</span> <span class="n">cur_val</span>
 
         <span class="c1"># Intra-block topology and atom naming are fixed for a packed block</span>
         <span class="c1"># type. Resolve the exact/reversed/wildcard parameter search once here</span>
@@ -927,6 +930,8 @@
             <span class="n">cartbonded_max_subgraphs_per_block</span><span class="o">=</span><span class="n">max_subgraphs_per_block</span><span class="p">,</span>
             <span class="n">cartbonded_atom_unique_id_index</span><span class="o">=</span><span class="n">cbet_atom_unique_id_index</span><span class="p">,</span>
             <span class="n">atom_unique_ids</span><span class="o">=</span><span class="n">atom_unique_ids</span><span class="p">,</span>
+            <span class="n">atom_wildcard_ids</span><span class="o">=</span><span class="n">atom_wildcard_ids</span><span class="p">,</span>
+            <span class="n">atom_cross_ids</span><span class="o">=</span><span class="n">atom_cross_ids</span><span class="p">,</span>
             <span class="n">cartbonded_params_hash_keys</span><span class="o">=</span><span class="n">hash_keys_tensor</span><span class="p">,</span>
             <span class="n">cartbonded_params_hash_values</span><span class="o">=</span><span class="n">hash_values_tensor</span><span class="p">,</span>
             <span class="n">connection_hash_keys</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">connection_keys</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
@@ -937,6 +942,54 @@
         <span class="p">)</span>
         <span class="n">packed_block_types</span><span class="o">.</span><span class="n">cartbonded_atom_is_rosetta</span> <span class="o">=</span> <span class="n">cb_pbt_ann</span><span class="o">.</span><span class="n">atom_is_rosetta</span>
         <span class="k">return</span> <span class="n">_remember</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hash</span><span class="p">,</span> <span class="n">cb_pbt_ann</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_reference_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pbt</span><span class="p">,</span> <span class="n">atom_ids</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Compile name fallbacks once, scoped to the actual block type.</span>
+
+<span class="sd">        Keep native lookup unchanged: renamed atoms use private IDs with</span>
+<span class="sd">        exact-name rows first and borrowed chemical-role rows second.</span>
+<span class="sd">        Unrelated blocks never acquire that alias; ordinary types reuse their</span>
+<span class="sd">        existing IDs and allocate no additional table.</span>
+<span class="sd">        """</span>
+        <span class="n">changed</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">bt</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">cartbonded_reference</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">bt</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">originals</span> <span class="o">=</span> <span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">atom_wildcard_ids</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">atom_cross_ids</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">changed</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">originals</span>
+        <span class="n">tables</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">original</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">((</span><span class="s2">"WILDCARD_ID:"</span><span class="p">,</span> <span class="s2">"CROSS_ID:"</span><span class="p">),</span> <span class="n">originals</span><span class="p">):</span>
+            <span class="n">rows</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">key</span><span class="p">)</span>
+            <span class="p">]</span>
+            <span class="n">ids</span> <span class="o">=</span> <span class="n">original</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">changed</span><span class="p">:</span>
+                <span class="n">exact</span><span class="p">,</span> <span class="n">borrowed</span> <span class="o">=</span> <span class="p">{},</span> <span class="p">{}</span>
+                <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">atom</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">atoms</span><span class="p">):</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="n">atom</span><span class="o">.</span><span class="n">name</span>
+                    <span class="k">if</span> <span class="n">atom</span><span class="o">.</span><span class="n">cartbonded_reference</span><span class="p">:</span>
+                        <span class="n">scoped</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">bt</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">atom</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span>
+                        <span class="n">ids</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_ids</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">scoped</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">atom_ids</span><span class="p">))</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">scoped</span> <span class="o">=</span> <span class="n">name</span>
+                    <span class="n">exact</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">scoped</span><span class="p">,)</span>
+                    <span class="n">reference</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">cartbonded_reference</span> <span class="ow">or</span> <span class="n">atom</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                    <span class="n">borrowed</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">reference</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">scoped</span><span class="p">)</span>
+                <span class="c1"># Exact supplied rows win regardless of parameter ordering.</span>
+                <span class="k">for</span> <span class="n">names</span> <span class="ow">in</span> <span class="p">(</span><span class="n">exact</span><span class="p">,</span> <span class="n">borrowed</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+                        <span class="n">choices</span> <span class="o">=</span> <span class="p">[</span>
+                            <span class="n">names</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">atom</span><span class="p">,</span> <span class="p">())</span> <span class="k">if</span> <span class="n">atom</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="k">else</span> <span class="p">(</span><span class="n">atom</span><span class="p">,)</span>
+                            <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">key</span>
+                        <span class="p">]</span>
+                        <span class="k">for</span> <span class="n">mapped</span> <span class="ow">in</span> <span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="n">choices</span><span class="p">):</span>
+                            <span class="n">params</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">mapped</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="n">tables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">))</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">tables</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_ownership_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">annotation</span> <span class="ow">in</span> <span class="n">_annotations</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
@@ -977,10 +1030,10 @@
             <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections</span><span class="p">,</span>
             <span class="n">pbt</span><span class="o">.</span><span class="n">atom_paths_from_conn</span><span class="p">,</span>
             <span class="n">pbt_cb_ann</span><span class="o">.</span><span class="n">atom_unique_ids</span><span class="p">,</span>
-            <span class="n">pbt</span><span class="o">.</span><span class="n">atom_wildcard_ids</span><span class="p">,</span>
+            <span class="n">pbt_cb_ann</span><span class="o">.</span><span class="n">atom_wildcard_ids</span><span class="p">,</span>
             <span class="n">pbt_cb_ann</span><span class="o">.</span><span class="n">atom_is_rosetta</span><span class="p">,</span>
             <span class="n">pbt</span><span class="o">.</span><span class="n">cartbonded_is_fragment</span><span class="p">,</span>
-            <span class="n">pbt</span><span class="o">.</span><span class="n">atom_cross_ids</span><span class="p">,</span>
+            <span class="n">pbt_cb_ann</span><span class="o">.</span><span class="n">atom_cross_ids</span><span class="p">,</span>
             <span class="n">pbt_cb_ann</span><span class="o">.</span><span class="n">connection_hash_keys</span><span class="p">,</span>
             <span class="n">pbt_cb_ann</span><span class="o">.</span><span class="n">connection_spans</span><span class="p">,</span>
             <span class="n">pbt_cb_ann</span><span class="o">.</span><span class="n">connection_paths</span><span class="p">,</span>
