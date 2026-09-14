@@ -94,6 +94,16 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
       &CPU::test_segmented_scan_exclusive,
       "src"_a,
       "seg_starts"_a);
+  m.def(
+      "test_rot_neighbor_indices_from_block_spheres",
+      &CPU::test_rot_neighbor_indices_from_block_spheres,
+      "pose_stack_block_type"_a,
+      "block_spheres"_a,
+      "n_rots_for_block"_a,
+      "rot_offset_for_block"_a,
+      "rot_spheres"_a,
+      "lockstep_group_for_block"_a,
+      "reach"_a);
 
 #ifdef WITH_CUDA
   using CUDA = DevOpsTests<Device::CUDA>;
@@ -142,6 +152,16 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
       &CUDA::test_segmented_scan_exclusive,
       "src"_a,
       "seg_starts"_a);
+  m.def(
+      "test_rot_neighbor_indices_from_block_spheres",
+      &CUDA::test_rot_neighbor_indices_from_block_spheres,
+      "pose_stack_block_type"_a,
+      "block_spheres"_a,
+      "n_rots_for_block"_a,
+      "rot_offset_for_block"_a,
+      "rot_spheres"_a,
+      "lockstep_group_for_block"_a,
+      "reach"_a);
 #endif
 }
 }  // namespace tmol

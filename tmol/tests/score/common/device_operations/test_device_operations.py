@@ -298,6 +298,146 @@ def test_reduce_large(ext, torch_device):
     assert ext.test_reduce(src) == N
 
 
+def _reference_rot_neighbor_indices(
+    pose_stack_block_type,
+    block_spheres,
+    n_rots_for_block,
+    rot_offset_for_block,
+    rot_spheres,
+    lockstep_group_for_block,
+    reach,
+):
+    """Reproduce the former dense block-neighbor/count/offset ordering."""
+    result = []
+    n_poses, max_n_blocks = pose_stack_block_type.shape
+    for pose in range(n_poses):
+        for block1 in range(max_n_blocks):
+            for block2 in range(block1, max_n_blocks):
+                if (
+                    pose_stack_block_type[pose, block1] < 0
+                    or pose_stack_block_type[pose, block2] < 0
+                ):
+                    continue
+                delta = (
+                    block_spheres[pose, block1, :3] - block_spheres[pose, block2, :3]
+                )
+                threshold = (
+                    block_spheres[pose, block1, 3]
+                    + block_spheres[pose, block2, 3]
+                    + reach
+                )
+                if not delta.square().sum() < threshold * threshold:
+                    continue
+
+                nrot1 = int(n_rots_for_block[pose, block1])
+                nrot2 = int(n_rots_for_block[pose, block2])
+                offset1 = int(rot_offset_for_block[pose, block1])
+                offset2 = int(rot_offset_for_block[pose, block2])
+                if nrot1 <= 0 or nrot2 <= 0 or offset1 < 0 or offset2 < 0:
+                    continue
+                group1 = int(lockstep_group_for_block[pose, block1])
+                group2 = int(lockstep_group_for_block[pose, block2])
+                if block1 == block2:
+                    result.extend(
+                        (pose, offset1 + i, offset1 + i) for i in range(nrot1)
+                    )
+                elif group1 >= 0 and group1 == group2:
+                    result.extend(
+                        (pose, offset1 + i, offset2 + i)
+                        for i in range(min(nrot1, nrot2))
+                    )
+                else:
+                    for i in range(nrot1):
+                        for j in range(nrot2):
+                            rot_delta = (
+                                rot_spheres[offset1 + i, :3]
+                                - rot_spheres[offset2 + j, :3]
+                            )
+                            rot_threshold = (
+                                rot_spheres[offset1 + i, 3]
+                                + rot_spheres[offset2 + j, 3]
+                                + reach
+                            )
+                            if rot_delta.square().sum() < rot_threshold * rot_threshold:
+                                result.append((pose, offset1 + i, offset2 + j))
+    if not result:
+        return torch.empty((3, 0), dtype=torch.int32)
+    return torch.tensor(result, dtype=torch.int32).T.contiguous()
+
+
+@pytest.mark.parametrize("lockstep", [False, True])
+def test_rot_neighbor_indices_match_dense_reference(ext, torch_device, lockstep):
+    """Keep canonical dispatch bytes across sparse, distant, and lockstep pairs."""
+    device = torch_device
+    block_types = torch.tensor(
+        [[0, 1, 2, -1, 3], [0, 1, 2, 3, -1]],
+        dtype=torch.int32,
+        device=device,
+    )
+    n_rots = torch.tensor(
+        [[2, 3, 0, 0, 2], [2, 2, 1, 1, 0]],
+        dtype=torch.int32,
+        device=device,
+    )
+    offsets = torch.tensor(
+        [[0, 2, -1, -1, 5], [7, 9, 11, 12, -1]],
+        dtype=torch.int32,
+        device=device,
+    )
+    block_spheres = torch.tensor(
+        [
+            [[0, 0, 0, 1], [1, 0, 0, 1], [4, 0, 0, 1], [0, 0, 0, 0], [20, 0, 0, 1]],
+            [[0, 0, 0, 1], [1, 0, 0, 1], [5, 0, 0, 1], [6, 0, 0, 1], [0, 0, 0, 0]],
+        ],
+        dtype=torch.float32,
+        device=device,
+    )
+    rot_spheres = torch.tensor(
+        [
+            [0, 0, 0, 0.4],
+            [8, 0, 0, 0.4],
+            [0.5, 0, 0, 0.4],
+            [8.5, 0, 0, 0.4],
+            [30, 0, 0, 0.4],
+            [20, 0, 0, 0.4],
+            [22, 0, 0, 0.4],
+            [0, 0, 0, 0.4],
+            [9, 0, 0, 0.4],
+            [0.5, 0, 0, 0.4],
+            [9.5, 0, 0, 0.4],
+            [100, 0, 0, 0.1],
+            [-100, 0, 0, 0.1],
+        ],
+        dtype=torch.float32,
+        device=device,
+    )
+    groups = torch.full_like(n_rots, -1)
+    if lockstep:
+        groups[0, :2] = 7
+        groups[1, 2:4] = 9
+    reach = 0.5
+
+    actual = ext.test_rot_neighbor_indices_from_block_spheres(
+        block_types,
+        block_spheres,
+        n_rots,
+        offsets,
+        rot_spheres,
+        groups,
+        reach,
+    )
+    expected = _reference_rot_neighbor_indices(
+        block_types.cpu(),
+        block_spheres.cpu(),
+        n_rots.cpu(),
+        offsets.cpu(),
+        rot_spheres.cpu(),
+        groups.cpu(),
+        reach,
+    )
+    assert actual.cpu().numpy().tobytes() == expected.numpy().tobytes()
+
+
 # ---------------------------------------------------------------------------
 # load_balancing_search
 # ---------------------------------------------------------------------------
