@@ -1188,6 +1188,7 @@
     <span class="n">ligand_info</span><span class="p">:</span> <span class="n">NonStandardResidueInfo</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">ph</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">protonate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">assign_ring_chis</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">generate_heavy_chi_samples</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -1229,7 +1230,7 @@
 
     <span class="k">try</span><span class="p">:</span>
         <span class="n">smiles_info</span> <span class="o">=</span> <span class="n">nonstandard_residue_info_from_smiles_via_mol2</span><span class="p">(</span>
-            <span class="n">smiles</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="n">ligand_info</span><span class="o">.</span><span class="n">res_name</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span>
+            <span class="n">smiles</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="n">ligand_info</span><span class="o">.</span><span class="n">res_name</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span> <span class="n">protonate</span><span class="o">=</span><span class="n">protonate</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span>
         <span class="p">)</span>
         <span class="n">prep</span> <span class="o">=</span> <span class="n">prepare_single_ligand</span><span class="p">(</span>
             <span class="n">smiles_info</span><span class="p">,</span>
@@ -2199,15 +2200,15 @@
 
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_prepare_mol2</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="mf">7.4</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_prepare_mol2</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="mf">7.4</span><span class="p">,</span> <span class="n">protonate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._detect</span><span class="w"> </span><span class="kn">import</span> <span class="n">nonstandard_residue_info_from_mol2</span>
 
     <span class="n">lig</span> <span class="o">=</span> <span class="n">nonstandard_residue_info_from_mol2</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="n">res_name</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="k">return</span> <span class="p">(</span>
             <span class="n">prepare_single_ligand</span><span class="p">(</span><span class="n">lig</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">lig</span><span class="o">.</span><span class="n">skip_protonation</span>
-            <span class="k">else</span> <span class="n">_prepare_ligand_via_smiles</span><span class="p">(</span><span class="n">lig</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">protonate</span> <span class="ow">and</span> <span class="n">lig</span><span class="o">.</span><span class="n">skip_protonation</span>
+            <span class="k">else</span> <span class="n">_prepare_ligand_via_smiles</span><span class="p">(</span><span class="n">lig</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span> <span class="n">protonate</span><span class="o">=</span><span class="n">protonate</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
         <span class="p">)</span>
     <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">mol2_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
@@ -2220,21 +2221,24 @@
     <span class="o">*</span><span class="p">,</span>
     <span class="n">param_db</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ParameterDatabase</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">ph</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">7.4</span><span class="p">,</span>
+    <span class="n">protonate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">strict_atom_types</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">ParameterDatabase</span><span class="p">,</span> <span class="n">CanonicalOrdering</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Prepare a single ligand from a Tripos mol2 file and inject it.</span>
 
-<span class="sd">    Preserves supplied force-field charges and geometry for complete molecules.</span>
-<span class="sd">    Missing hydrogens, Gasteiger or absent charges use the shared protonation</span>
-<span class="sd">    and MMFF94 preparation path,</span>
-<span class="sd">    retaining source heavy-atom names.</span>
+<span class="sd">    Applies shared pH-dependent protonation and MMFF94 preparation, retaining</span>
+<span class="sd">    source heavy-atom names. Supplied hydrogens and partial charges do not</span>
+<span class="sd">    establish the protonation state at the requested pH.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        mol2_path: Path to the ligand mol2 file.</span>
 <span class="sd">        param_db: Base database (not modified); defaults to the tmol default.</span>
-<span class="sd">        ph: Target pH when charges must be generated.</span>
+<span class="sd">        ph: Target pH for protonation.</span>
+<span class="sd">        protonate: Set ``False`` to preserve the input protonation state.</span>
+<span class="sd">            Complete molecules with supported force-field charges also retain</span>
+<span class="sd">            those charges and geometry; otherwise MMFF94 charges are generated.</span>
 <span class="sd">        seed: Reproducible conformer seed when charges must be generated.</span>
 <span class="sd">        strict_atom_types: Fail on unknown atom-type element mappings.</span>
 <span class="sd">        res_name: Optional residue name override.</span>
@@ -2242,7 +2246,7 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        A ``(ParameterDatabase, CanonicalOrdering)`` with the ligand injected.</span>
 <span class="sd">    """</span>
-    <span class="n">prep</span> <span class="o">=</span> <span class="n">_prepare_mol2</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">,</span> <span class="n">res_name</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">prep</span> <span class="o">=</span> <span class="n">_prepare_mol2</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">,</span> <span class="n">res_name</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span> <span class="n">protonate</span><span class="o">=</span><span class="n">protonate</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">_inject_single</span><span class="p">(</span><span class="n">prep</span><span class="p">,</span> <span class="n">param_db</span><span class="p">,</span> <span class="n">strict_atom_types</span><span class="p">)</span></div>
 
 </pre></div>

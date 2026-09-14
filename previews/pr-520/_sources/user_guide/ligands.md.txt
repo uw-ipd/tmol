@@ -40,10 +40,13 @@ param_db, co = prepare_ligand_from_smiles("c1ccccc1C(=O)O", res_name="BEN")
 Each returns a new `(ParameterDatabase, CanonicalOrdering)`. The input database
 is not mutated.
 
-MOL2 is the richest input. With authoritative MMFF94 charges, TMol reads atom
-names, coordinates, bond orders, and partial charges directly. CIF input uses
-the bond table to derive chemistry. SMILES input has no input geometry, so TMol
-generates protonation, conformer coordinates, and MMFF94 charges.
+MOL2 and CIF input use their bond tables to derive chemistry; source heavy-atom
+names are retained. All three preparation paths apply pH-dependent protonation
+(default pH 7.4), generate conformers and calculate MMFF94 charges. Hydrogens or
+partial charges in a MOL2 file do not prove that its protonation matches that pH.
+For deliberately prepared MOL2 inputs, use `protonate=False` to preserve the
+supplied state; complete molecules with supported force-field charges also
+retain those charges and geometry. `write_params_from_mol2()` uses the same policy.
 
 ## Loading Complexes
 
