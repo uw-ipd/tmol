@@ -15,30 +15,23 @@ of {doc}`PoseStack terminology </terminology>`.
 
 ## Choose an input path
 
-- Prefer **mmCIF through Biotite** for general scientific input, especially when
-  chain metadata, explicit bonds, ligands, or noncanonical chemistry matter.
-- Use the direct **PDB compatibility path** for simple canonical structures or
-  existing PDB-based pipelines.
-- Use **OpenFold, RosettaFold2, or AtomWorks adapters** when coordinates already
-  exist as model tensors; see the {doc}`integrations guide
-  </user_guide/integrations>`.
+- Read **mmCIF and PDB through AtomWorks** with `atom_array_from_file()` to
+  preserve chemical identities, declared bonds, and unresolved atoms.
+- Pass an existing **Biotite AtomArray** to `pose_stack_from_biotite()`.
+- Use the **Atom37 tensor paths** for differentiable model coordinates, or map
+  another named layout such as Atom14 to canonical tensors as shown in the
+  {doc}`model input tutorial </model_inputs>`.
 
 ## Build a PoseStack from mmCIF
 
 ```python
-import biotite.structure as struc
-import biotite.structure.io
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.io import pose_stack_from_biotite
+from tmol.io import atom_array_from_file, pose_stack_from_biotite
 
 device = torch.device("cuda")
-structure = biotite.structure.io.load_structure(
-    "input.cif", model=1, include_bonds=True
-)
-if isinstance(structure, struc.AtomArrayStack):
-    structure = structure[0]
+structure = atom_array_from_file("input.cif")
 
 pose_stack, context = pose_stack_from_biotite(
     structure,
