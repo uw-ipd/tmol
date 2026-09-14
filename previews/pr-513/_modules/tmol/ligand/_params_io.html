@@ -1014,6 +1014,7 @@
     <span class="n">out_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">sample_proton_chi</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="nb">format</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"rosetta"</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Build params from a mol2 file and write Rosetta ``.params`` or tmol ``.tmol``.</span>
@@ -1022,13 +1023,14 @@
 <span class="sd">        mol2_path: Input Tripos mol2 (names, coords, charges preserved verbatim).</span>
 <span class="sd">        out_path: Output file path (see :func:`write_params_file`).</span>
 <span class="sd">        res_name: Optional residue name override.</span>
+<span class="sd">        sample_proton_chi: Whether to emit PROTON_CHI samples.</span>
 <span class="sd">        format: ``"rosetta"`` or ``"tmol"``.</span>
 <span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._detect</span><span class="w"> </span><span class="kn">import</span> <span class="n">nonstandard_residue_info_from_mol2</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._preparation</span><span class="w"> </span><span class="kn">import</span> <span class="n">prepare_single_ligand</span>
 
     <span class="n">info</span> <span class="o">=</span> <span class="n">nonstandard_residue_info_from_mol2</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="n">res_name</span><span class="p">)</span>
-    <span class="n">prep</span> <span class="o">=</span> <span class="n">prepare_single_ligand</span><span class="p">(</span><span class="n">info</span><span class="p">)</span>
+    <span class="n">prep</span> <span class="o">=</span> <span class="n">prepare_single_ligand</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="n">sample_proton_chi</span><span class="o">=</span><span class="n">sample_proton_chi</span><span class="p">)</span>
     <span class="n">write_params_file</span><span class="p">(</span><span class="n">prep</span><span class="p">,</span> <span class="n">out_path</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="nb">format</span><span class="p">)</span></div>
 
 </pre></div>
