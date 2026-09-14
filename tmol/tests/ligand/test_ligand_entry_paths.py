@@ -52,6 +52,37 @@ def _smallest_mol2() -> Path:
     return mol2s[0]
 
 
+@pytest.mark.parametrize(
+    "smiles", ["[NH3+][C@H](C)C(=O)[O-]", "[NH3+][C@@H](C)C(=O)[O-]"]
+)
+def test_seeded_preparation_owns_its_molecule(smiles, torch_device):
+    import numpy as np
+    from tmol.io import pose_stack_from_biotite
+    from tmol.ligand import prepare_ligand_from_smiles
+    from tmol.ligand._conformer_generation import generate_conformer
+    from tmol.ligand._detect import nonstandard_residue_info_from_smiles_via_mol2
+
+    first = generate_conformer(smiles, seed=47)
+    expected = first.write("mol2")
+    first.OBMol.GetAtom(1).SetVector(100, 200, 300)
+    first.OBMol.GetAtom(1).SetFormalCharge(0)
+    assert generate_conformer(smiles, seed=47).write("mol2") == expected
+    info = nonstandard_residue_info_from_smiles_via_mol2(
+        smiles, res_name="LG1", protonate=False, seed=47
+    )
+    database, _ = prepare_ligand_from_smiles(
+        smiles, res_name="LG1", protonate=False, seed=47
+    )
+    pose = pose_stack_from_biotite(
+        info.atom_array, torch_device, param_db=database, no_optH=True
+    )
+    bt = pose.packed_block_types.active_block_types[int(pose.block_type_ind[0, 0])]
+    heavy = info.atom_array[info.atom_array.element != "H"]
+    observed = pose.coords[0, [bt.atom_to_idx[name] for name in heavy.atom_name]]
+    np.testing.assert_allclose(observed.cpu(), heavy.coord, atol=1e-5)
+    _score_and_minimize_ligand(pose, database)
+
+
 # --------------------------------------------------------------------------- #
 # mol2 entry path
 # --------------------------------------------------------------------------- #
