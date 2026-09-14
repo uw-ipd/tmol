@@ -402,13 +402,34 @@ def test_prepared_atom37_builder_replays_variable_leaf_presence(
     structure = _first_residues(biotite_1ubq, 2)
     oxygen = int(np.flatnonzero(structure.atom_name == "O")[0])
     structure.coord[oxygen] = np.nan
-    structure, atom37 = _atomized_atom37(structure, torch_device)
+    structure, atom37 = _atomized_atom37(structure, torch_device, n_poses=2)
+    atom37.requires_grad_(True)
     context = build_context_from_biotite(structure, torch_device)
     builder = prepare_atom37_pose_builder(structure, context)
 
     first = builder(atom37, opt_h=False)
-    second_coords = atom37.clone()
-    second_coords[0, oxygen, 1] = torch.tensor([1.0, 2.0, 3.0], device=torch_device)
+    assert torch.isfinite(first.coords[first.real_atoms]).all()
+
+    guidance = first.coords[first.real_atoms].square().sum()
+    guidance_grad = torch.autograd.grad(guidance, atom37, retain_graph=True)[0]
+    assert torch.isfinite(guidance_grad).all()
+    assert torch.count_nonzero(guidance_grad[:, oxygen, 1]) == 0
+
+    ca_source = int(np.flatnonzero(structure.atom_name == "CA")[0])
+    first_block_type = first.packed_block_types.active_block_types[
+        int(first.block_type_ind[0, 0])
+    ]
+    ca_block_atom = next(
+        i for i, atom in enumerate(first_block_type.atoms) if atom.name == "CA"
+    )
+    ca_pose_atom = int(first.block_coord_offset[0, 0]) + ca_block_atom
+    mapped_grad = torch.autograd.grad(first.coords[:, ca_pose_atom].sum(), atom37)[0]
+    expected_grad = torch.zeros_like(mapped_grad)
+    expected_grad[:, ca_source, 1] = 1
+    torch.testing.assert_close(mapped_grad, expected_grad)
+
+    second_coords = atom37.detach().clone()
+    second_coords[:, oxygen, 1] = torch.tensor([1.0, 2.0, 3.0], device=torch_device)
     expected_second = pose_stack_from_atom37_and_topology(
         second_coords, structure, context, no_optH=True
     )
