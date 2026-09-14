@@ -433,17 +433,20 @@ def test_prepared_atom37_builder_falls_back_for_ambiguous_histidine_hydrogen(
     assert not builder._topology_cache_safe
 
 
-def test_atom37_pose_uses_ligand_context(torch_device):
+@pytest.mark.parametrize("prebuilt", [True, False])
+def test_atom37_pose_uses_ligand_context(torch_device, prebuilt):
     cif_path = data_path("protein_ligand_test", "cif_inputs", "ace.ligand.cif")
     params_path = data_path("protein_ligand_test", "ace.xtal-lig.mmff94.tmol")
-    structure = _load_structure(cif_path)
+    from tmol.io import atom_array_from_cif
+
+    structure = atom_array_from_cif(cif_path)
     structure, atom37 = _atomized_atom37(structure, torch_device)
     atom37.requires_grad_(True)
     context = build_context_from_biotite(
         structure,
         torch_device,
         prepare_ligands=True,
-        ligand_params_files=[str(params_path)],
+        ligand_params_files=[str(params_path)] if prebuilt else None,
     )
 
     pose = pose_stack_from_atom37_and_topology(atom37, structure, context)
@@ -454,6 +457,27 @@ def test_atom37_pose_uses_ligand_context(torch_device):
     assert torch.isfinite(pose.coords[pose.real_atoms]).all()
     pose.coords[pose.real_atoms].sum().backward()
     assert torch.count_nonzero(atom37.grad) > 0
+
+    if prebuilt:
+        return
+
+    from tmol.io.details._build_missing_leaf_atoms import _apply_h_geometric_completion
+
+    pbt = pose.packed_block_types
+    missing = pbt.h_completion_ann.eligible[pose.block_type_ind.clamp_min(0).long()]
+    assert missing.any()
+    assert torch.autograd.gradcheck(
+        lambda coords: _apply_h_geometric_completion(
+            pbt,
+            coords,
+            missing,
+            pose.block_coord_offset,
+            pose.block_type_ind,
+            pose.inter_residue_connections,
+        )[pose.real_atoms],
+        (pose.coords.detach().double().requires_grad_(),),
+        fast_mode=True,
+    )
 
 
 def test_pose_stack_from_biotite_accepts_atom37_directly(biotite_1ubq, torch_device):

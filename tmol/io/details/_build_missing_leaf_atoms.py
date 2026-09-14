@@ -788,34 +788,45 @@ def _apply_h_geometric_completion(
     if idx.shape[0] == 0:
         return pose_coords
 
+    p, b, a = idx.unbind(1)
+    types = bt64[p, b]
+    offsets = block_coord_offset[p, b].long()
+    parent = pose_coords[p, offsets + ann.parent[types, a]]
+    slots = torch.arange(ann.neigh.shape[-1], device=pose_coords.device)
+
+    def directions(positions, valid):
+        # Mask before normalization: padded zero/NaN vectors must contribute
+        # neither a direction nor undefined gradients to the real coordinates.
+        vectors = positions - parent[:, None]
+        vectors = torch.where(valid[..., None], vectors, torch.ones_like(vectors))
+        unit = vectors / torch.linalg.vector_norm(vectors, dim=-1, keepdim=True)
+        return torch.where(valid[..., None], unit, 0).sum(dim=1)
+
+    local = ann.neigh[types, a]
+    acc = directions(
+        pose_coords[p[:, None], offsets[:, None] + local.clamp_min(0)],
+        slots < ann.n_neigh[types, a, None],
+    )
+    if inter_residue_connections.shape[2]:
+        connections = ann.par_conn[types, a]
+        partners = inter_residue_connections[
+            p[:, None], b[:, None], connections.clamp_min(0)
+        ].long()
+        other_block, other_port = partners.unbind(-1)
+        other_type = bt64[p[:, None], other_block.clamp_min(0)]
+        other_atom = pbt.conn_atom[other_type, other_port.clamp_min(0)].long()
+        valid = (
+            (slots < ann.n_par_conn[types, a, None])
+            & (other_block >= 0)
+            & (other_port >= 0)
+            & (other_atom >= 0)
+        )
+        other_offset = block_coord_offset[p[:, None], other_block.clamp_min(0)].long()
+        acc = acc + directions(
+            pose_coords[p[:, None], other_offset + other_atom.clamp_min(0)], valid
+        )
     new_coords = pose_coords.clone()
-    for row in range(idx.shape[0]):
-        p = int(idx[row, 0])
-        b = int(idx[row, 1])
-        a = int(idx[row, 2])
-        bt_ind = int(bt64[p, b])
-        off = int(block_coord_offset[p, b])
-        par_pos = pose_coords[p, off + int(ann.parent[bt_ind, a])]
-        nn = int(ann.n_neigh[bt_ind, a])
-        acc = torch.zeros(3, dtype=pose_coords.dtype, device=pose_coords.device)
-        for k in range(nn):
-            na = int(ann.neigh[bt_ind, a, k])
-            v = pose_coords[p, off + na] - par_pos
-            acc = acc + v / torch.linalg.norm(v)
-        # a bonded partner in another block is a substituent like any other
-        for k in range(int(ann.n_par_conn[bt_ind, a])):
-            conn = int(ann.par_conn[bt_ind, a, k])
-            other_b = int(inter_residue_connections[p, b, conn, 0])
-            other_conn = int(inter_residue_connections[p, b, conn, 1])
-            if other_b < 0 or other_conn < 0:
-                continue
-            other_bt = int(bt64[p, other_b])
-            other_at = int(pbt.conn_atom[other_bt, other_conn])
-            if other_at < 0:
-                continue
-            v = pose_coords[p, int(block_coord_offset[p, other_b]) + other_at] - par_pos
-            acc = acc + v / torch.linalg.norm(v)
-        d = ann.dist[bt_ind, a]
-        h_pos = par_pos - d * acc / torch.linalg.norm(acc)
-        new_coords[p, off + a] = h_pos
+    new_coords[p, offsets + a] = parent - ann.dist[
+        types, a, None
+    ] * acc / torch.linalg.vector_norm(acc, dim=-1, keepdim=True)
     return new_coords
