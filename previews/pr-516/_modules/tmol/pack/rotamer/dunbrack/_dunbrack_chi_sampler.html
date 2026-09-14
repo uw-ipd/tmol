@@ -461,10 +461,7 @@
     <span class="n">sc_roots_for_chis</span><span class="p">,</span>
     <span class="n">construct_single_residue_kinforest</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack._packer_task</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">DEFAULT_CHI_SAMPLE_EXPANDED_LIMIT</span><span class="p">,</span>
-    <span class="n">DEFAULT_CHI_SAMPLE_LIMIT</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack._packer_task</span><span class="w"> </span><span class="kn">import</span> <span class="n">DEFAULT_CHI_SAMPLE_LIMIT</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._chi_budget</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">apply_chi_sample_budget</span><span class="p">,</span>
     <span class="n">chi_depths</span><span class="p">,</span>
@@ -528,7 +525,9 @@
 <span class="w">    </span><span class="sd">"""Sample amino-acid side-chain conformers from Dunbrack libraries."""</span>
 
     <span class="n">dun_param_resolver</span><span class="p">:</span> <span class="n">DunbrackParamResolver</span>
-    <span class="n">chi_sample_expanded_limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_CHI_SAMPLE_EXPANDED_LIMIT</span>
+    <span class="c1"># Existing canonical proton grids exceed the generic expansion threshold.</span>
+    <span class="c1"># Retain them while bounding supplemental products; explicit tasks override both.</span>
+    <span class="n">chi_sample_expanded_limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_CHI_SAMPLE_LIMIT</span>
     <span class="n">chi_sample_limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_CHI_SAMPLE_LIMIT</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
