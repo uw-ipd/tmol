@@ -1610,12 +1610,6 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
                        : TPack<Real, 3, D>::empty({n_poses, max_n_blocks, 4});
   auto scratch_block_spheres = scratch_block_spheres_t.view;
 
-  auto scratch_block_neighbors_t =
-      D == Device::CPU
-          ? TPack<Int, 3, D>::zeros({n_poses, max_n_blocks, max_n_blocks})
-          : TPack<Int, 3, D>::empty({n_poses, max_n_blocks, max_n_blocks});
-  auto scratch_block_neighbors = scratch_block_neighbors_t.view;
-
   score::common::sphere_overlap::
       compute_rot_spheres<DeviceOperations, D, Real, Int>::f(
           mgr,
@@ -1633,14 +1627,6 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
           rot_offset_for_block,
           scratch_block_spheres);
 
-  score::common::sphere_overlap::
-      detect_block_neighbors<DeviceOperations, D, Real, Int>::f(
-          mgr,
-          first_rot_block_type,
-          scratch_block_spheres,
-          scratch_block_neighbors,
-          max_dis);
-
   auto dispatch_indices_t =
       score::common::sphere_overlap::rot_neighbor_indices_from_block_neighbors<
           DeviceOperations,
@@ -1648,7 +1634,8 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
           Real,
           Int>::
           f(mgr,
-            scratch_block_neighbors,
+            first_rot_block_type,
+            scratch_block_spheres,
             n_rots_for_block,
             rot_offset_for_block,
             scratch_rot_spheres,
