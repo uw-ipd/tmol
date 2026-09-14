@@ -619,7 +619,13 @@
         <span class="n">n_dof_atoms_offset_for_rot</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="n">rot_dofs_kto</span><span class="p">[</span><span class="n">dst</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">orig_dofs_kto</span><span class="p">[</span><span class="n">src</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="c1"># Missing sidechains can also leave dependent mainchain hydrogens unresolved</span>
+    <span class="c1"># (e.g. N-terminal proline H2/H3 depend on CD). Keep their ideal DOFs rather</span>
+    <span class="c1"># than overwriting freshly generated conformers with non-finite measurements.</span>
+    <span class="n">measured</span> <span class="o">=</span> <span class="n">orig_dofs_kto</span><span class="p">[</span><span class="n">src</span><span class="p">]</span>
+    <span class="n">rot_dofs_kto</span><span class="p">[</span><span class="n">dst</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">measured</span><span class="p">),</span> <span class="n">measured</span><span class="p">,</span> <span class="n">rot_dofs_kto</span><span class="p">[</span><span class="n">dst</span><span class="p">]</span>
+    <span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler</span><span class="p">(</span>
