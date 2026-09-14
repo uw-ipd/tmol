@@ -872,9 +872,7 @@
     <span class="k">if</span> <span class="n">backbone_renames_to_canonical</span><span class="p">:</span>
         <span class="n">atom_array</span> <span class="o">=</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">atom_name</span><span class="p">):</span>
-            <span class="n">canonical</span> <span class="o">=</span> <span class="n">backbone_renames_to_canonical</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
-            <span class="k">if</span> <span class="n">canonical</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">atom_array</span><span class="o">.</span><span class="n">atom_name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">canonical</span>
+            <span class="n">atom_array</span><span class="o">.</span><span class="n">atom_name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">backbone_renames_to_canonical</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">),</span> <span class="n">name</span><span class="p">)</span>
         <span class="n">atom_aliases</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
             <span class="n">AtomAlias</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">canonical</span><span class="p">,</span> <span class="n">alt_name</span><span class="o">=</span><span class="n">actual</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">actual</span><span class="p">,</span> <span class="n">canonical</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">backbone_renames_to_canonical</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
@@ -1004,15 +1002,23 @@
         <span class="n">ring_atom</span> <span class="o">=</span> <span class="n">ring_nitrogen_angle_atom</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">connection_atoms</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">ring_atom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">ring_atom</span> <span class="ow">in</span> <span class="n">kept</span><span class="p">:</span>
             <span class="n">substitutions</span><span class="o">.</span><span class="n">append</span><span class="p">(((</span><span class="n">_CANONICAL_RING_ATOM</span><span class="p">,),</span> <span class="n">ring_atom</span><span class="p">))</span>
-        <span class="c1"># a backbone that connects through an atom of its own naming -- a</span>
-        <span class="c1">#    gamma peptide bonding through CD -- is passed over by the rows</span>
-        <span class="c1">#    that span the peptide bond unless its own frame is named</span>
-        <span class="n">substitutions</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">mapping</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">mapping</span> <span class="ow">in</span> <span class="n">noncanonical_junction_substitutions</span><span class="p">(</span>
-                <span class="n">residue_type</span><span class="p">,</span> <span class="n">atom_type_index</span>
+        <span class="c1"># Keep chemical roles separate from source names. Scoring resolves both</span>
+        <span class="c1"># sides of a renamed junction without copying reversed parameter rows.</span>
+        <span class="n">junctions</span> <span class="o">=</span> <span class="n">noncanonical_junction_substitutions</span><span class="p">(</span><span class="n">residue_type</span><span class="p">,</span> <span class="n">atom_type_index</span><span class="p">)</span>
+        <span class="n">references</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">actual</span><span class="p">:</span> <span class="n">canonical</span>
+            <span class="k">for</span> <span class="n">mapping</span> <span class="ow">in</span> <span class="n">junctions</span>
+            <span class="k">for</span> <span class="n">canonical</span><span class="p">,</span> <span class="n">actual</span> <span class="ow">in</span> <span class="n">mapping</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">actual</span> <span class="o">!=</span> <span class="n">canonical</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">references</span><span class="p">:</span>
+            <span class="n">residue_type</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+                <span class="n">residue_type</span><span class="p">,</span>
+                <span class="n">atoms</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span>
+                    <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">atom</span><span class="p">,</span> <span class="n">cartbonded_reference</span><span class="o">=</span><span class="n">references</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+                    <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">residue_type</span><span class="o">.</span><span class="n">atoms</span>
+                <span class="p">),</span>
             <span class="p">)</span>
-        <span class="p">)</span>
 
     <span class="k">for</span> <span class="n">substitution</span> <span class="ow">in</span> <span class="n">substitutions</span><span class="p">:</span>
         <span class="n">rows</span> <span class="o">=</span> <span class="n">substituted_wildcard_rows</span><span class="p">(</span>
