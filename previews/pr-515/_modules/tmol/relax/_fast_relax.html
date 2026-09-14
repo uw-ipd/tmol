@@ -440,6 +440,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">FixedAAChiSampler</span><span class="p">,</span>
     <span class="n">IncludeCurrentSampler</span><span class="p">,</span>
+    <span class="n">NaChiRotamerSampler</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">CartesianMinimizer</span><span class="p">,</span>
@@ -651,7 +652,8 @@
 <span class="sd">        move_map: Specifies which DOFs are free to move during minimization.</span>
 <span class="sd">        fold_forest: Fold forest defining the kinematic connectivity.</span>
 <span class="sd">        task_operations: In-place task configuration callbacks. By default,</span>
-<span class="sd">            restrict to repacking with Dunbrack, fixed-AA, and current rotamers.</span>
+<span class="sd">            restrict to repacking with the scoring database’s Dunbrack, fixed-AA,</span>
+<span class="sd">            current and nucleic-acid rotamers, sampling covalent groups jointly.</span>
 <span class="sd">        num_repeats: Number of complete pack-minimize ramps.</span>
 <span class="sd">        ramp_constraints: Ramp an active constraint weight to zero. Defaults</span>
 <span class="sd">            to true; the input weight is restored after relaxation.</span>
@@ -704,19 +706,26 @@
         <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.dunbrack</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
             <span class="n">create_dunbrack_sampler_from_database</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="kn">import</span><span class="w"> </span><span class="nn">tmol.database</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._conjugated_groups</span><span class="w"> </span><span class="kn">import</span> <span class="n">add_conjugated_group_sampler</span>
 
-        <span class="n">default_database</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">ParameterDatabase</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
-        <span class="n">dun_sampler</span> <span class="o">=</span> <span class="n">create_dunbrack_sampler_from_database</span><span class="p">(</span>
-            <span class="n">default_database</span><span class="p">,</span> <span class="n">torch_device</span>
-        <span class="p">)</span>
+        <span class="n">samplers</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">create_dunbrack_sampler_from_database</span><span class="p">(</span><span class="n">sfxn</span><span class="o">.</span><span class="n">_param_db</span><span class="p">,</span> <span class="n">torch_device</span><span class="p">),</span>
+            <span class="n">FixedAAChiSampler</span><span class="p">(),</span>
+            <span class="n">IncludeCurrentSampler</span><span class="p">(),</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span>
+            <span class="n">bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">backbone_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"dna"</span><span class="p">,</span> <span class="s2">"rna"</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+        <span class="p">):</span>
+            <span class="n">samplers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">NaChiRotamerSampler</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">sfxn</span><span class="o">.</span><span class="n">_param_db</span><span class="p">,</span> <span class="n">torch_device</span><span class="p">)</span>
+            <span class="p">)</span>
 
         <span class="k">def</span><span class="w"> </span><span class="nf">default_op</span><span class="p">(</span><span class="n">task</span><span class="p">:</span> <span class="n">PackerTask</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">task</span><span class="o">.</span><span class="n">restrict_to_repacking</span><span class="p">()</span>
-            <span class="n">fixed_sampler</span> <span class="o">=</span> <span class="n">FixedAAChiSampler</span><span class="p">()</span>
-            <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler</span><span class="p">(</span><span class="n">dun_sampler</span><span class="p">)</span>
-            <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler</span><span class="p">(</span><span class="n">fixed_sampler</span><span class="p">)</span>
-            <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler</span><span class="p">(</span><span class="n">IncludeCurrentSampler</span><span class="p">())</span>
+            <span class="k">for</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="n">samplers</span><span class="p">:</span>
+                <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler</span><span class="p">(</span><span class="n">sampler</span><span class="p">)</span>
+            <span class="n">add_conjugated_group_sampler</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">)</span>
 
         <span class="n">task_operations</span> <span class="o">=</span> <span class="p">[</span><span class="n">default_op</span><span class="p">]</span>
 

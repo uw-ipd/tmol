@@ -500,7 +500,8 @@ only when its constraint weight is nonzero.</p></li>
 <li><p><strong>move_map</strong> – Specifies which DOFs are free to move during minimization.</p></li>
 <li><p><strong>fold_forest</strong> – Fold forest defining the kinematic connectivity.</p></li>
 <li><p><strong>task_operations</strong> – In-place task configuration callbacks. By default,
-restrict to repacking with Dunbrack, fixed-AA, and current rotamers.</p></li>
+restrict to repacking with the scoring database’s Dunbrack, fixed-AA,
+current and nucleic-acid rotamers, sampling covalent groups jointly.</p></li>
 <li><p><strong>num_repeats</strong> – Number of complete pack-minimize ramps.</p></li>
 <li><p><strong>ramp_constraints</strong> – Ramp an active constraint weight to zero. Defaults
 to true; the input weight is restored after relaxation.</p></li>
