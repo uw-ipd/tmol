@@ -701,6 +701,9 @@
     <span class="c1"># One-letter sequence code; unique only within a backbone type ...</span>
     <span class="c1">#   "a" is both DA and RA.</span>
     <span class="n">one_letter_code</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># Attachment atom, partner equivalence class, partner atom. Equal atom</span>
+    <span class="c1"># inventories can need different parameters (e.g. ester vs thioester).</span>
+    <span class="n">conjugation_context</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
 
 <div class="viewcode-block" id="RawResidueType.atom_name">
 <a class="viewcode-back" href="../../../api/database.html#tmol.database.RawResidueType.atom_name">[docs]</a>
