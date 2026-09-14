@@ -648,13 +648,19 @@
             <span class="n">hydrogen_policy</span><span class="o">=</span><span class="n">hydrogen_policy</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">cif</span> <span class="o">=</span> <span class="n">pdbx</span><span class="o">.</span><span class="n">CIFFile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">cif_path</span><span class="p">))</span>
-        <span class="n">block</span> <span class="o">=</span> <span class="n">cif</span><span class="p">[</span><span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">cif</span><span class="o">.</span><span class="n">keys</span><span class="p">()))]</span>
-        <span class="n">array</span> <span class="o">=</span> <span class="n">pdbx</span><span class="o">.</span><span class="n">get_structure</span><span class="p">(</span>
-            <span class="n">cif</span><span class="p">,</span>
-            <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
-            <span class="n">include_bonds</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="n">extra_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">"label_entity_id"</span><span class="p">,</span> <span class="o">*</span><span class="p">(</span><span class="n">extra_fields</span> <span class="ow">or</span> <span class="p">[])],</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.io_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_any</span>
+
+        <span class="n">file</span> <span class="o">=</span> <span class="n">read_any</span><span class="p">(</span><span class="n">cif_path</span><span class="p">)</span>
+        <span class="n">block</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="s2">"block"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">array</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">get_structure</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span> <span class="n">extra_fields</span><span class="o">=</span><span class="n">extra_fields</span> <span class="ow">or</span> <span class="p">[])</span>
+            <span class="k">if</span> <span class="n">block</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="n">pdbx</span><span class="o">.</span><span class="n">get_structure</span><span class="p">(</span>
+                <span class="n">file</span><span class="p">,</span>
+                <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+                <span class="n">include_bonds</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">extra_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">"label_entity_id"</span><span class="p">,</span> <span class="o">*</span><span class="p">(</span><span class="n">extra_fields</span> <span class="ow">or</span> <span class="p">[])],</span>
+            <span class="p">)</span>
         <span class="p">)</span>
     <span class="n">array</span> <span class="o">=</span> <span class="n">_with_polymer_entity_flag</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">block</span><span class="p">)</span>
     <span class="n">array</span> <span class="o">=</span> <span class="n">_with_component_type_annotation</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">block</span><span class="p">)</span>

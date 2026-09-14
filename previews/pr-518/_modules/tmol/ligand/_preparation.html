@@ -881,6 +881,12 @@
             <span class="s2">"match no supported backbone"</span>
         <span class="p">)</span>
 
+    <span class="c1"># CCD geometry uses source names before backbone renaming or cap donation.</span>
+    <span class="n">resolved</span> <span class="o">=</span> <span class="n">with_resolved_coordinates</span><span class="p">(</span>
+        <span class="n">atom_array</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">use_ccd</span>
+    <span class="p">)</span>
+    <span class="n">atom_array</span> <span class="o">=</span> <span class="n">atom_array</span> <span class="k">if</span> <span class="n">resolved</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">resolved</span>
+
     <span class="c1"># Scoring and reference completion use canonical backbone names. Preserve</span>
     <span class="c1"># source names as aliases so construction still accepts the original input.</span>
     <span class="n">backbone_renames_to_canonical</span> <span class="o">=</span> <span class="n">canonical_backbone_renames</span><span class="p">(</span>
