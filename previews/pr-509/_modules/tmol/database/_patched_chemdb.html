@@ -524,7 +524,7 @@
             <span class="k">return</span> <span class="n">namemap</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">namemap</span> <span class="k">else</span> <span class="n">name</span>
 
         <span class="n">icoor_i</span> <span class="o">=</span> <span class="n">Icoor</span><span class="p">(</span>
-            <span class="n">name</span><span class="o">=</span><span class="n">target_i</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">namemap</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">target_i</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">target_i</span><span class="o">.</span><span class="n">name</span><span class="p">),</span>
             <span class="n">phi</span><span class="o">=</span><span class="n">inherited</span><span class="p">(</span><span class="s2">"phi"</span><span class="p">),</span>
             <span class="n">theta</span><span class="o">=</span><span class="n">inherited</span><span class="p">(</span><span class="s2">"theta"</span><span class="p">),</span>
             <span class="n">d</span><span class="o">=</span><span class="n">inherited</span><span class="p">(</span><span class="s2">"d"</span><span class="p">),</span>
@@ -536,7 +536,7 @@
         <span class="n">new_icoor</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">icoor_i</span><span class="p">)</span>
 
     <span class="c1"># create final icoor list</span>
-    <span class="n">remove</span> <span class="o">=</span> <span class="p">[</span><span class="n">namemap</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">atoms_remove</span><span class="p">]</span>
+    <span class="n">remove</span> <span class="o">=</span> <span class="p">{</span><span class="n">namemap</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">atoms_remove</span><span class="p">}</span> <span class="o">|</span> <span class="p">{</span><span class="n">i</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">new_icoor</span><span class="p">}</span>
     <span class="k">return</span> <span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">res</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">remove</span><span class="p">),</span> <span class="o">*</span><span class="n">new_icoor</span><span class="p">)</span>
 
 
