@@ -606,6 +606,10 @@ score-function weights:</p>
 <span class="p">)</span>
 </pre></div>
 </div>
+<p>Default repacking uses the score function’s parameter database, including
+nucleic-acid chi sampling and joint conformers for covalently attached groups.
+Free ligands retain their current conformation during packing and can move in
+Cartesian minimization. Custom <code class="docutils literal notranslate"><span class="pre">task_operations</span></code> replace this sampler setup.</p>
 <p>The default minimizer is Cartesian and reads
 <code class="docutils literal notranslate"><span class="pre">CartesianMoveMap.coord_mask</span></code>; the fold forest is accepted by the common
 protocol but is not used by that minimizer. To minimize kinematic degrees of
