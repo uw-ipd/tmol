@@ -15,97 +15,63 @@ prediction systems into `PoseStack` objects.
 > - **Rosetta mapping:** {doc}`I/O, selections, and options
 >   </tutorial/rosetta_crosswalk>`.
 
-## RoseTTAFold2
+## Structure files and annotated arrays
 
-Install TMol into the RoseTTAFold2 environment:
-
-```bash
-cd <tmol repo root>
-pip install -e .
-```
-
-Convert one prediction by passing one-dimensional residue-type indices,
-three-dimensional atom coordinates, and chain lengths:
-
-```python
-from tmol.io import pose_stack_from_rosettafold2
-
-pose_stack = pose_stack_from_rosettafold2(
-    seq=sequence_indices,
-    xyz=atom_coordinates,
-    chainlens=chain_lengths,
-)
-```
-
-The adapter supports canonical amino acids and canonical termini. It returns a
-single-pose stack on the same device as the input tensors. RoseTTAFold2
-inference code often disables gradients globally; enable them around any
-differentiable TMol scoring or minimization:
+AtomWorks handles PDB, CIF, compressed CIF and binary CIF parsing. The shared
+constructor retains chemical identity and declared bonds, including unresolved
+atoms at NaN:
 
 ```python
 import torch
 
-from tmol.score import beta2016_score_function
-
-sfxn = beta2016_score_function(pose_stack.device)
-scorer = sfxn.render_whole_pose_scoring_module(pose_stack)
-
-with torch.enable_grad():
-    coords = pose_stack.coords.detach().clone().requires_grad_(True)
-    score = scorer(coords).sum()
-    score.backward()
-```
-
-## OpenFold
-
-The OpenFold adapter consumes a result dictionary containing `aatype`,
-`positions`, and `chain_index` tensors:
-
-```python
-from tmol.io import pose_stack_from_openfold
-
-pose_stack = pose_stack_from_openfold(openfold_output)
-```
-
-It supports batched canonical-protein predictions, uses the final entry in
-`positions`, and preserves the input device. Additional keys are ignored by the
-adapter.
-
-## Biotite and AtomArray
-
-The preferred path for rich structure IO is Biotite `AtomArray`:
-
-```python
-import biotite.structure as struc
-from biotite.structure.io import load_structure
-import torch
-
-from tmol.io import pose_stack_from_biotite
+from tmol.io import pose_stack_from_file
 from tmol.score import beta2016_score_function
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-structure = load_structure(
+pose_stack, context = pose_stack_from_file(
     "complex.cif",
-    model=1,
-    include_bonds=True,
+    device,
+    prepare_ligands=True,
+    return_context=True,
 )
-if isinstance(structure, struc.AtomArrayStack):
-    structure = structure[0]
-
-pose_stack = pose_stack_from_biotite(structure, device)
-sfxn = beta2016_score_function(device)
+sfxn = beta2016_score_function(device, param_db=context.parameter_database)
 ```
 
-The score function and `PoseStack` must use the same device. Batching unlike
-structures requires compatible chemistry and
-`PoseStackBuilder.from_poses()`; TMol does not schedule multi-GPU work
-internally.
+Use `atom_array_from_file()` to inspect or select the parsed topology before
+passing it to `pose_stack_from_biotite()`. An existing AtomWorks or Biotite array
+uses that same constructor. Preserve its bond table and chemical annotations
+when selecting atoms. `pose_stack_from_pdb()` retains the PDB filename/lines,
+residue-slicing and supplied-hydrogen compatibility policy.
 
-Biotite is especially important for ligands because TMol uses explicit bond
-tables from the `AtomArray` during ligand preparation. Follow
-{doc}`07 — Ligands and Parameter Files </tutorial/07_ligand_and_params>` when
-the structure contains non-standard residues; the resulting score function
-must use the ligand-extended parameter database.
+Parsing marks unresolved atoms; TMol reconstructs supported missing coordinates
+from chemical construction frames. An unresolved backbone or an underdetermined
+ligand requires an explicit input policy or additional geometry. The score
+function must use the pose's device and prepared parameter database. See
+{doc}`07 — Ligands and Parameter Files </tutorial/07_ligand_and_params>` for
+preparation, strict errors and reusable parameter bundles.
+
+## Direct prediction tensors
+
+Canonical proteins in AtomWorks' `UNIFIED_ATOM37_ENCODING` can use
+`pose_stack_from_atomworks(coords, residue_type, chain_iid)` directly. Coordinates
+have shape `[batch, residues, 37, 3]`; token IDs and chain IDs have shape
+`[batch, residues]`. The function uses AtomWorks' token order and atom names.
+Tensor shape alone does not identify an encoding.
+
+For atom14 or another named layout, map the predictor's token IDs and atom
+names into `CanonicalForm`, then call `pose_stack_from_canonical_form()`. The
+{download}`executable model-input tutorial <../../notebooks/example_02_model_inputs.ipynb>`
+implements OpenFold and RoseTTAFold2 examples using this shared contract. It
+shows final-recycle selection, explicit masks, batched scoring and gradients,
+and both preservation and rebuilding of RF2's supplied hydrogen slots. Those
+model-specific mappings belong in the caller; TMol has no separate OpenFold or
+RF2 constructor.
+
+Keep coordinate mapping in Torch to preserve gradients to prediction tensors.
+When inference globally disables gradients, use `torch.enable_grad()` around
+construction and scoring. Differentiate the score through `pose_stack.coords`
+without detaching it. Cache the named-layout mapping for repeated predictions;
+use the prepared topology path below for repeated Atom37 guidance or search.
 
 ## Differentiable AtomWorks Atom37 coordinates
 
@@ -158,18 +124,17 @@ available.
 A single `AtomArray` may provide topology for a batch of coordinate tensors. An
 `AtomArrayStack` must either have the same number of models as the tensor batch
 or one model that can be broadcast. Finite mapped tensor coordinates replace
-the reference coordinates; negative indices, non-finite tensor entries, and
-unmapped atoms retain their reference coordinates. TMol-generated atoms, such
+the reference coordinates; unmapped slots (`-1`) and non-finite tensor entries
+retain their reference coordinates. TMol-generated atoms, such
 as hydrogens, are left in their built or optimized positions. Gradients from
 TMol coordinates route back to the mapped Atom37 entries even when hydrogen
 optimization is enabled. Missing, out-of-range, or ambiguous routing annotations
 raise `Atom37MappingError`, so callers can handle mapping failures without
 catching unrelated pose-construction errors.
 
-This path supports the intersection of the two chemistry systems: canonical
-protein, DNA, RNA, ordinary prepared ligands, and fragmented ligands on current
-TMol. Metal-containing ligands and covalently linked modified components require
-corresponding TMol parameterization support. The adapter has no residue or
-element allowlist, so those chemistries use this same interface once a context
-can represent them; strict ligand preparation does not silently drop them in
-the meantime.
+The context defines supported chemistry: canonical proteins, nucleic acids,
+prepared noncanonical polymers, ligands, glycans and fragmented covalent groups
+all use this interface. Metal parameterization remains separate. The adapter
+has no residue or element allowlist; strict preparation reports chemistry that
+the context cannot represent. A prepared builder owns mutable caches: use one
+per calling thread, and rebuild it when chemical identity or connectivity changes.

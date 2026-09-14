@@ -498,87 +498,58 @@ the source model or structure library.</p></li>
 <li><p><strong>Rosetta mapping:</strong> <a class="reference internal" href="../tutorial/rosetta_crosswalk.html"><span class="doc">I/O, selections, and options</span></a>.</p></li>
 </ul>
 </div></blockquote>
-<section id="rosettafold2">
-<h2>RoseTTAFold2<a class="headerlink" href="#rosettafold2" title="Link to this heading">#</a></h2>
-<p>Install TMol into the RoseTTAFold2 environment:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>&lt;tmol<span class="w"> </span>repo<span class="w"> </span>root&gt;
-pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
-</pre></div>
-</div>
-<p>Convert one prediction by passing one-dimensional residue-type indices,
-three-dimensional atom coordinates, and chain lengths:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_rosettafold2</span>
-
-<span class="n">pose_stack</span> <span class="o">=</span> <span class="n">pose_stack_from_rosettafold2</span><span class="p">(</span>
-    <span class="n">seq</span><span class="o">=</span><span class="n">sequence_indices</span><span class="p">,</span>
-    <span class="n">xyz</span><span class="o">=</span><span class="n">atom_coordinates</span><span class="p">,</span>
-    <span class="n">chainlens</span><span class="o">=</span><span class="n">chain_lengths</span><span class="p">,</span>
-<span class="p">)</span>
-</pre></div>
-</div>
-<p>The adapter supports canonical amino acids and canonical termini. It returns a
-single-pose stack on the same device as the input tensors. RoseTTAFold2
-inference code often disables gradients globally; enable them around any
-differentiable TMol scoring or minimization:</p>
+<section id="structure-files-and-annotated-arrays">
+<h2>Structure files and annotated arrays<a class="headerlink" href="#structure-files-and-annotated-arrays" title="Link to this heading">#</a></h2>
+<p>AtomWorks handles PDB, CIF, compressed CIF and binary CIF parsing. The shared
+constructor retains chemical identity and declared bonds, including unresolved
+atoms at NaN:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
-
-<span class="n">sfxn</span> <span class="o">=</span> <span class="n">beta2016_score_function</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-<span class="n">scorer</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
-
-<span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">enable_grad</span><span class="p">():</span>
-    <span class="n">coords</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">score</span> <span class="o">=</span> <span class="n">scorer</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-    <span class="n">score</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
-</pre></div>
-</div>
-</section>
-<section id="openfold">
-<h2>OpenFold<a class="headerlink" href="#openfold" title="Link to this heading">#</a></h2>
-<p>The OpenFold adapter consumes a result dictionary containing <code class="docutils literal notranslate"><span class="pre">aatype</span></code>,
-<code class="docutils literal notranslate"><span class="pre">positions</span></code>, and <code class="docutils literal notranslate"><span class="pre">chain_index</span></code> tensors:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_openfold</span>
-
-<span class="n">pose_stack</span> <span class="o">=</span> <span class="n">pose_stack_from_openfold</span><span class="p">(</span><span class="n">openfold_output</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>It supports batched canonical-protein predictions, uses the final entry in
-<code class="docutils literal notranslate"><span class="pre">positions</span></code>, and preserves the input device. Additional keys are ignored by the
-adapter.</p>
-</section>
-<section id="biotite-and-atomarray">
-<h2>Biotite and AtomArray<a class="headerlink" href="#biotite-and-atomarray" title="Link to this heading">#</a></h2>
-<p>The preferred path for rich structure IO is Biotite <code class="docutils literal notranslate"><span class="pre">AtomArray</span></code>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">struc</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">biotite.structure.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_structure</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
-
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_biotite</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_file</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
 
 <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cuda"</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">"cpu"</span><span class="p">)</span>
-<span class="n">structure</span> <span class="o">=</span> <span class="n">load_structure</span><span class="p">(</span>
+<span class="n">pose_stack</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="n">pose_stack_from_file</span><span class="p">(</span>
     <span class="s2">"complex.cif"</span><span class="p">,</span>
-    <span class="n">model</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-    <span class="n">include_bonds</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">,</span>
+    <span class="n">prepare_ligands</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">return_context</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">):</span>
-    <span class="n">structure</span> <span class="o">=</span> <span class="n">structure</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-
-<span class="n">pose_stack</span> <span class="o">=</span> <span class="n">pose_stack_from_biotite</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
-<span class="n">sfxn</span> <span class="o">=</span> <span class="n">beta2016_score_function</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+<span class="n">sfxn</span> <span class="o">=</span> <span class="n">beta2016_score_function</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">param_db</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">parameter_database</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The score function and <code class="docutils literal notranslate"><span class="pre">PoseStack</span></code> must use the same device. Batching unlike
-structures requires compatible chemistry and
-<code class="docutils literal notranslate"><span class="pre">PoseStackBuilder.from_poses()</span></code>; TMol does not schedule multi-GPU work
-internally.</p>
-<p>Biotite is especially important for ligands because TMol uses explicit bond
-tables from the <code class="docutils literal notranslate"><span class="pre">AtomArray</span></code> during ligand preparation. Follow
-<a class="reference internal" href="../tutorial/07_ligand_and_params.html"><span class="doc">07 — Ligands and Parameter Files</span></a> when
-the structure contains non-standard residues; the resulting score function
-must use the ligand-extended parameter database.</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">atom_array_from_file()</span></code> to inspect or select the parsed topology before
+passing it to <code class="docutils literal notranslate"><span class="pre">pose_stack_from_biotite()</span></code>. An existing AtomWorks or Biotite array
+uses that same constructor. Preserve its bond table and chemical annotations
+when selecting atoms. <code class="docutils literal notranslate"><span class="pre">pose_stack_from_pdb()</span></code> retains the PDB filename/lines,
+residue-slicing and supplied-hydrogen compatibility policy.</p>
+<p>Parsing marks unresolved atoms; TMol reconstructs supported missing coordinates
+from chemical construction frames. An unresolved backbone or an underdetermined
+ligand requires an explicit input policy or additional geometry. The score
+function must use the pose’s device and prepared parameter database. See
+<a class="reference internal" href="../tutorial/07_ligand_and_params.html"><span class="doc">07 — Ligands and Parameter Files</span></a> for
+preparation, strict errors and reusable parameter bundles.</p>
+</section>
+<section id="direct-prediction-tensors">
+<h2>Direct prediction tensors<a class="headerlink" href="#direct-prediction-tensors" title="Link to this heading">#</a></h2>
+<p>Canonical proteins in AtomWorks’ <code class="docutils literal notranslate"><span class="pre">UNIFIED_ATOM37_ENCODING</span></code> can use
+<code class="docutils literal notranslate"><span class="pre">pose_stack_from_atomworks(coords,</span> <span class="pre">residue_type,</span> <span class="pre">chain_iid)</span></code> directly. Coordinates
+have shape <code class="docutils literal notranslate"><span class="pre">[batch,</span> <span class="pre">residues,</span> <span class="pre">37,</span> <span class="pre">3]</span></code>; token IDs and chain IDs have shape
+<code class="docutils literal notranslate"><span class="pre">[batch,</span> <span class="pre">residues]</span></code>. The function uses AtomWorks’ token order and atom names.
+Tensor shape alone does not identify an encoding.</p>
+<p>For atom14 or another named layout, map the predictor’s token IDs and atom
+names into <code class="docutils literal notranslate"><span class="pre">CanonicalForm</span></code>, then call <code class="docutils literal notranslate"><span class="pre">pose_stack_from_canonical_form()</span></code>. The
+<a class="reference download internal" download="" href="../_downloads/0a8a05e1c450313bc9855369c1f711c2/example_02_model_inputs.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">executable</span> <span class="pre">model-input</span> <span class="pre">tutorial</span></code></a>
+implements OpenFold and RoseTTAFold2 examples using this shared contract. It
+shows final-recycle selection, explicit masks, batched scoring and gradients,
+and both preservation and rebuilding of RF2’s supplied hydrogen slots. Those
+model-specific mappings belong in the caller; TMol has no separate OpenFold or
+RF2 constructor.</p>
+<p>Keep coordinate mapping in Torch to preserve gradients to prediction tensors.
+When inference globally disables gradients, use <code class="docutils literal notranslate"><span class="pre">torch.enable_grad()</span></code> around
+construction and scoring. Differentiate the score through <code class="docutils literal notranslate"><span class="pre">pose_stack.coords</span></code>
+without detaching it. Cache the named-layout mapping for repeated predictions;
+use the prepared topology path below for repeated Atom37 guidance or search.</p>
 </section>
 <section id="differentiable-atomworks-atom37-coordinates">
 <h2>Differentiable AtomWorks Atom37 coordinates<a class="headerlink" href="#differentiable-atomworks-atom37-coordinates" title="Link to this heading">#</a></h2>
@@ -628,20 +599,19 @@ available.</p>
 <p>A single <code class="docutils literal notranslate"><span class="pre">AtomArray</span></code> may provide topology for a batch of coordinate tensors. An
 <code class="docutils literal notranslate"><span class="pre">AtomArrayStack</span></code> must either have the same number of models as the tensor batch
 or one model that can be broadcast. Finite mapped tensor coordinates replace
-the reference coordinates; negative indices, non-finite tensor entries, and
-unmapped atoms retain their reference coordinates. TMol-generated atoms, such
+the reference coordinates; unmapped slots (<code class="docutils literal notranslate"><span class="pre">-1</span></code>) and non-finite tensor entries
+retain their reference coordinates. TMol-generated atoms, such
 as hydrogens, are left in their built or optimized positions. Gradients from
 TMol coordinates route back to the mapped Atom37 entries even when hydrogen
 optimization is enabled. Missing, out-of-range, or ambiguous routing annotations
 raise <code class="docutils literal notranslate"><span class="pre">Atom37MappingError</span></code>, so callers can handle mapping failures without
 catching unrelated pose-construction errors.</p>
-<p>This path supports the intersection of the two chemistry systems: canonical
-protein, DNA, RNA, ordinary prepared ligands, and fragmented ligands on current
-TMol. Metal-containing ligands and covalently linked modified components require
-corresponding TMol parameterization support. The adapter has no residue or
-element allowlist, so those chemistries use this same interface once a context
-can represent them; strict ligand preparation does not silently drop them in
-the meantime.</p>
+<p>The context defines supported chemistry: canonical proteins, nucleic acids,
+prepared noncanonical polymers, ligands, glycans and fragmented covalent groups
+all use this interface. Metal parameterization remains separate. The adapter
+has no residue or element allowlist; strict preparation reports chemistry that
+the context cannot represent. A prepared builder owns mutable caches: use one
+per calling thread, and rebuild it when chemical identity or connectivity changes.</p>
 </section>
 </section>
 
@@ -692,9 +662,8 @@ the meantime.</p>
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#rosettafold2">RoseTTAFold2</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#openfold">OpenFold</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#biotite-and-atomarray">Biotite and AtomArray</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#structure-files-and-annotated-arrays">Structure files and annotated arrays</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#direct-prediction-tensors">Direct prediction tensors</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#differentiable-atomworks-atom37-coordinates">Differentiable AtomWorks Atom37 coordinates</a></li>
 </ul>
   </nav></div>
