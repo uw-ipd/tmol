@@ -554,7 +554,11 @@
                 <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_pose</span><span class="p">,</span> <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_block</span><span class="p">,</span> <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_which_block_type</span>
             <span class="p">],</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
-                <span class="n">gbt_block_allows_none</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">other_sampler_builds_for_gbt</span><span class="p">)</span>
+                <span class="n">gbt_block_allows_none</span><span class="p">,</span>
+                <span class="o">~</span><span class="n">other_sampler_builds_for_gbt</span>
+                <span class="o">&amp;</span> <span class="n">task</span><span class="o">.</span><span class="n">per_block_conformer_sampler_allowed</span><span class="p">[</span>
+                    <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_pose</span><span class="p">,</span> <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_block</span><span class="p">,</span> <span class="n">self_ind_in_packer_task</span>
+                <span class="p">],</span>
             <span class="p">),</span>
         <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
 

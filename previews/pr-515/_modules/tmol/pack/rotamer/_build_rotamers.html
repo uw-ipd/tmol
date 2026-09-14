@@ -1337,6 +1337,10 @@
     <span class="n">n_atoms_offset_for_conformer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">n_atoms_for_conformer</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
     <span class="n">n_atoms_offset_for_conformer</span> <span class="o">=</span> <span class="n">n_atoms_offset_for_conformer</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
     <span class="n">n_atoms_total</span> <span class="o">=</span> <span class="n">n_atoms_offset_for_conformer</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">n_atoms_total</span> <span class="o">&gt;=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"Conformer atoms exceed 32-bit index capacity; reduce the sampling budget"</span>
+        <span class="p">)</span>
     <span class="n">n_atoms_offset_for_conformer</span> <span class="o">=</span> <span class="n">exc_cumsum_from_inc_cumsum</span><span class="p">(</span>
         <span class="n">n_atoms_offset_for_conformer</span>
     <span class="p">)</span>

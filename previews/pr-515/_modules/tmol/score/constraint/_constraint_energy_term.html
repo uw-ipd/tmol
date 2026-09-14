@@ -589,7 +589,7 @@
                 <span class="c1"># block. Handle it before inspecting the CUDA tensor so an</span>
                 <span class="c1"># empty constraint set does not synchronize every evaluation.</span>
                 <span class="k">return</span> <span class="p">(</span>
-                    <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
                     <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
                 <span class="p">)</span>
 
@@ -606,7 +606,7 @@
             <span class="k">return</span> <span class="p">(</span>
                 <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
                     <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">),</span>
-                    <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
                     <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
                 <span class="p">),</span>
                 <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
@@ -854,7 +854,7 @@
 
         <span class="k">def</span><span class="w"> </span><span class="nf">score_cnstrs</span><span class="p">(</span><span class="n">functions</span><span class="p">,</span> <span class="n">types</span><span class="p">,</span> <span class="n">atom_coords</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
             <span class="n">cnstr_scores</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
-                <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">types</span><span class="p">),),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">device</span>
+                <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">types</span><span class="p">),),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">device</span>
             <span class="p">)</span>
             <span class="k">for</span> <span class="n">ind</span><span class="p">,</span> <span class="n">fn</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">functions</span><span class="p">):</span>
 
