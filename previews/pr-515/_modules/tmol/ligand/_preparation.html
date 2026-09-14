@@ -1372,7 +1372,7 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_with_conjugation</span><span class="p">(</span>
-    <span class="n">prep</span><span class="p">,</span> <span class="n">atoms</span><span class="p">,</span> <span class="n">chemdb</span><span class="p">,</span> <span class="n">lengths</span><span class="p">,</span> <span class="n">hydrogens</span><span class="p">,</span> <span class="n">bond_types</span><span class="p">,</span> <span class="n">heavy_leaving</span>
+    <span class="n">prep</span><span class="p">,</span> <span class="n">atoms</span><span class="p">,</span> <span class="n">chemdb</span><span class="p">,</span> <span class="n">lengths</span><span class="p">,</span> <span class="n">hydrogens</span><span class="p">,</span> <span class="n">bond_types</span><span class="p">,</span> <span class="n">heavy_leaving</span><span class="p">,</span> <span class="n">open_geometries</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">"""``prep`` carrying a patch and charge entry for each attachment site."""</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">replace</span>
@@ -1387,7 +1387,14 @@
     <span class="n">residue_type</span> <span class="o">=</span> <span class="n">prep</span><span class="o">.</span><span class="n">residue_type</span>
     <span class="n">distances</span> <span class="o">=</span> <span class="p">{</span><span class="n">atom</span><span class="p">:</span> <span class="n">lengths</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">residue_type</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">atom</span><span class="p">))</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">}</span>
     <span class="n">patches</span> <span class="o">=</span> <span class="n">conjugation_patches</span><span class="p">(</span>
-        <span class="n">residue_type</span><span class="p">,</span> <span class="n">atoms</span><span class="p">,</span> <span class="n">chemdb</span><span class="p">,</span> <span class="n">distances</span><span class="p">,</span> <span class="n">hydrogens</span><span class="p">,</span> <span class="n">bond_types</span><span class="p">,</span> <span class="n">heavy_leaving</span>
+        <span class="n">residue_type</span><span class="p">,</span>
+        <span class="n">atoms</span><span class="p">,</span>
+        <span class="n">chemdb</span><span class="p">,</span>
+        <span class="n">distances</span><span class="p">,</span>
+        <span class="n">hydrogens</span><span class="p">,</span>
+        <span class="n">bond_types</span><span class="p">,</span>
+        <span class="n">heavy_leaving</span><span class="p">,</span>
+        <span class="n">open_geometries</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">patches</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">prep</span>
@@ -1406,26 +1413,45 @@
     <span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">canonical_conjugation_sites</span><span class="p">(</span><span class="n">ligands</span><span class="p">,</span> <span class="n">polymer_ports</span><span class="p">,</span> <span class="n">canonical_ordering</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Attachment atoms needing patches on residues already in the database.</span>
-
-<span class="sd">    Ordinary polymer connections already exist and need no conjugation patch.</span>
-<span class="sd">    """</span>
-    <span class="n">known</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">canonical_ordering</span><span class="o">.</span><span class="n">restype_io_equiv_classes</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">canonical_conjugation_sites</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">chemical_database</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Undeclared attachment sites on existing types, including canonical pairs."""</span>
+    <span class="k">if</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">bonds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{}</span>
+    <span class="n">definitions</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">r</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">chemical_database</span><span class="o">.</span><span class="n">residues</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">r</span><span class="o">.</span><span class="n">base_name</span>
+    <span class="p">}</span>
+    <span class="n">disulfides</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">io_equiv_class</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">atom</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">definitions</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">connections</span>
+        <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">"dslf"</span>
+    <span class="p">}</span>
+    <span class="k">for</span> <span class="n">residue</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">definitions</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
+        <span class="n">definitions</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">residue</span><span class="o">.</span><span class="n">io_equiv_class</span><span class="p">,</span> <span class="n">residue</span><span class="p">)</span>
+    <span class="n">starts</span> <span class="o">=</span> <span class="n">struc</span><span class="o">.</span><span class="n">get_residue_starts</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">add_exclusive_stop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">bonds</span> <span class="o">=</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">bonds</span><span class="o">.</span><span class="n">as_array</span><span class="p">()[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">residues</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">starts</span><span class="p">,</span> <span class="n">bonds</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s2">"right"</span><span class="p">)</span>
+    <span class="n">cross</span> <span class="o">=</span> <span class="n">bonds</span><span class="p">[</span><span class="n">residues</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">residues</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]]</span>
+    <span class="n">endpoints</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="nb">int</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">pair</span> <span class="ow">in</span> <span class="n">cross</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span>
+            <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span> <span class="nb">str</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">atom_name</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span> <span class="ow">in</span> <span class="n">disulfides</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">pair</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">pair</span>
+    <span class="p">}</span>
     <span class="n">sites</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="k">for</span> <span class="n">lig</span> <span class="ow">in</span> <span class="n">ligands</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">_atom</span><span class="p">,</span> <span class="n">partners</span> <span class="ow">in</span> <span class="p">(</span><span class="n">lig</span><span class="o">.</span><span class="n">connection_partners</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">for</span> <span class="n">partner_name</span><span class="p">,</span> <span class="n">partner_atom</span> <span class="ow">in</span> <span class="n">partners</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">partner_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">known</span><span class="p">:</span>
-                    <span class="k">continue</span>
-                <span class="k">if</span> <span class="n">partner_atom</span> <span class="ow">in</span> <span class="n">polymer_ports</span><span class="p">[</span><span class="n">partner_name</span><span class="p">]:</span>
-                    <span class="k">continue</span>
-                <span class="n">sites</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">partner_name</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">partner_atom</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">endpoints</span><span class="p">:</span>
+        <span class="n">name</span><span class="p">,</span> <span class="n">atom</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">index</span><span class="p">]),</span> <span class="nb">str</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">atom_name</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
+        <span class="n">residue</span> <span class="o">=</span> <span class="n">definitions</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">residue</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">atom</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="n">c</span><span class="o">.</span><span class="n">atom</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">residue</span><span class="o">.</span><span class="n">connections</span><span class="p">}:</span>
+            <span class="n">sites</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">atom</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">sites</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_conjugation_chemistry</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">chemical_database</span><span class="p">,</span> <span class="n">ph</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Attachment H counts and orders from the complete chemistry used for scoring.</span>
+<span class="w">    </span><span class="sd">"""Attachment states and missing frames from the chemistry used for scoring.</span>
 
 <span class="sd">    Both sides need the bonded state: an acylated generated amine loses two</span>
 <span class="sd">    hydrogens just as a canonical lysine does. Preserve source instance identity</span>
@@ -1433,16 +1459,24 @@
 <span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._conjugate_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">iter_capped_conjugate_models</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._connection_params</span><span class="w"> </span><span class="kn">import</span> <span class="n">_model_identity</span><span class="p">,</span> <span class="n">_protonated_model</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">rdkit.Chem</span><span class="w"> </span><span class="kn">import</span> <span class="n">AllChem</span>
 
     <span class="k">if</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">bonds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="p">{},</span> <span class="p">{}</span>
-    <span class="n">counts</span><span class="p">,</span> <span class="n">bond_types</span><span class="p">,</span> <span class="n">seen</span> <span class="o">=</span> <span class="p">{},</span> <span class="p">{},</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">{},</span> <span class="p">{},</span> <span class="p">{}</span>
+    <span class="n">counts</span><span class="p">,</span> <span class="n">bond_types</span><span class="p">,</span> <span class="n">open_geometries</span><span class="p">,</span> <span class="n">seen</span> <span class="o">=</span> <span class="p">{},</span> <span class="p">{},</span> <span class="p">{},</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">free_types</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">rt</span><span class="o">.</span><span class="n">io_equiv_class</span><span class="p">:</span> <span class="n">rt</span>
+        <span class="k">for</span> <span class="n">rt</span> <span class="ow">in</span> <span class="n">chemical_database</span><span class="o">.</span><span class="n">residues</span>
+        <span class="k">if</span> <span class="n">rt</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">rt</span><span class="o">.</span><span class="n">base_name</span>
+    <span class="p">}</span>
     <span class="k">for</span> <span class="n">model</span> <span class="ow">in</span> <span class="n">iter_capped_conjugate_models</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">chemical_database</span><span class="p">):</span>
         <span class="n">identity</span> <span class="o">=</span> <span class="n">_model_identity</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">identity</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
             <span class="k">continue</span>
         <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">identity</span><span class="p">)</span>
         <span class="n">mol</span><span class="p">,</span> <span class="n">mapping</span> <span class="o">=</span> <span class="n">_protonated_model</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">ph</span><span class="p">)</span>
+        <span class="n">props</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">local_by_mol</span> <span class="o">=</span> <span class="p">{</span><span class="n">value</span><span class="p">:</span> <span class="n">key</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">mapping</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
         <span class="n">local_by_source</span> <span class="o">=</span> <span class="p">{</span>
             <span class="nb">int</span><span class="p">(</span><span class="n">source</span><span class="p">):</span> <span class="n">local</span>
             <span class="k">for</span> <span class="n">local</span><span class="p">,</span> <span class="n">source</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">source_atom_indices</span><span class="p">)</span>
@@ -1451,7 +1485,7 @@
         <span class="k">for</span> <span class="n">first</span><span class="p">,</span> <span class="n">second</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">connections</span><span class="p">:</span>
             <span class="n">indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">mapping</span><span class="p">[</span><span class="n">local_by_source</span><span class="p">[</span><span class="n">s</span><span class="p">]]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">second</span><span class="p">)]</span>
             <span class="n">order</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">GetBondBetweenAtoms</span><span class="p">(</span><span class="o">*</span><span class="n">indices</span><span class="p">)</span><span class="o">.</span><span class="n">GetBondType</span><span class="p">())</span>
-            <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">second</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">source</span><span class="p">,</span> <span class="n">partner</span> <span class="ow">in</span> <span class="p">((</span><span class="n">first</span><span class="p">,</span> <span class="n">second</span><span class="p">),</span> <span class="p">(</span><span class="n">second</span><span class="p">,</span> <span class="n">first</span><span class="p">)):</span>
                 <span class="n">key</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="nb">str</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">source</span><span class="p">])</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
                     <span class="nb">str</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">atom_name</span><span class="p">[</span><span class="n">source</span><span class="p">])</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
@@ -1466,11 +1500,50 @@
                         <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">previous</span><span class="si">}</span><span class="s2"> H/</span><span class="si">{</span><span class="n">previous_order</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">count</span><span class="si">}</span><span class="s2"> H/</span><span class="si">{</span><span class="n">order</span><span class="si">}</span><span class="s2">; "</span>
                         <span class="s2">"distinct chemistry needs distinct residue identities"</span>
                     <span class="p">)</span>
-    <span class="k">return</span> <span class="n">counts</span><span class="p">,</span> <span class="n">bond_types</span>
+                <span class="k">if</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">8</span> <span class="ow">and</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetDegree</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">restype</span> <span class="o">=</span> <span class="n">free_types</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="p">(</span>
+                        <span class="n">restype</span> <span class="ow">is</span> <span class="kc">None</span>
+                        <span class="ow">or</span> <span class="nb">sum</span><span class="p">(</span><span class="n">key</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">in</span> <span class="n">bond</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">bond</span> <span class="ow">in</span> <span class="n">restype</span><span class="o">.</span><span class="n">bonds</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span>
+                    <span class="p">):</span>
+                        <span class="k">continue</span>
+                    <span class="c1"># Existing departing-H frames remain reusable even when</span>
+                    <span class="c1"># different partners have different bonded-state targets.</span>
+                    <span class="k">if</span> <span class="n">props</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">props</span> <span class="o">=</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">MMFFGetMoleculeProperties</span><span class="p">(</span>
+                            <span class="n">mol</span><span class="p">,</span> <span class="n">mmffVariant</span><span class="o">=</span><span class="s2">"MMFF94"</span>
+                        <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">props</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"MMFF94 does not cover this capped conjugate"</span><span class="p">)</span>
+                    <span class="n">remote</span> <span class="o">=</span> <span class="n">mapping</span><span class="p">[</span><span class="n">local_by_source</span><span class="p">[</span><span class="n">partner</span><span class="p">]]</span>
+                    <span class="n">local</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+                        <span class="n">n</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetNeighbors</span><span class="p">()</span> <span class="k">if</span> <span class="n">n</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span> <span class="o">!=</span> <span class="n">remote</span>
+                    <span class="p">)</span>
+                    <span class="n">target</span> <span class="o">=</span> <span class="n">props</span><span class="o">.</span><span class="n">GetMMFFAngleBendParams</span><span class="p">(</span>
+                        <span class="n">mol</span><span class="p">,</span> <span class="n">local</span><span class="p">,</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">(),</span> <span class="n">remote</span>
+                    <span class="p">)</span>
+                    <span class="n">bond</span> <span class="o">=</span> <span class="n">props</span><span class="o">.</span><span class="n">GetMMFFBondStretchParams</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">(),</span> <span class="n">remote</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">target</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">bond</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="n">target</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">180</span><span class="p">:</span>
+                        <span class="n">value</span> <span class="o">=</span> <span class="p">(</span>
+                            <span class="nb">str</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">atom_array</span><span class="o">.</span><span class="n">atom_name</span><span class="p">[</span><span class="n">local_by_mol</span><span class="p">[</span><span class="n">local</span><span class="p">]]),</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">target</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
+                            <span class="n">bond</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                        <span class="p">)</span>
+                        <span class="k">if</span> <span class="n">open_geometries</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">!=</span> <span class="n">value</span><span class="p">:</span>
+                            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                                <span class="sa">f</span><span class="s2">"Incompatible attachment geometry for </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">"</span>
+                            <span class="p">)</span>
+    <span class="k">return</span> <span class="n">counts</span><span class="p">,</span> <span class="n">bond_types</span><span class="p">,</span> <span class="n">open_geometries</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_canonical_conjugation_parameters</span><span class="p">(</span>
-    <span class="n">param_db</span><span class="p">,</span> <span class="n">sites</span><span class="p">,</span> <span class="n">lengths</span><span class="p">,</span> <span class="n">hydrogen_counts</span><span class="p">,</span> <span class="n">bond_types</span><span class="p">,</span> <span class="n">heavy_leaving</span>
+    <span class="n">param_db</span><span class="p">,</span>
+    <span class="n">sites</span><span class="p">,</span>
+    <span class="n">lengths</span><span class="p">,</span>
+    <span class="n">hydrogen_counts</span><span class="p">,</span>
+    <span class="n">bond_types</span><span class="p">,</span>
+    <span class="n">heavy_leaving</span><span class="p">,</span>
+    <span class="n">open_geometries</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Patches and charges for the database residues a component attaches to."""</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._conjugation_patches</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -1505,6 +1578,7 @@
             <span class="n">hydrogens</span><span class="p">,</span>
             <span class="n">orders</span><span class="p">,</span>
             <span class="n">leaving</span><span class="p">,</span>
+            <span class="p">{</span><span class="n">atom</span><span class="p">:</span> <span class="n">open_geometries</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">res_name</span><span class="p">,</span> <span class="n">atom</span><span class="p">))</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">},</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">patches</span><span class="p">:</span>
             <span class="k">continue</span>
@@ -1785,7 +1859,8 @@
         <span class="n">chem_comp_types</span><span class="o">=</span><span class="n">chem_comp_types</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">ligands</span><span class="p">:</span>
+    <span class="n">canonical_sites</span> <span class="o">=</span> <span class="n">canonical_conjugation_sites</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">ligands</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">canonical_sites</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"No non-standard residues detected"</span><span class="p">)</span>
         <span class="n">prepared_db</span><span class="p">,</span> <span class="n">records</span><span class="p">,</span> <span class="n">replacements</span> <span class="o">=</span> <span class="n">_prepare_conjugate_params</span><span class="p">(</span>
             <span class="n">atom_array</span><span class="p">,</span> <span class="n">param_db</span><span class="p">,</span> <span class="n">ph</span>
@@ -1893,8 +1968,8 @@
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._conjugation_patches</span><span class="w"> </span><span class="kn">import</span> <span class="n">declared_heavy_leaving_groups</span>
 
     <span class="n">heavy_leaving</span> <span class="o">=</span> <span class="n">declared_heavy_leaving_groups</span><span class="p">(</span><span class="n">atom_array</span><span class="p">)</span>
-    <span class="n">hydrogen_counts</span><span class="p">,</span> <span class="n">bond_types</span> <span class="o">=</span> <span class="p">{},</span> <span class="p">{}</span>
-    <span class="k">if</span> <span class="n">preparations</span><span class="p">:</span>
+    <span class="n">hydrogen_counts</span><span class="p">,</span> <span class="n">bond_types</span><span class="p">,</span> <span class="n">open_geometries</span> <span class="o">=</span> <span class="p">{},</span> <span class="p">{},</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">preparations</span> <span class="ow">or</span> <span class="n">canonical_sites</span><span class="p">:</span>
         <span class="c1"># Base definitions suffice for identifying polymer caps. Avoid a second</span>
         <span class="c1"># database injection/patch expansion merely to read the bonded state.</span>
         <span class="n">chemistry</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
@@ -1904,7 +1979,9 @@
                 <span class="o">*</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">residue_type</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">preparations</span><span class="p">),</span>
             <span class="p">),</span>
         <span class="p">)</span>
-        <span class="n">hydrogen_counts</span><span class="p">,</span> <span class="n">bond_types</span> <span class="o">=</span> <span class="n">_conjugation_chemistry</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">chemistry</span><span class="p">,</span> <span class="n">ph</span><span class="p">)</span>
+        <span class="n">hydrogen_counts</span><span class="p">,</span> <span class="n">bond_types</span><span class="p">,</span> <span class="n">open_geometries</span> <span class="o">=</span> <span class="n">_conjugation_chemistry</span><span class="p">(</span>
+            <span class="n">atom_array</span><span class="p">,</span> <span class="n">chemistry</span><span class="p">,</span> <span class="n">ph</span>
+        <span class="p">)</span>
         <span class="n">prepared_by_name</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">prep</span> <span class="ow">in</span> <span class="n">preparations</span><span class="p">:</span>
             <span class="n">name</span> <span class="o">=</span> <span class="n">prep</span><span class="o">.</span><span class="n">residue_type</span><span class="o">.</span><span class="n">name</span>
@@ -1917,6 +1994,7 @@
                 <span class="p">{</span><span class="n">atom</span><span class="p">:</span> <span class="n">hydrogen_counts</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="n">atom</span><span class="p">))</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">},</span>
                 <span class="p">{</span><span class="n">atom</span><span class="p">:</span> <span class="n">bond_types</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="n">atom</span><span class="p">),</span> <span class="s2">"SINGLE"</span><span class="p">)</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">},</span>
                 <span class="p">{</span><span class="n">atom</span><span class="p">:</span> <span class="n">heavy_leaving</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="n">atom</span><span class="p">),</span> <span class="p">())</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">},</span>
+                <span class="p">{</span><span class="n">atom</span><span class="p">:</span> <span class="n">open_geometries</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="n">atom</span><span class="p">))</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">},</span>
             <span class="p">)</span>
         <span class="n">preparations</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">prepared_by_name</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
         <span class="n">prepared_ligands</span> <span class="o">=</span> <span class="p">[</span>
@@ -1939,7 +2017,7 @@
             <span class="k">if</span> <span class="n">add_fragment_definition</span><span class="p">(</span><span class="n">lig</span><span class="o">.</span><span class="n">res_name</span><span class="p">,</span> <span class="n">definition</span><span class="p">):</span>
                 <span class="n">preparations</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">definition</span><span class="o">.</span><span class="n">fragment_preparations</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">strict_ligands</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">preparations</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">strict_ligands</span> <span class="ow">and</span> <span class="n">ligands</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">preparations</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">LigandPreparationError</span><span class="p">(</span>
             <span class="s2">"All "</span>
             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">ligands</span><span class="p">)</span><span class="si">}</span><span class="s2"> detected non-standard residue(s) "</span>
@@ -1948,7 +2026,7 @@
             <span class="s2">"continue with these residues dropped."</span>
         <span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">preparations</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">preparations</span> <span class="ow">or</span> <span class="n">canonical_sites</span><span class="p">:</span>
         <span class="n">fragment_preparations</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">fragment_prep</span>
             <span class="k">for</span> <span class="n">definition</span> <span class="ow">in</span> <span class="n">fragment_definitions_by_name</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
@@ -1957,14 +2035,32 @@
         <span class="n">_assert_fragment_names_available</span><span class="p">(</span><span class="n">param_db</span><span class="p">,</span> <span class="n">fragment_preparations</span><span class="p">)</span>
         <span class="n">partner_patches</span><span class="p">,</span> <span class="n">partner_charges</span> <span class="o">=</span> <span class="n">_canonical_conjugation_parameters</span><span class="p">(</span>
             <span class="n">param_db</span><span class="p">,</span>
-            <span class="n">canonical_conjugation_sites</span><span class="p">(</span><span class="n">ligands</span><span class="p">,</span> <span class="n">polymer_ports</span><span class="p">,</span> <span class="n">canonical_ordering</span><span class="p">),</span>
+            <span class="n">canonical_sites</span><span class="p">,</span>
             <span class="n">bond_lengths</span><span class="p">,</span>
             <span class="n">hydrogen_counts</span><span class="p">,</span>
             <span class="n">bond_types</span><span class="p">,</span>
             <span class="n">heavy_leaving</span><span class="p">,</span>
+            <span class="n">open_geometries</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="c1"># Keep shared partner metadata with the source preparation so export</span>
         <span class="c1"># and direct injection follow the same path.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">preparations</span><span class="p">:</span>
+            <span class="n">residue</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+                <span class="n">r</span>
+                <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="o">.</span><span class="n">residues</span>
+                <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">io_equiv_class</span> <span class="ow">in</span> <span class="n">canonical_sites</span> <span class="ow">and</span> <span class="n">r</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">r</span><span class="o">.</span><span class="n">base_name</span>
+            <span class="p">)</span>
+            <span class="n">preparations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">LigandPreparation</span><span class="p">(</span>
+                    <span class="n">residue_type</span><span class="o">=</span><span class="n">residue</span><span class="p">,</span>
+                    <span class="n">partial_charges</span><span class="o">=</span><span class="n">_partial_charges_for_residue</span><span class="p">(</span>
+                        <span class="n">param_db</span><span class="p">,</span> <span class="n">residue</span><span class="o">.</span><span class="n">name</span>
+                    <span class="p">),</span>
+                    <span class="n">cartbonded_params</span><span class="o">=</span><span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">cartbonded</span><span class="o">.</span><span class="n">residue_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                        <span class="n">residue</span><span class="o">.</span><span class="n">name</span>
+                    <span class="p">),</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
         <span class="n">first</span> <span class="o">=</span> <span class="n">preparations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">preparations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">replace</span><span class="p">(</span>
             <span class="n">first</span><span class="p">,</span>
@@ -1987,6 +2083,7 @@
             <span class="c1"># first API version. Persist only the fully prepared source ligand.</span>
             <span class="n">sources</span> <span class="o">=</span> <span class="p">{</span><span class="n">p</span><span class="o">.</span><span class="n">residue_type</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">prepared_ligands</span><span class="p">}</span>
             <span class="n">sources</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">residue_type</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">prepared_polymers</span><span class="p">)</span>
+            <span class="n">sources</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">preparations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">residue_type</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>  <span class="c1"># Shared canonical patches.</span>
             <span class="n">_write_preparations</span><span class="p">(</span>
                 <span class="p">[</span>
                     <span class="o">*</span><span class="n">params_preparations</span><span class="p">,</span>
@@ -2176,15 +2273,17 @@
 
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_prepare_mol2</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="mf">7.4</span><span class="p">,</span> <span class="n">protonate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_prepare_mol2</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="mf">7.4</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"auto"</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._detect</span><span class="w"> </span><span class="kn">import</span> <span class="n">nonstandard_residue_info_from_mol2</span>
 
+    <span class="k">if</span> <span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"keep"</span><span class="p">,</span> <span class="s2">"auto"</span><span class="p">,</span> <span class="s2">"regenerate"</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"MOL2 mode must be keep, auto, or regenerate"</span><span class="p">)</span>
     <span class="n">lig</span> <span class="o">=</span> <span class="n">nonstandard_residue_info_from_mol2</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="n">res_name</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="k">return</span> <span class="p">(</span>
             <span class="n">prepare_single_ligand</span><span class="p">(</span><span class="n">lig</span><span class="p">)</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">protonate</span> <span class="ow">and</span> <span class="n">lig</span><span class="o">.</span><span class="n">skip_protonation</span>
-            <span class="k">else</span> <span class="n">_prepare_ligand_via_smiles</span><span class="p">(</span><span class="n">lig</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span> <span class="n">protonate</span><span class="o">=</span><span class="n">protonate</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">"keep"</span> <span class="ow">or</span> <span class="p">(</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">"auto"</span> <span class="ow">and</span> <span class="n">lig</span><span class="o">.</span><span class="n">skip_protonation</span><span class="p">)</span>
+            <span class="k">else</span> <span class="n">_prepare_ligand_via_smiles</span><span class="p">(</span><span class="n">lig</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
         <span class="p">)</span>
     <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">mol2_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
@@ -2197,24 +2296,25 @@
     <span class="o">*</span><span class="p">,</span>
     <span class="n">param_db</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ParameterDatabase</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">ph</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">7.4</span><span class="p">,</span>
-    <span class="n">protonate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"auto"</span><span class="p">,</span>
     <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">strict_atom_types</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">ParameterDatabase</span><span class="p">,</span> <span class="n">CanonicalOrdering</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Prepare a single ligand from a Tripos mol2 file and inject it.</span>
 
-<span class="sd">    Applies shared pH-dependent protonation and MMFF94 preparation, retaining</span>
-<span class="sd">    source heavy-atom names. Supplied hydrogens and partial charges do not</span>
-<span class="sd">    establish the protonation state at the requested pH.</span>
+<span class="sd">    By default, preserve complete molecules with supported partial charges;</span>
+<span class="sd">    otherwise run shared protonation and charge generation. Use ``regenerate``</span>
+<span class="sd">    to apply the requested pH even to a neutralized, fully hydrogenated input.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        mol2_path: Path to the ligand mol2 file.</span>
 <span class="sd">        param_db: Base database (not modified); defaults to the tmol default.</span>
 <span class="sd">        ph: Target pH for protonation.</span>
-<span class="sd">        protonate: Set ``False`` to preserve the input protonation state.</span>
-<span class="sd">            Complete molecules with supported force-field charges also retain</span>
-<span class="sd">            those charges and geometry; otherwise MMFF94 charges are generated.</span>
+<span class="sd">        mode: ``"keep"`` requires prepared input and retains its protonation and</span>
+<span class="sd">            charges; ``"auto"`` (default) regenerates only unprepared input;</span>
+<span class="sd">            ``"regenerate"`` always runs pH-dependent preparation. Complete</span>
+<span class="sd">            hydrogens and supported charges do not establish the intended pH.</span>
 <span class="sd">        seed: Reproducible conformer seed when charges must be generated.</span>
 <span class="sd">        strict_atom_types: Fail on unknown atom-type element mappings.</span>
 <span class="sd">        res_name: Optional residue name override.</span>
@@ -2222,7 +2322,7 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        A ``(ParameterDatabase, CanonicalOrdering)`` with the ligand injected.</span>
 <span class="sd">    """</span>
-    <span class="n">prep</span> <span class="o">=</span> <span class="n">_prepare_mol2</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">,</span> <span class="n">res_name</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span> <span class="n">protonate</span><span class="o">=</span><span class="n">protonate</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">prep</span> <span class="o">=</span> <span class="n">_prepare_mol2</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">,</span> <span class="n">res_name</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">_inject_single</span><span class="p">(</span><span class="n">prep</span><span class="p">,</span> <span class="n">param_db</span><span class="p">,</span> <span class="n">strict_atom_types</span><span class="p">)</span></div>
 
 </pre></div>
