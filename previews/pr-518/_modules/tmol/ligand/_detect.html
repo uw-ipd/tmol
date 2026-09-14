@@ -455,7 +455,6 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">struc</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure.info</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">info</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">rdkit</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chem</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">rdkit.Chem</span><span class="w"> </span><span class="kn">import</span> <span class="n">RWMol</span>
@@ -1319,60 +1318,43 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">with_resolved_coordinates</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">use_ccd</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""``atom_array`` with a coordinate for every atom, or None.</span>
+<span class="w">    </span><span class="sd">"""Resolve scratch geometry for parameter generation from declared chemistry.</span>
 
-<span class="sd">    An atom the structure did not resolve arrives at NaN, which is what tells</span>
-<span class="sd">    pose construction to rebuild it. Residue-type generation cannot work with</span>
-<span class="sd">    that: it reads the molecule through RDKit, which perceives stereochemistry</span>
-<span class="sd">    from coordinates. The component dictionary is where the missing geometry</span>
-<span class="sd">    comes from -- and it is the authority on it, since the residue's own</span>
-<span class="sd">    definition fixes the configuration its density never showed. Returns None</span>
-<span class="sd">    where the dictionary must not be consulted or does not describe this</span>
-<span class="sd">    residue, leaving the caller to refuse rather than invent a configuration.</span>
-
-<span class="sd">    The filled coordinates are scratch: the pipeline regenerates a conformer</span>
-<span class="sd">    from the molecule it reads, and only the stereochemistry survives.</span>
+<span class="sd">    Input-scoped AtomWorks templates take precedence over the bundled CCD.</span>
+<span class="sd">    Their coordinates define stereochemistry even for a wholly unresolved</span>
+<span class="sd">    component; they do not place that component in the pose. Partially observed</span>
+<span class="sd">    components require three anchors for alignment. Supplied coordinates and</span>
+<span class="sd">    the caller's NaNs remain unchanged.</span>
 <span class="sd">    """</span>
     <span class="n">unresolved</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">coord</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">unresolved</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
         <span class="k">return</span> <span class="n">atom_array</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">use_ccd</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">component</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">residue</span><span class="p">(</span><span class="n">res_name</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">template</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="s2">"_custom_ccd_registry"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">res_name</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.ccd</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_array_from_ccd_code</span><span class="p">,</span> <span class="n">custom_ccd_residues</span>
 
-    <span class="n">defined</span> <span class="o">=</span> <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">component</span><span class="o">.</span><span class="n">atom_name</span><span class="p">}</span>
-    <span class="n">present</span> <span class="o">=</span> <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">atom_name</span><span class="p">}</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">present</span> <span class="o">&lt;=</span> <span class="n">defined</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">None</span>
-    <span class="n">shared</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">n</span>
-        <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">missing</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">atom_name</span><span class="p">,</span> <span class="n">unresolved</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">missing</span> <span class="ow">and</span> <span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="ow">in</span> <span class="n">defined</span>
-    <span class="p">]</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shared</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">None</span>
-    <span class="n">donor</span> <span class="o">=</span> <span class="n">component</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">component</span><span class="o">.</span><span class="n">atom_name</span><span class="p">,</span> <span class="n">shared</span><span class="p">)]</span>
-    <span class="n">target</span> <span class="o">=</span> <span class="n">atom_array</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">atom_name</span><span class="p">,</span> <span class="n">shared</span><span class="p">)</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">unresolved</span><span class="p">]</span>
-    <span class="n">order</span> <span class="o">=</span> <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">):</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">atom_name</span><span class="p">)}</span>
-    <span class="n">donor</span> <span class="o">=</span> <span class="n">donor</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">([</span><span class="n">order</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">)]</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">donor</span><span class="o">.</span><span class="n">atom_name</span><span class="p">])]</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">_fitted</span><span class="p">,</span> <span class="n">transform</span> <span class="o">=</span> <span class="n">struc</span><span class="o">.</span><span class="n">superimpose</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">donor</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">custom_ccd_residues</span><span class="p">({</span><span class="n">res_name</span><span class="p">:</span> <span class="n">template</span><span class="p">}</span> <span class="k">if</span> <span class="n">template</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">{}):</span>
+            <span class="n">component</span> <span class="o">=</span> <span class="n">atom_array_from_ccd_code</span><span class="p">(</span><span class="n">res_name</span><span class="p">,</span> <span class="n">ccd_mirror_path</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">):</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">component</span><span class="o">.</span><span class="n">atom_name</span><span class="p">)}</span>
+        <span class="n">ideal</span> <span class="o">=</span> <span class="n">component</span><span class="o">.</span><span class="n">coord</span><span class="p">[[</span><span class="n">indices</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)]</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">atom_name</span><span class="p">]]</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">):</span>
         <span class="k">return</span> <span class="kc">None</span>
-
-    <span class="n">placed</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">component</span><span class="p">)</span>
-    <span class="n">ideal</span> <span class="o">=</span> <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">):</span> <span class="n">xyz</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">xyz</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">placed</span><span class="o">.</span><span class="n">atom_name</span><span class="p">,</span> <span class="n">placed</span><span class="o">.</span><span class="n">coord</span><span class="p">)}</span>
-    <span class="n">filled</span> <span class="o">=</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">missing</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">unresolved</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">missing</span><span class="p">:</span>
-            <span class="k">continue</span>
-        <span class="n">xyz</span> <span class="o">=</span> <span class="n">ideal</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">filled</span><span class="o">.</span><span class="n">atom_name</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
-        <span class="k">if</span> <span class="n">xyz</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">ideal</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">unresolved</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="o">~</span><span class="n">unresolved</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span>
-        <span class="n">filled</span><span class="o">.</span><span class="n">coord</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">xyz</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">transform</span> <span class="o">=</span> <span class="n">struc</span><span class="o">.</span><span class="n">superimpose</span><span class="p">(</span>
+                <span class="n">atom_array</span><span class="o">.</span><span class="n">coord</span><span class="p">[</span><span class="o">~</span><span class="n">unresolved</span><span class="p">],</span> <span class="n">ideal</span><span class="p">[</span><span class="o">~</span><span class="n">unresolved</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">ideal</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">ideal</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">filled</span> <span class="o">=</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">filled</span><span class="o">.</span><span class="n">coord</span><span class="p">[</span><span class="n">unresolved</span><span class="p">]</span> <span class="o">=</span> <span class="n">ideal</span><span class="p">[</span><span class="n">unresolved</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">filled</span>
 
 
