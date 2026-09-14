@@ -79,9 +79,34 @@ pose_stack, context = pose_stack_from_biotite(
 )
 ```
 
-PDB files are fine for protein structures, but PDB does not carry reliable
-ligand bond orders. Use CIF, MOL2, SMILES, or a prepared `.tmol` file for ligand
-chemistry.
+Known residues need only residue names, atom names, and coordinates. For example,
+prepare a ligand from MOL2 once, then load coordinate-only PDB or CIF complexes:
+
+```python
+from tmol.io import pose_stack_from_file
+from tmol.ligand import write_params_from_mol2
+
+write_params_from_mol2(
+    "ligand.mol2", "ligand.tmol", res_name="LIG", format="tmol", mode="auto"
+)
+pose_stack, context = pose_stack_from_file(
+    "complex.pdb", device,
+    ligand_params_files=["ligand.tmol"],
+    use_ccd=False,
+    return_context=True,
+)
+```
+
+Use the complex's ligand residue name and matching atom names. Alternatively,
+pass the database returned by `prepare_ligand_from_mol2()` as `param_db=`.
+Neither route regenerates known ligand parameters. `use_ccd=False` reads only
+supplied information; the default `True` permits CCD completion.
+
+For mixtures of known and unknown components, add `prepare_ligands=True`: saved
+parameters are reused, and only unknown chemistry enters preparation. Unknown
+residues need chemical bond orders from the input or CCD; otherwise the error
+names the residue that needs more information. PDB `CONECT` records alone do not
+provide those orders.
 
 ## Reuse Prepared Context
 
