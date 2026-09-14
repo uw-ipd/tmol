@@ -41,12 +41,18 @@ Each returns a new `(ParameterDatabase, CanonicalOrdering)`. The input database
 is not mutated.
 
 MOL2 and CIF input use their bond tables to derive chemistry; source heavy-atom
-names are retained. All three preparation paths apply pH-dependent protonation
-(default pH 7.4), generate conformers and calculate MMFF94 charges. Hydrogens or
-partial charges in a MOL2 file do not prove that its protonation matches that pH.
-For deliberately prepared MOL2 inputs, use `protonate=False` to preserve the
-supplied state; complete molecules with supported force-field charges also
-retain those charges and geometry. `write_params_from_mol2()` uses the same policy.
+names are retained. CIF and SMILES preparation apply pH-dependent protonation
+(default pH 7.4), generate conformers and calculate MMFF94 charges.
+
+MOL2 preparation and `write_params_from_mol2()` share three modes:
+
+- `mode="auto"` (default): preserve complete inputs with supported, finite,
+  charge-conserving partial charges; otherwise run the preparation pipeline.
+- `mode="keep"`: require prepared input and preserve its protonation and charges.
+- `mode="regenerate"`: always run pH-dependent preparation, including for
+  neutralized phosphate inputs with explicit hydrogens and valid partial charges.
+
+A MOL2 charge-model label alone does not establish the intended protonation pH.
 
 ## Loading Complexes
 
