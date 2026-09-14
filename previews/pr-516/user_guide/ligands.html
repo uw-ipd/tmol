@@ -555,9 +555,31 @@ neutralized phosphate inputs with explicit hydrogens and valid partial charges.<
 <span class="p">)</span>
 </pre></div>
 </div>
-<p>PDB files are fine for protein structures, but PDB does not carry reliable
-ligand bond orders. Use CIF, MOL2, SMILES, or a prepared <code class="docutils literal notranslate"><span class="pre">.tmol</span></code> file for ligand
-chemistry.</p>
+<p>Known residues need only residue names, atom names, and coordinates. For example,
+prepare a ligand from MOL2 once, then load coordinate-only PDB or CIF complexes:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_file</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand</span><span class="w"> </span><span class="kn">import</span> <span class="n">write_params_from_mol2</span>
+
+<span class="n">write_params_from_mol2</span><span class="p">(</span>
+    <span class="s2">"ligand.mol2"</span><span class="p">,</span> <span class="s2">"ligand.tmol"</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="s2">"LIG"</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"tmol"</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"auto"</span>
+<span class="p">)</span>
+<span class="n">pose_stack</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="n">pose_stack_from_file</span><span class="p">(</span>
+    <span class="s2">"complex.pdb"</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span>
+    <span class="n">ligand_params_files</span><span class="o">=</span><span class="p">[</span><span class="s2">"ligand.tmol"</span><span class="p">],</span>
+    <span class="n">use_ccd</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">return_context</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Use the complex’s ligand residue name and matching atom names. Alternatively,
+pass the database returned by <code class="docutils literal notranslate"><span class="pre">prepare_ligand_from_mol2()</span></code> as <code class="docutils literal notranslate"><span class="pre">param_db=</span></code>.
+Neither route regenerates known ligand parameters. <code class="docutils literal notranslate"><span class="pre">use_ccd=False</span></code> reads only
+supplied information; the default <code class="docutils literal notranslate"><span class="pre">True</span></code> permits CCD completion.</p>
+<p>For mixtures of known and unknown components, add <code class="docutils literal notranslate"><span class="pre">prepare_ligands=True</span></code>: saved
+parameters are reused, and only unknown chemistry enters preparation. Unknown
+residues need chemical bond orders from the input or CCD; otherwise the error
+names the residue that needs more information. PDB <code class="docutils literal notranslate"><span class="pre">CONECT</span></code> records alone do not
+provide those orders.</p>
 </section>
 <section id="reuse-prepared-context">
 <h2>Reuse Prepared Context<a class="headerlink" href="#reuse-prepared-context" title="Link to this heading">#</a></h2>
