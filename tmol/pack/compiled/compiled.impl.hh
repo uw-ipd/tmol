@@ -103,10 +103,9 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       TPack<int64_t, 2, D>::full({n_poses, max_n_blocks}, -1);
   auto rotamer_for_nonmolten_block = rotamer_for_nonmolten_block_tp.view;
 
-  {  // scope the creation of the first-pass interaction-graph
-     // construction so that we can free its memory before
-     // re-constructing it in a second pass.
-
+  // Only bump checking consumes the preliminary energy tables.
+  // Fixed-block selection below depends solely on the retained rotamer mask.
+  if (bump_check) {
     auto energy1b_tp = TPack<Real, 1, D>::zeros({n_rotamers});
     auto energy1b = energy1b_tp.view;
     auto n_chunks_for_block_tp =
@@ -449,127 +448,123 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     DeviceDispatch<D>::template foreach_grouped_workgroup<launch_t>(
         mgr, n_rotamers, max_n_blocks, compute_best_energy_for_rotamers);
 
-    if (bump_check) {
-      // Now let's figure out the best energy for each block type
-      auto best_energy_per_block_tp =
-          TPack<Real, 2, D>::full({n_poses, max_n_blocks}, 1234);
-      auto best_energy_per_block = best_energy_per_block_tp.view;
+    // Now let's figure out the best energy for each block type
+    auto best_energy_per_block_tp =
+        TPack<Real, 2, D>::full({n_poses, max_n_blocks}, 1234);
+    auto best_energy_per_block = best_energy_per_block_tp.view;
 
-      // assign a CTA to each block and stride across the energy2b table to
-      // find its best rotamer's energy
-      auto compute_best_energy_per_block = ([=] TMOL_DEVICE_FUNC(int cta) {
-        int const pose = cta / max_n_blocks;
-        int const block = cta % max_n_blocks;
-
-        if (n_rots_for_block[pose][block] == 0) {
-          return;
-        }
-        auto find_min_energy_for_block = ([&] TMOL_DEVICE_FUNC(int tid) {
-          Real best_energy = 1234;
-          bool first_rotamer = true;
-          int const block_n_rots = n_rots_for_block[pose][block];
-          for (int rot_in_block = tid; rot_in_block < block_n_rots;
-               rot_in_block += nt) {
-            int const rot = rot_offset_for_block[pose][block] + rot_in_block;
-            Real energy_for_rot = best_energy_for_rot[rot];
-            if (first_rotamer || energy_for_rot < best_energy) {
-              best_energy = energy_for_rot;
-              first_rotamer = false;
-            }
-          }
-          bool none_found =
-              DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
-                  first_rotamer, mgpu::minimum_t<bool>());
-          Real block_best_energy =
-              DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
-                  best_energy, mgpu::minimum_t<Real>());
-          if (!none_found && tid == 0) {
-            best_energy_per_block[pose][block] = block_best_energy;
-          }
-        });
-        DeviceDispatch<D>::template for_each_in_workgroup<nt>(
-            find_min_energy_for_block);
-      });
-      DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-          mgr, n_pose_block_cells, compute_best_energy_per_block);
-
-      // Now we ask for every rotamer: should we keep it?
-      // We will reject a rotamer if there is at least one rotamer for
-      // its block which has an energy better than +5 kcal/mol,
-      // and its energy is worse than +5 kcal/mol. Otherwise, we will keep it.
-      auto decide_keep_rotamers = ([=] TMOL_DEVICE_FUNC(int index) {
-        int const rot = index;
-        int const block = block_ind_for_rot[rot];
-        int const pose = pose_for_rot[rot];
-        int const block_type = block_type_ind_for_rot[rot];
-        Real energy_for_rot = best_energy_for_rot[rot];
-        Real best_energy_for_block = best_energy_per_block[pose][block];
-        if (energy_for_rot < 5.0 || best_energy_for_block > 5.0) {
-          keep_rotamer[rot] = 1;
-        }
-      });
-      DeviceDispatch<D>::template forall<launch_t>(
-          mgr, n_rotamers, decide_keep_rotamers);
-    }
-
-    // Now, last but not least, we will eliminate any blocks
-    // which have only a single rotamer, perhaps because it only
-    // ever had one rotamer or perhaps because all of its
-    // rotamers except one were eliminate by the bump check.
-
-    auto decide_keep_blocks = ([=] TMOL_DEVICE_FUNC(int cta) {
+    // assign a CTA to each block and stride across the energy2b table to
+    // find its best rotamer's energy
+    auto compute_best_energy_per_block = ([=] TMOL_DEVICE_FUNC(int cta) {
       int const pose = cta / max_n_blocks;
       int const block = cta % max_n_blocks;
-      int const block_n_rots = n_rots_for_block[pose][block];
-      if (block_n_rots == 0) {
+
+      if (n_rots_for_block[pose][block] == 0) {
         return;
       }
-      int const block_rot_offset = rot_offset_for_block[pose][block];
-      auto count_n_rots_for_block = ([&] TMOL_DEVICE_FUNC(int tid) {
-        // Threads will distribute work of looking at all the rotamers
-        // for this block; then we'll reduce on the number of kept rotamers
-        // and the index of the biggest kept rotamer
-        int tid_n_kept_rotamers_for_block = 0;
-        int tid_biggest_kept_rotamer = -1;
+      auto find_min_energy_for_block = ([&] TMOL_DEVICE_FUNC(int tid) {
+        Real best_energy = 1234;
+        bool first_rotamer = true;
+        int const block_n_rots = n_rots_for_block[pose][block];
         for (int rot_in_block = tid; rot_in_block < block_n_rots;
              rot_in_block += nt) {
-          int const rot = block_rot_offset + rot_in_block;
-          if (keep_rotamer[rot]) {
-            tid_n_kept_rotamers_for_block += 1;
-            if (rot > tid_biggest_kept_rotamer) {
-              tid_biggest_kept_rotamer = rot;
-            }
+          int const rot = rot_offset_for_block[pose][block] + rot_in_block;
+          Real energy_for_rot = best_energy_for_rot[rot];
+          if (first_rotamer || energy_for_rot < best_energy) {
+            best_energy = energy_for_rot;
+            first_rotamer = false;
           }
         }
-        int n_kept_rotamers_for_block =
+        bool none_found =
             DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
-                tid_n_kept_rotamers_for_block, mgpu::plus_t<int>());
-        int biggest_kept_rotamer =
+                first_rotamer, mgpu::minimum_t<bool>());
+        Real block_best_energy =
             DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
-                tid_biggest_kept_rotamer, mgpu::maximum_t<int>());
-
-        if (tid == 0) {
-          if (n_kept_rotamers_for_block > 1) {
-            keep_block[pose][block] = 1;
-          } else {
-            // we are not keeping this block,
-            // so if it has exactly 1 rotamer, then we have to also
-            // note that we are not keeping that rotamer
-            if (n_kept_rotamers_for_block == 1) {
-              keep_rotamer[biggest_kept_rotamer] = 0;
-              rotamer_for_nonmolten_block[pose][block] = biggest_kept_rotamer;
-            }
-          }
+                best_energy, mgpu::minimum_t<Real>());
+        if (!none_found && tid == 0) {
+          best_energy_per_block[pose][block] = block_best_energy;
         }
       });
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
-          count_n_rots_for_block);
+          find_min_energy_for_block);
     });
     DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-        mgr, n_pose_block_cells, decide_keep_blocks);
+        mgr, n_pose_block_cells, compute_best_energy_per_block);
 
-  }  // end scope of first-pass interaction graph construction
-  // This will deallocate the energy1b and energy2b tables
+    // Now we ask for every rotamer: should we keep it?
+    // We will reject a rotamer if there is at least one rotamer for
+    // its block which has an energy better than +5 kcal/mol,
+    // and its energy is worse than +5 kcal/mol. Otherwise, we will keep it.
+    auto decide_keep_rotamers = ([=] TMOL_DEVICE_FUNC(int index) {
+      int const rot = index;
+      int const block = block_ind_for_rot[rot];
+      int const pose = pose_for_rot[rot];
+      int const block_type = block_type_ind_for_rot[rot];
+      Real energy_for_rot = best_energy_for_rot[rot];
+      Real best_energy_for_block = best_energy_per_block[pose][block];
+      if (energy_for_rot < 5.0 || best_energy_for_block > 5.0) {
+        keep_rotamer[rot] = 1;
+      }
+    });
+    DeviceDispatch<D>::template forall<launch_t>(
+        mgr, n_rotamers, decide_keep_rotamers);
+  }
+
+  // Now, last but not least, we will eliminate any blocks
+  // which have only a single rotamer, perhaps because it only
+  // ever had one rotamer or perhaps because all of its
+  // rotamers except one were eliminate by the bump check.
+
+  auto decide_keep_blocks = ([=] TMOL_DEVICE_FUNC(int cta) {
+    int const pose = cta / max_n_blocks;
+    int const block = cta % max_n_blocks;
+    int const block_n_rots = n_rots_for_block[pose][block];
+    if (block_n_rots == 0) {
+      return;
+    }
+    int const block_rot_offset = rot_offset_for_block[pose][block];
+    auto count_n_rots_for_block = ([&] TMOL_DEVICE_FUNC(int tid) {
+      // Threads will distribute work of looking at all the rotamers
+      // for this block; then we'll reduce on the number of kept rotamers
+      // and the index of the biggest kept rotamer
+      int tid_n_kept_rotamers_for_block = 0;
+      int tid_biggest_kept_rotamer = -1;
+      for (int rot_in_block = tid; rot_in_block < block_n_rots;
+           rot_in_block += nt) {
+        int const rot = block_rot_offset + rot_in_block;
+        if (keep_rotamer[rot]) {
+          tid_n_kept_rotamers_for_block += 1;
+          if (rot > tid_biggest_kept_rotamer) {
+            tid_biggest_kept_rotamer = rot;
+          }
+        }
+      }
+      int n_kept_rotamers_for_block =
+          DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
+              tid_n_kept_rotamers_for_block, mgpu::plus_t<int>());
+      int biggest_kept_rotamer =
+          DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
+              tid_biggest_kept_rotamer, mgpu::maximum_t<int>());
+
+      if (tid == 0) {
+        if (n_kept_rotamers_for_block > 1) {
+          keep_block[pose][block] = 1;
+        } else {
+          // we are not keeping this block,
+          // so if it has exactly 1 rotamer, then we have to also
+          // note that we are not keeping that rotamer
+          if (n_kept_rotamers_for_block == 1) {
+            keep_rotamer[biggest_kept_rotamer] = 0;
+            rotamer_for_nonmolten_block[pose][block] = biggest_kept_rotamer;
+          }
+        }
+      }
+    });
+    DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+        count_n_rots_for_block);
+  });
+  DeviceDispatch<D>::template foreach_workgroup<launch_t>(
+      mgr, n_pose_block_cells, decide_keep_blocks);
 
   // OKAY! Now we are ready to rebuild the interaction graph with only the
   // rotamers and blocks that we kept. Even if we did not use bump_check,
