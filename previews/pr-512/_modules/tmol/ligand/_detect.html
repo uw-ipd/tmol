@@ -693,11 +693,16 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_charge_model_is_authoritative</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""True only when a Tripos charge model is a trusted force-field model.</span>
-
-<span class="sd">    PLI fixtures and legacy mol2s use Gasteiger; MMFF94/AM1-BCC/etc. are OK.</span>
-<span class="sd">    """</span>
-    <span class="k">return</span> <span class="n">model</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">""</span><span class="p">,</span> <span class="s2">"NO_CHARGES"</span><span class="p">,</span> <span class="s2">"GASTEIGER"</span><span class="p">,</span> <span class="s2">"GAST_HUCK"</span><span class="p">)</span>
+<span class="w">    </span><span class="sd">"""Recognized prepared charges; unknown and population-analysis models regenerate."""</span>
+    <span class="k">return</span> <span class="n">model</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">removesuffix</span><span class="p">(</span><span class="s2">"_CHARGES"</span><span class="p">)</span> <span class="ow">in</span> <span class="p">{</span>
+        <span class="s2">"MMFF94"</span><span class="p">,</span>
+        <span class="s2">"MMFF94S"</span><span class="p">,</span>
+        <span class="s2">"AM1BCC"</span><span class="p">,</span>
+        <span class="s2">"AM1-BCC"</span><span class="p">,</span>
+        <span class="s2">"AMBER"</span><span class="p">,</span>
+        <span class="s2">"EEM"</span><span class="p">,</span>
+        <span class="s2">"USER"</span><span class="p">,</span>
+    <span class="p">}</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_apply_mol2_metadata</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
@@ -748,22 +753,22 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_resolve_mol2_delocalized_oxygens</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">charges</span><span class="p">,</span> <span class="n">delocalized_bonds</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Use declared charges to localize acyclic O.co2 bonds, including carbonate."""</span>
-    <span class="k">for</span> <span class="n">carbon</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">():</span>
-        <span class="k">if</span> <span class="n">carbon</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">6</span> <span class="ow">or</span> <span class="n">carbon</span><span class="o">.</span><span class="n">GetDegree</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Use declared charges to localize acyclic carbonate/carboxylate/phosphate O.co2."""</span>
+    <span class="k">for</span> <span class="n">center</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">():</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">center</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">(),</span> <span class="n">center</span><span class="o">.</span><span class="n">GetDegree</span><span class="p">())</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">((</span><span class="mi">6</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">4</span><span class="p">)):</span>
             <span class="k">continue</span>
         <span class="n">oxygens</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">atom</span>
-            <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">carbon</span><span class="o">.</span><span class="n">GetNeighbors</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">center</span><span class="o">.</span><span class="n">GetNeighbors</span><span class="p">()</span>
             <span class="k">if</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">8</span>
             <span class="ow">and</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetDegree</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span>
             <span class="ow">and</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetProp</span><span class="p">(</span><span class="s2">"_TriposAtomType"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"O.co2"</span>
-            <span class="ow">and</span> <span class="nb">frozenset</span><span class="p">((</span><span class="n">carbon</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">(),</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()))</span> <span class="ow">in</span> <span class="n">delocalized_bonds</span>
+            <span class="ow">and</span> <span class="nb">frozenset</span><span class="p">((</span><span class="n">center</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">(),</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()))</span> <span class="ow">in</span> <span class="n">delocalized_bonds</span>
         <span class="p">]</span>
         <span class="n">negative</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">oxygens</span> <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">GetFormalCharge</span><span class="p">()</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">neutral</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">oxygens</span> <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">GetFormalCharge</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span>
         <span class="k">if</span> <span class="p">(</span>
-            <span class="n">carbon</span><span class="o">.</span><span class="n">GetFormalCharge</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">0</span>
+            <span class="n">center</span><span class="o">.</span><span class="n">GetFormalCharge</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">0</span>
             <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">neutral</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span>
             <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">negative</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">oxygens</span><span class="p">)</span>
             <span class="ow">or</span> <span class="ow">not</span> <span class="n">negative</span>
@@ -773,7 +778,7 @@
         <span class="c1"># Acyclic delocalization is not aromaticity. Explicit source bond orders</span>
         <span class="c1"># and ring bonds remain authoritative and are never changed here.</span>
         <span class="k">for</span> <span class="n">oxygen</span> <span class="ow">in</span> <span class="n">oxygens</span><span class="p">:</span>
-            <span class="n">bond</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetBondBetweenAtoms</span><span class="p">(</span><span class="n">carbon</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">(),</span> <span class="n">oxygen</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">())</span>
+            <span class="n">bond</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetBondBetweenAtoms</span><span class="p">(</span><span class="n">center</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">(),</span> <span class="n">oxygen</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">())</span>
             <span class="n">bond</span><span class="o">.</span><span class="n">SetBondType</span><span class="p">(</span>
                 <span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">DOUBLE</span>
                 <span class="k">if</span> <span class="n">oxygen</span><span class="o">.</span><span class="n">GetFormalCharge</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span>
@@ -781,7 +786,7 @@
             <span class="p">)</span>
             <span class="n">bond</span><span class="o">.</span><span class="n">SetIsAromatic</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
             <span class="n">oxygen</span><span class="o">.</span><span class="n">SetIsAromatic</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
-        <span class="n">carbon</span><span class="o">.</span><span class="n">SetIsAromatic</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">center</span><span class="o">.</span><span class="n">SetIsAromatic</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">mol</span><span class="o">.</span><span class="n">UpdatePropertyCache</span><span class="p">(</span><span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
 
@@ -857,6 +862,7 @@
     <span class="n">mismatch</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">_charge_model_is_authoritative</span><span class="p">(</span><span class="n">charge_model</span><span class="p">)</span>
         <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">charges</span><span class="p">)</span> <span class="o">==</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetNumAtoms</span><span class="p">()</span>
+        <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">charges</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
         <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span><span class="n">total_charge</span> <span class="o">-</span> <span class="nb">round</span><span class="p">(</span><span class="n">total_charge</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mf">0.01</span>
         <span class="ow">and</span> <span class="nb">round</span><span class="p">(</span><span class="n">total_charge</span><span class="p">)</span> <span class="o">!=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">GetFormalCharge</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
     <span class="p">)</span>
@@ -997,6 +1003,8 @@
         <span class="n">has_full_partial_charges</span>
         <span class="ow">and</span> <span class="ow">not</span> <span class="n">missing_hydrogens</span>
         <span class="ow">and</span> <span class="n">_charge_model_is_authoritative</span><span class="p">(</span><span class="n">charge_model</span><span class="p">)</span>
+        <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">partial_charges</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+        <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">partial_charges</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="o">-</span> <span class="n">Chem</span><span class="o">.</span><span class="n">GetFormalCharge</span><span class="p">(</span><span class="n">mol</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mf">0.01</span>
     <span class="p">)</span>
     <span class="n">authoritative_q</span> <span class="o">=</span> <span class="n">partial_charges</span> <span class="k">if</span> <span class="n">use_input_charges</span> <span class="k">else</span> <span class="kc">None</span>
 
