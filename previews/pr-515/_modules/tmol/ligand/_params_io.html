@@ -1018,6 +1018,7 @@
     <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="nb">format</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"rosetta"</span><span class="p">,</span>
     <span class="n">ph</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">7.4</span><span class="p">,</span>
+    <span class="n">protonate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Build params from a mol2 file and write Rosetta ``.params`` or tmol ``.tmol``.</span>
@@ -1027,12 +1028,14 @@
 <span class="sd">        out_path: Output file path (see :func:`write_params_file`).</span>
 <span class="sd">        res_name: Optional residue name override.</span>
 <span class="sd">        format: ``"rosetta"`` or ``"tmol"``.</span>
-<span class="sd">        ph: Target pH when charges must be generated.</span>
+<span class="sd">        ph: Target pH for protonation.</span>
+<span class="sd">        protonate: Set ``False`` to preserve the input protonation state,</span>
+<span class="sd">            as in :func:`prepare_ligand_from_mol2`.</span>
 <span class="sd">        seed: Reproducible conformer seed when charges must be generated.</span>
 <span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._preparation</span><span class="w"> </span><span class="kn">import</span> <span class="n">_prepare_mol2</span>
 
-    <span class="n">prep</span> <span class="o">=</span> <span class="n">_prepare_mol2</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">,</span> <span class="n">res_name</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">prep</span> <span class="o">=</span> <span class="n">_prepare_mol2</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">,</span> <span class="n">res_name</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span> <span class="n">protonate</span><span class="o">=</span><span class="n">protonate</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
     <span class="n">write_params_file</span><span class="p">(</span><span class="n">prep</span><span class="p">,</span> <span class="n">out_path</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="nb">format</span><span class="p">)</span></div>
 
 </pre></div>
