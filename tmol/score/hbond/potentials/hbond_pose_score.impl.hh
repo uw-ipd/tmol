@@ -1336,12 +1336,6 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
             : TPack<Real, 3, Dev>::empty({n_poses, max_n_blocks, 4});
     auto scratch_block_spheres = scratch_block_spheres_t.view;
 
-    auto scratch_block_neighbors_t =
-        Dev == Device::CPU
-            ? TPack<Int, 3, Dev>::zeros({n_poses, max_n_blocks, max_n_blocks})
-            : TPack<Int, 3, Dev>::empty({n_poses, max_n_blocks, max_n_blocks});
-    auto scratch_block_neighbors = scratch_block_neighbors_t.view;
-
     score::common::sphere_overlap::
         compute_rot_spheres<DeviceDispatch, Dev, Real, Int>::f(
             mgr,
@@ -1359,14 +1353,6 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
               rot_offset_for_block,
               scratch_block_spheres);
 
-    score::common::sphere_overlap::
-        detect_block_neighbors<DeviceDispatch, Dev, Real, Int>::f(
-            mgr,
-            first_rot_block_type,
-            scratch_block_spheres,
-            scratch_block_neighbors,
-            Real(5.5));  // 5.5A hard coded here. Please fix! TEMP!
-
     dispatch_indices_t = score::common::sphere_overlap::
         rot_neighbor_indices_from_block_neighbors<
             DeviceDispatch,
@@ -1374,7 +1360,8 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
             Real,
             Int>::
             f(mgr,
-              scratch_block_neighbors,
+              first_rot_block_type,
+              scratch_block_spheres,
               n_rots_for_block,
               rot_offset_for_block,
               scratch_rot_spheres,
