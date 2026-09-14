@@ -634,7 +634,7 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_rdkit_bond_to_biotite_type</span><span class="p">(</span><span class="n">bond</span><span class="p">:</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Bond</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Map an RDKit bond to a Biotite ``BondType`` integer."""</span>
-    <span class="k">if</span> <span class="n">bond</span><span class="o">.</span><span class="n">GetIsAromatic</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">bond</span><span class="o">.</span><span class="n">GetIsAromatic</span><span class="p">()</span> <span class="ow">or</span> <span class="n">bond</span><span class="o">.</span><span class="n">GetBondType</span><span class="p">()</span> <span class="o">==</span> <span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">AROMATIC</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">struc</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">AROMATIC</span><span class="p">)</span>
     <span class="n">btype</span> <span class="o">=</span> <span class="n">bond</span><span class="o">.</span><span class="n">GetBondType</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">btype</span> <span class="o">==</span> <span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">SINGLE</span><span class="p">:</span>
@@ -645,7 +645,7 @@
         <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">struc</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">TRIPLE</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">btype</span> <span class="o">==</span> <span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">QUADRUPLE</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">struc</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">QUADRUPLE</span><span class="p">)</span>
-    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">struc</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">SINGLE</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">struc</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">ANY</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_infer_res_name_from_mol2</span><span class="p">(</span><span class="n">mol</span><span class="p">:</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">,</span> <span class="n">fallback</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -694,39 +694,30 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_mol2_single_bond_ids</span><span class="p">(</span><span class="n">mol2_text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">frozenset</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
-<span class="w">    </span><span class="sd">"""Return the set of single (order ``'1'``) bonds from a mol2 BOND section.</span>
+<span class="w">    </span><span class="sd">"""Literal single bonds, expressed as 1-based atom-row indices.</span>
 
-<span class="sd">    Each bond is returned as a ``frozenset`` of its two 1-based TRIPOS atom</span>
-<span class="sd">    ids. Only bonds whose TRIPOS ``bond_type`` is literally ``'1'`` are</span>
-<span class="sd">    included — aromatic (``ar``), amide (``am``), double (``2``), etc. are</span>
-<span class="sd">    excluded.</span>
-
-<span class="sd">    RDKit's sanitize/kekulize step promotes some mol2 single bonds (e.g. a</span>
-<span class="sd">    ``C.ar``-``N.pl3`` written as ``1``) to AROMATIC/DOUBLE, which then makes</span>
-<span class="sd">    :func:`tmol.ligand._chi_topology.build_chi_topology` skip them as</span>
-<span class="sd">    ``border &gt; 1``. Rosetta's ``mol2genparams`` reads the literal mol2 order</span>
-<span class="sd">    instead, so honoring the source ``'1'`` here restores parity. Returns an</span>
-<span class="sd">    empty set if no BOND section is present.</span>
+<span class="sd">    Tripos IDs need not be consecutive or ordered. Preserve literal singles</span>
+<span class="sd">    before aromaticity perception for Rosetta-compatible chi classification.</span>
 <span class="sd">    """</span>
-    <span class="n">single_bonds</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">frozenset</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
-    <span class="n">in_bond</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">atom_ids</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">pairs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">section</span> <span class="o">=</span> <span class="s2">""</span>
     <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">mol2_text</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
-        <span class="n">stripped</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">stripped</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"@&lt;TRIPOS&gt;"</span><span class="p">):</span>
-            <span class="n">in_bond</span> <span class="o">=</span> <span class="n">stripped</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"@&lt;TRIPOS&gt;BOND"</span><span class="p">)</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">fields</span> <span class="ow">or</span> <span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"#"</span><span class="p">):</span>
             <span class="k">continue</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">in_bond</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">stripped</span><span class="p">:</span>
-            <span class="k">continue</span>
-        <span class="n">tokens</span> <span class="o">=</span> <span class="n">stripped</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
-        <span class="c1"># TRIPOS BOND line: bond_id atom1 atom2 bond_type [status_bits]</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">4</span> <span class="ow">or</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"1"</span><span class="p">:</span>
-            <span class="k">continue</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
-        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-            <span class="k">continue</span>
-        <span class="n">single_bonds</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="nb">frozenset</span><span class="p">((</span><span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">)))</span>
-    <span class="k">return</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">single_bonds</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"@&lt;TRIPOS&gt;"</span><span class="p">):</span>
+            <span class="n">section</span> <span class="o">=</span> <span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">section</span> <span class="o">==</span> <span class="s2">"@&lt;TRIPOS&gt;ATOM"</span><span class="p">:</span>
+            <span class="n">atom_ids</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">atom_ids</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="n">section</span> <span class="o">==</span> <span class="s2">"@&lt;TRIPOS&gt;BOND"</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">4</span> <span class="ow">and</span> <span class="n">fields</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"1"</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">pairs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="nb">int</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="mi">2</span><span class="p">])))</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">continue</span>
+    <span class="k">return</span> <span class="nb">frozenset</span><span class="p">(</span>
+        <span class="nb">frozenset</span><span class="p">((</span><span class="n">atom_ids</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">a</span><span class="p">),</span> <span class="n">atom_ids</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">b</span><span class="p">)))</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">pairs</span>
+    <span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_charge_model_is_authoritative</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -734,7 +725,54 @@
 
 <span class="sd">    PLI fixtures and legacy mol2s use Gasteiger; MMFF94/AM1-BCC/etc. are OK.</span>
 <span class="sd">    """</span>
-    <span class="k">return</span> <span class="n">model</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">""</span><span class="p">,</span> <span class="s2">"NO_CHARGES"</span><span class="p">,</span> <span class="s2">"GASTEIGER"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">model</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">""</span><span class="p">,</span> <span class="s2">"NO_CHARGES"</span><span class="p">,</span> <span class="s2">"GASTEIGER"</span><span class="p">,</span> <span class="s2">"GAST_HUCK"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_apply_mol2_metadata</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Preserve source properties and explicit formal charges across either reader."""</span>
+    <span class="n">indices</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">declared_charges</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">coordinates</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">section</span> <span class="o">=</span> <span class="s2">""</span>
+    <span class="n">atom_id</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">text</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">fields</span> <span class="ow">or</span> <span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"#"</span><span class="p">):</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"@&lt;TRIPOS&gt;"</span><span class="p">):</span>
+            <span class="n">section</span> <span class="o">=</span> <span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">section</span> <span class="o">==</span> <span class="s2">"@&lt;TRIPOS&gt;ATOM"</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Duplicate MOL2 atom ID </span><span class="si">{</span><span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="n">atom</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtomWithIdx</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">))</span>
+            <span class="n">indices</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
+            <span class="n">coordinates</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">5</span><span class="p">]])</span>
+            <span class="n">atom</span><span class="o">.</span><span class="n">SetProp</span><span class="p">(</span><span class="s2">"_TriposAtomName"</span><span class="p">,</span> <span class="n">fields</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">atom</span><span class="o">.</span><span class="n">SetProp</span><span class="p">(</span><span class="s2">"_TriposAtomType"</span><span class="p">,</span> <span class="n">fields</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">9</span><span class="p">:</span>
+                <span class="n">atom</span><span class="o">.</span><span class="n">SetDoubleProp</span><span class="p">(</span><span class="s2">"_TriposPartialCharge"</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="mi">8</span><span class="p">]))</span>
+        <span class="k">elif</span> <span class="n">section</span> <span class="o">==</span> <span class="s2">"@&lt;TRIPOS&gt;BOND"</span> <span class="ow">and</span> <span class="n">fields</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span>
+            <span class="s2">"1"</span><span class="p">,</span>
+            <span class="s2">"2"</span><span class="p">,</span>
+            <span class="s2">"3"</span><span class="p">,</span>
+            <span class="s2">"4"</span><span class="p">,</span>
+            <span class="s2">"ar"</span><span class="p">,</span>
+            <span class="s2">"am"</span><span class="p">,</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Undefined MOL2 bond order </span><span class="si">{</span><span class="n">fields</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="si">!r}</span><span class="s2"> between atom IDs "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">fields</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">fields</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="si">}</span><span class="s2">; supply explicit chemical bond orders"</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">section</span> <span class="o">==</span> <span class="s2">"@&lt;TRIPOS&gt;UNITY_ATOM_ATTR"</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"charge"</span><span class="p">:</span>
+                <span class="n">index</span><span class="p">,</span> <span class="n">charge</span> <span class="o">=</span> <span class="n">indices</span><span class="p">[</span><span class="n">atom_id</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">mol</span><span class="o">.</span><span class="n">GetAtomWithIdx</span><span class="p">(</span><span class="n">index</span><span class="p">)</span><span class="o">.</span><span class="n">SetFormalCharge</span><span class="p">(</span><span class="n">charge</span><span class="p">)</span>
+                <span class="n">declared_charges</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">charge</span>
+            <span class="k">elif</span> <span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">isdigit</span><span class="p">():</span>
+                <span class="n">atom_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="n">mol</span><span class="o">.</span><span class="n">GetConformer</span><span class="p">()</span><span class="o">.</span><span class="n">SetPositions</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">coordinates</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">declared_charges</span>
 
 
 <div class="viewcode-block" id="nonstandard_residue_info_from_mol2">
@@ -750,38 +788,12 @@
 <span class="sd">    files). Preserves Tripos aromatic flags, atom-type subtypes, and per-atom</span>
 <span class="sd">    partial charges, avoiding lossy rdkit&lt;-&gt;biotite round-trips.</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._openbabel_compat</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-        <span class="n">OpenBabelUnavailableError</span><span class="p">,</span>
-        <span class="n">obabel_read_mol2</span><span class="p">,</span>
-    <span class="p">)</span>
-
-    <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">)</span>
-    <span class="n">mol2_text</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">read_text</span><span class="p">()</span>
-    <span class="n">mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromMol2File</span><span class="p">(</span>
-        <span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">),</span>
-        <span class="n">sanitize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">removeHs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">cleanupSubstructures</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="k">if</span> <span class="n">mol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">mol</span> <span class="o">=</span> <span class="n">obabel_read_mol2</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-        <span class="k">except</span> <span class="n">OpenBabelUnavailableError</span><span class="p">:</span>
-            <span class="n">mol</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="n">mol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"Could not parse Mol2 file: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> "</span>
-                <span class="s2">"(RDKit MolFromMol2File failed; OpenBabel fallback also "</span>
-                <span class="s2">"failed or is not installed)"</span>
-            <span class="p">)</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Used OpenBabel fallback to parse mol2 </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">_nonstandard_residue_info_from_mol2_mol</span><span class="p">(</span>
-        <span class="n">mol</span><span class="p">,</span>
-        <span class="n">_mol2_charge_model_from_text</span><span class="p">(</span><span class="n">mol2_text</span><span class="p">),</span>
-        <span class="n">res_name</span><span class="p">,</span>
-        <span class="n">source</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">),</span>
-        <span class="n">single_bond_ids</span><span class="o">=</span><span class="n">_mol2_single_bond_ids</span><span class="p">(</span><span class="n">mol2_text</span><span class="p">),</span>
-    <span class="p">)</span></div>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">nonstandard_residue_info_from_mol2_block</span><span class="p">(</span>
+            <span class="n">Path</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">(),</span> <span class="n">res_name</span><span class="o">=</span><span class="n">res_name</span>
+        <span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">mol2_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span></div>
 
 
 
@@ -803,6 +815,8 @@
         <span class="n">obabel_read_mol2_block</span><span class="p">,</span>
     <span class="p">)</span>
 
+    <span class="k">if</span> <span class="n">mol2_block</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">"@&lt;TRIPOS&gt;MOLECULE"</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Expected exactly one MOL2 molecule record"</span><span class="p">)</span>
     <span class="n">mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromMol2Block</span><span class="p">(</span>
         <span class="n">mol2_block</span><span class="p">,</span>
         <span class="n">sanitize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -820,9 +834,55 @@
                 <span class="s2">"failed; OpenBabel fallback also failed or is not installed)"</span>
             <span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Used OpenBabel fallback to parse in-memory mol2 block"</span><span class="p">)</span>
+    <span class="n">declared_charges</span> <span class="o">=</span> <span class="n">_apply_mol2_metadata</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">mol2_block</span><span class="p">)</span>
+    <span class="n">probe</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+    <span class="n">invalid</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">Chem</span><span class="o">.</span><span class="n">SanitizeMol</span><span class="p">(</span><span class="n">probe</span><span class="p">,</span> <span class="n">catchErrors</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+    <span class="n">charge_model</span> <span class="o">=</span> <span class="n">_mol2_charge_model_from_text</span><span class="p">(</span><span class="n">mol2_block</span><span class="p">)</span>
+    <span class="n">charges</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="nb">float</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">GetProp</span><span class="p">(</span><span class="s2">"_TriposPartialCharge"</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">HasProp</span><span class="p">(</span><span class="s2">"_TriposPartialCharge"</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="n">total_charge</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">charges</span><span class="p">)</span>
+    <span class="n">mismatch</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">_charge_model_is_authoritative</span><span class="p">(</span><span class="n">charge_model</span><span class="p">)</span>
+        <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">charges</span><span class="p">)</span> <span class="o">==</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetNumAtoms</span><span class="p">()</span>
+        <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span><span class="n">total_charge</span> <span class="o">-</span> <span class="nb">round</span><span class="p">(</span><span class="n">total_charge</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mf">0.01</span>
+        <span class="ow">and</span> <span class="nb">round</span><span class="p">(</span><span class="n">total_charge</span><span class="p">)</span> <span class="o">!=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">GetFormalCharge</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">invalid</span> <span class="ow">or</span> <span class="n">mismatch</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">alternate</span> <span class="o">=</span> <span class="n">obabel_read_mol2_block</span><span class="p">(</span><span class="n">mol2_block</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">OpenBabelUnavailableError</span><span class="p">:</span>
+            <span class="n">alternate</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">alternate</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">[</span>
+            <span class="n">a</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">alternate</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()</span>
+        <span class="p">]</span> <span class="o">==</span> <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()]:</span>
+            <span class="n">_apply_mol2_metadata</span><span class="p">(</span><span class="n">alternate</span><span class="p">,</span> <span class="n">mol2_block</span><span class="p">)</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.tools.rdkit</span><span class="w"> </span><span class="kn">import</span> <span class="n">fix_charge_based_on_valence</span>
+
+            <span class="n">fix_charge_based_on_valence</span><span class="p">(</span><span class="n">alternate</span><span class="p">)</span>
+            <span class="n">preserves_charges</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span>
+                <span class="n">alternate</span><span class="o">.</span><span class="n">GetAtomWithIdx</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">GetFormalCharge</span><span class="p">()</span> <span class="o">==</span> <span class="n">charge</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">charge</span> <span class="ow">in</span> <span class="n">declared_charges</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">preserves_charges</span>
+                <span class="ow">and</span> <span class="ow">not</span> <span class="n">Chem</span><span class="o">.</span><span class="n">SanitizeMol</span><span class="p">(</span><span class="n">alternate</span><span class="p">,</span> <span class="n">catchErrors</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="ow">and</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span>
+                    <span class="n">atom</span><span class="o">.</span><span class="n">GetNumRadicalElectrons</span><span class="p">()</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">alternate</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()</span>
+                <span class="p">)</span>
+            <span class="p">):</span>
+                <span class="n">mol</span> <span class="o">=</span> <span class="n">alternate</span>
+                <span class="n">invalid</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">invalid</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"MOL2 atom and bond types do not define a sanitizable chemical graph; "</span>
+            <span class="s2">"supply corrected aromatic bond orders and protonation"</span>
+        <span class="p">)</span>
     <span class="k">return</span> <span class="n">_nonstandard_residue_info_from_mol2_mol</span><span class="p">(</span>
         <span class="n">mol</span><span class="p">,</span>
-        <span class="n">_mol2_charge_model_from_text</span><span class="p">(</span><span class="n">mol2_block</span><span class="p">),</span>
+        <span class="n">charge_model</span><span class="p">,</span>
         <span class="n">res_name</span><span class="p">,</span>
         <span class="n">source</span><span class="o">=</span><span class="s2">"&lt;mol2 block&gt;"</span><span class="p">,</span>
         <span class="n">single_bond_ids</span><span class="o">=</span><span class="n">_mol2_single_bond_ids</span><span class="p">(</span><span class="n">mol2_block</span><span class="p">),</span>
@@ -843,7 +903,7 @@
 <span class="sd">    Shared core of the file and in-memory-block mol2 entry points. ``charge_model``</span>
 <span class="sd">    is the TRIPOS ``charge_type`` (already parsed from the source) used to decide</span>
 <span class="sd">    whether the per-atom charges are authoritative; ``source`` labels the input in</span>
-<span class="sd">    error messages. ``single_bond_ids`` is the set of 1-based TRIPOS atom-id pairs</span>
+<span class="sd">    error messages. ``single_bond_ids`` is the set of 1-based atom-row pairs</span>
 <span class="sd">    the source records as literal single bonds (see :func:`_mol2_single_bond_ids`);</span>
 <span class="sd">    these are mapped to disambiguated atom names and stored as</span>
 <span class="sd">    ``original_single_bonds`` so the CHI classifier can honor the mol2 bond order.</span>
@@ -884,15 +944,19 @@
 
     <span class="n">atom_array</span> <span class="o">=</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">(</span><span class="n">n_atoms</span><span class="p">)</span>
     <span class="n">atom_array</span><span class="o">.</span><span class="n">coord</span> <span class="o">=</span> <span class="n">coords</span>
-    <span class="n">atom_array</span><span class="o">.</span><span class="n">atom_name</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">atom_names</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"U16"</span><span class="p">)</span>
+    <span class="n">atom_array</span><span class="o">.</span><span class="n">atom_name</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">atom_names</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
     <span class="n">atom_array</span><span class="o">.</span><span class="n">element</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">elements</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"U4"</span><span class="p">)</span>
-    <span class="n">inferred_res_name</span> <span class="o">=</span> <span class="n">_infer_res_name_from_mol2</span><span class="p">(</span>
-        <span class="n">mol</span><span class="p">,</span> <span class="n">fallback</span><span class="o">=</span><span class="s2">"L_1"</span> <span class="k">if</span> <span class="n">res_name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">res_name</span>
+    <span class="n">inferred_res_name</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">_infer_res_name_from_mol2</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">fallback</span><span class="o">=</span><span class="s2">"L_1"</span><span class="p">)</span> <span class="k">if</span> <span class="n">res_name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">res_name</span>
     <span class="p">)</span>
-    <span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">inferred_res_name</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"U8"</span><span class="p">)</span>
+    <span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">inferred_res_name</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
     <span class="n">atom_array</span><span class="o">.</span><span class="n">chain_id</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="s2">"A"</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"U4"</span><span class="p">)</span>
     <span class="n">atom_array</span><span class="o">.</span><span class="n">res_id</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
     <span class="n">atom_array</span><span class="o">.</span><span class="n">hetero</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="kc">True</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="n">atom_array</span><span class="o">.</span><span class="n">set_annotation</span><span class="p">(</span>
+        <span class="s2">"charge"</span><span class="p">,</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">atom</span><span class="o">.</span><span class="n">GetFormalCharge</span><span class="p">()</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+    <span class="p">)</span>
     <span class="n">atom_array</span><span class="o">.</span><span class="n">set_annotation</span><span class="p">(</span><span class="s2">"tmol_aromatic"</span><span class="p">,</span> <span class="n">aromatic_flags</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">))</span>
     <span class="n">atom_array</span><span class="o">.</span><span class="n">set_annotation</span><span class="p">(</span>
         <span class="s2">"tmol_source_subtype"</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">source_subtypes</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"U8"</span><span class="p">)</span>
@@ -911,14 +975,22 @@
     <span class="p">)</span>
     <span class="n">atom_array</span><span class="o">.</span><span class="n">bonds</span> <span class="o">=</span> <span class="n">struc</span><span class="o">.</span><span class="n">BondList</span><span class="p">(</span><span class="n">n_atoms</span><span class="p">,</span> <span class="n">bond_array</span><span class="p">)</span>
 
-    <span class="n">use_input_charges</span> <span class="o">=</span> <span class="n">has_full_partial_charges</span> <span class="ow">and</span> <span class="n">_charge_model_is_authoritative</span><span class="p">(</span>
-        <span class="n">charge_model</span>
+    <span class="n">complete</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">complete</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">():</span>
+        <span class="n">atom</span><span class="o">.</span><span class="n">SetNoImplicit</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">complete</span><span class="o">.</span><span class="n">UpdatePropertyCache</span><span class="p">(</span><span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">missing_hydrogens</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span>
+        <span class="n">atom</span><span class="o">.</span><span class="n">GetNumImplicitHs</span><span class="p">()</span> <span class="ow">or</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetNumRadicalElectrons</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">complete</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()</span>
+    <span class="p">)</span>
+    <span class="n">use_input_charges</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">has_full_partial_charges</span>
+        <span class="ow">and</span> <span class="ow">not</span> <span class="n">missing_hydrogens</span>
+        <span class="ow">and</span> <span class="n">_charge_model_is_authoritative</span><span class="p">(</span><span class="n">charge_model</span><span class="p">)</span>
     <span class="p">)</span>
     <span class="n">authoritative_q</span> <span class="o">=</span> <span class="n">partial_charges</span> <span class="k">if</span> <span class="n">use_input_charges</span> <span class="k">else</span> <span class="kc">None</span>
 
-    <span class="c1"># Map literal mol2 single bonds (1-based TRIPOS ids) to disambiguated atom</span>
-    <span class="c1"># names. RDKit index i corresponds to TRIPOS atom id i+1 (the reader keeps</span>
-    <span class="c1"># mol2 atom order), the same correspondence used for names/coords above.</span>
+    <span class="c1"># Map source atom rows to the names retained through preparation.</span>
     <span class="n">original_single_bonds</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span>
         <span class="nb">frozenset</span><span class="p">((</span><span class="n">disambiguated_names</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">disambiguated_names</span><span class="p">[</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]))</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">pair</span><span class="p">)</span> <span class="k">for</span> <span class="n">pair</span> <span class="ow">in</span> <span class="n">single_bond_ids</span><span class="p">)</span>
@@ -936,6 +1008,9 @@
         <span class="n">partial_charges</span><span class="o">=</span><span class="n">authoritative_q</span><span class="p">,</span>
         <span class="n">skip_protonation</span><span class="o">=</span><span class="n">authoritative_q</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">original_single_bonds</span><span class="o">=</span><span class="n">original_single_bonds</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">source_atom_order</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span>
+            <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">element</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">elements</span><span class="p">)</span> <span class="k">if</span> <span class="n">element</span> <span class="o">!=</span> <span class="s2">"H"</span>
+        <span class="p">),</span>
     <span class="p">)</span>
 
 
