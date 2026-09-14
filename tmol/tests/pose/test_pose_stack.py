@@ -110,6 +110,18 @@ def test_round_trip_irregular_pose_stack_and_split(
         for i in range(n_poses)
     ]
     pose_stack = PoseStackBuilder.from_poses(poses, torch_device)
+    # Legacy constructor inputs and structural copies share one authoritative
+    # connectivity tensor; an int64 view is derived only when requested.
+    legacy = attrs.evolve(
+        pose_stack, inter_block_bondsep64=pose_stack.inter_block_bondsep64
+    ).clone()
+    torch.testing.assert_close(
+        legacy.inter_block_bondsep64, pose_stack.inter_block_bondsep64
+    )
+    assert (
+        legacy.inter_block_bondsep.data_ptr()
+        != pose_stack.inter_block_bondsep.data_ptr()
+    )
     for i in range(n_poses):
         split_pose_stack = pose_stack.split(i)
         assert split_pose_stack.n_poses == 1
