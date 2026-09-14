@@ -482,7 +482,9 @@
 <span class="sd">    connectivity cannot be guessed, so a multi-atom component with no authored</span>
 <span class="sd">    bonds is left out for the caller to resolve another way.</span>
 <span class="sd">    """</span>
-    <span class="n">cif</span> <span class="o">=</span> <span class="n">pdbx</span><span class="o">.</span><span class="n">CIFFile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">cif_path</span><span class="p">))</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.io_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_any</span>
+
+    <span class="n">cif</span> <span class="o">=</span> <span class="n">read_any</span><span class="p">(</span><span class="n">cif_path</span><span class="p">)</span>
     <span class="n">entries</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">cif</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
         <span class="n">entries</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">component_chemistry_from_block</span><span class="p">(</span><span class="n">block</span><span class="p">))</span>
