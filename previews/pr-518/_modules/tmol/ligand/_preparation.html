@@ -521,19 +521,33 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_conjugate_params</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">param_db</span><span class="p">,</span> <span class="n">ph</span><span class="p">):</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._conjugate_context</span><span class="w"> </span><span class="kn">import</span> <span class="n">contextual_conjugate_types</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._local_conjugate_params</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">ConjugateContextConflict</span><span class="p">,</span>
         <span class="n">generate_conjugate_parameters</span><span class="p">,</span>
         <span class="n">install_conjugate_parameters</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">bonds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">param_db</span><span class="p">,</span> <span class="p">(),</span> <span class="p">()</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="n">generate_conjugate_parameters</span><span class="p">(</span>
-        <span class="n">atom_array</span><span class="p">,</span>
-        <span class="n">param_db</span><span class="p">,</span>
-        <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span>
-        <span class="n">existing</span><span class="o">=</span><span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">cartbonded</span><span class="o">.</span><span class="n">connection_params</span><span class="p">,</span>
-    <span class="p">)</span>
+    <span class="n">models</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">generate_conjugate_parameters</span><span class="p">(</span>
+                <span class="n">atom_array</span><span class="p">,</span>
+                <span class="n">param_db</span><span class="p">,</span>
+                <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span>
+                <span class="n">existing</span><span class="o">=</span><span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">cartbonded</span><span class="o">.</span><span class="n">connection_params</span><span class="p">,</span>
+                <span class="n">_models</span><span class="o">=</span><span class="n">models</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">break</span>
+        <span class="k">except</span> <span class="n">ConjugateContextConflict</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">extended</span><span class="p">,</span> <span class="n">models</span> <span class="o">=</span> <span class="n">contextual_conjugate_types</span><span class="p">(</span>
+                <span class="n">atom_array</span><span class="p">,</span> <span class="n">param_db</span><span class="p">,</span> <span class="n">error</span><span class="o">.</span><span class="n">residue_name</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">extended</span> <span class="ow">is</span> <span class="n">param_db</span><span class="p">:</span>
+                <span class="k">raise</span>
+            <span class="n">param_db</span> <span class="o">=</span> <span class="n">extended</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">result</span><span class="o">.</span><span class="n">connections</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">param_db</span><span class="p">,</span> <span class="p">(),</span> <span class="p">()</span>
     <span class="n">param_db</span> <span class="o">=</span> <span class="n">install_conjugate_parameters</span><span class="p">(</span><span class="n">param_db</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
@@ -542,7 +556,9 @@
             <span class="n">residue_type</span><span class="o">=</span><span class="n">row</span><span class="o">.</span><span class="n">residue_type</span><span class="p">,</span>
             <span class="n">partial_charges</span><span class="o">=</span><span class="n">row</span><span class="o">.</span><span class="n">partial_charges</span><span class="p">,</span>
             <span class="n">cartbonded_params</span><span class="o">=</span><span class="n">row</span><span class="o">.</span><span class="n">cartbonded_params</span><span class="p">,</span>
-            <span class="n">baseline_sha256</span><span class="o">=</span><span class="n">row</span><span class="o">.</span><span class="n">baseline_sha256</span><span class="p">,</span>
+            <span class="n">baseline_sha256</span><span class="o">=</span><span class="p">(</span>
+                <span class="kc">None</span> <span class="k">if</span> <span class="n">row</span><span class="o">.</span><span class="n">residue_type</span><span class="o">.</span><span class="n">conjugation_context</span> <span class="k">else</span> <span class="n">row</span><span class="o">.</span><span class="n">baseline_sha256</span>
+            <span class="p">),</span>
         <span class="p">)</span>
         <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">residues</span>
     <span class="p">)</span>
@@ -1444,6 +1460,12 @@
     <span class="n">definitions</span> <span class="o">=</span> <span class="p">{</span>
         <span class="n">r</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">chemical_database</span><span class="o">.</span><span class="n">residues</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">r</span><span class="o">.</span><span class="n">base_name</span>
     <span class="p">}</span>
+    <span class="n">prepared_sites</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">io_equiv_class</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">atom</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">chemical_database</span><span class="o">.</span><span class="n">residues</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">connections</span>
+        <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"conj_"</span><span class="p">)</span>
+    <span class="p">}</span>
     <span class="n">disulfides</span> <span class="o">=</span> <span class="p">{</span>
         <span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">io_equiv_class</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">atom</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">definitions</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
@@ -1468,6 +1490,8 @@
     <span class="n">sites</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">endpoints</span><span class="p">:</span>
         <span class="n">name</span><span class="p">,</span> <span class="n">atom</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">index</span><span class="p">]),</span> <span class="nb">str</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">atom_name</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">atom</span><span class="p">)</span> <span class="ow">in</span> <span class="n">prepared_sites</span><span class="p">:</span>
+            <span class="k">continue</span>
         <span class="n">residue</span> <span class="o">=</span> <span class="n">definitions</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">residue</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">atom</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="n">c</span><span class="o">.</span><span class="n">atom</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">residue</span><span class="o">.</span><span class="n">connections</span><span class="p">}:</span>
             <span class="n">sites</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">atom</span><span class="p">)</span>
