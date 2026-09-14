@@ -1,7 +1,7 @@
 Build an interface for your model
 =================================
 
-Run `Example 02: model inputs <https://colab.research.google.com/github/kierandidi/tmol/blob/review/pr503-chemistry-efficiency/notebooks/example_02_model_inputs.ipynb>`_
+Run `Example 02: model inputs <https://colab.research.google.com/github/uw-ipd/tmol/blob/ae1d35c6ecd243bdeba84d83ee3ce49e7254de81/notebooks/example_02_model_inputs.ipynb>`_
 in Colab, or open ``notebooks/example_02_model_inputs.ipynb`` locally. It includes
 installation, both editable adapters, saved predictions, score/gradient checks
 and a repeated-guidance loop. The notebook is the executable source for this tutorial.
