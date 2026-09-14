@@ -12,16 +12,36 @@ each coordinate batch and optimizes hydrogens by default.
 
 Use :func:`tmol.io.atom_array_from_file` or
 :func:`tmol.io.pose_stack_from_file` for PDB, CIF, compressed CIF and binary CIF.
-These share AtomWorks parsing, chemical annotations and NaN completion with the
-annotated-array input path. Set ``prepare_ligands=True`` for general chemistry
-and ``return_context=True`` to retain the resulting parameter database for scoring
-or repeated construction. PDB cannot embed custom component definitions; use CIF
-when residue names need file-specific chemical definitions.
+The reader options are ``model``, ``assembly_id`` and ``use_ccd``. Reading preserves
+supplied names, coordinates, hydrogens and covalent bonds; declared unresolved
+heavy atoms carry NaN coordinates. ``use_ccd=False`` disables dictionary lookup,
+including for PDB and custom residue names. Missing chemistry is allowed at this
+stage.
+
+Known residues need only names and coordinates. Pass an existing ``param_db`` or
+load prepared ``ligand_params_files`` to reuse ligand parameters with a coordinate-only
+PDB/CIF. With ``prepare_ligands=True``, pose preparation generates only missing
+parameters and reports the residue name when required bond orders are absent.
+Use ``return_context=True`` to retain the resulting parameter database for scoring
+and repeated construction. Direct AtomArray inputs follow the same contract.
+
+.. code-block:: python
+
+   # Reuse known chemistry; the PDB needs only matching names and coordinates.
+   pose = pose_stack_from_file(
+       "complex.pdb", device, use_ccd=False,
+       ligand_params_files=["ligand.tmol"],
+   )
+   # Prepare missing chemistry once, then reuse context.parameter_database.
+   pose, context = pose_stack_from_file(
+       "complex.cif", device, prepare_ligands=True, return_context=True,
+   )
 
 :func:`tmol.io.pose_stack_from_pdb` accepts paths, text and lists of lines through
-the same file path. It preserves supplied hydrogen coordinates and disables
-hydrogen optimization by default; CIF/file entry points default to rebuilding
-hydrogens. Set ``hydrogen_policy`` and ``no_optH`` explicitly when comparing files.
+the same file path. File and AtomArray inputs preserve matching supplied coordinates.
+Pose construction optimizes hydrogens by default; the PDB compatibility wrapper
+sets ``no_optH=True``. ``trust_hydrogen_names`` controls whether regenerated ligand
+hydrogen names are compatible with supplied coordinates.
 Low-level PDB atom-record/DataFrame utilities retain their canonical-only contract.
 
 .. automodule:: tmol.io
