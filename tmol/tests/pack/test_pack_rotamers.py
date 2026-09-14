@@ -62,7 +62,7 @@ def setup_pose_stack_and_task(poses, torch_device, dun_sampler):
 
 
 def build_packer_energy_tables(
-    pose_stack, rotamer_set, sfxn, chunk_size=16, raw_entries=False
+    pose_stack, rotamer_set, sfxn, chunk_size=16, raw_entries=False, bump_check=True
 ):
     pbt = pose_stack.packed_block_types
     rotamer_scoring_module = sfxn.render_rotamer_scoring_module(pose_stack, rotamer_set)
@@ -93,7 +93,7 @@ def build_packer_energy_tables(
         chunk_pair_offset,
         energy2b,
     ) = build_interaction_graph(
-        True,
+        bump_check,
         chunk_size,
         pbt.n_types,
         rotamer_set.n_rots_for_pose,
@@ -265,8 +265,9 @@ def test_pack_rotamers(
     )
 
 
+@pytest.mark.parametrize("bump_check", [False, True])
 def test_raw_rotamer_entries_match_coalesced_interaction_graph(
-    default_database, ubq_pdb, dun_sampler, torch_device
+    default_database, ubq_pdb, dun_sampler, torch_device, bump_check
 ):
     if torch_device.type != "cuda":
         pytest.skip("raw duplicate accumulation requires CUDA atomics")
@@ -278,8 +279,12 @@ def test_raw_rotamer_entries_match_coalesced_interaction_graph(
     pose_stack, rotamer_set = build_rotamers(
         pose_stack, task, pose_stack.packed_block_types.chem_db
     )
-    coalesced = build_packer_energy_tables(pose_stack, rotamer_set, sfxn)
-    raw = build_packer_energy_tables(pose_stack, rotamer_set, sfxn, raw_entries=True)
+    coalesced = build_packer_energy_tables(
+        pose_stack, rotamer_set, sfxn, bump_check=bump_check
+    )
+    raw = build_packer_energy_tables(
+        pose_stack, rotamer_set, sfxn, raw_entries=True, bump_check=bump_check
+    )
 
     for coalesced_tensor, raw_tensor in zip(coalesced[:-1], raw[:-1]):
         torch.testing.assert_close(coalesced_tensor, raw_tensor)
