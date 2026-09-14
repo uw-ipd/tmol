@@ -581,7 +581,8 @@
 <span class="sd">    be told the difference.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        cif_path: Path to an mmCIF file.</span>
+<span class="sd">        cif_path: Structure path or buffer supported by AtomWorks (PDB, CIF,</span>
+<span class="sd">            compressed CIF or binary CIF). PDB chemical identities use the CCD.</span>
 <span class="sd">        model: Which model to read.</span>
 <span class="sd">        assembly_id: Biological assembly ID, or None for the asymmetric unit.</span>
 <span class="sd">            AtomWorks applies the file's assembly operations. Assembly chain IDs</span>
@@ -660,6 +661,10 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">include_bonds</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">array</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">use_ccd</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">block</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"PDB has no embedded chemical definitions; use_ccd=False requires CIF"</span>
+            <span class="p">)</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.ccd</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_ccd_entries_from_cif_block</span>
 
         <span class="n">array</span><span class="o">.</span><span class="n">_custom_ccd_registry</span> <span class="o">=</span> <span class="n">build_ccd_entries_from_cif_block</span><span class="p">(</span>
@@ -697,7 +702,7 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_with_component_type_annotation</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">block</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Carry declared component types from the already parsed CIF into preparation."""</span>
-    <span class="k">if</span> <span class="s2">"chem_comp"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">block</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">block</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s2">"chem_comp"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">block</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">array</span>
     <span class="n">category</span> <span class="o">=</span> <span class="n">block</span><span class="p">[</span><span class="s2">"chem_comp"</span><span class="p">]</span>
     <span class="k">if</span> <span class="s2">"id"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">category</span> <span class="ow">or</span> <span class="s2">"type"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">category</span><span class="p">:</span>
@@ -731,6 +736,12 @@
 <span class="sd">    read directly.</span>
 <span class="sd">    """</span>
     <span class="n">categories</span> <span class="o">=</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">get_annotation_categories</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">block</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">"is_polymer"</span> <span class="ow">in</span> <span class="n">categories</span><span class="p">:</span>
+            <span class="n">atom_array</span><span class="o">.</span><span class="n">set_annotation</span><span class="p">(</span>
+                <span class="s2">"tmol_polymer_entity"</span><span class="p">,</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">is_polymer</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">atom_array</span>
     <span class="k">if</span> <span class="s2">"label_entity_id"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">categories</span> <span class="ow">or</span> <span class="s2">"entity"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">block</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">atom_array</span>
     <span class="n">entity</span> <span class="o">=</span> <span class="n">block</span><span class="p">[</span><span class="s2">"entity"</span><span class="p">]</span>
@@ -937,9 +948,11 @@
     <span class="n">use_ccd</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">reader</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"tmol"</span><span class="p">,</span>
     <span class="n">hydrogen_policy</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"rebuild"</span><span class="p">,</span>
+    <span class="n">residue_start</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">residue_end</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Construct a PoseStack from an mmCIF file.</span>
+<span class="w">    </span><span class="sd">"""Construct a PoseStack from a PDB, CIF or binary/compressed CIF structure.</span>
 
 <span class="sd">    Reads the structure with :func:`atom_array_from_cif`, so the residues carry</span>
 <span class="sd">    every atom their chemistry declares and the unresolved ones arrive at NaN</span>
@@ -956,6 +969,10 @@
         <span class="n">reader</span><span class="o">=</span><span class="n">reader</span><span class="p">,</span>
         <span class="n">hydrogen_policy</span><span class="o">=</span><span class="n">hydrogen_policy</span><span class="p">,</span>
     <span class="p">)</span>
+    <span class="k">if</span> <span class="n">residue_start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">residue_end</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">boundaries</span> <span class="o">=</span> <span class="n">struc</span><span class="o">.</span><span class="n">get_residue_starts</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">add_exclusive_stop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">residue_start</span><span class="p">,</span> <span class="n">residue_end</span><span class="p">)</span><span class="o">.</span><span class="n">indices</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">boundaries</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">array</span> <span class="o">=</span> <span class="n">array</span><span class="p">[</span><span class="n">boundaries</span><span class="p">[</span><span class="n">start</span><span class="p">]</span> <span class="p">:</span> <span class="n">boundaries</span><span class="p">[</span><span class="n">stop</span><span class="p">]]</span>
     <span class="k">return</span> <span class="n">pose_stack_from_biotite</span><span class="p">(</span>
         <span class="n">array</span><span class="p">,</span>
         <span class="n">device</span><span class="p">,</span>
@@ -963,6 +980,10 @@
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span></div>
 
+
+
+<span class="n">atom_array_from_file</span> <span class="o">=</span> <span class="n">atom_array_from_cif</span>
+<span class="n">pose_stack_from_file</span> <span class="o">=</span> <span class="n">pose_stack_from_cif</span>
 </pre></div>
 
                 </article>
