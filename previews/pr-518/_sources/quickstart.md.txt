@@ -71,15 +71,9 @@ import biotite.structure as struc
 import biotite.structure.io
 
 from tmol.database import ParameterDatabase
-from tmol.io import pose_stack_from_biotite
+from tmol.io import atom_array_from_file, pose_stack_from_biotite
 
-structure = biotite.structure.io.load_structure(
-    "complex.cif",
-    model=1,
-    include_bonds=True,
-)
-if isinstance(structure, struc.AtomArrayStack):
-    structure = structure[0]
+structure = atom_array_from_file("complex.cif")
 
 pose_stack, context = pose_stack_from_biotite(
     structure,
