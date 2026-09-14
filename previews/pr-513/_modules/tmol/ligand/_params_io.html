@@ -471,9 +471,9 @@
     <span class="k">return</span> <span class="mi">0</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_has_generic_references</span><span class="p">(</span><span class="n">residue_types</span><span class="p">,</span> <span class="n">patches</span><span class="o">=</span><span class="p">()):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_has_atom_references</span><span class="p">(</span><span class="n">residue_types</span><span class="p">,</span> <span class="n">patches</span><span class="o">=</span><span class="p">()):</span>
     <span class="k">return</span> <span class="nb">any</span><span class="p">(</span>
-        <span class="n">atom</span><span class="o">.</span><span class="n">genbonded_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="n">atom</span><span class="o">.</span><span class="n">genbonded_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">atom</span><span class="o">.</span><span class="n">cartbonded_reference</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="k">for</span> <span class="n">atoms</span> <span class="ow">in</span> <span class="p">(</span>
             <span class="o">*</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">atoms</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">residue_types</span><span class="p">),</span>
             <span class="o">*</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">add_atoms</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">modify_atoms</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">patches</span><span class="p">),</span>
@@ -495,8 +495,10 @@
 <span class="sd">        partial_charges: Optional per-atom partial charges. Keys are atom</span>
 <span class="sd">            names matching restype.atoms[i].name.</span>
 <span class="sd">    """</span>
-    <span class="k">if</span> <span class="n">_has_generic_references</span><span class="p">((</span><span class="n">restype</span><span class="p">,)):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Rosetta .params cannot preserve genbonded_type; use .tmol"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">_has_atom_references</span><span class="p">((</span><span class="n">restype</span><span class="p">,)):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"Rosetta .params cannot preserve genbonded_type or cartbonded_reference; use .tmol"</span>
+        <span class="p">)</span>
     <span class="n">lines</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"NAME </span><span class="si">{</span><span class="n">restype</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
@@ -771,7 +773,7 @@
     <span class="k">return</span> <span class="n">_FlowDict</span><span class="p">(</span>
         <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">key</span> <span class="o">!=</span> <span class="s2">"genbonded_type"</span> <span class="ow">or</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"genbonded_type"</span><span class="p">,</span> <span class="s2">"cartbonded_reference"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
     <span class="p">)</span>
 
 
@@ -861,7 +863,7 @@
     <span class="k">if</span> <span class="n">atom_type_elements</span><span class="p">:</span>
         <span class="n">chemical</span><span class="p">[</span><span class="s2">"atom_type_elements"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">atom_type_elements</span><span class="p">)</span>
 
-    <span class="n">has_generic_references</span> <span class="o">=</span> <span class="n">_has_generic_references</span><span class="p">(</span><span class="n">residue_types</span><span class="p">,</span> <span class="n">patches</span> <span class="ow">or</span> <span class="p">())</span>
+    <span class="n">has_generic_references</span> <span class="o">=</span> <span class="n">_has_atom_references</span><span class="p">(</span><span class="n">residue_types</span><span class="p">,</span> <span class="n">patches</span> <span class="ow">or</span> <span class="p">())</span>
     <span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s2">"version"</span><span class="p">:</span> <span class="p">(</span>
             <span class="s2">"5.0"</span>
@@ -944,12 +946,12 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">"Rosetta .params cannot preserve replacement baselines; use .tmol"</span>
             <span class="p">)</span>
-        <span class="k">if</span> <span class="n">_has_generic_references</span><span class="p">(</span>
+        <span class="k">if</span> <span class="n">_has_atom_references</span><span class="p">(</span>
             <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">residue_type</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">preps</span><span class="p">),</span>
             <span class="p">(</span><span class="n">patch</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">preps</span> <span class="k">for</span> <span class="n">patch</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">adds_patches</span><span class="p">),</span>
         <span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">"Rosetta .params cannot preserve genbonded_type; use .tmol"</span>
+                <span class="s2">"Rosetta .params cannot preserve genbonded_type or cartbonded_reference; use .tmol"</span>
             <span class="p">)</span>
         <span class="k">if</span> <span class="n">is_list</span><span class="p">:</span>
             <span class="n">out_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
