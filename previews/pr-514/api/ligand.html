@@ -787,7 +787,9 @@ CIF atom names via the atom-order map carried through the round-trip.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>cif_path</strong> – Path to the ligand CIF file.</p></li>
+<li><p><strong>cif_path</strong> – One ligand residue in a text, compressed or binary CIF file;
+the first model is selected. Use <a class="reference internal" href="#tmol.ligand.prepare_ligands" title="tmol.ligand.prepare_ligands"><code class="xref py py-func docutils literal notranslate"><span class="pre">prepare_ligands()</span></code></a> for arrays
+containing multiple residues.</p></li>
 <li><p><strong>param_db</strong> – Base database (not modified); defaults to the tmol default.</p></li>
 <li><p><strong>ph</strong> – Target pH for protonation.</p></li>
 <li><p><strong>strict_atom_types</strong> – Fail on unknown atom-type element mappings.</p></li>

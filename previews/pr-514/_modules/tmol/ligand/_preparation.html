@@ -2007,31 +2007,20 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_ligand_info_from_cif</span><span class="p">(</span>
     <span class="n">cif_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NonStandardResidueInfo</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Read a ligand CIF file into a :class:`NonStandardResidueInfo`.</span>
+<span class="w">    </span><span class="sd">"""Read one ligand through the shared format, identity and completion path."""</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_array_from_cif</span>
 
-<span class="sd">    Loads the atom array (with the ``_chem_comp_bond`` table when present),</span>
-<span class="sd">    atom names, and elements. Bond orders/chemistry are intentionally *not*</span>
-<span class="sd">    trusted here — they are re-derived as a SMILES by the unified path; this</span>
-<span class="sd">    only needs connectivity (for graph matching) and CIF atom names/coords.</span>
-<span class="sd">    """</span>
-    <span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure.io.pdbx</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pdbx</span>
-
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._detect</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_chem_comp_type</span>
-
-    <span class="n">cif</span> <span class="o">=</span> <span class="n">pdbx</span><span class="o">.</span><span class="n">CIFFile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">cif_path</span><span class="p">))</span>
-    <span class="n">arr</span> <span class="o">=</span> <span class="n">pdbx</span><span class="o">.</span><span class="n">get_structure</span><span class="p">(</span><span class="n">cif</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">include_bonds</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">extra_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">"charge"</span><span class="p">])</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">):</span>
-        <span class="n">arr</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-
-    <span class="n">atom_site</span> <span class="o">=</span> <span class="n">cif</span><span class="o">.</span><span class="n">block</span><span class="p">[</span><span class="s2">"atom_site"</span><span class="p">]</span>
-    <span class="n">atom_names</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">atom_site</span><span class="p">[</span><span class="s2">"label_atom_id"</span><span class="p">]</span><span class="o">.</span><span class="n">as_array</span><span class="p">()]</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">atom_array_from_cif</span><span class="p">(</span><span class="n">cif_path</span><span class="p">,</span> <span class="n">use_ccd</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">hydrogen_policy</span><span class="o">=</span><span class="s2">"preserve"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">struc</span><span class="o">.</span><span class="n">get_residue_count</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Single-ligand preparation requires exactly one residue"</span><span class="p">)</span>
     <span class="n">resolved</span> <span class="o">=</span> <span class="p">(</span><span class="n">res_name</span> <span class="ow">or</span> <span class="nb">str</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-    <span class="n">arr</span><span class="o">.</span><span class="n">res_name</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">resolved</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">arr</span><span class="o">.</span><span class="n">res_name</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">component_type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="s2">"chem_comp_type"</span><span class="p">,</span> <span class="p">[</span><span class="s2">"UNKNOWN"</span><span class="p">])[</span><span class="mi">0</span><span class="p">])</span> <span class="ow">or</span> <span class="s2">"UNKNOWN"</span>
+    <span class="n">arr</span><span class="o">.</span><span class="n">res_name</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">),</span> <span class="n">resolved</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">NonStandardResidueInfo</span><span class="p">(</span>
         <span class="n">res_name</span><span class="o">=</span><span class="n">resolved</span><span class="p">,</span>
-        <span class="n">component_type</span><span class="o">=</span><span class="n">get_chem_comp_type</span><span class="p">(</span><span class="n">resolved</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"UNKNOWN"</span><span class="p">,</span>
-        <span class="n">atom_names</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">atom_names</span><span class="p">),</span>
+        <span class="n">component_type</span><span class="o">=</span><span class="n">component_type</span><span class="p">,</span>
+        <span class="n">atom_names</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">arr</span><span class="o">.</span><span class="n">atom_name</span><span class="p">),</span>
         <span class="n">elements</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">arr</span><span class="o">.</span><span class="n">element</span><span class="p">),</span>
         <span class="n">coords</span><span class="o">=</span><span class="n">arr</span><span class="o">.</span><span class="n">coord</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
         <span class="n">atom_array</span><span class="o">=</span><span class="n">arr</span><span class="p">,</span>
@@ -2077,7 +2066,9 @@
 <span class="sd">    CIF atom names via the atom-order map carried through the round-trip.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        cif_path: Path to the ligand CIF file.</span>
+<span class="sd">        cif_path: One ligand residue in a text, compressed or binary CIF file;</span>
+<span class="sd">            the first model is selected. Use :func:`prepare_ligands` for arrays</span>
+<span class="sd">            containing multiple residues.</span>
 <span class="sd">        param_db: Base database (not modified); defaults to the tmol default.</span>
 <span class="sd">        ph: Target pH for protonation.</span>
 <span class="sd">        strict_atom_types: Fail on unknown atom-type element mappings.</span>
