@@ -463,6 +463,7 @@ def _build_streaming_interaction_graph(
         finalize_interaction_graph_topology,
         initialize_interaction_graph_topology,
         note_interaction_graph_topology,
+        resize_interaction_graph_topology,
     )
 
     (
@@ -507,11 +508,12 @@ def _build_streaming_interaction_graph(
     )
     (
         block_adjacency,
-        chunk_adjacency,
+        chunk_pair_keys,
         orig_block_to_molten,
         molten_block_chunk_offset,
         n_chunks_per_pose,
-        pose_chunk_bitset_offset,
+        pose_global_chunk_offset,
+        hash_overflow,
     ) = topology
 
     # Pass one records only topology. Disabling dispatch retention bounds live
@@ -519,20 +521,34 @@ def _build_streaming_interaction_graph(
     for _, indices, values in rotamer_scoring_module._iter_weighted_sparse_entries(
         coords, retain_shared_dispatch=False
     ):
-        block_adjacency, chunk_adjacency = note_interaction_graph_topology(
-            chunk_size,
-            n_rots_for_block,
-            rot_offset_for_block,
-            block_ind_for_rot,
-            orig_block_to_molten,
-            molten_block_chunk_offset,
-            n_chunks_per_pose,
-            pose_chunk_bitset_offset,
-            block_adjacency,
-            chunk_adjacency,
-            indices,
-            values,
-        )
+        while True:
+            hash_overflow.zero_()
+            (
+                block_adjacency,
+                chunk_pair_keys,
+                hash_overflow,
+            ) = note_interaction_graph_topology(
+                chunk_size,
+                n_rots_for_block,
+                rot_offset_for_block,
+                block_ind_for_rot,
+                orig_block_to_molten,
+                molten_block_chunk_offset,
+                n_chunks_per_pose,
+                pose_global_chunk_offset,
+                block_adjacency,
+                chunk_pair_keys,
+                hash_overflow,
+                indices,
+                values,
+            )
+            if not hash_overflow.item():
+                break
+            chunk_pair_keys = resize_interaction_graph_topology(
+                chunk_pair_keys,
+                chunk_pair_keys.numel() * 2,
+                values,
+            )
         del indices, values
 
     (
@@ -546,12 +562,12 @@ def _build_streaming_interaction_graph(
         base[4],
         molten_block_chunk_offset,
         n_chunks_per_pose,
-        pose_chunk_bitset_offset,
+        pose_global_chunk_offset,
         block_adjacency,
-        chunk_adjacency,
+        chunk_pair_keys,
         empty_values,
     )
-    del topology, block_adjacency, chunk_adjacency
+    del topology, block_adjacency, chunk_pair_keys
 
     # Pass two adds terms in the same canonical order. Native accumulation is
     # additive, preserving duplicate coordinates and CSR transpose symmetry.

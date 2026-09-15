@@ -147,7 +147,8 @@ std::vector<Tensor> initialize_interaction_graph_topology(
             std::get<2>(topology).tensor,
             std::get<3>(topology).tensor,
             std::get<4>(topology).tensor,
-            std::get<5>(topology).tensor};
+            std::get<5>(topology).tensor,
+            std::get<6>(topology).tensor};
       }));
   return result;
 }
@@ -160,9 +161,10 @@ std::vector<Tensor> note_interaction_graph_topology(
     Tensor orig_block_to_molten,
     Tensor molten_block_chunk_offset,
     Tensor n_chunks_per_pose,
-    Tensor pose_chunk_bitset_offset,
+    Tensor pose_global_chunk_offset,
     Tensor block_adjacency,
-    Tensor chunk_adjacency,
+    Tensor chunk_pair_keys,
+    Tensor hash_overflow,
     Tensor sparse_inds,
     Tensor energy_template) {
   TMOL_DISPATCH_FLOATING_DEVICE(
@@ -182,12 +184,33 @@ std::vector<Tensor> note_interaction_graph_topology(
                 TCAST(orig_block_to_molten),
                 TCAST(molten_block_chunk_offset),
                 TCAST(n_chunks_per_pose),
-                TCAST(pose_chunk_bitset_offset),
+                TCAST(pose_global_chunk_offset),
                 TCAST(block_adjacency),
-                TCAST(chunk_adjacency),
+                TCAST(chunk_pair_keys),
+                TCAST(hash_overflow),
                 TCAST(sparse_inds));
       }));
-  return {block_adjacency, chunk_adjacency};
+  return {block_adjacency, chunk_pair_keys, hash_overflow};
+}
+
+Tensor resize_interaction_graph_topology(
+    Tensor old_chunk_pair_keys,
+    int64_t const new_capacity,
+    Tensor energy_template) {
+  Tensor result;
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      energy_template.options(), "pack_resize_ig_topology", ([&] {
+        constexpr tmol::Device Dev = device_t;
+        result = StreamingInteractionGraph<
+                     score::common::DeviceOperations,
+                     Dev,
+                     scalar_t,
+                     int64_t>::
+                     resize_chunk_pair_keys(
+                         mgr, TCAST(old_chunk_pair_keys), new_capacity)
+                         .tensor;
+      }));
+  return result;
 }
 
 std::vector<Tensor> finalize_interaction_graph_topology(
@@ -195,9 +218,9 @@ std::vector<Tensor> finalize_interaction_graph_topology(
     Tensor n_bc_rots_for_molten_block,
     Tensor molten_block_chunk_offset,
     Tensor n_chunks_per_pose,
-    Tensor pose_chunk_bitset_offset,
+    Tensor pose_global_chunk_offset,
     Tensor block_adjacency,
-    Tensor chunk_adjacency,
+    Tensor chunk_pair_keys,
     Tensor energy_template) {
   std::vector<Tensor> result;
   TMOL_DISPATCH_FLOATING_DEVICE(
@@ -214,9 +237,9 @@ std::vector<Tensor> finalize_interaction_graph_topology(
                 TCAST(n_bc_rots_for_molten_block),
                 TCAST(molten_block_chunk_offset),
                 TCAST(n_chunks_per_pose),
-                TCAST(pose_chunk_bitset_offset),
+                TCAST(pose_global_chunk_offset),
                 TCAST(block_adjacency),
-                TCAST(chunk_adjacency));
+                TCAST(chunk_pair_keys));
         result = {
             std::get<0>(topology).tensor,
             std::get<1>(topology).tensor,
@@ -392,6 +415,8 @@ TORCH_LIBRARY(tmol_pack, m) {
       "initialize_interaction_graph_topology",
       &initialize_interaction_graph_topology);
   m.def("note_interaction_graph_topology", &note_interaction_graph_topology);
+  m.def(
+      "resize_interaction_graph_topology", &resize_interaction_graph_topology);
   m.def(
       "finalize_interaction_graph_topology",
       &finalize_interaction_graph_topology);

@@ -7,5 +7,6 @@ from ._compiled import (  # noqa: F401
     initialize_interaction_graph_topology,
     note_interaction_graph_topology,
     pack_anneal,
+    resize_interaction_graph_topology,
     validate_energies,
 )

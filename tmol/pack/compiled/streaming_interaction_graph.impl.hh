@@ -1,5 +1,8 @@
 #pragma once
 
+#include <algorithm>
+#include <cstdint>
+
 #include <moderngpu/operators.hxx>
 
 #include <tmol/score/common/accumulate.hh>
@@ -24,11 +27,12 @@ auto StreamingInteractionGraph<DeviceDispatch, D, Real, Int>::initialize(
     TView<Int, 2, D> n_bc_rots_for_molten_block)
     -> std::tuple<
         TPack<int32_t, 3, D>,
-        TPack<int32_t, 1, D>,
+        TPack<int64_t, 1, D>,
         TPack<int64_t, 2, D>,
         TPack<int64_t, 2, D>,
         TPack<int64_t, 1, D>,
-        TPack<int64_t, 1, D>> {
+        TPack<int64_t, 1, D>,
+        TPack<int32_t, 1, D>> {
   int const n_poses = n_rots_for_block.size(0);
   int const max_n_blocks = n_rots_for_block.size(1);
   int const max_n_molten_blocks = n_bc_rots_for_molten_block.size(1);
@@ -63,32 +67,35 @@ auto StreamingInteractionGraph<DeviceDispatch, D, Real, Int>::initialize(
   });
   DeviceDispatch<D>::template forall<launch_t>(mgr, n_poses, initialize_pose);
 
-  auto n_chunk_words_per_pose_tp = TPack<int64_t, 1, D>::zeros({n_poses});
-  auto n_chunk_words_per_pose = n_chunk_words_per_pose_tp.view;
-  auto count_chunk_words = ([=] TMOL_DEVICE_FUNC(int pose) {
-    int64_t const n_chunks = n_chunks_per_pose[pose];
-    n_chunk_words_per_pose[pose] = (n_chunks * n_chunks + 31) / 32;
-  });
-  DeviceDispatch<D>::template forall<launch_t>(mgr, n_poses, count_chunk_words);
-
-  auto pose_chunk_bitset_offset_tp = TPack<int64_t, 1, D>::zeros({n_poses});
-  auto pose_chunk_bitset_offset = pose_chunk_bitset_offset_tp.view;
-  int64_t const n_chunk_words =
+  auto pose_global_chunk_offset_tp = TPack<int64_t, 1, D>::zeros({n_poses});
+  auto pose_global_chunk_offset = pose_global_chunk_offset_tp.view;
+  int64_t const n_chunks_total =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
           mgr,
-          n_chunk_words_per_pose.data(),
-          pose_chunk_bitset_offset.data(),
+          n_chunks_per_pose.data(),
+          pose_global_chunk_offset.data(),
           n_poses,
           mgpu::plus_t<int64_t>());
-  auto chunk_adjacency_tp = TPack<int32_t, 1, D>::zeros({n_chunk_words});
+  score::common::checked_dispatch_size(
+      n_chunks_total, "streaming interaction-graph chunk indexing");
+  int64_t hash_capacity = 1024;
+  int64_t const initial_target =
+      std::max<int64_t>(1024, int64_t(n_poses) * max_n_molten_blocks * 8);
+  while (hash_capacity < initial_target) {
+    hash_capacity *= 2;
+  }
+  auto chunk_pair_keys_tp =
+      TPack<int64_t, 1, D>::full({hash_capacity}, int64_t(-1));
+  auto hash_overflow_tp = TPack<int32_t, 1, D>::zeros({1});
 
   return {
       block_adjacency_tp,
-      chunk_adjacency_tp,
+      chunk_pair_keys_tp,
       orig_block_to_molten_tp,
       molten_block_chunk_offset_tp,
       n_chunks_per_pose_tp,
-      pose_chunk_bitset_offset_tp};
+      pose_global_chunk_offset_tp,
+      hash_overflow_tp};
 }
 
 template <
@@ -105,9 +112,10 @@ void StreamingInteractionGraph<DeviceDispatch, D, Real, Int>::note(
     TView<int64_t, 2, D> orig_block_to_molten,
     TView<int64_t, 2, D> molten_block_chunk_offset,
     TView<int64_t, 1, D> n_chunks_per_pose,
-    TView<int64_t, 1, D> pose_chunk_bitset_offset,
+    TView<int64_t, 1, D> pose_global_chunk_offset,
     TView<int32_t, 3, D> block_adjacency,
-    TView<int32_t, 1, D> chunk_adjacency,
+    TView<int64_t, 1, D> chunk_pair_keys,
+    TView<int32_t, 1, D> hash_overflow,
     TView<int32_t, 2, D> sparse_inds) {
   int64_t const n_entries = sparse_inds.size(1);
   int const n_entries_dispatch = score::common::checked_dispatch_size(
@@ -133,27 +141,73 @@ void StreamingInteractionGraph<DeviceDispatch, D, Real, Int>::note(
     DeviceDispatch<D>::bitwise_or(block_adjacency[pose][molten1][word2], mask2);
     DeviceDispatch<D>::bitwise_or(block_adjacency[pose][molten2][word1], mask1);
 
-    int64_t const chunk1 =
-        molten_block_chunk_offset[pose][molten1]
+    uint64_t chunk1 =
+        pose_global_chunk_offset[pose]
+        + molten_block_chunk_offset[pose][molten1]
         + (rot1 - rot_offset_for_block[pose][block1]) / chunk_size;
-    int64_t const chunk2 =
-        molten_block_chunk_offset[pose][molten2]
+    uint64_t chunk2 =
+        pose_global_chunk_offset[pose]
+        + molten_block_chunk_offset[pose][molten2]
         + (rot2 - rot_offset_for_block[pose][block2]) / chunk_size;
-    int64_t const n_chunks = n_chunks_per_pose[pose];
-    int64_t const bit12 = chunk1 * n_chunks + chunk2;
-    int64_t const bit21 = chunk2 * n_chunks + chunk1;
-    int32_t const chunk_mask12 =
-        int32_t(uint32_t(1) << static_cast<int>(bit12 % 32));
-    int32_t const chunk_mask21 =
-        int32_t(uint32_t(1) << static_cast<int>(bit21 % 32));
-    int64_t const word_offset = pose_chunk_bitset_offset[pose];
-    DeviceDispatch<D>::bitwise_or(
-        chunk_adjacency[word_offset + bit12 / 32], chunk_mask12);
-    DeviceDispatch<D>::bitwise_or(
-        chunk_adjacency[word_offset + bit21 / 32], chunk_mask21);
+    if (chunk2 < chunk1) {
+      uint64_t const tmp = chunk1;
+      chunk1 = chunk2;
+      chunk2 = tmp;
+    }
+    int64_t const key = int64_t((chunk1 << 32) | chunk2);
+    int64_t const capacity = chunk_pair_keys.size(0);
+    uint64_t slot =
+        (uint64_t(key) * 11400714819323198485ull) & uint64_t(capacity - 1);
+    for (int probe = 0; probe < 128; ++probe) {
+      int64_t const prior = DeviceDispatch<D>::compare_exchange(
+          chunk_pair_keys[slot], int64_t(-1), key);
+      if (prior == -1 || prior == key) {
+        return;
+      }
+      slot = (slot + 1) & uint64_t(capacity - 1);
+    }
+    DeviceDispatch<D>::store_idempotent(hash_overflow[0], int32_t(1));
   });
   DeviceDispatch<D>::template forall_independent<launch_t>(
       mgr, n_entries_dispatch, note_entry);
+}
+
+template <
+    template <tmol::Device> class DeviceDispatch,
+    tmol::Device D,
+    typename Real,
+    typename Int>
+TPack<int64_t, 1, D>
+StreamingInteractionGraph<DeviceDispatch, D, Real, Int>::resize_chunk_pair_keys(
+    ContextManager& mgr,
+    TView<int64_t, 1, D> old_chunk_pair_keys,
+    int64_t const new_capacity) {
+  auto new_keys_tp = TPack<int64_t, 1, D>::full({new_capacity}, int64_t(-1));
+  auto new_keys = new_keys_tp.view;
+  LAUNCH_BOX_32;
+  auto rehash = ([=] TMOL_DEVICE_FUNC(int index) {
+    int64_t const key = old_chunk_pair_keys[index];
+    if (key == -1) {
+      return;
+    }
+    uint64_t slot =
+        (uint64_t(key) * 11400714819323198485ull) & uint64_t(new_capacity - 1);
+    while (true) {
+      int64_t const prior =
+          DeviceDispatch<D>::compare_exchange(new_keys[slot], int64_t(-1), key);
+      if (prior == -1 || prior == key) {
+        return;
+      }
+      slot = (slot + 1) & uint64_t(new_capacity - 1);
+    }
+  });
+  DeviceDispatch<D>::template forall_independent<launch_t>(
+      mgr,
+      score::common::checked_dispatch_size(
+          old_chunk_pair_keys.size(0),
+          "streaming interaction-graph hash resize"),
+      rehash);
+  return new_keys_tp;
 }
 
 template <
@@ -167,9 +221,9 @@ auto StreamingInteractionGraph<DeviceDispatch, D, Real, Int>::finalize(
     TView<Int, 2, D> n_bc_rots_for_molten_block,
     TView<int64_t, 2, D> molten_block_chunk_offset,
     TView<int64_t, 1, D> n_chunks_per_pose,
-    TView<int64_t, 1, D> pose_chunk_bitset_offset,
+    TView<int64_t, 1, D> pose_global_chunk_offset,
     TView<int32_t, 3, D> block_adjacency,
-    TView<int32_t, 1, D> chunk_adjacency)
+    TView<int64_t, 1, D> chunk_pair_keys)
     -> std::tuple<
         TPack<int64_t, 1, D>,
         TPack<int32_t, 1, D>,
@@ -190,13 +244,31 @@ auto StreamingInteractionGraph<DeviceDispatch, D, Real, Int>::finalize(
         int32_t const mask = int32_t(uint32_t(1) << (neighbor % 32));
         return (block_adjacency[pose][block][word] & mask) != 0;
       });
-  auto chunks_are_adjacent = ([=] TMOL_DEVICE_FUNC(
-                                  int pose, int64_t chunk1, int64_t chunk2) {
-    int64_t const bit = chunk1 * n_chunks_per_pose[pose] + chunk2;
-    int32_t const mask = int32_t(uint32_t(1) << static_cast<int>(bit % 32));
-    return (chunk_adjacency[pose_chunk_bitset_offset[pose] + bit / 32] & mask)
-           != 0;
-  });
+  auto chunks_are_adjacent =
+      ([=] TMOL_DEVICE_FUNC(int pose, uint64_t chunk1, uint64_t chunk2) {
+        chunk1 += pose_global_chunk_offset[pose];
+        chunk2 += pose_global_chunk_offset[pose];
+        if (chunk2 < chunk1) {
+          uint64_t const tmp = chunk1;
+          chunk1 = chunk2;
+          chunk2 = tmp;
+        }
+        int64_t const key = int64_t((chunk1 << 32) | chunk2);
+        int64_t const capacity = chunk_pair_keys.size(0);
+        uint64_t slot =
+            (uint64_t(key) * 11400714819323198485ull) & uint64_t(capacity - 1);
+        for (int64_t probe = 0; probe < capacity; ++probe) {
+          int64_t const prior = chunk_pair_keys[slot];
+          if (prior == key) {
+            return true;
+          }
+          if (prior == -1) {
+            return false;
+          }
+          slot = (slot + 1) & uint64_t(capacity - 1);
+        }
+        return false;
+      });
 
   auto n_neighbors_for_block_tp =
       TPack<int64_t, 1, D>::zeros({int64_t(n_rows) + 1});
