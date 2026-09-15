@@ -319,6 +319,11 @@ def _try_coalesce_cpu_rotamer_layouts(
     )
 
 
+def _weighted_score_sum(weights: torch.Tensor, scores: torch.Tensor) -> torch.Tensor:
+    """Reduce score lanes without materializing a lane-sized product."""
+    return torch.matmul(weights, scores)
+
+
 class ScoreFunction:
     """Weighted collection of energy terms rendered for a pose topology.
 
@@ -2028,7 +2033,7 @@ class RotamerScoringModule:
                 weighted_values = scores[0]
             else:
                 w = self.weights[weights_offset : weights_offset + n_subterms, 0, 0, 0]
-                weighted_values = (w[:, None] * scores).sum(dim=0)
+                weighted_values = _weighted_score_sum(w, scores)
 
             # Several terms share the same block-pair dispatch. Pointer
             # identity is free to check at every size; reserve the device-wide
