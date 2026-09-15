@@ -279,6 +279,74 @@ def test_streaming_graph_resizes_sparse_chunk_topology(torch_device):
             assert torch.equal(actual, expected)
 
 
+def common_endpoint_collision_graph(device):
+    """Build a graph whose chunk-pair keys share their low 32 bits."""
+    counts = [[2] * 130]
+    metadata = graph_metadata(counts, device)
+    common_block = 129
+    common_rot = int(metadata[3][0, common_block])
+    entries = [
+        (0, int(metadata[3][0, block]), common_rot) for block in range(common_block)
+    ]
+    indices = torch.tensor(entries, dtype=torch.int32, device=device).T.contiguous()
+    values = torch.arange(1, len(entries) + 1, dtype=torch.float32, device=device)
+
+    empty_values = torch.empty(0, dtype=torch.float32, device=device)
+    base = build_interaction_graph(
+        False,
+        32,
+        1,
+        *metadata,
+        torch.empty((3, 0), dtype=torch.int32, device=device),
+        empty_values,
+        False,
+    )
+    topology = list(
+        initialize_interaction_graph_topology(32, metadata[2], base[4], empty_values)
+    )
+    topology[0], topology[1], topology[6] = note_interaction_graph_topology(
+        32,
+        metadata[2],
+        metadata[3],
+        metadata[6],
+        topology[2],
+        topology[3],
+        topology[4],
+        topology[5],
+        topology[0],
+        topology[1],
+        topology[6],
+        indices,
+        values,
+    )
+    graph = staged_graph(metadata, [(indices, values)], chunk_size=32)
+    return graph, topology
+
+
+def test_streaming_graph_hashes_both_chunk_endpoints(torch_device):
+    """Avoid power-of-two growth for more than 128 common-endpoint keys."""
+    graph, topology = common_endpoint_collision_graph(torch_device)
+
+    assert topology[6].item() == 0
+    assert topology[1].numel() == 2048
+    assert (topology[1] != -1).sum().item() == 129
+    assert graph[15].numel() == 129 * 2 * 2 * 2
+
+
+@requires_cuda
+def test_common_endpoint_graph_has_exact_cpu_cuda_parity():
+    """Produce identical topology and score tables on CPU and CUDA."""
+    cpu_graph, cpu_topology = common_endpoint_collision_graph(torch.device("cpu"))
+    cuda_graph, cuda_topology = common_endpoint_collision_graph(torch.device("cuda"))
+
+    for cpu_tensor, cuda_tensor in zip(cpu_graph, cuda_graph):
+        assert torch.equal(cpu_tensor, cuda_tensor.cpu())
+    assert torch.equal(cpu_topology[0], cuda_topology[0].cpu())
+    assert torch.equal(
+        cpu_topology[1].sort().values, cuda_topology[1].cpu().sort().values
+    )
+
+
 def annealer_inputs(graph, chunk_size):
     return (
         graph[0].item(),
