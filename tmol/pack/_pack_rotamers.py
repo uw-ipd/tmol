@@ -1,3 +1,4 @@
+import contextlib
 import copy
 import os
 import time
@@ -90,15 +91,21 @@ def pack_rotamers(
         synchronize_device(pose_stack.device)
     end_time5 = time.perf_counter()
 
-    new_pose_stack = impose_top_rotamer_assignments(
-        pose_stack,
-        rotamer_set,
-        rotamer_for_nonmolten_block,
-        n_molten_blocks_per_pose,
-        bc_rot_offset_for_molten_block,
-        bc_rot_to_orig_rot,
-        rotamer_assignments,
+    assignment_context = (
+        torch.no_grad()
+        if _should_stream_interaction_graph(pose_stack, rotamer_set, task)
+        else contextlib.nullcontext()
     )
+    with assignment_context:
+        new_pose_stack = impose_top_rotamer_assignments(
+            pose_stack,
+            rotamer_set,
+            rotamer_for_nonmolten_block,
+            n_molten_blocks_per_pose,
+            bc_rot_offset_for_molten_block,
+            bc_rot_to_orig_rot,
+            rotamer_assignments,
+        )
     if collapse is not None:
         # the packer chose for the representative; its group moves with it
         assignment = chosen_rotamer_for_block(
@@ -291,6 +298,15 @@ def _slice_packer_task(task: PackerTask, first_pose: int, last_pose: int) -> Pac
     return chunk_task
 
 
+def _should_stream_interaction_graph(pose_stack, rotamer_set, task) -> bool:
+    """Select the non-differentiable bounded-memory CUDA packing path."""
+    return (
+        pose_stack.device.type == "cuda"
+        and not rotamer_set.correlated_groups
+        and not task.bump_check
+    )
+
+
 def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=False):
     from tmol.pack.compiled import build_interaction_graph
     from tmol.pack.rotamer._conjugated_groups import (
@@ -300,10 +316,8 @@ def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=Fals
 
     pbt = pose_stack.packed_block_types
     rotamer_scoring_module = sfxn.render_rotamer_scoring_module(pose_stack, rotamer_set)
-    stream_interaction_graph = (
-        pose_stack.device.type == "cuda"
-        and not rotamer_set.correlated_groups
-        and not task.bump_check
+    stream_interaction_graph = _should_stream_interaction_graph(
+        pose_stack, rotamer_set, task
     )
 
     if stream_interaction_graph:
@@ -449,6 +463,7 @@ def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=Fals
     )
 
 
+@torch.no_grad()
 def _build_streaming_interaction_graph(
     rotamer_scoring_module,
     coords,
@@ -456,7 +471,12 @@ def _build_streaming_interaction_graph(
     graph_inputs,
     verbose,
 ):
-    """Build a CUDA interaction graph with three bounded score passes."""
+    """Build a CUDA interaction graph with three bounded score passes.
+
+    The graph is inference-only. Running the passes under ``no_grad`` keeps
+    each bounded page from retaining autograd state for the whole candidate
+    set, which otherwise accumulates across FastRelax packing stages.
+    """
     from tmol.pack.compiled import (
         accumulate_interaction_graph_entries,
         build_interaction_graph,
