@@ -15,6 +15,14 @@ namespace tmol {
 namespace pack {
 namespace compiled {
 
+inline EIGEN_DEVICE_FUNC uint64_t chunk_pair_hash(uint64_t key) {
+  key ^= key >> 30;
+  key *= 0xbf58476d1ce4e5b9ull;
+  key ^= key >> 27;
+  key *= 0x94d049bb133111ebull;
+  return key ^ (key >> 31);
+}
+
 template <
     template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
@@ -156,8 +164,7 @@ void StreamingInteractionGraph<DeviceDispatch, D, Real, Int>::note(
     }
     int64_t const key = int64_t((chunk1 << 32) | chunk2);
     int64_t const capacity = chunk_pair_keys.size(0);
-    uint64_t slot =
-        (uint64_t(key) * 11400714819323198485ull) & uint64_t(capacity - 1);
+    uint64_t slot = chunk_pair_hash(uint64_t(key)) & uint64_t(capacity - 1);
     for (int probe = 0; probe < 128; ++probe) {
       int64_t const prior = DeviceDispatch<D>::compare_exchange(
           chunk_pair_keys[slot], int64_t(-1), key);
@@ -191,7 +198,7 @@ StreamingInteractionGraph<DeviceDispatch, D, Real, Int>::resize_chunk_pair_keys(
       return;
     }
     uint64_t slot =
-        (uint64_t(key) * 11400714819323198485ull) & uint64_t(new_capacity - 1);
+        chunk_pair_hash(uint64_t(key)) & uint64_t(new_capacity - 1);
     while (true) {
       int64_t const prior =
           DeviceDispatch<D>::compare_exchange(new_keys[slot], int64_t(-1), key);
@@ -256,7 +263,7 @@ auto StreamingInteractionGraph<DeviceDispatch, D, Real, Int>::finalize(
         int64_t const key = int64_t((chunk1 << 32) | chunk2);
         int64_t const capacity = chunk_pair_keys.size(0);
         uint64_t slot =
-            (uint64_t(key) * 11400714819323198485ull) & uint64_t(capacity - 1);
+            chunk_pair_hash(uint64_t(key)) & uint64_t(capacity - 1);
         for (int64_t probe = 0; probe < capacity; ++probe) {
           int64_t const prior = chunk_pair_keys[slot];
           if (prior == key) {
