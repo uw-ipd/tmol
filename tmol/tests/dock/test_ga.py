@@ -381,6 +381,140 @@ def test_update_pool_enforces_diversity_and_documents_fill(cpu_ga_case):
     assert filled.n_diverse == 1
 
 
+@pytest.mark.parametrize(
+    "energy_values,x_values,expect_diverse",
+    [
+        ([4.0, 0.0, 3.0, 2.0, 1.0, 5.0], [0.0, 0.5, 3.0, 6.0, 6.2, 9.0], True),
+        ([5.0, 4.0, 3.0, 2.0, 1.0, 0.0], [0.0, 0.1, 0.2, 0.3, 0.4, 0.5], False),
+    ],
+)
+def test_diverse_low_energy_selection_matches_independent_greedy_reference(
+    energy_values, x_values, expect_diverse
+):
+    energies = torch.tensor(
+        energy_values,
+        dtype=torch.float64,
+    )
+    x_positions = torch.tensor(
+        x_values,
+        dtype=torch.float64,
+    )
+    coords = torch.zeros((6, 2, 3), dtype=torch.float64)
+    coords[:, :, 0] = x_positions[:, None]
+    npool = 4
+    threshold = 2.0
+
+    def independent_reference():
+        accepted = []
+        rejected = []
+        for candidate in torch.argsort(energies).tolist():
+            candidate_coords = coords[candidate]
+            sufficiently_distant = all(
+                float(
+                    torch.sqrt(
+                        torch.mean(
+                            torch.sum(
+                                (candidate_coords - coords[previous]) ** 2,
+                                dim=1,
+                            )
+                        )
+                    )
+                )
+                >= threshold
+                for previous in accepted
+            )
+            if sufficiently_distant and len(accepted) < npool:
+                accepted.append(candidate)
+            else:
+                rejected.append(candidate)
+        return accepted + rejected[: npool - len(accepted)], len(accepted)
+
+    expected = independent_reference()
+    selected, n_diverse = ga_module._diverse_low_energy_indices(
+        energies, coords, npool=npool, rmsdthreshold=threshold
+    )
+
+    torch.testing.assert_close(
+        selected,
+        torch.tensor(expected[0], dtype=torch.int64),
+        rtol=0.0,
+        atol=0.0,
+    )
+    torch.testing.assert_close(
+        n_diverse,
+        torch.tensor(expected[1], dtype=torch.int64),
+        rtol=0.0,
+        atol=0.0,
+    )
+    selected_coords = coords[selected]
+    distances = ligand_heavy_atom_rms(
+        selected_coords[:, None], selected_coords[None, :]
+    )
+    off_diagonal = ~torch.eye(npool, dtype=torch.bool)
+    if expect_diverse:
+        assert torch.all(distances[off_diagonal] >= threshold)
+
+
+def test_swarm_subsample_is_exactly_reproducible(cpu_ga_case):
+    case = cpu_ga_case
+    swarm_size, npool = 6, 3
+    swarm_population = _repeat_pose_stack(case.reference, swarm_size)
+    swarm_dofs = build_ligand_docking_dofs(
+        swarm_population, case.ligand_block
+    )
+    swarm_layout = LigandGeneLayout.from_pose_stack(
+        swarm_population, swarm_dofs
+    )
+    pool_population = _repeat_pose_stack(case.reference, npool)
+    pool_dofs = build_ligand_docking_dofs(pool_population, case.ligand_block)
+    pool_layout = LigandGeneLayout.from_pose_stack(pool_population, pool_dofs)
+
+    genes = swarm_layout.genes_from_pose_stack(swarm_population)
+    local = torch.arange(swarm_size, dtype=genes.dtype)
+    genes[:, 0] += local
+    pose_stack = swarm_layout.pose_stack_from_genes(genes)
+    energies = torch.tensor(
+        [5.0, 0.0, 4.0, 1.0, 3.0, 2.0], dtype=genes.dtype
+    )
+    swarm = GAPool(
+        genes=genes,
+        pose_stack=pose_stack,
+        energies=energies,
+        n_diverse=swarm_size,
+    )
+
+    def subsample():
+        return ga_module._subsample_swarm_pool(
+            swarm,
+            swarm_layout,
+            pool_layout,
+            swarm_size=swarm_size,
+            npool=npool,
+            rmsdthreshold=1.5,
+        )
+
+    selected = subsample()
+    repeated = subsample()
+    assert selected.genes.shape == (npool, genes.shape[1])
+    torch.testing.assert_close(
+        selected.genes, repeated.genes, rtol=0.0, atol=0.0
+    )
+    torch.testing.assert_close(
+        selected.selected_indices,
+        repeated.selected_indices,
+        rtol=0.0,
+        atol=0.0,
+    )
+    torch.testing.assert_close(
+        selected.selected_indices, torch.tensor([1, 3, 5]), rtol=0.0, atol=0.0
+    )
+    torch.testing.assert_close(selected.genes, genes[[1, 3, 5]], rtol=0.0, atol=0.0)
+    torch.testing.assert_close(
+        selected.energies, energies[[1, 3, 5]], rtol=0.0, atol=0.0
+    )
+    assert selected.n_diverse == npool
+
+
 class _TranslationImprovingBackend(ScoringBackend):
     def __init__(self, reference, ligand_block):
         block_type_index = int(reference.block_type_ind64[0, ligand_block])
@@ -396,6 +530,8 @@ class _TranslationImprovingBackend(ScoringBackend):
             [10.0, 0.0, 0.0], dtype=ligand.dtype, device=ligand.device
         )
         self.maxiters = []
+        self.population_sizes = []
+        self.minimized_genes = []
 
     def score(self, pose_stack):
         ligand = pose_stack.coords[
@@ -413,6 +549,7 @@ class _TranslationImprovingBackend(ScoringBackend):
         initial_raw_dofs=None,
     ):
         self.maxiters.append(maxiter)
+        self.population_sizes.append(pose_stack.n_poses)
         coords = pose_stack.coords.clone()
         ligand = coords[:, self.offset : self.offset + self.n_atoms]
         shift = 0.5 * (self.target_com - torch.mean(ligand, dim=1))
@@ -422,6 +559,7 @@ class _TranslationImprovingBackend(ScoringBackend):
         layout = LigandGeneLayout.from_pose_stack(pose_stack, docking_dofs)
         genes = layout.genes_from_raw_dofs(initial_raw_dofs).clone()
         genes[:, :3] += shift
+        self.minimized_genes.append(genes.detach().clone())
         return MinimizationResult(
             pose_stack=attr.evolve(pose_stack, coords=coords),
             genes=genes,
@@ -453,6 +591,121 @@ def test_generation_loop_best_energy_is_monotone_and_strictly_improves():
     assert torch.all(history[1:] <= history[:-1])
     assert torch.any(history[1:] < history[0])
     assert backend.maxiters == [schedule.maxiter] * (schedule.generations + 1)
+
+
+def test_swarm_initialization_runs_wide_gen0_then_small_ga_deterministically(
+    monkeypatch,
+):
+    reference, _ = _load_cdk2_pose()
+    ligand_block = _ligand_block(reference)
+    schedule = GASchedule(
+        generations=1,
+        npool=3,
+        rmsdthreshold=1.0,
+        pmut=0.2,
+        maxiter=2,
+    )
+
+    initial_ga_pools = []
+    original_next_generation = ga_module.next_generation
+
+    def capture_initial_pool(genes, *args, **kwargs):
+        initial_ga_pools.append(genes.detach().clone())
+        return original_next_generation(genes, *args, **kwargs)
+
+    monkeypatch.setattr(ga_module, "next_generation", capture_initial_pool)
+
+    def run_once(input_pose):
+        backend = _TranslationImprovingBackend(reference, ligand_block)
+        result = run_ga_docking(
+            input_pose,
+            ligand_block,
+            backend,
+            schedule=schedule,
+            seed=20260827,
+            initialization="swarm",
+            swarm_size=8,
+        )
+        return result, backend
+
+    result, backend = run_once(reference)
+    repeated, repeated_backend = run_once(reference)
+    assert result.pool.genes.shape == (schedule.npool, 8)
+    assert backend.maxiters == [schedule.maxiter] * (schedule.generations + 1)
+    assert backend.population_sizes == [
+        8,
+        schedule.npool,
+    ]
+    assert repeated_backend.maxiters == backend.maxiters
+    torch.testing.assert_close(
+        backend.minimized_genes[0],
+        repeated_backend.minimized_genes[0],
+        rtol=0.0,
+        atol=0.0,
+    )
+    torch.testing.assert_close(
+        initial_ga_pools[0], initial_ga_pools[1], rtol=0.0, atol=0.0
+    )
+    torch.testing.assert_close(
+        result.pool.genes, repeated.pool.genes, rtol=0.0, atol=0.0
+    )
+    torch.testing.assert_close(
+        result.pool.energies, repeated.pool.energies, rtol=0.0, atol=0.0
+    )
+    torch.testing.assert_close(
+        result.pool.pose_stack.coords,
+        repeated.pool.pose_stack.coords,
+        rtol=0.0,
+        atol=0.0,
+    )
+
+
+def test_inactive_swarm_size_does_not_change_random_initialization():
+    reference, _ = _load_cdk2_pose()
+    ligand_block = _ligand_block(reference)
+    schedule = GASchedule(generations=1, npool=3, rmsdthreshold=0.0, maxiter=1)
+
+    def run_once(**kwargs):
+        return run_ga_docking(
+            reference,
+            ligand_block,
+            _TranslationImprovingBackend(reference, ligand_block),
+            schedule=schedule,
+            seed=17,
+            initialization="random",
+            **kwargs,
+        )
+
+    baseline = run_once()
+    inactive = run_once(swarm_size=0)
+    torch.testing.assert_close(
+        baseline.pool.genes, inactive.pool.genes, rtol=0.0, atol=0.0
+    )
+    torch.testing.assert_close(
+        baseline.pool.energies, inactive.pool.energies, rtol=0.0, atol=0.0
+    )
+    torch.testing.assert_close(
+        baseline.pool.pose_stack.coords,
+        inactive.pool.pose_stack.coords,
+        rtol=0.0,
+        atol=0.0,
+    )
+
+
+def test_swarm_size_must_cover_the_small_ga_pool():
+    reference, _ = _load_cdk2_pose()
+    ligand_block = _ligand_block(reference)
+    with pytest.raises(
+        ValueError, match="swarm_size must be an integer at least schedule.npool"
+    ):
+        run_ga_docking(
+            reference,
+            ligand_block,
+            _TranslationImprovingBackend(reference, ligand_block),
+            schedule=GASchedule(generations=1, npool=4, maxiter=1),
+            initialization="swarm",
+            swarm_size=3,
+        )
 
 
 def test_hot_operators_have_no_python_pose_loop_or_scalar_sync():
@@ -489,7 +742,13 @@ def test_hot_operators_have_no_python_pose_loop_or_scalar_sync():
     assert "genes_from_pose_stack" not in optimize_source
     assert "_inverse_dofs" not in optimize_source
 
-    # The only hot-path host loop is update_pool's <=2*npool greedy niching.
+    # Both bounded host loops perform the same greedy niching rule. Keeping
+    # update_pool unchanged preserves inactive initialization paths exactly;
+    # the swarm loop bounds RMS storage by the small output pool.
+    selection_tree = ast.parse(
+        textwrap.dedent(inspect.getsource(ga_module._diverse_low_energy_indices))
+    )
+    assert sum(isinstance(node, ast.For) for node in ast.walk(selection_tree)) == 1
     update_tree = ast.parse(
         textwrap.dedent(inspect.getsource(ga_module.update_pool))
     )
@@ -565,3 +824,17 @@ def test_gpu_fp32_cdk2_default_vsx_schedule():
         # returning fewer than npool when the diversity cutoff cannot be met.
         assert result.pool.n_diverse < schedule.npool
     assert result.pool.genes.shape[0] == schedule.npool
+
+
+@pytest.mark.parametrize(
+    "initialization", ["jitter", "random", "swarm", "conformer", "aligner"]
+)
+def test_initialization_requires_one_reference_pose(cpu_ga_case, initialization):
+    case = cpu_ga_case
+    with pytest.raises(ValueError, match="must contain one reference pose"):
+        run_ga_docking(
+            _repeat_pose_stack(case.reference, 2),
+            case.ligand_block,
+            _TranslationImprovingBackend(case.reference, case.ligand_block),
+            initialization=initialization,
+        )

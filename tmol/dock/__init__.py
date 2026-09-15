@@ -17,6 +17,8 @@ from .dock_loop import (
     DockingPerturbation,
     run_one_generation,
 )
+from .conformer_seed import ConformerLibrary, generate_conformer_library
+from .ligand_aligner import LigandAligner, LigandAlignment
 from .ga import (
     DockingResult,
     GAPool,
@@ -42,6 +44,7 @@ from .finalization import (
 
 __all__ = [
     "ContinuousBackend",
+    "ConformerLibrary",
     "DockGenerationResult",
     "DockingResult",
     "DockingPerturbation",
@@ -51,6 +54,8 @@ __all__ = [
     "GASchedule",
     "GridBackend",
     "LigandDockingDOFs",
+    "LigandAligner",
+    "LigandAlignment",
     "LigandGeneLayout",
     "LigandTorsionDOF",
     "MinimizationResult",
@@ -61,6 +66,7 @@ __all__ = [
     "crossover",
     "count_non_proton_ligand_chis",
     "finalize_ga_docking",
+    "generate_conformer_library",
     "ligand_heavy_atom_rms",
     "mutate",
     "next_generation",

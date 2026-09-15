@@ -15,15 +15,19 @@ the same schedule un-ramped until a grid backend implements those knobs.
 
 from __future__ import annotations
 
+import logging
 import math
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
 import attr
 import numpy
 import torch
 
+from tmol.dock.conformer_seed import generate_conformer_library
 from tmol.dock.dock_loop import DockingPerturbation, _repeat_pose_stack
+from tmol.dock.ligand_aligner import LigandAligner
 from tmol.dock.ligand_dofs import (
     LigandDockingDOFs,
     _block_has_nonpolymer_connection,
@@ -49,6 +53,9 @@ from tmol.pose.pose_stack import PoseStack
 
 if TYPE_CHECKING:
     from tmol.dock.finalization import DockingFinalization
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -1243,6 +1250,75 @@ def ligand_heavy_atom_rms(
     return torch.sqrt(torch.mean(torch.sum(delta * delta, dim=-1), dim=-1))
 
 
+def _diverse_low_energy_indices(
+    energies: torch.Tensor,
+    coords: torch.Tensor,
+    *,
+    npool: int,
+    rmsdthreshold: float,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Select energy-ranked RMS niches, then fill from rejected candidates.
+
+    The bounded host loop walks candidate energy ranks; RMS storage is limited
+    to the selected pool instead of an atom-expanded all-pairs candidate tensor.
+    """
+
+    if energies.ndim != 1:
+        raise ValueError("energies must have shape [candidate]")
+    if coords.ndim != 3 or coords.shape[0] != energies.shape[0]:
+        raise ValueError("coords must have shape [candidate, heavy_atom, 3]")
+    if coords.shape[-1] != 3 or coords.shape[1] < 1:
+        raise ValueError("coords must contain at least one 3D heavy atom")
+    if not isinstance(npool, int) or isinstance(npool, bool) or npool < 1:
+        raise ValueError("npool must be a positive integer")
+    n_candidates = energies.shape[0]
+    if npool > n_candidates:
+        raise ValueError("npool cannot exceed the number of candidates")
+    if not math.isfinite(rmsdthreshold) or rmsdthreshold < 0:
+        raise ValueError("rmsdthreshold must be finite and nonnegative")
+
+    order = torch.argsort(energies)
+    selected_order = torch.full((npool,), -1, dtype=torch.int64, device=energies.device)
+    selected_mask = torch.zeros(n_candidates, dtype=torch.bool, device=energies.device)
+    selected_count = torch.zeros((), dtype=torch.int64, device=energies.device)
+    selected_coords = coords[:1].expand(npool, -1, -1).clone()
+    pool_columns = torch.arange(npool, device=energies.device)
+
+    for rank in range(n_candidates):
+        candidate = order[rank : rank + 1]
+        candidate_coords = coords.index_select(0, candidate)
+        candidate_distances = ligand_heavy_atom_rms(candidate_coords, selected_coords)
+        active_selected = pool_columns < selected_count
+        sufficiently_distant = torch.all(
+            ~active_selected | (candidate_distances >= rmsdthreshold)
+        )
+        accept = sufficiently_distant & (selected_count < npool)
+        write_column = selected_count.clamp_max(npool - 1).reshape(1)
+        previous = selected_order.gather(0, write_column)
+        selected_order.scatter_(
+            0, write_column, torch.where(accept, candidate, previous)
+        )
+        selected_mask.scatter_(0, candidate, accept.reshape(1))
+        write_coords = write_column[:, None, None].expand(-1, coords.shape[1], 3)
+        previous_coords = selected_coords.gather(0, write_coords)
+        selected_coords.scatter_(
+            0, write_coords, torch.where(accept, candidate_coords, previous_coords)
+        )
+        selected_count += accept.to(torch.int64)
+
+    selected_in_rank_order = selected_mask.gather(0, order)
+    rejected_rank = torch.where(
+        ~selected_in_rank_order,
+        torch.arange(n_candidates, device=energies.device),
+        n_candidates,
+    )
+    rejected_order = order.gather(0, torch.argsort(rejected_rank))
+    fill_columns = (pool_columns - selected_count).clamp_min(0)
+    filled = rejected_order.gather(0, fill_columns)
+    selected = torch.where(pool_columns < selected_count, selected_order, filled)
+    return selected, selected_count
+
+
 def next_generation(
     genes: torch.Tensor,
     npoolout: int,
@@ -1426,6 +1502,43 @@ def update_pool(
     )
 
 
+def _subsample_swarm_pool(
+    swarm: GAPool,
+    swarm_layout: LigandGeneLayout,
+    pool_layout: LigandGeneLayout,
+    *,
+    swarm_size: int,
+    npool: int,
+    rmsdthreshold: float,
+) -> GAPool:
+    """Reduce the wide minimized swarm to a small diverse GA pool."""
+
+    if swarm.genes.shape[0] != swarm_size:
+        raise ValueError("swarm population does not match swarm_size")
+    if pool_layout.template.n_poses != npool:
+        raise ValueError("pool layout does not match npool")
+
+    # Match update_pool: niching coordinates are rebuilt from minimized genes,
+    # while retained coordinates are the backend's minimized pose coordinates.
+    swarm_from_genes = swarm_layout.pose_stack_from_genes(swarm.genes)
+    heavy_coords = swarm_layout.ligand_heavy_coords(swarm_from_genes)
+    selected, n_diverse = _diverse_low_energy_indices(
+        swarm.energies,
+        heavy_coords,
+        npool=npool,
+        rmsdthreshold=rmsdthreshold,
+    )
+    return GAPool(
+        genes=swarm.genes[selected],
+        pose_stack=attr.evolve(
+            pool_layout.template, coords=swarm.pose_stack.coords[selected]
+        ),
+        energies=swarm.energies[selected],
+        n_diverse=int(n_diverse),
+        selected_indices=selected,
+    )
+
+
 def _initial_genes(
     layout: LigandGeneLayout,
     perturbation: DockingPerturbation,
@@ -1547,6 +1660,72 @@ def _random_initial_genes(
     return result
 
 
+def _conformer_initial_genes(
+    layout: LigandGeneLayout,
+    conformer_coords: numpy.ndarray,
+    *,
+    seed_fraction: float,
+    pocket_bounds: torch.Tensor | None,
+    placement: RandomPlacement,
+    generator: torch.Generator,
+) -> torch.Tensor:
+    """Replace a fraction of blind ligand torsions with conformer torsions."""
+
+    random_genes = _random_initial_genes(
+        layout,
+        pocket_bounds=pocket_bounds,
+        placement=placement,
+        generator=generator,
+    )
+    if not math.isfinite(seed_fraction) or not 0.0 <= seed_fraction <= 1.0:
+        raise ValueError("seed_fraction must be between zero and one")
+    npool = random_genes.shape[0]
+    n_seeded = min(int(math.floor(seed_fraction * npool)), npool - 1)
+    if n_seeded == 0:
+        return random_genes
+
+    library = torch.as_tensor(
+        conformer_coords,
+        dtype=layout.template.coords.dtype,
+        device=layout.template.device,
+    )
+    n_atoms = layout.ligand_local_atoms.shape[0]
+    if library.ndim != 3 or library.shape[1:] != (n_atoms, 3):
+        raise ValueError(
+            "conformer coordinates must have shape [conformer, ligand_atom, 3]"
+        )
+    if library.shape[0] < 1 or not torch.all(torch.isfinite(library)):
+        raise ValueError("conformer coordinates must be nonempty and finite")
+
+    seeded_rows = torch.arange(1, n_seeded + 1, device=layout.template.device)
+    conformer_indices = (seeded_rows - 1) % library.shape[0]
+    atom_indices = (
+        layout.template.block_coord_offset64[
+            seeded_rows, layout.docking_dofs.ligand_block, None
+        ]
+        + layout.ligand_local_atoms[None, :]
+    )
+    coords = layout.template.coords.clone()
+    coords[seeded_rows[:, None], atom_indices] = library[conformer_indices]
+    conformer_pose = attr.evolve(layout.template, coords=coords)
+    conformer_genes = layout.genes_from_pose_stack(conformer_pose)
+
+    result = random_genes.clone()
+    n_ligand_torsions = len(layout.docking_dofs.torsions)
+    result[
+        seeded_rows, 6 : 6 + n_ligand_torsions
+    ] = conformer_genes[seeded_rows, 6 : 6 + n_ligand_torsions]
+
+    random_pose = layout.pose_stack_from_genes(random_genes)
+    target_centroids = layout.ligand_heavy_coords(random_pose).mean(dim=1)
+    seeded_pose = layout.pose_stack_from_genes(result)
+    current_centroids = layout.ligand_heavy_coords(seeded_pose).mean(dim=1)
+    result[seeded_rows, :3] += (
+        target_centroids[seeded_rows] - current_centroids[seeded_rows]
+    )
+    return result
+
+
 def _ranked_result(
     reference_pose_stack: PoseStack,
     pool: GAPool,
@@ -1580,26 +1759,59 @@ def run_ga_docking(
     *,
     schedule: GASchedule = GASchedule(),
     seed: int = 0,
-    initialization: Literal["jitter", "random"] = "jitter",
+    initialization: Literal[
+        "jitter", "random", "conformer", "aligner", "swarm"
+    ] = "jitter",
+    swarm_size: int = 4000,
     pocket_bounds: torch.Tensor | None = None,
     random_placement: RandomPlacement = RandomPlacement(),
     sidechain_blocks: tuple[int, ...] | None = None,
+    ligand_mol2: str | Path | None = None,
+    n_conformers: int = 200,
+    seed_fraction: float = 0.5,
+    energy_window: float = 20.0,
+    cluster_rmsd: float = 0.5,
+    ligand_aligner: LigandAligner = LigandAligner(),
 ) -> GAResult:
     """Dock one reference ligand using a population of candidate poses.
 
     Rigid grid docking builds its population from a ligand-only single-block
     view. Flexible grid docking uses a compact ligand-plus-sidechains view;
     both restore the winning movable coordinates to the single input complex.
+    Swarm initialization minimizes a wide random population before selecting
+    the GA pool. Conformer initialization seeds ligand torsions from a library.
+    Aligner sampling and seed-fraction controls are carried by
+    ``ligand_aligner``; the scalar ``seed_fraction`` applies only to conformer
+    initialization.
     """
 
     if pose_stack.n_poses != 1:
         raise ValueError("pose_stack must contain one reference pose")
     if not isinstance(seed, int) or isinstance(seed, bool):
         raise TypeError("seed must be an integer")
-    if initialization not in ("jitter", "random"):
-        raise ValueError("initialization must be 'jitter' or 'random'")
+    if initialization not in (
+        "jitter",
+        "random",
+        "conformer",
+        "aligner",
+        "swarm",
+    ):
+        raise ValueError(
+            "initialization must be 'jitter', 'random', 'conformer', 'aligner', "
+            "or 'swarm'"
+        )
     if not isinstance(random_placement, RandomPlacement):
         raise TypeError("random_placement must be a RandomPlacement")
+    if not isinstance(ligand_aligner, LigandAligner):
+        raise TypeError("ligand_aligner must be a LigandAligner")
+    if initialization == "aligner" and not isinstance(backend, GridBackend):
+        raise ValueError("aligner initialization requires a GridBackend")
+    if initialization == "swarm" and (
+        not isinstance(swarm_size, int)
+        or isinstance(swarm_size, bool)
+        or swarm_size < schedule.npool
+    ):
+        raise ValueError("swarm_size must be an integer at least schedule.npool")
     complex_reference = None
     complex_ligand_block = ligand_block
     requested_sidechain_blocks = (
@@ -1610,6 +1822,10 @@ def run_ga_docking(
         )
     )
     compact_sidechain_blocks: tuple[int, ...] = ()
+    if initialization == "swarm" and requested_sidechain_blocks:
+        raise ValueError(
+            "swarm initialization is not yet supported with sidechain_blocks"
+        )
     if isinstance(backend, GridBackend):
         if backend.ligand_block != ligand_block:
             raise ValueError(
@@ -1658,28 +1874,134 @@ def run_ga_docking(
     layout = LigandGeneLayout.from_pose_stack(population, docking_dofs)
     generator = torch.Generator(device=pose_stack.device)
     generator.manual_seed(seed)
+    pool = None
 
-    if initialization == "jitter":
+    if initialization == "swarm":
+        swarm_population = _repeat_pose_stack(pose_stack, swarm_size)
+        swarm_dofs = build_ligand_docking_dofs(swarm_population, ligand_block)
+        swarm_layout = LigandGeneLayout.from_pose_stack(
+            swarm_population, swarm_dofs
+        )
+        swarm_genes = _random_initial_genes(
+            swarm_layout,
+            pocket_bounds=pocket_bounds,
+            placement=random_placement,
+            generator=generator,
+        )
+        swarm_pool = optimize_generation(
+            swarm_genes,
+            swarm_layout,
+            backend,
+            maxiter=schedule.maxiter,
+        )
+        pool = _subsample_swarm_pool(
+            swarm_pool,
+            swarm_layout,
+            layout,
+            swarm_size=swarm_size,
+            npool=schedule.npool,
+            rmsdthreshold=schedule.rmsdthreshold,
+        )
+        del swarm_genes
+        del swarm_pool
+        del swarm_layout
+        del swarm_dofs
+        del swarm_population
+    elif initialization == "jitter":
         genes = _initial_genes(
             layout, schedule.initial_perturbation, generator
         )
-    else:
+    elif initialization == "random":
         genes = _random_initial_genes(
             layout,
             pocket_bounds=pocket_bounds,
             placement=random_placement,
             generator=generator,
         )
-        if compact_sidechain_blocks:
-            # Retain the reference as the first flexible candidate, making
-            # the flexible search monotone with respect to the supplied
-            # ligand/sidechain state while the remaining members retain the
-            # historical random-placement distribution.
-            reference_genes = layout.genes_from_pose_stack(layout.template)
-            genes[0] = reference_genes[0]
-    pool = optimize_generation(
-        genes, layout, backend, maxiter=schedule.maxiter
-    )
+    elif initialization == "conformer":
+        if not math.isfinite(seed_fraction) or not 0.0 <= seed_fraction <= 1.0:
+            raise ValueError("seed_fraction must be between zero and one")
+        if (
+            not isinstance(n_conformers, int)
+            or isinstance(n_conformers, bool)
+            or n_conformers < 1
+        ):
+            raise ValueError("n_conformers must be a positive integer")
+        if not math.isfinite(energy_window) or energy_window < 0:
+            raise ValueError("energy_window must be finite and nonnegative")
+        if not math.isfinite(cluster_rmsd) or cluster_rmsd < 0:
+            raise ValueError("cluster_rmsd must be finite and nonnegative")
+        conformer_library = None
+        if ligand_mol2 is None:
+            logger.warning(
+                "conformer initialization requested without ligand_mol2; "
+                "falling back to blind random initialization"
+            )
+        else:
+            block_type_index = int(pose_stack.block_type_ind64[0, ligand_block])
+            block_type = pose_stack.packed_block_types.active_block_types[
+                block_type_index
+            ]
+            try:
+                conformer_library = generate_conformer_library(
+                    ligand_mol2,
+                    block_type,
+                    pose_stack.packed_block_types,
+                    n_conformers=n_conformers,
+                    energy_window=energy_window,
+                    cluster_rmsd=cluster_rmsd,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "ligand conformer generation failed (%s: %s); falling "
+                    "back to blind random initialization",
+                    type(exc).__name__,
+                    exc,
+                )
+        if conformer_library is None:
+            genes = _random_initial_genes(
+                layout,
+                pocket_bounds=pocket_bounds,
+                placement=random_placement,
+                generator=generator,
+            )
+        else:
+            genes = _conformer_initial_genes(
+                layout,
+                conformer_library.coords,
+                seed_fraction=seed_fraction,
+                pocket_bounds=pocket_bounds,
+                placement=random_placement,
+                generator=generator,
+            )
+    else:
+        random_genes = _random_initial_genes(
+            layout,
+            pocket_bounds=pocket_bounds,
+            placement=random_placement,
+            generator=generator,
+        )
+        genes = ligand_aligner.seed_genes(
+            layout,
+            backend,
+            random_genes,
+            pocket_bounds=pocket_bounds,
+            generator=generator,
+        )
+    if initialization in ("random", "conformer") and compact_sidechain_blocks:
+        # Retain the reference as the first flexible candidate, making
+        # the flexible search monotone with respect to the supplied
+        # ligand/sidechain state while the remaining members retain the
+        # historical random-placement distribution.
+        reference_genes = layout.genes_from_pose_stack(layout.template)
+        genes[0] = reference_genes[0]
+    if pool is None:
+        pool = optimize_generation(
+            genes,
+            layout,
+            backend,
+            maxiter=schedule.maxiter,
+        )
     best_history = [torch.min(pool.energies)]
     diverse_history: list[int] = []
 
@@ -1745,11 +2067,21 @@ def run_docking(
     seed: int = 0,
     pocket_bounds: torch.Tensor | None = None,
     random_placement: RandomPlacement = RandomPlacement(),
+    initialization: Literal[
+        "jitter", "random", "conformer", "aligner", "swarm"
+    ] = "random",
+    swarm_size: int = 4000,
     finalize: bool = False,
     top_k: int = 1,
     sidechain_blocks: tuple[int, ...] | None = None,
+    ligand_mol2: str | Path | None = None,
+    n_conformers: int = 200,
+    seed_fraction: float = 0.5,
+    energy_window: float = 20.0,
+    cluster_rmsd: float = 0.5,
+    ligand_aligner: LigandAligner = LigandAligner(),
 ) -> DockingResult:
-    """Run one prepared ligand through random placement and GA docking.
+    """Run one prepared ligand through the selected initialization and GA docking.
 
     Without finalization, the returned ``best_pose_stack`` contains one pose,
     while the ranked tensors retain all ``schedule.npool`` final candidates with
@@ -1783,10 +2115,17 @@ def run_docking(
         backend,
         schedule=schedule,
         seed=seed,
-        initialization="random",
+        initialization=initialization,
+        swarm_size=swarm_size,
         pocket_bounds=pocket_bounds,
         random_placement=random_placement,
         sidechain_blocks=sidechain_blocks,
+        ligand_mol2=ligand_mol2,
+        n_conformers=n_conformers,
+        seed_fraction=seed_fraction,
+        energy_window=energy_window,
+        cluster_rmsd=cluster_rmsd,
+        ligand_aligner=ligand_aligner,
     )
     if not finalize:
         return DockingResult(
