@@ -451,8 +451,11 @@ def build_live_lk_ball_data(
     pose_stack: PoseStack,
     ligand_block: int,
     param_db: ParameterDatabase,
+    *,
+    sidechain_blocks: tuple[int, ...] = (),
+    context_blocks: tuple[int, ...] = (),
 ) -> LiveLKBallData:
-    """Build ligand water topology and one shared rigid-receptor cell structure."""
+    """Build movable water topology and one fixed-receptor cell structure."""
 
     if pose_stack.n_poses != 1 or pose_stack.device.type != "cpu":
         raise ValueError("live LK-ball construction requires one CPU pose")
@@ -481,26 +484,161 @@ def build_live_lk_ball_data(
     ligand_type_index = int(pose_stack.block_type_ind64[0, ligand_block])
     ligand_type = pbt.active_block_types[ligand_type_index]
     ligand_n_atoms = ligand_type.n_atoms
-    ligand_atom_types = pbt.atom_types[ligand_type_index, :ligand_n_atoms].to(
-        torch.int64
-    )
-    ligand_atom_params = type_params[ligand_atom_types].contiguous()
-    ligand_heavy_atoms = (
-        torch.nonzero(
-            pbt.hbpbt_params.is_hydrogen[ligand_type_index, :ligand_n_atoms] == 0
+    if sidechain_blocks:
+        from tmol.dock.ga import (
+            _movable_block_mapping,
+            _movable_pose_stack,
+            _sidechain_context_blocks,
         )
-        .reshape(-1)
-        .to(torch.int64)
-        .contiguous()
-    )
-    (
-        ligand_polar_atoms,
-        ligand_atom_to_polar,
-        ligand_water_kinds,
-        ligand_water_atoms,
-        ligand_water_params,
-        ligand_water_is_ring,
-    ) = _ligand_water_topology(pose_stack, ligand_block, term, derived_atom_inds)
+        from tmol.dock.ligand_dofs import (
+            _sidechain_coordinate_indices,
+            _validated_sidechain_blocks,
+            build_ligand_docking_dofs,
+        )
+        from tmol.kinematics.script_modules import PoseStackKinematicsModule
+
+        sidechain_blocks = _validated_sidechain_blocks(
+            pose_stack, ligand_block, sidechain_blocks
+        )
+        expected_context = _sidechain_context_blocks(
+            pose_stack, ligand_block, sidechain_blocks
+        )
+        if context_blocks and tuple(context_blocks) != expected_context:
+            raise ValueError("context_blocks do not match sidechain peptide neighbors")
+        context_blocks = expected_context
+        movable_pose = _movable_pose_stack(
+            pose_stack, ligand_block, sidechain_blocks
+        )
+        source_blocks, compact_sidechain_blocks, _ = _movable_block_mapping(
+            pose_stack, ligand_block, sidechain_blocks
+        )
+        docking_dofs = build_ligand_docking_dofs(
+            movable_pose, 0, sidechain_blocks=compact_sidechain_blocks
+        )
+        kin_module = PoseStackKinematicsModule(
+            movable_pose, docking_dofs.fold_forest
+        )
+        _, sidechain_atom_indices = _sidechain_coordinate_indices(
+            movable_pose, docking_dofs, kin_module.kmd.forest
+        )
+        query_atoms = set(range(ligand_n_atoms))
+        query_atoms.update(sidechain_atom_indices[0].tolist())
+        compact_atom_types = []
+        compact_is_hydrogen = []
+        polar_parts = []
+        water_kind_parts = []
+        water_atom_parts = []
+        water_param_parts = []
+        water_ring_parts = []
+        for compact_block, source_block in enumerate(source_blocks):
+            type_index = int(pose_stack.block_type_ind64[0, source_block])
+            block_type = pbt.active_block_types[type_index]
+            n_atoms = block_type.n_atoms
+            compact_offset = int(
+                movable_pose.block_coord_offset64[0, compact_block]
+            )
+            compact_atom_types.append(
+                pbt.atom_types[type_index, :n_atoms].to(torch.int64)
+            )
+            compact_is_hydrogen.append(
+                pbt.hbpbt_params.is_hydrogen[type_index, :n_atoms].to(torch.bool)
+            )
+            (
+                block_polar,
+                _,
+                block_kinds,
+                block_atoms,
+                block_params,
+                block_rings,
+            ) = _ligand_water_topology(
+                pose_stack, source_block, term, derived_atom_inds
+            )
+            compact_polar = block_polar + compact_offset
+            keep_polar = torch.tensor(
+                [int(atom) in query_atoms for atom in compact_polar],
+                dtype=torch.bool,
+            )
+            if not bool(torch.any(keep_polar)):
+                continue
+            selected_atoms = block_atoms[keep_polar].clone()
+            active_atoms = selected_atoms >= 0
+            selected_atoms[active_atoms] += compact_offset
+            polar_parts.append(compact_polar[keep_polar])
+            water_kind_parts.append(block_kinds[keep_polar])
+            water_atom_parts.append(selected_atoms)
+            water_param_parts.append(block_params[keep_polar])
+            water_ring_parts.append(block_rings[keep_polar])
+
+        ligand_n_atoms = movable_pose.max_n_pose_atoms
+        ligand_atom_types = torch.cat(compact_atom_types)
+        ligand_atom_params = type_params[ligand_atom_types].contiguous()
+        is_hydrogen = torch.cat(compact_is_hydrogen)
+        ligand_heavy_atoms = torch.tensor(
+            sorted(atom for atom in query_atoms if not bool(is_hydrogen[atom])),
+            dtype=torch.int64,
+        ).contiguous()
+        ligand_polar_atoms = (
+            torch.cat(polar_parts).to(torch.int64).contiguous()
+            if polar_parts
+            else torch.empty(0, dtype=torch.int64)
+        )
+        ligand_atom_to_polar = torch.full(
+            (ligand_n_atoms,), -1, dtype=torch.int64
+        )
+        if ligand_polar_atoms.numel():
+            ligand_atom_to_polar[ligand_polar_atoms] = torch.arange(
+                ligand_polar_atoms.shape[0], dtype=torch.int64
+            )
+        ligand_water_kinds = (
+            torch.cat(water_kind_parts).contiguous()
+            if water_kind_parts
+            else torch.empty((0, MAX_N_WATER), dtype=torch.int64)
+        )
+        ligand_water_atoms = (
+            torch.cat(water_atom_parts).contiguous()
+            if water_atom_parts
+            else torch.empty((0, MAX_N_WATER, 3), dtype=torch.int64)
+        )
+        ligand_water_params = (
+            torch.cat(water_param_parts).contiguous()
+            if water_param_parts
+            else torch.empty((0, MAX_N_WATER, 3), dtype=torch.float64)
+        )
+        ligand_water_is_ring = (
+            torch.cat(water_ring_parts).contiguous()
+            if water_ring_parts
+            else torch.empty((0, MAX_N_WATER), dtype=torch.int64)
+        )
+    else:
+        sidechain_blocks = ()
+        if context_blocks:
+            raise ValueError("context_blocks require sidechain_blocks")
+        context_blocks = ()
+        ligand_atom_types = pbt.atom_types[
+            ligand_type_index, :ligand_n_atoms
+        ].to(torch.int64)
+        ligand_atom_params = type_params[ligand_atom_types].contiguous()
+        ligand_heavy_atoms = (
+            torch.nonzero(
+                pbt.hbpbt_params.is_hydrogen[
+                    ligand_type_index, :ligand_n_atoms
+                ]
+                == 0
+            )
+            .reshape(-1)
+            .to(torch.int64)
+            .contiguous()
+        )
+        (
+            ligand_polar_atoms,
+            ligand_atom_to_polar,
+            ligand_water_kinds,
+            ligand_water_atoms,
+            ligand_water_params,
+            ligand_water_is_ring,
+        ) = _ligand_water_topology(
+            pose_stack, ligand_block, term, derived_atom_inds
+        )
 
     receptor_coords = []
     receptor_params = []
@@ -508,7 +646,12 @@ def build_live_lk_ball_data(
     receptor_polar_atoms = []
     for block_index in range(pose_stack.max_n_blocks):
         type_index = int(pose_stack.block_type_ind64[0, block_index])
-        if type_index < 0 or block_index == ligand_block:
+        if (
+            type_index < 0
+            or block_index == ligand_block
+            or block_index in sidechain_blocks
+            or block_index in context_blocks
+        ):
             continue
         block_type = pbt.active_block_types[type_index]
         offset = int(pose_stack.block_coord_offset64[0, block_index])

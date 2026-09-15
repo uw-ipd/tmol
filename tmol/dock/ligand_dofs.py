@@ -592,6 +592,37 @@ def _validate_ligand_root_jumps(
         )
 
 
+def _block_has_nonpolymer_connection(
+    pose_stack: PoseStack,
+    block: int,
+    block_type_index: int,
+) -> bool:
+    """Return True if the block has a realized inter-residue connection that is
+    not one of its polymer (down/up) connections -- e.g. a disulfide.
+
+    Flexible-sidechain docking moves chi through the fold forest, which ignores
+    non-polymer covalent bonds (``tmol/kinematics/fold_forest.py``), and the chi
+    controller is built only from the block's intra-block bonds. A disulfide sulfur
+    would therefore rotate independently of its partner, stretching the S-S bond,
+    and the compact-pose partition would either drop the beta2016 disulfide term or
+    still fail to constrain the bond. Such residues must not be freed.
+    """
+
+    pbt = pose_stack.packed_block_types
+    n_conn = int(pbt.n_conn[block_type_index])
+    if n_conn == 0:
+        return False
+    down_conn = int(pbt.down_conn_inds[block_type_index])
+    up_conn = int(pbt.up_conn_inds[block_type_index])
+    partners = pose_stack.inter_residue_connections64[:, block, :n_conn, 0]
+    for conn in range(n_conn):
+        if conn == down_conn or conn == up_conn:
+            continue
+        if bool(torch.any(partners[:, conn] >= 0)):
+            return True
+    return False
+
+
 def _validated_sidechain_blocks(
     pose_stack: PoseStack,
     ligand_block: int,
@@ -638,6 +669,15 @@ def _validated_sidechain_blocks(
         if not block_type.properties.polymer.is_polymer:
             raise ValueError(
                 f"sidechain block {block} ({block_type.name}) is not polymeric"
+            )
+        if _block_has_nonpolymer_connection(
+            pose_stack, block, int(block_type_indices[0])
+        ):
+            raise ValueError(
+                f"sidechain block {block} ({block_type.name}) has a non-polymer "
+                "covalent connection (e.g. a disulfide); flexible-docking kinematics "
+                "cannot preserve that bond, so such residues must not be selected as "
+                "flexible"
             )
     return normalized
 

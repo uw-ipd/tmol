@@ -541,6 +541,7 @@ def _score_gridded_lk_ball(
     data: "LiveLKBallData",
     ligand_coords: torch.Tensor,
     atom_grid_indices: torch.Tensor,
+    coordinate_atom_indices: torch.Tensor | None = None,
 ) -> torch.Tensor:
     """Return Rosetta's single weighted gridded LK-ball total per pose."""
 
@@ -550,13 +551,19 @@ def _score_gridded_lk_ball(
         return torch.zeros(
             n_poses, dtype=ligand_coords.dtype, device=ligand_coords.device
         )
-    flat_coords = ligand_coords.reshape(n_poses * n_atoms, 3)
+    if coordinate_atom_indices is None:
+        grid_coords = ligand_coords
+        n_grid_atoms = n_atoms
+    else:
+        grid_coords = ligand_coords.index_select(1, coordinate_atom_indices)
+        n_grid_atoms = coordinate_atom_indices.shape[0]
+    flat_coords = grid_coords.reshape(n_poses * n_grid_atoms, 3)
     atom_indices = atom_grid_indices.repeat(n_poses)
     fractional = grids.geometry.zero_based_index_from_cartesian(flat_coords)
     bounded, _ = _bound_grid_indices(grids.lk_ball_coeffs, fractional)
     heavy = _interpolate_bounded_grid(
         grids.lk_ball_coeffs, bounded, atom_indices
-    ).reshape(n_poses, n_atoms)
+    ).reshape(n_poses, n_grid_atoms)
     total = torch.sum(heavy, dim=1)
 
     n_polar = data.ligand_polar_atoms.shape[0]
@@ -574,7 +581,19 @@ def _score_gridded_lk_ball(
         safe_waters.reshape(n_poses * n_polar * 4, 3)
     )
     water_bounded, _ = _bound_grid_indices(grids.lk_ball_water_coeffs, water_fractional)
-    polar_grid_indices = atom_grid_indices[data.ligand_polar_atoms]
+    if coordinate_atom_indices is None:
+        polar_grid_indices = atom_grid_indices[data.ligand_polar_atoms]
+    else:
+        coordinate_to_grid = torch.full(
+            (n_atoms,), -1, dtype=torch.int64, device=ligand_coords.device
+        )
+        coordinate_to_grid[coordinate_atom_indices] = torch.arange(
+            n_grid_atoms, dtype=torch.int64, device=ligand_coords.device
+        )
+        polar_grid_positions = coordinate_to_grid[data.ligand_polar_atoms]
+        if bool(torch.any(polar_grid_positions < 0)):
+            raise ValueError("LK-ball polar atom is absent from the grid atom set")
+        polar_grid_indices = atom_grid_indices[polar_grid_positions]
     water_grid_indices = (
         polar_grid_indices[:, None].expand(n_polar, 4).reshape(-1).repeat(n_poses)
     )
@@ -621,6 +640,7 @@ def _score_gridded_lk_ball_with_gradients(
     data: "LiveLKBallData",
     ligand_coords: torch.Tensor,
     atom_grid_indices: torch.Tensor,
+    coordinate_atom_indices: torch.Tensor | None = None,
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """Return the gridded LK-ball total and graph-free Cartesian gradient."""
 
@@ -639,7 +659,13 @@ def _score_gridded_lk_ball_with_gradients(
             ),
             torch.zeros_like(ligand_coords),
         )
-    flat_coords = ligand_coords.detach().reshape(n_poses * n_atoms, 3)
+    if coordinate_atom_indices is None:
+        grid_coords = ligand_coords
+        n_grid_atoms = n_atoms
+    else:
+        grid_coords = ligand_coords.index_select(1, coordinate_atom_indices)
+        n_grid_atoms = coordinate_atom_indices.shape[0]
+    flat_coords = grid_coords.detach().reshape(n_poses * n_grid_atoms, 3)
     atom_indices = atom_grid_indices.repeat(n_poses).contiguous()
     fractional = grids.geometry.zero_based_index_from_cartesian(
         flat_coords
@@ -647,8 +673,15 @@ def _score_gridded_lk_ball_with_gradients(
     heavy, dheavy, _, _ = interpolate_with_derivatives(
         grids.lk_ball_coeffs.contiguous(), fractional, atom_indices, 0.0
     )
-    energies = torch.sum(heavy.reshape(n_poses, n_atoms), dim=1)
-    gradients = (dheavy / grids.geometry.voxel_spacing).reshape(n_poses, n_atoms, 3)
+    energies = torch.sum(heavy.reshape(n_poses, n_grid_atoms), dim=1)
+    grid_gradients = (dheavy / grids.geometry.voxel_spacing).reshape(
+        n_poses, n_grid_atoms, 3
+    )
+    if coordinate_atom_indices is None:
+        gradients = grid_gradients
+    else:
+        gradients = torch.zeros_like(ligand_coords)
+        gradients[:, coordinate_atom_indices] = grid_gradients
 
     n_polar = data.ligand_polar_atoms.shape[0]
     if n_polar == 0:
@@ -672,7 +705,19 @@ def _score_gridded_lk_ball_with_gradients(
     water_fractional = grids.geometry.zero_based_index_from_cartesian(
         safe_waters.reshape(n_poses * n_polar * 4, 3)
     ).contiguous()
-    polar_grid_indices = atom_grid_indices[data.ligand_polar_atoms]
+    if coordinate_atom_indices is None:
+        polar_grid_indices = atom_grid_indices[data.ligand_polar_atoms]
+    else:
+        coordinate_to_grid = torch.full(
+            (n_atoms,), -1, dtype=torch.int64, device=ligand_coords.device
+        )
+        coordinate_to_grid[coordinate_atom_indices] = torch.arange(
+            n_grid_atoms, dtype=torch.int64, device=ligand_coords.device
+        )
+        polar_grid_positions = coordinate_to_grid[data.ligand_polar_atoms]
+        if bool(torch.any(polar_grid_positions < 0)):
+            raise ValueError("LK-ball polar atom is absent from the grid atom set")
+        polar_grid_indices = atom_grid_indices[polar_grid_positions]
     water_grid_indices = (
         polar_grid_indices[:, None]
         .expand(n_polar, 4)
@@ -1012,6 +1057,7 @@ def score_ligand_grid_batched(
     live_ligand_intra: "LiveLigandIntraData | None" = None,
     live_lk_ball: "LiveLKBallData | None" = None,
     lk_ball_grid: bool = False,
+    grid_atom_indices: torch.Tensor | None = None,
 ) -> torch.Tensor:
     """Score many ligand poses against one shared receptor grid.
 
@@ -1032,10 +1078,32 @@ def score_ligand_grid_batched(
         raise ValueError("at least one ligand pose is required")
     if n_atoms == 0:
         raise ValueError("at least one ligand atom is required")
-    if ligand_charges.ndim != 1 or ligand_charges.shape[0] != n_atoms:
-        raise ValueError("ligand_charges must have shape [n_atoms]")
-    if len(ligand_atom_types) != n_atoms:
-        raise ValueError("ligand_atom_types must have one entry per atom")
+    if grid_atom_indices is None:
+        grid_coords = ligand_coords
+        n_grid_atoms = n_atoms
+    else:
+        if (
+            grid_atom_indices.ndim != 1
+            or grid_atom_indices.dtype != torch.int64
+            or grid_atom_indices.device != ligand_coords.device
+        ):
+            raise ValueError(
+                "grid_atom_indices must be a device-local one-dimensional int64 tensor"
+            )
+        if grid_atom_indices.numel() == 0:
+            raise ValueError("at least one grid-scored atom is required")
+        if bool(
+            torch.any(grid_atom_indices < 0)
+            or torch.any(grid_atom_indices >= n_atoms)
+            or torch.unique(grid_atom_indices).numel() != grid_atom_indices.numel()
+        ):
+            raise ValueError("grid_atom_indices must contain unique in-range indices")
+        grid_coords = ligand_coords.index_select(1, grid_atom_indices)
+        n_grid_atoms = grid_atom_indices.shape[0]
+    if ligand_charges.ndim != 1 or ligand_charges.shape[0] != n_grid_atoms:
+        raise ValueError("ligand_charges must have shape [n_grid_atoms]")
+    if len(ligand_atom_types) != n_grid_atoms:
+        raise ValueError("ligand_atom_types must have one entry per grid-scored atom")
     if ligand_coords.dtype not in (torch.float32, torch.float64):
         raise TypeError("ligand_coords must be float32 or float64")
     if ligand_charges.dtype != ligand_coords.dtype:
@@ -1074,7 +1142,7 @@ def score_ligand_grid_batched(
                 "grid coefficients must match ligand coordinate dtype and device"
             )
 
-    flat_coords = ligand_coords.reshape(n_poses * n_atoms, 3)
+    flat_coords = grid_coords.reshape(n_poses * n_grid_atoms, 3)
     fractional_indices = grids.geometry.zero_based_index_from_cartesian(flat_coords)
     bounded_indices, penalties = _bound_grid_indices(
         coefficients[0], fractional_indices
@@ -1088,7 +1156,7 @@ def score_ligand_grid_batched(
         coefficients[3].unsqueeze(0), bounded_indices, zero_grid_indices
     )
     unweighted_terms = torch.stack((atr, rep, sol, elec), dim=1).reshape(
-        n_poses, n_atoms, len(GRID_SCORE_TYPES)
+        n_poses, n_grid_atoms, len(GRID_SCORE_TYPES)
     )
 
     if score_function is None:
@@ -1100,7 +1168,7 @@ def score_ligand_grid_batched(
     ).to(device=ligand_coords.device, dtype=ligand_coords.dtype)
     weighted_per_pose_per_channel = torch.sum(unweighted_terms * weights, dim=1)
     totals = torch.sum(weighted_per_pose_per_channel, dim=1) + torch.sum(
-        penalties.reshape(n_poses, n_atoms), dim=1
+        penalties.reshape(n_poses, n_grid_atoms), dim=1
     )
     if live_hbond is not None:
         from .live_hbond import score_ligand_hbond
@@ -1113,7 +1181,11 @@ def score_ligand_grid_batched(
         if live_lk_ball is None:
             raise ValueError("gridded LK-ball requires ligand water topology")
         totals = totals + _score_gridded_lk_ball(
-            grids, live_lk_ball, ligand_coords, atom_grid_indices
+            grids,
+            live_lk_ball,
+            ligand_coords,
+            atom_grid_indices,
+            grid_atom_indices,
         )
     elif live_lk_ball is not None:
         from .live_lk_ball import score_ligand_lk_ball
@@ -1152,6 +1224,7 @@ def score_ligand_grid_batched_with_gradients(
     live_ligand_intra: "LiveLigandIntraData | None" = None,
     live_lk_ball: "LiveLKBallData | None" = None,
     lk_ball_grid: bool = False,
+    grid_atom_indices: torch.Tensor | None = None,
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """Return per-pose grid energies and analytic Cartesian gradients.
 
@@ -1171,10 +1244,32 @@ def score_ligand_grid_batched_with_gradients(
         raise ValueError("at least one ligand pose is required")
     if n_atoms == 0:
         raise ValueError("at least one ligand atom is required")
-    if ligand_charges.ndim != 1 or ligand_charges.shape[0] != n_atoms:
-        raise ValueError("ligand_charges must have shape [n_atoms]")
-    if len(ligand_atom_types) != n_atoms:
-        raise ValueError("ligand_atom_types must have one entry per atom")
+    if grid_atom_indices is None:
+        grid_coords = ligand_coords
+        n_grid_atoms = n_atoms
+    else:
+        if (
+            grid_atom_indices.ndim != 1
+            or grid_atom_indices.dtype != torch.int64
+            or grid_atom_indices.device != ligand_coords.device
+        ):
+            raise ValueError(
+                "grid_atom_indices must be a device-local one-dimensional int64 tensor"
+            )
+        if grid_atom_indices.numel() == 0:
+            raise ValueError("at least one grid-scored atom is required")
+        if bool(
+            torch.any(grid_atom_indices < 0)
+            or torch.any(grid_atom_indices >= n_atoms)
+            or torch.unique(grid_atom_indices).numel() != grid_atom_indices.numel()
+        ):
+            raise ValueError("grid_atom_indices must contain unique in-range indices")
+        grid_coords = ligand_coords.index_select(1, grid_atom_indices)
+        n_grid_atoms = grid_atom_indices.shape[0]
+    if ligand_charges.ndim != 1 or ligand_charges.shape[0] != n_grid_atoms:
+        raise ValueError("ligand_charges must have shape [n_grid_atoms]")
+    if len(ligand_atom_types) != n_grid_atoms:
+        raise ValueError("ligand_atom_types must have one entry per grid-scored atom")
     if ligand_coords.dtype not in (torch.float32, torch.float64):
         raise TypeError("ligand_coords must be float32 or float64")
     if ligand_charges.dtype != ligand_coords.dtype:
@@ -1224,7 +1319,7 @@ def score_ligand_grid_batched_with_gradients(
     from .potentials.compiled import interpolate_with_derivatives
 
     with torch.no_grad():
-        flat_coords = ligand_coords.detach().reshape(n_poses * n_atoms, 3)
+        flat_coords = grid_coords.detach().reshape(n_poses * n_grid_atoms, 3)
         fractional_indices = grids.geometry.zero_based_index_from_cartesian(
             flat_coords
         ).contiguous()
@@ -1261,17 +1356,24 @@ def score_ligand_grid_batched_with_gradients(
 
         unweighted = torch.stack((atr, rep, sol, elec), dim=1)
         energies = torch.sum(
-            torch.sum(unweighted * weights, dim=1).reshape(n_poses, n_atoms),
+            torch.sum(unweighted * weights, dim=1).reshape(
+                n_poses, n_grid_atoms
+            ),
             dim=1,
-        ) + torch.sum(penalties.reshape(n_poses, n_atoms), dim=1)
+        ) + torch.sum(penalties.reshape(n_poses, n_grid_atoms), dim=1)
 
         derivative_by_channel = torch.stack((datr, drep, dsol, delec), dim=1)
         index_gradients = (
             torch.sum(derivative_by_channel * weights[None, :, None], dim=1) + dpenalty
         )
-        coordinate_gradients = (index_gradients / grids.geometry.voxel_spacing).reshape(
-            n_poses, n_atoms, 3
+        grid_gradients = (index_gradients / grids.geometry.voxel_spacing).reshape(
+            n_poses, n_grid_atoms, 3
         )
+        if grid_atom_indices is None:
+            coordinate_gradients = grid_gradients
+        else:
+            coordinate_gradients = torch.zeros_like(ligand_coords)
+            coordinate_gradients[:, grid_atom_indices] = grid_gradients
 
         if live_hbond is not None:
             from .live_hbond import score_ligand_hbond_with_gradients
@@ -1293,6 +1395,7 @@ def score_ligand_grid_batched_with_gradients(
                 live_lk_ball,
                 ligand_coords,
                 atom_grid_indices,
+                grid_atom_indices,
             )
             energies = energies + lk_ball_energies
             coordinate_gradients = coordinate_gradients + lk_ball_gradients
@@ -1461,6 +1564,7 @@ def _extract_ligand_and_receptor_atoms(
     pose_stack: PoseStack,
     ligand_name3: str,
     reference_waters: torch.Tensor | None = None,
+    excluded_receptor_blocks: tuple[int, ...] = (),
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor | None]:
     pbt = pose_stack.packed_block_types
     ligand_coords = []
@@ -1479,6 +1583,8 @@ def _extract_ligand_and_receptor_atoms(
         coords = pose_stack.coords[0, offset : offset + n_atoms]
         if block_type.name3 == ligand_name3:
             ligand_coords.append(coords)
+        elif block_index in excluded_receptor_blocks:
+            continue
         else:
             receptor_coords.append(coords)
             receptor_atom_types.append(pbt.atom_types[block_type_index, :n_atoms])
@@ -1513,6 +1619,7 @@ def build_grid(
     bbox_padding: float = DEFAULT_BBOX_PADDING,
     score_function: "ScoreFunction | None" = None,
     build_lk_ball: bool = False,
+    excluded_receptor_blocks: tuple[int, ...] = (),
 ) -> GridSet:
     """Build beta16 all-atom grids and optional Rosetta-style LK-ball grids.
 
@@ -1527,6 +1634,18 @@ def build_grid(
         raise TypeError("pose coordinates must be float32 or float64")
     if not isinstance(build_lk_ball, bool):
         raise TypeError("build_lk_ball must be bool")
+    if any(
+        not isinstance(block, int) or isinstance(block, bool)
+        for block in excluded_receptor_blocks
+    ):
+        raise TypeError("excluded receptor block indices must be integers")
+    if len(set(excluded_receptor_blocks)) != len(excluded_receptor_blocks):
+        raise ValueError("excluded_receptor_blocks must not contain duplicates")
+    if any(
+        block < 0 or block >= pose_stack.max_n_blocks
+        for block in excluded_receptor_blocks
+    ):
+        raise ValueError("excluded receptor block is out of range")
 
     if isinstance(probe_atom_types, str):
         raise TypeError("probe_atom_types must be a sequence of atom-type names")
@@ -1566,7 +1685,12 @@ def build_grid(
         receptor_types,
         receptor_charges,
         receptor_waters,
-    ) = _extract_ligand_and_receptor_atoms(pose_stack, ligand_name3, reference_waters)
+    ) = _extract_ligand_and_receptor_atoms(
+        pose_stack,
+        ligand_name3,
+        reference_waters,
+        tuple(excluded_receptor_blocks),
+    )
     if not bool(torch.isfinite(ligand_coords).all()):
         raise ValueError("ligand coordinates must be finite")
     if not bool(torch.isfinite(receptor_coords).all()):

@@ -330,8 +330,11 @@ def build_live_hbond_data(
     pose_stack: PoseStack,
     ligand_block: int,
     param_db: ParameterDatabase,
+    *,
+    sidechain_blocks: tuple[int, ...] = (),
+    context_blocks: tuple[int, ...] = (),
 ) -> LiveHBondData:
-    """Build a pose-agnostic ligand topology and shared receptor hbond cells."""
+    """Build movable-atom topology and shared fixed-receptor hbond cells."""
 
     if pose_stack.n_poses != 1 or pose_stack.device.type != "cpu":
         raise ValueError("live hbond construction requires one CPU pose")
@@ -387,43 +390,103 @@ def build_live_hbond_data(
     ligand_n_atoms = pbt.active_block_types[ligand_type_index].n_atoms
     ligand_end = ligand_offset + ligand_n_atoms
 
+    if sidechain_blocks:
+        from tmol.dock.ga import (
+            _movable_block_mapping,
+            _movable_pose_stack,
+            _sidechain_context_blocks,
+        )
+        from tmol.dock.ligand_dofs import (
+            _sidechain_coordinate_indices,
+            _validated_sidechain_blocks,
+            build_ligand_docking_dofs,
+        )
+        from tmol.kinematics.script_modules import PoseStackKinematicsModule
+
+        sidechain_blocks = _validated_sidechain_blocks(
+            pose_stack, ligand_block, sidechain_blocks
+        )
+        expected_context = _sidechain_context_blocks(
+            pose_stack, ligand_block, sidechain_blocks
+        )
+        if context_blocks and tuple(context_blocks) != expected_context:
+            raise ValueError("context_blocks do not match sidechain peptide neighbors")
+        context_blocks = expected_context
+        movable_pose = _movable_pose_stack(
+            pose_stack, ligand_block, sidechain_blocks
+        )
+        source_blocks, compact_sidechain_blocks, compact_context_blocks = (
+            _movable_block_mapping(
+                pose_stack, ligand_block, sidechain_blocks
+            )
+        )
+        docking_dofs = build_ligand_docking_dofs(
+            movable_pose, 0, sidechain_blocks=compact_sidechain_blocks
+        )
+        kin_module = PoseStackKinematicsModule(
+            movable_pose, docking_dofs.fold_forest
+        )
+        _, sidechain_atom_indices = _sidechain_coordinate_indices(
+            movable_pose, docking_dofs, kin_module.kmd.forest
+        )
+        query_atoms = set(range(ligand_n_atoms))
+        query_atoms.update(sidechain_atom_indices[0].tolist())
+        source_to_compact_block = {
+            source_block: compact_block
+            for compact_block, source_block in enumerate(source_blocks)
+        }
+        if set(compact_context_blocks) & set(compact_sidechain_blocks):
+            raise RuntimeError("movable and context block mappings overlap")
+        movable_n_atoms = movable_pose.max_n_pose_atoms
+    else:
+        sidechain_blocks = ()
+        if context_blocks:
+            raise ValueError("context_blocks require sidechain_blocks")
+        query_atoms = set(range(ligand_n_atoms))
+        source_to_compact_block = {ligand_block: 0}
+        movable_n_atoms = ligand_n_atoms
+
     for block_index in range(pose_stack.max_n_blocks):
         if int(pose_stack.block_type_ind64[0, block_index]) < 0:
             continue
         donors, donor_types, acceptors, acceptor_types = _typed_sites_for_block(
             pose_stack, block_index, derived_atom_inds
         )
-        if block_index == ligand_block:
-            for (donor, hydrogen, _), donor_type in zip(donors, donor_types):
-                if not (
-                    ligand_offset <= donor < ligand_end
-                    and ligand_offset <= hydrogen < ligand_end
-                ):
+        if block_index in source_to_compact_block:
+            source_offset = int(pose_stack.block_coord_offset64[0, block_index])
+            compact_block = source_to_compact_block[block_index]
+            compact_offset = (
+                0
+                if compact_block == 0 and not sidechain_blocks
+                else int(movable_pose.block_coord_offset64[0, compact_block])
+            )
+            block_n_atoms = pose_stack.block_type(0, block_index).n_atoms
+
+            def compact_atom(global_atom: int) -> int:
+                local_atom = global_atom - source_offset
+                if not 0 <= local_atom < block_n_atoms:
                     raise ValueError(
-                        "ligand donor geometry crosses a block boundary; "
-                        "live grid hbond cannot represent it"
+                        "movable hbond geometry crosses a block boundary"
                     )
-                ligand_donor_atoms.append(
-                    (donor - ligand_offset, hydrogen - ligand_offset)
-                )
+                return compact_offset + local_atom
+
+            for (donor, hydrogen, _), donor_type in zip(donors, donor_types):
+                compact_donor = compact_atom(donor)
+                if compact_donor not in query_atoms:
+                    continue
+                compact_hydrogen = compact_atom(hydrogen)
+                ligand_donor_atoms.append((compact_donor, compact_hydrogen))
                 ligand_donor_types.append(donor_type)
             for (acceptor, base, base0, _), acceptor_type in zip(
                 acceptors, acceptor_types
             ):
-                if not all(
-                    ligand_offset <= atom < ligand_end
-                    for atom in (acceptor, base, base0)
-                ):
-                    raise ValueError(
-                        "ligand acceptor geometry crosses a block boundary; "
-                        "live grid hbond cannot represent it"
-                    )
+                compact_acceptor = compact_atom(acceptor)
+                if compact_acceptor not in query_atoms:
+                    continue
+                compact_base = compact_atom(base)
+                compact_base0 = compact_atom(base0)
                 ligand_acceptor_atoms.append(
-                    (
-                        acceptor - ligand_offset,
-                        base - ligand_offset,
-                        base0 - ligand_offset,
-                    )
+                    (compact_acceptor, compact_base, compact_base0)
                 )
                 ligand_acceptor_types.append(acceptor_type)
         else:
@@ -477,7 +540,7 @@ def build_live_hbond_data(
         receptor_acceptors[:, 0], cell_origin, cell_dims, max_ha_dis
     )
     return LiveHBondData(
-        n_ligand_atoms=ligand_n_atoms,
+        n_ligand_atoms=movable_n_atoms,
         receptor_donors=receptor_donors,
         receptor_donor_types=torch.tensor(receptor_donor_types, dtype=torch.int64),
         receptor_acceptors=receptor_acceptors,

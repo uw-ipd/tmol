@@ -16,7 +16,9 @@ from tmol.dock.ligand_dofs import (
     _block_kinforest_nodes,
     _ligand_kinforest_nodes,
     _sidechain_coordinate_indices,
+    _validated_sidechain_blocks,
     _wrap_angle,
+    build_ligand_docking_dofs,
 )
 from tmol.kinematics.datatypes import KinForest, JumpDOFTypes, NodeType
 from tmol.kinematics.compiled import (
@@ -335,7 +337,7 @@ class _GridPoseObjective(torch.nn.Module):
         self.pose_indices = torch.arange(
             pose_stack.n_poses, dtype=torch.int64, device=pose_stack.device
         )
-        self.atom_indices = backend._ligand_atom_indices(
+        self.atom_indices = backend._movable_atom_indices(
             pose_stack, ligand_block
         )
 
@@ -398,17 +400,20 @@ class _LightweightGridObjective:
                 full_kmd.forest.frame_z,
                 full_kmd.forest.doftype,
             )
+        ligand_block_type = pose_stack.block_type(
+            0, docking_dofs.ligand_block
+        )
         self.ligand_nodes = _ligand_kinforest_nodes(
             pose_stack,
             docking_dofs.ligand_block,
-            len(backend.ligand_atom_types),
+            ligand_block_type.n_atoms,
             self.forest.id,
         )
         # Reuse the already-validated full-pose ordering. All compiled operations
         # run under no_grad, so retaining fixed receptor nodes costs forward
         # buffers but does not retain an autograd graph across L-BFGS iterations.
-        # M13a-1 deliberately scores ligand atoms only: selected sidechain DOFs
-        # therefore receive zero grid gradient until moving-set scoring is added.
+        # The full ordering is retained so ligand and selected sidechain
+        # coordinate gradients can both be propagated to their freed DOFs.
         self.nodes_f = kin_module.nodes_f
         self.scans_f = kin_module.scans_f
         self.gens_f = kin_module.gens_f
@@ -438,6 +443,21 @@ class _LightweightGridObjective:
                 pose_stack, docking_dofs, self.forest
             )
         )
+        if backend.sidechain_blocks:
+            movable_node_parts = []
+            for block in range(pose_stack.max_n_blocks):
+                block_type = pose_stack.block_type(0, block)
+                movable_node_parts.append(
+                    _block_kinforest_nodes(
+                        pose_stack,
+                        block,
+                        block_type.n_atoms,
+                        self.forest.id,
+                    )
+                )
+            self.movable_nodes = torch.cat(movable_node_parts, dim=1)
+        else:
+            self.movable_nodes = self.ligand_nodes
 
         pose_for_node = torch.div(
             self.forest.id,
@@ -477,8 +497,8 @@ class _LightweightGridObjective:
 
         with torch.no_grad():
             kin_coords = self._forward_only(masked_dofs)
-            ligand_coords = kin_coords[self.ligand_nodes]
-            return self.backend._score_ligand_coordinates(ligand_coords)
+            movable_coords = kin_coords[self.movable_nodes]
+            return self.backend._score_ligand_coordinates(movable_coords)
 
     def energy_and_gradient(
         self, masked_dofs: torch.Tensor
@@ -494,15 +514,15 @@ class _LightweightGridObjective:
                 self.gens_f,
                 self.kintree,
             )
-            ligand_coords = kin_coords[self.ligand_nodes]
-            energies, ligand_gradients = (
+            movable_coords = kin_coords[self.movable_nodes]
+            energies, movable_gradients = (
                 self.backend._score_ligand_coordinates_with_gradients(
-                    ligand_coords
+                    movable_coords
                 )
             )
             coordinate_gradients = torch.zeros_like(kin_coords)
-            coordinate_gradients[self.ligand_nodes.reshape(-1)] = (
-                ligand_gradients.reshape(-1, 3)
+            coordinate_gradients[self.movable_nodes.reshape(-1)] = (
+                movable_gradients.reshape(-1, 3)
             )
             dof_gradients = kin_deriv_op(
                 coordinate_gradients,
@@ -581,6 +601,10 @@ class GridBackend(ScoringBackend):
         live_lk_ball: Optional[LiveLKBallData] = None,
         lk_ball_grid: bool = False,
         include_ligand_intra: bool = True,
+        sidechain_blocks: tuple[int, ...] = (),
+        context_blocks: tuple[int, ...] = (),
+        grid_atom_indices: Optional[torch.Tensor] = None,
+        movable_n_atoms: Optional[int] = None,
     ) -> None:
         if not isinstance(grids, GridSet):
             raise TypeError("grids must be a GridSet")
@@ -623,12 +647,50 @@ class GridBackend(ScoringBackend):
             raise TypeError(
                 "live_ligand_intra must be LiveLigandIntraData or None"
             )
+        if grid_atom_indices is not None:
+            if (
+                grid_atom_indices.ndim != 1
+                or grid_atom_indices.dtype != torch.int64
+                or grid_atom_indices.device.type != "cpu"
+                or grid_atom_indices.shape[0] != len(ligand_atom_types)
+            ):
+                raise ValueError(
+                    "grid_atom_indices must be a CPU int64 vector matching "
+                    "ligand_atom_types"
+                )
+            if movable_n_atoms is None or movable_n_atoms < 1:
+                raise ValueError(
+                    "movable_n_atoms is required with grid_atom_indices"
+                )
+            if bool(
+                torch.any(grid_atom_indices < 0)
+                or torch.any(grid_atom_indices >= movable_n_atoms)
+                or torch.unique(grid_atom_indices).numel()
+                != grid_atom_indices.numel()
+            ):
+                raise ValueError("grid_atom_indices must be unique and in range")
+        elif movable_n_atoms not in (None, len(ligand_atom_types)):
+            raise ValueError(
+                "movable_n_atoms without grid_atom_indices must match ligand atoms"
+            )
+        expected_movable_atoms = movable_n_atoms or len(ligand_atom_types)
+        if sidechain_blocks and grid_atom_indices is None:
+            raise ValueError(
+                "sidechain_blocks require grid_atom_indices"
+            )
+        if context_blocks and not sidechain_blocks:
+            raise ValueError("context_blocks require sidechain_blocks")
+        if (
+            live_hbond is not None
+            and live_hbond.n_ligand_atoms != expected_movable_atoms
+        ):
+            raise ValueError("live_hbond atom count does not match movable topology")
         if (
             live_ligand_intra is not None
-            and live_ligand_intra.n_ligand_atoms != len(ligand_atom_types)
+            and live_ligand_intra.n_ligand_atoms != expected_movable_atoms
         ):
             raise ValueError(
-                "live_ligand_intra atom count does not match ligand_atom_types"
+                "live_ligand_intra atom count does not match movable topology"
             )
         if include_ligand_intra and live_ligand_intra is None:
             raise ValueError(
@@ -636,13 +698,37 @@ class GridBackend(ScoringBackend):
                 "(GridBackend.from_pose_stack builds it) or set "
                 "include_ligand_intra=False to disable ligand-intra scoring"
             )
+        if sidechain_blocks and not include_ligand_intra:
+            raise ValueError(
+                "flexible docking (sidechain_blocks set) requires "
+                "include_ligand_intra=True: the live movable module is the sole "
+                "scorer for the entire moving set (ligand-intra, sidechain-intra, "
+                "sidechain<->ligand, sidechain<->sidechain, sidechain<->own-backbone, "
+                "sidechain<->peptide-context, and Dunbrack), and those blocks are "
+                "excluded from the receptor grid; disabling it would silently drop "
+                "all of those interactions and the count-pair correction. "
+                "include_ligand_intra=False is only valid for the rigid K=0 path"
+            )
         if live_lk_ball is not None and not isinstance(live_lk_ball, LiveLKBallData):
             raise TypeError("live_lk_ball must be LiveLKBallData or None")
+        if (
+            live_lk_ball is not None
+            and live_lk_ball.n_ligand_atoms != expected_movable_atoms
+        ):
+            raise ValueError("live_lk_ball atom count does not match movable topology")
         self.live_hbond = live_hbond
         self.live_ligand_intra = live_ligand_intra if include_ligand_intra else None
         self.live_lk_ball = live_lk_ball
         self.lk_ball_grid = lk_ball_grid
         self.include_ligand_intra = include_ligand_intra
+        self.sidechain_blocks = tuple(sidechain_blocks)
+        self.context_blocks = tuple(context_blocks)
+        self.grid_atom_indices = (
+            None
+            if grid_atom_indices is None
+            else grid_atom_indices.detach().clone().contiguous()
+        )
+        self.movable_n_atoms = expected_movable_atoms
         if lk_ball_grid and any(
             value is None
             for value in (grids.lk_ball, grids.lk_ball_water, grids.lk_bridge)
@@ -656,9 +742,8 @@ class GridBackend(ScoringBackend):
             tuple[torch.device, torch.dtype], LiveLigandIntraData
         ] = {}
         self._lk_ball_cache: dict[tuple[torch.device, torch.dtype], LiveLKBallData] = {}
-        self._charge_cache: dict[
-            tuple[torch.device, torch.dtype], torch.Tensor
-        ] = {}
+        self._charge_cache: dict[tuple[torch.device, torch.dtype], torch.Tensor] = {}
+        self._grid_atom_index_cache: dict[torch.device, torch.Tensor] = {}
         self._score_functions: dict[torch.device, ScoreFunction] = {}
         self._atom_index_cache: dict[
             tuple[torch.device, int, int, int, int, int], torch.Tensor
@@ -696,6 +781,7 @@ class GridBackend(ScoringBackend):
         kin_dtype: Optional[torch.dtype] = None,
         lk_ball_grid: bool = True,
         include_ligand_intra: bool = True,
+        sidechain_blocks: tuple[int, ...] | None = None,
     ) -> "GridBackend":
         """Build one CPU receptor grid/live-term structure and reusable backend.
 
@@ -723,9 +809,68 @@ class GridBackend(ScoringBackend):
         if block_type.name3 != ligand_name3:
             raise ValueError("ligand_name3 does not match ligand_block")
 
-        probe_names = probe_atom_types_from_name3(
-            reference_pose_stack, ligand_name3
+        normalized_sidechain_blocks = (
+            ()
+            if sidechain_blocks is None
+            else _validated_sidechain_blocks(
+                reference_pose_stack, ligand_block, sidechain_blocks
+            )
         )
+        probe_names = probe_atom_types_from_name3(reference_pose_stack, ligand_name3)
+        context_blocks: tuple[int, ...] = ()
+        grid_atom_indices = None
+        movable_n_atoms = block_type.n_atoms
+        if normalized_sidechain_blocks:
+            from tmol.dock.ga import (
+                _movable_block_mapping,
+                _movable_pose_stack,
+                _sidechain_context_blocks,
+            )
+
+            context_blocks = _sidechain_context_blocks(
+                reference_pose_stack,
+                ligand_block,
+                normalized_sidechain_blocks,
+            )
+
+            movable_pose = _movable_pose_stack(
+                reference_pose_stack,
+                ligand_block,
+                normalized_sidechain_blocks,
+            )
+            source_blocks, compact_sidechain_blocks, _ = _movable_block_mapping(
+                reference_pose_stack,
+                ligand_block,
+                normalized_sidechain_blocks,
+            )
+            movable_dofs = build_ligand_docking_dofs(
+                movable_pose,
+                0,
+                sidechain_blocks=compact_sidechain_blocks,
+            )
+            movable_kin = PoseStackKinematicsModule(
+                movable_pose, movable_dofs.fold_forest
+            )
+            _, sidechain_atom_indices = _sidechain_coordinate_indices(
+                movable_pose, movable_dofs, movable_kin.kmd.forest
+            )
+            grid_atom_indices = torch.cat(
+                (
+                    torch.arange(block_type.n_atoms, dtype=torch.int64),
+                    sidechain_atom_indices[0].to(device="cpu"),
+                )
+            ).contiguous()
+            movable_n_atoms = movable_pose.max_n_pose_atoms
+            query_atom_type_names = []
+            for compact_block in range(movable_pose.max_n_blocks):
+                compact_type = movable_pose.block_type(0, compact_block)
+                query_atom_type_names.extend(
+                    atom.atom_type for atom in compact_type.atoms
+                )
+            query_atom_type_names = tuple(
+                query_atom_type_names[index] for index in grid_atom_indices.tolist()
+            )
+            probe_names = tuple(sorted(set(probe_names) | set(query_atom_type_names)))
         grids = build_grid(
             reference_pose_stack,
             probe_names,
@@ -734,29 +879,62 @@ class GridBackend(ScoringBackend):
             voxel_spacing=voxel_spacing,
             bbox_padding=bbox_padding,
             build_lk_ball=lk_ball_grid,
+            excluded_receptor_blocks=(
+                normalized_sidechain_blocks + context_blocks
+            ),
         )
-        live_hbond = build_live_hbond_data(reference_pose_stack, ligand_block, param_db)
+        live_hbond = build_live_hbond_data(
+            reference_pose_stack,
+            ligand_block,
+            param_db,
+            sidechain_blocks=normalized_sidechain_blocks,
+            context_blocks=context_blocks,
+        )
         live_ligand_intra = (
             build_live_ligand_intra_data(
                 reference_pose_stack,
                 ligand_block,
                 param_db,
                 weight_profile="search",
+                sidechain_blocks=normalized_sidechain_blocks,
             )
             if include_ligand_intra
             else None
         )
         live_lk_ball = build_live_lk_ball_data(
-            reference_pose_stack, ligand_block, param_db
+            reference_pose_stack,
+            ligand_block,
+            param_db,
+            sidechain_blocks=normalized_sidechain_blocks,
+            context_blocks=context_blocks,
         )
         # build_grid initializes packed ljlk/elec parameters, including charges.
         n_atoms = block_type.n_atoms
-        ligand_atom_types = tuple(
-            atom.atom_type for atom in block_type.atoms[:n_atoms]
-        )
-        ligand_charges = pbt.elec_partial_charge[
-            block_type_index, :n_atoms
-        ]
+        if normalized_sidechain_blocks:
+            all_atom_types = []
+            all_charges = []
+            for source_block in source_blocks:
+                source_type_index = int(
+                    reference_pose_stack.block_type_ind64[0, source_block]
+                )
+                source_type = pbt.active_block_types[source_type_index]
+                all_atom_types.extend(
+                    atom.atom_type for atom in source_type.atoms[: source_type.n_atoms]
+                )
+                all_charges.append(
+                    pbt.elec_partial_charge[
+                        source_type_index, : source_type.n_atoms
+                    ]
+                )
+            ligand_atom_types = tuple(
+                all_atom_types[index] for index in grid_atom_indices.tolist()
+            )
+            ligand_charges = torch.cat(all_charges)[grid_atom_indices]
+        else:
+            ligand_atom_types = tuple(
+                atom.atom_type for atom in block_type.atoms[:n_atoms]
+            )
+            ligand_charges = pbt.elec_partial_charge[block_type_index, :n_atoms]
         return cls(
             grids,
             ligand_block,
@@ -769,6 +947,10 @@ class GridBackend(ScoringBackend):
             live_lk_ball=live_lk_ball,
             lk_ball_grid=lk_ball_grid,
             include_ligand_intra=include_ligand_intra,
+            sidechain_blocks=normalized_sidechain_blocks,
+            context_blocks=context_blocks,
+            grid_atom_indices=grid_atom_indices,
+            movable_n_atoms=movable_n_atoms,
         )
 
     def _score_function(self, device: torch.device) -> ScoreFunction:
@@ -794,6 +976,18 @@ class GridBackend(ScoringBackend):
                 device=device, dtype=dtype
             )
         return self._charge_cache[key]
+
+    def _grid_atom_indices_for(
+        self, device: torch.device
+    ) -> Optional[torch.Tensor]:
+        if self.grid_atom_indices is None:
+            return None
+        device = torch.device(device)
+        if device not in self._grid_atom_index_cache:
+            self._grid_atom_index_cache[device] = self.grid_atom_indices.to(
+                device=device
+            )
+        return self._grid_atom_index_cache[device]
 
     def _hbond_for(
         self, device: torch.device, dtype: torch.dtype
@@ -851,10 +1045,11 @@ class GridBackend(ScoringBackend):
         first_type = block_types[0]
         if not bool(torch.all(block_types == first_type)):
             raise ValueError("GridBackend requires one homogeneous ligand type")
-        block_type = pose_stack.packed_block_types.active_block_types[
-            int(first_type)
-        ]
-        if block_type.n_atoms != len(self.ligand_atom_types):
+        block_type = pose_stack.packed_block_types.active_block_types[int(first_type)]
+        if (
+            not self.sidechain_blocks
+            and block_type.n_atoms != len(self.ligand_atom_types)
+        ):
             raise ValueError("pose ligand atom count does not match the grid backend")
         offsets = pose_stack.block_coord_offset64[:, ligand_block, None]
         local_atoms = torch.arange(
@@ -863,6 +1058,30 @@ class GridBackend(ScoringBackend):
         atom_indices = offsets + local_atoms[None, :]
         self._atom_index_cache[cache_key] = atom_indices
         return atom_indices
+
+    def _movable_atom_indices(
+        self, pose_stack: PoseStack, ligand_block: int
+    ) -> torch.Tensor:
+        """Return compact whole-movable coordinate indices for every pose."""
+
+        if not self.sidechain_blocks:
+            return self._ligand_atom_indices(pose_stack, ligand_block)
+        expected_blocks = (
+            1 + len(self.sidechain_blocks) + len(self.context_blocks)
+        )
+        if ligand_block != 0 or pose_stack.max_n_blocks != expected_blocks:
+            raise ValueError(
+                "flexible GridBackend requires a compact ligand-plus-sidechains pose"
+            )
+        if pose_stack.max_n_pose_atoms != self.movable_n_atoms:
+            raise ValueError(
+                "movable pose atom count does not match the grid backend topology"
+            )
+        return torch.arange(
+            self.movable_n_atoms,
+            dtype=torch.int64,
+            device=pose_stack.device,
+        )[None, :].expand(pose_stack.n_poses, -1)
 
     def _score_ligand_coordinates(
         self, ligand_coordinates: torch.Tensor
@@ -885,6 +1104,9 @@ class GridBackend(ScoringBackend):
                 ligand_coordinates.device, ligand_coordinates.dtype
             ),
             lk_ball_grid=self.lk_ball_grid,
+            grid_atom_indices=self._grid_atom_indices_for(
+                ligand_coordinates.device
+            ),
         )
 
     def _score_ligand_coordinates_with_gradients(
@@ -908,6 +1130,9 @@ class GridBackend(ScoringBackend):
                 ligand_coordinates.device, ligand_coordinates.dtype
             ),
             lk_ball_grid=self.lk_ball_grid,
+            grid_atom_indices=self._grid_atom_indices_for(
+                ligand_coordinates.device
+            ),
         )
 
     def score(self, pose_stack: PoseStack) -> torch.Tensor:
@@ -919,7 +1144,7 @@ class GridBackend(ScoringBackend):
         the backend with ``include_ligand_intra=False``.
         """
 
-        atom_indices = self._ligand_atom_indices(
+        atom_indices = self._movable_atom_indices(
             pose_stack, self.ligand_block
         )
         pose_indices = torch.arange(
@@ -953,8 +1178,8 @@ class GridBackend(ScoringBackend):
         short-lived compiled kinematic/grid-gradient buffers, and explicitly
         assigned gradients. Ligand-intra kernels use a local autograd graph
         internally and return detached values; no graph reaches the optimizer.
-        Selected receptor-sidechain DOFs are accepted but remain unscored in
-        this milestone; all other receptor DOFs remain fixed.
+        Selected receptor-sidechain DOFs receive grid, live-interface, and
+        whole-movable gradients; all other receptor DOFs remain fixed.
         """
 
         if docking_dofs.ligand_block != self.ligand_block:
