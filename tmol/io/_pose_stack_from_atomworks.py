@@ -1,5 +1,4 @@
 import torch
-import numpy
 import toolz
 import biotite.structure
 
@@ -7,6 +6,10 @@ from tmol.types import validate_args
 from tmol.chemical import ResidueTypeSet
 from tmol.database import ParameterDatabase
 from tmol.io._build_context import PoseBuildContext
+from tmol.io._pose_stack_from_atom37 import (
+    atom37_slot_map_for_ordering,
+    canonical_form_from_atom37,
+)
 from tmol.io import (
     CanonicalForm,
     CanonicalOrdering,
@@ -208,54 +211,19 @@ def canonical_form_from_atomworks(
     assert len(chain_iid.shape) == 2, "chain_iid must be 2D [batch, n_res]"
 
     device = coords.device
-    n_poses = coords.shape[0]
-    max_n_res = coords.shape[1]
-    max_n_ats = coords.shape[2]  # 37
-
-    aw_pose_ind_for_atom = (
-        torch.arange(n_poses, dtype=torch.int64, device=device)
-        .reshape(-1, 1, 1)
-        .expand(-1, max_n_res, max_n_ats)
-    )
-    aw_res_ind_for_atom = (
-        torch.arange(max_n_res, dtype=torch.int64, device=device)
-        .reshape(1, -1, 1)
-        .expand(n_poses, -1, max_n_ats)
-    )
-
     assert device == residue_type.device
     assert device == chain_iid.device
 
+    # Only the residue-index space is atomworks-specific. Once the tokens are
+    # expressed as tmol residue types, the coordinate scatter is the shared one.
     co = canonical_ordering_for_atomworks()
-    aw2t_rtmap, aw2t_atmap, aw_at_is_real_map = _get_aw_2_tmol_mappings(device)
-
-    tmol_restypes = aw2t_rtmap[residue_type]
-    atom_mapping = aw2t_atmap[residue_type]
-    aw_at_is_real = aw_at_is_real_map[residue_type]
-
-    tmol_coords = torch.full(
-        (n_poses, max_n_res, co.max_n_canonical_atoms, 3),
-        numpy.nan,
-        dtype=torch.float32,
-        device=device,
-    )
-    tmol_coords[
-        aw_pose_ind_for_atom[aw_at_is_real],
-        aw_res_ind_for_atom[aw_at_is_real],
-        atom_mapping[aw_at_is_real],
-    ] = coords[aw_at_is_real]
-
-    return CanonicalForm(
-        chain_id=chain_iid.to(torch.int32),
-        res_types=tmol_restypes.to(torch.int32),
-        coords=tmol_coords,
-        chain_labels=None,
-        res_labels=None,
-        residue_insertion_codes=None,
-        atom_occupancy=None,
-        atom_b_factor=None,
-        disulfides=None,
-        res_not_connected=None,
+    aw2t_rtmap, _, _ = _get_aw_2_tmol_mappings(device)
+    return canonical_form_from_atom37(
+        coords,
+        aw2t_rtmap[residue_type],
+        chain_iid,
+        co,
+        slot_map=atom37_slot_map_for_ordering(co, ATOMWORKS_ATOM37_NAMES, device),
     )
 
 

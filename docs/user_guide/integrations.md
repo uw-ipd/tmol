@@ -73,6 +73,38 @@ construction and scoring. Differentiate the score through `pose_stack.coords`
 without detaching it. Cache the named-layout mapping for repeated predictions;
 use the prepared topology path below for repeated Atom37 guidance or search.
 
+## One tensor path for any chemistry
+
+When the residue types are already resolved, pose construction needs no
+structure object at all. `pose_stack_from_atom37()` takes tensors the whole
+way, for canonical and noncanonical chemistry alike:
+
+```python
+from tmol.io import atom37_slot_map_for_ordering, pose_stack_from_atom37
+
+slot_map = atom37_slot_map_for_ordering(
+    context.canonical_ordering, atom_names_by_slot, device
+)
+pose_stack = pose_stack_from_atom37(
+    atom37_coords,       # [pose, token, slot, xyz], autograd-tracked
+    res_types,           # [pose, token] into context.canonical_ordering
+    chain_id,            # [pose, token]
+    context,
+    slot_map=slot_map,
+    covalent_bonds=covalent_bonds,   # [n, 5]: pose, res1, atom1, res2, atom2
+)
+```
+
+Residue identity comes from `res_types`, and any covalent chemistry the polymer
+connections do not already describe comes from `covalent_bonds`, so glycans,
+ligands and conjugated residues need no `AtomArray`. `slot_map` is built once
+per (ordering, layout) pair from the residue-type table; omit it to use the
+standard Atom37 layout, which covers the canonical amino acids.
+
+The `AtomArray` entry points below remain the way to *derive* these tensors
+when chemistry has to be read from a structure. Everything ends in the same
+constructor, `pose_stack_from_canonical_form_and_context()`.
+
 ## Differentiable AtomWorks Atom37 coordinates
 
 For a model that predicts AtomWorks unified Atom37 coordinates, keep chemical
