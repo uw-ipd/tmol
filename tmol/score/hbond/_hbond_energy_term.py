@@ -12,6 +12,8 @@ from tmol.pose import (
     PoseStack,
 )
 
+_PACK_HBOND_ROTAMER_CANDIDATE_WINDOW = 16 * 1024 * 1024
+
 
 class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
     tile_size: int = 32
@@ -141,17 +143,13 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             allow_split_pairs,
         )
 
-    def rotamer_score_hbond(self, *args):
+    def _rotamer_hbond_score_args(
+        self, common_args, pose_stack, hbond_params, block_pair_scoring
+    ):
         from tmol.score.hbond.potentials import (
-            hbond_rotamer_scores,
-            hbond_rotamer_scores_shared,
             gen_hbond_bases,
         )
 
-        common_args = args[:-4]
-        pose_stack, hbond_params, block_pair_scoring, shared_dispatch_indices = args[
-            -4:
-        ]
         coords_dtype = common_args[0].dtype
         pair_param_table, pair_poly_table, global_param_table = self._param_tables(
             coords_dtype
@@ -181,11 +179,6 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
                 hbond_params.is_hydrogen,
             )
 
-        score_op = (
-            hbond_rotamer_scores_shared
-            if shared_dispatch_indices.numel() != 0
-            else hbond_rotamer_scores
-        )
         score_args = (
             *common_args,
             pose_stack.inter_residue_connections,
@@ -213,9 +206,85 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             derived_atom_inds,
             block_pair_scoring,
         )
+        return score_args
+
+    def rotamer_score_hbond(self, *args):
+        from tmol.score.hbond.potentials import (
+            hbond_rotamer_scores,
+            hbond_rotamer_scores_shared,
+        )
+
+        common_args = args[:-4]
+        pose_stack, hbond_params, block_pair_scoring, shared_dispatch_indices = args[
+            -4:
+        ]
+        score_args = self._rotamer_hbond_score_args(
+            common_args, pose_stack, hbond_params, block_pair_scoring
+        )
+        score_op = (
+            hbond_rotamer_scores_shared
+            if shared_dispatch_indices.numel() != 0
+            else hbond_rotamer_scores
+        )
         if shared_dispatch_indices.numel() != 0:
-            score_args += (shared_dispatch_indices,)
+            score_args = (*score_args, shared_dispatch_indices)
         return score_op(*score_args)
+
+    def iter_packing_rotamer_scores(self, *args):
+        """Yield canonical H-bond rotamer scores in bounded candidate pages."""
+        from tmol.score.hbond.potentials import (
+            hbond_rotamer_dispatch_page,
+            hbond_rotamer_scores_shared,
+            hbond_rotamer_spheres,
+        )
+
+        *score_args, topology_only = args
+        common_args = score_args[:-3]
+        pose_stack, hbond_params, block_pair_scoring = score_args[-3:]
+        first_rot_block_type = common_args[4]
+        n_rots_for_block = common_args[10]
+        rot_offset_for_block = common_args[11]
+        lockstep_group_for_block = common_args[12]
+        rot_spheres, block_spheres = hbond_rotamer_spheres(
+            common_args[0],
+            common_args[1],
+            first_rot_block_type,
+            common_args[7],
+            n_rots_for_block,
+            rot_offset_for_block,
+            pose_stack.packed_block_types.n_atoms,
+        )
+        n_poses, max_n_blocks = first_rot_block_type.shape
+        candidates_per_pose = max_n_blocks * (max_n_blocks + 1) // 2
+        n_candidates = n_poses * candidates_per_pose
+        prepared_score_args = None
+        if not topology_only:
+            prepared_score_args = self._rotamer_hbond_score_args(
+                common_args, pose_stack, hbond_params, block_pair_scoring
+            )
+        for candidate_begin in range(
+            0, n_candidates, _PACK_HBOND_ROTAMER_CANDIDATE_WINDOW
+        ):
+            candidate_end = min(
+                candidate_begin + _PACK_HBOND_ROTAMER_CANDIDATE_WINDOW,
+                n_candidates,
+            )
+            indices = hbond_rotamer_dispatch_page(
+                first_rot_block_type,
+                block_spheres,
+                n_rots_for_block,
+                rot_offset_for_block,
+                rot_spheres,
+                lockstep_group_for_block,
+                self.get_block_neighbor_cutoff(),
+                candidate_begin,
+                candidate_end,
+            )
+            if topology_only:
+                yield None, indices
+                continue
+            scores, indices = hbond_rotamer_scores_shared(*prepared_score_args, indices)
+            yield scores, indices
 
     @property
     def score_only_in_no_grad(self):
@@ -228,6 +297,9 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
 
     def get_rotamer_score_term_function(self):
         return self.rotamer_score_hbond
+
+    def get_packing_rotamer_score_term_function(self):
+        return self.iter_packing_rotamer_scores
 
     def get_block_neighbor_cutoff(self):
         return 5.5

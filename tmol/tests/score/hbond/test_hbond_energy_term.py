@@ -3,6 +3,8 @@ import pytest
 import torch
 
 from tmol.io import pose_stack_from_pdb
+from tmol.pack import PackerPalette, PackerTask, SetPackerTask
+from tmol.pack.rotamer import IncludeCurrentSampler, build_rotamers
 from tmol.pose import PoseStackBuilder
 from tmol.score.hbond import HBondEnergyTerm
 from tmol.score import (
@@ -26,6 +28,82 @@ def test_hbond_in_sfxn(default_database, torch_device):
     sfxn.set_weight(ScoreType.hbond, 1.0)
     assert len(sfxn.all_terms()) == 1
     assert isinstance(sfxn.all_terms()[0], HBondEnergyTerm)
+
+
+def test_paged_rotamer_scores_match_full_values_indices_and_gradients(
+    ubq_pdb, default_database, torch_device, monkeypatch
+):
+    from tmol.score.hbond import _hbond_energy_term
+
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
+    task = PackerTask(pose, PackerPalette())
+    task.restrict_to_repacking()
+    task.add_conformer_sampler(IncludeCurrentSampler())
+    pose, rotamers = build_rotamers(
+        pose,
+        SetPackerTask.from_packer_task(task),
+        pose.packed_block_types.chem_db,
+    )
+    term = HBondEnergyTerm(param_db=default_database, device=torch_device)
+    for block in pose.packed_block_types.active_block_types:
+        term.setup_block_type(block)
+    term.setup_packed_block_types(pose.packed_block_types)
+    term.setup_poses(pose)
+    scorer = term.render_rotamer_scoring_module(pose, rotamers)
+    scorer.n_score_types = 1
+    monkeypatch.setattr(_hbond_energy_term, "_PACK_HBOND_ROTAMER_CANDIDATE_WINDOW", 7)
+
+    full_coords = rotamers.coords.detach().requires_grad_(True)
+    full_scores, full_indices = scorer(full_coords)
+    full_weights = torch.linspace(
+        -1, 2, full_scores.numel(), dtype=full_scores.dtype, device=torch_device
+    ).reshape_as(full_scores)
+    (full_gradient,) = torch.autograd.grad(
+        torch.sum(full_scores * full_weights), full_coords
+    )
+
+    paged_coords = rotamers.coords.detach().requires_grad_(True)
+    pages = list(scorer.iter_packing_entries(paged_coords, topology_only=False))
+    paged_scores = torch.cat([scores for scores, _ in pages], dim=1)
+    paged_indices = torch.cat([indices for _, indices in pages], dim=1)
+    (paged_gradient,) = torch.autograd.grad(
+        torch.sum(paged_scores * full_weights), paged_coords
+    )
+
+    assert len(pages) > 1
+    assert torch.equal(paged_indices, full_indices)
+    torch.testing.assert_close(paged_scores, full_scores, rtol=0, atol=0)
+    torch.testing.assert_close(paged_gradient, full_gradient, rtol=1e-5, atol=1e-5)
+
+    topology_pages = list(
+        scorer.iter_packing_entries(paged_coords.detach(), topology_only=True)
+    )
+    assert all(scores is None for scores, _ in topology_pages)
+    assert torch.equal(
+        torch.cat([indices for _, indices in topology_pages], dim=1), full_indices
+    )
+
+    from tmol.score._score_function import RotamerScoringModule
+
+    weighted_scorer = RotamerScoringModule(
+        torch.tensor([2.0], device=torch_device), [scorer]
+    )
+    weighted_pages = list(
+        weighted_scorer._iter_weighted_sparse_entries(
+            paged_coords.detach(), retain_shared_dispatch=False
+        )
+    )
+    assert all(page_term is scorer for page_term, _, _ in weighted_pages)
+    assert torch.equal(
+        torch.cat([indices for _, indices, _ in weighted_pages], dim=1),
+        full_indices,
+    )
+    torch.testing.assert_close(
+        torch.cat([values for _, _, values in weighted_pages]),
+        2 * full_scores.detach()[0],
+        rtol=0,
+        atol=0,
+    )
 
 
 def test_annotate_restypes(
