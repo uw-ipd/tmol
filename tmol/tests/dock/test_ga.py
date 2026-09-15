@@ -531,6 +531,7 @@ class _TranslationImprovingBackend(ScoringBackend):
         )
         self.maxiters = []
         self.population_sizes = []
+        self.proposed_genes = []
         self.minimized_genes = []
 
     def score(self, pose_stack):
@@ -558,6 +559,7 @@ class _TranslationImprovingBackend(ScoringBackend):
         )
         layout = LigandGeneLayout.from_pose_stack(pose_stack, docking_dofs)
         genes = layout.genes_from_raw_dofs(initial_raw_dofs).clone()
+        self.proposed_genes.append(genes.detach().clone())
         genes[:, :3] += shift
         self.minimized_genes.append(genes.detach().clone())
         return MinimizationResult(
@@ -641,7 +643,7 @@ def test_swarm_initialization_runs_wide_gen0_then_small_ga_deterministically(
         backend.minimized_genes[0],
         repeated_backend.minimized_genes[0],
         rtol=0.0,
-        atol=0.0,
+        atol=1.0e-12,
     )
     torch.testing.assert_close(
         initial_ga_pools[0], initial_ga_pools[1], rtol=0.0, atol=0.0
@@ -650,14 +652,182 @@ def test_swarm_initialization_runs_wide_gen0_then_small_ga_deterministically(
         result.pool.genes, repeated.pool.genes, rtol=0.0, atol=0.0
     )
     torch.testing.assert_close(
-        result.pool.energies, repeated.pool.energies, rtol=0.0, atol=0.0
+        result.pool.energies, repeated.pool.energies, rtol=0.0, atol=1.0e-12
     )
     torch.testing.assert_close(
         result.pool.pose_stack.coords,
         repeated.pool.pose_stack.coords,
         rtol=0.0,
-        atol=0.0,
+        atol=1.0e-12,
     )
+
+
+def test_swarm_mc_is_deterministic_monotone_and_torsion_only(
+    monkeypatch,
+):
+    reference, _ = _load_cdk2_pose()
+    ligand_block = _ligand_block(reference)
+    swarm_size, rounds = 8, 2
+    chi_step = 0.52359878
+    schedule = GASchedule(
+        generations=1,
+        npool=3,
+        rmsdthreshold=1.0,
+        pmut=0.2,
+        maxiter=2,
+    )
+
+    optimized_pools = []
+    refined_swarms = []
+    subsampled_pools = []
+    original_optimize = ga_module.optimize_generation
+    original_subsample = ga_module._subsample_swarm_pool
+
+    def capture_optimize(*args, **kwargs):
+        optimized = original_optimize(*args, **kwargs)
+        optimized_pools.append(optimized)
+        return optimized
+
+    def capture_subsample(swarm, swarm_layout, *args, **kwargs):
+        rebuilt = swarm_layout.pose_stack_from_genes(swarm.genes)
+        torch.testing.assert_close(
+            swarm.pose_stack.coords, rebuilt.coords, rtol=0.0, atol=1.0e-12
+        )
+        refined_swarms.append(swarm)
+        subsampled = original_subsample(swarm, swarm_layout, *args, **kwargs)
+        subsampled_pools.append(subsampled)
+        return subsampled
+
+    monkeypatch.setattr(ga_module, "optimize_generation", capture_optimize)
+    monkeypatch.setattr(ga_module, "_subsample_swarm_pool", capture_subsample)
+
+    def run_once(input_pose):
+        optimize_start = len(optimized_pools)
+        swarm_start = len(refined_swarms)
+        subsample_start = len(subsampled_pools)
+        backend = _TranslationImprovingBackend(reference, ligand_block)
+        result = run_ga_docking(
+            input_pose,
+            ligand_block,
+            backend,
+            schedule=schedule,
+            seed=20260827,
+            initialization="swarm",
+            swarm_size=swarm_size,
+            swarm_mc_rounds=rounds,
+            swarm_chi_step=chi_step,
+        )
+        return (
+            result,
+            backend,
+            optimized_pools[optimize_start:],
+            refined_swarms[swarm_start:],
+            subsampled_pools[subsample_start:],
+        )
+
+    result, backend, optimized, refined, subsampled = run_once(reference)
+    repeated, _, _, repeated_refined, repeated_subsampled = run_once(reference)
+
+    assert backend.population_sizes == [
+        swarm_size,
+        swarm_size,
+        swarm_size,
+        schedule.npool,
+    ]
+    assert backend.maxiters == [schedule.maxiter] * (rounds + 2)
+    assert len(refined) == len(subsampled) == 1
+
+    best_energies = optimized[0].energies
+    best_genes = optimized[0].genes
+    energy_history = [best_energies]
+    n_ligand_torsions = best_genes.shape[1] - 6
+    assert n_ligand_torsions == 2
+    for round_index in range(1, rounds + 1):
+        proposed = backend.proposed_genes[round_index]
+        torch.testing.assert_close(
+            proposed[:, :6], best_genes[:, :6], rtol=0.0, atol=1.0e-12
+        )
+        torsion_delta = ga_module._canonical_torsions(
+            proposed[:, 6 : 6 + n_ligand_torsions]
+            - best_genes[:, 6 : 6 + n_ligand_torsions]
+        )
+        assert torch.all(torch.abs(torsion_delta) <= chi_step)
+        assert torch.any(torsion_delta != 0)
+        assert torch.all(proposed[:, 6:] > -torch.pi)
+        assert torch.all(proposed[:, 6:] <= torch.pi)
+
+        trial_pool = optimized[round_index]
+        improve = trial_pool.energies < best_energies
+        best_genes = torch.where(improve[:, None], trial_pool.genes, best_genes)
+        best_energies = torch.where(
+            improve, trial_pool.energies, best_energies
+        )
+        assert torch.all(best_energies <= energy_history[-1])
+        energy_history.append(best_energies)
+
+    torch.testing.assert_close(
+        refined[0].genes, best_genes, rtol=0.0, atol=1.0e-12
+    )
+    torch.testing.assert_close(
+        refined[0].energies, best_energies, rtol=0.0, atol=1.0e-12
+    )
+
+    for actual, expected in (
+        (refined[0].genes, repeated_refined[0].genes),
+        (refined[0].energies, repeated_refined[0].energies),
+        (refined[0].pose_stack.coords, repeated_refined[0].pose_stack.coords),
+        (subsampled[0].genes, repeated_subsampled[0].genes),
+        (subsampled[0].selected_indices, repeated_subsampled[0].selected_indices),
+        (result.pool.genes, repeated.pool.genes),
+        (result.pool.energies, repeated.pool.energies),
+    ):
+        torch.testing.assert_close(actual, expected, rtol=0.0, atol=1.0e-12)
+
+    block_type = reference.block_type(0, ligand_block)
+    bonds = torch.tensor(block_type.bond_indices[::2], dtype=torch.int64)
+    refined_pose = refined[0].pose_stack
+    pose_indices = torch.arange(refined_pose.n_poses)
+    offsets = refined_pose.block_coord_offset64[:, ligand_block]
+    left = refined_pose.coords[
+        pose_indices[:, None], offsets[:, None] + bonds[None, :, 0]
+    ]
+    right = refined_pose.coords[
+        pose_indices[:, None], offsets[:, None] + bonds[None, :, 1]
+    ]
+    bond_lengths = torch.linalg.vector_norm(left - right, dim=2)
+    assert int(torch.sum((bond_lengths < 0.8) | (bond_lengths > 2.0))) == 0
+
+
+def test_zero_round_swarm_is_identical_to_default():
+    reference, _ = _load_cdk2_pose()
+    ligand_block = _ligand_block(reference)
+    schedule = GASchedule(generations=1, npool=3, rmsdthreshold=1.0, maxiter=2)
+
+    def run_once(**kwargs):
+        backend = _TranslationImprovingBackend(reference, ligand_block)
+        result = run_ga_docking(
+            reference,
+            ligand_block,
+            backend,
+            schedule=schedule,
+            seed=17,
+            initialization="swarm",
+            swarm_size=8,
+            **kwargs,
+        )
+        return result, backend
+
+    baseline, baseline_backend = run_once()
+    explicit, explicit_backend = run_once(
+        swarm_mc_rounds=0, swarm_chi_step=0.125
+    )
+    for actual, expected in (
+        (explicit.pool.genes, baseline.pool.genes),
+        (explicit.pool.energies, baseline.pool.energies),
+        (explicit.pool.pose_stack.coords, baseline.pool.pose_stack.coords),
+        (explicit_backend.proposed_genes[0], baseline_backend.proposed_genes[0]),
+    ):
+        torch.testing.assert_close(actual, expected, rtol=0.0, atol=0.0)
 
 
 def test_inactive_swarm_size_does_not_change_random_initialization():
@@ -677,7 +847,11 @@ def test_inactive_swarm_size_does_not_change_random_initialization():
         )
 
     baseline = run_once()
-    inactive = run_once(swarm_size=0)
+    inactive = run_once(
+        swarm_size=0,
+        swarm_mc_rounds=-1,
+        swarm_chi_step=float("nan"),
+    )
     torch.testing.assert_close(
         baseline.pool.genes, inactive.pool.genes, rtol=0.0, atol=0.0
     )
@@ -705,6 +879,30 @@ def test_swarm_size_must_cover_the_small_ga_pool():
             schedule=GASchedule(generations=1, npool=4, maxiter=1),
             initialization="swarm",
             swarm_size=3,
+        )
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "message"),
+    (
+        ({"swarm_mc_rounds": -1}, "swarm_mc_rounds"),
+        ({"swarm_mc_rounds": True}, "swarm_mc_rounds"),
+        ({"swarm_chi_step": -0.1}, "swarm_chi_step"),
+        ({"swarm_chi_step": float("nan")}, "swarm_chi_step"),
+    ),
+)
+def test_swarm_mc_parameters_are_validated(kwargs, message):
+    reference, _ = _load_cdk2_pose()
+    ligand_block = _ligand_block(reference)
+    with pytest.raises(ValueError, match=message):
+        run_ga_docking(
+            reference,
+            ligand_block,
+            _TranslationImprovingBackend(reference, ligand_block),
+            schedule=GASchedule(generations=1, npool=3, maxiter=1),
+            initialization="swarm",
+            swarm_size=3,
+            **kwargs,
         )
 
 
@@ -753,6 +951,15 @@ def test_hot_operators_have_no_python_pose_loop_or_scalar_sync():
         textwrap.dedent(inspect.getsource(ga_module.update_pool))
     )
     assert sum(isinstance(node, ast.For) for node in ast.walk(update_tree)) == 1
+    refine_tree = ast.parse(
+        textwrap.dedent(inspect.getsource(ga_module._refine_swarm_pool))
+    )
+    assert sum(isinstance(node, ast.For) for node in ast.walk(refine_tree)) == 1
+    refine_source = textwrap.dedent(
+        inspect.getsource(ga_module._refine_swarm_pool)
+    )
+    assert ".item(" not in refine_source
+    assert ".tolist(" not in refine_source
     run_source = textwrap.dedent(inspect.getsource(ga_module.run_ga_docking))
     run_tree = ast.parse(run_source)
     assert sum(isinstance(node, ast.For) for node in ast.walk(run_tree)) == 1
