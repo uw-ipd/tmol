@@ -9,7 +9,15 @@ import numpy
 import torch
 
 from tmol.dock.dock_loop import _repeat_pose_stack
-from tmol.dock.ga import GAResult, _ligand_only_pose_stack
+from tmol.dock.ga import (
+    GAResult,
+    LigandGeneLayout,
+    _ligand_only_pose_stack,
+    _movable_block_mapping,
+    _place_ligand_in_reference,
+    _sidechain_context_blocks,
+)
+from tmol.dock.ligand_dofs import build_ligand_docking_dofs
 from tmol.optimization.minimizers import run_cart_min
 from tmol.pose.constraint_set import ConstraintSet
 from tmol.pose.pdb_info import PDBInfo
@@ -65,12 +73,33 @@ def _promote_top_candidates(
     ligand_block: int,
     ga_result: GAResult,
     top_k: int,
+    *,
+    sidechain_blocks: tuple[int, ...] = (),
+    compact_sidechain_blocks: tuple[int, ...] = (),
+    sidechain_atom_indices: torch.Tensor | None = None,
 ) -> tuple[PoseStack, torch.Tensor]:
-    """Copy only the top grid/GA ligand coordinates into full complexes."""
+    """Copy the top grid/GA movable coordinates into full complexes."""
 
     if reference_pose_stack.n_poses != 1:
         raise ValueError("finalization requires one reference pose")
     flat = torch.argsort(ga_result.pool.energies)[:top_k]
+
+    if sidechain_blocks:
+        promoted = _repeat_pose_stack(reference_pose_stack, top_k)
+        selected_compact = attr.evolve(
+            _repeat_pose_stack(ga_result.pool.pose_stack.split(0), promoted.n_poses),
+            coords=ga_result.pool.pose_stack.coords[flat].detach().clone(),
+        )
+        promoted = _place_ligand_in_reference(
+            promoted,
+            ligand_block,
+            selected_compact,
+            sidechain_blocks=sidechain_blocks,
+            compact_sidechain_blocks=compact_sidechain_blocks,
+            sidechain_atom_indices=sidechain_atom_indices,
+        )
+        genes = ga_result.pool.genes[flat].unsqueeze(0)
+        return promoted, genes
 
     pool_ligand_block = (
         0 if ga_result.pool.pose_stack.max_n_blocks == 1 else ligand_block
@@ -90,6 +119,91 @@ def _promote_top_candidates(
     ]
     genes = ga_result.pool.genes[flat].unsqueeze(0)
     return attr.evolve(promoted, coords=coords), genes
+
+
+def _flexible_sidechain_mapping(
+    reference_pose_stack: PoseStack,
+    ligand_block: int,
+    backend,
+    compact_pose_stack: PoseStack,
+) -> tuple[
+    tuple[int, ...],
+    tuple[int, ...],
+    torch.Tensor | None,
+    tuple[tuple[int, torch.Tensor], ...],
+]:
+    """Rebuild compact and full moving-sidechain coordinate mappings."""
+
+    sidechain_blocks = tuple(getattr(backend, "sidechain_blocks", ()))
+    if not sidechain_blocks:
+        return (), (), None, ()
+    # The compact topology (block types, offsets, sidechain atom indices) is
+    # identical across every pool pose, so rebuild the mapping metadata from a
+    # single-pose slice instead of running inverse kinematics + fp64 torsion
+    # response checks over all npool sampled conformations.
+    compact_pose_stack = compact_pose_stack.split(0)
+    if getattr(backend, "ligand_block", ligand_block) != ligand_block:
+        raise ValueError("finalization backend ligand block does not match reference")
+    context_blocks = _sidechain_context_blocks(
+        reference_pose_stack, ligand_block, sidechain_blocks
+    )
+    if tuple(getattr(backend, "context_blocks", ())) != context_blocks:
+        raise ValueError("finalization peptide context does not match backend")
+    source_blocks, compact_sidechain_blocks, _ = _movable_block_mapping(
+        reference_pose_stack, ligand_block, sidechain_blocks
+    )
+    if compact_pose_stack.max_n_blocks != len(source_blocks):
+        raise ValueError("GA pool compact topology does not match flexible backend")
+
+    docking_dofs = build_ligand_docking_dofs(
+        compact_pose_stack,
+        0,
+        sidechain_blocks=compact_sidechain_blocks,
+    )
+    layout = LigandGeneLayout.from_pose_stack(compact_pose_stack, docking_dofs)
+    compact_atoms = layout.sidechain_atom_indices[0]
+    if not bool(torch.all(layout.sidechain_atom_indices == compact_atoms[None, :])):
+        raise ValueError("finalization requires identical sidechain atom mappings")
+
+    block_local_atoms = []
+    for compact_block, source_block in zip(
+        compact_sidechain_blocks, sidechain_blocks
+    ):
+        compact_start = compact_pose_stack.block_coord_offset64[0, compact_block]
+        compact_end = compact_start + compact_pose_stack.block_type(
+            0, compact_block
+        ).n_atoms
+        selected = compact_atoms[
+            (compact_atoms >= compact_start) & (compact_atoms < compact_end)
+        ]
+        if selected.numel() != 0:
+            block_local_atoms.append((source_block, selected - compact_start))
+    if sum(local_atoms.numel() for _, local_atoms in block_local_atoms) != int(
+        compact_atoms.numel()
+    ):
+        raise ValueError("sidechain atom mapping is incomplete")
+    return (
+        sidechain_blocks,
+        compact_sidechain_blocks,
+        compact_atoms,
+        tuple(block_local_atoms),
+    )
+
+
+def _mapped_atom_indices(
+    pose_stack: PoseStack,
+    block_local_atoms: tuple[tuple[int, torch.Tensor], ...],
+) -> torch.Tensor:
+    """Return per-pose absolute atom indices for block-local atom selections."""
+
+    return torch.cat(
+        [
+            pose_stack.block_coord_offset64[:, block, None]
+            + local_atoms.to(device=pose_stack.device)[None, :]
+            for block, local_atoms in block_local_atoms
+        ],
+        dim=1,
+    )
 
 
 def _receptor_only_pose_stack(pose_stack: PoseStack, ligand_block: int) -> PoseStack:
@@ -262,15 +376,38 @@ def finalize_ga_docking(
     if not hasattr(backend, "param_db"):
         raise TypeError("finalization requires a backend with a parameter database")
 
-    promoted, genes = _promote_top_candidates(
-        reference_pose_stack, ligand_block, ga_result, top_k
+    (
+        sidechain_blocks,
+        compact_sidechain_blocks,
+        compact_sidechain_atoms,
+        block_local_atoms,
+    ) = _flexible_sidechain_mapping(
+        reference_pose_stack, ligand_block, backend, ga_result.pool.pose_stack
     )
+    if sidechain_blocks:
+        promoted, genes = _promote_top_candidates(
+            reference_pose_stack,
+            ligand_block,
+            ga_result,
+            top_k,
+            sidechain_blocks=sidechain_blocks,
+            compact_sidechain_blocks=compact_sidechain_blocks,
+            sidechain_atom_indices=compact_sidechain_atoms,
+        )
+    else:
+        promoted, genes = _promote_top_candidates(
+            reference_pose_stack, ligand_block, ga_result, top_k
+        )
     exact_sfxn = beta2016_score_function(promoted.device, param_db=backend.param_db)
     pre_refine = _score_pose_stack(promoted, exact_sfxn)
     coord_mask = torch.zeros(
         promoted.coords.shape[:2], dtype=torch.bool, device=promoted.device
     )
     coord_mask.scatter_(1, _ligand_atom_indices(promoted, ligand_block), True)
+    if sidechain_blocks:
+        coord_mask.scatter_(
+            1, _mapped_atom_indices(promoted, block_local_atoms), True
+        )
     refined = run_cart_min(
         promoted,
         exact_sfxn,
@@ -293,6 +430,33 @@ def finalize_ga_docking(
     free_ligand_energy = _score_pose_stack(relaxed_ligand, exact_sfxn)
 
     receptor = _receptor_only_pose_stack(reference_pose_stack, ligand_block)
+    if sidechain_blocks:
+        real_blocks = torch.nonzero(
+            reference_pose_stack.block_type_ind64[0] >= 0, as_tuple=False
+        ).flatten()
+        keep_blocks = real_blocks[real_blocks != ligand_block].tolist()
+        source_to_receptor = {
+            source_block: receptor_block
+            for receptor_block, source_block in enumerate(keep_blocks)
+        }
+        receptor_block_local_atoms = tuple(
+            (source_to_receptor[source_block], local_atoms)
+            for source_block, local_atoms in block_local_atoms
+        )
+        receptor_coord_mask = torch.zeros(
+            receptor.coords.shape[:2], dtype=torch.bool, device=receptor.device
+        )
+        receptor_coord_mask.scatter_(
+            1,
+            _mapped_atom_indices(receptor, receptor_block_local_atoms),
+            True,
+        )
+        receptor = run_cart_min(
+            receptor,
+            exact_sfxn,
+            coord_mask=receptor_coord_mask,
+            optimizer_kwargs={"max_iter": 50},
+        )
     free_receptor_energy = _score_pose_stack(receptor, exact_sfxn)[0]
     free_receptor_energies = free_receptor_energy.expand_as(complex_energy)
 

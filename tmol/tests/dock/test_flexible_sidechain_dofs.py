@@ -28,6 +28,7 @@ from tmol.dock.ga import (
 )
 from tmol.dock.dock_loop import _repeat_pose_stack
 from tmol.dock.ligand_dofs import (
+    _block_has_nonpolymer_connection,
     _block_kinforest_nodes,
     _local_torsion_atoms,
 )
@@ -204,7 +205,15 @@ def test_cdk2_pocket_selection_is_heavy_atom_based_and_deterministic(
             assert block not in selected
             continue
         distance = _minimum_heavy_distance(pose_stack, block, ligand_block)
-        assert (block in selected) == (distance <= 6.0)
+        # The selector returns directly-usable flexible residues: a contacting
+        # polymer block is included only if it has a movable sidechain chi and no
+        # non-polymer covalent bond (e.g. a disulfide).
+        flexible_able = int(block_type.n_sc_torsions) > 0 and not (
+            _block_has_nonpolymer_connection(
+                pose_stack, block, block_type_index
+            )
+        )
+        assert (block in selected) == (distance <= 6.0 and flexible_able)
         if block in selected:
             rows.append((block, _pdb_residue_id(pose_stack, block), distance))
     print("cdk2 6A pocket blocks (block, chain/resid/icode/name3, min_A):", rows)

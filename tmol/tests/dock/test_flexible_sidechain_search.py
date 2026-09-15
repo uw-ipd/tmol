@@ -524,6 +524,39 @@ def test_disulfide_residue_rejected_from_flexible_selection():
         _validated_sidechain_blocks(reference, ligand_block, (near_pocket[0],))
 
 
+def test_chi_less_residue_rejected_from_flexible_selection(cdk2_pose_and_db):
+    """Review MEDIUM-1: a chi-less residue (ALA/GLY) cannot be made flexible.
+
+    It has no sidechain torsion, so it contributes no moving atom; admitting it
+    would leave finalization with an empty moving-set to scatter. The auto-selector
+    must exclude such residues and an explicit pass must raise (rather than crash
+    later in finalization on an empty tensor concat).
+    """
+    reference, _ = cdk2_pose_and_db
+    ligand_block = _ligand_block(reference)
+
+    chi_less = [
+        block
+        for block in range(reference.max_n_blocks)
+        if not bool(torch.any(reference.block_type_ind64[:, block] < 0))
+        and block != ligand_block
+        and reference.block_type(0, block).properties.polymer.is_polymer
+        and int(reference.block_type(0, block).n_sc_torsions) == 0
+    ]
+    assert chi_less, "cdk2 is expected to contain chi-less residues (ALA/GLY)"
+
+    selected = set(
+        int(b) for b in select_pocket_residue_blocks(reference, ligand_block, 6.0)
+    )
+    assert not (selected & set(chi_less)), (
+        "select_pocket_residue_blocks leaked a chi-less residue: "
+        f"{sorted(selected & set(chi_less))}"
+    )
+
+    with pytest.raises(ValueError, match="no sidechain chi torsions"):
+        _validated_sidechain_blocks(reference, ligand_block, (chi_less[0],))
+
+
 @pytest.mark.slow
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires a CUDA device")
 def test_flexible_grid_search_moves_sidechain_and_restores_full_complex(

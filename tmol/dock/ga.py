@@ -414,6 +414,8 @@ def select_pocket_residue_blocks(
     connection (e.g. a disulfide-bonded cysteine) are also excluded, because
     flexible-sidechain kinematics cannot preserve that bond; passing such a
     residue explicitly is rejected downstream by ``_validated_sidechain_blocks``.
+    Chi-less residues (e.g. ALA, GLY) are excluded as well: they have nothing to
+    move, so the returned set is directly usable as flexible ``sidechain_blocks``.
     """
 
     if not isinstance(ligand_block, int) or isinstance(ligand_block, bool):
@@ -444,6 +446,8 @@ def select_pocket_residue_blocks(
         if _block_has_nonpolymer_connection(
             pose_stack, block, int(block_type_indices[0])
         ):
+            continue
+        if int(block_type.n_sc_torsions) == 0:
             continue
         receptor_heavy = _block_heavy_coords(pose_stack, block)
         if bool(torch.any(torch.cdist(receptor_heavy, ligand_heavy) <= cutoff)):
@@ -1765,10 +1769,6 @@ def run_docking(
 
     if not isinstance(finalize, bool):
         raise TypeError("finalize must be bool")
-    if finalize and sidechain_blocks:
-        raise NotImplementedError(
-            "flexible-sidechain finalization is deferred to M13a-3"
-        )
     if finalize and (
         not isinstance(top_k, int)
         or isinstance(top_k, bool)

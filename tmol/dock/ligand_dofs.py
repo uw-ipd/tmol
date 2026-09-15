@@ -679,6 +679,12 @@ def _validated_sidechain_blocks(
                 "cannot preserve that bond, so such residues must not be selected as "
                 "flexible"
             )
+        if int(block_type.n_sc_torsions) == 0:
+            raise ValueError(
+                f"sidechain block {block} ({block_type.name}) has no sidechain chi "
+                "torsions and cannot be made flexible (nothing to move); do not "
+                "select chi-less residues such as ALA or GLY"
+            )
     return normalized
 
 
