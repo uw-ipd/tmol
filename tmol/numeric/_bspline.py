@@ -84,7 +84,7 @@ class BSplineInterpolation:
         """Compute coefficients for already-validated CPU coordinates."""
 
         assert coords.device == torch.device("cpu")
-        coeffs = coords.clone()
+        coeffs = coords.clone(memory_format=torch.contiguous_format)
         if coords.ndim == 2:
             compiled.computeCoeffs2(coeffs)
         elif coords.ndim == 3:
@@ -100,7 +100,9 @@ class BSplineInterpolation:
     def _coefficients_from_coordinate_tables(coordinates):
         """Compute coefficients for a same-rank sequence of CPU tables."""
 
-        coeffs = [table.clone() for table in coordinates]
+        coeffs = [
+            table.clone(memory_format=torch.contiguous_format) for table in coordinates
+        ]
         if not coeffs:
             return coeffs
         ndim = coeffs[0].ndim

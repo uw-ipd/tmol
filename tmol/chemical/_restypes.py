@@ -16,7 +16,7 @@ from tmol.database import (
     ParameterDatabase,
     PatchedChemicalDatabase,
 )
-from tmol.database.chemical import RawResidueType
+from tmol.database.chemical import RawResidueType, l_base_name  # noqa: F401
 from tmol.chemical import (
     MAX_SIG_BOND_SEPARATION,
     MAX_PATHS_FROM_CONNECTION,
@@ -209,7 +209,7 @@ class RefinedResidueType(RawResidueType):
                 for b in self.bonds
             )
         )
-        bond_array = numpy.array(bondi, dtype=numpy.int32)
+        bond_array = numpy.array(bondi, dtype=numpy.int32).reshape(-1, 2)
         bond_array.flags.writeable = False
         return bond_array
 
@@ -523,6 +523,12 @@ class RefinedResidueType(RawResidueType):
                     atom_downstream_of_conn[i, :] = i_conn_atom
                 else:
                     assert mc_ats[0] == self.connections[i].atom
+                    if len(mc_ats) == 1:
+                        # A cap has no atom farther along its backbone. Keep
+                        # the undefined-depth sentinel instead of repeating
+                        # the connection atom into a degenerate torsion.
+                        atom_downstream_of_conn[i, 0] = i_conn_atom
+                        continue
                     for j in range(self.n_atoms):
                         atom_downstream_of_conn[i, j] = self.atom_to_idx[
                             mc_ats[j] if j < len(mc_ats) else mc_ats[-1]
@@ -538,6 +544,9 @@ class RefinedResidueType(RawResidueType):
                     atom_downstream_of_conn[i, :] = i_conn_atom
                 else:
                     assert mc_ats[-1] == self.connections[i].atom
+                    if len(mc_ats) == 1:
+                        atom_downstream_of_conn[i, 0] = i_conn_atom
+                        continue
                     for j in range(self.n_atoms):
                         atom_downstream_of_conn[i, j] = self.atom_to_idx[
                             (
