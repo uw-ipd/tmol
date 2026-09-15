@@ -184,6 +184,76 @@ def test_charge_database_reuse_energy_and_gradient(
         torch.testing.assert_close(actual_grad, expected_grad, rtol=1e-7, atol=1e-7)
 
 
+@pytest.mark.parametrize("changed_first", [False, True])
+def test_charge_reuse_rotamer_energies_and_gradients(
+    default_database, torch_device, dun_sampler, changed_first
+):
+    from tmol.pack import PackerPalette, PackerTask, SetPackerTask
+    from tmol.pack.rotamer import build_rotamers
+
+    pose = extended_pose_stack_from_sequences(["KK", "KKK"], device=torch_device)
+    task = PackerTask(pose, PackerPalette())
+    task.restrict_to_repacking()
+    task.set_chi_sample_budget(128, 64)
+    task.add_conformer_sampler(dun_sampler)
+    pose, rotamers = build_rotamers(
+        pose, SetPackerTask.from_packer_task(task), default_database.chemical
+    )
+    charges = (0.75, 0.5) if changed_first else (0.5, 0.75)
+    terms = [
+        setup_term(pose, isolated_charge_database(default_database, q, "LYS", "NZ"))
+        for q in charges
+    ]
+    modules = [term.render_rotamer_scoring_module(pose, rotamers) for term in terms]
+    modules.append(terms[0].render_rotamer_scoring_module(pose, rotamers))
+    coords = rotamers.coords.double().clone()
+    types = pose.packed_block_types.active_block_types
+    nz_indices, terminal = [], []
+    for ri, ti in enumerate(rotamers.block_type_ind_for_rot.tolist()):
+        bt = types[ti]
+        nz = int(rotamers.coord_offset_for_rot[ri]) + bt.atom_to_idx["NZ"]
+        end = 1 if "nterm" in bt.name else -1 if "cterm" in bt.name else 0
+        nz_indices.append(nz)
+        terminal.append(end)
+        coords[nz] = coords.new_tensor(
+            [0.0 if end == 1 else 3.1, 0.01 * (ri % 7), 0.02 * (ri % 3)]
+        )
+    nz_indices = torch.tensor(nz_indices, device=torch_device)
+    terminal = torch.tensor(terminal, device=torch_device)
+    assert int((terminal == 1).sum()) > 2 and int((terminal == -1).sum()) > 2
+    coords.requires_grad_(True)
+    for module, q in zip(modules, (*charges, charges[0])):
+        actual, indices = module(coords)
+        r1, r2 = indices[1].long(), indices[2].long()
+        selected = terminal[r1] * terminal[r2] == -1
+        expected_count = sum(
+            int(rotamers.n_rots_for_block[pi, 0])
+            * int(rotamers.n_rots_for_block[pi, last])
+            for pi, last in enumerate((1, 2))
+        )
+        assert int(selected.sum()) == expected_count
+        distances = (
+            coords[nz_indices[r1[selected]]] - coords[nz_indices[r2[selected]]]
+        ).norm(dim=-1)
+        expected = torch.zeros_like(actual)
+        expected[0, selected] = coulomb_reference(
+            distances,
+            q * float(np.float32(-0.4)),
+            default_database.scoring.elec.global_parameters,
+        )
+        torch.testing.assert_close(actual, expected, rtol=3e-7, atol=1e-7)
+        weights = torch.linspace(
+            0.3, 1.3, actual.numel(), device=torch_device
+        ).reshape_as(actual)
+        actual_grad = torch.autograd.grad(
+            (actual * weights).sum(), coords, retain_graph=True
+        )[0]
+        expected_grad = torch.autograd.grad(
+            (expected * weights).sum(), coords, retain_graph=True
+        )[0]
+        torch.testing.assert_close(actual_grad, expected_grad, rtol=1e-7, atol=1e-7)
+
+
 def test_exact_combined_variant_charge_precedes_single_patch(
     default_database, fresh_default_restype_set, torch_device
 ):
@@ -264,3 +334,88 @@ def test_missing_applicable_charge_raises_instead_of_nan(
     resolver = ElecParamResolver.from_database(elec, torch_device)
     with pytest.raises(KeyError, match="Elec charge for atom ALA,CB not found"):
         resolver.get_partial_charges_for_block(base)
+
+
+def test_terminal_conjugate_charge_bundle_energy_gradient(tmp_path, torch_device):
+    from dataclasses import replace
+    import biotite.structure as struc
+    import networkx as nx
+    from tmol.database import ParameterDatabase
+    from tmol.io import atom_array_from_cif, pose_stack_from_biotite
+    from tmol.ligand import prepare_ligands, load_params_file, write_params_file
+    from tmol.ligand._registry import inject_ligand_preparations
+    from tmol.tests.data import data_path
+    from tmol.tests.pack.rotamer.test_group_constraints import pose_bonds
+
+    array = atom_array_from_cif(data_path("covalent_fixtures", "lys_biotin_1bdo.cif"))
+    a, b = next(
+        (int(a), int(b))
+        for a, b, _ in array.bonds.as_array()
+        if {str(array.atom_name[a]), str(array.atom_name[b])} == {"NZ", "C11"}
+    )
+    array = array[struc.get_residue_masks(array, [a, b]).any(axis=0)]
+    path = tmp_path / "terminal-conjugate.tmol"
+    prepared, _ = prepare_ligands(array, seed=20250828, params_output=str(path))
+    pose = pose_stack_from_biotite(array, torch_device, param_db=prepared, no_optH=True)
+    types = [
+        pose.packed_block_types.active_block_types[t]
+        for t in pose.block_type_ind[0].tolist()
+    ]
+    assert len(types) == 2
+    lys, btn = types
+    assert {"nterm", "cterm", "conj_NZ"} <= set(lys.name.split(":"))
+    starts = pose.block_coord_offset[0].tolist()
+    nz = starts[0] + lys.atom_to_idx["NZ"]
+    graph = nx.Graph(pose_bonds(pose))
+    far = max(
+        btn.atoms,
+        key=lambda atom: nx.shortest_path_length(
+            graph, nz, starts[1] + btn.atom_to_idx[atom.name]
+        ),
+    )
+    other = starts[1] + btn.atom_to_idx[far.name]
+    assert nx.shortest_path_length(graph, nz, other) > 5
+    charges = {bt.name: {a.name: 0.0 for a in bt.atoms} for bt in types}
+    charges[lys.name]["NZ"] = 0.75
+    charges[btn.name][far.name] = -0.5
+    preps = load_params_file(path)
+    replacement_names = {
+        p.residue_type.name for p in preps if p.baseline_sha256 is not None
+    }
+    preps = [
+        (
+            replace(
+                p, partial_charges=charges.get(p.residue_type.name, p.partial_charges)
+            )
+            if p.residue_type.name in replacement_names
+            else p
+        )
+        for p in preps
+    ]
+    preps[0] = replace(
+        preps[0],
+        variant_partial_charges={
+            **(preps[0].variant_partial_charges or {}),
+            **{name: q for name, q in charges.items() if name not in replacement_names},
+        },
+    )
+    write_params_file(preps, path)
+    restored = load_params_file(path)
+    database = inject_ligand_preparations(ParameterDatabase.get_default(), restored)
+    databases = [database, inject_ligand_preparations(database, restored)]
+    assert databases[1] is database
+    coords = pose.coords.double().clone()
+    coords[0, other] = coords[0, nz] + coords.new_tensor([3.1, 0.7, 0.2])
+    coords.requires_grad_(True)
+    expected = coulomb_reference(
+        (coords[0, nz] - coords[0, other]).norm(),
+        -0.375,
+        databases[0].scoring.elec.global_parameters,
+    )
+    for database in databases:
+        module = setup_term(pose, database).render_whole_pose_scoring_module(pose)
+        actual = module(coords).sum()
+        torch.testing.assert_close(actual, expected, rtol=3e-7, atol=1e-7)
+        grad = torch.autograd.grad(actual, coords, retain_graph=True)[0]
+        reference_grad = torch.autograd.grad(expected, coords, retain_graph=True)[0]
+        torch.testing.assert_close(grad, reference_grad, rtol=1e-7, atol=1e-7)

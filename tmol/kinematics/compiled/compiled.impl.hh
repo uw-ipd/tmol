@@ -194,17 +194,23 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::
       int const parent_ff_edge = first_ff_edge_for_block[pose][parent_block];
       if (ff_edge == parent_ff_edge) {
         // parent is in the same FF edge
-        if (edge_type == ff_polymer_edge) {
-          // currently only support polymer (peptide) edges and jumps; no
-          // "chemical" edges just yet
+        if (edge_type == ff_polymer_edge || edge_type == ff_chemical_edge) {
           int const parent_block_type =
               pose_stack_block_type[pose][parent_block];
-          int const conn_to_parent =
-              block_type_polymeric_conn_index[block_type]
-                                             [(parent_block < block) ? 0 : 1];
-          int const conn_to_child =
-              block_type_polymeric_conn_index[parent_block_type]
-                                             [(parent_block < block) ? 1 : 0];
+          int conn_to_parent, conn_to_child;
+          if (edge_type == ff_chemical_edge) {
+            conn_to_child = ff_edges[pose][ff_edge][3];
+            conn_to_parent =
+                pose_stack_inter_residue_connections[pose][parent_block]
+                                                    [conn_to_child][1];
+          } else {
+            conn_to_parent =
+                block_type_polymeric_conn_index[block_type]
+                                               [(parent_block < block) ? 0 : 1];
+            conn_to_child =
+                block_type_polymeric_conn_index[parent_block_type]
+                                               [(parent_block < block) ? 1 : 0];
+          }
           pose_stack_block_in_and_first_out[pose][block][0] = conn_to_parent;
           pose_stack_block_in_and_first_out[pose][parent_block][1] =
               conn_to_child;
@@ -221,6 +227,11 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::
                                              [(parent_block < block) ? 0 : 1];
           pose_stack_block_in_and_first_out[pose][block][0] = conn_to_parent;
 
+        } else if (edge_type == ff_chemical_edge) {
+          int const conn_to_child = ff_edges[pose][ff_edge][3];
+          pose_stack_block_in_and_first_out[pose][block][0] =
+              pose_stack_inter_residue_connections[pose][parent_block]
+                                                  [conn_to_child][1];
         } else {
           // jump edge
           // assert edge_type == 1
@@ -241,6 +252,9 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::
             block_type_polymeric_conn_index[block_type]
                                            [(block < end_block) ? 1 : 0];
         pose_stack_block_in_and_first_out[pose][block][1] = conn_toward_end;
+      } else if (edge_type == ff_chemical_edge) {
+        pose_stack_block_in_and_first_out[pose][block][1] =
+            ff_edges[pose][ff_edge][3];
       } else {
         // jump edge
         // assert edge_type == 1
@@ -266,12 +280,15 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::
     int const edge_first_child = first_child_of_ff_edge[pose][edge];
     if (edge_first_child != -1) {
       int const first_child_edge_type = ff_edges[pose][edge_first_child][0];
-      if (first_child_edge_type == 0) {
+      if (first_child_edge_type == ff_polymer_edge) {
         // polymer edge
         int const first_child_end_block = ff_edges[pose][edge_first_child][2];
         pose_stack_block_in_and_first_out[pose][edge_end_block][1] =
             block_type_polymeric_conn_index
                 [block_type][(edge_end_block < first_child_end_block) ? 1 : 0];
+      } else if (first_child_edge_type == ff_chemical_edge) {
+        pose_stack_block_in_and_first_out[pose][edge_end_block][1] =
+            ff_edges[pose][edge_first_child][3];
       } else {
         // jump edge
         // assert edge_type == 1
@@ -924,9 +941,13 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
                                                 // start, 2: stop, 3: jump ind
     TView<Int, 5, D> block_type_kts_conn_info,  // y - T x I x O x C x 2 -- 2 is
                                                 // for gen (0) and scan (1)
-    TView<Int, 5, D> block_type_nodes_for_gens,       // y - T x I x O x G x N
-    TView<Int, 5, D> block_type_scan_path_seg_starts  // y - T x I x O x G x S
-    )
+    TView<Int, 5, D> block_type_nodes_for_gens,        // y - T x I x O x G x N
+    TView<Int, 5, D> block_type_scan_path_seg_starts,  // y - T x I x O x G x S
+    TView<Int, 2, Device::CPU> pose_stack_block_type_cpu,
+    TView<Int, 4, Device::CPU> pose_stack_inter_res_conn_cpu,
+    TView<Int, 5, Device::CPU> block_type_kts_conn_info_cpu,
+    TView<Int, 2, Device::CPU> block_type_polymeric_conn_index_cpu,
+    TView<Int, 1, Device::CPU> block_type_n_conn_cpu)
     -> std::tuple<
         TPack<Int, 2, Device::CPU>,  // dfs_order_of_ff_edges_t
         TPack<Int, 1, Device::CPU>,  // n_ff_edges_t
@@ -1107,9 +1128,9 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
           pose_stack_ff_parent[pose][block] = prev_res;
           prev_res = block;
         }
-      } else if (ff_edge_type == ff_jump_edge) {
-        // jump edge! The first block is not built by the jump,
-        // but the second block is.
+      } else if (
+          ff_edge_type == ff_jump_edge || ff_edge_type == ff_chemical_edge) {
+        // the first block is not built by this edge, but the second is
         first_ff_edge_for_block_cpu[pose][ff_edge_end] = edge;
         pose_stack_ff_parent[pose][ff_edge_end] = ff_edge_start;
       } else if (ff_edge_type == ff_root_jump_edge) {
@@ -1140,6 +1161,62 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
   // parallelizable.
   auto first_child_of_ff_edge_t =
       TPack<Int, 2, Device::CPU>::full({n_poses, max_n_edges_per_ff}, -1);
+  // The generation in which a child edge departs its parent block is a
+  // property of the parent block type's own atom tree -- two exits branching
+  // from different atoms share a generation, while one lying past the other
+  // needs the next. It cannot be inferred from the child's rank, so read it.
+  auto conn_to_parent_of_block = [&](int pose, int block, int edge) -> int {
+    int const etype = ff_edges_cpu[pose][edge][0];
+    int const estart = ff_edges_cpu[pose][edge][1];
+    int const bt = pose_stack_block_type_cpu[pose][block];
+    if (etype == ff_polymer_edge) {
+      return block_type_polymeric_conn_index_cpu[bt][(estart < block) ? 0 : 1];
+    } else if (etype == ff_chemical_edge) {
+      int const conn_on_parent = ff_edges_cpu[pose][edge][3];
+      return pose_stack_inter_res_conn_cpu[pose][estart][conn_on_parent][1];
+    } else if (etype == ff_root_jump_edge) {
+      return block_type_n_conn_cpu[bt] + 1;  // the root's own "input"
+    }
+    return block_type_n_conn_cpu[bt];  // jump
+  };
+
+  auto conn_toward_child = [&](int pose, int block, int child_edge) -> int {
+    int const etype = ff_edges_cpu[pose][child_edge][0];
+    int const eend = ff_edges_cpu[pose][child_edge][2];
+    int const bt = pose_stack_block_type_cpu[pose][block];
+    if (etype == ff_polymer_edge) {
+      return block_type_polymeric_conn_index_cpu[bt][(block < eend) ? 1 : 0];
+    } else if (etype == ff_chemical_edge) {
+      return ff_edges_cpu[pose][child_edge][3];
+    }
+    return block_type_n_conn_cpu[bt];  // jump
+  };
+
+  // Which generation of `block` the edge to `child_edge` departs in. The first
+  // child continues the parent's scan path and so departs in generation 0.
+  auto departure_gen = [&](int pose,
+                           int block,
+                           int edge,
+                           int first_child,
+                           int child_edge) -> int {
+    if (child_edge == first_child) {
+      return 0;
+    }
+    int const bt = pose_stack_block_type_cpu[pose][block];
+    int const n_conn = block_type_n_conn_cpu[bt];
+    int const child_conn = conn_toward_child(pose, block, child_edge);
+    if (child_conn < 0 || child_conn >= n_conn) {
+      return 1;  // a jump child hangs off the block rather than a connection
+    }
+    int const in_conn = conn_to_parent_of_block(pose, block, edge);
+    int const out_conn = (first_child == -1)
+                             ? n_conn + 1
+                             : conn_toward_child(pose, block, first_child);
+    int const gen =
+        block_type_kts_conn_info_cpu[bt][in_conn][out_conn][child_conn][0];
+    return (gen < 0) ? 1 : gen;
+  };
+
   auto max_gen_depth_of_ff_edge_t =
       TPack<Int, 2, Device::CPU>::zeros({n_poses, max_n_edges_per_ff});
   auto delay_for_edge_t =
@@ -1157,36 +1234,33 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
       int const ff_edge_end = ff_edges_cpu[pose][edge][2];
 
       int const ff_edge_max_n_gens = max_n_gens_for_ff_edge[pose][edge];
+      // The first child continues this edge's scan path and so departs in
+      // generation 0; it is chosen as the deepest child to keep the total
+      // number of generations down. That choice is only an optimization --
+      // correctness comes from the departure generations read below.
       int max_child_gen_depth = -1;
-      int second_max_child_gen_depth = -1;
       int first_child = -1;
       for (auto const& child : ff_children[pose][ff_edge_end]) {
         int const child_edge = std::get<1>(child);
         int const child_gen_depth = max_gen_depth_of_ff_edge[pose][child_edge];
         if (child_gen_depth > max_child_gen_depth) {
-          if (max_child_gen_depth != -1) {
-            second_max_child_gen_depth = max_child_gen_depth;
-          }
           max_child_gen_depth = child_gen_depth;
           first_child = child_edge;
-        } else if (child_gen_depth > second_max_child_gen_depth) {
-          second_max_child_gen_depth = child_gen_depth;
         }
       }
       first_child_of_ff_edge[pose][edge] = first_child;
-      // There are three options for the generational depth of the subtree
-      // rooted at this edge, and we take the largest of them:
-      // 1. The largest generation depth of any residue built by this edge
-      // 2. The largest generation depth of any residue built by the first child
-      // of the edge
-      // 3. One larger than the largest generation depth of any child besides
-      // the first child
+
+      // The subtree needs enough generations for this edge's own blocks and
+      // for every child, each offset by the generation it departs in.
       int edge_gen_depth = ff_edge_max_n_gens;
-      if (edge_gen_depth < max_child_gen_depth) {
-        edge_gen_depth = max_child_gen_depth;
-      }
-      if (edge_gen_depth < second_max_child_gen_depth + 1) {
-        edge_gen_depth = second_max_child_gen_depth + 1;
+      for (auto const& child : ff_children[pose][ff_edge_end]) {
+        int const child_edge = std::get<1>(child);
+        int const child_depth = max_gen_depth_of_ff_edge[pose][child_edge];
+        int const departure =
+            departure_gen(pose, ff_edge_end, edge, first_child, child_edge);
+        if (edge_gen_depth < child_depth + departure) {
+          edge_gen_depth = child_depth + departure;
+        }
       }
       max_gen_depth_of_ff_edge[pose][edge] = edge_gen_depth;
     }
@@ -1245,13 +1319,11 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
       int const edge_delay = delay_for_edge[pose][edge];
       for (auto const& child : ff_children[pose][ff_edge_end]) {
         int const child_edge = std::get<1>(child);
-        if (child_edge == first_child) {
-          delay_for_edge[pose][child_edge] = edge_delay;
-        } else {
-          delay_for_edge[pose][child_edge] = edge_delay + 1;
-          if (max_delay < edge_delay + 1) {
-            max_delay = edge_delay + 1;
-          }
+        int const departure =
+            departure_gen(pose, ff_edge_end, edge, first_child, child_edge);
+        delay_for_edge[pose][child_edge] = edge_delay + departure;
+        if (max_delay < edge_delay + departure) {
+          max_delay = edge_delay + departure;
         }
       }
     }
@@ -1580,8 +1652,13 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
       if (ff_edge_type == ff_jump_edge) {
         // jump edge: noop
       } else {
-        // polymer edge: are we going from N->C or C->N?
-        int const conn_ind = (ff_edge_start < ff_edge_end) ? 1 : 0;
+        // the connection on the start block that this edge exits through:
+        // for a chemical edge it is named by the edge; for a polymer edge
+        // it depends on whether we are going N->C or C->N
+        int const conn_ind =
+            (ff_edge_type == ff_chemical_edge
+                 ? ff_edges[pose][edge][3]
+                 : ((ff_edge_start < ff_edge_end) ? 1 : 0));
         int const in_conn =
             pose_stack_block_in_and_first_out[pose][ff_edge_start][0];
         int const out_conn =
@@ -1666,9 +1743,10 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
       int const start_block_out =
           pose_stack_block_in_and_first_out[pose][ff_edge_start][1];
       int const start_block_type_out_conn_ind =
-          block_type_polymeric_conn_index[start_block_type]
-                                         [(ff_edge_start < ff_edge_end) ? 1
-                                                                        : 0];
+          (ff_edge_type == ff_chemical_edge
+               ? ff_edges[pose][edge][3]
+               : block_type_polymeric_conn_index
+                     [start_block_type][(ff_edge_start < ff_edge_end) ? 1 : 0]);
 
       int const exiting_scan_path_seg_gen =
           block_type_kts_conn_info[start_block_type][start_block_in]
@@ -1701,7 +1779,9 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
         // We know that it's the generation 0 SPS for the next residue,
         // so we don't have to look that up.
         int const increment = (ff_edge_start < ff_edge_end) ? 1 : -1;
-        int const next_residue = ff_edge_start + increment;
+        int const next_residue =
+            (ff_edge_type == ff_chemical_edge ? ff_edge_end
+                                              : ff_edge_start + increment);
         non_jump_ff_edge_rooted_at_scan_path_seg[pose][next_residue][0][0] =
             edge;
         non_jump_ff_edge_rooted_at_scan_path_seg_bw[pose][ff_edge_end][0][0] =
@@ -1991,7 +2071,9 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
     int const ff_edge_gen_bw = (n_gens_total - 1) - ff_edge_gen;
     int block_position_on_ff_edge = 0;
     int block_position_on_ff_edge_bw = 0;
-    if (ff_edge_type == ff_jump_edge || ff_edge_type == ff_root_jump_edge) {
+    if (ff_edge_type != ff_polymer_edge) {
+      // jump, root-jump and chemical edges all span exactly two blocks:
+      // the start block is position 0 and the end block position 1
       block_position_on_ff_edge =
           (block == ff_edges[pose][ff_edge_on_pose][1] ? 0 : 1);
       block_position_on_ff_edge_bw =
@@ -2289,9 +2371,9 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
     int const ff_edge_gen_bw = (n_gens_total - 1) - ff_edge_gen;
     int block_position_on_ff_edge = 0;
     int block_position_on_ff_edge_bw = 0;
-    if (ff_edge_type == ff_jump_edge || ff_edge_type == ff_root_jump_edge) {
-      // Jump edge -- the start block is block position 0, the end block is
-      // block position 1.
+    if (ff_edge_type != ff_polymer_edge) {
+      // jump, root-jump and chemical edges all span exactly two blocks:
+      // the start block is position 0 and the end block position 1
       block_position_on_ff_edge =
           (block == ff_edges[pose][ff_edge_on_pose][1] ? 0 : 1);
       block_position_on_ff_edge_bw =

@@ -60,6 +60,11 @@ def test_calculate_ff_edge_delays_for_two_res_ubq(ubq_pdb, torch_device):
         pbt_gssps.scan_path_seg_that_builds_output_conn,
         pbt_gssps.nodes_for_gen,
         pbt_gssps.scan_path_seg_starts,
+        pose_stack.block_type_ind.to("cpu"),
+        pose_stack.inter_residue_connections.to("cpu").to(torch.int32),
+        pbt_gssps.scan_path_seg_that_builds_output_conn.to("cpu"),
+        pbt.polymeric_conn_inds.to("cpu").to(torch.int32),
+        pbt.n_conn.to("cpu").to(torch.int32),
     )
     assert result is not None
 
@@ -124,6 +129,11 @@ def test_calculate_ff_edge_delays_for_6_res_ubq(ubq_pdb):
         pbt_gssps.scan_path_seg_that_builds_output_conn,
         pbt_gssps.nodes_for_gen,
         pbt_gssps.scan_path_seg_starts,
+        pose_stack.block_type_ind.to("cpu"),
+        pose_stack.inter_residue_connections.to("cpu").to(torch.int32),
+        pbt_gssps.scan_path_seg_that_builds_output_conn.to("cpu"),
+        pbt.polymeric_conn_inds.to("cpu").to(torch.int32),
+        pbt.n_conn.to("cpu").to(torch.int32),
     )
 
     (
@@ -168,6 +178,11 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_H(
         pbt_gssps.scan_path_seg_that_builds_output_conn,
         pbt_gssps.nodes_for_gen,
         pbt_gssps.scan_path_seg_starts,
+        pose_stack.block_type_ind.to("cpu"),
+        pose_stack.inter_residue_connections.to("cpu").to(torch.int32),
+        pbt_gssps.scan_path_seg_that_builds_output_conn.to("cpu"),
+        pbt.polymeric_conn_inds.to("cpu").to(torch.int32),
+        pbt.n_conn.to("cpu").to(torch.int32),
     )
     (
         dfs_order_of_ff_edges,
@@ -238,6 +253,11 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_U(
         pbt_gssps.scan_path_seg_that_builds_output_conn,
         pbt_gssps.nodes_for_gen,
         pbt_gssps.scan_path_seg_starts,
+        pose_stack.block_type_ind.to("cpu"),
+        pose_stack.inter_residue_connections.to("cpu").to(torch.int32),
+        pbt_gssps.scan_path_seg_that_builds_output_conn.to("cpu"),
+        pbt.polymeric_conn_inds.to("cpu").to(torch.int32),
+        pbt.n_conn.to("cpu").to(torch.int32),
     )
     (
         dfs_order_of_ff_edges,
@@ -306,6 +326,11 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_K(
         pbt_gssps.scan_path_seg_that_builds_output_conn,
         pbt_gssps.nodes_for_gen,
         pbt_gssps.scan_path_seg_starts,
+        pose_stack.block_type_ind.to("cpu"),
+        pose_stack.inter_residue_connections.to("cpu").to(torch.int32),
+        pbt_gssps.scan_path_seg_that_builds_output_conn.to("cpu"),
+        pbt.polymeric_conn_inds.to("cpu").to(torch.int32),
+        pbt.n_conn.to("cpu").to(torch.int32),
     )
     ff_2ubq_6res_K = torch.tensor(ff_2ubq_6res_K)
 
@@ -381,6 +406,11 @@ def test_calculate_parent_block_conn_in_and_out_for_two_copies_of_6_res_ubq(
         pbt_gssps.scan_path_seg_that_builds_output_conn,
         pbt_gssps.nodes_for_gen,
         pbt_gssps.scan_path_seg_starts,
+        pose_stack.block_type_ind.to("cpu"),
+        pose_stack.inter_residue_connections.to("cpu").to(torch.int32),
+        pbt_gssps.scan_path_seg_that_builds_output_conn.to("cpu"),
+        pbt.polymeric_conn_inds.to("cpu").to(torch.int32),
+        pbt.n_conn.to("cpu").to(torch.int32),
     )
     (
         dfs_order_of_ff_edges,
