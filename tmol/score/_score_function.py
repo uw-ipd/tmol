@@ -2072,6 +2072,7 @@ class RotamerScoringModule:
                 weights = self.weights[
                     weights_offset : weights_offset + term.n_score_types, 0, 0, 0
                 ]
+                empty_values = weights.new_empty(0)
                 can_share_packing_dispatch = (
                     use_fused
                     and coords.device.type == "cuda"
@@ -2112,6 +2113,13 @@ class RotamerScoringModule:
                             else term.forward(coords)
                         )
                         indices = self._native_sparse_indices(indices)
+                        if topology_only:
+                            # The topology passes consume indices only; do not
+                            # retain a score table for the whole rotamer set.
+                            del scores
+                            yield term, indices, empty_values
+                            del indices
+                            continue
                         weighted_values = _weighted_score_sum(weights, scores)
                         yield term, indices, weighted_values
                         del scores, indices, weighted_values
