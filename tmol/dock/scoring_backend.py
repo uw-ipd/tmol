@@ -521,13 +521,15 @@ class _LightweightGridObjective:
 
 
 class GridBackend(ScoringBackend):
-    """Rigid-receptor grid plus live hbond/LK-ball scoring and minimization.
+    """Rigid-receptor grid plus live hbond and selectable LK-ball scoring.
 
     One :class:`GridSet` is retained by the backend and shared by every pose.
     Device/dtype copies are cached once and do not scale with population size.
-    The grid contains fa_atr, fa_rep, fa_sol, and fa_elec. One additional
-    receptor hbond and LK-ball structures are shared by every ligand pose;
-    ligand-internal terms remain absent.
+    The grid contains fa_atr, fa_rep, fa_sol, and fa_elec, plus three weighted
+    LK-ball grid families when ``lk_ball_grid`` is true. One receptor hbond
+    structure and ligand-water topology are shared by every ligand pose;
+    ``lk_ball_grid=False`` retains the exact live LK-ball implementation.
+    Ligand-internal terms remain absent.
     """
 
     minimizer_kind = "analytic-grid-live-hbond-lkball-f1f2-no-autograd"
@@ -543,6 +545,7 @@ class GridBackend(ScoringBackend):
         kin_dtype: Optional[torch.dtype] = None,
         live_hbond: Optional[LiveHBondData] = None,
         live_lk_ball: Optional[LiveLKBallData] = None,
+        lk_ball_grid: bool = False,
     ) -> None:
         if not isinstance(grids, GridSet):
             raise TypeError("grids must be a GridSet")
@@ -558,6 +561,8 @@ class GridBackend(ScoringBackend):
             )
         if kin_dtype not in (None, torch.float32, torch.float64):
             raise ValueError("kin_dtype must be torch.float32 or torch.float64")
+        if not isinstance(lk_ball_grid, bool):
+            raise TypeError("lk_ball_grid must be bool")
         unknown_types = sorted(
             set(ligand_atom_types) - set(grids.atom_type_names)
         )
@@ -579,6 +584,14 @@ class GridBackend(ScoringBackend):
             raise TypeError("live_lk_ball must be LiveLKBallData or None")
         self.live_hbond = live_hbond
         self.live_lk_ball = live_lk_ball
+        self.lk_ball_grid = lk_ball_grid
+        if lk_ball_grid and any(
+            value is None
+            for value in (grids.lk_ball, grids.lk_ball_water, grids.lk_bridge)
+        ):
+            raise ValueError("lk_ball_grid=True requires all LK-ball grid families")
+        if lk_ball_grid and live_lk_ball is None:
+            raise ValueError("lk_ball_grid=True requires ligand water topology")
         self._grid_cache: dict[tuple[torch.device, torch.dtype], GridSet] = {}
         self._hbond_cache: dict[tuple[torch.device, torch.dtype], LiveHBondData] = {}
         self._lk_ball_cache: dict[tuple[torch.device, torch.dtype], LiveLKBallData] = {}
@@ -620,8 +633,13 @@ class GridBackend(ScoringBackend):
         voxel_spacing: float = 0.25,
         bbox_padding: float = 4.0,
         kin_dtype: Optional[torch.dtype] = None,
+        lk_ball_grid: bool = True,
     ) -> "GridBackend":
-        """Build one CPU receptor grid/live-term structure and reusable backend."""
+        """Build one CPU receptor grid/live-term structure and reusable backend.
+
+        ``lk_ball_grid=True`` selects Rosetta's weighted gridded approximation;
+        ``False`` retains the exact live LK-ball path.
+        """
 
         if reference_pose_stack.n_poses != 1:
             raise ValueError("grid construction requires one reference pose")
@@ -650,6 +668,7 @@ class GridBackend(ScoringBackend):
             ligand_name3=ligand_name3,
             voxel_spacing=voxel_spacing,
             bbox_padding=bbox_padding,
+            build_lk_ball=lk_ball_grid,
         )
         live_hbond = build_live_hbond_data(reference_pose_stack, ligand_block, param_db)
         live_lk_ball = build_live_lk_ball_data(
@@ -672,6 +691,7 @@ class GridBackend(ScoringBackend):
             kin_dtype=kin_dtype,
             live_hbond=live_hbond,
             live_lk_ball=live_lk_ball,
+            lk_ball_grid=lk_ball_grid,
         )
 
     def _score_function(self, device: torch.device) -> ScoreFunction:
@@ -774,6 +794,7 @@ class GridBackend(ScoringBackend):
             live_lk_ball=self._lk_ball_for(
                 ligand_coordinates.device, ligand_coordinates.dtype
             ),
+            lk_ball_grid=self.lk_ball_grid,
         )
 
     def _score_ligand_coordinates_with_gradients(
@@ -793,6 +814,7 @@ class GridBackend(ScoringBackend):
             live_lk_ball=self._lk_ball_for(
                 ligand_coordinates.device, ligand_coordinates.dtype
             ),
+            lk_ball_grid=self.lk_ball_grid,
         )
 
     def score(self, pose_stack: PoseStack) -> torch.Tensor:

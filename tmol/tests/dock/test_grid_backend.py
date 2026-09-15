@@ -95,6 +95,7 @@ def test_grid_backend_score_matches_direct_batched_grid_score(cpu_grid_case):
         score_function=case.backend._score_function(torch.device("cpu")),
         live_hbond=case.backend._hbond_for(torch.device("cpu"), torch.float64),
         live_lk_ball=case.backend._lk_ball_for(torch.device("cpu"), torch.float64),
+        lk_ball_grid=case.backend.lk_ball_grid,
     )
     actual = case.backend.score(case.population)
     torch.testing.assert_close(actual, expected, rtol=0.0, atol=0.0)
@@ -172,7 +173,7 @@ def test_grid_backend_hbond_is_additive_and_shared(cpu_grid_case):
     assert case.backend.for_ligand_block(0).live_lk_ball is case.backend.live_lk_ball
 
 
-def test_grid_backend_lk_ball_is_additive_and_shared(cpu_grid_case):
+def test_grid_backend_gridded_lk_ball_is_single_total_and_shared(cpu_grid_case):
     case = cpu_grid_case
     atom_indices = case.backend._ligand_atom_indices(case.population, case.ligand_block)
     pose_indices = torch.arange(case.population.n_poses, dtype=torch.int64)
@@ -188,6 +189,7 @@ def test_grid_backend_lk_ball_is_additive_and_shared(cpu_grid_case):
         charges,
         score_function=sfxn,
         live_lk_ball=lk_ball,
+        lk_ball_grid=True,
     )
     grid_only = score_ligand_grid_batched(
         grids,
@@ -204,8 +206,9 @@ def test_grid_backend_lk_ball_is_additive_and_shared(cpu_grid_case):
         charges,
         score_function=sfxn,
         live_lk_ball=lk_ball,
+        lk_ball_grid=True,
     )
-    assert channels.shape == (8,)
+    assert channels.shape == (5,)
     torch.testing.assert_close(channels.sum(), with_lk_ball[0])
     full_channels = score_ligand_grid(
         grids,
@@ -215,30 +218,27 @@ def test_grid_backend_lk_ball_is_additive_and_shared(cpu_grid_case):
         score_function=sfxn,
         live_hbond=case.backend._hbond_for(torch.device("cpu"), torch.float64),
         live_lk_ball=lk_ball,
+        lk_ball_grid=True,
     )
-    assert full_channels.shape == (9,)
+    assert full_channels.shape == (6,)
     torch.testing.assert_close(
         full_channels.sum(), case.backend.score(case.population)[0]
     )
 
-    # The per-subterm weighted combine is already verified exactly by
-    # `channels.sum() == with_lk_ball[0]` and `full_channels.sum() ==
-    # backend.score(...)` above. A dedicated all-zero-lk_ball-weight masking test
-    # is deferred (backlog): it cannot use ScoreFunction.set_weight (that removes
-    # a term when its last nonzero weight goes to zero, hitting the unimplemented
-    # remove_term_for_score_type stub), but a minimal get_weight proxy could
-    # exercise it; `_apply_live_weights` already guards 0 * NaN.
+    # Rosetta's water softmax/bridge softmin makes this a single channel; it is
+    # deliberately not exposed as four additive weighted subterms.
 
     # An exactly-degenerate donor water (polar hydrogen coincident with its
     # donor heavy atom) gives an undefined water direction. In real docking the
     # D-H distance is a fixed bonded length, so this coincidence never occurs;
-    # here we only require that the live lk_ball ENERGY stays finite (guarded) at
+    # here we only require that the gridded lk_ball energy stays finite at
     # the singularity. The gradient at an exact coincidence is mathematically
     # undefined (the reference water-frame derivative normalizes H-D and is
     # likewise singular there), so it is not asserted; analytic-vs-autograd
     # gradient agreement on valid geometry is covered by both the finite-
     # difference test in test_live_lk_ball.py and
-    # test_grid_backend_live_term_direct_gradients_match_autograd below.
+    # test_grid_backend_gridded_term_gradients_match_autograd_and_finite_difference
+    # below.
     donor_site, donor_water = torch.nonzero(lk_ball.ligand_water_kinds == 1)[0].tolist()
     donor, hydrogen = lk_ball.ligand_water_atoms[donor_site, donor_water, :2].tolist()
     degenerate = ligand_coordinates.clone()
@@ -250,13 +250,47 @@ def test_grid_backend_lk_ball_is_additive_and_shared(cpu_grid_case):
         charges,
         score_function=sfxn,
         live_lk_ball=lk_ball,
+        lk_ball_grid=True,
     )
     assert torch.isfinite(degenerate_live).all()
     assert lk_ball.receptor_coords.ndim == 2
     assert lk_ball.receptor_waters.shape[0] == lk_ball.receptor_coords.shape[0]
 
 
-def test_grid_backend_live_term_direct_gradients_match_autograd(cpu_grid_case):
+def test_grid_backend_lk_ball_grid_false_uses_exact_live_path(cpu_grid_case):
+    case = cpu_grid_case
+    backend = GridBackend.from_pose_stack(
+        case.reference,
+        case.ligand_block,
+        case.param_db,
+        kin_dtype=torch.float64,
+        lk_ball_grid=False,
+    )
+    assert backend.grids.lk_ball is None
+    assert backend.grids.lk_ball_water is None
+    assert backend.grids.lk_bridge is None
+    atom_indices = backend._ligand_atom_indices(case.population, case.ligand_block)
+    pose_indices = torch.arange(case.population.n_poses, dtype=torch.int64)
+    ligand_coordinates = case.population.coords[pose_indices[:, None], atom_indices]
+    expected = score_ligand_grid_batched(
+        backend._grid_for(torch.device("cpu"), torch.float64),
+        ligand_coordinates,
+        backend.ligand_atom_types,
+        backend._charges_for(torch.device("cpu"), torch.float64),
+        score_function=backend._score_function(torch.device("cpu")),
+        live_hbond=backend._hbond_for(torch.device("cpu"), torch.float64),
+        live_lk_ball=backend._lk_ball_for(torch.device("cpu"), torch.float64),
+        lk_ball_grid=False,
+    )
+    torch.testing.assert_close(backend.score(case.population), expected, rtol=0, atol=0)
+    assert torch.any(
+        backend.score(case.population) != case.backend.score(case.population)
+    )
+
+
+def test_grid_backend_gridded_term_gradients_match_autograd_and_finite_difference(
+    cpu_grid_case,
+):
     case = cpu_grid_case
     atom_indices = case.backend._ligand_atom_indices(case.population, case.ligand_block)
     pose_indices = torch.arange(case.population.n_poses, dtype=torch.int64)
@@ -273,6 +307,22 @@ def test_grid_backend_live_term_direct_gradients_match_autograd(cpu_grid_case):
     torch.testing.assert_close(
         direct_gradient, differentiable.grad, rtol=0.0, atol=2.0e-12
     )
+
+    step = 1.0e-6
+    one_pose = coordinates[:1]
+    finite = torch.empty_like(one_pose)
+    for column in range(one_pose.numel()):
+        plus = one_pose.clone().reshape(-1)
+        minus = one_pose.clone().reshape(-1)
+        plus[column] += step
+        minus[column] -= step
+        finite.reshape(-1)[column] = (
+            case.backend._score_ligand_coordinates(plus.reshape_as(one_pose))[0]
+            - case.backend._score_ligand_coordinates(minus.reshape_as(one_pose))[0]
+        ) / (2.0 * step)
+    finite_error = torch.max(torch.abs(direct_gradient[:1] - finite))
+    print(f"gridded LK-ball Cartesian gradient max error={float(finite_error):.3e}")
+    torch.testing.assert_close(direct_gradient[:1], finite, rtol=2.0e-5, atol=2.0e-5)
 
 
 def test_ligand_only_pose_stack_preserves_cdk2_ligand(cpu_grid_case):
@@ -374,7 +424,8 @@ def _assert_ligand_only_grid_ga_matches_full_complex(
         )
     )
     print(
-        f"ligand-only vs full-complex grid GA ({ligand_only.best_genes.dtype}): "
+        "ligand-only vs full-complex grid GA "
+        f"(lk_ball_grid={backend.lk_ball_grid}, {ligand_only.best_genes.dtype}): "
         f"max |dHistory|={history_err:.3e} max |dGene|={gene_err:.3e} "
         f"max |dCoord|={coord_err:.3e} A (atol={atol:.1e})"
     )
@@ -410,38 +461,61 @@ def test_ligand_only_grid_ga_matches_full_complex_cdk2_fp64(cpu_grid_case):
     # scoring and this reproduces the full GA trajectory to machine precision
     # (measured max |dHistory|=|dGene|=|dCoord|=0 in job 16255846).
     case = cpu_grid_case
-    _assert_ligand_only_grid_ga_matches_full_complex(
-        case.reference, case.ligand_block, case.backend, 1.0e-9
-    )
+    for lk_ball_grid in (True, False):
+        backend = GridBackend(
+            case.backend.grids,
+            case.ligand_block,
+            case.backend.ligand_atom_types,
+            case.backend.ligand_charges,
+            case.param_db,
+            kin_dtype=torch.float64,
+            live_hbond=case.backend.live_hbond,
+            live_lk_ball=case.backend.live_lk_ball,
+            lk_ball_grid=lk_ball_grid,
+        )
+        _assert_ligand_only_grid_ga_matches_full_complex(
+            case.reference, case.ligand_block, backend, 1.0e-9
+        )
 
 
 @pytest.mark.slow
 @pytest.mark.skipif(not CUDA_AVAILABLE, reason="requires a CUDA device")
 def test_ligand_only_grid_ga_matches_full_complex_cdk2_fp32(cpu_grid_case):
-    # Single precision cannot reproduce the fp64 bit-equivalence above: the two
-    # representations fold the ligand through different kinforest node orderings,
-    # so fp32 reassociation alone perturbs coordinates by ~5e-4 A (measured max
-    # |dCoord|=4.79e-4 A, |dGene|=1.5e-4, |dHistory|=4.6e-5 in job 16255847) --
-    # negligible versus any docking-relevant scale. The tolerance reflects that
-    # measured fp32 reassociation with margin; the fp64 test above is the actual
+    # Single precision cannot reproduce the fp64 bit-equivalence above (that test
+    # measures max |dCoord|=0 for both lk_ball modes): the two representations
+    # fold the ligand through different kinforest node orderings, so fp32
+    # reassociation alone perturbs coordinates. With gridded lk_ball the water
+    # softmax/softmin (log-sum-exp) amplifies that reassociation to ~3.3e-3 A
+    # (measured max |dCoord|=3.29e-3, |dGene|=1.36e-3, |dHistory|=3.49e-4 in job
+    # 16257651; the live path is ~5e-4 A) -- still negligible versus any
+    # docking-relevant scale. The tolerance reflects that measured fp32
+    # reassociation with margin; the fp64 test above is the actual
     # mathematical-equivalence gate. A GA selection flip would diverge by O(0.1-1
     # A) and still fail this bound loudly.
     case = cpu_grid_case
     reference, _ = _load_cdk2_pose_on_device(torch.device("cuda"))
     ligand_block = _ligand_block(reference)
-    backend = GridBackend(
-        case.backend.grids,
-        ligand_block,
-        case.backend.ligand_atom_types,
-        case.backend.ligand_charges,
-        case.param_db,
-        kin_dtype=torch.float32,
-        live_hbond=case.backend.live_hbond,
-        live_lk_ball=case.backend.live_lk_ball,
-    )
-    _assert_ligand_only_grid_ga_matches_full_complex(
-        reference, ligand_block, backend, 2.0e-3
-    )
+    for lk_ball_grid in (True, False):
+        backend = GridBackend(
+            case.backend.grids,
+            ligand_block,
+            case.backend.ligand_atom_types,
+            case.backend.ligand_charges,
+            case.param_db,
+            kin_dtype=torch.float32,
+            live_hbond=case.backend.live_hbond,
+            live_lk_ball=case.backend.live_lk_ball,
+            lk_ball_grid=lk_ball_grid,
+        )
+        # Live mode reassociates like M2d-2 (~5e-4 A, keep 2e-3); the gridded
+        # mode's water log-sum-exp amplifies fp32 reassociation to ~3.3e-3, so it
+        # gets a separately justified 5e-3 (fp64 is bit-identical for both).
+        _assert_ligand_only_grid_ga_matches_full_complex(
+            reference,
+            ligand_block,
+            backend,
+            5.0e-3 if lk_ball_grid else 2.0e-3,
+        )
 
 
 def test_grid_minimize_returns_direct_optimizer_gene(

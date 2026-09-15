@@ -276,11 +276,20 @@ def _pack_type_params(term: LKBallEnergyTerm) -> torch.Tensor:
 
 
 def _generate_reference_waters(
-    pose_stack: PoseStack, term: LKBallEnergyTerm
+    pose_stack: PoseStack,
+    term: LKBallEnergyTerm,
+    *,
+    water_distance: float | None = None,
 ) -> torch.Tensor:
     from tmol.score.lk_ball.potentials.compiled import gen_pose_waters
 
     pbt = pose_stack.packed_block_types
+    water_gen_global_params = term._lk_ball_water_gen_global_params
+    if water_distance is not None:
+        # Assign the Rosetta grid distance after promotion so fp64 grid builds
+        # do not inherit a rounded float32 representation of 2.65 A.
+        water_gen_global_params = water_gen_global_params.to(torch.float64).clone()
+        water_gen_global_params[:, 0] = water_distance
     args = [
         pose_stack.coords.reshape(-1, 3).to(torch.float64).contiguous(),
         pose_stack.rot_coord_offset,
@@ -311,7 +320,7 @@ def _generate_reference_waters(
         pbt.hbpbt_params.tile_acceptor_hybridization,
         pbt.hbpbt_params.tile_acceptor_n_attached_H,
         pbt.hbpbt_params.is_hydrogen,
-        term._lk_ball_water_gen_global_params,
+        water_gen_global_params,
         term.ljlk_param_resolver.global_params.lkb_water_tors_sp2,
         term.ljlk_param_resolver.global_params.lkb_water_tors_sp3,
         term.ljlk_param_resolver.global_params.lkb_water_tors_ring,

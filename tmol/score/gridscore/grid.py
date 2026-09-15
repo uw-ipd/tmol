@@ -19,6 +19,7 @@ from tmol.database import ParameterDatabase
 from tmol.pose.pose_stack import PoseStack
 from tmol.score.elec.elec_energy_term import ElecEnergyTerm
 from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
+from tmol.score.lk_ball.lk_ball_energy_term import LKBallEnergyTerm
 from tmol.score.score_types import ScoreType
 
 if TYPE_CHECKING:
@@ -29,9 +30,11 @@ if TYPE_CHECKING:
 
 DEFAULT_VOXEL_SPACING = 0.25
 DEFAULT_BBOX_PADDING = 4.0
-_SERIALIZATION_VERSION = 2
+_SERIALIZATION_VERSION = 3
 _CUBIC_BSPLINE_POLE = math.sqrt(3.0) - 2.0
 OUT_OF_BOUNDS_PENALTY = 50.0
+GRID_LK_BALL_WATER_DISTANCE = 2.65
+GRID_LK_BALL_FADE = 1.0
 
 
 def xform_rep(rep: torch.Tensor) -> torch.Tensor:
@@ -185,8 +188,8 @@ class GridSet:
 
     ``fa_rep`` is stored transformed. ``fa_atr``, ``fa_sol``, and ``fa_elec``
     are raw. The corresponding ``*_coeffs`` tensors hold mirror-boundary cubic
-    B-spline coefficients. The LK-ball fields reserve the complete future
-    on-grid layout and remain ``None`` through M2c.
+    B-spline coefficients. The LK-ball fields contain Rosetta's single
+    weighted gridded aggregate when built.
     """
 
     geometry: GridGeometry
@@ -199,14 +202,23 @@ class GridSet:
     lk_ball: torch.Tensor | None = None
     lk_ball_water: torch.Tensor | None = None
     lk_bridge: torch.Tensor | None = None
+    lk_ball_enabled: bool = False
+    lk_bridge_enabled: bool = False
     fa_atr_coeffs: torch.Tensor | None = None
     fa_rep_coeffs: torch.Tensor | None = None
     fa_sol_coeffs: torch.Tensor | None = None
     fa_elec_coeffs: torch.Tensor | None = None
+    lk_ball_coeffs: torch.Tensor | None = None
+    lk_ball_water_coeffs: torch.Tensor | None = None
+    lk_bridge_coeffs: torch.Tensor | None = None
 
     def __post_init__(self):
         typed_shape = (len(self.atom_type_names), *self.geometry.dims)
         shared_shape = self.geometry.dims
+        if not isinstance(self.lk_ball_enabled, bool) or not isinstance(
+            self.lk_bridge_enabled, bool
+        ):
+            raise TypeError("LK-ball enabled flags must be bool")
         if self.atom_type_indices.shape != (len(self.atom_type_names),):
             raise ValueError("atom_type_indices must have one entry per grid type")
         for name in ("fa_atr", "fa_rep", "fa_sol"):
@@ -237,10 +249,38 @@ class GridSet:
                 raise ValueError(
                     f"{coefficient_name} must match {grid_name} dtype and device"
                 )
-        for name in ("lk_ball", "lk_ball_water", "lk_bridge"):
-            value = getattr(self, name)
-            if value is not None and tuple(value.shape) != typed_shape:
-                raise ValueError(f"{name} must have shape {typed_shape}")
+        lk_fields = (
+            ("lk_ball", "lk_ball_coeffs"),
+            ("lk_ball_water", "lk_ball_water_coeffs"),
+            ("lk_bridge", "lk_bridge_coeffs"),
+        )
+        lk_present = [getattr(self, name) is not None for name, _ in lk_fields]
+        if any(lk_present) and not all(lk_present):
+            raise ValueError("all three LK-ball grid families must be present together")
+        for grid_name, coefficient_name in lk_fields:
+            grid = getattr(self, grid_name)
+            coefficients = getattr(self, coefficient_name)
+            if grid is None:
+                if coefficients is not None:
+                    raise ValueError(f"{coefficient_name} requires {grid_name}")
+                continue
+            if tuple(grid.shape) != typed_shape:
+                raise ValueError(f"{grid_name} must have shape {typed_shape}")
+            if coefficients is None:
+                if grid.device.type != "cpu":
+                    raise ValueError(
+                        f"{coefficient_name} is required for a non-CPU GridSet"
+                    )
+                coefficients = compute_cubic_bspline_coefficients(grid)
+                object.__setattr__(self, coefficient_name, coefficients)
+            if coefficients.shape != grid.shape:
+                raise ValueError(
+                    f"{coefficient_name} must have shape {tuple(grid.shape)}"
+                )
+            if coefficients.dtype != grid.dtype or coefficients.device != grid.device:
+                raise ValueError(
+                    f"{coefficient_name} must match {grid_name} dtype and device"
+                )
 
     @property
     def atom_type_to_grid(self) -> dict[str, int]:
@@ -270,6 +310,11 @@ class GridSet:
             "lk_ball": self.lk_ball,
             "lk_ball_water": self.lk_ball_water,
             "lk_bridge": self.lk_bridge,
+            "lk_ball_enabled": self.lk_ball_enabled,
+            "lk_bridge_enabled": self.lk_bridge_enabled,
+            "lk_ball_coeffs": self.lk_ball_coeffs,
+            "lk_ball_water_coeffs": self.lk_ball_water_coeffs,
+            "lk_bridge_coeffs": self.lk_bridge_coeffs,
         }
         torch.save(state, Path(path))
 
@@ -280,19 +325,26 @@ class GridSet:
         """Load a grid file produced by :meth:`save`."""
         state = torch.load(Path(path), map_location=map_location, weights_only=True)
         version = state.get("version")
-        if version not in (1, _SERIALIZATION_VERSION):
+        if version not in (1, 2, _SERIALIZATION_VERSION):
             raise ValueError(f"unsupported grid serialization version: {version}")
         atom_type_names = tuple(state["atom_type_names"])
         expected_map = {name: index for index, name in enumerate(atom_type_names)}
         if state["atom_type_to_grid"] != expected_map:
             raise ValueError("serialized atom_type_to_grid is inconsistent")
 
-        # Version 1 predates spline coefficients. Migrate it through CPU, where
-        # __post_init__ computes them, before honoring a requested GPU location.
-        migrate_v1 = version == 1
+        # Version 1 predates all spline coefficients. Version 2 could persist
+        # the reserved LK grid fields but had no corresponding coefficients.
+        # Migrate either case through CPU before honoring a GPU map location.
+        migrate_coefficients = version == 1 or (
+            version == 2
+            and any(
+                state.get(name) is not None
+                for name in ("lk_ball", "lk_ball_water", "lk_bridge")
+            )
+        )
 
         def loaded_tensor(value: torch.Tensor | None) -> torch.Tensor | None:
-            if value is None or not migrate_v1:
+            if value is None or not migrate_coefficients:
                 return value
             return value.cpu()
 
@@ -312,15 +364,20 @@ class GridSet:
             fa_rep=loaded_tensor(state["fa_rep"]),
             fa_sol=loaded_tensor(state["fa_sol"]),
             fa_elec=loaded_tensor(state["fa_elec"]),
-            fa_atr_coeffs=state.get("fa_atr_coeffs"),
-            fa_rep_coeffs=state.get("fa_rep_coeffs"),
-            fa_sol_coeffs=state.get("fa_sol_coeffs"),
-            fa_elec_coeffs=state.get("fa_elec_coeffs"),
+            fa_atr_coeffs=loaded_tensor(state.get("fa_atr_coeffs")),
+            fa_rep_coeffs=loaded_tensor(state.get("fa_rep_coeffs")),
+            fa_sol_coeffs=loaded_tensor(state.get("fa_sol_coeffs")),
+            fa_elec_coeffs=loaded_tensor(state.get("fa_elec_coeffs")),
             lk_ball=loaded_tensor(state["lk_ball"]),
             lk_ball_water=loaded_tensor(state["lk_ball_water"]),
             lk_bridge=loaded_tensor(state["lk_bridge"]),
+            lk_ball_enabled=bool(state.get("lk_ball_enabled", False)),
+            lk_bridge_enabled=bool(state.get("lk_bridge_enabled", False)),
+            lk_ball_coeffs=loaded_tensor(state.get("lk_ball_coeffs")),
+            lk_ball_water_coeffs=loaded_tensor(state.get("lk_ball_water_coeffs")),
+            lk_bridge_coeffs=loaded_tensor(state.get("lk_bridge_coeffs")),
         )
-        return grids.to(map_location) if migrate_v1 else grids
+        return grids.to(map_location) if migrate_coefficients else grids
 
     def to(
         self, device: str | torch.device, dtype: torch.dtype | None = None
@@ -358,6 +415,11 @@ class GridSet:
             lk_ball=move(self.lk_ball),
             lk_ball_water=move(self.lk_ball_water),
             lk_bridge=move(self.lk_bridge),
+            lk_ball_enabled=self.lk_ball_enabled,
+            lk_bridge_enabled=self.lk_bridge_enabled,
+            lk_ball_coeffs=move(self.lk_ball_coeffs),
+            lk_ball_water_coeffs=move(self.lk_ball_water_coeffs),
+            lk_bridge_coeffs=move(self.lk_bridge_coeffs),
         )
 
 
@@ -382,6 +444,312 @@ def _apply_live_weights(values: torch.Tensor, weights: torch.Tensor) -> torch.Te
     """Multiply live channels while making zero weights an exact mask."""
 
     return torch.where(weights != 0, values * weights, torch.zeros_like(values))
+
+
+class _GridLKBallWaters(torch.autograd.Function):
+    """Autograd bridge for ligand virtual-water construction."""
+
+    @staticmethod
+    def forward(ctx, ligand_coords, data):
+        from .potentials.compiled import build_lk_ball_waters
+
+        ctx.data = data
+        ctx.save_for_backward(ligand_coords)
+        return build_lk_ball_waters(
+            ligand_coords.contiguous(),
+            data.ligand_polar_atoms,
+            data.ligand_water_kinds,
+            data.ligand_water_atoms,
+            data.ligand_water_params,
+            data.ligand_water_is_ring,
+            GRID_LK_BALL_WATER_DISTANCE,
+        )
+
+    @staticmethod
+    def backward(ctx, grad_waters):
+        from .potentials.compiled import propagate_lk_ball_water_gradients
+
+        (ligand_coords,) = ctx.saved_tensors
+        data = ctx.data
+        gradients = propagate_lk_ball_water_gradients(
+            ligand_coords.contiguous(),
+            data.ligand_polar_atoms,
+            data.ligand_water_kinds,
+            data.ligand_water_atoms,
+            data.ligand_water_params,
+            data.ligand_water_is_ring,
+            grad_waters.contiguous(),
+            GRID_LK_BALL_WATER_DISTANCE,
+        )
+        return gradients, None
+
+
+def _build_grid_lk_ball_waters(
+    data: "LiveLKBallData", ligand_coords: torch.Tensor
+) -> torch.Tensor:
+    if ligand_coords.requires_grad:
+        return _GridLKBallWaters.apply(ligand_coords, data)
+    from .potentials.compiled import build_lk_ball_waters
+
+    return build_lk_ball_waters(
+        ligand_coords.contiguous(),
+        data.ligand_polar_atoms,
+        data.ligand_water_kinds,
+        data.ligand_water_atoms,
+        data.ligand_water_params,
+        data.ligand_water_is_ring,
+        GRID_LK_BALL_WATER_DISTANCE,
+    )
+
+
+def _validate_gridded_lk_ball(
+    grids: GridSet, data: "LiveLKBallData", ligand_coords: torch.Tensor
+) -> None:
+    if any(
+        value is None
+        for value in (
+            grids.lk_ball_coeffs,
+            grids.lk_ball_water_coeffs,
+            grids.lk_bridge_coeffs,
+        )
+    ):
+        raise ValueError("GridSet does not contain gridded LK-ball coefficients")
+    if data.n_ligand_atoms != ligand_coords.shape[1]:
+        raise ValueError("ligand atom count does not match LK-ball topology")
+    if (
+        data.receptor_coords.device != ligand_coords.device
+        or data.receptor_coords.dtype != ligand_coords.dtype
+    ):
+        raise ValueError("LK-ball topology must match coordinate dtype and device")
+    for coefficients in (
+        grids.lk_ball_coeffs,
+        grids.lk_ball_water_coeffs,
+        grids.lk_bridge_coeffs,
+    ):
+        if (
+            coefficients.device != ligand_coords.device
+            or coefficients.dtype != ligand_coords.dtype
+        ):
+            raise ValueError(
+                "LK-ball coefficients must match coordinate dtype and device"
+            )
+
+
+def _score_gridded_lk_ball(
+    grids: GridSet,
+    data: "LiveLKBallData",
+    ligand_coords: torch.Tensor,
+    atom_grid_indices: torch.Tensor,
+) -> torch.Tensor:
+    """Return Rosetta's single weighted gridded LK-ball total per pose."""
+
+    _validate_gridded_lk_ball(grids, data, ligand_coords)
+    n_poses, n_atoms, _ = ligand_coords.shape
+    if not grids.lk_ball_enabled:
+        return torch.zeros(
+            n_poses, dtype=ligand_coords.dtype, device=ligand_coords.device
+        )
+    flat_coords = ligand_coords.reshape(n_poses * n_atoms, 3)
+    atom_indices = atom_grid_indices.repeat(n_poses)
+    fractional = grids.geometry.zero_based_index_from_cartesian(flat_coords)
+    bounded, _ = _bound_grid_indices(grids.lk_ball_coeffs, fractional)
+    heavy = _interpolate_bounded_grid(
+        grids.lk_ball_coeffs, bounded, atom_indices
+    ).reshape(n_poses, n_atoms)
+    total = torch.sum(heavy, dim=1)
+
+    n_polar = data.ligand_polar_atoms.shape[0]
+    if n_polar == 0:
+        return total
+    waters = _build_grid_lk_ball_waters(data, ligand_coords)
+    active = data.ligand_water_kinds != 0
+    has_water = torch.any(active, dim=1)
+    safe_waters = torch.where(
+        active[None, :, :, None],
+        waters,
+        grids.geometry.origin.reshape(1, 1, 1, 3),
+    )
+    water_fractional = grids.geometry.zero_based_index_from_cartesian(
+        safe_waters.reshape(n_poses * n_polar * 4, 3)
+    )
+    water_bounded, _ = _bound_grid_indices(grids.lk_ball_water_coeffs, water_fractional)
+    polar_grid_indices = atom_grid_indices[data.ligand_polar_atoms]
+    water_grid_indices = (
+        polar_grid_indices[:, None].expand(n_polar, 4).reshape(-1).repeat(n_poses)
+    )
+    water_values = _interpolate_bounded_grid(
+        grids.lk_ball_water_coeffs, water_bounded, water_grid_indices
+    ).reshape(n_poses, n_polar, 4)
+    if grids.lk_bridge_enabled:
+        bridge_values = _interpolate_bounded_grid(
+            grids.lk_bridge_coeffs, water_bounded, water_grid_indices
+        ).reshape(n_poses, n_polar, 4)
+    else:
+        bridge_values = torch.zeros_like(water_values)
+    neg_inf = torch.full_like(water_values, -torch.inf)
+    pos_inf = torch.full_like(bridge_values, torch.inf)
+    water_values = torch.where(active[None], water_values, neg_inf)
+    bridge_values = torch.where(active[None], bridge_values, pos_inf)
+    water_values = torch.where(
+        has_water[None, :, None], water_values, torch.zeros_like(water_values)
+    )
+    bridge_values = torch.where(
+        has_water[None, :, None], bridge_values, torch.zeros_like(bridge_values)
+    )
+    water_softmax = GRID_LK_BALL_FADE * torch.logsumexp(
+        water_values / GRID_LK_BALL_FADE, dim=2
+    )
+    if grids.lk_bridge_enabled:
+        bridge_softmin = -GRID_LK_BALL_FADE * torch.logsumexp(
+            -bridge_values / GRID_LK_BALL_FADE, dim=2
+        )
+    else:
+        bridge_softmin = torch.zeros_like(water_softmax)
+    return total + torch.sum(
+        torch.where(
+            has_water[None],
+            water_softmax + bridge_softmin,
+            torch.zeros_like(water_softmax),
+        ),
+        dim=1,
+    )
+
+
+def _score_gridded_lk_ball_with_gradients(
+    grids: GridSet,
+    data: "LiveLKBallData",
+    ligand_coords: torch.Tensor,
+    atom_grid_indices: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Return the gridded LK-ball total and graph-free Cartesian gradient."""
+
+    _validate_gridded_lk_ball(grids, data, ligand_coords)
+    from .potentials.compiled import (
+        build_lk_ball_waters,
+        interpolate_with_derivatives,
+        propagate_lk_ball_water_gradients,
+    )
+
+    n_poses, n_atoms, _ = ligand_coords.shape
+    if not grids.lk_ball_enabled:
+        return (
+            torch.zeros(
+                n_poses, dtype=ligand_coords.dtype, device=ligand_coords.device
+            ),
+            torch.zeros_like(ligand_coords),
+        )
+    flat_coords = ligand_coords.detach().reshape(n_poses * n_atoms, 3)
+    atom_indices = atom_grid_indices.repeat(n_poses).contiguous()
+    fractional = grids.geometry.zero_based_index_from_cartesian(
+        flat_coords
+    ).contiguous()
+    heavy, dheavy, _, _ = interpolate_with_derivatives(
+        grids.lk_ball_coeffs.contiguous(), fractional, atom_indices, 0.0
+    )
+    energies = torch.sum(heavy.reshape(n_poses, n_atoms), dim=1)
+    gradients = (dheavy / grids.geometry.voxel_spacing).reshape(n_poses, n_atoms, 3)
+
+    n_polar = data.ligand_polar_atoms.shape[0]
+    if n_polar == 0:
+        return energies, gradients
+    waters = build_lk_ball_waters(
+        ligand_coords.detach().contiguous(),
+        data.ligand_polar_atoms,
+        data.ligand_water_kinds,
+        data.ligand_water_atoms,
+        data.ligand_water_params,
+        data.ligand_water_is_ring,
+        GRID_LK_BALL_WATER_DISTANCE,
+    )
+    active = data.ligand_water_kinds != 0
+    has_water = torch.any(active, dim=1)
+    safe_waters = torch.where(
+        active[None, :, :, None],
+        waters,
+        grids.geometry.origin.reshape(1, 1, 1, 3),
+    )
+    water_fractional = grids.geometry.zero_based_index_from_cartesian(
+        safe_waters.reshape(n_poses * n_polar * 4, 3)
+    ).contiguous()
+    polar_grid_indices = atom_grid_indices[data.ligand_polar_atoms]
+    water_grid_indices = (
+        polar_grid_indices[:, None]
+        .expand(n_polar, 4)
+        .reshape(-1)
+        .repeat(n_poses)
+        .contiguous()
+    )
+    water_values, dwater, _, _ = interpolate_with_derivatives(
+        grids.lk_ball_water_coeffs.contiguous(),
+        water_fractional,
+        water_grid_indices,
+        0.0,
+    )
+    if grids.lk_bridge_enabled:
+        bridge_values, dbridge, _, _ = interpolate_with_derivatives(
+            grids.lk_bridge_coeffs.contiguous(),
+            water_fractional,
+            water_grid_indices,
+            0.0,
+        )
+    else:
+        bridge_values = torch.zeros_like(water_values)
+        dbridge = torch.zeros_like(dwater)
+    water_values = water_values.reshape(n_poses, n_polar, 4)
+    bridge_values = bridge_values.reshape(n_poses, n_polar, 4)
+    dwater = dwater.reshape(n_poses, n_polar, 4, 3)
+    dbridge = dbridge.reshape(n_poses, n_polar, 4, 3)
+    water_masked = torch.where(
+        active[None], water_values, torch.full_like(water_values, -torch.inf)
+    )
+    bridge_masked = torch.where(
+        active[None], bridge_values, torch.full_like(bridge_values, torch.inf)
+    )
+    water_masked = torch.where(
+        has_water[None, :, None], water_masked, torch.zeros_like(water_masked)
+    )
+    bridge_masked = torch.where(
+        has_water[None, :, None], bridge_masked, torch.zeros_like(bridge_masked)
+    )
+    water_energy = GRID_LK_BALL_FADE * torch.logsumexp(
+        water_masked / GRID_LK_BALL_FADE, dim=2
+    )
+    if grids.lk_bridge_enabled:
+        bridge_energy = -GRID_LK_BALL_FADE * torch.logsumexp(
+            -bridge_masked / GRID_LK_BALL_FADE, dim=2
+        )
+    else:
+        bridge_energy = torch.zeros_like(water_energy)
+    energies = energies + torch.sum(
+        torch.where(
+            has_water[None],
+            water_energy + bridge_energy,
+            torch.zeros_like(water_energy),
+        ),
+        dim=1,
+    )
+    active_real = active.to(dtype=water_values.dtype)[None]
+    water_weights = torch.softmax(water_masked / GRID_LK_BALL_FADE, dim=2) * active_real
+    if grids.lk_bridge_enabled:
+        bridge_weights = (
+            torch.softmax(-bridge_masked / GRID_LK_BALL_FADE, dim=2) * active_real
+        )
+    else:
+        bridge_weights = torch.zeros_like(bridge_values)
+    water_coordinate_gradients = (
+        water_weights[..., None] * dwater + bridge_weights[..., None] * dbridge
+    ) / grids.geometry.voxel_spacing
+    gradients = gradients + propagate_lk_ball_water_gradients(
+        ligand_coords.detach().contiguous(),
+        data.ligand_polar_atoms,
+        data.ligand_water_kinds,
+        data.ligand_water_atoms,
+        data.ligand_water_params,
+        data.ligand_water_is_ring,
+        water_coordinate_gradients.contiguous(),
+        GRID_LK_BALL_WATER_DISTANCE,
+    )
+    return energies, gradients
 
 
 def interpolate_grid(
@@ -523,6 +891,7 @@ def score_ligand_grid(
     score_function: "ScoreFunction | None" = None,
     live_hbond: "LiveHBondData | None" = None,
     live_lk_ball: "LiveLKBallData | None" = None,
+    lk_ball_grid: bool = False,
 ) -> torch.Tensor:
     """Return weighted grid and optional live ligand-interface energies.
 
@@ -607,7 +976,17 @@ def score_ligand_grid(
             device=ligand_coords.device, dtype=ligand_coords.dtype
         )
         live_terms.append((hbond * hbond_weight).unsqueeze(0))
-    if live_lk_ball is not None:
+    if lk_ball_grid:
+        if live_lk_ball is None:
+            raise ValueError("gridded LK-ball requires ligand water topology")
+        gridded_lk_ball = _score_gridded_lk_ball(
+            grids,
+            live_lk_ball,
+            ligand_coords.unsqueeze(0),
+            grid_indices,
+        )[0]
+        live_terms.append(gridded_lk_ball.unsqueeze(0))
+    elif live_lk_ball is not None:
         from .live_lk_ball import score_ligand_lk_ball
 
         lk_ball = score_ligand_lk_ball(live_lk_ball, ligand_coords.unsqueeze(0))[0]
@@ -630,13 +1009,14 @@ def score_ligand_grid_batched(
     score_function: "ScoreFunction | None" = None,
     live_hbond: "LiveHBondData | None" = None,
     live_lk_ball: "LiveLKBallData | None" = None,
+    lk_ball_grid: bool = False,
 ) -> torch.Tensor:
     """Score many ligand poses against one shared receptor grid.
 
     ``ligand_coords`` has shape ``[n_poses, n_atoms, 3]``. Atom types and
     charges are shared by every pose. The result has shape ``[n_poses]`` and
-    contains the atom-summed, weighted grid total plus live hbond and LK-ball
-    when their shared receptor structures are supplied.
+    contains the atom-summed, weighted grid total plus live hbond and either
+    the single gridded LK-ball total or the exact four-term live LK-ball total.
 
     It flattens all pose points before making one interpolation call per score
     channel; it neither copies nor rebuilds grid coefficients per pose. The
@@ -726,7 +1106,13 @@ def score_ligand_grid_batched(
             device=ligand_coords.device, dtype=ligand_coords.dtype
         )
         totals = totals + hbond_weight * score_ligand_hbond(live_hbond, ligand_coords)
-    if live_lk_ball is not None:
+    if lk_ball_grid:
+        if live_lk_ball is None:
+            raise ValueError("gridded LK-ball requires ligand water topology")
+        totals = totals + _score_gridded_lk_ball(
+            grids, live_lk_ball, ligand_coords, atom_grid_indices
+        )
+    elif live_lk_ball is not None:
         from .live_lk_ball import score_ligand_lk_ball
 
         lk_ball_weights = torch.stack(
@@ -754,15 +1140,16 @@ def score_ligand_grid_batched_with_gradients(
     score_function: "ScoreFunction | None" = None,
     live_hbond: "LiveHBondData | None" = None,
     live_lk_ball: "LiveLKBallData | None" = None,
+    lk_ball_grid: bool = False,
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """Return per-pose grid energies and analytic Cartesian gradients.
 
     This is the graph-free counterpart of :func:`score_ligand_grid_batched`.
     It calls the compiled M2e value-and-spatial-derivative kernel directly and
-    applies the four grid-term weights, the inverse fa_rep transform
+    applies the four all-atom grid-term weights, the inverse fa_rep transform
     derivative, the electrostatic charge multiplier, the out-of-bounds
     derivative, the grid-index-to-Cartesian scale, and the optional live hbond
-    and LK-ball derivatives explicitly. No input is attached to a torch
+    and selected LK-ball derivatives explicitly. No input is attached to a torch
     autograd graph, even if the caller supplies a requires-grad tensor.
     """
     if ligand_coords.ndim != 3 or ligand_coords.shape[2] != 3:
@@ -886,7 +1273,18 @@ def score_ligand_grid_batched_with_gradients(
             energies = energies + hbond_weight * hbond_energies
             coordinate_gradients = coordinate_gradients + hbond_weight * hbond_gradients
 
-        if live_lk_ball is not None:
+        if lk_ball_grid:
+            if live_lk_ball is None:
+                raise ValueError("gridded LK-ball requires ligand water topology")
+            lk_ball_energies, lk_ball_gradients = _score_gridded_lk_ball_with_gradients(
+                grids,
+                live_lk_ball,
+                ligand_coords,
+                atom_grid_indices,
+            )
+            energies = energies + lk_ball_energies
+            coordinate_gradients = coordinate_gradients + lk_ball_gradients
+        elif live_lk_ball is not None:
             from .live_lk_ball import score_ligand_lk_ball_with_gradients
 
             lk_ball_energies, lk_ball_gradients = score_ligand_lk_ball_with_gradients(
@@ -1035,13 +1433,16 @@ def _pack_parameter_tensors(
 
 
 def _extract_ligand_and_receptor_atoms(
-    pose_stack: PoseStack, ligand_name3: str
-) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    pose_stack: PoseStack,
+    ligand_name3: str,
+    reference_waters: torch.Tensor | None = None,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor | None]:
     pbt = pose_stack.packed_block_types
     ligand_coords = []
     receptor_coords = []
     receptor_atom_types = []
     receptor_charges = []
+    receptor_waters = []
 
     for block_index in range(pose_stack.max_n_blocks):
         block_type_index = int(pose_stack.block_type_ind[0, block_index])
@@ -1057,6 +1458,8 @@ def _extract_ligand_and_receptor_atoms(
             receptor_coords.append(coords)
             receptor_atom_types.append(pbt.atom_types[block_type_index, :n_atoms])
             receptor_charges.append(pbt.elec_partial_charge[block_type_index, :n_atoms])
+            if reference_waters is not None:
+                receptor_waters.append(reference_waters[offset : offset + n_atoms])
 
     if not ligand_coords:
         raise ValueError(f"no ligand block with name3={ligand_name3!r} in pose")
@@ -1067,6 +1470,11 @@ def _extract_ligand_and_receptor_atoms(
         torch.cat(receptor_coords).detach().to(dtype=torch.float64).contiguous(),
         torch.cat(receptor_atom_types).to(dtype=torch.int64).contiguous(),
         torch.cat(receptor_charges).detach().to(dtype=torch.float64).contiguous(),
+        (
+            torch.cat(receptor_waters).detach().to(dtype=torch.float64).contiguous()
+            if reference_waters is not None
+            else None
+        ),
     )
 
 
@@ -1078,8 +1486,10 @@ def build_grid(
     ligand_name3: str = "LG1",
     voxel_spacing: float = DEFAULT_VOXEL_SPACING,
     bbox_padding: float = DEFAULT_BBOX_PADDING,
+    score_function: "ScoreFunction | None" = None,
+    build_lk_ball: bool = False,
 ) -> GridSet:
-    """Build exact beta16 fa_atr/rep/sol/elec grids for one CPU pose.
+    """Build beta16 all-atom grids and optional Rosetta-style LK-ball grids.
 
     Probe atom-type names are deduplicated and sorted, making the grid-to-type
     mapping deterministic even when the caller passes a set.
@@ -1090,6 +1500,8 @@ def build_grid(
         raise ValueError("M2b grid construction is CPU-only")
     if pose_stack.coords.dtype not in (torch.float32, torch.float64):
         raise TypeError("pose coordinates must be float32 or float64")
+    if not isinstance(build_lk_ball, bool):
+        raise TypeError("build_lk_ball must be bool")
 
     if isinstance(probe_atom_types, str):
         raise TypeError("probe_atom_types must be a sequence of atom-type names")
@@ -1108,9 +1520,28 @@ def build_grid(
         dtype=torch.int64,
     )
 
-    ligand_coords, receptor_coords, receptor_types, receptor_charges = (
-        _extract_ligand_and_receptor_atoms(pose_stack, ligand_name3)
-    )
+    receptor_waters = None
+    if build_lk_ball:
+        lk_ball_term = LKBallEnergyTerm(param_db, torch.device("cpu"))
+        for block_type in pose_stack.packed_block_types.active_block_types:
+            lk_ball_term.setup_block_type(block_type)
+        lk_ball_term.setup_packed_block_types(pose_stack.packed_block_types)
+        from .live_lk_ball import _generate_reference_waters
+
+        reference_waters = _generate_reference_waters(
+            pose_stack,
+            lk_ball_term,
+            water_distance=GRID_LK_BALL_WATER_DISTANCE,
+        )
+    else:
+        reference_waters = None
+    (
+        ligand_coords,
+        receptor_coords,
+        receptor_types,
+        receptor_charges,
+        receptor_waters,
+    ) = _extract_ligand_and_receptor_atoms(pose_stack, ligand_name3, reference_waters)
     if not bool(torch.isfinite(ligand_coords).all()):
         raise ValueError("ligand coordinates must be finite")
     if not bool(torch.isfinite(receptor_coords).all()):
@@ -1125,7 +1556,7 @@ def build_grid(
     from .potentials.compiled import build_grid as build_grid_op
 
     dims = torch.tensor(geometry.dims, dtype=torch.int64)
-    fa_atr, fa_rep, fa_sol, fa_elec = build_grid_op(
+    grid_args = (
         receptor_coords,
         receptor_types,
         receptor_charges,
@@ -1137,6 +1568,40 @@ def build_grid(
         ljlk_global_params,
         elec_global_params,
     )
+    if build_lk_ball:
+        if score_function is None:
+            from tmol.score import beta2016_score_function
+
+            score_function = beta2016_score_function(
+                torch.device("cpu"), param_db=param_db
+            )
+        lk_ball_weights = (
+            torch.stack(
+                [
+                    score_function.get_weight(score_type)
+                    for score_type in LK_BALL_SCORE_TYPES
+                ]
+            )
+            .to(dtype=torch.float64, device="cpu")
+            .contiguous()
+        )
+        lk_ball_enabled = bool(torch.any(lk_ball_weights != 0))
+        lk_bridge_enabled = bool(torch.any(lk_ball_weights[2:] != 0))
+        from .potentials.compiled import build_grid_lk_ball
+
+        (
+            fa_atr,
+            fa_rep,
+            fa_sol,
+            fa_elec,
+            lk_ball,
+            lk_ball_water,
+            lk_bridge,
+        ) = build_grid_lk_ball(*grid_args, receptor_waters, lk_ball_weights)
+    else:
+        fa_atr, fa_rep, fa_sol, fa_elec = build_grid_op(*grid_args)
+        lk_ball = lk_ball_water = lk_bridge = None
+        lk_ball_enabled = lk_bridge_enabled = False
     return GridSet(
         geometry=geometry,
         atom_type_names=atom_type_names,
@@ -1145,4 +1610,9 @@ def build_grid(
         fa_rep=fa_rep,
         fa_sol=fa_sol,
         fa_elec=fa_elec,
+        lk_ball=lk_ball,
+        lk_ball_water=lk_ball_water,
+        lk_bridge=lk_bridge,
+        lk_ball_enabled=lk_ball_enabled,
+        lk_bridge_enabled=lk_bridge_enabled,
     )

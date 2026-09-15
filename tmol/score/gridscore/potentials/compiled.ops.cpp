@@ -14,6 +14,7 @@
 #include <tmol/score/elec/potentials/potentials.hh>
 #include <tmol/score/common/device_operations.hh>
 #include <tmol/score/gridscore/potentials/grid_interp_pose_score.hh>
+#include <tmol/score/gridscore/potentials/grid_lk_ball.hh>
 #include <tmol/score/gridscore/potentials/live_hbond.hh>
 #include <tmol/score/gridscore/potentials/live_lk_ball.hh>
 #include <tmol/score/ljlk/potentials/lj.hh>
@@ -32,6 +33,8 @@ using tmol::score::ljlk::potentials::LJGlobalParams;
 using tmol::score::ljlk::potentials::LJLKTypeParams;
 using tmol::score::ljlk::potentials::lj_score;
 using tmol::score::ljlk::potentials::lk_isotropic_score;
+using tmol::score::ljlk::potentials::lj_sigma;
+using tmol::score::ljlk::potentials::lk_isotropic_pair;
 
 ContextManager interpolation_context;
 
@@ -87,6 +90,109 @@ LJGlobalParams<double> load_global_params(double const* global_params) {
       global_params[2],
       global_params[3],
       global_params[4]};
+}
+
+bool finite_water(double const* waters, int64_t atom, int water) {
+  double const* xyz = waters + (atom * 4 + water) * 3;
+  return std::isfinite(xyz[0]) && std::isfinite(xyz[1])
+         && std::isfinite(xyz[2]);
+}
+
+bool has_finite_water(double const* waters, int64_t atom) {
+  for (int water = 0; water < 4; ++water) {
+    if (finite_water(waters, atom, water)) return true;
+  }
+  return false;
+}
+
+double hard_lk_fraction(
+    double x,
+    double y,
+    double z,
+    double const* waters,
+    int64_t atom,
+    double occluder_radius) {
+  constexpr double ramp_width = 3.709;
+  double const d2_low = std::max(
+      0.0,
+      (1.4 + occluder_radius) * (1.4 + occluder_radius) - ramp_width);
+  double best_delta = ramp_width;
+  for (int water = 0; water < 4; ++water) {
+    if (!finite_water(waters, atom, water)) continue;
+    double const* water_xyz = waters + (atom * 4 + water) * 3;
+    double const dx = x - water_xyz[0];
+    double const dy = y - water_xyz[1];
+    double const dz = z - water_xyz[2];
+    best_delta = std::min(
+        best_delta, dx * dx + dy * dy + dz * dz - d2_low);
+  }
+  if (best_delta < 0.0) return 1.0;
+  if (best_delta >= ramp_width) return 0.0;
+  double const scaled = best_delta / ramp_width;
+  double const shoulder = 1.0 - scaled * scaled;
+  return shoulder * shoulder;
+}
+
+double hard_single_lk_fraction(
+    double receptor_x,
+    double receptor_y,
+    double receptor_z,
+    double grid_x,
+    double grid_y,
+    double grid_z,
+    double receptor_radius) {
+  constexpr double ramp_width = 3.709;
+  double const d2_low = std::max(
+      0.0,
+      (1.4 + receptor_radius) * (1.4 + receptor_radius) - ramp_width);
+  double const dx = receptor_x - grid_x;
+  double const dy = receptor_y - grid_y;
+  double const dz = receptor_z - grid_z;
+  double const delta = dx * dx + dy * dy + dz * dz - d2_low;
+  if (delta < 0.0) return 1.0;
+  if (delta >= ramp_width) return 0.0;
+  double const scaled = delta / ramp_width;
+  double const shoulder = 1.0 - scaled * scaled;
+  return shoulder * shoulder;
+}
+
+double hard_bridge_fraction(
+    double x, double y, double z, double const* waters, int64_t atom) {
+  constexpr double overlap_gap = 0.5;
+  constexpr double overlap_width = 2.6;
+  double best_delta = overlap_width;
+  for (int water = 0; water < 4; ++water) {
+    if (!finite_water(waters, atom, water)) continue;
+    double const* water_xyz = waters + (atom * 4 + water) * 3;
+    double const dx = x - water_xyz[0];
+    double const dy = y - water_xyz[1];
+    double const dz = z - water_xyz[2];
+    best_delta = std::min(
+        best_delta, dx * dx + dy * dy + dz * dz - overlap_gap);
+  }
+  if (best_delta < 0.0) return 1.0;
+  if (best_delta >= overlap_width) return 0.0;
+  double const scaled = best_delta / overlap_width;
+  double const shoulder = 1.0 - scaled * scaled;
+  return shoulder * shoulder;
+}
+
+double directional_lk(
+    double distance,
+    LJLKTypeParams<double> const& desolvated,
+    LJLKTypeParams<double> const& occluding,
+    LJGlobalParams<double> const& global) {
+  double const sigma = lj_sigma<double>(desolvated, occluding, global);
+  return lk_isotropic_pair<double>::V(
+      distance,
+      5.0,
+      sigma,
+      desolvated.lj_radius,
+      desolvated.lk_dgfree,
+      desolvated.lk_lambda,
+      occluding.lk_volume,
+      global.max_dis,
+      desolvated.is_carbon_lk && occluding.is_carbon_lk);
 }
 
 BinKey bin_for_point(double x, double y, double z, double bin_width) {
@@ -164,7 +270,7 @@ void validate_common_inputs(
 
 }  // namespace
 
-std::vector<Tensor> build_grid(
+std::vector<Tensor> build_grid_impl(
     Tensor receptor_coords,
     Tensor receptor_atom_types,
     Tensor receptor_charges,
@@ -174,7 +280,10 @@ std::vector<Tensor> build_grid(
     double voxel_spacing,
     Tensor ljlk_type_params,
     Tensor ljlk_global_params,
-    Tensor elec_global_params) {
+    Tensor elec_global_params,
+    Tensor receptor_waters,
+    Tensor lk_ball_weights,
+    bool build_lk_ball) {
   check_double_cpu_contiguous(receptor_coords, "receptor_coords");
   check_double_cpu_contiguous(origin, "origin");
   check_int64_cpu_contiguous(dims, "dims");
@@ -185,6 +294,37 @@ std::vector<Tensor> build_grid(
       ljlk_type_params,
       ljlk_global_params,
       elec_global_params);
+  if (build_lk_ball) {
+    check_double_cpu_contiguous(receptor_waters, "receptor_waters");
+    check_double_cpu_contiguous(lk_ball_weights, "lk_ball_weights");
+    TORCH_CHECK(
+        receptor_waters.dim() == 3
+            && receptor_waters.size(0) == receptor_coords.size(0)
+            && receptor_waters.size(1) == 4 && receptor_waters.size(2) == 3,
+        "receptor_waters must have shape [n_atoms, 4, 3]");
+    TORCH_CHECK(
+        lk_ball_weights.dim() == 1 && lk_ball_weights.size(0) == 4,
+        "lk_ball_weights must have shape [4]");
+    for (int64_t atom = 0; atom < receptor_waters.size(0); ++atom) {
+      for (int water = 0; water < 4; ++water) {
+        double const* xyz =
+            receptor_waters.data_ptr<double>() + (atom * 4 + water) * 3;
+        bool const all_finite = std::isfinite(xyz[0])
+                                && std::isfinite(xyz[1])
+                                && std::isfinite(xyz[2]);
+        bool const all_nan = std::isnan(xyz[0]) && std::isnan(xyz[1])
+                             && std::isnan(xyz[2]);
+        TORCH_CHECK(
+            all_finite || all_nan,
+            "receptor water entries must be finite triples or all-NaN");
+      }
+    }
+    for (int weight = 0; weight < 4; ++weight) {
+      TORCH_CHECK(
+          std::isfinite(lk_ball_weights.data_ptr<double>()[weight]),
+          "lk_ball_weights must be finite");
+    }
+  }
   TORCH_CHECK(
       receptor_coords.dim() == 2 && receptor_coords.size(1) == 3,
       "receptor_coords must have shape [n_atoms, 3]");
@@ -256,6 +396,14 @@ std::vector<Tensor> build_grid(
   Tensor fa_rep = torch::empty(typed_shape, options);
   Tensor fa_sol = torch::empty(typed_shape, options);
   Tensor fa_elec = torch::empty(shared_shape, options);
+  Tensor lk_ball;
+  Tensor lk_ball_water;
+  Tensor lk_bridge;
+  if (build_lk_ball) {
+    lk_ball = torch::zeros(typed_shape, options);
+    lk_ball_water = torch::zeros(typed_shape, options);
+    lk_bridge = torch::zeros(typed_shape, options);
+  }
 
   double const* coord_ptr = receptor_coords.data_ptr<double>();
   int64_t const* receptor_type_ptr = receptor_atom_types.data_ptr<int64_t>();
@@ -267,15 +415,31 @@ std::vector<Tensor> build_grid(
   double* rep_ptr = fa_rep.data_ptr<double>();
   double* sol_ptr = fa_sol.data_ptr<double>();
   double* elec_ptr = fa_elec.data_ptr<double>();
+  double* lk_ball_ptr = build_lk_ball ? lk_ball.data_ptr<double>() : nullptr;
+  double* lk_water_ptr =
+      build_lk_ball ? lk_ball_water.data_ptr<double>() : nullptr;
+  double* lk_bridge_ptr = build_lk_ball ? lk_bridge.data_ptr<double>() : nullptr;
+  double const* receptor_water_ptr =
+      build_lk_ball ? receptor_waters.data_ptr<double>() : nullptr;
+  double const* lk_weight_ptr =
+      build_lk_ball ? lk_ball_weights.data_ptr<double>() : nullptr;
 
   at::parallel_for(0, n_voxels, 64, [&](int64_t begin, int64_t end) {
     std::vector<double> atr_sum(static_cast<std::size_t>(n_probes));
     std::vector<double> rep_sum(static_cast<std::size_t>(n_probes));
     std::vector<double> sol_sum(static_cast<std::size_t>(n_probes));
+    std::size_t const n_lk_probes =
+        build_lk_ball ? static_cast<std::size_t>(n_probes) : 0;
+    std::vector<double> lk_ball_sum(n_lk_probes);
+    std::vector<double> lk_water_sum(n_lk_probes);
+    std::vector<double> lk_bridge_sum(n_lk_probes);
     for (int64_t voxel = begin; voxel < end; ++voxel) {
       std::fill(atr_sum.begin(), atr_sum.end(), 0.0);
       std::fill(rep_sum.begin(), rep_sum.end(), 0.0);
       std::fill(sol_sum.begin(), sol_sum.end(), 0.0);
+      std::fill(lk_ball_sum.begin(), lk_ball_sum.end(), 0.0);
+      std::fill(lk_water_sum.begin(), lk_water_sum.end(), 0.0);
+      std::fill(lk_bridge_sum.begin(), lk_bridge_sum.end(), 0.0);
       double elec_sum = 0.0;
 
       int64_t const ix = voxel / (ny * nz);
@@ -333,6 +497,80 @@ std::vector<Tensor> build_grid(
                     probe_params.lk_params(),
                     receptor_params.lk_params(),
                     lj_global);
+                if (!build_lk_ball) continue;
+
+                // Rosetta GridScorer bakes the four LK-ball weights into three
+                // non-additive grid families. Its synthetic separations affect
+                // only the analytic LK halves; the hard fractions use the grid
+                // point itself (water_xyz in GridScorer.cc).
+                double const weight_iso = lk_weight_ptr[0];
+                double const weight_ball = lk_weight_ptr[1];
+                double const weight_bridge = lk_weight_ptr[2];
+                double const weight_bridge_uncpl = lk_weight_ptr[3];
+                bool const receptor_has_waters =
+                    has_finite_water(receptor_water_ptr, atom);
+                bool const probe_is_polar = probe_params.is_donor != 0
+                                            || probe_params.is_acceptor != 0;
+                double const fasol1 = directional_lk(
+                    dist, probe_params, receptor_params, lj_global);
+                double const fasol2 = directional_lk(
+                    dist, receptor_params, probe_params, lj_global);
+
+                if (receptor_has_waters) {
+                  double const hard_fraction = hard_lk_fraction(
+                      x,
+                      y,
+                      z,
+                      receptor_water_ptr,
+                      atom,
+                      probe_params.lj_radius);
+                  lk_ball_sum[probe] +=
+                      weight_ball * fasol2 * hard_fraction
+                      + weight_iso * fasol2;
+                }
+                if (!probe_is_polar) continue;
+
+                lk_ball_sum[probe] += weight_iso * fasol1;
+                constexpr double heavy_water_distance = 2.65;
+                double const fasol1_water = directional_lk(
+                    heavy_water_distance,
+                    probe_params,
+                    receptor_params,
+                    lj_global);
+                double const water_fraction = hard_single_lk_fraction(
+                    coord_ptr[3 * atom],
+                    coord_ptr[3 * atom + 1],
+                    coord_ptr[3 * atom + 2],
+                    x,
+                    y,
+                    z,
+                    receptor_params.lj_radius);
+                lk_water_sum[probe] +=
+                    weight_ball * fasol1_water * water_fraction;
+
+                if (!receptor_has_waters
+                    || (weight_bridge == 0.0
+                        && weight_bridge_uncpl == 0.0)) {
+                  continue;
+                }
+                constexpr double water_water_distance =
+                    heavy_water_distance * 4.0 * 1.4142135623730951 / 3.0;
+                double const fasol1_bridge = directional_lk(
+                    water_water_distance,
+                    probe_params,
+                    receptor_params,
+                    lj_global);
+                double const fasol2_bridge = directional_lk(
+                    water_water_distance,
+                    receptor_params,
+                    probe_params,
+                    lj_global);
+                double const bridge_fraction = hard_bridge_fraction(
+                    x, y, z, receptor_water_ptr, atom);
+                lk_bridge_sum[probe] +=
+                    (weight_bridge * (fasol1_bridge + fasol2_bridge)
+                     + weight_bridge_uncpl)
+                    * bridge_fraction;
               }
             }
           }
@@ -345,11 +583,82 @@ std::vector<Tensor> build_grid(
         atr_ptr[output_index] = atr_sum[probe];
         rep_ptr[output_index] = std::pow(rep_sum[probe] + 1.0, -0.25);
         sol_ptr[output_index] = sol_sum[probe];
+        if (build_lk_ball) {
+          lk_ball_ptr[output_index] = lk_ball_sum[probe];
+          lk_water_ptr[output_index] = lk_water_sum[probe];
+          lk_bridge_ptr[output_index] = lk_bridge_sum[probe];
+        }
       }
     }
   });
 
+  if (build_lk_ball) {
+    return {
+        fa_atr,
+        fa_rep,
+        fa_sol,
+        fa_elec,
+        lk_ball,
+        lk_ball_water,
+        lk_bridge};
+  }
   return {fa_atr, fa_rep, fa_sol, fa_elec};
+}
+
+std::vector<Tensor> build_grid(
+    Tensor receptor_coords,
+    Tensor receptor_atom_types,
+    Tensor receptor_charges,
+    Tensor probe_atom_types,
+    Tensor origin,
+    Tensor dims,
+    double voxel_spacing,
+    Tensor ljlk_type_params,
+    Tensor ljlk_global_params,
+    Tensor elec_global_params) {
+  return build_grid_impl(
+      receptor_coords,
+      receptor_atom_types,
+      receptor_charges,
+      probe_atom_types,
+      origin,
+      dims,
+      voxel_spacing,
+      ljlk_type_params,
+      ljlk_global_params,
+      elec_global_params,
+      Tensor(),
+      Tensor(),
+      false);
+}
+
+std::vector<Tensor> build_grid_lk_ball(
+    Tensor receptor_coords,
+    Tensor receptor_atom_types,
+    Tensor receptor_charges,
+    Tensor probe_atom_types,
+    Tensor origin,
+    Tensor dims,
+    double voxel_spacing,
+    Tensor ljlk_type_params,
+    Tensor ljlk_global_params,
+    Tensor elec_global_params,
+    Tensor receptor_waters,
+    Tensor lk_ball_weights) {
+  return build_grid_impl(
+      receptor_coords,
+      receptor_atom_types,
+      receptor_charges,
+      probe_atom_types,
+      origin,
+      dims,
+      voxel_spacing,
+      ljlk_type_params,
+      ljlk_global_params,
+      elec_global_params,
+      receptor_waters,
+      lk_ball_weights,
+      true);
 }
 
 Tensor evaluate_pairs(
@@ -850,13 +1159,161 @@ std::tuple<Tensor, Tensor> live_lk_ball(
   return std::make_tuple(energies, gradients);
 }
 
+void validate_grid_lk_ball_water_inputs(
+    Tensor const& ligand_coords,
+    Tensor const& ligand_polar_atoms,
+    Tensor const& ligand_water_kinds,
+    Tensor const& ligand_water_atoms,
+    Tensor const& ligand_water_params,
+    Tensor const& ligand_water_is_ring,
+    double water_distance) {
+  auto const device = ligand_coords.device();
+  auto const dtype = ligand_coords.scalar_type();
+  auto check_real = [&](Tensor const& value, char const* name) {
+    TORCH_CHECK(value.device() == device, name, " must match coordinate device");
+    TORCH_CHECK(value.scalar_type() == dtype, name, " must match coordinate dtype");
+    TORCH_CHECK(value.is_contiguous(), name, " must be contiguous");
+  };
+  auto check_int = [&](Tensor const& value, char const* name) {
+    TORCH_CHECK(value.device() == device, name, " must match coordinate device");
+    TORCH_CHECK(value.scalar_type() == torch::kInt64, name, " must be int64");
+    TORCH_CHECK(value.is_contiguous(), name, " must be contiguous");
+  };
+  check_real(ligand_coords, "ligand_coords");
+  check_real(ligand_water_params, "ligand_water_params");
+  check_int(ligand_polar_atoms, "ligand_polar_atoms");
+  check_int(ligand_water_kinds, "ligand_water_kinds");
+  check_int(ligand_water_atoms, "ligand_water_atoms");
+  check_int(ligand_water_is_ring, "ligand_water_is_ring");
+  TORCH_CHECK(
+      ligand_coords.dim() == 3 && ligand_coords.size(2) == 3
+          && ligand_coords.size(0) > 0 && ligand_coords.size(1) > 0,
+      "ligand_coords must have shape [n_poses, n_atoms, 3]");
+  int64_t const n_polar = ligand_polar_atoms.size(0);
+  TORCH_CHECK(
+      ligand_coords.size(0) <= std::numeric_limits<int>::max()
+          && ligand_coords.size(1) <= std::numeric_limits<int>::max()
+          && n_polar <= std::numeric_limits<int>::max(),
+      "gridded LK-ball water dimensions exceed kernel integer range");
+  TORCH_CHECK(
+      ligand_polar_atoms.dim() == 1 && ligand_water_kinds.dim() == 2
+          && ligand_water_kinds.size(0) == n_polar
+          && ligand_water_kinds.size(1) == 4 && ligand_water_atoms.dim() == 3
+          && ligand_water_atoms.size(0) == n_polar
+          && ligand_water_atoms.size(1) == 4
+          && ligand_water_atoms.size(2) == 3
+          && ligand_water_params.dim() == 3
+          && ligand_water_params.sizes() == ligand_water_atoms.sizes()
+          && ligand_water_is_ring.sizes() == ligand_water_kinds.sizes(),
+      "ligand water arrays have inconsistent shapes");
+  TORCH_CHECK(
+      std::isfinite(water_distance) && water_distance > 0,
+      "water_distance must be finite and positive");
+}
+
+Tensor build_lk_ball_waters(
+    Tensor ligand_coords,
+    Tensor ligand_polar_atoms,
+    Tensor ligand_water_kinds,
+    Tensor ligand_water_atoms,
+    Tensor ligand_water_params,
+    Tensor ligand_water_is_ring,
+    double water_distance) {
+  validate_grid_lk_ball_water_inputs(
+      ligand_coords,
+      ligand_polar_atoms,
+      ligand_water_kinds,
+      ligand_water_atoms,
+      ligand_water_params,
+      ligand_water_is_ring,
+      water_distance);
+  Tensor waters;
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      ligand_coords.options(), "build_lk_ball_waters", ([&] {
+        using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
+        waters = GridLKBallDispatch<
+                     common::DeviceOperations,
+                     Dev,
+                     Real,
+                     int64_t>::build_waters(
+                     interpolation_context,
+                     TCAST(ligand_coords),
+                     TCAST(ligand_polar_atoms),
+                     TCAST(ligand_water_kinds),
+                     TCAST(ligand_water_atoms),
+                     TCAST(ligand_water_params),
+                     TCAST(ligand_water_is_ring),
+                     Real(water_distance))
+                     .tensor;
+      }));
+  return waters;
+}
+
+Tensor propagate_lk_ball_water_gradients(
+    Tensor ligand_coords,
+    Tensor ligand_polar_atoms,
+    Tensor ligand_water_kinds,
+    Tensor ligand_water_atoms,
+    Tensor ligand_water_params,
+    Tensor ligand_water_is_ring,
+    Tensor water_gradients,
+    double water_distance) {
+  validate_grid_lk_ball_water_inputs(
+      ligand_coords,
+      ligand_polar_atoms,
+      ligand_water_kinds,
+      ligand_water_atoms,
+      ligand_water_params,
+      ligand_water_is_ring,
+      water_distance);
+  TORCH_CHECK(
+      water_gradients.device() == ligand_coords.device()
+          && water_gradients.scalar_type() == ligand_coords.scalar_type()
+          && water_gradients.is_contiguous(),
+      "water_gradients must match coordinates and be contiguous");
+  TORCH_CHECK(
+      water_gradients.dim() == 4
+          && water_gradients.size(0) == ligand_coords.size(0)
+          && water_gradients.size(1) == ligand_polar_atoms.size(0)
+          && water_gradients.size(2) == 4 && water_gradients.size(3) == 3,
+      "water_gradients must have shape [n_poses, n_polar, 4, 3]");
+  Tensor gradients;
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      ligand_coords.options(), "propagate_lk_ball_water_gradients", ([&] {
+        using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
+        gradients = GridLKBallDispatch<
+                        common::DeviceOperations,
+                        Dev,
+                        Real,
+                        int64_t>::propagate_water_gradients(
+                        interpolation_context,
+                        TCAST(ligand_coords),
+                        TCAST(ligand_polar_atoms),
+                        TCAST(ligand_water_kinds),
+                        TCAST(ligand_water_atoms),
+                        TCAST(ligand_water_params),
+                        TCAST(ligand_water_is_ring),
+                        TCAST(water_gradients),
+                        Real(water_distance))
+                        .tensor;
+      }));
+  return gradients;
+}
+
 TORCH_LIBRARY(tmol_gridscore, m) {
   m.def("build_grid", &build_grid);
+  m.def("build_grid_lk_ball", &build_grid_lk_ball);
   m.def("evaluate_pairs", &evaluate_pairs);
   m.def("interpolate", &interpolate);
   m.def("interpolate_with_derivatives", &interpolate_with_derivatives);
   m.def("live_hbond", &live_hbond);
   m.def("live_lk_ball", &live_lk_ball);
+  m.def("build_lk_ball_waters", &build_lk_ball_waters);
+  m.def(
+      "propagate_lk_ball_water_gradients",
+      &propagate_lk_ball_water_gradients);
 }
 
 }  // namespace potentials

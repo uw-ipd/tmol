@@ -27,7 +27,6 @@ from tmol.tests.ligand.test_protein_ligand_ddg import (
     _load_complex_cif,
 )
 
-
 PLI_DATA_DIR = data_path("protein_ligand_test")
 
 
@@ -91,6 +90,11 @@ def test_grid_serialization_round_trip(tmp_path):
         fa_rep=typed + 1,
         fa_sol=typed + 2,
         fa_elec=shared,
+        lk_ball=typed + 3,
+        lk_ball_water=typed + 4,
+        lk_bridge=typed + 5,
+        lk_ball_enabled=True,
+        lk_bridge_enabled=True,
     )
 
     path = tmp_path / "receptor_grids.pt"
@@ -100,19 +104,24 @@ def test_grid_serialization_round_trip(tmp_path):
     assert loaded.atom_type_names == grids.atom_type_names
     assert loaded.atom_type_to_grid == {"CH1": 0, "OOC": 1}
     assert loaded.geometry.dims == grids.geometry.dims
-    assert loaded.lk_ball is None
-    assert loaded.lk_ball_water is None
-    assert loaded.lk_bridge is None
+    assert loaded.lk_ball_enabled
+    assert loaded.lk_bridge_enabled
     torch.testing.assert_close(loaded.geometry.origin, grids.geometry.origin)
     torch.testing.assert_close(loaded.atom_type_indices, grids.atom_type_indices)
     torch.testing.assert_close(loaded.fa_atr, grids.fa_atr)
     torch.testing.assert_close(loaded.fa_rep, grids.fa_rep)
     torch.testing.assert_close(loaded.fa_lk, grids.fa_sol)
     torch.testing.assert_close(loaded.fa_elec, grids.fa_elec)
+    torch.testing.assert_close(loaded.lk_ball, grids.lk_ball)
+    torch.testing.assert_close(loaded.lk_ball_water, grids.lk_ball_water)
+    torch.testing.assert_close(loaded.lk_bridge, grids.lk_bridge)
     torch.testing.assert_close(loaded.fa_atr_coeffs, grids.fa_atr_coeffs)
     torch.testing.assert_close(loaded.fa_rep_coeffs, grids.fa_rep_coeffs)
     torch.testing.assert_close(loaded.fa_sol_coeffs, grids.fa_sol_coeffs)
     torch.testing.assert_close(loaded.fa_elec_coeffs, grids.fa_elec_coeffs)
+    torch.testing.assert_close(loaded.lk_ball_coeffs, grids.lk_ball_coeffs)
+    torch.testing.assert_close(loaded.lk_ball_water_coeffs, grids.lk_ball_water_coeffs)
+    torch.testing.assert_close(loaded.lk_bridge_coeffs, grids.lk_bridge_coeffs)
 
     legacy_state = torch.load(path, weights_only=True)
     legacy_state["version"] = 1
@@ -121,6 +130,9 @@ def test_grid_serialization_round_trip(tmp_path):
         "fa_rep_coeffs",
         "fa_sol_coeffs",
         "fa_elec_coeffs",
+        "lk_ball_coeffs",
+        "lk_ball_water_coeffs",
+        "lk_bridge_coeffs",
     ):
         legacy_state.pop(name)
     legacy_path = tmp_path / "m2b_receptor_grids.pt"
@@ -130,6 +142,11 @@ def test_grid_serialization_round_trip(tmp_path):
     torch.testing.assert_close(migrated.fa_rep_coeffs, grids.fa_rep_coeffs)
     torch.testing.assert_close(migrated.fa_sol_coeffs, grids.fa_sol_coeffs)
     torch.testing.assert_close(migrated.fa_elec_coeffs, grids.fa_elec_coeffs)
+    torch.testing.assert_close(migrated.lk_ball_coeffs, grids.lk_ball_coeffs)
+    torch.testing.assert_close(
+        migrated.lk_ball_water_coeffs, grids.lk_ball_water_coeffs
+    )
+    torch.testing.assert_close(migrated.lk_bridge_coeffs, grids.lk_bridge_coeffs)
 
 
 def test_cubic_bspline_round_trip_at_every_node():
@@ -150,9 +167,7 @@ def test_cubic_bspline_round_trip_at_every_node():
     error = torch.max(torch.abs(interpolated - values.reshape(-1)))
 
     print(f"cubic B-spline all-node round-trip max-abs error: {float(error):.3e}")
-    torch.testing.assert_close(
-        interpolated, values.reshape(-1), rtol=0.0, atol=1.0e-9
-    )
+    torch.testing.assert_close(interpolated, values.reshape(-1), rtol=0.0, atol=1.0e-9)
     # The Rosetta origin sentinel is intentionally absent: this value is data.
     torch.testing.assert_close(interpolated[0], values[0, 0, 0, 0])
 
@@ -247,9 +262,7 @@ def _load_target_pose(target):
         _load_complex_cif(target),
         torch.device("cpu"),
         prepare_ligands=True,
-        ligand_params_files=[
-            str(PLI_DATA_DIR / f"{target}.xtal-lig.mmff94.tmol")
-        ],
+        ligand_params_files=[str(PLI_DATA_DIR / f"{target}.xtal-lig.mmff94.tmol")],
         no_optH=True,
         sample_proton_chi=False,
         param_db=param_db,
@@ -269,9 +282,7 @@ def _independent_receptor_extraction(pose_stack):
     atom_type_names = []
     charges = []
     ligand_coords = []
-    for block_index, block_type_index_tensor in enumerate(
-        pose_stack.block_type_ind[0]
-    ):
+    for block_index, block_type_index_tensor in enumerate(pose_stack.block_type_ind[0]):
         block_type_index = int(block_type_index_tensor)
         if block_type_index < 0:
             continue
@@ -343,9 +354,7 @@ def test_cdk2_grid_matches_independent_pair_sums(tmp_path):
         param_db.scoring.elec, torch.device("cpu")
     )
     receptor_params = [
-        ljlk_params.type_params[
-            ljlk_params.atom_type_index.get_loc(receptor_type_name)
-        ]
+        ljlk_params.type_params[ljlk_params.atom_type_index.get_loc(receptor_type_name)]
         for receptor_type_name in receptor_type_names
     ]
     elec_global = elec_params.global_params
@@ -444,9 +453,7 @@ def _ligand_scoring_inputs(pose_stack):
     coords = []
     atom_type_names = []
     charges = []
-    for block_index, block_type_index_tensor in enumerate(
-        pose_stack.block_type_ind[0]
-    ):
+    for block_index, block_type_index_tensor in enumerate(pose_stack.block_type_ind[0]):
         block_type_index = int(block_type_index_tensor)
         if block_type_index < 0:
             continue
@@ -486,9 +493,7 @@ def test_grid_interface_characterization_against_t1(target):
     grid_score = score_ligand_grid(
         grids, ligand_coords, ligand_atom_types, ligand_charges
     )
-    exact = torch.tensor(
-        _GOLDEN_PER_TERM[target]["interface"][:4], dtype=torch.float64
-    )
+    exact = torch.tensor(_GOLDEN_PER_TERM[target]["interface"][:4], dtype=torch.float64)
     absolute_error = torch.abs(grid_score - exact)
     relative_error = absolute_error / torch.clamp(torch.abs(exact), min=1.0e-12)
 
@@ -596,9 +601,7 @@ def test_grid_electrostatic_sign_for_isolated_signed_charge():
     from tmol.tests.score.ljlk.potentials.compiled import elec_V
 
     param_db = ParameterDatabase.get_default()
-    packed_type, ljlk_global, elec_global, _, _ = _direct_grid_inputs(
-        param_db, "CH1"
-    )
+    packed_type, ljlk_global, elec_global, _, _ = _direct_grid_inputs(param_db, "CH1")
     origin = torch.tensor([-3.0, -4.0, -5.0])
     receptor_coords = torch.tensor([[-2.0, -4.0, -5.0]])
 
@@ -688,6 +691,4 @@ def test_grid_cutoff_and_negative_bin_boundary():
         [expected_inside_lj[0], expected_inside_lj[1], expected_inside_sol],
         dtype=torch.float64,
     )
-    torch.testing.assert_close(
-        actual_inside, expected_inside, rtol=1e-12, atol=1e-12
-    )
+    torch.testing.assert_close(actual_inside, expected_inside, rtol=1e-12, atol=1e-12)
