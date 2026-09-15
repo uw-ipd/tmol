@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <stdexcept>
 #include <vector>
 
 #include <Eigen/Core>
@@ -1094,17 +1095,28 @@ struct rot_neighbor_indices_from_block_neighbors {
       TView<Int, 2, D> rot_offset_for_block,  // [n_poses, max_n_blocks] global
       TView<Real, 2, D> rot_spheres,          // [n_rots_global, 4]
       TView<Int, 2, D> lockstep_group_for_block,
-      Real reach) -> TPack<Int, 2, D> {
+      Real reach,
+      int64_t candidate_begin = 0,
+      int64_t candidate_count = -1) -> TPack<Int, 2, D> {
     LAUNCH_BOX_32;
 
     int const n_poses = pose_stack_block_type.size(0);
     int const max_n_blocks = pose_stack_block_type.size(1);
     int const block_pairs_per_pose = common::checked_triangular_size(
         max_n_blocks, true, "rotamer block-pair dispatch candidates per pose");
-    int const n_candidates = common::checked_dispatch_product(
+    int const total_candidates = common::checked_dispatch_product(
         n_poses,
         block_pairs_per_pose,
         "rotamer block-pair dispatch candidates");
+    if (candidate_count < 0) {
+      candidate_count = int64_t(total_candidates) - candidate_begin;
+    }
+    if (candidate_begin < 0 || candidate_count < 0
+        || candidate_begin + candidate_count > total_candidates) {
+      throw std::out_of_range("rotamer block-pair dispatch window is invalid");
+    }
+    int const n_candidates = common::checked_dispatch_size(
+        candidate_count, "rotamer block-pair dispatch window");
     if (n_candidates == 0) {
       return TPack<Int, 2, D>::empty({3, 0});
     }
@@ -1118,9 +1130,10 @@ struct rot_neighbor_indices_from_block_neighbors {
     auto pair_count_overflow = pair_count_overflow_t.view;
 
     auto compute_counts = ([=] TMOL_DEVICE_FUNC(int candidate) {
-      int const pose = candidate / block_pairs_per_pose;
+      int const global_candidate = candidate_begin + candidate;
+      int const pose = global_candidate / block_pairs_per_pose;
       auto pair = common::upper_triangle_inds_from_linear_index(
-          candidate % block_pairs_per_pose, max_n_blocks + 1);
+          global_candidate % block_pairs_per_pose, max_n_blocks + 1);
       int const b1 = common::get<0>(pair);
       int const b2 = common::get<1>(pair) - 1;
 
@@ -1194,9 +1207,10 @@ struct rot_neighbor_indices_from_block_neighbors {
     // Same lockstep group: matching states; otherwise overlapping spheres.
     auto fill = ([=] TMOL_DEVICE_FUNC(int candidate) {
       if (pair_counts[candidate] == 0) return;
-      int const pose = candidate / block_pairs_per_pose;
+      int const global_candidate = candidate_begin + candidate;
+      int const pose = global_candidate / block_pairs_per_pose;
       auto pair = common::upper_triangle_inds_from_linear_index(
-          candidate % block_pairs_per_pose, max_n_blocks + 1);
+          global_candidate % block_pairs_per_pose, max_n_blocks + 1);
       int const b1 = common::get<0>(pair);
       int const b2 = common::get<1>(pair) - 1;
 

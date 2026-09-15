@@ -50,6 +50,7 @@ _CUDA_PARALLEL_GRAD_SCORE_MIN_COORD_ELEMENTS = 100 * 1024
 _CUDA_WEIGHTED_FUSED_MIN_SINGLE_POSE_ATOMS = 15_000
 _CUDA_WEIGHTED_FUSED_MIN_BATCH_ATOMS_PER_POSE = 2_000
 _CUDA_WEIGHTED_FUSED_MIN_GRAD_COORD_ELEMENTS = 64 * 1024
+_PACK_ROTAMER_BLOCK_PAIR_WINDOW = 32 * 1024 * 1024
 _PACK_FUSED_ROTAMER_SCORE_WINDOW = 64 * 1024 * 1024
 _CPU_SCORE_TERM_EXECUTORS: dict[int, ThreadPoolExecutor] = {}
 _CPU_SCORE_TERM_EXECUTOR_LOCK = threading.Lock()
@@ -1776,44 +1777,53 @@ class _FusedLJLKAndElecRotamerModule(torch.nn.Module):
         )
         return scores, indices
 
+    def iter_packing_dispatches(self, coords):
+        """Yield canonical maximum-cutoff dispatches by block-pair window."""
+        from tmol.score.ljlk.potentials import ljlk_elec_rotamer_dispatch
+
+        native_args = self._native_arguments(coords)
+        n_poses, max_n_blocks = native_args[3].shape
+        n_candidates = n_poses * max_n_blocks * (max_n_blocks + 1) // 2
+        for begin in range(0, n_candidates, _PACK_ROTAMER_BLOCK_PAIR_WINDOW):
+            yield ljlk_elec_rotamer_dispatch(
+                native_args[0],
+                native_args[1],
+                native_args[4],
+                native_args[7],
+                native_args[10],
+                native_args[11],
+                native_args[12],
+                native_args[16],
+                native_args[-1],
+                begin,
+                min(_PACK_ROTAMER_BLOCK_PAIR_WINDOW, n_candidates - begin),
+            )
+
     def iter_packing_entries(self, coords, score_weights, *, topology_only):
         """Yield bounded canonical dispatch windows for packing."""
-        from tmol.score.ljlk.potentials import (
-            ljlk_elec_rotamer_dispatch,
-            ljlk_elec_weighted_rotamer_scores,
-        )
+        from tmol.score.ljlk.potentials import ljlk_elec_weighted_rotamer_scores
 
         if score_weights.dtype != coords.dtype:
             score_weights = score_weights.to(dtype=coords.dtype)
         native_args = self._native_arguments(coords)
-        dispatch_indices = ljlk_elec_rotamer_dispatch(
-            native_args[0],
-            native_args[1],
-            native_args[4],
-            native_args[7],
-            native_args[10],
-            native_args[11],
-            native_args[12],
-            native_args[16],
-            native_args[-1],
-        )
         empty_values = score_weights.new_empty(0)
-        for begin in range(
-            0, dispatch_indices.shape[1], _PACK_FUSED_ROTAMER_SCORE_WINDOW
-        ):
-            indices = dispatch_indices[
-                :, begin : begin + _PACK_FUSED_ROTAMER_SCORE_WINDOW
-            ]
-            if topology_only:
-                yield indices, empty_values
-                continue
-            scores, indices, _ = ljlk_elec_weighted_rotamer_scores(
-                *native_args,
-                score_weights,
-                empty_values,
-                indices,
-            )
-            yield indices, scores[0]
+        for dispatch_indices in self.iter_packing_dispatches(coords):
+            for begin in range(
+                0, dispatch_indices.shape[1], _PACK_FUSED_ROTAMER_SCORE_WINDOW
+            ):
+                indices = dispatch_indices[
+                    :, begin : begin + _PACK_FUSED_ROTAMER_SCORE_WINDOW
+                ]
+                if topology_only:
+                    yield indices, empty_values
+                    continue
+                scores, indices, _ = ljlk_elec_weighted_rotamer_scores(
+                    *native_args,
+                    score_weights,
+                    empty_values,
+                    indices,
+                )
+                yield indices, scores[0]
 
 
 def _fused_ljlk_elec_rotamer_module(term_modules):
@@ -2032,22 +2042,60 @@ class RotamerScoringModule:
                 if already_weighted:
                     assert score_weights is not None
                     for indices, weighted_values in term.iter_packing_entries(
-                        coords, score_weights, topology_only=topology_only
+                        coords,
+                        score_weights,
+                        topology_only=topology_only,
                     ):
                         yield term, indices, weighted_values
                     weights_offset += term.n_score_types
                     continue
 
-                scores, indices = term.forward(coords)
-                n_subterms = scores.shape[0]
-                indices = self._native_sparse_indices(indices)
                 weights = self.weights[
-                    weights_offset : weights_offset + n_subterms, 0, 0, 0
+                    weights_offset : weights_offset + term.n_score_types, 0, 0, 0
                 ]
-                weighted_values = _weighted_score_sum(weights, scores)
-                weights_offset += n_subterms
-                yield term, indices, weighted_values
-                del scores, indices, weighted_values
+                can_share_packing_dispatch = (
+                    coords.device.type == "cuda"
+                    and getattr(term, "accepts_shared_dispatch", False)
+                    and getattr(term, "rotamer_dispatch_key", None)
+                    == self._fused_ljlk_elec.rotamer_dispatch_key
+                    and getattr(term, "block_neighbor_cutoff", None) is not None
+                    and _rotamer_dispatch_cutoff_compatible(
+                        coords.device.type,
+                        self._fused_ljlk_elec.block_neighbor_cutoff,
+                        getattr(term, "block_neighbor_cutoff", None),
+                    )
+                )
+                dispatches = (
+                    self._fused_ljlk_elec.iter_packing_dispatches(coords)
+                    if can_share_packing_dispatch
+                    else (None,)
+                )
+                for dispatch in dispatches:
+                    dispatch_windows = (
+                        (
+                            dispatch[
+                                :, begin : begin + _PACK_FUSED_ROTAMER_SCORE_WINDOW
+                            ]
+                            for begin in range(
+                                0,
+                                dispatch.shape[1],
+                                _PACK_FUSED_ROTAMER_SCORE_WINDOW,
+                            )
+                        )
+                        if dispatch is not None
+                        else (None,)
+                    )
+                    for dispatch_window in dispatch_windows:
+                        scores, indices = (
+                            term.forward(coords, dispatch_window)
+                            if dispatch_window is not None
+                            else term.forward(coords)
+                        )
+                        indices = self._native_sparse_indices(indices)
+                        weighted_values = _weighted_score_sum(weights, scores)
+                        yield term, indices, weighted_values
+                        del scores, indices, weighted_values
+                weights_offset += term.n_score_types
             return
 
         term_results = self._sequential_term_results(

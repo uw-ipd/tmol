@@ -515,17 +515,26 @@ def test_weighted_fused_ljlk_elec_rotamer_scores_match_fallback(
     fused_weights = scorer.weights[weight_begin : weight_begin + 4, 0, 0, 0]
     with torch.no_grad():
         full_values, full_indices = fused_group(rotamer_set.coords, fused_weights)
+        monkeypatch.setattr(_score_function, "_PACK_ROTAMER_BLOCK_PAIR_WINDOW", 11)
+        packing_dispatch = torch.cat(
+            list(fused_group.iter_packing_dispatches(rotamer_set.coords)), dim=1
+        )
         monkeypatch.setattr(_score_function, "_PACK_FUSED_ROTAMER_SCORE_WINDOW", 7)
         windows = list(
             fused_group.iter_packing_entries(
-                rotamer_set.coords, fused_weights, topology_only=False
+                rotamer_set.coords,
+                fused_weights,
+                topology_only=False,
             )
         )
         topology_windows = list(
             fused_group.iter_packing_entries(
-                rotamer_set.coords, fused_weights, topology_only=True
+                rotamer_set.coords,
+                fused_weights,
+                topology_only=True,
             )
         )
+    assert torch.equal(packing_dispatch, full_indices)
     assert len(windows) > 1
     assert torch.equal(
         torch.cat([indices for indices, _ in windows], dim=1), full_indices
@@ -535,6 +544,23 @@ def test_weighted_fused_ljlk_elec_rotamer_scores_match_fallback(
         torch.cat([indices for indices, _ in topology_windows], dim=1), full_indices
     )
     assert all(values.numel() == 0 for _, values in topology_windows)
+    with torch.no_grad():
+        packing_entries = list(
+            scorer._iter_weighted_sparse_entries(
+                rotamer_set.coords, retain_shared_dispatch=False
+            )
+        )
+    packing_scores = torch.sparse_coo_tensor(
+        torch.cat([indices for _, indices, _ in packing_entries], dim=1).to(
+            torch.int64
+        ),
+        torch.cat([values for _, _, values in packing_entries]),
+        size=(fused_group.n_poses, fused_group.n_rots, fused_group.n_rots),
+    ).coalesce()
+    assert torch.equal(packing_scores.indices(), fused.indices())
+    torch.testing.assert_close(
+        packing_scores.values(), fused.values(), atol=2e-3, rtol=2e-5
+    )
 
     # Weights are read at every call instead of being specialized into the
     # rendered module.
