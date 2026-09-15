@@ -2036,7 +2036,7 @@ class RotamerScoringModule:
             and not self.weights.requires_grad
         )
         execution_terms = self._execution_terms(use_fused)
-        if not retain_shared_dispatch and use_fused:
+        if not retain_shared_dispatch:
             weights_offset = 0
             for term, score_weights, already_weighted in execution_terms:
                 if already_weighted:
@@ -2050,11 +2050,31 @@ class RotamerScoringModule:
                     weights_offset += term.n_score_types
                     continue
 
+                if term.packing_score_iterator is not None:
+                    n_subterms = term.n_score_types
+                    weights = self.weights[
+                        weights_offset : weights_offset + n_subterms, 0, 0, 0
+                    ]
+                    weights_offset += n_subterms
+                    empty_values = weights.new_empty(0)
+                    for scores, indices in term.iter_packing_entries(
+                        coords, topology_only=topology_only
+                    ):
+                        indices = self._native_sparse_indices(indices)
+                        if topology_only:
+                            yield term, indices, empty_values
+                            continue
+                        weighted_values = _weighted_score_sum(weights, scores)
+                        yield term, indices, weighted_values
+                        del scores, indices, weighted_values
+                    continue
+
                 weights = self.weights[
                     weights_offset : weights_offset + term.n_score_types, 0, 0, 0
                 ]
                 can_share_packing_dispatch = (
-                    coords.device.type == "cuda"
+                    use_fused
+                    and coords.device.type == "cuda"
                     and getattr(term, "accepts_shared_dispatch", False)
                     and getattr(term, "rotamer_dispatch_key", None)
                     == self._fused_ljlk_elec.rotamer_dispatch_key
