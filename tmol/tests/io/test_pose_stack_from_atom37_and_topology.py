@@ -402,13 +402,34 @@ def test_prepared_atom37_builder_replays_variable_leaf_presence(
     structure = _first_residues(biotite_1ubq, 2)
     oxygen = int(np.flatnonzero(structure.atom_name == "O")[0])
     structure.coord[oxygen] = np.nan
-    structure, atom37 = _atomized_atom37(structure, torch_device)
+    structure, atom37 = _atomized_atom37(structure, torch_device, n_poses=2)
+    atom37.requires_grad_(True)
     context = build_context_from_biotite(structure, torch_device)
     builder = prepare_atom37_pose_builder(structure, context)
 
     first = builder(atom37, opt_h=False)
-    second_coords = atom37.clone()
-    second_coords[0, oxygen, 1] = torch.tensor([1.0, 2.0, 3.0], device=torch_device)
+    assert torch.isfinite(first.coords[first.real_atoms]).all()
+
+    guidance = first.coords[first.real_atoms].square().sum()
+    guidance_grad = torch.autograd.grad(guidance, atom37, retain_graph=True)[0]
+    assert torch.isfinite(guidance_grad).all()
+    assert torch.count_nonzero(guidance_grad[:, oxygen, 1]) == 0
+
+    ca_source = int(np.flatnonzero(structure.atom_name == "CA")[0])
+    first_block_type = first.packed_block_types.active_block_types[
+        int(first.block_type_ind[0, 0])
+    ]
+    ca_block_atom = next(
+        i for i, atom in enumerate(first_block_type.atoms) if atom.name == "CA"
+    )
+    ca_pose_atom = int(first.block_coord_offset[0, 0]) + ca_block_atom
+    mapped_grad = torch.autograd.grad(first.coords[:, ca_pose_atom].sum(), atom37)[0]
+    expected_grad = torch.zeros_like(mapped_grad)
+    expected_grad[:, ca_source, 1] = 1
+    torch.testing.assert_close(mapped_grad, expected_grad)
+
+    second_coords = atom37.detach().clone()
+    second_coords[:, oxygen, 1] = torch.tensor([1.0, 2.0, 3.0], device=torch_device)
     expected_second = pose_stack_from_atom37_and_topology(
         second_coords, structure, context, no_optH=True
     )
@@ -433,17 +454,20 @@ def test_prepared_atom37_builder_falls_back_for_ambiguous_histidine_hydrogen(
     assert not builder._topology_cache_safe
 
 
-def test_atom37_pose_uses_ligand_context(torch_device):
+@pytest.mark.parametrize("prebuilt", [True, False])
+def test_atom37_pose_uses_ligand_context(torch_device, prebuilt):
     cif_path = data_path("protein_ligand_test", "cif_inputs", "ace.ligand.cif")
     params_path = data_path("protein_ligand_test", "ace.xtal-lig.mmff94.tmol")
-    structure = _load_structure(cif_path)
+    from tmol.io import atom_array_from_cif
+
+    structure = atom_array_from_cif(cif_path)
     structure, atom37 = _atomized_atom37(structure, torch_device)
     atom37.requires_grad_(True)
     context = build_context_from_biotite(
         structure,
         torch_device,
         prepare_ligands=True,
-        ligand_params_files=[str(params_path)],
+        ligand_params_files=[str(params_path)] if prebuilt else None,
     )
 
     pose = pose_stack_from_atom37_and_topology(atom37, structure, context)
@@ -454,6 +478,27 @@ def test_atom37_pose_uses_ligand_context(torch_device):
     assert torch.isfinite(pose.coords[pose.real_atoms]).all()
     pose.coords[pose.real_atoms].sum().backward()
     assert torch.count_nonzero(atom37.grad) > 0
+
+    if prebuilt:
+        return
+
+    from tmol.io.details._build_missing_leaf_atoms import _apply_h_geometric_completion
+
+    pbt = pose.packed_block_types
+    missing = pbt.h_completion_ann.eligible[pose.block_type_ind.clamp_min(0).long()]
+    assert missing.any()
+    assert torch.autograd.gradcheck(
+        lambda coords: _apply_h_geometric_completion(
+            pbt,
+            coords,
+            missing,
+            pose.block_coord_offset,
+            pose.block_type_ind,
+            pose.inter_residue_connections,
+        )[pose.real_atoms],
+        (pose.coords.detach().double().requires_grad_(),),
+        fast_mode=True,
+    )
 
 
 def test_pose_stack_from_biotite_accepts_atom37_directly(biotite_1ubq, torch_device):

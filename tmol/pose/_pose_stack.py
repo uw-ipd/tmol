@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from tmol.pose._split_block_mapping import SplitBlockMapping
 
 
-@attr.s(auto_attribs=True)
+@attr.s(auto_attribs=True, init=False)
 class PoseStack:
     """Batch of molecular systems with shared residue-type definitions.
 
@@ -32,7 +32,7 @@ class PoseStack:
         inter_residue_connections: Connected residue and connection indices.
         inter_residue_connections64: 64-bit connection-index copy.
         inter_block_bondsep: Capped bond separation between residue connections.
-        inter_block_bondsep64: 64-bit bond-separation copy.
+        inter_block_bondsep64: Legacy derived input; retained as an on-demand property.
         block_type_ind: Packed block-type index for each residue; ``-1`` is padding.
         block_type_ind64: 64-bit block-type-index copy.
         chain_id: Chain index for each residue.
@@ -57,7 +57,6 @@ class PoseStack:
     inter_residue_connections64: Tensor[torch.int64][:, :, :, 2]
 
     inter_block_bondsep: Tensor[torch.int32][:, :, :, :, :]
-    inter_block_bondsep64: Tensor[torch.int64][:, :, :, :, :]
 
     block_type_ind: Tensor[torch.int32][:, :]
     block_type_ind64: Tensor[torch.int64][:, :]
@@ -70,6 +69,18 @@ class PoseStack:
 
     device: torch.device
     split_block_mapping: "SplitBlockMapping | None" = None
+
+    def __init__(self, *args, inter_block_bondsep64=None, **kwargs):
+        # Legacy keyword callers may supply the redundant derived tensor.
+        # Native scoring uses int32 separations; never retain a second dense copy.
+        if len(args) > 7 and getattr(args[7], "ndim", None) == 5:
+            args = (*args[:7], *args[8:])  # Legacy positional int64 copy.
+        self.__attrs_init__(*args, **kwargs)
+
+    @property
+    def inter_block_bondsep64(self):
+        """Return int64 bond separations on demand, without retaining a dense copy."""
+        return self.inter_block_bondsep.to(torch.int64)
 
     #################### INIT #####################
 
@@ -188,7 +199,47 @@ class PoseStack:
             inter_residue_connections=self.inter_residue_connections.detach().clone(),
             inter_residue_connections64=self.inter_residue_connections64.detach().clone(),
             inter_block_bondsep=self.inter_block_bondsep.detach().clone(),
-            inter_block_bondsep64=self.inter_block_bondsep64.detach().clone(),
+            block_type_ind=self.block_type_ind.detach().clone(),
+            block_type_ind64=self.block_type_ind64.detach().clone(),
+            chain_id=self.chain_id.detach().clone(),
+            chain_id64=self.chain_id64.detach().clone(),
+            pdb_info=self.pdb_info,
+            constraint_set=new_constraint_set,
+            device=self.device,
+            split_block_mapping=self.split_block_mapping,
+        )
+
+    def clone_sharing_topology(self) -> "PoseStack":
+        """Copy per-pose state but share this stack's immutable bond topology.
+
+        :py:meth:`clone` deep-copies every tensor, including
+        ``inter_block_bondsep``, whose size grows as
+        ``n_poses * max_n_blocks**2 * max_n_conn**2``. For large assemblies
+        that single copy dominates peak memory even though nothing ever
+        mutates it in place: the connection tensors are built once by
+        :py:class:`~tmol.pose.PoseStackBuilder` and thereafter only read.
+
+        Callers that vary coordinates while holding topology fixed -- the
+        FastRelax accept/restore loop, for example -- should use this instead.
+        Sharing is also what lets a rendered scoring module recognise the
+        result as the same topology and reuse its cached parameters.
+
+        Returns:
+          A PoseStack whose coordinate and block state are independently
+          owned, and whose connection topology aliases this stack's.
+        """
+        new_constraint_set = (
+            self.constraint_set.clone() if self.constraint_set is not None else None
+        )
+        return PoseStack(
+            packed_block_types=self.packed_block_types,
+            coords=self.coords.detach().clone(),
+            block_coord_offset=self.block_coord_offset.detach().clone(),
+            block_coord_offset64=self.block_coord_offset64.detach().clone(),
+            # Shared, never mutated in place.
+            inter_residue_connections=self.inter_residue_connections,
+            inter_residue_connections64=self.inter_residue_connections64,
+            inter_block_bondsep=self.inter_block_bondsep,
             block_type_ind=self.block_type_ind.detach().clone(),
             block_type_ind64=self.block_type_ind64.detach().clone(),
             chain_id=self.chain_id.detach().clone(),
@@ -219,9 +270,6 @@ class PoseStack:
             .detach()
             .clone(),
             inter_block_bondsep=self.inter_block_bondsep[index : index + 1]
-            .detach()
-            .clone(),
-            inter_block_bondsep64=self.inter_block_bondsep64[index : index + 1]
             .detach()
             .clone(),
             block_type_ind=self.block_type_ind[index : index + 1].detach().clone(),

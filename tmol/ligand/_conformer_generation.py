@@ -16,6 +16,7 @@ from __future__ import annotations
 import contextlib
 import logging
 import math
+from functools import lru_cache
 from typing import Optional
 
 import numpy as np
@@ -109,6 +110,19 @@ def generate_conformer(
     Raises:
         ValueError: Failures in parsing or final min.
     """
+    if seed is None:
+        return _generate_conformer(smiles, minimize_steps, seed)
+    ob, pybel = _import_openbabel()
+    # Seeded results are reusable, but callers own their coordinates and charges.
+    return pybel.Molecule(ob.OBMol(_seeded_conformer(smiles, minimize_steps, seed)))
+
+
+@lru_cache(maxsize=128)
+def _seeded_conformer(smiles: str, minimize_steps: int, seed: int):
+    return _generate_conformer(smiles, minimize_steps, seed).OBMol
+
+
+def _generate_conformer(smiles: str, minimize_steps: int, seed: Optional[int]):
     _, pybel = _import_openbabel()
     obmol = _smiles_to_obmol(smiles)
     rd = _obmol_to_rdkit(obmol)

@@ -167,6 +167,10 @@ class _DefaultCartesianMinimizer:
     def __init__(self, cuda_graph: bool):
         self.minimizer = CartesianMinimizer(cuda_graph=cuda_graph)
 
+    def release_retained_state(self) -> None:
+        """Release scorer and optimizer storage between relax stages."""
+        self.minimizer.release_retained_state()
+
     def __call__(
         self,
         pose_stack: PoseStack,
@@ -243,7 +247,10 @@ def fast_relax(  # noqa: C901
             minimize, and optional constraint fractions. Defaults to
             ``DEFAULT_RELAX_SCHEDULE``.
         min_fn: Minimizer called with the pose, score function, fold forest,
-            move map, and verbosity. Defaults to Cartesian minimization.
+            move map, and verbosity. If it provides ``release_retained_state()``,
+            FastRelax calls that hook after extracting each minimized pose so
+            packing does not overlap retained scorer or optimizer storage.
+            Defaults to Cartesian minimization.
         cuda_graph: Capture the default Cartesian minimizer's repeated CUDA
             scoring path. By default, enable it automatically for CUDA poses
             containing DNA or RNA, where replay savings exceed capture setup.
@@ -315,7 +322,8 @@ def fast_relax(  # noqa: C901
 
     wpsm = sfxn.render_whole_pose_scoring_module(pose_stack)
     best_score = wpsm(pose_stack.coords)
-    best_ps = pose_stack.clone()
+    del wpsm
+    best_ps = pose_stack.clone_sharing_topology()
 
     if min_fn is None:
         min_fn = _DefaultCartesianMinimizer(
@@ -340,7 +348,7 @@ def fast_relax(  # noqa: C901
             )
 
         best_ps, best_score = accept_best(sfxn, best_ps, best_score, ps, verbose)
-        ps = best_ps.clone()
+        ps = best_ps.clone_sharing_topology()
     if use_constraints:
         # Restore original constraint weight to the score function
         sfxn.set_weight(ScoreType.constraint, constraint_weight_start)
@@ -412,6 +420,9 @@ def relax_pack_min_step(
         move_map=move_map,
         verbose=verbose,
     )
+    release_retained_state = getattr(min_fn, "release_retained_state", None)
+    if release_retained_state is not None:
+        release_retained_state()
     if verbose:
         synchronize_device(pose_stack.device)
     end_time3 = time.perf_counter()

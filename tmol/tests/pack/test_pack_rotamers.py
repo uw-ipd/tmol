@@ -62,7 +62,7 @@ def setup_pose_stack_and_task(poses, torch_device, dun_sampler):
 
 
 def build_packer_energy_tables(
-    pose_stack, rotamer_set, sfxn, chunk_size=16, raw_entries=False
+    pose_stack, rotamer_set, sfxn, chunk_size=16, raw_entries=False, bump_check=True
 ):
     pbt = pose_stack.packed_block_types
     rotamer_scoring_module = sfxn.render_rotamer_scoring_module(pose_stack, rotamer_set)
@@ -89,11 +89,13 @@ def build_packer_energy_tables(
         bc_rot_to_orig_rot,
         bg_bg_energies,
         energy1b,
-        chunk_pair_offset_for_block_pair,
+        neighbor_row_offsets,
+        neighbor_blocks,
+        neighbor_chunk_offset_offsets,
         chunk_pair_offset,
         energy2b,
     ) = build_interaction_graph(
-        True,
+        bump_check,
         chunk_size,
         pbt.n_types,
         rotamer_set.n_rots_for_pose,
@@ -124,7 +126,9 @@ def build_packer_energy_tables(
             oneb_offsets=bc_rot_offset_for_molten_block,
             res_for_rot=molten_block_ind_for_bc_rot,
             chunk_size=chunk_size,
-            chunk_offset_offsets=chunk_pair_offset_for_block_pair,
+            neighbor_row_offsets=neighbor_row_offsets,
+            neighbor_blocks=neighbor_blocks,
+            neighbor_chunk_offset_offsets=neighbor_chunk_offset_offsets,
             chunk_offsets=chunk_pair_offset,
             energy1b=energy1b,
             energy2b=energy2b,
@@ -265,8 +269,9 @@ def test_pack_rotamers(
     )
 
 
+@pytest.mark.parametrize("bump_check", [False, True])
 def test_raw_rotamer_entries_match_coalesced_interaction_graph(
-    default_database, ubq_pdb, dun_sampler, torch_device
+    default_database, ubq_pdb, dun_sampler, torch_device, bump_check
 ):
     if torch_device.type != "cuda":
         pytest.skip("raw duplicate accumulation requires CUDA atomics")
@@ -278,8 +283,12 @@ def test_raw_rotamer_entries_match_coalesced_interaction_graph(
     pose_stack, rotamer_set = build_rotamers(
         pose_stack, task, pose_stack.packed_block_types.chem_db
     )
-    coalesced = build_packer_energy_tables(pose_stack, rotamer_set, sfxn)
-    raw = build_packer_energy_tables(pose_stack, rotamer_set, sfxn, raw_entries=True)
+    coalesced = build_packer_energy_tables(
+        pose_stack, rotamer_set, sfxn, bump_check=bump_check
+    )
+    raw = build_packer_energy_tables(
+        pose_stack, rotamer_set, sfxn, raw_entries=True, bump_check=bump_check
+    )
 
     for coalesced_tensor, raw_tensor in zip(coalesced[:-1], raw[:-1]):
         torch.testing.assert_close(coalesced_tensor, raw_tensor)
@@ -295,7 +304,9 @@ def test_raw_rotamer_entries_match_coalesced_interaction_graph(
         "nrotamers_for_res",
         "oneb_offsets",
         "res_for_rot",
-        "chunk_offset_offsets",
+        "neighbor_row_offsets",
+        "neighbor_blocks",
+        "neighbor_chunk_offset_offsets",
         "chunk_offsets",
         "energy1b",
         "energy2b",
@@ -473,8 +484,10 @@ def test_shared_rotamer_dispatch_matches_independent_hbond_layout(
 
 
 def test_weighted_fused_ljlk_elec_rotamer_scores_match_fallback(
-    default_database, ubq_pdb, dun_sampler, torch_device
+    default_database, ubq_pdb, dun_sampler, torch_device, monkeypatch
 ):
+    from tmol.score import _score_function
+
     pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=10)
     pose_stack, task = setup_pose_stack_and_task([pose], torch_device, dun_sampler)
     task = SetPackerTask.from_packer_task(task)
@@ -497,9 +510,60 @@ def test_weighted_fused_ljlk_elec_rotamer_scores_match_fallback(
     assert torch.equal(fused.indices(), separate.indices())
     torch.testing.assert_close(fused.values(), separate.values(), atol=2e-3, rtol=2e-5)
 
+    fused_group = scorer._fused_ljlk_elec
+    weight_begin = scorer._fused_ljlk_elec_weight_offset
+    fused_weights = scorer.weights[weight_begin : weight_begin + 4, 0, 0, 0]
+    with torch.no_grad():
+        full_values, full_indices = fused_group(rotamer_set.coords, fused_weights)
+        monkeypatch.setattr(_score_function, "_PACK_ROTAMER_BLOCK_PAIR_WINDOW", 11)
+        packing_dispatch = torch.cat(
+            list(fused_group.iter_packing_dispatches(rotamer_set.coords)), dim=1
+        )
+        monkeypatch.setattr(_score_function, "_PACK_FUSED_ROTAMER_SCORE_WINDOW", 7)
+        windows = list(
+            fused_group.iter_packing_entries(
+                rotamer_set.coords,
+                fused_weights,
+                topology_only=False,
+            )
+        )
+        topology_windows = list(
+            fused_group.iter_packing_entries(
+                rotamer_set.coords,
+                fused_weights,
+                topology_only=True,
+            )
+        )
+    assert torch.equal(packing_dispatch, full_indices)
+    assert len(windows) > 1
+    assert torch.equal(
+        torch.cat([indices for indices, _ in windows], dim=1), full_indices
+    )
+    assert torch.equal(torch.cat([values for _, values in windows]), full_values[0])
+    assert torch.equal(
+        torch.cat([indices for indices, _ in topology_windows], dim=1), full_indices
+    )
+    assert all(values.numel() == 0 for _, values in topology_windows)
+    with torch.no_grad():
+        packing_entries = list(
+            scorer._iter_weighted_sparse_entries(
+                rotamer_set.coords, retain_shared_dispatch=False
+            )
+        )
+    packing_scores = torch.sparse_coo_tensor(
+        torch.cat([indices for _, indices, _ in packing_entries], dim=1).to(
+            torch.int64
+        ),
+        torch.cat([values for _, _, values in packing_entries]),
+        size=(fused_group.n_poses, fused_group.n_rots, fused_group.n_rots),
+    ).coalesce()
+    assert torch.equal(packing_scores.indices(), fused.indices())
+    torch.testing.assert_close(
+        packing_scores.values(), fused.values(), atol=2e-3, rtol=2e-5
+    )
+
     # Weights are read at every call instead of being specialized into the
     # rendered module.
-    weight_begin = scorer._fused_ljlk_elec_weight_offset
     original_fused_weights = scorer.weights[
         weight_begin : weight_begin + 4, 0, 0, 0
     ].clone()
@@ -601,6 +665,74 @@ def test_weighted_fused_ljlk_elec_rotamer_scores_match_fallback(
     assert scorer.weights.grad is not None
     assert torch.isfinite(scorer.weights.grad).all()
     assert torch.count_nonzero(scorer.weights.grad[:4]) != 0
+
+
+def test_packing_pages_shared_lk_ball_dispatch(
+    default_database, ubq_pdb, dun_sampler, torch_device, monkeypatch
+):
+    from tmol.score import _score_function
+
+    if torch_device.type != "cuda":
+        pytest.skip("sharing the fused dispatch across terms is a CUDA-only path")
+
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=10)
+    pose_stack, task = setup_pose_stack_and_task([pose], torch_device, dun_sampler)
+    pose_stack, rotamer_set = build_rotamers(
+        pose_stack,
+        SetPackerTask.from_packer_task(task),
+        pose_stack.packed_block_types.chem_db,
+    )
+    scorer = get_packer_sfxn(
+        default_database, torch_device
+    ).render_rotamer_scoring_module(pose_stack, rotamer_set)
+    lk_ball = next(term for term in scorer.term_modules if term.classname == "LKBall")
+    lk_ball_index = scorer.term_modules.index(lk_ball)
+    weight_offset = sum(
+        term.n_score_types for term in scorer.term_modules[:lk_ball_index]
+    )
+    weights = scorer.weights[
+        weight_offset : weight_offset + lk_ball.n_score_types, 0, 0, 0
+    ]
+
+    with torch.no_grad():
+        # The canonical dispatch is only ever produced in bounded pages; join
+        # them here to build the full-dispatch reference this test compares to.
+        dispatch = torch.cat(
+            list(scorer._fused_ljlk_elec.iter_packing_dispatches(rotamer_set.coords)),
+            dim=1,
+        )
+        full_scores, full_indices = lk_ball.forward(rotamer_set.coords, dispatch)
+        expected_values = torch.sum(weights[:, None] * full_scores, dim=0)
+
+        monkeypatch.setattr(_score_function, "_PACK_FUSED_ROTAMER_SCORE_WINDOW", 7)
+        pages = [
+            (indices, values)
+            for term, indices, values in scorer._iter_weighted_sparse_entries(
+                rotamer_set.coords, retain_shared_dispatch=False
+            )
+            if term is lk_ball
+        ]
+        topology_pages = [
+            (indices, values)
+            for term, indices, values in scorer._iter_weighted_sparse_entries(
+                rotamer_set.coords,
+                retain_shared_dispatch=False,
+                topology_only=True,
+            )
+            if term is lk_ball
+        ]
+
+    assert len(pages) > 1
+    assert torch.equal(
+        torch.cat([indices for indices, _ in pages], dim=1), full_indices
+    )
+    torch.testing.assert_close(
+        torch.cat([values for _, values in pages]), expected_values
+    )
+    assert torch.equal(
+        torch.cat([indices for indices, _ in topology_pages], dim=1), full_indices
+    )
+    assert all(values.numel() == 0 for _, values in topology_pages)
 
 
 def test_fused_ljlk_elec_empty_table_gradient(monkeypatch):

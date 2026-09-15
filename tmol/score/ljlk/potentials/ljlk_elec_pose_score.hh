@@ -26,6 +26,21 @@ template <
     typename Real,
     typename Int>
 struct LJLKAndElecPoseScoreDispatch {
+  /// Build canonical sparse rotamer-pair indices without allocating scores.
+  static auto build_rotamer_dispatch(
+      ContextManager& mgr,
+      TView<LJLKExternalVec<Real, 3>, 1, D> rot_coords,
+      TView<Int, 1, D> rot_coord_offset,
+      TView<Int, 2, D> first_rot_block_type,
+      TView<Int, 1, D> block_type_ind_for_rot,
+      TView<Int, 2, D> n_rots_for_block,
+      TView<Int, 2, D> rot_offset_for_block,
+      TView<Int, 2, D> lockstep_group_for_block,
+      TView<Int, 1, D> block_type_n_atoms,
+      Real max_dis,
+      int64_t candidate_begin = 0,
+      int64_t candidate_count = -1) -> TPack<Int, 2, D>;
+
   static auto forward(
       ContextManager& mgr,
       TView<LJLKExternalVec<Real, 3>, 1, D> rot_coords,

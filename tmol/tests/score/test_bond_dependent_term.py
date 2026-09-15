@@ -1,4 +1,5 @@
 from tmol.score import BondDependentTerm
+import torch
 
 
 def test_create_pose_bond_separation_two_ubq(
@@ -16,3 +17,5 @@ def test_create_pose_bond_separation_two_ubq(
 
     assert ubq_40_60_pose_stack.min_block_bondsep.shape == (2, 60, 60)
     assert ubq_40_60_pose_stack.min_block_bondsep.device == torch_device
+    expected = ubq_40_60_pose_stack.inter_block_bondsep.min(4).values.min(3).values
+    torch.testing.assert_close(ubq_40_60_pose_stack.min_block_bondsep, expected)

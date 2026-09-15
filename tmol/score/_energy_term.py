@@ -57,6 +57,10 @@ class EnergyTerm:
         """Compatibility key for reusable rotamer-pair dispatch layouts."""
         return None
 
+    def get_packing_rotamer_score_term_function(self):
+        """Return an optional bounded packing-score iterator."""
+        return None
+
     def setup_block_type(self, block_type: RefinedResidueType):
         """Make a one-time CPU annotation on a block type.
 
@@ -212,4 +216,5 @@ class EnergyTerm:
             self.get_block_neighbor_cutoff(),
             self.accepts_shared_rotamer_dispatch(),
             self.rotamer_dispatch_key(),
+            self.get_packing_rotamer_score_term_function(),
         )

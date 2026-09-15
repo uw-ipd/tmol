@@ -281,7 +281,6 @@ struct ForwardKinDispatch {
 
       mgpu::transform(k_unindex, nnodes, *context);
       nvtx_range_pop();
-      nvtx_range_pop();
     }
 
     // copy atom positions

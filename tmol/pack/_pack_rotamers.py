@@ -1,3 +1,4 @@
+import contextlib
 import copy
 import os
 import time
@@ -90,15 +91,21 @@ def pack_rotamers(
         synchronize_device(pose_stack.device)
     end_time5 = time.perf_counter()
 
-    new_pose_stack = impose_top_rotamer_assignments(
-        pose_stack,
-        rotamer_set,
-        rotamer_for_nonmolten_block,
-        n_molten_blocks_per_pose,
-        bc_rot_offset_for_molten_block,
-        bc_rot_to_orig_rot,
-        rotamer_assignments,
+    assignment_context = (
+        torch.no_grad()
+        if _should_stream_interaction_graph(pose_stack, rotamer_set, task)
+        else contextlib.nullcontext()
     )
+    with assignment_context:
+        new_pose_stack = impose_top_rotamer_assignments(
+            pose_stack,
+            rotamer_set,
+            rotamer_for_nonmolten_block,
+            n_molten_blocks_per_pose,
+            bc_rot_offset_for_molten_block,
+            bc_rot_to_orig_rot,
+            rotamer_assignments,
+        )
     if collapse is not None:
         # the packer chose for the representative; its group moves with it
         assignment = chosen_rotamer_for_block(
@@ -267,7 +274,6 @@ def _slice_pose_stack_for_packing(
         inter_residue_connections=view(pose_stack.inter_residue_connections),
         inter_residue_connections64=view(pose_stack.inter_residue_connections64),
         inter_block_bondsep=view(pose_stack.inter_block_bondsep),
-        inter_block_bondsep64=view(pose_stack.inter_block_bondsep64),
         block_type_ind=view(pose_stack.block_type_ind),
         block_type_ind64=view(pose_stack.block_type_ind64),
         chain_id=view(pose_stack.chain_id),
@@ -291,6 +297,15 @@ def _slice_packer_task(task: PackerTask, first_pose: int, last_pose: int) -> Pac
     return chunk_task
 
 
+def _should_stream_interaction_graph(pose_stack, rotamer_set, task) -> bool:
+    """Select the non-differentiable bounded-memory CUDA packing path."""
+    return (
+        pose_stack.device.type == "cuda"
+        and not rotamer_set.correlated_groups
+        and not task.bump_check
+    )
+
+
 def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=False):
     from tmol.pack.compiled import build_interaction_graph
     from tmol.pack.rotamer._conjugated_groups import (
@@ -300,8 +315,14 @@ def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=Fals
 
     pbt = pose_stack.packed_block_types
     rotamer_scoring_module = sfxn.render_rotamer_scoring_module(pose_stack, rotamer_set)
+    stream_interaction_graph = _should_stream_interaction_graph(
+        pose_stack, rotamer_set, task
+    )
 
-    if pose_stack.device.type == "cuda" and not rotamer_set.correlated_groups:
+    if stream_interaction_graph:
+        energy_indices = None
+        energy_values = None
+    elif pose_stack.device.type == "cuda" and not rotamer_set.correlated_groups:
         # CUDA graph construction atomically accumulates duplicate coordinates,
         # so it can consume raw int32 entries. Avoid constructing/coalescing a
         # PyTorch COO tensor: COO promotes coordinates to int64 and sorting can
@@ -351,6 +372,33 @@ def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=Fals
 
     chunk_size = _interaction_graph_chunk_size(pose_stack.device)
 
+    graph_inputs = (
+        pbt.n_types,
+        n_rots_for_pose,
+        rot_offset_for_pose,
+        n_rots_for_block,
+        rot_offset_for_block,
+        pose_for_rot,
+        block_type_ind_for_rot,
+        block_ind_for_rot,
+    )
+    if stream_interaction_graph:
+        graph_result = _build_streaming_interaction_graph(
+            rotamer_scoring_module,
+            rotamer_set.coords,
+            chunk_size,
+            graph_inputs,
+            verbose,
+        )
+    else:
+        graph_result = build_interaction_graph(
+            task.bump_check,
+            chunk_size,
+            *graph_inputs,
+            energy_indices,
+            energy_values,
+            verbose,
+        )
     (
         max_n_bump_checked_rotamers_per_pose_tensor,
         n_molten_blocks_per_pose,
@@ -363,24 +411,12 @@ def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=Fals
         bc_rot_to_orig_rot,
         bg_bg_energies,
         energy1b,
-        chunk_pair_offset_for_block_pair,
+        neighbor_row_offsets,
+        neighbor_blocks,
+        neighbor_chunk_offset_offsets,
         chunk_pair_offset,
         energy2b,
-    ) = build_interaction_graph(
-        task.bump_check,
-        chunk_size,
-        pbt.n_types,
-        n_rots_for_pose,
-        rot_offset_for_pose,
-        n_rots_for_block,
-        rot_offset_for_block,
-        pose_for_rot,
-        block_type_ind_for_rot,
-        block_ind_for_rot,
-        energy_indices,
-        energy_values,
-        verbose,
-    )
+    ) = graph_result
     if verbose:
         synchronize_device(pose_stack.device)
     end_time3 = time.perf_counter()
@@ -405,7 +441,9 @@ def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=Fals
         oneb_offsets=bc_rot_offset_for_molten_block,
         res_for_rot=molten_block_ind_for_bc_rot,
         chunk_size=chunk_size,
-        chunk_offset_offsets=chunk_pair_offset_for_block_pair,
+        neighbor_row_offsets=neighbor_row_offsets,
+        neighbor_blocks=neighbor_blocks,
+        neighbor_chunk_offset_offsets=neighbor_chunk_offset_offsets,
         chunk_offsets=chunk_pair_offset,
         energy1b=energy1b,
         energy2b=energy2b,
@@ -422,3 +460,150 @@ def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=Fals
         end_time2,
         end_time3,
     )
+
+
+@torch.no_grad()
+def _build_streaming_interaction_graph(
+    rotamer_scoring_module,
+    coords,
+    chunk_size,
+    graph_inputs,
+    verbose,
+):
+    """Build a CUDA interaction graph with three bounded score passes.
+
+    The graph is inference-only. Running the passes under ``no_grad`` keeps
+    each bounded page from retaining autograd state for the whole candidate
+    set, which otherwise accumulates across FastRelax packing stages.
+    """
+    from tmol.pack.compiled import (
+        accumulate_interaction_graph_entries,
+        build_interaction_graph,
+        finalize_interaction_graph_chunk_topology,
+        finalize_interaction_graph_topology,
+        initialize_interaction_graph_topology,
+        note_interaction_graph_chunk_topology,
+        note_interaction_graph_topology,
+    )
+
+    (
+        max_n_block_types,
+        n_rots_for_pose,
+        rot_offset_for_pose,
+        n_rots_for_block,
+        rot_offset_for_block,
+        pose_for_rot,
+        block_type_ind_for_rot,
+        block_ind_for_rot,
+    ) = graph_inputs
+    empty_indices = torch.empty((3, 0), dtype=torch.int32, device=coords.device)
+    empty_values = torch.empty(0, dtype=torch.float32, device=coords.device)
+
+    # Empty no-bump construction establishes the canonical kept/fixed rotamer
+    # numbering without retaining any score layout.
+    base = list(
+        build_interaction_graph(
+            False,
+            chunk_size,
+            max_n_block_types,
+            n_rots_for_pose,
+            rot_offset_for_pose,
+            n_rots_for_block,
+            rot_offset_for_block,
+            pose_for_rot,
+            block_type_ind_for_rot,
+            block_ind_for_rot,
+            empty_indices,
+            empty_values,
+            verbose,
+        )
+    )
+    block_adjacency, orig_block_to_molten = initialize_interaction_graph_topology(
+        n_rots_for_block,
+        base[4],
+        empty_values,
+    )
+
+    # Pass one records block topology only. Chunk support is allocated after
+    # the sparse block graph is known, avoiding a global n_chunks**2 bitset.
+    for _, indices, values in rotamer_scoring_module._iter_weighted_sparse_entries(
+        coords, retain_shared_dispatch=False, topology_only=True
+    ):
+        (block_adjacency,) = note_interaction_graph_topology(
+            block_ind_for_rot,
+            orig_block_to_molten,
+            block_adjacency,
+            indices,
+            values,
+        )
+        del indices, values
+
+    chunk_topology = list(
+        finalize_interaction_graph_topology(
+            chunk_size,
+            base[4],
+            block_adjacency,
+            empty_values,
+        )
+    )
+    del block_adjacency
+
+    # Pass two records chunk support inside each observed block edge.
+    for _, indices, values in rotamer_scoring_module._iter_weighted_sparse_entries(
+        coords, retain_shared_dispatch=False, topology_only=True
+    ):
+        (chunk_topology[4],) = note_interaction_graph_chunk_topology(
+            chunk_size,
+            n_rots_for_block,
+            rot_offset_for_block,
+            block_ind_for_rot,
+            orig_block_to_molten,
+            base[4],
+            chunk_topology[0],
+            chunk_topology[1],
+            chunk_topology[3],
+            chunk_topology[4],
+            indices,
+            values,
+        )
+        del indices, values
+
+    base[11], base[12], base[13] = chunk_topology[:3]
+    base[14], base[15] = finalize_interaction_graph_chunk_topology(
+        chunk_size,
+        base[4],
+        chunk_topology[0],
+        chunk_topology[1],
+        chunk_topology[2],
+        chunk_topology[3],
+        chunk_topology[4],
+        empty_values,
+    )
+    del chunk_topology
+
+    # Pass three adds terms in canonical order. Native accumulation is
+    # additive, preserving duplicate coordinates and CSR transpose symmetry.
+    for _, indices, values in rotamer_scoring_module._iter_weighted_sparse_entries(
+        coords, retain_shared_dispatch=False
+    ):
+        base[9], base[10], base[15] = accumulate_interaction_graph_entries(
+            chunk_size,
+            n_rots_for_block,
+            rot_offset_for_block,
+            block_ind_for_rot,
+            orig_block_to_molten,
+            base[7],
+            base[4],
+            base[5],
+            base[11],
+            base[12],
+            base[13],
+            base[14],
+            base[9],
+            base[10],
+            base[15],
+            indices,
+            values,
+        )
+        del indices, values
+    return tuple(base)
