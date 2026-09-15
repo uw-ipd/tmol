@@ -484,8 +484,10 @@ def test_shared_rotamer_dispatch_matches_independent_hbond_layout(
 
 
 def test_weighted_fused_ljlk_elec_rotamer_scores_match_fallback(
-    default_database, ubq_pdb, dun_sampler, torch_device
+    default_database, ubq_pdb, dun_sampler, torch_device, monkeypatch
 ):
+    from tmol.score import _score_function
+
     pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=10)
     pose_stack, task = setup_pose_stack_and_task([pose], torch_device, dun_sampler)
     task = SetPackerTask.from_packer_task(task)
@@ -508,9 +510,34 @@ def test_weighted_fused_ljlk_elec_rotamer_scores_match_fallback(
     assert torch.equal(fused.indices(), separate.indices())
     torch.testing.assert_close(fused.values(), separate.values(), atol=2e-3, rtol=2e-5)
 
+    fused_group = scorer._fused_ljlk_elec
+    weight_begin = scorer._fused_ljlk_elec_weight_offset
+    fused_weights = scorer.weights[weight_begin : weight_begin + 4, 0, 0, 0]
+    with torch.no_grad():
+        full_values, full_indices = fused_group(rotamer_set.coords, fused_weights)
+        monkeypatch.setattr(_score_function, "_PACK_FUSED_ROTAMER_SCORE_WINDOW", 7)
+        windows = list(
+            fused_group.iter_packing_entries(
+                rotamer_set.coords, fused_weights, topology_only=False
+            )
+        )
+        topology_windows = list(
+            fused_group.iter_packing_entries(
+                rotamer_set.coords, fused_weights, topology_only=True
+            )
+        )
+    assert len(windows) > 1
+    assert torch.equal(
+        torch.cat([indices for indices, _ in windows], dim=1), full_indices
+    )
+    assert torch.equal(torch.cat([values for _, values in windows]), full_values[0])
+    assert torch.equal(
+        torch.cat([indices for indices, _ in topology_windows], dim=1), full_indices
+    )
+    assert all(values.numel() == 0 for _, values in topology_windows)
+
     # Weights are read at every call instead of being specialized into the
     # rendered module.
-    weight_begin = scorer._fused_ljlk_elec_weight_offset
     original_fused_weights = scorer.weights[
         weight_begin : weight_begin + 4, 0, 0, 0
     ].clone()
