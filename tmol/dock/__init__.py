@@ -32,12 +32,18 @@ from .ga import (
     run_ga_docking,
     update_pool,
 )
+from .finalization import (
+    DockingFinalization,
+    count_non_proton_ligand_chis,
+    finalize_ga_docking,
+)
 
 __all__ = [
     "ContinuousBackend",
     "DockGenerationResult",
     "DockingResult",
     "DockingPerturbation",
+    "DockingFinalization",
     "GAPool",
     "GAResult",
     "GASchedule",
@@ -50,6 +56,8 @@ __all__ = [
     "ScoringBackend",
     "build_ligand_docking_dofs",
     "crossover",
+    "count_non_proton_ligand_chis",
+    "finalize_ga_docking",
     "ligand_heavy_atom_rms",
     "mutate",
     "next_generation",

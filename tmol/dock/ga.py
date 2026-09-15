@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import attr
 import numpy
@@ -40,6 +40,9 @@ from tmol.kinematics.move_map import MinimizerMap
 from tmol.kinematics.script_modules import PoseStackKinematicsModule
 from tmol.pose.pdb_info import PDBInfo
 from tmol.pose.pose_stack import PoseStack
+
+if TYPE_CHECKING:
+    from tmol.dock.finalization import DockingFinalization
 
 
 @dataclass(frozen=True)
@@ -334,6 +337,53 @@ class DockingResult:
     ranked_energies: torch.Tensor
     ranked_genes: torch.Tensor
     ga_result: GAResult
+    finalization: DockingFinalization | None = None
+
+    @property
+    def finalized_pose_stack(self) -> PoseStack | None:
+        return None if self.finalization is None else self.finalization.pose_stack
+
+    @property
+    def pre_refine_energies(self) -> torch.Tensor | None:
+        return (
+            None if self.finalization is None else self.finalization.pre_refine_energies
+        )
+
+    @property
+    def complex_energies(self) -> torch.Tensor | None:
+        return None if self.finalization is None else self.finalization.complex_energies
+
+    @property
+    def free_ligand_energies(self) -> torch.Tensor | None:
+        return (
+            None
+            if self.finalization is None
+            else self.finalization.free_ligand_energies
+        )
+
+    @property
+    def free_receptor_energies(self) -> torch.Tensor | None:
+        return (
+            None
+            if self.finalization is None
+            else self.finalization.free_receptor_energies
+        )
+
+    @property
+    def nchi(self) -> torch.Tensor | None:
+        return None if self.finalization is None else self.finalization.nchi
+
+    @property
+    def dH(self) -> torch.Tensor | None:
+        return None if self.finalization is None else self.finalization.dH
+
+    @property
+    def TdS(self) -> torch.Tensor | None:
+        return None if self.finalization is None else self.finalization.TdS
+
+    @property
+    def dG(self) -> torch.Tensor | None:
+        return None if self.finalization is None else self.finalization.dG
 
 
 def _ligand_only_pose_stack(pose_stack: PoseStack, ligand_block: int) -> PoseStack:
@@ -1214,13 +1264,36 @@ def run_docking(
     seed: int = 0,
     pocket_bounds: torch.Tensor | None = None,
     random_placement: RandomPlacement = RandomPlacement(),
+    finalize: bool = False,
+    top_k: int = 1,
 ) -> DockingResult:
     """Run one prepared ligand through random placement and GA docking.
 
-    The returned ``best_pose_stack`` contains one pose, while the ranked
-    tensors retain all ``schedule.npool`` final candidates with a leading
-    singleton dimension.
+    Without finalization, the returned ``best_pose_stack`` contains one pose,
+    while the ranked tensors retain all ``schedule.npool`` final candidates with
+    a leading singleton dimension. With ``finalize=True``, only the grid-ranked
+    ``top_k`` are promoted to full complexes, exact-refined, and returned in
+    dG-ranked order; the original grid-GA result remains available as
+    ``ga_result``.
+
+    NOTE: with ``finalize=True`` the ``best_pose_stack`` holds the exact
+    Cartesian-refined coordinates, but ``best_genes`` / ``ranked_genes`` remain
+    the PRE-refinement grid-GA genes. Cartesian refinement changes bond lengths
+    and angles that the torsion-space gene cannot represent, so rebuilding
+    coordinates from these genes reproduces the pre-refine pose, NOT
+    ``best_pose_stack``. Use ``best_pose_stack`` / ``finalization.pose_stack``
+    for the refined coordinates and the genes only as grid-GA provenance.
     """
+
+    if not isinstance(finalize, bool):
+        raise TypeError("finalize must be bool")
+    if finalize and (
+        not isinstance(top_k, int)
+        or isinstance(top_k, bool)
+        or top_k < 1
+        or top_k > schedule.npool
+    ):
+        raise ValueError("top_k must be between 1 and schedule.npool")
 
     ga_result = run_ga_docking(
         pose_stack,
@@ -1232,13 +1305,36 @@ def run_docking(
         pocket_bounds=pocket_bounds,
         random_placement=random_placement,
     )
+    if not finalize:
+        return DockingResult(
+            best_pose_stack=ga_result.best_pose_stack,
+            best_energies=ga_result.best_energies,
+            best_genes=ga_result.best_genes,
+            ranked_energies=ga_result.ranked_energies,
+            ranked_genes=ga_result.ranked_genes,
+            ga_result=ga_result,
+        )
+
+    from tmol.dock.finalization import finalize_ga_docking
+
+    finalization = finalize_ga_docking(
+        pose_stack, ligand_block, backend, ga_result, top_k=top_k
+    )
+    best_flat = torch.arange(pose_stack.n_poses, device=pose_stack.device) * top_k
+    best_pose_stack = attr.evolve(
+        pose_stack,
+        coords=finalization.pose_stack.coords[best_flat].detach().clone(),
+    )
     return DockingResult(
-        best_pose_stack=ga_result.best_pose_stack,
-        best_energies=ga_result.best_energies,
-        best_genes=ga_result.best_genes,
-        ranked_energies=ga_result.ranked_energies,
-        ranked_genes=ga_result.ranked_genes,
+        best_pose_stack=best_pose_stack,
+        best_energies=finalization.dG[:, 0],
+        # PRE-refine grid-GA genes: they do NOT parameterize the Cartesian-refined
+        # best_pose_stack (see run_docking docstring). Kept as GA provenance.
+        best_genes=finalization.genes[:, 0],
+        ranked_energies=finalization.dG,
+        ranked_genes=finalization.genes,
         ga_result=ga_result,
+        finalization=finalization,
     )
 
 
