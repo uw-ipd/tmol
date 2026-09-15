@@ -23,6 +23,7 @@ from tmol.score.score_types import ScoreType
 
 if TYPE_CHECKING:
     from tmol.score.score_function import ScoreFunction
+    from .live_hbond import LiveHBondData
 
 
 DEFAULT_VOXEL_SPACING = 0.25
@@ -55,9 +56,7 @@ def _prefilter_cubic_bspline_axis_(values: torch.Tensor, axis: int) -> None:
     lines.mul_(gain)
 
     tolerance = torch.finfo(values.dtype).eps
-    horizon = min(
-        line_length, math.ceil(math.log(tolerance) / math.log(abs(pole)))
-    )
+    horizon = min(line_length, math.ceil(math.log(tolerance) / math.log(abs(pole))))
     if horizon < line_length:
         causal = lines[:, 0].clone()
         pole_power = pole
@@ -80,9 +79,7 @@ def _prefilter_cubic_bspline_axis_(values: torch.Tensor, axis: int) -> None:
     for index in range(1, line_length):
         lines[:, index].add_(lines[:, index - 1], alpha=pole)
 
-    lines[:, -1] = (pole / (pole * pole - 1.0)) * (
-        pole * lines[:, -2] + lines[:, -1]
-    )
+    lines[:, -1] = (pole / (pole * pole - 1.0)) * (pole * lines[:, -2] + lines[:, -1])
     for index in range(line_length - 2, -1, -1):
         lines[:, index] = pole * (lines[:, index + 1] - lines[:, index])
 
@@ -283,9 +280,7 @@ class GridSet:
         state = torch.load(Path(path), map_location=map_location, weights_only=True)
         version = state.get("version")
         if version not in (1, _SERIALIZATION_VERSION):
-            raise ValueError(
-                f"unsupported grid serialization version: {version}"
-            )
+            raise ValueError(f"unsupported grid serialization version: {version}")
         atom_type_names = tuple(state["atom_type_names"])
         expected_map = {name: index for index, name in enumerate(atom_type_names)}
         if state["atom_type_to_grid"] != expected_map:
@@ -372,6 +367,9 @@ GRID_SCORE_TYPES = (
     ScoreType.fa_elec,
 )
 
+LIVE_SCORE_TYPES = (ScoreType.hbond,)
+GRID_AND_LIVE_SCORE_TYPES = GRID_SCORE_TYPES + LIVE_SCORE_TYPES
+
 
 def interpolate_grid(
     coefficients: torch.Tensor,
@@ -400,14 +398,10 @@ def interpolate_grid(
         raise TypeError("indices and coefficients must have the same dtype")
     if grid_indices.dtype != torch.int64:
         raise TypeError("grid_indices must be int64")
-    if not (
-        coefficients.device == indices.device == grid_indices.device
-    ):
+    if not (coefficients.device == indices.device == grid_indices.device):
         raise ValueError("interpolation tensors must be on the same device")
 
-    return _interpolate_grid_and_penalty(
-        coefficients, indices, grid_indices
-    )[0]
+    return _interpolate_grid_and_penalty(coefficients, indices, grid_indices)[0]
 
 
 class _GridInterpolation(torch.autograd.Function):
@@ -437,9 +431,7 @@ class _GridInterpolation(torch.autograd.Function):
             if grad_values is not None:
                 grad_indices.add_(derivatives * grad_values[:, None])
             if grad_penalties is not None:
-                grad_indices.add_(
-                    penalty_derivatives * grad_penalties[:, None]
-                )
+                grad_indices.add_(penalty_derivatives * grad_penalties[:, None])
         return None, grad_indices, None
 
 
@@ -485,9 +477,7 @@ def _bound_grid_indices(
     """Clamp once for multi-channel scoring and return the OOB penalty."""
 
     upper = indices.new_tensor(coefficients.shape[1:]) - 1
-    bounded = torch.minimum(
-        torch.maximum(indices, torch.zeros_like(indices)), upper
-    )
+    bounded = torch.minimum(torch.maximum(indices, torch.zeros_like(indices)), upper)
     overshoot = indices - bounded
     penalty = OUT_OF_BOUNDS_PENALTY * torch.sum(overshoot * overshoot, dim=1)
     return bounded, penalty
@@ -501,9 +491,7 @@ def _interpolate_bounded_grid(
     """Interpolate already-bounded indices without repeating boundary work."""
 
     if bounded_indices.requires_grad:
-        return _GridInterpolation.apply(
-            coefficients, bounded_indices, grid_indices
-        )[0]
+        return _GridInterpolation.apply(coefficients, bounded_indices, grid_indices)[0]
     from .potentials.compiled import interpolate as interpolate_op
 
     return interpolate_op(
@@ -520,11 +508,13 @@ def score_ligand_grid(
     ligand_charges: torch.Tensor,
     *,
     score_function: "ScoreFunction | None" = None,
+    live_hbond: "LiveHBondData | None" = None,
 ) -> torch.Tensor:
-    """Return weighted ``(atr, rep, sol, elec)`` ligand-interface energies.
+    """Return weighted grid and optional live ligand-interface energies.
 
     ``ligand_atom_types`` contains chemical atom-type names in the same order as
-    ``ligand_coords``. The returned tensor follows :data:`GRID_SCORE_TYPES`.
+    ``ligand_coords``. Without ``live_hbond`` the returned tensor follows
+    :data:`GRID_SCORE_TYPES`; with it, an hbond channel is appended.
     The channel-only API clamps OOB coordinates but does not assign the
     boundary penalty to a score type; the batched total scorer includes it.
     """
@@ -574,20 +564,12 @@ def score_ligand_grid(
             )
 
     fractional_indices = grids.geometry.zero_based_index_from_cartesian(ligand_coords)
-    bounded_indices, _ = _bound_grid_indices(
-        coefficients[0], fractional_indices
-    )
-    atr = _interpolate_bounded_grid(
-        coefficients[0], bounded_indices, grid_indices
-    )
+    bounded_indices, _ = _bound_grid_indices(coefficients[0], fractional_indices)
+    atr = _interpolate_bounded_grid(coefficients[0], bounded_indices, grid_indices)
     rep = ixform_rep(
-        _interpolate_bounded_grid(
-            coefficients[1], bounded_indices, grid_indices
-        )
+        _interpolate_bounded_grid(coefficients[1], bounded_indices, grid_indices)
     )
-    sol = _interpolate_bounded_grid(
-        coefficients[2], bounded_indices, grid_indices
-    )
+    sol = _interpolate_bounded_grid(coefficients[2], bounded_indices, grid_indices)
     elec_coefficients = coefficients[3].unsqueeze(0)
     elec = ligand_charges * _interpolate_bounded_grid(
         elec_coefficients, bounded_indices, zero_grid_indices
@@ -601,7 +583,16 @@ def score_ligand_grid(
     weights = torch.stack(
         [score_function.get_weight(score_type) for score_type in GRID_SCORE_TYPES]
     ).to(device=ligand_coords.device, dtype=ligand_coords.dtype)
-    return torch.sum(unweighted_terms * weights, dim=0)
+    weighted_terms = torch.sum(unweighted_terms * weights, dim=0)
+    if live_hbond is None:
+        return weighted_terms
+    from .live_hbond import score_ligand_hbond
+
+    hbond = score_ligand_hbond(live_hbond, ligand_coords.unsqueeze(0))[0]
+    hbond_weight = score_function.get_weight(ScoreType.hbond).to(
+        device=ligand_coords.device, dtype=ligand_coords.dtype
+    )
+    return torch.cat((weighted_terms, (hbond * hbond_weight).unsqueeze(0)))
 
 
 def score_ligand_grid_batched(
@@ -611,12 +602,14 @@ def score_ligand_grid_batched(
     ligand_charges: torch.Tensor,
     *,
     score_function: "ScoreFunction | None" = None,
+    live_hbond: "LiveHBondData | None" = None,
 ) -> torch.Tensor:
     """Score many ligand poses against one shared receptor grid.
 
     ``ligand_coords`` has shape ``[n_poses, n_atoms, 3]``. Atom types and
     charges are shared by every pose. The result has shape ``[n_poses]`` and
-    contains the atom-summed, weighted total over atr, rep, sol, and elec.
+    contains the atom-summed, weighted grid total plus live hbond when its
+    shared receptor structure is supplied.
 
     It flattens all pose points before making one interpolation call per score
     channel; it neither copies nor rebuilds grid coefficients per pose. The
@@ -676,17 +669,11 @@ def score_ligand_grid_batched(
     bounded_indices, penalties = _bound_grid_indices(
         coefficients[0], fractional_indices
     )
-    atr = _interpolate_bounded_grid(
-        coefficients[0], bounded_indices, grid_indices
-    )
+    atr = _interpolate_bounded_grid(coefficients[0], bounded_indices, grid_indices)
     rep = ixform_rep(
-        _interpolate_bounded_grid(
-            coefficients[1], bounded_indices, grid_indices
-        )
+        _interpolate_bounded_grid(coefficients[1], bounded_indices, grid_indices)
     )
-    sol = _interpolate_bounded_grid(
-        coefficients[2], bounded_indices, grid_indices
-    )
+    sol = _interpolate_bounded_grid(coefficients[2], bounded_indices, grid_indices)
     elec = ligand_charges.repeat(n_poses) * _interpolate_bounded_grid(
         coefficients[3].unsqueeze(0), bounded_indices, zero_grid_indices
     )
@@ -701,12 +688,18 @@ def score_ligand_grid_batched(
     weights = torch.stack(
         [score_function.get_weight(score_type) for score_type in GRID_SCORE_TYPES]
     ).to(device=ligand_coords.device, dtype=ligand_coords.dtype)
-    weighted_per_pose_per_channel = torch.sum(
-        unweighted_terms * weights, dim=1
-    )
-    return torch.sum(weighted_per_pose_per_channel, dim=1) + torch.sum(
+    weighted_per_pose_per_channel = torch.sum(unweighted_terms * weights, dim=1)
+    totals = torch.sum(weighted_per_pose_per_channel, dim=1) + torch.sum(
         penalties.reshape(n_poses, n_atoms), dim=1
     )
+    if live_hbond is not None:
+        from .live_hbond import score_ligand_hbond
+
+        hbond_weight = score_function.get_weight(ScoreType.hbond).to(
+            device=ligand_coords.device, dtype=ligand_coords.dtype
+        )
+        totals = totals + hbond_weight * score_ligand_hbond(live_hbond, ligand_coords)
+    return totals
 
 
 def score_ligand_grid_batched_with_gradients(
@@ -716,15 +709,17 @@ def score_ligand_grid_batched_with_gradients(
     ligand_charges: torch.Tensor,
     *,
     score_function: "ScoreFunction | None" = None,
+    live_hbond: "LiveHBondData | None" = None,
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """Return per-pose grid energies and analytic Cartesian gradients.
 
     This is the graph-free counterpart of :func:`score_ligand_grid_batched`.
     It calls the compiled M2e value-and-spatial-derivative kernel directly and
-    applies the four-term weights, the inverse fa_rep transform derivative,
-    the electrostatic charge multiplier, the out-of-bounds derivative, and
-    the grid-index-to-Cartesian scale explicitly. No input is attached to a
-    torch autograd graph, even if the caller supplies a requires-grad tensor.
+    applies the four grid-term weights, the inverse fa_rep transform
+    derivative, the electrostatic charge multiplier, the out-of-bounds
+    derivative, the grid-index-to-Cartesian scale, and the optional live hbond
+    derivative explicitly. No input is attached to a torch autograd graph,
+    even if the caller supplies a requires-grad tensor.
     """
     if ligand_coords.ndim != 3 or ligand_coords.shape[2] != 3:
         raise ValueError("ligand_coords must have shape [n_poses, n_atoms, 3]")
@@ -787,9 +782,9 @@ def score_ligand_grid_batched_with_gradients(
 
     with torch.no_grad():
         flat_coords = ligand_coords.detach().reshape(n_poses * n_atoms, 3)
-        fractional_indices = (
-            grids.geometry.zero_based_index_from_cartesian(flat_coords).contiguous()
-        )
+        fractional_indices = grids.geometry.zero_based_index_from_cartesian(
+            flat_coords
+        ).contiguous()
         atr, datr, penalties, dpenalty = interpolate_with_derivatives(
             coefficients[0].contiguous(),
             fractional_indices,
@@ -829,12 +824,23 @@ def score_ligand_grid_batched_with_gradients(
 
         derivative_by_channel = torch.stack((datr, drep, dsol, delec), dim=1)
         index_gradients = (
-            torch.sum(derivative_by_channel * weights[None, :, None], dim=1)
-            + dpenalty
+            torch.sum(derivative_by_channel * weights[None, :, None], dim=1) + dpenalty
         )
-        coordinate_gradients = (
-            index_gradients / grids.geometry.voxel_spacing
-        ).reshape(n_poses, n_atoms, 3)
+        coordinate_gradients = (index_gradients / grids.geometry.voxel_spacing).reshape(
+            n_poses, n_atoms, 3
+        )
+
+        if live_hbond is not None:
+            from .live_hbond import score_ligand_hbond_with_gradients
+
+            hbond_energies, hbond_gradients = score_ligand_hbond_with_gradients(
+                live_hbond, ligand_coords
+            )
+            hbond_weight = score_function.get_weight(ScoreType.hbond).to(
+                device=ligand_coords.device, dtype=ligand_coords.dtype
+            )
+            energies = energies + hbond_weight * hbond_energies
+            coordinate_gradients = coordinate_gradients + hbond_weight * hbond_gradients
 
     return energies, coordinate_gradients
 
@@ -865,9 +871,7 @@ def compute_grid_geometry(
     if not bool(torch.isfinite(ligand_coords).all()):
         raise ValueError("ligand coordinates must be finite")
     ligand_com = torch.mean(ligand_coords, dim=0)
-    measured_radius = torch.linalg.vector_norm(
-        ligand_coords - ligand_com, dim=1
-    ).max()
+    measured_radius = torch.linalg.vector_norm(ligand_coords - ligand_com, dim=1).max()
     max_radius = max(float(measured_radius), 1.5 * bbox_padding)
     half_extent = max_radius + bbox_padding
     origin = ligand_com - half_extent
@@ -985,9 +989,7 @@ def _extract_ligand_and_receptor_atoms(
         else:
             receptor_coords.append(coords)
             receptor_atom_types.append(pbt.atom_types[block_type_index, :n_atoms])
-            receptor_charges.append(
-                pbt.elec_partial_charge[block_type_index, :n_atoms]
-            )
+            receptor_charges.append(pbt.elec_partial_charge[block_type_index, :n_atoms])
 
     if not ligand_coords:
         raise ValueError(f"no ligand block with name3={ligand_name3!r} in pose")
@@ -997,10 +999,7 @@ def _extract_ligand_and_receptor_atoms(
         torch.cat(ligand_coords).detach().to(dtype=torch.float64).contiguous(),
         torch.cat(receptor_coords).detach().to(dtype=torch.float64).contiguous(),
         torch.cat(receptor_atom_types).to(dtype=torch.int64).contiguous(),
-        torch.cat(receptor_charges)
-        .detach()
-        .to(dtype=torch.float64)
-        .contiguous(),
+        torch.cat(receptor_charges).detach().to(dtype=torch.float64).contiguous(),
     )
 
 
@@ -1052,8 +1051,8 @@ def build_grid(
     if not bool(torch.isfinite(receptor_charges).all()):
         raise ValueError("receptor partial charges must be finite")
     geometry = compute_grid_geometry(ligand_coords, voxel_spacing, bbox_padding)
-    ljlk_type_params, ljlk_global_params, elec_global_params = (
-        _pack_parameter_tensors(ljlk_term, elec_term)
+    ljlk_type_params, ljlk_global_params, elec_global_params = _pack_parameter_tensors(
+        ljlk_term, elec_term
     )
 
     from .potentials.compiled import build_grid as build_grid_op

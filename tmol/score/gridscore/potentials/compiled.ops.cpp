@@ -14,6 +14,7 @@
 #include <tmol/score/elec/potentials/potentials.hh>
 #include <tmol/score/common/device_operations.hh>
 #include <tmol/score/gridscore/potentials/grid_interp_pose_score.hh>
+#include <tmol/score/gridscore/potentials/live_hbond.hh>
 #include <tmol/score/ljlk/potentials/lj.hh>
 #include <tmol/score/ljlk/potentials/lk_isotropic.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
@@ -542,11 +543,159 @@ std::tuple<Tensor, Tensor, Tensor, Tensor> interpolate_with_derivatives(
       values, derivatives, penalties, penalty_derivatives);
 }
 
+std::tuple<Tensor, Tensor> live_hbond(
+    Tensor ligand_coords,
+    Tensor ligand_donor_atoms,
+    Tensor ligand_donor_types,
+    Tensor ligand_acceptor_atoms,
+    Tensor ligand_acceptor_types,
+    Tensor receptor_donors,
+    Tensor receptor_donor_types,
+    Tensor receptor_acceptors,
+    Tensor receptor_acceptor_types,
+    Tensor cell_origin,
+    Tensor cell_dims,
+    Tensor receptor_donor_cell_offsets,
+    Tensor receptor_donor_cell_indices,
+    Tensor receptor_acceptor_cell_offsets,
+    Tensor receptor_acceptor_cell_indices,
+    Tensor pair_params,
+    Tensor pair_polynomials,
+    Tensor global_params) {
+  auto const device = ligand_coords.device();
+  auto const dtype = ligand_coords.scalar_type();
+  auto check_real = [&](Tensor const& value, char const* name) {
+    TORCH_CHECK(value.device() == device, name, " must match coordinate device");
+    TORCH_CHECK(value.scalar_type() == dtype, name, " must match coordinate dtype");
+    TORCH_CHECK(value.is_contiguous(), name, " must be contiguous");
+  };
+  auto check_int = [&](Tensor const& value, char const* name) {
+    TORCH_CHECK(value.device() == device, name, " must match coordinate device");
+    TORCH_CHECK(value.scalar_type() == torch::kInt64, name, " must be int64");
+    TORCH_CHECK(value.is_contiguous(), name, " must be contiguous");
+  };
+  check_real(ligand_coords, "ligand_coords");
+  check_real(receptor_donors, "receptor_donors");
+  check_real(receptor_acceptors, "receptor_acceptors");
+  check_real(cell_origin, "cell_origin");
+  check_real(pair_params, "pair_params");
+  check_real(global_params, "global_params");
+  TORCH_CHECK(
+      pair_polynomials.device() == device
+          && pair_polynomials.scalar_type() == torch::kFloat64
+          && pair_polynomials.is_contiguous(),
+      "pair_polynomials must be contiguous float64 on the coordinate device");
+  check_int(ligand_donor_atoms, "ligand_donor_atoms");
+  check_int(ligand_donor_types, "ligand_donor_types");
+  check_int(ligand_acceptor_atoms, "ligand_acceptor_atoms");
+  check_int(ligand_acceptor_types, "ligand_acceptor_types");
+  check_int(receptor_donor_types, "receptor_donor_types");
+  check_int(receptor_acceptor_types, "receptor_acceptor_types");
+  check_int(cell_dims, "cell_dims");
+  check_int(receptor_donor_cell_offsets, "receptor_donor_cell_offsets");
+  check_int(receptor_donor_cell_indices, "receptor_donor_cell_indices");
+  check_int(receptor_acceptor_cell_offsets, "receptor_acceptor_cell_offsets");
+  check_int(receptor_acceptor_cell_indices, "receptor_acceptor_cell_indices");
+
+  TORCH_CHECK(
+      ligand_coords.dim() == 3 && ligand_coords.size(2) == 3
+          && ligand_coords.size(0) > 0 && ligand_coords.size(1) > 0,
+      "ligand_coords must have shape [n_poses, n_atoms, 3]");
+  TORCH_CHECK(
+      ligand_donor_atoms.dim() == 2 && ligand_donor_atoms.size(1) == 2
+          && ligand_donor_types.dim() == 1
+          && ligand_donor_types.size(0) == ligand_donor_atoms.size(0),
+      "ligand donor arrays have inconsistent shapes");
+  TORCH_CHECK(
+      ligand_acceptor_atoms.dim() == 2 && ligand_acceptor_atoms.size(1) == 3
+          && ligand_acceptor_types.dim() == 1
+          && ligand_acceptor_types.size(0) == ligand_acceptor_atoms.size(0),
+      "ligand acceptor arrays have inconsistent shapes");
+  TORCH_CHECK(
+      receptor_donors.dim() == 3 && receptor_donors.size(1) == 2
+          && receptor_donors.size(2) == 3 && receptor_donor_types.dim() == 1
+          && receptor_donor_types.size(0) == receptor_donors.size(0),
+      "receptor donor arrays have inconsistent shapes");
+  TORCH_CHECK(
+      receptor_acceptors.dim() == 3 && receptor_acceptors.size(1) == 3
+          && receptor_acceptors.size(2) == 3
+          && receptor_acceptor_types.dim() == 1
+          && receptor_acceptor_types.size(0) == receptor_acceptors.size(0),
+      "receptor acceptor arrays have inconsistent shapes");
+  TORCH_CHECK(
+      cell_origin.dim() == 1 && cell_origin.size(0) == 3
+          && cell_dims.dim() == 1 && cell_dims.size(0) == 3,
+      "cell origin and dimensions must have shape [3]");
+  TORCH_CHECK(
+      pair_params.dim() == 3 && pair_params.size(2) == 3
+          && pair_polynomials.dim() == 3 && pair_polynomials.size(2) == 48
+          && pair_polynomials.size(0) == pair_params.size(0)
+          && pair_polynomials.size(1) == pair_params.size(1),
+      "hbond pair parameter tables have inconsistent shapes");
+  TORCH_CHECK(
+      global_params.dim() == 2 && global_params.size(0) == 1
+          && global_params.size(1) == 6,
+      "global_params must have shape [1, 6]");
+  TORCH_CHECK(
+      ligand_coords.size(0) <= std::numeric_limits<int>::max()
+          && ligand_coords.size(1) <= std::numeric_limits<int>::max(),
+      "live hbond dimensions exceed kernel integer range");
+
+  int64_t const n_cells = receptor_donor_cell_offsets.size(0) - 1;
+  TORCH_CHECK(
+      receptor_donor_cell_offsets.dim() == 1 && n_cells > 0
+          && receptor_acceptor_cell_offsets.dim() == 1
+          && receptor_acceptor_cell_offsets.size(0) == n_cells + 1,
+      "receptor cell offset arrays must have matching positive lengths");
+  TORCH_CHECK(
+      receptor_donor_cell_indices.dim() == 1
+          && receptor_donor_cell_indices.size(0) == receptor_donors.size(0)
+          && receptor_acceptor_cell_indices.dim() == 1
+          && receptor_acceptor_cell_indices.size(0) == receptor_acceptors.size(0),
+      "cell index arrays must contain every receptor site once");
+
+  Tensor energies;
+  Tensor gradients;
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      ligand_coords.options(), "live_hbond", ([&] {
+        using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
+        auto result = LiveHBondDispatch<
+                          common::DeviceOperations,
+                          Dev,
+                          Real,
+                          int64_t>::forward(
+                          interpolation_context,
+                          TCAST(ligand_coords),
+                          TCAST(ligand_donor_atoms),
+                          TCAST(ligand_donor_types),
+                          TCAST(ligand_acceptor_atoms),
+                          TCAST(ligand_acceptor_types),
+                          TCAST(receptor_donors),
+                          TCAST(receptor_donor_types),
+                          TCAST(receptor_acceptors),
+                          TCAST(receptor_acceptor_types),
+                          TCAST(cell_origin),
+                          TCAST(cell_dims),
+                          TCAST(receptor_donor_cell_offsets),
+                          TCAST(receptor_donor_cell_indices),
+                          TCAST(receptor_acceptor_cell_offsets),
+                          TCAST(receptor_acceptor_cell_indices),
+                          TCAST(pair_params),
+                          TCAST(pair_polynomials),
+                          TCAST(global_params));
+        energies = std::get<0>(result).tensor;
+        gradients = std::get<1>(result).tensor;
+      }));
+  return std::make_tuple(energies, gradients);
+}
+
 TORCH_LIBRARY(tmol_gridscore, m) {
   m.def("build_grid", &build_grid);
   m.def("evaluate_pairs", &evaluate_pairs);
   m.def("interpolate", &interpolate);
   m.def("interpolate_with_derivatives", &interpolate_with_derivatives);
+  m.def("live_hbond", &live_hbond);
 }
 
 }  // namespace potentials

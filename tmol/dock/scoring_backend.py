@@ -31,7 +31,9 @@ from tmol.pose.pose_stack import PoseStack
 from tmol.score import beta2016_score_function
 from tmol.score.gridscore import (
     GridSet,
+    LiveHBondData,
     build_grid,
+    build_live_hbond_data,
     probe_atom_types_from_name3,
     score_ligand_grid_batched,
     score_ligand_grid_batched_with_gradients,
@@ -517,16 +519,16 @@ class _LightweightGridObjective:
 
 
 class GridBackend(ScoringBackend):
-    """Rigid-receptor four-term grid scoring and kinematic minimization.
+    """Rigid-receptor grid plus live-hbond scoring and minimization.
 
     One :class:`GridSet` is retained by the backend and shared by every pose.
     Device/dtype copies are cached once and do not scale with population size.
-    The grid contains only fa_atr, fa_rep, fa_sol, and fa_elec; M2d
-    lk_ball/hbond terms and ligand-internal continuous terms are intentionally
-    absent.
+    The grid contains fa_atr, fa_rep, fa_sol, and fa_elec. One additional
+    receptor hbond structure is shared by every ligand pose; ligand-internal
+    terms and lk_ball remain absent.
     """
 
-    minimizer_kind = "analytic-grid-f1f2-no-autograd"
+    minimizer_kind = "analytic-grid-live-hbond-f1f2-no-autograd"
 
     def __init__(
         self,
@@ -537,6 +539,7 @@ class GridBackend(ScoringBackend):
         param_db: Optional[ParameterDatabase] = None,
         *,
         kin_dtype: Optional[torch.dtype] = None,
+        live_hbond: Optional[LiveHBondData] = None,
     ) -> None:
         if not isinstance(grids, GridSet):
             raise TypeError("grids must be a GridSet")
@@ -567,7 +570,11 @@ class GridBackend(ScoringBackend):
         ).contiguous()
         self.param_db = param_db
         self.kin_dtype = kin_dtype
+        if live_hbond is not None and not isinstance(live_hbond, LiveHBondData):
+            raise TypeError("live_hbond must be LiveHBondData or None")
+        self.live_hbond = live_hbond
         self._grid_cache: dict[tuple[torch.device, torch.dtype], GridSet] = {}
+        self._hbond_cache: dict[tuple[torch.device, torch.dtype], LiveHBondData] = {}
         self._charge_cache: dict[
             tuple[torch.device, torch.dtype], torch.Tensor
         ] = {}
@@ -607,7 +614,7 @@ class GridBackend(ScoringBackend):
         bbox_padding: float = 4.0,
         kin_dtype: Optional[torch.dtype] = None,
     ) -> "GridBackend":
-        """Build one CPU receptor grid and construct a reusable backend."""
+        """Build one CPU receptor grid/hbond structure and a reusable backend."""
 
         if reference_pose_stack.n_poses != 1:
             raise ValueError("grid construction requires one reference pose")
@@ -637,6 +644,7 @@ class GridBackend(ScoringBackend):
             voxel_spacing=voxel_spacing,
             bbox_padding=bbox_padding,
         )
+        live_hbond = build_live_hbond_data(reference_pose_stack, ligand_block, param_db)
         # build_grid initializes packed ljlk/elec parameters, including charges.
         n_atoms = block_type.n_atoms
         ligand_atom_types = tuple(
@@ -652,6 +660,7 @@ class GridBackend(ScoringBackend):
             ligand_charges,
             param_db,
             kin_dtype=kin_dtype,
+            live_hbond=live_hbond,
         )
 
     def _score_function(self, device: torch.device) -> ScoreFunction:
@@ -677,6 +686,16 @@ class GridBackend(ScoringBackend):
                 device=device, dtype=dtype
             )
         return self._charge_cache[key]
+
+    def _hbond_for(
+        self, device: torch.device, dtype: torch.dtype
+    ) -> Optional[LiveHBondData]:
+        if self.live_hbond is None:
+            return None
+        key = (torch.device(device), dtype)
+        if key not in self._hbond_cache:
+            self._hbond_cache[key] = self.live_hbond.to(device, dtype)
+        return self._hbond_cache[key]
 
     def _ligand_atom_indices(
         self, pose_stack: PoseStack, ligand_block: int
@@ -728,6 +747,9 @@ class GridBackend(ScoringBackend):
                 ligand_coordinates.device, ligand_coordinates.dtype
             ),
             score_function=self._score_function(ligand_coordinates.device),
+            live_hbond=self._hbond_for(
+                ligand_coordinates.device, ligand_coordinates.dtype
+            ),
         )
 
     def _score_ligand_coordinates_with_gradients(
@@ -741,10 +763,13 @@ class GridBackend(ScoringBackend):
                 ligand_coordinates.device, ligand_coordinates.dtype
             ),
             score_function=self._score_function(ligand_coordinates.device),
+            live_hbond=self._hbond_for(
+                ligand_coordinates.device, ligand_coordinates.dtype
+            ),
         )
 
     def score(self, pose_stack: PoseStack) -> torch.Tensor:
-        """Return one four-term grid-interface energy per pose."""
+        """Return one grid-plus-live-hbond interface energy per pose."""
 
         atom_indices = self._ligand_atom_indices(
             pose_stack, self.ligand_block

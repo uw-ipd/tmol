@@ -338,6 +338,7 @@ set(_C_SOURCES
   # score/gridscore
   tmol/score/gridscore/potentials/compiled.ops.cpp
   tmol/score/gridscore/potentials/grid_interp_pose_score.cpu.cpp
+  tmol/score/gridscore/potentials/live_hbond.cpu.cpp
   # score/constraint
   tmol/score/constraint/potentials/compiled.ops.cpp
   tmol/score/constraint/potentials/constraint_score.cpu.cpp
@@ -374,6 +375,7 @@ if(TMOL_HAS_CUDA)
     tmol/score/backbone_torsion/potentials/backbone_torsion_pose_score.cuda.cu
     tmol/score/cartbonded/potentials/cartbonded_pose_score.cuda.cu
     tmol/score/gridscore/potentials/grid_interp_pose_score.cuda.cu
+    tmol/score/gridscore/potentials/live_hbond.cuda.cu
     tmol/score/constraint/potentials/constraint_score.cuda.cu
     tmol/score/disulfide/potentials/disulfide_pose_score.cuda.cu
     tmol/score/dunbrack/potentials/dunbrack_pose_score.cuda.cu
