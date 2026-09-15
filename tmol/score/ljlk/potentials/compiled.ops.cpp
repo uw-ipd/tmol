@@ -1063,6 +1063,41 @@ std::vector<Tensor> ljlk_rotamer_scores_op(
 }
 
 template <template <tmol::Device> class DispatchMethod>
+Tensor ljlk_elec_rotamer_dispatch_op(
+    Tensor rot_coords,
+    Tensor rot_coord_offset,
+    Tensor first_rot_block_type,
+    Tensor block_type_ind_for_rot,
+    Tensor n_rots_for_block,
+    Tensor rot_offset_for_block,
+    Tensor lockstep_group_for_block,
+    Tensor block_type_n_atoms,
+    double max_dis) {
+  Tensor dispatch_indices;
+  using Int = int32_t;
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      rot_coords.options(), "ljlk_elec_rotamer_dispatch", ([&] {
+        using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
+        dispatch_indices =
+            LJLKAndElecPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::
+                build_rotamer_dispatch(
+                    mgr,
+                    TCAST(rot_coords),
+                    TCAST(rot_coord_offset),
+                    TCAST(first_rot_block_type),
+                    TCAST(block_type_ind_for_rot),
+                    TCAST(n_rots_for_block),
+                    TCAST(rot_offset_for_block),
+                    TCAST(lockstep_group_for_block),
+                    TCAST(block_type_n_atoms),
+                    (Real)max_dis)
+                    .tensor;
+      }));
+  return dispatch_indices;
+}
+
+template <template <tmol::Device> class DispatchMethod>
 std::vector<Tensor> ljlk_elec_weighted_rotamer_scores_op(
     Tensor rot_coords,
     Tensor rot_coord_offset,
@@ -1128,7 +1163,9 @@ std::vector<Tensor> ljlk_elec_weighted_rotamer_scores_op(
   TORCH_CHECK(
       (shared_dispatch_indices.size(0) == 0 && output_gradients.numel() == 0)
           || (shared_dispatch_indices.size(0) == 3
-              && output_gradients.numel() == shared_dispatch_indices.size(1)),
+              && (output_gradients.numel() == 0
+                  || output_gradients.numel()
+                         == shared_dispatch_indices.size(1))),
       "fused rotamer output gradients require the matching forward dispatch");
 
   Tensor score, dscore_dcoords, dispatch_indices;
@@ -1218,6 +1255,9 @@ TORCH_LIBRARY(tmol_ljlk, m) {
       "weighted_fused_score_sum",
       &weighted_fused_score_sum_op<DeviceOperations>);
   m.def("ljlk_rotamer_scores", &ljlk_rotamer_scores_op<DeviceOperations>);
+  m.def(
+      "ljlk_elec_rotamer_dispatch",
+      &ljlk_elec_rotamer_dispatch_op<DeviceOperations>);
   m.def(
       "ljlk_elec_weighted_rotamer_scores",
       &ljlk_elec_weighted_rotamer_scores_op<DeviceOperations>);
