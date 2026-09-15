@@ -38,7 +38,14 @@ def independent_minimum_tables(counts, chunk_size, device):
         oneb_offsets,
         res_for_rot,
         chunk_size,
-        chunk_offset_offsets,
+        torch.cat(
+            (
+                torch.zeros(1, dtype=torch.int64),
+                (chunk_offset_offsets != -1).sum(dim=2).flatten().cumsum(dim=0),
+            )
+        ),
+        torch.nonzero(chunk_offset_offsets != -1, as_tuple=False)[:, 2].to(torch.int32),
+        chunk_offset_offsets[chunk_offset_offsets != -1],
         torch.tensor(chunk_offsets, dtype=torch.int64),
         energy1b,
         torch.tensor(energies, dtype=torch.float32),

@@ -45,8 +45,9 @@ auto AnnealerDispatch<D>::forward(
     TView<int, 2, D> oneb_offsets,             // n-poses x max-n-res
     TView<int, 1, D> res_for_rot,              // n-rots
     int32_t chunk_size,
-    TView<int64_t, 3, D>
-        chunk_offset_offsets,            // n-poses x max-n-res x max-n-res
+    TView<int64_t, 1, D> neighbor_row_offsets,
+    TView<int32_t, 1, D> neighbor_blocks,
+    TView<int64_t, 1, D> neighbor_chunk_offset_offsets,
     TView<int64_t, 1, D> chunk_offsets,  // n-chunks-on-interacting-res
     TView<float, 1, D> energy1b,
     TView<float, 1, D> energy2b)
@@ -85,15 +86,27 @@ auto AnnealerDispatch<D>::forward(
     int const pose_n_rotamers = n_rotamers_for_pose[pose];
     int const pose_rotamer_offset = rotamer_offset_for_pose[pose];
 
-    // Build per-residue neighbor list for this pose
+    // Materialize the CSR rows as host vectors without changing neighbor order.
     std::vector<std::vector<Neighbor>> neighbors(n_res);
     for (int b = 0; b < n_res; ++b) {
-      for (int b2 = 0; b2 < n_res; ++b2) {
-        if (b2 == b || chunk_offset_offsets[pose][b][b2] == -1) continue;
-        int64_t const reverse_offset = chunk_offset_offsets[pose][b2][b];
-        if (reverse_offset != -1) {
-          neighbors[b].push_back({b2, reverse_offset});
+      int const row = pose * max_n_res + b;
+      for (int64_t edge = neighbor_row_offsets[row];
+           edge < neighbor_row_offsets[row + 1];
+           ++edge) {
+        int const neighbor = neighbor_blocks[edge];
+        int const reverse_row = pose * max_n_res + neighbor;
+        int64_t lower = neighbor_row_offsets[reverse_row];
+        int64_t upper = neighbor_row_offsets[reverse_row + 1];
+        while (lower < upper) {
+          int64_t const middle = lower + (upper - lower) / 2;
+          if (neighbor_blocks[middle] < b) {
+            lower = middle + 1;
+          } else {
+            upper = middle;
+          }
         }
+        neighbors[b].push_back(
+            {neighbor, neighbor_chunk_offset_offsets[lower]});
       }
     }
     int const n_inner_iterations = n_inner_iterations_factor * pose_n_rotamers;
@@ -117,7 +130,11 @@ auto AnnealerDispatch<D>::forward(
           n_rotamers_for_res[pose],
           oneb_offsets[pose],
           chunk_size,
-          chunk_offset_offsets[pose],
+          pose,
+          max_n_res,
+          neighbor_row_offsets,
+          neighbor_blocks,
+          neighbor_chunk_offset_offsets,
           chunk_offsets,
           energy1b,
           energy2b,
@@ -137,7 +154,11 @@ auto AnnealerDispatch<D>::forward(
               n_rotamers_for_res[pose],
               oneb_offsets[pose],
               chunk_size,
-              chunk_offset_offsets[pose],
+              pose,
+              max_n_res,
+              neighbor_row_offsets,
+              neighbor_blocks,
+              neighbor_chunk_offset_offsets,
               chunk_offsets,
               energy1b,
               energy2b,
@@ -230,7 +251,11 @@ auto AnnealerDispatch<D>::forward(
                   n_rotamers_for_res[pose],
                   oneb_offsets[pose],
                   chunk_size,
-                  chunk_offset_offsets[pose],
+                  pose,
+                  max_n_res,
+                  neighbor_row_offsets,
+                  neighbor_blocks,
+                  neighbor_chunk_offset_offsets,
                   chunk_offsets,
                   energy1b,
                   energy2b,
@@ -260,7 +285,11 @@ auto AnnealerDispatch<D>::forward(
           n_rotamers_for_res[pose],
           oneb_offsets[pose],
           chunk_size,
-          chunk_offset_offsets[pose],
+          pose,
+          max_n_res,
+          neighbor_row_offsets,
+          neighbor_blocks,
+          neighbor_chunk_offset_offsets,
           chunk_offsets,
           energy1b,
           energy2b,
