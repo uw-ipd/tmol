@@ -254,8 +254,9 @@ def test_mutate_and_crossover_are_finite_and_ligand_only(cpu_ga_case):
     )
 
 
+@pytest.mark.parametrize("value_only_line_search", [False, True])
 def test_minimize_returns_gene_from_optimizer_masked_dofs(
-    cpu_ga_case, monkeypatch
+    cpu_ga_case, monkeypatch, value_only_line_search
 ):
     case = cpu_ga_case
     genes = case.layout.genes_from_pose_stack(case.population)
@@ -269,13 +270,19 @@ def test_minimize_returns_gene_from_optimizer_masked_dofs(
 
     def capture_noop_min(kf_network, **kwargs):
         captured["network"] = kf_network
+        assert (
+            kwargs["optimizer_kwargs"]["value_only_line_search"]
+            is value_only_line_search
+        )
         return kf_network.pose_stack_from_dofs()
 
     monkeypatch.setattr(
         scoring_backend_module, "run_min", capture_noop_min
     )
     result = ContinuousBackend(
-        case.param_db, kin_dtype=torch.float64
+        case.param_db,
+        kin_dtype=torch.float64,
+        value_only_line_search=value_only_line_search,
     ).minimize(
         proposed,
         case.docking_dofs,

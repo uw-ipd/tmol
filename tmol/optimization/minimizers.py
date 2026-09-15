@@ -110,10 +110,18 @@ def run_min(
         E.sum().backward()
         return E if segmented else E.sum()
 
+    def value_only_closure():
+        with torch.no_grad():
+            E = sfxn_module()
+        return E if segmented else E.sum()
+
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
     end_time1 = time.perf_counter()
-    optimizer.step(closure)
+    if getattr(optimizer, "value_only_line_search", False):
+        optimizer.step(closure, value_only_closure)
+    else:
+        optimizer.step(closure)
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
     end_time2 = time.perf_counter()

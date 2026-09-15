@@ -568,8 +568,9 @@ def test_ligand_only_grid_ga_matches_full_complex_cdk2_fp32(cpu_grid_case):
         )
 
 
+@pytest.mark.parametrize("value_only_line_search", [False, True])
 def test_grid_minimize_returns_direct_optimizer_gene(
-    grid_pose_case, monkeypatch
+    grid_pose_case, monkeypatch, value_only_line_search
 ):
     case = grid_pose_case
     genes = case.layout.genes_from_pose_stack(case.population)
@@ -581,11 +582,28 @@ def test_grid_minimize_returns_direct_optimizer_gene(
     proposed = case.layout.pose_stack_from_genes(genes)
     captured = {}
 
-    def capture_noop_step(optimizer, closure):
+    monkeypatch.setattr(
+        case.backend, "value_only_line_search", value_only_line_search
+    )
+
+    def capture_noop_step(optimizer, closure, value_only_closure=None):
         energies = closure()
         captured["parameter"] = optimizer._params[0]
         captured["energies"] = energies
         captured["gradient"] = optimizer._params[0].grad
+        assert optimizer.value_only_line_search is value_only_line_search
+        if value_only_line_search:
+            gradient = optimizer._params[0].grad.clone()
+            values = value_only_closure()
+            assert not values.requires_grad
+            torch.testing.assert_close(
+                values, energies, rtol=1.0e-7, atol=1.0e-7
+            )
+            torch.testing.assert_close(
+                optimizer._params[0].grad, gradient, rtol=0.0, atol=0.0
+            )
+        else:
+            assert value_only_closure is None
         return energies.sum()
 
     monkeypatch.setattr(
@@ -660,8 +678,14 @@ def test_lightweight_grid_dof_gradient_matches_finite_difference(grid_pose_case)
 
 
 @pytest.mark.slow
-def test_lightweight_grid_minimize_matches_autograd_reference(grid_pose_case):
+@pytest.mark.parametrize("value_only_line_search", [False, True])
+def test_lightweight_grid_minimize_matches_autograd_reference(
+    grid_pose_case, monkeypatch, value_only_line_search
+):
     case = grid_pose_case
+    monkeypatch.setattr(
+        case.backend, "value_only_line_search", value_only_line_search
+    )
     genes = case.layout.genes_from_pose_stack(case.population)
     genes[:, :6] += torch.tensor(
         [0.2, -0.1, 0.15, 0.08, -0.06, 0.04], dtype=genes.dtype
@@ -687,7 +711,11 @@ def test_lightweight_grid_minimize_matches_autograd_reference(grid_pose_case):
             reference_network.full_dofs[reference_network.dof_mask]
         )
     reference = run_min(
-        reference_network, optimizer_kwargs={"max_iter": 5}
+        reference_network,
+        optimizer_kwargs={
+            "max_iter": 5,
+            "value_only_line_search": value_only_line_search,
+        },
     )
     lightweight = case.backend.minimize(
         proposed,

@@ -226,6 +226,8 @@ class ContinuousBackend(ScoringBackend):
         param_db: Optional ligand-extended scoring parameter database.
         kin_dtype: Internal-coordinate dtype for minimization. By default the
             input coordinate dtype is used.
+        value_only_line_search: Evaluate Armijo trials without gradients and
+            refresh the gradient at the accepted point (default: False).
     """
 
     def __init__(
@@ -233,11 +235,15 @@ class ContinuousBackend(ScoringBackend):
         param_db: Optional[ParameterDatabase] = None,
         *,
         kin_dtype: Optional[torch.dtype] = None,
+        value_only_line_search: bool = False,
     ) -> None:
         if kin_dtype not in (None, torch.float32, torch.float64):
             raise ValueError("kin_dtype must be torch.float32 or torch.float64")
         self.param_db = param_db
         self.kin_dtype = kin_dtype
+        if not isinstance(value_only_line_search, bool):
+            raise TypeError("value_only_line_search must be bool")
+        self.value_only_line_search = value_only_line_search
         self._score_functions: dict[torch.device, ScoreFunction] = {}
 
     def _score_function(self, device: torch.device) -> ScoreFunction:
@@ -305,11 +311,12 @@ class ContinuousBackend(ScoringBackend):
                 kf_network.masked_dofs.copy_(
                     kf_network.full_dofs[kf_network.dof_mask]
                 )
+        optimizer_kwargs = {"value_only_line_search": self.value_only_line_search}
+        if maxiter is not None:
+            optimizer_kwargs["max_iter"] = maxiter
         minimized = run_min(
             kf_network,
-            optimizer_kwargs=(
-                None if maxiter is None else {"max_iter": maxiter}
-            ),
+            optimizer_kwargs=optimizer_kwargs,
         )
         minimized.coords = minimized.coords.detach()
         genes = _genes_from_kinforest_dofs(
@@ -583,6 +590,9 @@ class GridBackend(ScoringBackend):
     every ligand pose; ``lk_ball_grid=False`` retains the exact live LK-ball
     implementation. Ligand-intra search weights match Rosetta GridScorer's
     softened ``oneb_wtd_`` objective.
+
+    ``value_only_line_search=True`` evaluates Armijo trials with energy only
+    and refreshes analytic gradients at accepted points (default: False).
     """
 
     minimizer_kind = "analytic-grid-live-hbond-lkball-local-intra-autograd-f1f2"
@@ -605,6 +615,7 @@ class GridBackend(ScoringBackend):
         context_blocks: tuple[int, ...] = (),
         grid_atom_indices: Optional[torch.Tensor] = None,
         movable_n_atoms: Optional[int] = None,
+        value_only_line_search: bool = False,
     ) -> None:
         if not isinstance(grids, GridSet):
             raise TypeError("grids must be a GridSet")
@@ -622,6 +633,9 @@ class GridBackend(ScoringBackend):
             raise ValueError("kin_dtype must be torch.float32 or torch.float64")
         if not isinstance(lk_ball_grid, bool):
             raise TypeError("lk_ball_grid must be bool")
+        if not isinstance(value_only_line_search, bool):
+            raise TypeError("value_only_line_search must be bool")
+        self.value_only_line_search = value_only_line_search
         if not isinstance(include_ligand_intra, bool):
             raise TypeError("include_ligand_intra must be bool")
         unknown_types = sorted(
@@ -782,16 +796,20 @@ class GridBackend(ScoringBackend):
         lk_ball_grid: bool = True,
         include_ligand_intra: bool = True,
         sidechain_blocks: tuple[int, ...] | None = None,
+        value_only_line_search: bool = False,
     ) -> "GridBackend":
         """Build one CPU receptor grid/live-term structure and reusable backend.
 
         ``lk_ball_grid=True`` selects Rosetta's weighted gridded approximation;
         ``False`` retains the exact live LK-ball path. Ligand-intra scoring is
         enabled by default with Rosetta's softened search profile.
+        ``value_only_line_search`` opts into energy-only Armijo trials.
         """
 
         if reference_pose_stack.n_poses != 1:
             raise ValueError("grid construction requires one reference pose")
+        if not isinstance(value_only_line_search, bool):
+            raise TypeError("value_only_line_search must be bool")
         if reference_pose_stack.device.type != "cpu":
             raise ValueError("grid construction requires a CPU reference pose")
         if not isinstance(include_ligand_intra, bool):
@@ -951,6 +969,7 @@ class GridBackend(ScoringBackend):
             context_blocks=context_blocks,
             grid_atom_indices=grid_atom_indices,
             movable_n_atoms=movable_n_atoms,
+            value_only_line_search=value_only_line_search,
         )
 
     def _score_function(self, device: torch.device) -> ScoreFunction:
@@ -1209,6 +1228,7 @@ class GridBackend(ScoringBackend):
             # per-pose optimizer state independently of the iteration budget.
             history_size=min(10, max_iterations),
             segment_ids=objective.segment_ids,
+            value_only_line_search=self.value_only_line_search,
         )
 
         def closure():
@@ -1218,5 +1238,11 @@ class GridBackend(ScoringBackend):
             masked_dofs.grad.copy_(gradients)
             return energies
 
-        optimizer.step(closure)
+        def value_only_closure():
+            return objective.energy(masked_dofs)
+
+        if self.value_only_line_search:
+            optimizer.step(closure, value_only_closure)
+        else:
+            optimizer.step(closure)
         return objective.final_result(masked_dofs.detach())
