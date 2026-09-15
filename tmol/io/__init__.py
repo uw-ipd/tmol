@@ -39,6 +39,7 @@ from ._pose_stack_from_sequence import (  # noqa: F401
 )
 from ._extern import fetch_pdb  # noqa: F401
 from ._generic import to_cdjson, pack_cdjson  # noqa: F401
+from ._cif import atom_array_from_cif, component_chemistry_from_cif  # noqa: F401
 from ._pdb_parsing import (  # noqa: F401
     atom_record_dtype,
     parse_pdb,
