@@ -13,7 +13,7 @@ from tmol.database import (
     PatchedChemicalDatabase,
 )
 from tmol.pose import PackedBlockTypes
-from tmol.chemical import ResidueTypeSet
+from tmol.chemical import ResidueTypeSet, l_base_name
 from tmol.utility import resolve_device
 from typing import List, Mapping, Optional, Tuple, Union
 from ._canonical_form import CanonicalForm
@@ -50,13 +50,15 @@ class PolymerConnectionIndices:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class CysSpecialCaseIndices:
-    cys_co_aa_ind: int
+    # every equivalence class that forms disulfides, l and d alike
+    cys_co_aa_inds: Tuple[int, ...]
     sg_atom_for_co_cys: int
 
 
 @attr.s(slots=True, frozen=True)
 class HisSpecialCaseIndices:
-    his_co_aa_ind: int = attr.ib()
+    # every equivalence class of histidine, l and d alike
+    his_co_aa_inds: Tuple[int, ...] = attr.ib()
     his_ND1_in_co: int = attr.ib()
     his_NE2_in_co: int = attr.ib()
     his_HD1_in_co: int = attr.ib()
@@ -71,7 +73,7 @@ class HisSpecialCaseIndices:
     def _init_hash(self):
         return hash(
             (
-                self.his_co_aa_ind,
+                self.his_co_aa_inds,
                 self.his_ND1_in_co,
                 self.his_NE2_in_co,
                 self.his_HD1_in_co,
@@ -173,6 +175,7 @@ class CanonicalOrdering:
     max_n_canonical_atoms: int
     restype_io_equiv_classes: Tuple[str, ...]
     restypes_ordered_atom_names: Mapping[str, Tuple[str, ...]]
+    restypes_atom_elements: Mapping[str, Mapping[str, str]]
     restypes_atom_index_mapping: Mapping[str, Mapping[str, int]]
     restypes_mainchain_atoms: Mapping[str, Optional[Tuple[str, ...]]]
 
@@ -183,24 +186,51 @@ class CanonicalOrdering:
     # variant drops P, so P is mainchain but not required.
     restypes_required_mainchain_atoms: Mapping[str, Optional[Tuple[str, ...]]]
 
-    restypes_default_termini_mapping: Mapping[str, Tuple[str, str]]
+    restypes_default_termini_mapping: Mapping[str, Tuple[Optional[str], Optional[str]]]
+
+    # terminal variant names, in the order they are preferred
+    NTERM_VARIANTS = ("nterm", "na5prime")
+    CTERM_VARIANTS = ("cterm", "na3prime")
     down_termini_patches: Tuple[str, ...]
     up_termini_patches: Tuple[str, ...]
-    termini_patch_added_atoms: Mapping[str, Tuple[str, ...]]
+    # Added terminal atoms by (base chemistry, patch display name).
+    termini_patch_added_atoms: Mapping[Tuple[str, str], Tuple[str, ...]]
     cys_inds: CysSpecialCaseIndices
     his_inds: HisSpecialCaseIndices
     polymer_conn_inds: PolymerConnectionIndices
+
+    # input residue names read as another residue's, from the chemical database
+    name3_aliases: Mapping[str, str] = attr.ib(factory=dict)
 
     @property
     def n_restype_io_equiv_classes(self):
         return len(self.restype_io_equiv_classes)
 
+    def resolve_name3(self, name3: str) -> str:
+        """The residue name to read this input name as."""
+        return self.name3_aliases.get(name3, name3)
+
+    # placeholder names an input may use when a histidine's tautomer is not
+    # yet decided; every histidine class needs them, d as well as l
+    HIS_TAUTOMER_ATOMS = ["NN", "NH", "HN"]
+
     @classmethod
-    def extra_atoms(cls):
+    def extra_atoms(cls, chemdb: PatchedChemicalDatabase = None):
+        if chemdb is None:
+            return {"HIS": list(cls.HIS_TAUTOMER_ATOMS)}
         return {
-            "HIS": ["NN", "NH", "HN"]
-            # to do: "CYS": ["HGT"]
+            equiv: list(cls.HIS_TAUTOMER_ATOMS)
+            for equiv in cls._histidine_classes(chemdb)
         }
+
+    @classmethod
+    def _histidine_classes(cls, chemdb: PatchedChemicalDatabase):
+        """Equivalence classes whose residues are histidines, l and d alike."""
+        return ordered_set(
+            restype.io_equiv_class
+            for restype in chemdb.residues
+            if l_base_name(restype) in ("HIS", "HIS_D", "HIS_POS")
+        ).ordered_vals
 
     @classmethod
     def from_chemdb(cls, chemdb: PatchedChemicalDatabase):  # noqa: C901
@@ -211,11 +241,21 @@ class CanonicalOrdering:
             return ordered_set()
 
         restypes_all_atom_names = defaultdict(newset)
+        restypes_atom_elements = defaultdict(dict)
+        elements = {at.name: at.element for at in chemdb.atom_types}
         restypes_alt_atom_name_mapping = defaultdict(dict)
 
         for restype in chemdb.residues:
             for at in restype.atoms:
                 restypes_all_atom_names[restype.name3].add(at.name)
+                element = elements[at.atom_type]
+                previous = restypes_atom_elements[restype.name3].setdefault(
+                    at.name, element
+                )
+                if previous != element:
+                    raise ValueError(
+                        f"Conflicting elements for {restype.name3} atom {at.name}"
+                    )
             for at in restype.atom_aliases:
                 if at.alt_name in restypes_alt_atom_name_mapping[restype.name3]:
                     assert (
@@ -226,10 +266,11 @@ class CanonicalOrdering:
                     restypes_alt_atom_name_mapping[restype.name3][at.alt_name] = at.name
 
         # note that extra atoms are internal-use only and do not have "alternate" names
-        extra = cls.extra_atoms()
+        extra = cls.extra_atoms(chemdb)
         for rt_name3, atoms in extra.items():
             for at in atoms:
                 restypes_all_atom_names[rt_name3].add(at)
+                restypes_atom_elements[rt_name3][at] = "H" if at == "HN" else "N"
 
         restypes_ordered_atom_names = {
             name3: ats.ordered_vals for name3, ats in restypes_all_atom_names.items()
@@ -256,8 +297,8 @@ class CanonicalOrdering:
                 restypes_mainchain_atoms[equiv] = tuple(mc) if mc else None
         restypes_required_mainchain_atoms = cls._required_mainchain_atoms(chemdb)
 
-        default_termini_mapping = cls._temp_termini_mapping()
-        termini_patch_added_atoms = defaultdict(lambda: set([]))
+        default_termini_mapping = cls._default_termini_mapping(chemdb)
+        terminal_patches = defaultdict(list)
 
         # we need to know which variants create down- and up termini
         # so we can build the right termini types
@@ -267,17 +308,30 @@ class CanonicalOrdering:
             for rm in patch.remove_atoms:
                 if rm == "<{down}>":
                     down_termini_patches.add(patch.display_name)
-                    for atom in patch.add_atoms:
-                        termini_patch_added_atoms[patch.display_name].add(atom.name)
                 elif rm == "<{up}>":
                     up_termini_patches.add(patch.display_name)
-                    for atom in patch.add_atoms:
-                        termini_patch_added_atoms[patch.display_name].add(atom.name)
+            if "<{down}>" in patch.remove_atoms or "<{up}>" in patch.remove_atoms:
+                terminal_patches[patch.display_name].append(patch)
+        termini_patch_added_atoms = {
+            (base, display): tuple(
+                sorted(
+                    {
+                        atom.name
+                        for patch in patches
+                        if patch.applies_to.matches(rt)
+                        for atom in patch.add_atoms
+                    }
+                )
+            )
+            for base, rt in {r.base_name: r for r in chemdb.residues}.items()
+            for display, patches in terminal_patches.items()
+        }
 
         return cls(
             max_n_canonical_atoms=max_n_canonical_atoms,
             restype_io_equiv_classes=ordered_restypes,
             restypes_ordered_atom_names=restypes_ordered_atom_names,
+            restypes_atom_elements=dict(restypes_atom_elements),
             restypes_atom_index_mapping=restypes_atom_index_mapping,
             restypes_mainchain_atoms=restypes_mainchain_atoms,
             restypes_required_mainchain_atoms=restypes_required_mainchain_atoms,
@@ -285,86 +339,20 @@ class CanonicalOrdering:
             down_termini_patches=down_termini_patches,
             up_termini_patches=up_termini_patches,
             termini_patch_added_atoms=termini_patch_added_atoms,
+            name3_aliases={
+                alias.name3: alias.read_as
+                for alias in chemdb.name3_aliases
+                if alias.read_as in ordered_restypes
+            },
             cys_inds=cls._init_cys_special_case_indices(
-                ordered_restypes, restypes_ordered_atom_names
+                chemdb, ordered_restypes, restypes_ordered_atom_names
+            ),
+            his_inds=cls._init_his_special_case_indices(
+                chemdb, ordered_restypes, restypes_ordered_atom_names
             ),
             polymer_conn_inds=cls._init_polymer_connection_indices(
                 chemdb, ordered_restypes, restypes_atom_index_mapping
             ),
-            his_inds=cls._init_his_special_case_indices(
-                ordered_restypes, restypes_ordered_atom_names
-            ),
-        )
-
-    @classmethod
-    def _required_mainchain_atoms(cls, chemdb: PatchedChemicalDatabase):
-        """Mainchain atoms shared by every variant of each equivalence class.
-
-        An atom a terminus patch removes -- the DNA 5' phosphate -- is mainchain
-        but must not be treated as required of an input structure.
-        """
-        required = {}
-        for restype in chemdb.residues:
-            equiv = restype.io_equiv_class
-            mc = restype.properties.polymer.mainchain_atoms
-            mc = tuple(mc) if mc else None
-            if equiv not in required:
-                required[equiv] = mc
-            elif mc is None or required[equiv] is None:
-                required[equiv] = None
-            else:
-                required[equiv] = tuple(at for at in required[equiv] if at in mc)
-        return required
-
-    @classmethod
-    def _temp_termini_mapping(cls):
-        return {
-            "ALA": ("nterm", "cterm"),
-            "CYS": ("nterm", "cterm"),
-            "CYD": ("nterm", "cterm"),
-            "ASP": ("nterm", "cterm"),
-            "GLU": ("nterm", "cterm"),
-            "PHE": ("nterm", "cterm"),
-            "GLY": ("nterm", "cterm"),
-            "HIS": ("nterm", "cterm"),
-            "HIS_D": ("nterm", "cterm"),
-            "HIS_POS": ("nterm", "cterm"),
-            "ILE": ("nterm", "cterm"),
-            "LYS": ("nterm", "cterm"),
-            "LEU": ("nterm", "cterm"),
-            "MET": ("nterm", "cterm"),
-            "ASN": ("nterm", "cterm"),
-            "PRO": ("nterm", "cterm"),
-            "GLN": ("nterm", "cterm"),
-            "ARG": ("nterm", "cterm"),
-            "SER": ("nterm", "cterm"),
-            "THR": ("nterm", "cterm"),
-            "VAL": ("nterm", "cterm"),
-            "TRP": ("nterm", "cterm"),
-            "TYR": ("nterm", "cterm"),
-            "DA": ("na5prime", "na3prime"),
-            "DC": ("na5prime", "na3prime"),
-            "DG": ("na5prime", "na3prime"),
-            "DT": ("na5prime", "na3prime"),
-            "A": ("na5prime", "na3prime"),
-            "C": ("na5prime", "na3prime"),
-            "G": ("na5prime", "na3prime"),
-            "U": ("na5prime", "na3prime"),
-        }
-
-    @classmethod
-    def _init_cys_special_case_indices(
-        cls, restype_name3s, restypes_ordered_atom_names
-    ):
-        if "CYS" not in restype_name3s:
-            return CysSpecialCaseIndices(
-                cys_co_aa_ind=-1,
-                sg_atom_for_co_cys=-1,
-            )
-        cys_co_aa_ind = restype_name3s.index("CYS")
-        return CysSpecialCaseIndices(
-            cys_co_aa_ind=cys_co_aa_ind,
-            sg_atom_for_co_cys=restypes_ordered_atom_names["CYS"].index("SG"),
         )
 
     @classmethod
@@ -406,12 +394,96 @@ class CanonicalOrdering:
         )
 
     @classmethod
-    def _init_his_special_case_indices(
-        cls, restype_name3s, restypes_ordered_atom_names
+    def _required_mainchain_atoms(cls, chemdb: PatchedChemicalDatabase):
+        """Mainchain atoms shared by every variant of each equivalence class.
+
+        An atom a terminus patch removes -- the DNA 5' phosphate -- is mainchain
+        but must not be treated as required of an input structure.
+        """
+        required = {}
+        for restype in chemdb.residues:
+            equiv = restype.io_equiv_class
+            mc = restype.properties.polymer.mainchain_atoms
+            mc = tuple(mc) if mc else None
+            if equiv not in required:
+                required[equiv] = mc
+            elif mc is None or required[equiv] is None:
+                required[equiv] = None
+            else:
+                required[equiv] = tuple(at for at in required[equiv] if at in mc)
+        return required
+
+    @classmethod
+    def _default_termini_mapping(cls, chemdb: PatchedChemicalDatabase):
+        """The terminal variants each equivalence class takes.
+
+        Read from the variants the database actually carries, so a residue type
+        added to the database is covered without an edit here. An end with no
+        applicable terminal patch is represented by None.
+        """
+        suffixes = {}
+        for restype in chemdb.residues:
+            _, _, tail = restype.name.partition(":")
+            if tail:
+                suffixes.setdefault(restype.io_equiv_class, set()).update(
+                    tail.split(":")
+                )
+
+        mapping = {}
+        for equiv, present in suffixes.items():
+            nterm = next((v for v in cls.NTERM_VARIANTS if v in present), None)
+            cterm = next((v for v in cls.CTERM_VARIANTS if v in present), None)
+            if nterm is not None or cterm is not None:
+                mapping[equiv] = (nterm, cterm)
+        return mapping
+
+    @classmethod
+    def _init_cys_special_case_indices(
+        cls,
+        chemdb: PatchedChemicalDatabase,
+        restype_name3s,
+        restypes_ordered_atom_names,
     ):
-        if "HIS" not in restype_name3s:
+        """The equivalence classes of cysteine, l and d alike.
+
+        Taken from the residue types themselves rather than from the presence of
+        an SG atom, which any thiol-bearing noncanonical would also have.
+        """
+        cys_classes = [
+            name
+            for name in restype_name3s
+            if any(
+                l_base_name(restype) in ("CYS", "CYD")
+                for restype in chemdb.residues
+                if restype.io_equiv_class == name
+            )
+        ]
+        if not cys_classes:
+            return CysSpecialCaseIndices(cys_co_aa_inds=(), sg_atom_for_co_cys=-1)
+
+        sg_inds = {
+            restypes_ordered_atom_names[name].index("SG") for name in cys_classes
+        }
+        if len(sg_inds) != 1:
+            raise ValueError(
+                f"disulfide-forming classes {cys_classes} disagree on the position "
+                f"of SG in the canonical ordering: {sorted(sg_inds)}"
+            )
+        return CysSpecialCaseIndices(
+            cys_co_aa_inds=tuple(restype_name3s.index(n) for n in cys_classes),
+            sg_atom_for_co_cys=sg_inds.pop(),
+        )
+
+    @classmethod
+    def _init_his_special_case_indices(
+        cls, chemdb, restype_name3s, restypes_ordered_atom_names
+    ):
+        his_classes = [
+            name for name in cls._histidine_classes(chemdb) if name in restype_name3s
+        ]
+        if not his_classes:
             return HisSpecialCaseIndices(
-                his_co_aa_ind=-1,
+                his_co_aa_inds=(),
                 his_ND1_in_co=-1,
                 his_NE2_in_co=-1,
                 his_HD1_in_co=-1,
@@ -421,22 +493,31 @@ class CanonicalOrdering:
                 his_NN_in_co=-1,
                 his_CG_in_co=-1,
             )
-        his_co_aa_ind = restype_name3s.index("HIS")
+        else:
 
-        def his_at_ind(atname):
-            return restypes_ordered_atom_names["HIS"].index(atname)
+            def his_at_ind(atname):
+                inds = {
+                    restypes_ordered_atom_names[name].index(atname)
+                    for name in his_classes
+                }
+                if len(inds) != 1:
+                    raise ValueError(
+                        f"histidine classes {his_classes} disagree on the position "
+                        f"of {atname} in the canonical ordering: {sorted(inds)}"
+                    )
+                return inds.pop()
 
-        return HisSpecialCaseIndices(
-            his_co_aa_ind=his_co_aa_ind,
-            his_ND1_in_co=his_at_ind("ND1"),
-            his_NE2_in_co=his_at_ind("NE2"),
-            his_HD1_in_co=his_at_ind("HD1"),
-            his_HE2_in_co=his_at_ind("HE2"),
-            his_HN_in_co=his_at_ind("HN"),
-            his_NH_in_co=his_at_ind("NH"),
-            his_NN_in_co=his_at_ind("NN"),
-            his_CG_in_co=his_at_ind("CG"),
-        )
+            return HisSpecialCaseIndices(
+                his_co_aa_inds=tuple(restype_name3s.index(n) for n in his_classes),
+                his_ND1_in_co=his_at_ind("ND1"),
+                his_NE2_in_co=his_at_ind("NE2"),
+                his_HD1_in_co=his_at_ind("HD1"),
+                his_HE2_in_co=his_at_ind("HE2"),
+                his_HN_in_co=his_at_ind("HN"),
+                his_NH_in_co=his_at_ind("NH"),
+                his_NN_in_co=his_at_ind("NN"),
+                his_CG_in_co=his_at_ind("CG"),
+            )
 
     def create_src_2_tmol_mappings(
         self, src_aa_name3s, src_atom_names_for_name3s, device
@@ -614,6 +695,7 @@ def canonical_form_from_atom_records(  # noqa: C901
     for row in atom_records.itertuples(index=False):
         resid = (row.chain, row.resi, row.insert)
         res_ind = uniq_res_ind[resid]
+        resn = canonical_ordering.resolve_name3(row.resn)
         if row.chaini not in chains_seen:
             chains_seen[row.chaini] = chain_id_counter
             chain_id_to_label[chain_id_counter] = row.chain
@@ -621,7 +703,7 @@ def canonical_form_from_atom_records(  # noqa: C901
         chain_id[0, res_ind] = chains_seen[row.chaini]
         if res_types[0, res_ind] == -2:
             try:
-                aa_ind = canonical_ordering.restype_io_equiv_classes.index(row.resn)
+                aa_ind = canonical_ordering.restype_io_equiv_classes.index(resn)
                 res_types[0, res_ind] = aa_ind
                 chain_labels[0, res_ind] = chain_id_to_label[chain_id[0, res_ind]]
                 res_labels[0, res_ind] = uniq_res_list[res_ind][1]
@@ -632,7 +714,7 @@ def canonical_form_from_atom_records(  # noqa: C901
                 res_labels[0, res_ind] = ""
                 res_ins_codes[0, res_ind] = ""
         if res_types[0, res_ind] >= 0:
-            res_at_mapping = canonical_ordering.restypes_atom_index_mapping[row.resn]
+            res_at_mapping = canonical_ordering.restypes_atom_index_mapping[resn]
 
             atname = row.atomn.strip()
             try:

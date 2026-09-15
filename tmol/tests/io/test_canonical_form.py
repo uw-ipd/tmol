@@ -25,8 +25,8 @@ def test_create_canonical_ordering_smoke(default_database):
     assert "nterm" in co.down_termini_patches
     assert "cterm" in co.up_termini_patches
     for x in ["H1", "H2", "H3"]:
-        assert x in co.termini_patch_added_atoms["nterm"]
-    assert "OXT" in co.termini_patch_added_atoms["cterm"]
+        assert x in co.termini_patch_added_atoms["ALA", "nterm"]
+    assert "OXT" in co.termini_patch_added_atoms["ALA", "cterm"]
     assert co.max_n_canonical_atoms >= 28
 
 

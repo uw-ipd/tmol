@@ -444,13 +444,14 @@ def test_canonical_form_from_pertuzumab_and_antigen_pose(
 def test_round_trip_deconstruction(ubq_pdb, torch_device):
     co = default_canonical_ordering()
     canonical_form = canonical_form_from_pdb(co, ubq_pdb, torch_device)
+    canonical_form.residue_insertion_codes[0, 0] = "A"
     pbt = default_packed_block_types(torch_device)
     pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
 
     restored_canonical_form = canonical_form_from_pose_stack(co, pose_stack)
 
     pose_stack_reconstructed = pose_stack_from_canonical_form(
-        co, pbt, *restored_canonical_form
+        co, pbt, **restored_canonical_form.as_dict()
     )
 
     numpy.testing.assert_equal(
@@ -459,4 +460,8 @@ def test_round_trip_deconstruction(ubq_pdb, torch_device):
     numpy.testing.assert_equal(
         pose_stack.block_type_ind.cpu().numpy(),
         pose_stack_reconstructed.block_type_ind.cpu().numpy(),
+    )
+    numpy.testing.assert_equal(
+        pose_stack_reconstructed.pdb_info.residue_insertion_codes,
+        canonical_form.residue_insertion_codes,
     )
