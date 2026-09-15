@@ -357,6 +357,132 @@ def test_construct_rotamer_set_and_sparse_energies_table_from_ig(ubq_ig, torch_d
     assert energies2.device == torch_device
 
 
+def dense_block_pair_offsets(
+    n_poses,
+    max_n_res,
+    neighbor_row_offsets,
+    neighbor_blocks,
+    neighbor_chunk_offset_offsets,
+):
+    dense = torch.full(
+        (n_poses, max_n_res, max_n_res),
+        -1,
+        dtype=torch.int64,
+        device=neighbor_row_offsets.device,
+    )
+    for pose in range(n_poses):
+        for block in range(max_n_res):
+            row = pose * max_n_res + block
+            begin = neighbor_row_offsets[row].item()
+            end = neighbor_row_offsets[row + 1].item()
+            dense[pose, block, neighbor_blocks[begin:end].long()] = (
+                neighbor_chunk_offset_offsets[begin:end]
+            )
+    return dense
+
+
+@pytest.mark.parametrize(
+    "interacting_blocks",
+    [
+        [(0, 1), (2, 3)],
+        [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)],
+    ],
+    ids=["sparse", "dense"],
+)
+def test_csr_interaction_graph_exact_reference(torch_device, interacting_blocks):
+    """Match a direct dense reference for sparse and complete topologies."""
+    n_blocks = 4
+    rots_per_block = 2
+    n_rots = n_blocks * rots_per_block
+    sparse_indices = []
+    sparse_values = []
+    expected = {}
+    for block1, block2 in interacting_blocks:
+        for local1 in range(rots_per_block):
+            for local2 in range(rots_per_block):
+                rot1 = block1 * rots_per_block + local1
+                rot2 = block2 * rots_per_block + local2
+                value = float(100 * block1 + 10 * block2 + 2 * local1 + local2)
+                sparse_indices.append((0, rot1, rot2))
+                sparse_values.append(value)
+                expected[(block1, block2, local1, local2)] = value
+
+    result = build_interaction_graph(
+        False,
+        2,
+        1,
+        torch.tensor([n_rots], dtype=torch.int64, device=torch_device),
+        torch.tensor([0], dtype=torch.int64, device=torch_device),
+        torch.full(
+            (1, n_blocks),
+            rots_per_block,
+            dtype=torch.int64,
+            device=torch_device,
+        ),
+        torch.arange(
+            0,
+            n_rots,
+            rots_per_block,
+            dtype=torch.int64,
+            device=torch_device,
+        ).unsqueeze(0),
+        torch.zeros(n_rots, dtype=torch.int64, device=torch_device),
+        torch.zeros(n_rots, dtype=torch.int64, device=torch_device),
+        torch.arange(
+            n_blocks, dtype=torch.int32, device=torch_device
+        ).repeat_interleave(rots_per_block),
+        torch.tensor(sparse_indices, dtype=torch.int32, device=torch_device).transpose(
+            0, 1
+        ),
+        torch.tensor(sparse_values, dtype=torch.float32, device=torch_device),
+        False,
+    )
+    (
+        _,
+        _,
+        _,
+        _,
+        n_rots_for_block,
+        rot_offsets,
+        _,
+        _,
+        _,
+        _,
+        _,
+        row_offsets,
+        neighbors,
+        pair_offsets,
+        chunk_offsets,
+        energy2b,
+    ) = result
+
+    expected_neighbors = [
+        neighbor
+        for block in range(n_blocks)
+        for neighbor in range(n_blocks)
+        if (min(block, neighbor), max(block, neighbor)) in interacting_blocks
+        and block != neighbor
+    ]
+    assert neighbors.cpu().tolist() == expected_neighbors
+
+    dense_offsets = dense_block_pair_offsets(
+        1, n_blocks, row_offsets, neighbors, pair_offsets
+    )
+    for (block1, block2, local1, local2), expected_value in expected.items():
+        for first, second, first_local, second_local in (
+            (block1, block2, local1, local2),
+            (block2, block1, local2, local1),
+        ):
+            pair_offset = dense_offsets[0, first, second]
+            chunk_offset = chunk_offsets[pair_offset]
+            second_chunk_size = n_rots_for_block[0, second]
+            observed = energy2b[
+                chunk_offset + first_local * second_chunk_size + second_local
+            ]
+            assert observed.item() == expected_value
+            assert rot_offsets[0, first].item() == first * rots_per_block
+
+
 def test_build_interaction_graph(ubq_ig, torch_device):
     # print("test_build_interaction_graph", torch_device)
     pdb_fname = "tmol/tests/data/pdb/1ubq.pdb"
@@ -383,7 +509,9 @@ def test_build_interaction_graph(ubq_ig, torch_device):
         _bc_rot_to_orig_rot,
         bg_bg_energies,
         energy1b,
-        chunk_pair_offset_for_block_pair,
+        neighbor_row_offsets,
+        neighbor_blocks,
+        neighbor_chunk_offset_offsets,
         chunk_pair_offset,
         energy2b,
     ) = build_interaction_graph(
@@ -400,6 +528,13 @@ def test_build_interaction_graph(ubq_ig, torch_device):
         sparse_indices,
         energies,
         False,
+    )
+    chunk_pair_offset_for_block_pair = dense_block_pair_offsets(
+        1,
+        _n_bc_rots_for_molten_block.shape[1],
+        neighbor_row_offsets,
+        neighbor_blocks,
+        neighbor_chunk_offset_offsets,
     )
     orig_n_rotamers = rotamer_set.pose_for_rot.shape[0]
     orig_rot_to_bc_rot = torch.full(
@@ -532,7 +667,9 @@ def test_build_multi_pose_interaction_graph(ubq_ig, torch_device):
         _bc_rot_to_orig_rot,
         bg_bg_energies,
         energy1b,
-        chunk_pair_offset_for_block_pair,
+        neighbor_row_offsets,
+        neighbor_blocks,
+        neighbor_chunk_offset_offsets,
         chunk_pair_offset,
         energy2b,
     ) = build_interaction_graph(
@@ -549,6 +686,13 @@ def test_build_multi_pose_interaction_graph(ubq_ig, torch_device):
         sparse_indices,
         energies,
         False,
+    )
+    chunk_pair_offset_for_block_pair = dense_block_pair_offsets(
+        2,
+        _n_bc_rots_for_molten_block.shape[1],
+        neighbor_row_offsets,
+        neighbor_blocks,
+        neighbor_chunk_offset_offsets,
     )
     orig_n_rotamers = rotamer_set.pose_for_rot.shape[0]
     orig_rot_to_bc_rot = torch.full(
@@ -681,7 +825,9 @@ def test_run_single_pose_simA(ubq_ig, torch_device):
         bc_rot_to_orig_rot,
         bg_bg_energies,
         energy1b,
-        chunk_pair_offset_for_block_pair,
+        neighbor_row_offsets,
+        neighbor_blocks,
+        neighbor_chunk_offset_offsets,
         chunk_pair_offset,
         energy2b,
     ) = build_interaction_graph(
@@ -712,7 +858,9 @@ def test_run_single_pose_simA(ubq_ig, torch_device):
         oneb_offsets=bc_rot_offset_for_molten_block,
         res_for_rot=molten_block_ind_for_bc_rot,
         chunk_size=chunk_size,
-        chunk_offset_offsets=chunk_pair_offset_for_block_pair,
+        neighbor_row_offsets=neighbor_row_offsets,
+        neighbor_blocks=neighbor_blocks,
+        neighbor_chunk_offset_offsets=neighbor_chunk_offset_offsets,
         chunk_offsets=chunk_pair_offset,
         energy1b=energy1b,
         energy2b=energy2b,
@@ -754,7 +902,9 @@ def test_run_two_poses_simA(ubq_ig, torch_device):
         bc_rot_to_orig_rot,
         bg_bg_energies,
         energy1b,
-        chunk_pair_offset_for_block_pair,
+        neighbor_row_offsets,
+        neighbor_blocks,
+        neighbor_chunk_offset_offsets,
         chunk_pair_offset,
         energy2b,
     ) = build_interaction_graph(
@@ -787,7 +937,9 @@ def test_run_two_poses_simA(ubq_ig, torch_device):
         oneb_offsets=bc_rot_offset_for_molten_block,
         res_for_rot=molten_block_ind_for_bc_rot,
         chunk_size=chunk_size,
-        chunk_offset_offsets=chunk_pair_offset_for_block_pair,
+        neighbor_row_offsets=neighbor_row_offsets,
+        neighbor_blocks=neighbor_blocks,
+        neighbor_chunk_offset_offsets=neighbor_chunk_offset_offsets,
         chunk_offsets=chunk_pair_offset,
         energy1b=energy1b,
         energy2b=energy2b,

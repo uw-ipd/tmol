@@ -20,7 +20,10 @@ class PackerEnergyTables(TensorGroup, ConvertAttrs):
     oneb_offsets: Tensor[torch.int32][:, :]  # [n-poses x n-res]
     res_for_rot: Tensor[torch.int32][:]  # [n-rotamers-total]
     chunk_size: int
-    chunk_offset_offsets: Tensor[torch.int64][:, :, :]  # [n-poses x n-res x n-res]
+    neighbor_row_offsets: Tensor[torch.int64][:]  # CSR rows, [n-poses*n-res + 1]
+    neighbor_blocks: Tensor[torch.int32][:]  # CSR columns, [n-directed-edges]
+    # Chunk-table offset per directed edge.
+    neighbor_chunk_offset_offsets: Tensor[torch.int64][:]
     chunk_offsets: Tensor[torch.int64][:]  # [n-interacting-chunk-pairs]
     energy1b: Tensor[torch.float32][:]  # [nrotamers_total]
     energy2b: Tensor[torch.float32][:]  # [ntwob_energies]

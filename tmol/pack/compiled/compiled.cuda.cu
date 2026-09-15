@@ -57,14 +57,12 @@ struct InteractionGraph {
   TView<Int, 2, D> oneb_offsets_;
   TView<Int, 1, D> res_for_rot_;
   int32_t chunk_size_;
-  TView<int64_t, 3, D> chunk_offset_offsets_;
+  TView<int64_t, 1, D> neighbor_row_offsets_;
+  TView<int32_t, 1, D> neighbor_blocks_;
+  TView<int64_t, 1, D> neighbor_chunk_offset_offsets_;
   TView<int64_t, 1, D> chunk_offsets_;
   TView<Real, 1, D> energy1b_;
   TView<Real, 1, D> energy2b_;
-  TView<Int, 2, D> n_neighbors_;    // [n_poses, max_n_res]
-  TView<Int, 3, D> neighbor_list_;  // [n_poses, max_n_res, max_n_res]
-  TView<int64_t, 3, D>
-      neighbor_chunk_offset_offsets_;  // [n_poses, max_n_res, max_n_res]
 
   int n_poses_cpu() const { return pose_n_res_.size(0); }
   int max_n_res_cpu() const { return n_rotamers_for_res_.size(1); }
@@ -77,12 +75,31 @@ struct InteractionGraph {
   int n_rotamers(int pose) const { return pose_n_rotamers_[pose]; }
 
   MGPU_DEVICE
+  int max_n_res() const { return n_rotamers_for_res_.size(1); }
+
+  MGPU_DEVICE
   TView<Int, 2, D> const& n_rotamers_for_res() const {
     return n_rotamers_for_res_;
   }
 
   MGPU_DEVICE
   TView<Int, 1, D> const& res_for_rot() const { return res_for_rot_; }
+
+  MGPU_DEVICE int64_t
+  find_neighbor_edge(int pose, int block, int neighbor) const {
+    int const row = pose * max_n_res() + block;
+    int64_t lower = neighbor_row_offsets_[row];
+    int64_t upper = neighbor_row_offsets_[row + 1];
+    while (lower < upper) {
+      int64_t const middle = lower + (upper - lower) / 2;
+      if (neighbor_blocks_[middle] < neighbor) {
+        lower = middle + 1;
+      } else {
+        upper = middle;
+      }
+    }
+    return lower;
+  }
 
   template <int ChunkSize, unsigned int n_threads>
   MGPU_DEVICE Real total_energy_for_assignment_parallel(
@@ -105,13 +122,17 @@ struct InteractionGraph {
       int const irot_chunk = irot_local / chunk_size;
       int const irot_in_chunk = irot_local - chunk_size * irot_chunk;
 
-      for (int j = i + 1; j < n_res; ++j) {
-        int const jrot_local = rotamer_assignment[j];
-        int64_t const ij_chunk_offset_offset =
-            chunk_offset_offsets_[pose][i][j];
-        if (ij_chunk_offset_offset == -1) {
+      int const row = pose * max_n_res() + i;
+      for (int64_t edge = neighbor_row_offsets_[row];
+           edge < neighbor_row_offsets_[row + 1];
+           ++edge) {
+        int const j = neighbor_blocks_[edge];
+        if (j <= i) {
           continue;
         }
+        int const jrot_local = rotamer_assignment[j];
+        int64_t const ij_chunk_offset_offset =
+            neighbor_chunk_offset_offsets_[edge];
         int const jrot_chunk = jrot_local / chunk_size;
         int const jrot_in_chunk = jrot_local - chunk_size * jrot_chunk;
 
@@ -370,16 +391,20 @@ MGPU_DEVICE float warp_wide_sim_annealing(
               ? ig.energy1b_[global_new_rot] - ig.energy1b_[global_prev_rot]
               : 0.0f;
 
-      int const n_nb = ig.n_neighbors_[pose][ran_res];
+      int const row = pose * ig.max_n_res() + ran_res;
+      int64_t const row_begin = ig.neighbor_row_offsets_[row];
+      int64_t const row_end = ig.neighbor_row_offsets_[row + 1];
 
-      for (int nb_idx = g.thread_rank(); nb_idx < n_nb; nb_idx += 32) {
-        int const k = ig.neighbor_list_[pose][ran_res][nb_idx];
+      for (int64_t edge = row_begin + g.thread_rank(); edge < row_end;
+           edge += 32) {
+        int const k = ig.neighbor_blocks_[edge];
         int const local_k_rot = current_rotamer_assignment[k];
         int const k_chunk = local_k_rot / chunk_size;
         int const k_in_chunk = local_k_rot - k_chunk * chunk_size;
 
+        int64_t const reverse_edge = ig.find_neighbor_edge(pose, k, ran_res);
         int64_t const k_offset_offset =
-            ig.neighbor_chunk_offset_offsets_[pose][ran_res][nb_idx];
+            ig.neighbor_chunk_offset_offsets_[reverse_edge];
 
         int64_t const k_new_chunk_offset =
             ig.chunk_offsets_
@@ -992,53 +1017,15 @@ auto AnnealerDispatch<D>::forward(
     TView<int, 2, D> oneb_offsets,
     TView<int, 1, D> res_for_rot,
     int32_t chunk_size,
-    TView<int64_t, 3, D> chunk_offset_offsets,
+    TView<int64_t, 1, D> neighbor_row_offsets,
+    TView<int32_t, 1, D> neighbor_blocks,
+    TView<int64_t, 1, D> neighbor_chunk_offset_offsets,
     TView<int64_t, 1, D> chunk_offsets,
     TView<float, 1, D> energy1b,
     TView<float, 1, D> energy2b)
     -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D>> {
   int const n_poses_cpu = pose_n_res.size(0);
-  int const max_n_res_cpu = chunk_offset_offsets.size(1);
-
-  // Build fixed-stride neighbor rows from chunk_offset_offsets.
-  // chunk_offset_offsets[pose][b1][b2] == -1 means no interaction.
-  // It is already symmetric, so we iterate each row to find neighbors.
-
-  auto n_neighbors_t = TPack<int, 2, D>::empty({n_poses_cpu, max_n_res_cpu});
-  auto n_neighbors = n_neighbors_t.view;
-  auto neighbor_list_t =
-      TPack<int, 3, D>::empty({n_poses_cpu, max_n_res_cpu, max_n_res_cpu});
-  auto neighbor_list = neighbor_list_t.view;
-  auto neighbor_chunk_offset_offsets_t =
-      TPack<int64_t, 3, D>::empty({n_poses_cpu, max_n_res_cpu, max_n_res_cpu});
-  auto neighbor_chunk_offset_offsets = neighbor_chunk_offset_offsets_t.view;
-  std::shared_ptr<mgpu::standard_context_t> context = current_context(mgr);
-
-  {
-    int const count = n_poses_cpu * max_n_res_cpu;
-    mgpu::transform<128, 1>(
-        [=] MGPU_DEVICE(int idx) {
-          if (idx >= count) return;
-          int pose = idx / max_n_res_cpu;
-          int b = idx % max_n_res_cpu;
-          int n = pose_n_res[pose];
-          if (b >= n) {
-            return;
-          }
-          int cnt = 0;
-          for (int b2 = 0; b2 < n; ++b2) {
-            if (b2 != b && chunk_offset_offsets[pose][b][b2] != -1) {
-              neighbor_list[pose][b][cnt] = b2;
-              neighbor_chunk_offset_offsets[pose][b][cnt] =
-                  chunk_offset_offsets[pose][b2][b];
-              ++cnt;
-            }
-          }
-          n_neighbors[pose][b] = cnt;
-        },
-        count,
-        *context);
-  }
+  int const max_n_res_cpu = n_rotamers_for_res.size(1);
 
   InteractionGraph<D, int, float> ig(
       {max_n_rotamers_per_pose,
@@ -1049,13 +1036,12 @@ auto AnnealerDispatch<D>::forward(
        oneb_offsets,
        res_for_rot,
        chunk_size,
-       chunk_offset_offsets,
+       neighbor_row_offsets,
+       neighbor_blocks,
+       neighbor_chunk_offset_offsets,
        chunk_offsets,
        energy1b,
-       energy2b,
-       n_neighbors,
-       neighbor_list,
-       neighbor_chunk_offset_offsets});
+       energy2b});
 
   auto gen = at::get_generator_or_default<at::CUDAGeneratorImpl>(
       std::nullopt, at::cuda::detail::getDefaultCUDAGenerator());

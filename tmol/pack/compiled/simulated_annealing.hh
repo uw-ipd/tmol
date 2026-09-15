@@ -35,8 +35,11 @@ inline
         TensorAccessor<int, 1, D> n_rotamers_for_res,  // max-n-res
         TensorAccessor<int, 1, D> oneb_offsets,        // max-n-res
         int32_t const chunk_size,
-        TensorAccessor<int64_t, 2, D>
-            chunk_offset_offsets,            // max-n-res x max-n-res
+        int const pose,
+        int const max_n_res,
+        TView<int64_t, 1, D> neighbor_row_offsets,
+        TView<int32_t, 1, D> neighbor_blocks,
+        TView<int64_t, 1, D> neighbor_chunk_offset_offsets,
         TView<int64_t, 1, D> chunk_offsets,  // n-interacting-chunk-pairs
         TView<float, 1, D> energy1b,         // n-rotamers-total
         TView<float, 1, D> energy2b,         // n-interacting-rotamer-pairs
@@ -71,20 +74,22 @@ inline
     int const irot_in_chunk = irot_local - chunk_size * irot_chunk;
 
     totalE += energy1b[irot_global];
-    for (int j = i + 1; j < n_res; ++j) {
+    int const row = pose * max_n_res + i;
+    for (int64_t edge = neighbor_row_offsets[row];
+         edge < neighbor_row_offsets[row + 1];
+         ++edge) {
+      int const j = neighbor_blocks[edge];
+      if (j <= i) {
+        continue;
+      }
       int const jrot_local = rotamer_assignment[j];
       if (jrot_local == -1) {
         // no need to zero out current_pair_energies here; that will occur on
         // the i == this-j iteration
         continue;
       }
-      int64_t const ij_chunk_offset_offset = chunk_offset_offsets[i][j];
-      if (ij_chunk_offset_offset == -1) {
-        // Then this pair of residues do not interact
-        current_pair_energies[i][j] = 0;
-        current_pair_energies[j][i] = 0;
-        continue;
-      }
+      int64_t const ij_chunk_offset_offset =
+          neighbor_chunk_offset_offsets[edge];
       int const jres_n_rots = n_rotamers_for_res[j];
       int const jres_n_chunks = (jres_n_rots - 1) / chunk_size + 1;
       int const jrot_chunk = jrot_local / chunk_size;
@@ -123,8 +128,11 @@ inline
         TensorAccessor<int, 1, D> n_rotamers_for_res,  // max-n-res
         TensorAccessor<int, 1, D> oneb_offsets,        // max-n-res
         int32_t const chunk_size,
-        TensorAccessor<int64_t, 2, D>
-            chunk_offset_offsets,            // max-n-res x max-n-res
+        int const pose,
+        int const max_n_res,
+        TView<int64_t, 1, D> neighbor_row_offsets,
+        TView<int32_t, 1, D> neighbor_blocks,
+        TView<int64_t, 1, D> neighbor_chunk_offset_offsets,
         TView<int64_t, 1, D> chunk_offsets,  // n-interacting-chunk-pairs
         TView<float, 1, D> energy1b,         // n-rotamers-total
         TView<float, 1, D> energy2b,         // n-interacting-rotamer-pairs
@@ -153,16 +161,20 @@ inline
     int const irot_in_chunk = irot_local - chunk_size * irot_chunk;
 
     totalE += energy1b[irot_global];
-    for (int j = i + 1; j < n_res; ++j) {
+    int const row = pose * max_n_res + i;
+    for (int64_t edge = neighbor_row_offsets[row];
+         edge < neighbor_row_offsets[row + 1];
+         ++edge) {
+      int const j = neighbor_blocks[edge];
+      if (j <= i) {
+        continue;
+      }
       int const jrot_local = rotamer_assignment[j];
       if (jrot_local == -1) {
         continue;
       }
-      int64_t const ij_chunk_offset_offset = chunk_offset_offsets[i][j];
-      if (ij_chunk_offset_offset == -1) {
-        // Then this pair of residues do not interact
-        continue;
-      }
+      int64_t const ij_chunk_offset_offset =
+          neighbor_chunk_offset_offsets[edge];
       int const jres_n_rots = n_rotamers_for_res[j];
       int const jres_n_chunks = (jres_n_rots - 1) / chunk_size + 1;
       int const jrot_chunk = jrot_local / chunk_size;
