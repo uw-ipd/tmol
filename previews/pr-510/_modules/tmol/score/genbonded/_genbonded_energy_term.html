@@ -437,8 +437,6 @@
 <span class="sd">"""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">weakref</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">permutations</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
@@ -447,6 +445,11 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">AtomTypeDependentTerm</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score._annotation_cache</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">AnnotationKey</span><span class="p">,</span>
+    <span class="n">cached_annotation</span><span class="p">,</span>
+    <span class="n">store_annotation</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.scoring._genbonded</span><span class="w"> </span><span class="kn">import</span> <span class="n">_bond_btidx</span>
@@ -471,17 +474,9 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.weak_identity_cache</span><span class="w"> </span><span class="kn">import</span> <span class="n">WeakIdentityLRU</span>
 
 <span class="c1"># Maximum hierarchy depth for any atom type (concrete -&gt; class -&gt; X).</span>
-<span class="n">MAX_HIER_DEPTH</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="n">MAX_HIER_DEPTH</span> <span class="o">=</span> <span class="mi">5</span>
 
 <span class="n">_INTER_TABLE_CACHE</span> <span class="o">=</span> <span class="n">WeakIdentityLRU</span><span class="p">()</span>
-
-
-<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">class</span><span class="w"> </span><span class="nc">_ParameterAnnotation</span><span class="p">:</span>
-    <span class="n">database</span><span class="p">:</span> <span class="n">weakref</span><span class="o">.</span><span class="n">ReferenceType</span>
-    <span class="n">elements</span><span class="p">:</span> <span class="nb">tuple</span>
-    <span class="n">device</span><span class="p">:</span> <span class="nb">object</span>
-    <span class="n">values</span><span class="p">:</span> <span class="nb">tuple</span>
 
 
 <span class="n">_PACKED_FIELDS</span> <span class="o">=</span> <span class="p">(</span>
@@ -521,8 +516,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_element_for_atom_type</span> <span class="o">=</span> <span class="p">{</span>
             <span class="n">at</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">at</span><span class="o">.</span><span class="n">element</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="o">.</span><span class="n">atom_types</span>
         <span class="p">}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_element_key</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_element_for_atom_type</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_database_ref</span> <span class="o">=</span> <span class="n">weakref</span><span class="o">.</span><span class="n">ref</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gen_database</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_block_annotation_key</span> <span class="o">=</span> <span class="n">AnnotationKey</span><span class="o">.</span><span class="n">from_sources</span><span class="p">(</span>
+            <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_database</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_packed_annotation_key</span> <span class="o">=</span> <span class="n">AnnotationKey</span><span class="o">.</span><span class="n">from_sources</span><span class="p">(</span>
+            <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_database</span><span class="p">,</span> <span class="n">settings</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,)</span>
+        <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">class_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
@@ -771,12 +770,10 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_block_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_type</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">GenBondedEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_block_type</span><span class="p">(</span><span class="n">block_type</span><span class="p">)</span>
-        <span class="n">previous</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"_genbonded_parameters"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="k">if</span> <span class="p">(</span>
-            <span class="n">previous</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-            <span class="ow">and</span> <span class="n">previous</span><span class="o">.</span><span class="n">database</span><span class="p">()</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_database</span>
-            <span class="ow">and</span> <span class="n">previous</span><span class="o">.</span><span class="n">elements</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_element_key</span>
-        <span class="p">):</span>
+        <span class="n">previous</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span>
+            <span class="n">block_type</span><span class="p">,</span> <span class="s2">"_genbonded_annotation"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_block_annotation_key</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">previous</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">previous</span>
 
         <span class="c1"># Validate once, before publishing any partially constructed annotation.</span>
@@ -831,23 +828,27 @@
             <span class="n">atype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_atom_chem_type</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="n">atom_idx</span><span class="p">)</span>
             <span class="n">hier_arr</span><span class="p">[</span><span class="n">atom_idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atom_hierarchy_indices</span><span class="p">(</span><span class="n">atype</span><span class="p">)</span>
 
-        <span class="n">annotation</span> <span class="o">=</span> <span class="n">_ParameterAnnotation</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_database_ref</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_element_key</span><span class="p">,</span>
-            <span class="kc">None</span><span class="p">,</span>
-            <span class="p">(</span><span class="n">intra_subgraphs</span><span class="p">,</span> <span class="n">intra_params</span><span class="p">,</span> <span class="n">hier_arr</span><span class="p">),</span>
-        <span class="p">)</span>
+        <span class="n">annotation</span> <span class="o">=</span> <span class="p">(</span><span class="n">intra_subgraphs</span><span class="p">,</span> <span class="n">intra_params</span><span class="p">,</span> <span class="n">hier_arr</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
             <span class="p">(</span>
                 <span class="s2">"genbonded_intra_subgraphs"</span><span class="p">,</span>
                 <span class="s2">"genbonded_intra_params"</span><span class="p">,</span>
                 <span class="s2">"genbonded_atom_type_hierarchy"</span><span class="p">,</span>
             <span class="p">),</span>
-            <span class="n">annotation</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+            <span class="n">annotation</span><span class="p">,</span>
         <span class="p">):</span>
             <span class="nb">setattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
-        <span class="n">block_type</span><span class="o">.</span><span class="n">_genbonded_parameters</span> <span class="o">=</span> <span class="n">annotation</span>
-        <span class="k">return</span> <span class="n">annotation</span>
+        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+            <span class="n">block_type</span><span class="p">,</span>
+            <span class="s2">"_genbonded_annotation"</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_block_annotation_key</span><span class="p">,</span>
+            <span class="n">annotation</span><span class="p">,</span>
+            <span class="n">fields</span><span class="o">=</span><span class="p">(</span>
+                <span class="s2">"genbonded_intra_subgraphs"</span><span class="p">,</span>
+                <span class="s2">"genbonded_intra_params"</span><span class="p">,</span>
+                <span class="s2">"genbonded_atom_type_hierarchy"</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
 
     <span class="c1"># ------------------------------------------------------------------</span>
     <span class="c1"># Packed-block-types setup</span>
@@ -857,19 +858,18 @@
         <span class="bp">self</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">GenBondedEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_packed_block_types</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">)</span>
-        <span class="n">previous</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"_genbonded_parameters"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="k">if</span> <span class="p">(</span>
-            <span class="n">previous</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-            <span class="ow">and</span> <span class="n">previous</span><span class="o">.</span><span class="n">database</span><span class="p">()</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_database</span>
-            <span class="ow">and</span> <span class="n">previous</span><span class="o">.</span><span class="n">elements</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_element_key</span>
-            <span class="ow">and</span> <span class="n">previous</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">device</span>
-        <span class="p">):</span>
+        <span class="n">previous</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span>
+            <span class="n">packed_block_types</span><span class="p">,</span>
+            <span class="s2">"_genbonded_annotation"</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_packed_annotation_key</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">previous</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">previous</span>
 
         <span class="n">block_types</span> <span class="o">=</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
         <span class="c1"># Capture each returned annotation, so another setup cannot switch the</span>
         <span class="c1"># parameters while this packed set is being assembled.</span>
-        <span class="n">block_values</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">setup_block_type</span><span class="p">(</span><span class="n">bt</span><span class="p">)</span><span class="o">.</span><span class="n">values</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">block_types</span><span class="p">]</span>
+        <span class="n">block_values</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">setup_block_type</span><span class="p">(</span><span class="n">bt</span><span class="p">)</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">block_types</span><span class="p">]</span>
         <span class="n">n_block_types</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">block_types</span><span class="p">)</span>
 
         <span class="c1"># ------------------------------------------------------------------</span>
@@ -994,13 +994,24 @@
             <span class="p">)</span>
             <span class="o">+</span> <span class="n">inter_tables</span>
         <span class="p">)</span>
-        <span class="n">annotation</span> <span class="o">=</span> <span class="n">_ParameterAnnotation</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_database_ref</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_element_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">values</span>
-        <span class="p">)</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">_PACKED_FIELDS</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
             <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
-        <span class="n">packed_block_types</span><span class="o">.</span><span class="n">_genbonded_parameters</span> <span class="o">=</span> <span class="n">annotation</span>
-        <span class="k">return</span> <span class="n">annotation</span>
+        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+            <span class="n">packed_block_types</span><span class="p">,</span>
+            <span class="s2">"_genbonded_annotation"</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_packed_annotation_key</span><span class="p">,</span>
+            <span class="n">values</span><span class="p">,</span>
+            <span class="n">fields</span><span class="o">=</span><span class="n">_PACKED_FIELDS</span><span class="p">,</span>
+            <span class="n">bindings</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="n">field</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">block_type</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+                <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="p">(</span>
+                    <span class="s2">"genbonded_intra_subgraphs"</span><span class="p">,</span>
+                    <span class="s2">"genbonded_intra_params"</span><span class="p">,</span>
+                    <span class="s2">"genbonded_atom_type_hierarchy"</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_build_inter_tables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Database-wide tables, shared without retaining their database owner."""</span>
@@ -1106,7 +1117,7 @@
         <span class="k">return</span> <span class="p">[</span>
             <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections</span><span class="p">,</span>
             <span class="n">pbt</span><span class="o">.</span><span class="n">atom_paths_from_conn</span><span class="p">,</span>
-            <span class="o">*</span><span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+            <span class="o">*</span><span class="n">parameters</span><span class="p">,</span>
         <span class="p">]</span></div>
 
 </pre></div>

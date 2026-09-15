@@ -417,10 +417,13 @@
                 <article class="bd-article">
                   
   <h1>Source code for tmol.score.disulfide._disulfide_energy_term</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.._energy_term</span><span class="w"> </span><span class="kn">import</span> <span class="n">EnergyTerm</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.._annotation_cache</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnnotationKey</span><span class="p">,</span> <span class="n">cached_annotation</span><span class="p">,</span> <span class="n">store_annotation</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.disulfide</span><span class="w"> </span><span class="kn">import</span> <span class="n">DisulfideGlobalParams</span>
@@ -430,13 +433,52 @@
     <span class="n">PoseStack</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="c1"># positions of the dihedral means within a packed parameter row; only these</span>
-<span class="c1"># flip for a mirrored residue -- the interior-angle mean is achiral</span>
-<span class="n">_MIRRORED_MU_INDICES</span> <span class="o">=</span> <span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">19</span><span class="p">)</span>
-<span class="n">_MIRRORED_SIGNS</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">33</span><span class="p">)</span>
-<span class="n">_MIRRORED_SIGNS</span><span class="p">[</span><span class="mi">32</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>  <span class="c1"># explicit chirality for selecting the pair distribution</span>
-<span class="k">for</span> <span class="n">_i</span> <span class="ow">in</span> <span class="n">_MIRRORED_MU_INDICES</span><span class="p">:</span>
-    <span class="n">_MIRRORED_SIGNS</span><span class="p">[</span><span class="n">_i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_DisulfideParameter</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Describe the C++ parameter struct layout and D-residue transformation."""</span>
+
+    <span class="n">D_LOCATION</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"d_location"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">D_SCALE</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"d_scale"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">D_SHAPE</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"d_shape"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">A_LOG_A</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"a_logA"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">A_KAPPA</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"a_kappa"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">A_MU</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"a_mu"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">DSS_LOG_A1</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"dss_logA1"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">DSS_KAPPA1</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"dss_kappa1"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">DSS_MU1</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"dss_mu1"</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+    <span class="n">DSS_LOG_A2</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"dss_logA2"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">DSS_KAPPA2</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"dss_kappa2"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">DSS_MU2</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"dss_mu2"</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+    <span class="n">DCS_LOG_A1</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"dcs_logA1"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">DCS_MU1</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"dcs_mu1"</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+    <span class="n">DCS_KAPPA1</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"dcs_kappa1"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">DCS_LOG_A2</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"dcs_logA2"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">DCS_MU2</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"dcs_mu2"</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+    <span class="n">DCS_KAPPA2</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"dcs_kappa2"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">DCS_LOG_A3</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"dcs_logA3"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">DCS_MU3</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"dcs_mu3"</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+    <span class="n">DCS_KAPPA3</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"dcs_kappa3"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">WT_DIH_SS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"wt_dih_ss"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">WT_DIH_CS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"wt_dih_cs"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">WT_ANG</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"wt_ang"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">WT_LEN</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"wt_len"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">SHIFT</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"shift"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">DSS_MIXED_LOG_A1</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"dss_mixed_logA1"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">DSS_MIXED_KAPPA1</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"dss_mixed_kappa1"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">DSS_MIXED_MU1</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"dss_mixed_mu1"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">DSS_MIXED_LOG_A2</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"dss_mixed_logA2"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">DSS_MIXED_KAPPA2</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"dss_mixed_kappa2"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">DSS_MIXED_MU2</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"dss_mixed_mu2"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">CHIRALITY</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">negated_for_d</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attribute</span> <span class="o">=</span> <span class="n">attribute</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">negated_for_d</span> <span class="o">=</span> <span class="n">negated_for_d</span>
+
+
+<span class="n">_MIRRORED_PARAMETER_SIGNS</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+    <span class="p">[</span><span class="o">-</span><span class="mf">1.0</span> <span class="k">if</span> <span class="n">parameter</span><span class="o">.</span><span class="n">negated_for_d</span> <span class="k">else</span> <span class="mf">1.0</span> <span class="k">for</span> <span class="n">parameter</span> <span class="ow">in</span> <span class="n">_DisulfideParameter</span><span class="p">]</span>
+<span class="p">)</span>
 
 
 <div class="viewcode-block" id="DisulfideEnergyTerm">
@@ -451,6 +493,10 @@
             <span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">disulfide</span><span class="p">,</span> <span class="n">device</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_block_annotation_key</span> <span class="o">=</span> <span class="n">AnnotationKey</span><span class="o">.</span><span class="n">from_sources</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_packed_annotation_key</span> <span class="o">=</span> <span class="n">AnnotationKey</span><span class="o">.</span><span class="n">from_sources</span><span class="p">(</span>
+            <span class="n">settings</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,)</span>
+        <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">class_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
@@ -468,8 +514,11 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_block_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_type</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">DisulfideEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_block_type</span><span class="p">(</span><span class="n">block_type</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"disulfide_connections"</span><span class="p">):</span>
-            <span class="k">return</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span>
+            <span class="n">block_type</span><span class="p">,</span> <span class="s2">"_disulfide_annotation"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_block_annotation_key</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cached</span>
 
         <span class="n">disulfide_connections</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
         <span class="k">if</span> <span class="s2">"dslf"</span> <span class="ow">in</span> <span class="n">block_type</span><span class="o">.</span><span class="n">connection_to_cidx</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
@@ -478,12 +527,24 @@
             <span class="p">)</span>
 
         <span class="nb">setattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"disulfide_connections"</span><span class="p">,</span> <span class="n">disulfide_connections</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+            <span class="n">block_type</span><span class="p">,</span>
+            <span class="s2">"_disulfide_annotation"</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_block_annotation_key</span><span class="p">,</span>
+            <span class="n">disulfide_connections</span><span class="p">,</span>
+            <span class="n">fields</span><span class="o">=</span><span class="p">(</span><span class="s2">"disulfide_connections"</span><span class="p">,),</span>
+        <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_packed_block_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">DisulfideEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_packed_block_types</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"disulfide_conns"</span><span class="p">):</span>
-            <span class="k">return</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span>
+            <span class="n">packed_block_types</span><span class="p">,</span>
+            <span class="s2">"_disulfide_annotation"</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_packed_annotation_key</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cached</span>
 
         <span class="n">disulfide_conns</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
             <span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">max_n_conn</span><span class="p">),</span>
@@ -492,8 +553,11 @@
             <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">):</span>
-            <span class="k">for</span> <span class="n">conn</span> <span class="ow">in</span> <span class="n">bt</span><span class="o">.</span><span class="n">disulfide_connections</span><span class="p">:</span>
+        <span class="n">block_connections</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">setup_block_type</span><span class="p">(</span><span class="n">bt</span><span class="p">)</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+        <span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">connections</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">block_connections</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">conn</span> <span class="ow">in</span> <span class="n">connections</span><span class="p">:</span>
                 <span class="n">disulfide_conns</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">conn</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
 
         <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"disulfide_conns"</span><span class="p">,</span> <span class="n">disulfide_conns</span><span class="p">)</span>
@@ -510,6 +574,17 @@
             <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"disulfide_bt_is_mirrored"</span><span class="p">,</span> <span class="n">is_mirrored</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+            <span class="n">packed_block_types</span><span class="p">,</span>
+            <span class="s2">"_disulfide_annotation"</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_packed_annotation_key</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">disulfide_conns</span><span class="p">,</span> <span class="n">is_mirrored</span><span class="p">),</span>
+            <span class="n">fields</span><span class="o">=</span><span class="p">(</span><span class="s2">"disulfide_conns"</span><span class="p">,</span> <span class="s2">"disulfide_bt_is_mirrored"</span><span class="p">),</span>
+            <span class="n">bindings</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"disulfide_connections"</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">block_type</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_poses</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">poses</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">DisulfideEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_poses</span><span class="p">(</span><span class="n">poses</span><span class="p">)</span>
@@ -544,44 +619,13 @@
         <span class="k">def</span><span class="w"> </span><span class="nf">_t</span><span class="p">(</span><span class="n">ts</span><span class="p">):</span>
             <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">),</span> <span class="n">ts</span><span class="p">))</span>
 
+        <span class="k">def</span><span class="w"> </span><span class="nf">parameter_value</span><span class="p">(</span><span class="n">parameter</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">parameter</span> <span class="ow">is</span> <span class="n">_DisulfideParameter</span><span class="o">.</span><span class="n">CHIRALITY</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">shift</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="p">,</span> <span class="n">parameter</span><span class="o">.</span><span class="n">attribute</span><span class="p">)</span>
+
         <span class="n">global_params</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
-            <span class="n">_t</span><span class="p">(</span>
-                <span class="p">[</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">d_location</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">d_scale</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">d_shape</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">a_logA</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">a_kappa</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">a_mu</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">dss_logA1</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">dss_kappa1</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">dss_mu1</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">dss_logA2</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">dss_kappa2</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">dss_mu2</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">dcs_logA1</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">dcs_mu1</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">dcs_kappa1</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">dcs_logA2</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">dcs_mu2</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">dcs_kappa2</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">dcs_logA3</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">dcs_mu3</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">dcs_kappa3</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">wt_dih_ss</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">wt_dih_cs</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">wt_ang</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">wt_len</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">shift</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">dss_mixed_logA1</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">dss_mixed_kappa1</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">dss_mixed_mu1</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">dss_mixed_logA2</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">dss_mixed_kappa2</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">dss_mixed_mu2</span><span class="p">,</span>
-                    <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">shift</span><span class="p">),</span>
-                <span class="p">]</span>
-            <span class="p">),</span>
+            <span class="n">_t</span><span class="p">(</span><span class="n">parameter_value</span><span class="p">(</span><span class="n">parameter</span><span class="p">)</span> <span class="k">for</span> <span class="n">parameter</span> <span class="ow">in</span> <span class="n">_DisulfideParameter</span><span class="p">),</span>
             <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
@@ -589,7 +633,7 @@
         <span class="c1"># the kernel reads one parameter row per block type so that each half</span>
         <span class="c1">#    of a disulfide is scored with its own residue's parameters</span>
         <span class="n">per_block_type</span> <span class="o">=</span> <span class="n">global_params</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
-        <span class="n">per_block_type</span><span class="p">[</span><span class="n">pbt</span><span class="o">.</span><span class="n">disulfide_bt_is_mirrored</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*=</span> <span class="n">_MIRRORED_SIGNS</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+        <span class="n">per_block_type</span><span class="p">[</span><span class="n">pbt</span><span class="o">.</span><span class="n">disulfide_bt_is_mirrored</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*=</span> <span class="n">_MIRRORED_PARAMETER_SIGNS</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
             <span class="n">per_block_type</span><span class="o">.</span><span class="n">device</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="p">[</span>
