@@ -2,10 +2,17 @@ Input and Output
 ================
 
 The public :mod:`tmol.io` API converts common structure representations to and
-from :class:`tmol.pose.PoseStack`. The direct AtomWorks adapter uses its
-protein-only unified Atom37 representation. For differentiable Atom37
-coordinates with general Biotite topology, including nucleic acids and ligands,
-use :func:`tmol.io.pose_stack_from_atom37_and_topology`. Repeated diffusion,
+from :class:`tmol.pose.PoseStack`.
+
+Once the residue types are resolved, :func:`tmol.io.pose_stack_from_atom37`
+builds a pose from tensors alone, for canonical and noncanonical chemistry
+alike: residue identity comes from ``res_types`` and any further covalent
+chemistry from ``covalent_bonds``. Its slot layout is built by
+:func:`tmol.io.atom37_slot_map_for_ordering`. The direct AtomWorks adapter is
+the canonical-amino-acid special case of that path. To read chemistry from a
+structure instead, :func:`tmol.io.pose_stack_from_atom37_and_topology` derives
+the same information from general Biotite topology, including nucleic acids and
+ligands. Repeated diffusion,
 guidance, and search workloads should bind their fixed topology once with
 :func:`tmol.io.prepare_atom37_pose_builder`; its returned callable accepts
 each coordinate batch and preserves ordinary finite authored protein hydrogens
