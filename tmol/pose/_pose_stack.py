@@ -199,6 +199,47 @@ class PoseStack:
             split_block_mapping=self.split_block_mapping,
         )
 
+    def clone_sharing_topology(self) -> "PoseStack":
+        """Copy per-pose state but share this stack's immutable bond topology.
+
+        :py:meth:`clone` deep-copies every tensor, including
+        ``inter_block_bondsep``, whose size grows as
+        ``n_poses * max_n_blocks**2 * max_n_conn**2``. For large assemblies
+        that single copy dominates peak memory even though nothing ever
+        mutates it in place: the connection tensors are built once by
+        :py:class:`~tmol.pose.PoseStackBuilder` and thereafter only read.
+
+        Callers that vary coordinates while holding topology fixed -- the
+        FastRelax accept/restore loop, for example -- should use this instead.
+        Sharing is also what lets a rendered scoring module recognise the
+        result as the same topology and reuse its cached parameters.
+
+        Returns:
+          A PoseStack whose coordinate and block state are independently
+          owned, and whose connection topology aliases this stack's.
+        """
+        new_constraint_set = (
+            self.constraint_set.clone() if self.constraint_set is not None else None
+        )
+        return PoseStack(
+            packed_block_types=self.packed_block_types,
+            coords=self.coords.detach().clone(),
+            block_coord_offset=self.block_coord_offset.detach().clone(),
+            block_coord_offset64=self.block_coord_offset64.detach().clone(),
+            # Shared, never mutated in place.
+            inter_residue_connections=self.inter_residue_connections,
+            inter_residue_connections64=self.inter_residue_connections64,
+            inter_block_bondsep=self.inter_block_bondsep,
+            block_type_ind=self.block_type_ind.detach().clone(),
+            block_type_ind64=self.block_type_ind64.detach().clone(),
+            chain_id=self.chain_id.detach().clone(),
+            chain_id64=self.chain_id64.detach().clone(),
+            pdb_info=self.pdb_info,
+            constraint_set=new_constraint_set,
+            device=self.device,
+            split_block_mapping=self.split_block_mapping,
+        )
+
     def split(self, index: int) -> "PoseStack":
         """Copy one pose into a new single-pose stack."""
         return PoseStack(
