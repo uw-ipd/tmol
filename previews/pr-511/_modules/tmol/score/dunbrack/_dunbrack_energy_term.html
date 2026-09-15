@@ -642,6 +642,10 @@
                 <span class="s2">"_dunbrack_packed_annotation"</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_annotation_key</span><span class="p">,</span>
                 <span class="n">cached</span><span class="p">,</span>
+                <span class="n">bindings</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"dunbrack_attrs"</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">block_type</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+                <span class="p">),</span>
             <span class="p">)</span>
         <span class="n">packed_block_types</span><span class="o">.</span><span class="n">dunbrack_packed_block_data</span> <span class="o">=</span> <span class="n">cached</span>
         <span class="k">return</span> <span class="n">cached</span>
