@@ -4,6 +4,7 @@ from ._params import (  # noqa: F401
     BACKBONE_TORSIONS,
     BASES,
     BASE_FOR_NAME3,
+    UNKNOWN_BASE_REFERENCE,
     CHI,
     CHI_TORSION,
     DELTA,
@@ -23,6 +24,7 @@ from ._params import (  # noqa: F401
     TORSION_NAMES,
     block_type_params,
     polymer_index,
+    scored_torsion_bonds,
     sugar_ring_atoms,
 )  # noqa: F401
 from ._na_torsion_energy_term import (  # noqa: F401
@@ -46,6 +48,7 @@ __all__ = [
     "BACKBONE_TORSIONS",
     "BASES",
     "BASE_FOR_NAME3",
+    "UNKNOWN_BASE_REFERENCE",
     "CHI",
     "CHI_TORSION",
     "DELTA",
@@ -64,6 +67,7 @@ __all__ = [
     "na_torsion_subterms",
     "polymer_index",
     "pucker_weights",
+    "scored_torsion_bonds",
     "sugar_ring_atoms",
     "syn_weight",
 ]

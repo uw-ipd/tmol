@@ -389,6 +389,10 @@ def test_cpu_fused_shard_planner_preserves_fallbacks(
     (fused_grad,) = torch.autograd.grad(fused_score.sum(), fused_coords)
     torch.testing.assert_close(fused_score, separate_score, atol=2e-3, rtol=3e-5)
     torch.testing.assert_close(fused_grad, separate_grad, atol=5e-5, rtol=5e-5)
+    repeated = fused(fused_coords)
+    (repeated_grad,) = torch.autograd.grad(repeated.sum(), fused_coords)
+    torch.testing.assert_close(repeated, fused_score, atol=0, rtol=0)
+    torch.testing.assert_close(repeated_grad, fused_grad, atol=0, rtol=0)
 
     monkeypatch.setattr(torch, "get_num_threads", lambda: 2)
     two_threads = beta2016_score_function(
@@ -695,7 +699,7 @@ def test_packed_block_setup_reuses_annotations_for_identical_types(
 
     assert packed_block_types[1].ref_weights is first_weights
     assert (
-        packed_block_types[1]._ref_weights_src is packed_block_types[0]._ref_weights_src
+        packed_block_types[1]._ref_annotation is packed_block_types[0]._ref_annotation
     )
     assert not hasattr(packed_block_types[1], "unrelated_annotation")
 
@@ -1663,8 +1667,8 @@ def test_soft_score_function_all_score_types(ubq_pdb, default_database, torch_de
     gold_score_map = {
         ScoreType.cart_lengths: n([38.056973]),
         ScoreType.cart_angles: n([183.9738]),
-        ScoreType.cart_torsions: n([46.02357]),
-        ScoreType.cart_impropers: n([9.430529]),
+        ScoreType.cart_torsions: n([27.477385]),
+        ScoreType.cart_impropers: n([20.951893]),
         ScoreType.cart_hxltorsions: n([47.41971]),
         ScoreType.disulfide: n([0.0]),
         ScoreType.fa_ljatr: n([-417.02362]),
@@ -1713,8 +1717,8 @@ def test_score_function_all_score_types(ubq_pdb):
     gold_score_map = {
         ScoreType.cart_lengths: n([38.056973]),
         ScoreType.cart_angles: n([183.9738]),
-        ScoreType.cart_torsions: n([46.02357]),
-        ScoreType.cart_impropers: n([9.430529]),
+        ScoreType.cart_torsions: n([27.477385]),
+        ScoreType.cart_impropers: n([20.951893]),
         ScoreType.cart_hxltorsions: n([47.41971]),
         ScoreType.disulfide: n([0.0]),
         ScoreType.fa_ljatr: n([-417.02362]),
@@ -1766,8 +1770,8 @@ def test_score_function_all_score_types_protein_dna(protein_dna_pdb):
         ScoreType.hbond: n([-173.997391]),
         ScoreType.cart_lengths: n([157.134415]),
         ScoreType.cart_angles: n([963.831909]),
-        ScoreType.cart_torsions: n([134.518875]),
-        ScoreType.cart_impropers: n([11.086108]),
+        ScoreType.cart_torsions: n([24.962362]),
+        ScoreType.cart_impropers: n([23.998163]),
         ScoreType.cart_hxltorsions: n([26.123291]),
         ScoreType.disulfide: n([0.0]),
         ScoreType.rama: n([91.406868]),

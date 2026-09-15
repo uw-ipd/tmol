@@ -1094,6 +1094,7 @@ struct rot_neighbor_indices_from_block_neighbors {
     TView<Int, 2, D> n_rots_for_block,  // [n_poses, max_n_blocks]
     TView<Int, 2, D> rot_offset_for_block,  // [n_poses, max_n_blocks] global
     TView<Real, 2, D> rot_spheres,          // [n_rots_global, 4]
+    TView<Int, 2, D> lockstep_group_for_block,
     Real reach) -> TPack<Int, 2, D> {
     LAUNCH_BOX_32;
 
@@ -1124,8 +1125,10 @@ struct rot_neighbor_indices_from_block_neighbors {
         int const off1 = rot_offset_for_block[pose][b1];
         int const off2 = rot_offset_for_block[pose][b2];
         if (nr1 <= 0 || nr2 <= 0 || off1 < 0 || off2 < 0) return;
-        if (b1 == b2) {
-          pair_counts[pose][b1][b2] = nr1;
+        int const g1 = lockstep_group_for_block[pose][b1];
+        int const g2 = lockstep_group_for_block[pose][b2];
+        if (b1 == b2 || (g1 >= 0 && g1 == g2)) {
+          pair_counts[pose][b1][b2] = nr1 < nr2 ? nr1 : nr2;
         } else {
           int64_t count = 0;
           for (int i = 0; i < nr1; ++i) {
@@ -1162,7 +1165,7 @@ struct rot_neighbor_indices_from_block_neighbors {
 
     // Step 4: fill — one thread per block pair, serial loop over rot pairs.
     // Diagonal (b1==b2): only (r,r) self-pairs (intrares scoring).
-    // Off-diagonal (b1<b2): only overlapping rotamer spheres.
+    // Same lockstep group: matching states; otherwise overlapping spheres.
     auto fill = ([=] TMOL_DEVICE_FUNC(int ind) {
       int const pose = ind / block_pair_cells;
       int const bp = ind % block_pair_cells;
@@ -1176,12 +1179,25 @@ struct rot_neighbor_indices_from_block_neighbors {
       int const off2 = rot_offset_for_block[pose][b2];
       if (off1 < 0 || off2 < 0) return;
 
+      int const g1 = lockstep_group_for_block[pose][b1];
+      int const g2 = lockstep_group_for_block[pose][b2];
+
       int64_t offset = pair_offsets[pose][b1][b2];
       if (b1 == b2) {
         for (int i = 0; i < nr1; ++i) {
           indices[0][offset] = pose;
           indices[1][offset] = off1 + i;
           indices[2][offset] = off1 + i;  // same rot
+          ++offset;
+        }
+      } else if (g1 >= 0 && g1 == g2) {
+        // lockstep: any pair of differing rotamer indices describes a
+        // conformer combination the group cannot adopt
+        int const n = nr1 < nr2 ? nr1 : nr2;
+        for (int i = 0; i < n; ++i) {
+          indices[0][offset] = pose;
+          indices[1][offset] = off1 + i;
+          indices[2][offset] = off2 + i;
           ++offset;
         }
       } else {

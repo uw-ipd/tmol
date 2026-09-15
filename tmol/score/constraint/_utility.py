@@ -4,6 +4,11 @@ import attrs
 from tmol.types import Tensor
 from tmol.pose._packed_block_types import PackedBlockTypes
 from tmol.pose._pose_stack import PoseStack
+from tmol.score._annotation_cache import (
+    AnnotationKey,
+    cached_annotation,
+    store_annotation,
+)
 
 
 def constrain_all_ca(pose_stack: PoseStack) -> PoseStack:
@@ -57,7 +62,7 @@ def constrain_all_ca(pose_stack: PoseStack) -> PoseStack:
     )
 
 
-@attrs.define
+@attrs.define(frozen=True)
 class MCAtomIndices:
     """Padded main-chain atom indices for every packed block type."""
 
@@ -67,10 +72,16 @@ class MCAtomIndices:
     is_real_mainchain_atom: Tensor[torch.bool][:, :]
 
 
-def _annotate_mainchain_atom_indices(packed_block_types: PackedBlockTypes) -> None:
+def _annotate_mainchain_atom_indices(
+    packed_block_types: PackedBlockTypes,
+) -> MCAtomIndices:
     """Get the list of mainchain atoms for each block type and annotate their indices."""
-    if hasattr(packed_block_types, "mainchain_atom_indices"):
-        return
+    key = AnnotationKey.from_sources(settings=(packed_block_types.device,))
+    cached = cached_annotation(
+        packed_block_types, "_mainchain_atom_indices_annotation", key
+    )
+    if cached is not None:
+        return cached
     mainchain_atom_indices = []
     for block_type in packed_block_types.active_block_types:
         mainchain_atom_indices.append(
@@ -112,6 +123,13 @@ def _annotate_mainchain_atom_indices(packed_block_types: PackedBlockTypes) -> No
         is_real_mainchain_atom=is_real_mainchain_atom,
     )
     setattr(packed_block_types, "mainchain_atom_indices", mcatominds)
+    return store_annotation(
+        packed_block_types,
+        "_mainchain_atom_indices_annotation",
+        key,
+        mcatominds,
+        fields=("mainchain_atom_indices",),
+    )
 
 
 def create_mainchain_coordinate_constraints(pose_stack: PoseStack) -> PoseStack:

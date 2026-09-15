@@ -1,9 +1,11 @@
+import pytest
 import torch
 
 from tmol.score.ljlk import LJLKEnergyTerm
+from tmol.score.elec import ElecEnergyTerm
 from tmol.pose import PackedBlockTypes
 
-from tmol.tests.score.common import EnergyTermTestBase
+from tmol.tests.score.common import EnergyTermTestBase, pose_stack_from_pdb_and_resnums
 
 
 def test_smoke(default_database, torch_device):
@@ -11,6 +13,43 @@ def test_smoke(default_database, torch_device):
 
     assert ljlk_energy.type_params.lj_radius.device == torch_device
     assert ljlk_energy.global_params.max_dis.device == torch_device
+
+
+def test_beta_nov16_water_ljlk_parameters(default_database):
+    params = {
+        row.name: row for row in default_database.scoring.ljlk.atom_type_parameters
+    }
+    assert (
+        params["Owat"].lj_radius,
+        params["Owat"].lj_wdepth,
+        params["Owat"].lk_dgfree,
+    ) == (1.542743, 0.161947, -4.5480)
+    assert (params["Hwat"].lj_radius, params["Hwat"].lj_wdepth) == (
+        0.901681,
+        0.01,
+    )
+
+
+@pytest.mark.parametrize(
+    "term_class,gold",
+    [
+        (LJLKEnergyTerm, [[-12.7234735], [1.9350461], [18.1323757]]),
+        (ElecEnergyTerm, [[-4.9202342]]),
+    ],
+)
+def test_water_box_nonbonded_score(
+    water_box_pdb, default_database, torch_device, term_class, gold
+):
+    pose = pose_stack_from_pdb_and_resnums(water_box_pdb, torch_device, [(0, 31)])
+    term = term_class(default_database, torch_device)
+    for block_type in pose.packed_block_types.active_block_types:
+        term.setup_block_type(block_type)
+    term.setup_packed_block_types(pose.packed_block_types)
+    term.setup_poses(pose)
+
+    score = term.render_whole_pose_scoring_module(pose)(pose.coords)
+
+    torch.testing.assert_close(score, score.new_tensor(gold), rtol=2e-5, atol=2e-5)
 
 
 def test_annotate_heavy_ats_in_tile(

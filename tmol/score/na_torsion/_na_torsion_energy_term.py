@@ -2,6 +2,7 @@ import numpy
 import torch
 
 from .._energy_term import EnergyTerm
+from .._annotation_cache import AnnotationKey, cached_annotation, store_annotation
 
 from tmol.database import ParameterDatabase
 from tmol.chemical import RefinedResidueType
@@ -45,6 +46,13 @@ class NaTorsionEnergyTerm(EnergyTerm):
             at.name: at.element for at in param_db.chemical.atom_types
         }
         self.device = device
+        self._block_annotation_key = AnnotationKey.from_sources(param_db.chemical)
+        self._packed_annotation_key = AnnotationKey.from_sources(
+            param_db.chemical, settings=(self.device,)
+        )
+        self._pose_annotation_key = AnnotationKey.from_sources(
+            param_db.chemical, settings=(self.device,)
+        )
 
     @classmethod
     def class_name(cls):
@@ -61,22 +69,35 @@ class NaTorsionEnergyTerm(EnergyTerm):
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(NaTorsionEnergyTerm, self).setup_block_type(block_type)
-        if hasattr(block_type, "na_torsion_params"):
-            return
-        setattr(
+        cached = cached_annotation(
+            block_type, "_na_torsion_annotation", self._block_annotation_key
+        )
+        if cached is not None:
+            return cached
+        params = block_type_params(block_type, self.element_for_atom_type)
+        setattr(block_type, "na_torsion_params", params)
+        return store_annotation(
             block_type,
-            "na_torsion_params",
-            block_type_params(block_type, self.element_for_atom_type),
+            "_na_torsion_annotation",
+            self._block_annotation_key,
+            params,
+            fields=("na_torsion_params",),
         )
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(NaTorsionEnergyTerm, self).setup_packed_block_types(packed_block_types)
-        if hasattr(packed_block_types, "na_torsion_base"):
-            return
+        cached = cached_annotation(
+            packed_block_types,
+            "_na_torsion_annotation",
+            self._packed_annotation_key,
+        )
+        if cached is not None:
+            return cached
 
         bts = packed_block_types.active_block_types
+        block_params = [self.setup_block_type(bt) for bt in bts]
         stack = lambda key: numpy.stack(  # noqa: E731
-            [bt.na_torsion_params[key] for bt in bts]
+            [params[key] for params in block_params]
         )
 
         def to_t(arr):
@@ -85,20 +106,44 @@ class NaTorsionEnergyTerm(EnergyTerm):
         setattr(
             packed_block_types,
             "na_torsion_base",
-            to_t(numpy.array([bt.na_torsion_params["base"] for bt in bts])),
+            to_t(numpy.array([params["base"] for params in block_params])),
         )
         setattr(packed_block_types, "na_torsion_uaids", to_t(stack("uaids")))
         setattr(packed_block_types, "na_torsion_ring", to_t(stack("ring")))
         setattr(
             packed_block_types,
             "na_torsion_down",
-            to_t(numpy.array([bt.na_torsion_params["down"] for bt in bts])),
+            to_t(numpy.array([params["down"] for params in block_params])),
+        )
+        return store_annotation(
+            packed_block_types,
+            "_na_torsion_annotation",
+            self._packed_annotation_key,
+            (
+                packed_block_types.na_torsion_base,
+                packed_block_types.na_torsion_uaids,
+                packed_block_types.na_torsion_ring,
+                packed_block_types.na_torsion_down,
+            ),
+            fields=(
+                "na_torsion_base",
+                "na_torsion_uaids",
+                "na_torsion_ring",
+                "na_torsion_down",
+            ),
+            bindings=tuple(
+                (block_type, "na_torsion_params")
+                for block_type in packed_block_types.active_block_types
+            ),
         )
 
     def setup_poses(self, poses: PoseStack):
         super(NaTorsionEnergyTerm, self).setup_poses(poses)
-        if hasattr(poses, "na_torsion_pose_params"):
-            return
+        cached = cached_annotation(
+            poses, "_na_torsion_annotation", self._pose_annotation_key
+        )
+        if cached is not None:
+            return cached
 
         pbt = poses.packed_block_types
         params = _pose_indices(
@@ -114,6 +159,13 @@ class NaTorsionEnergyTerm(EnergyTerm):
         )
         poses.na_torsion_pose_params = params
         poses.na_torsion_has_na = bool(params[1].any())
+        return store_annotation(
+            poses,
+            "_na_torsion_annotation",
+            self._pose_annotation_key,
+            (params, poses.na_torsion_has_na),
+            fields=("na_torsion_pose_params", "na_torsion_has_na"),
+        )
 
     def get_pose_score_term_function(self):
         return eval_na_torsion_for_pose
@@ -572,8 +624,11 @@ def _subterm_energies(
     tors = torch.where(tor_ok, tors, torch.zeros_like(tors)) % 360.0
     zero = torch.zeros(tors.shape[:-1], dtype=dtype, device=tors.device)
 
+    # a residue whose sugar ring did not resolve has no pucker: its ring
+    #    coordinates are zeros, and a distribution over them means nothing
+    has_ring = is_na & (ring_xyz.abs().sum((-1, -2)) > 0)
     pucker = pucker_weights(ring_xyz, pucker_temperature).to(dtype)
-    pucker = torch.where(is_na.unsqueeze(-1), pucker, torch.zeros_like(pucker))
+    pucker = torch.where(has_ring.unsqueeze(-1), pucker, torch.zeros_like(pucker))
 
     # --- backbone -----------------------------------------------------------
     means = backbone_means.to(dtype)[poly]
@@ -643,7 +698,7 @@ def _subterm_energies(
 
     # --- wells --------------------------------------------------------------
     # -ln P of each bin assignment
-    e_well = torch.where(is_na, (pucker * well_pucker.to(dtype)[poly]).sum(-1), zero)
+    e_well = torch.where(has_ring, (pucker * well_pucker.to(dtype)[poly]).sum(-1), zero)
 
     w_a, w_g = bin_w[ALPHA], bin_w[GAMMA]
     e_well = e_well + torch.where(
@@ -809,6 +864,7 @@ def eval_na_torsion_for_rotamers(
     _rot_offset_for_pose,
     _n_rots_for_block,
     _rot_offset_for_block,
+    _lockstep_group_for_block,
     _max_n_rots_per_pose,
     # term args
     has_na,

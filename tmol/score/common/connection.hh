@@ -17,6 +17,9 @@ namespace common {
 
 const int MAX_PATHS_FROM_CONN = 13;
 const int NUM_INTER_RES_PATHS = 34;
+// The table below groups by subgraph type, so a term that scores no
+// connection-spanning torsion stops after the lengths and angles.
+const int NUM_INTER_RES_PATHS_THRU_ANGLE = 7;
 
 enum subgraph_type { subgraph_length = 0, subgraph_angle, subgraph_torsion };
 

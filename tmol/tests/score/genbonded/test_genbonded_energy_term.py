@@ -1,13 +1,10 @@
 import numpy
 import torch
-
 from tmol.database.scoring._genbonded import GenBondedDatabase
 from tmol.score.genbonded import GenBondedEnergyTerm
 
 
-def test_genbonded_parameter_lookups_are_reused(
-    fresh_default_packed_block_types, default_database, monkeypatch
-):
+def test_genbonded_parameter_lookups_are_reused(default_database, monkeypatch):
     calls = {"torsion": 0, "improper": 0}
     original_torsion = GenBondedDatabase.find_torsion_params
     original_improper = GenBondedDatabase.find_improper_params
@@ -24,17 +21,23 @@ def test_genbonded_parameter_lookups_are_reused(
     monkeypatch.setattr(GenBondedDatabase, "find_improper_params", counted_improper)
 
     term = GenBondedEnergyTerm(default_database, torch.device("cpu"))
-    blocks = fresh_default_packed_block_types.active_block_types
-    torsion_block, torsions = next(
-        (block, subgraphs)
-        for block in blocks
-        if (subgraphs := term.find_torsion_subgraphs(block.bond_indices))
+    # Canonical torsions now belong to Rosetta terms. Exercise real generic
+    # lookups using an existing prepared ligand, without regenerating parameters.
+    import attr
+    from tmol.chemical import ResidueTypeSet
+    from tmol.ligand import load_params_file
+    from tmol.tests.data import data_path
+
+    preparation = load_params_file(
+        data_path("protein_ligand_test", "ace.xtal-lig.mmff94.tmol")
+    )[0]
+    chemical = attr.evolve(
+        default_database.chemical, residues=(preparation.residue_type,)
     )
-    improper_block, impropers = next(
-        (block, subgraphs)
-        for block in blocks
-        if (subgraphs := term.find_improper_subgraphs(block.bond_indices))
-    )
+    block = ResidueTypeSet.from_database(chemical).residue_types[0]
+    torsion_block = improper_block = block
+    torsions = term.find_torsion_subgraphs(block.bond_indices)
+    impropers = term.find_improper_subgraphs(block.bond_indices)
 
     first_torsions, first_torsion_params = term.resolve_torsion_params(
         torsion_block, torsions

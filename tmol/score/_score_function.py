@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 import logging
 import os
 import sys
@@ -1224,59 +1225,50 @@ class WholePoseScoringModule:
             torch.get_autocast_dtype("cpu"),
             torch.is_autocast_cache_enabled(),
         )
-        context = (
-            (True, False, *autocast_context)
-            if needs_grad
-            else (
-                torch.is_grad_enabled(),
-                torch.is_inference_mode_enabled(),
-                *autocast_context,
-            )
-        )
         fused_term = self._execution_modules[fused_index]
-        fused_score_call = (
-            fused_term.forward_weighted
+        fused_call = (
+            partial(fused_term.forward_weighted, score_weights=fused_score_weights)
             if fused_score_weights is not None
             else fused_term
         )
-        # Submit the expensive shards first. Remaining workers immediately
-        # pick up independent terms, keeping both kinds of parallelism.
-        fused_futures = [
-            executor.submit(
-                _score_call_in_thread,
-                fused_score_call,
-                coords,
-                *context,
-                shard,
-                fused_score_weights,
-            )
+        calls = [
+            partial(fused_call, shared_block_neighbors=shard)
             for shard in neighbor_shards
         ]
-        term_futures = {}
-        for index, term in enumerate(self._execution_modules):
-            if index == fused_index:
-                continue
-            term_futures[index] = executor.submit(
-                _score_call_in_thread,
-                term,
-                coords,
-                *context,
-                (
-                    shared_block_neighbors
-                    if getattr(term, "block_neighbor_cutoff", None) is not None
-                    else None
-                ),
+        calls.extend(
+            partial(
+                self._call_term, term, shared_block_neighbors=shared_block_neighbors
             )
-
-        fused_scores = torch.stack(
-            [future.result() for future in fused_futures], dim=0
-        ).sum(dim=0)
-        scores = []
-        for index in range(len(self._execution_modules)):
-            scores.append(
-                fused_scores if index == fused_index else term_futures[index].result()
+            for index, term in enumerate(self._execution_modules)
+            if index != fused_index
+        )
+        if needs_grad:
+            # Forward completion order must not determine gradient accumulation.
+            # Reuse the ordered backward used by ordinary parallel CPU terms.
+            combined = _ParallelScoreTerms.apply(
+                coords, None, executor, calls, *autocast_context
             )
-        return torch.cat(scores, dim=0)
+        else:
+            futures = [
+                executor.submit(
+                    _score_call_in_thread,
+                    call,
+                    coords,
+                    torch.is_grad_enabled(),
+                    torch.is_inference_mode_enabled(),
+                    *autocast_context,
+                )
+                for call in calls
+            ]
+            combined = torch.cat([future.result() for future in futures], dim=0)
+        width = 1 if fused_score_weights is not None else fused_term.n_score_types
+        fused_end = n_shards * width
+        fused_scores = combined[:fused_end].reshape(n_shards, width, -1).sum(dim=0)
+        offset = sum(
+            term.n_score_types for term in self._execution_modules[:fused_index]
+        )
+        other = combined[fused_end:]
+        return torch.cat((other[:offset], fused_scores, other[offset:]), dim=0)
 
     def _parallel_cuda_scores(
         self,

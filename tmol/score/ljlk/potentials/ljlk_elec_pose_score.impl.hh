@@ -328,7 +328,7 @@ auto ljlk_elec_forward_impl(
     TView<Int, 1, D> block_type_n_interblock_bonds,
     TView<Int, 2, D> block_type_atoms_forming_chemical_bonds,
     TView<Int, 3, D> block_type_ljlk_path_distance,
-    TView<Int, 1, D> block_type_is_ligand_fragment,
+    TView<Int, 1, D> block_type_all_atoms_ligand_typed,
     TView<LJLKTypeParams<Real>, 1, D> ljlk_type_params,
     TView<LJGlobalParams<Real>, 1, D> ljlk_global_params,
     TView<Real, 2, D> block_type_partial_charge,
@@ -611,8 +611,8 @@ auto ljlk_elec_forward_impl(
                            int start2,
                            bool intra) {
       bool const crossover_3full =
-          block_type_is_ligand_fragment[data.r1.block_type]
-          && block_type_is_ligand_fragment[data.r2.block_type];
+          block_type_all_atoms_ligand_typed[data.r1.block_type]
+          && block_type_all_atoms_ligand_typed[data.r2.block_type];
       auto pair_score = ([=] TMOL_DEVICE_FUNC(
                              int pair_start1,
                              int pair_start2,
@@ -929,7 +929,7 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
     TView<Int, 1, D> block_type_n_interblock_bonds,
     TView<Int, 2, D> block_type_atoms_forming_chemical_bonds,
     TView<Int, 3, D> block_type_ljlk_path_distance,
-    TView<Int, 1, D> block_type_is_ligand_fragment,
+    TView<Int, 1, D> block_type_all_atoms_ligand_typed,
     TView<LJLKTypeParams<Real>, 1, D> ljlk_type_params,
     TView<LJGlobalParams<Real>, 1, D> ljlk_global_params,
     TView<Real, 2, D> block_type_partial_charge,
@@ -949,7 +949,7 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
       pose_stack_min_bond_separation, pose_stack_inter_block_bondsep,         \
       block_type_n_atoms, block_type_atom_types,                              \
       block_type_n_interblock_bonds, block_type_atoms_forming_chemical_bonds, \
-      block_type_ljlk_path_distance, block_type_is_ligand_fragment,           \
+      block_type_ljlk_path_distance, block_type_all_atoms_ligand_typed,       \
       ljlk_type_params, ljlk_global_params, block_type_partial_charge,        \
       block_type_elec_inter_repr_path_distance,                               \
       block_type_elec_intra_repr_path_distance, elec_global_params,           \
@@ -1015,7 +1015,7 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
         TView<Int, 1, D> block_type_n_interblock_bonds,
         TView<Int, 2, D> block_type_atoms_forming_chemical_bonds,
         TView<Int, 3, D> block_type_ljlk_path_distance,
-        TView<Int, 1, D> block_type_is_ligand_fragment,
+        TView<Int, 1, D> block_type_all_atoms_ligand_typed,
         TView<LJLKTypeParams<Real>, 1, D> ljlk_type_params,
         TView<LJGlobalParams<Real>, 1, D> ljlk_global_params,
         TView<Real, 2, D> block_type_partial_charge,
@@ -1036,7 +1036,7 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
       pose_stack_min_bond_separation, pose_stack_inter_block_bondsep,         \
       block_type_n_atoms, block_type_atom_types,                              \
       block_type_n_interblock_bonds, block_type_atoms_forming_chemical_bonds, \
-      block_type_ljlk_path_distance, block_type_is_ligand_fragment,           \
+      block_type_ljlk_path_distance, block_type_all_atoms_ligand_typed,       \
       ljlk_type_params, ljlk_global_params, block_type_partial_charge,        \
       block_type_elec_inter_repr_path_distance,                               \
       block_type_elec_intra_repr_path_distance, elec_global_params,           \
@@ -1094,6 +1094,7 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
         TView<Int, 1, D> rot_offset_for_pose,
         TView<Int, 2, D> n_rots_for_block,
         TView<Int, 2, D> rot_offset_for_block,
+        TView<Int, 2, D> lockstep_group_for_block,
         Int max_n_rots_per_pose,
         TView<Int, 3, D> pose_stack_min_bond_separation,
         TView<Int, 5, D> pose_stack_inter_block_bondsep,
@@ -1102,7 +1103,7 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
         TView<Int, 1, D> block_type_n_interblock_bonds,
         TView<Int, 2, D> block_type_atoms_forming_chemical_bonds,
         TView<Int, 3, D> block_type_ljlk_path_distance,
-        TView<Int, 1, D> block_type_is_ligand_fragment,
+        TView<Int, 1, D> block_type_all_atoms_ligand_typed,
         TView<LJLKTypeParams<Real>, 1, D> ljlk_type_params,
         TView<LJGlobalParams<Real>, 1, D> ljlk_global_params,
         TView<Real, 2, D> block_type_partial_charge,
@@ -1168,6 +1169,7 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
               n_rots_for_block,
               rot_offset_for_block,
               scratch_rot_spheres_t.view,
+              lockstep_group_for_block,
               max_dis);
   }
   assert(
@@ -1182,7 +1184,7 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
       pose_stack_min_bond_separation, pose_stack_inter_block_bondsep,         \
       block_type_n_atoms, block_type_atom_types,                              \
       block_type_n_interblock_bonds, block_type_atoms_forming_chemical_bonds, \
-      block_type_ljlk_path_distance, block_type_is_ligand_fragment,           \
+      block_type_ljlk_path_distance, block_type_all_atoms_ligand_typed,       \
       ljlk_type_params, ljlk_global_params, block_type_partial_charge,        \
       block_type_elec_inter_repr_path_distance,                               \
       block_type_elec_intra_repr_path_distance, elec_global_params,           \
