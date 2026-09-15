@@ -32,9 +32,11 @@ from tmol.score import beta2016_score_function
 from tmol.score.gridscore import (
     GridSet,
     LiveHBondData,
+    LiveLigandIntraData,
     LiveLKBallData,
     build_grid,
     build_live_hbond_data,
+    build_live_ligand_intra_data,
     build_live_lk_ball_data,
     probe_atom_types_from_name3,
     score_ligand_grid_batched,
@@ -521,18 +523,19 @@ class _LightweightGridObjective:
 
 
 class GridBackend(ScoringBackend):
-    """Rigid-receptor grid plus live hbond and selectable LK-ball scoring.
+    """Rigid-receptor grid plus live hbond, intra, and LK-ball scoring.
 
     One :class:`GridSet` is retained by the backend and shared by every pose.
     Device/dtype copies are cached once and do not scale with population size.
     The grid contains fa_atr, fa_rep, fa_sol, and fa_elec, plus three weighted
     LK-ball grid families when ``lk_ball_grid`` is true. One receptor hbond
-    structure and ligand-water topology are shared by every ligand pose;
-    ``lk_ball_grid=False`` retains the exact live LK-ball implementation.
-    Ligand-internal terms remain absent.
+    structure, ligand-intra topology, and ligand-water topology are shared by
+    every ligand pose; ``lk_ball_grid=False`` retains the exact live LK-ball
+    implementation. Ligand-intra search weights match Rosetta GridScorer's
+    softened ``oneb_wtd_`` objective.
     """
 
-    minimizer_kind = "analytic-grid-live-hbond-lkball-f1f2-no-autograd"
+    minimizer_kind = "analytic-grid-live-hbond-lkball-local-intra-autograd-f1f2"
 
     def __init__(
         self,
@@ -544,8 +547,10 @@ class GridBackend(ScoringBackend):
         *,
         kin_dtype: Optional[torch.dtype] = None,
         live_hbond: Optional[LiveHBondData] = None,
+        live_ligand_intra: Optional[LiveLigandIntraData] = None,
         live_lk_ball: Optional[LiveLKBallData] = None,
         lk_ball_grid: bool = False,
+        include_ligand_intra: bool = True,
     ) -> None:
         if not isinstance(grids, GridSet):
             raise TypeError("grids must be a GridSet")
@@ -563,6 +568,8 @@ class GridBackend(ScoringBackend):
             raise ValueError("kin_dtype must be torch.float32 or torch.float64")
         if not isinstance(lk_ball_grid, bool):
             raise TypeError("lk_ball_grid must be bool")
+        if not isinstance(include_ligand_intra, bool):
+            raise TypeError("include_ligand_intra must be bool")
         unknown_types = sorted(
             set(ligand_atom_types) - set(grids.atom_type_names)
         )
@@ -580,11 +587,32 @@ class GridBackend(ScoringBackend):
         self.kin_dtype = kin_dtype
         if live_hbond is not None and not isinstance(live_hbond, LiveHBondData):
             raise TypeError("live_hbond must be LiveHBondData or None")
+        if live_ligand_intra is not None and not isinstance(
+            live_ligand_intra, LiveLigandIntraData
+        ):
+            raise TypeError(
+                "live_ligand_intra must be LiveLigandIntraData or None"
+            )
+        if (
+            live_ligand_intra is not None
+            and live_ligand_intra.n_ligand_atoms != len(ligand_atom_types)
+        ):
+            raise ValueError(
+                "live_ligand_intra atom count does not match ligand_atom_types"
+            )
+        if include_ligand_intra and live_ligand_intra is None:
+            raise ValueError(
+                "include_ligand_intra=True requires a live_ligand_intra; pass one "
+                "(GridBackend.from_pose_stack builds it) or set "
+                "include_ligand_intra=False to disable ligand-intra scoring"
+            )
         if live_lk_ball is not None and not isinstance(live_lk_ball, LiveLKBallData):
             raise TypeError("live_lk_ball must be LiveLKBallData or None")
         self.live_hbond = live_hbond
+        self.live_ligand_intra = live_ligand_intra if include_ligand_intra else None
         self.live_lk_ball = live_lk_ball
         self.lk_ball_grid = lk_ball_grid
+        self.include_ligand_intra = include_ligand_intra
         if lk_ball_grid and any(
             value is None
             for value in (grids.lk_ball, grids.lk_ball_water, grids.lk_bridge)
@@ -594,6 +622,9 @@ class GridBackend(ScoringBackend):
             raise ValueError("lk_ball_grid=True requires ligand water topology")
         self._grid_cache: dict[tuple[torch.device, torch.dtype], GridSet] = {}
         self._hbond_cache: dict[tuple[torch.device, torch.dtype], LiveHBondData] = {}
+        self._intra_cache: dict[
+            tuple[torch.device, torch.dtype], LiveLigandIntraData
+        ] = {}
         self._lk_ball_cache: dict[tuple[torch.device, torch.dtype], LiveLKBallData] = {}
         self._charge_cache: dict[
             tuple[torch.device, torch.dtype], torch.Tensor
@@ -634,17 +665,21 @@ class GridBackend(ScoringBackend):
         bbox_padding: float = 4.0,
         kin_dtype: Optional[torch.dtype] = None,
         lk_ball_grid: bool = True,
+        include_ligand_intra: bool = True,
     ) -> "GridBackend":
         """Build one CPU receptor grid/live-term structure and reusable backend.
 
         ``lk_ball_grid=True`` selects Rosetta's weighted gridded approximation;
-        ``False`` retains the exact live LK-ball path.
+        ``False`` retains the exact live LK-ball path. Ligand-intra scoring is
+        enabled by default with Rosetta's softened search profile.
         """
 
         if reference_pose_stack.n_poses != 1:
             raise ValueError("grid construction requires one reference pose")
         if reference_pose_stack.device.type != "cpu":
             raise ValueError("grid construction requires a CPU reference pose")
+        if not isinstance(include_ligand_intra, bool):
+            raise TypeError("include_ligand_intra must be bool")
         if ligand_block < 0 or ligand_block >= reference_pose_stack.max_n_blocks:
             raise ValueError("ligand_block is out of range")
         block_type_index = int(
@@ -671,6 +706,16 @@ class GridBackend(ScoringBackend):
             build_lk_ball=lk_ball_grid,
         )
         live_hbond = build_live_hbond_data(reference_pose_stack, ligand_block, param_db)
+        live_ligand_intra = (
+            build_live_ligand_intra_data(
+                reference_pose_stack,
+                ligand_block,
+                param_db,
+                weight_profile="search",
+            )
+            if include_ligand_intra
+            else None
+        )
         live_lk_ball = build_live_lk_ball_data(
             reference_pose_stack, ligand_block, param_db
         )
@@ -690,8 +735,10 @@ class GridBackend(ScoringBackend):
             param_db,
             kin_dtype=kin_dtype,
             live_hbond=live_hbond,
+            live_ligand_intra=live_ligand_intra,
             live_lk_ball=live_lk_ball,
             lk_ball_grid=lk_ball_grid,
+            include_ligand_intra=include_ligand_intra,
         )
 
     def _score_function(self, device: torch.device) -> ScoreFunction:
@@ -737,6 +784,16 @@ class GridBackend(ScoringBackend):
         if key not in self._lk_ball_cache:
             self._lk_ball_cache[key] = self.live_lk_ball.to(device, dtype)
         return self._lk_ball_cache[key]
+
+    def _intra_for(
+        self, device: torch.device, dtype: torch.dtype
+    ) -> Optional[LiveLigandIntraData]:
+        if self.live_ligand_intra is None:
+            return None
+        key = (torch.device(device), dtype)
+        if key not in self._intra_cache:
+            self._intra_cache[key] = self.live_ligand_intra.to(device, dtype)
+        return self._intra_cache[key]
 
     def _ligand_atom_indices(
         self, pose_stack: PoseStack, ligand_block: int
@@ -791,6 +848,9 @@ class GridBackend(ScoringBackend):
             live_hbond=self._hbond_for(
                 ligand_coordinates.device, ligand_coordinates.dtype
             ),
+            live_ligand_intra=self._intra_for(
+                ligand_coordinates.device, ligand_coordinates.dtype
+            ),
             live_lk_ball=self._lk_ball_for(
                 ligand_coordinates.device, ligand_coordinates.dtype
             ),
@@ -811,6 +871,9 @@ class GridBackend(ScoringBackend):
             live_hbond=self._hbond_for(
                 ligand_coordinates.device, ligand_coordinates.dtype
             ),
+            live_ligand_intra=self._intra_for(
+                ligand_coordinates.device, ligand_coordinates.dtype
+            ),
             live_lk_ball=self._lk_ball_for(
                 ligand_coordinates.device, ligand_coordinates.dtype
             ),
@@ -818,7 +881,13 @@ class GridBackend(ScoringBackend):
         )
 
     def score(self, pose_stack: PoseStack) -> torch.Tensor:
-        """Return one grid-plus-live-term interface energy per pose."""
+        """Return one grid GA objective energy per pose.
+
+        This is the grid ligand-receptor terms (grid LJ/LK/elec + live hbond +
+        live LK-ball) plus, by default, the live ligand-intramolecular energy --
+        NOT a pure interface energy. Disable the intra contribution by building
+        the backend with ``include_ligand_intra=False``.
+        """
 
         atom_indices = self._ligand_atom_indices(
             pose_stack, self.ligand_block
@@ -849,11 +918,12 @@ class GridBackend(ScoringBackend):
     ) -> MinimizationResult:
         """Minimize with direct analytic grid and kinematic derivatives.
 
-        Unlike continuous minimization, this path never invokes autograd. The
-        optimizer holds only freed ligand DOFs and a bounded L-BFGS history;
-        each closure uses the valid full-pose KinForest ordering, short-lived
-        compiled kinematic and grid-gradient buffers, and explicitly assigned
-        gradients. Receptor DOFs remain fixed.
+        The optimizer holds only freed ligand DOFs and a bounded L-BFGS
+        history. Each closure uses the valid full-pose KinForest ordering,
+        short-lived compiled kinematic/grid-gradient buffers, and explicitly
+        assigned gradients. Ligand-intra kernels use a local autograd graph
+        internally and return detached values; no graph reaches the optimizer.
+        Receptor DOFs remain fixed.
         """
 
         if docking_dofs.ligand_block != self.ligand_block:

@@ -25,6 +25,7 @@ from tmol.dock.ga import _ligand_only_pose_stack
 from tmol.optimization.minimizers import build_kinforest_network, run_min
 from tmol.score import beta2016_score_function
 from tmol.score.gridscore import (
+    score_ligand_intra,
     score_ligand_grid,
     score_ligand_grid_batched,
 )
@@ -78,6 +79,34 @@ def grid_pose_case(cpu_grid_case, request):
     )
 
 
+def test_grid_backend_include_intra_requires_live_data(cpu_grid_case):
+    """include_ligand_intra=True must not silently omit the term (no live data)."""
+    case = cpu_grid_case
+    b = case.backend
+    common = (b.grids, case.ligand_block, b.ligand_atom_types, b.ligand_charges, case.param_db)
+    kw = dict(
+        kin_dtype=torch.float64,
+        live_hbond=b.live_hbond,
+        live_lk_ball=b.live_lk_ball,
+    )
+    # Enabled but no live data -> must raise, not silently disable.
+    with pytest.raises(ValueError, match="include_ligand_intra=True requires"):
+        GridBackend(*common, live_ligand_intra=None, include_ligand_intra=True, **kw)
+    # Explicitly disabled with no live data -> allowed, intra off.
+    disabled = GridBackend(
+        *common, live_ligand_intra=None, include_ligand_intra=False, **kw
+    )
+    assert disabled.live_ligand_intra is None
+    # Enabled with live data -> intra on.
+    enabled = GridBackend(
+        *common,
+        live_ligand_intra=b.live_ligand_intra,
+        include_ligand_intra=True,
+        **kw,
+    )
+    assert enabled.live_ligand_intra is not None
+
+
 def test_grid_backend_score_matches_direct_batched_grid_score(cpu_grid_case):
     case = cpu_grid_case
     atom_indices = case.backend._ligand_atom_indices(
@@ -94,6 +123,9 @@ def test_grid_backend_score_matches_direct_batched_grid_score(cpu_grid_case):
         case.backend._charges_for(torch.device("cpu"), torch.float64),
         score_function=case.backend._score_function(torch.device("cpu")),
         live_hbond=case.backend._hbond_for(torch.device("cpu"), torch.float64),
+        live_ligand_intra=case.backend._intra_for(
+            torch.device("cpu"), torch.float64
+        ),
         live_lk_ball=case.backend._lk_ball_for(torch.device("cpu"), torch.float64),
         lk_ball_grid=case.backend.lk_ball_grid,
     )
@@ -105,6 +137,9 @@ def test_grid_backend_score_matches_direct_batched_grid_score(cpu_grid_case):
     assert case.backend._hbond_cache[
         (torch.device("cpu"), torch.float64)
     ] is case.backend._hbond_for(torch.device("cpu"), torch.float64)
+    assert case.backend._intra_cache[
+        (torch.device("cpu"), torch.float64)
+    ] is case.backend._intra_for(torch.device("cpu"), torch.float64)
     assert case.backend._lk_ball_cache[
         (torch.device("cpu"), torch.float64)
     ] is case.backend._lk_ball_for(torch.device("cpu"), torch.float64)
@@ -170,6 +205,10 @@ def test_grid_backend_hbond_is_additive_and_shared(cpu_grid_case):
     assert hbond.receptor_acceptors.ndim == 3
     assert hbond.receptor_donors.shape[0] < case.reference.max_n_pose_atoms
     assert case.backend.for_ligand_block(0).live_hbond is case.backend.live_hbond
+    assert (
+        case.backend.for_ligand_block(0).live_ligand_intra
+        is case.backend.live_ligand_intra
+    )
     assert case.backend.for_ligand_block(0).live_lk_ball is case.backend.live_lk_ball
 
 
@@ -221,8 +260,12 @@ def test_grid_backend_gridded_lk_ball_is_single_total_and_shared(cpu_grid_case):
         lk_ball_grid=True,
     )
     assert full_channels.shape == (6,)
+    intra = score_ligand_intra(
+        case.backend._intra_for(torch.device("cpu"), torch.float64),
+        ligand_coordinates[:1],
+    )[0]
     torch.testing.assert_close(
-        full_channels.sum(), case.backend.score(case.population)[0]
+        full_channels.sum() + intra, case.backend.score(case.population)[0]
     )
 
     # Rosetta's water softmax/bridge softmin makes this a single channel; it is
@@ -279,6 +322,7 @@ def test_grid_backend_lk_ball_grid_false_uses_exact_live_path(cpu_grid_case):
         backend._charges_for(torch.device("cpu"), torch.float64),
         score_function=backend._score_function(torch.device("cpu")),
         live_hbond=backend._hbond_for(torch.device("cpu"), torch.float64),
+        live_ligand_intra=backend._intra_for(torch.device("cpu"), torch.float64),
         live_lk_ball=backend._lk_ball_for(torch.device("cpu"), torch.float64),
         lk_ball_grid=False,
     )
@@ -470,6 +514,7 @@ def test_ligand_only_grid_ga_matches_full_complex_cdk2_fp64(cpu_grid_case):
             case.param_db,
             kin_dtype=torch.float64,
             live_hbond=case.backend.live_hbond,
+            live_ligand_intra=case.backend.live_ligand_intra,
             live_lk_ball=case.backend.live_lk_ball,
             lk_ball_grid=lk_ball_grid,
         )
@@ -504,17 +549,22 @@ def test_ligand_only_grid_ga_matches_full_complex_cdk2_fp32(cpu_grid_case):
             case.param_db,
             kin_dtype=torch.float32,
             live_hbond=case.backend.live_hbond,
+            live_ligand_intra=case.backend.live_ligand_intra,
             live_lk_ball=case.backend.live_lk_ball,
             lk_ball_grid=lk_ball_grid,
         )
-        # Live mode reassociates like M2d-2 (~5e-4 A, keep 2e-3); the gridded
-        # mode's water log-sum-exp amplifies fp32 reassociation to ~3.3e-3, so it
-        # gets a separately justified 5e-3 (fp64 is bit-identical for both).
+        # The live ligand-intra energy adds more terms to the fp32 energy total,
+        # so its fp32 reassociation in the energy history now reaches ~2.4e-3
+        # (measured |dHistory|=2.42e-3 for the live mode); the gridded mode's
+        # water log-sum-exp already sat near that scale. Both get 5e-3, which the
+        # fp64 bit-identical test above (max |dCoord|=0) confirms is pure fp32
+        # reassociation, not divergence. A GA selection flip would diverge by
+        # O(0.1-1 A) and still fail this bound loudly.
         _assert_ligand_only_grid_ga_matches_full_complex(
             reference,
             ligand_block,
             backend,
-            5.0e-3 if lk_ball_grid else 2.0e-3,
+            5.0e-3,
         )
 
 
@@ -832,6 +882,10 @@ def test_run_docking_returns_ranked_single_cdk2_output(
             case.backend.ligand_charges,
             param_db,
             kin_dtype=dtype,
+            live_hbond=case.backend.live_hbond,
+            live_lk_ball=case.backend.live_lk_ball,
+            live_ligand_intra=case.backend.live_ligand_intra,
+            lk_ball_grid=case.backend.lk_ball_grid,
         )
     schedule = GASchedule(
         generations=1,

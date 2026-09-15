@@ -25,6 +25,7 @@ from tmol.score.score_types import ScoreType
 if TYPE_CHECKING:
     from tmol.score.score_function import ScoreFunction
     from .live_hbond import LiveHBondData
+    from .live_ligand_intra import LiveLigandIntraData
     from .live_lk_ball import LiveLKBallData
 
 
@@ -1008,6 +1009,7 @@ def score_ligand_grid_batched(
     *,
     score_function: "ScoreFunction | None" = None,
     live_hbond: "LiveHBondData | None" = None,
+    live_ligand_intra: "LiveLigandIntraData | None" = None,
     live_lk_ball: "LiveLKBallData | None" = None,
     lk_ball_grid: bool = False,
 ) -> torch.Tensor:
@@ -1015,8 +1017,9 @@ def score_ligand_grid_batched(
 
     ``ligand_coords`` has shape ``[n_poses, n_atoms, 3]``. Atom types and
     charges are shared by every pose. The result has shape ``[n_poses]`` and
-    contains the atom-summed, weighted grid total plus live hbond and either
-    the single gridded LK-ball total or the exact four-term live LK-ball total.
+    contains the atom-summed, weighted grid total plus live hbond, weighted
+    ligand-intramolecular energy, and either the single gridded LK-ball total
+    or the exact four-term live LK-ball total.
 
     It flattens all pose points before making one interpolation call per score
     channel; it neither copies nor rebuilds grid coefficients per pose. The
@@ -1128,6 +1131,13 @@ def score_ligand_grid_batched(
             ),
             dim=1,
         )
+    if live_ligand_intra is not None:
+        from .live_ligand_intra import score_ligand_intra
+
+        intra_energies = score_ligand_intra(live_ligand_intra, ligand_coords).to(
+            device=ligand_coords.device, dtype=ligand_coords.dtype
+        )
+        totals = totals + intra_energies
     return totals
 
 
@@ -1139,6 +1149,7 @@ def score_ligand_grid_batched_with_gradients(
     *,
     score_function: "ScoreFunction | None" = None,
     live_hbond: "LiveHBondData | None" = None,
+    live_ligand_intra: "LiveLigandIntraData | None" = None,
     live_lk_ball: "LiveLKBallData | None" = None,
     lk_ball_grid: bool = False,
 ) -> tuple[torch.Tensor, torch.Tensor]:
@@ -1149,8 +1160,9 @@ def score_ligand_grid_batched_with_gradients(
     applies the four all-atom grid-term weights, the inverse fa_rep transform
     derivative, the electrostatic charge multiplier, the out-of-bounds
     derivative, the grid-index-to-Cartesian scale, and the optional live hbond
-    and selected LK-ball derivatives explicitly. No input is attached to a torch
-    autograd graph, even if the caller supplies a requires-grad tensor.
+    and selected LK-ball derivatives explicitly. Ligand-intra derivatives use
+    a temporary local autograd graph over compiled term backward kernels. No
+    input or returned tensor remains attached to an autograd graph.
     """
     if ligand_coords.ndim != 3 or ligand_coords.shape[2] != 3:
         raise ValueError("ligand_coords must have shape [n_poses, n_atoms, 3]")
@@ -1305,6 +1317,19 @@ def score_ligand_grid_batched_with_gradients(
                     lk_ball_weights[None, :, None, None],
                 ),
                 dim=1,
+            )
+
+        if live_ligand_intra is not None:
+            from .live_ligand_intra import score_ligand_intra_with_gradients
+
+            intra_energies, intra_gradients = score_ligand_intra_with_gradients(
+                live_ligand_intra, ligand_coords
+            )
+            energies = energies + intra_energies.to(
+                device=ligand_coords.device, dtype=ligand_coords.dtype
+            )
+            coordinate_gradients = coordinate_gradients + intra_gradients.to(
+                device=ligand_coords.device, dtype=ligand_coords.dtype
             )
 
     return energies, coordinate_gradients

@@ -24,6 +24,13 @@ from .live_hbond import (
     score_ligand_hbond,
     score_ligand_hbond_with_gradients,
 )
+from .live_ligand_intra import (
+    LigandIntraWeightProfile,
+    LiveLigandIntraData,
+    build_live_ligand_intra_data,
+    score_ligand_intra,
+    score_ligand_intra_with_gradients,
+)
 from .live_lk_ball import (
     LiveLKBallData,
     build_live_lk_ball_data,
@@ -37,11 +44,14 @@ __all__ = [
     "LK_BALL_SCORE_TYPES",
     "LIVE_SCORE_TYPES",
     "LiveHBondData",
+    "LiveLigandIntraData",
     "LiveLKBallData",
+    "LigandIntraWeightProfile",
     "GridGeometry",
     "GridSet",
     "build_grid",
     "build_live_hbond_data",
+    "build_live_ligand_intra_data",
     "build_live_lk_ball_data",
     "compute_cubic_bspline_coefficients",
     "compute_grid_geometry",
@@ -53,6 +63,8 @@ __all__ = [
     "score_ligand_grid_batched_with_gradients",
     "score_ligand_hbond",
     "score_ligand_hbond_with_gradients",
+    "score_ligand_intra",
+    "score_ligand_intra_with_gradients",
     "score_ligand_lk_ball",
     "score_ligand_lk_ball_with_gradients",
     "xform_rep",
