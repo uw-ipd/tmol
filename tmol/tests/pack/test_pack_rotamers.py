@@ -672,6 +672,9 @@ def test_packing_pages_shared_lk_ball_dispatch(
 ):
     from tmol.score import _score_function
 
+    if torch_device.type != "cuda":
+        pytest.skip("sharing the fused dispatch across terms is a CUDA-only path")
+
     pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=10)
     pose_stack, task = setup_pose_stack_and_task([pose], torch_device, dun_sampler)
     pose_stack, rotamer_set = build_rotamers(
