@@ -463,6 +463,10 @@
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
+<span class="n">_MISSING_CIF_VALUE</span> <span class="o">=</span> <span class="p">(</span><span class="s2">""</span><span class="p">,</span> <span class="s2">"."</span><span class="p">,</span> <span class="s2">"?"</span><span class="p">)</span>
+<span class="n">_FORMAL_CHARGE_SPECIFIED</span> <span class="o">=</span> <span class="s2">"tmol_formal_charge_specified"</span>
+<span class="n">_SOURCE_FORMAL_CHARGE</span> <span class="o">=</span> <span class="s2">"tmol_source_formal_charge"</span>
+
 
 <div class="viewcode-block" id="component_chemistry_from_cif">
 <a class="viewcode-back" href="../../../api/io.html#tmol.io.component_chemistry_from_cif">[docs]</a>
@@ -596,29 +600,102 @@
     <span class="n">templates</span> <span class="o">=</span> <span class="n">_completion_templates</span><span class="p">(</span>
         <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">entry</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">array</span><span class="o">.</span><span class="n">_custom_ccd_registry</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
     <span class="p">)</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.ccd</span><span class="w"> </span><span class="kn">import</span> <span class="n">add_annotations_from_ccd</span><span class="p">,</span> <span class="n">custom_ccd_residues</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.ccd</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">add_annotations_from_ccd</span><span class="p">,</span>
+        <span class="n">custom_ccd_residues</span><span class="p">,</span>
+        <span class="n">get_available_ccd_codes</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.leaving_atoms</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_leaving_atoms</span>
+
+    <span class="n">authored_charges</span> <span class="o">=</span> <span class="n">_component_formal_charges</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
+    <span class="n">available_ccds</span> <span class="o">=</span> <span class="n">get_available_ccd_codes</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span> <span class="k">if</span> <span class="n">use_ccd</span> <span class="k">else</span> <span class="p">()</span>
+    <span class="n">authoritative_charges</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">authored_charges</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">template</span> <span class="ow">in</span> <span class="n">templates</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="n">charge_specified</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="p">(</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">index</span><span class="p">])</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">atom_name</span><span class="p">[</span><span class="n">index</span><span class="p">])</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+                <span class="p">)</span>
+                <span class="ow">in</span> <span class="n">authored_charges</span>
+                <span class="ow">or</span> <span class="nb">str</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">index</span><span class="p">])</span> <span class="ow">in</span> <span class="n">available_ccds</span>
+                <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">template</span><span class="p">))</span>
+            <span class="p">],</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">template</span><span class="o">.</span><span class="n">set_annotation</span><span class="p">(</span>
+            <span class="n">_FORMAL_CHARGE_SPECIFIED</span><span class="p">,</span>
+            <span class="n">charge_specified</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">authoritative_charges</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">index</span><span class="p">])</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">atom_name</span><span class="p">[</span><span class="n">index</span><span class="p">])</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">charge_specified</span><span class="p">)</span>
+        <span class="p">)</span>
 
     <span class="c1"># AtomWorks skips sanitation when its own completion is disabled. Repair</span>
     <span class="c1"># the final author-view graph with the same shared attachment chemistry.</span>
     <span class="k">with</span> <span class="n">custom_ccd_residues</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">_custom_ccd_registry</span><span class="p">):</span>
         <span class="n">specified</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="s2">"pdbx_formal_charge"</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">array</span><span class="p">),</span> <span class="s2">"?"</span><span class="p">))</span>
-        <span class="n">missing</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">specified</span><span class="p">,</span> <span class="p">(</span><span class="s2">""</span><span class="p">,</span> <span class="s2">"."</span><span class="p">,</span> <span class="s2">"?"</span><span class="p">))</span> <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span>
+        <span class="n">charge_specified</span> <span class="o">=</span> <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">specified</span><span class="p">,</span> <span class="n">_MISSING_CIF_VALUE</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">charge_specified</span><span class="p">):</span>
+            <span class="n">array</span><span class="o">.</span><span class="n">charge</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">specified</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="s2">"pdbx_formal_charge"</span><span class="p">):</span>
+            <span class="c1"># ``charge`` cannot distinguish an authored zero from its default.</span>
+            <span class="c1"># Keep that provenance for fail-closed ligand regeneration checks.</span>
+            <span class="n">array</span><span class="o">.</span><span class="n">set_annotation</span><span class="p">(</span>
+                <span class="n">_SOURCE_FORMAL_CHARGE</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">specified</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="n">missing</span> <span class="o">=</span> <span class="o">~</span><span class="n">charge_specified</span> <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span>
             <span class="n">array</span><span class="o">.</span><span class="n">res_name</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">_custom_ccd_registry</span><span class="p">)</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">missing</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
-            <span class="n">supplement</span> <span class="o">=</span> <span class="n">add_annotations_from_ccd</span><span class="p">(</span>
-                <span class="n">array</span><span class="p">[</span><span class="n">missing</span><span class="p">],</span>
-                <span class="n">annotations</span><span class="o">=</span><span class="p">[</span><span class="s2">"charge"</span><span class="p">],</span>
-                <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                <span class="n">ccd_mirror_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="n">array</span><span class="o">.</span><span class="n">charge</span><span class="p">[</span><span class="n">missing</span><span class="p">]</span> <span class="o">=</span> <span class="n">supplement</span><span class="o">.</span><span class="n">charge</span>
+            <span class="k">if</span> <span class="n">use_ccd</span><span class="p">:</span>
+                <span class="n">supplement</span> <span class="o">=</span> <span class="n">add_annotations_from_ccd</span><span class="p">(</span>
+                    <span class="n">array</span><span class="p">[</span><span class="n">missing</span><span class="p">],</span>
+                    <span class="n">annotations</span><span class="o">=</span><span class="p">[</span><span class="s2">"charge"</span><span class="p">],</span>
+                    <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">ccd_mirror_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">array</span><span class="o">.</span><span class="n">charge</span><span class="p">[</span><span class="n">missing</span><span class="p">]</span> <span class="o">=</span> <span class="n">supplement</span><span class="o">.</span><span class="n">charge</span>
+            <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">missing</span><span class="p">):</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">index</span><span class="p">])</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">atom_name</span><span class="p">[</span><span class="n">index</span><span class="p">])</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">authored_charges</span><span class="p">:</span>
+                    <span class="n">array</span><span class="o">.</span><span class="n">charge</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">authored_charges</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+                    <span class="n">charge_specified</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">elif</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">authoritative_charges</span><span class="p">:</span>
+                    <span class="n">charge_specified</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">array</span><span class="o">.</span><span class="n">set_annotation</span><span class="p">(</span><span class="n">_FORMAL_CHARGE_SPECIFIED</span><span class="p">,</span> <span class="n">charge_specified</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="s2">"pdbx_formal_charge"</span><span class="p">):</span>
             <span class="n">array</span><span class="o">.</span><span class="n">del_annotation</span><span class="p">(</span><span class="s2">"pdbx_formal_charge"</span><span class="p">)</span>
         <span class="n">array</span> <span class="o">=</span> <span class="n">with_unresolved_atoms</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">templates</span><span class="p">,</span> <span class="n">use_ccd</span><span class="o">=</span><span class="n">use_ccd</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">resolve_leaving_atoms</span><span class="p">(</span><span class="n">array</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">use_ccd</span> <span class="k">else</span> <span class="n">array</span></div>
 
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_component_formal_charges</span><span class="p">(</span><span class="n">block</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Return formal charges explicitly authored in ``chem_comp_atom``."""</span>
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="n">block</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="ow">or</span> <span class="s2">"chem_comp_atom"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">block</span>
+        <span class="ow">or</span> <span class="s2">"charge"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">block</span><span class="p">[</span><span class="s2">"chem_comp_atom"</span><span class="p">]</span>
+    <span class="p">):</span>
+        <span class="k">return</span> <span class="p">{}</span>
+    <span class="n">atoms</span> <span class="o">=</span> <span class="n">block</span><span class="p">[</span><span class="s2">"chem_comp_atom"</span><span class="p">]</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">comp</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span> <span class="nb">str</span><span class="p">(</span><span class="n">atom</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()):</span> <span class="nb">int</span><span class="p">(</span><span class="n">charge</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">comp</span><span class="p">,</span> <span class="n">atom</span><span class="p">,</span> <span class="n">charge</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="n">atoms</span><span class="p">[</span><span class="s2">"comp_id"</span><span class="p">]</span><span class="o">.</span><span class="n">as_array</span><span class="p">(</span><span class="nb">str</span><span class="p">),</span>
+            <span class="n">atoms</span><span class="p">[</span><span class="s2">"atom_id"</span><span class="p">]</span><span class="o">.</span><span class="n">as_array</span><span class="p">(</span><span class="nb">str</span><span class="p">),</span>
+            <span class="n">atoms</span><span class="p">[</span><span class="s2">"charge"</span><span class="p">]</span><span class="o">.</span><span class="n">as_array</span><span class="p">(</span><span class="nb">str</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">charge</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_MISSING_CIF_VALUE</span>
+    <span class="p">}</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_with_component_type_annotation</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">block</span><span class="p">):</span>
@@ -733,7 +810,9 @@
                 <span class="n">res_name</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">continue</span>
-        <span class="n">ends</span> <span class="o">=</span> <span class="n">completed_connection_atoms</span><span class="p">(</span><span class="n">residue</span><span class="p">,</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">connections</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ri</span><span class="p">,</span> <span class="p">())))</span>
+        <span class="c1"># Endpoint valence is meaningful only on the complete component</span>
+        <span class="c1"># topology, before unresolved heavy atoms are inserted below.</span>
+        <span class="n">ends</span> <span class="o">=</span> <span class="n">completed_connection_atoms</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">connections</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ri</span><span class="p">,</span> <span class="p">())))</span>
         <span class="n">missing</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">heavy</span> <span class="o">-</span> <span class="n">present</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">end</span> <span class="ow">in</span> <span class="n">ends</span> <span class="ow">or</span> <span class="p">():</span>
             <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">leaving</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="p">()):</span>
@@ -840,11 +919,13 @@
         <span class="n">source</span> <span class="o">=</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">get_annotation</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">field</span> <span class="o">==</span> <span class="s2">"atom_name"</span><span class="p">:</span>
             <span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">missing</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">field</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"element"</span><span class="p">,</span> <span class="s2">"charge"</span><span class="p">):</span>
+        <span class="k">elif</span> <span class="n">field</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"element"</span><span class="p">,</span> <span class="s2">"charge"</span><span class="p">,</span> <span class="n">_FORMAL_CHARGE_SPECIFIED</span><span class="p">):</span>
             <span class="n">values</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
                 <span class="n">template</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">template</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
             <span class="p">)</span>
             <span class="n">value</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">field</span> <span class="o">==</span> <span class="n">_SOURCE_FORMAL_CHARGE</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">missing</span><span class="p">),</span> <span class="s2">"?"</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">source</span><span class="p">[</span><span class="n">begin</span><span class="p">]]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">missing</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
         <span class="n">extra</span><span class="o">.</span><span class="n">set_annotation</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
