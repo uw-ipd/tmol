@@ -1113,14 +1113,14 @@ std::vector<Tensor> hbond_rotamer_spheres_op(
         auto result =
             HBondRotamerScoreDispatch<DispatchMethod, Dev, Real, Int>::
                 rotamer_spheres(
-                mgr,
-                TCAST(rot_coords),
-                TCAST(rot_coord_offset),
-                TCAST(first_rot_block_type),
-                TCAST(block_type_ind_for_rot),
-                TCAST(n_rots_for_block),
-                TCAST(rot_offset_for_block),
-                TCAST(block_type_n_atoms));
+                    mgr,
+                    TCAST(rot_coords),
+                    TCAST(rot_coord_offset),
+                    TCAST(first_rot_block_type),
+                    TCAST(block_type_ind_for_rot),
+                    TCAST(n_rots_for_block),
+                    TCAST(rot_offset_for_block),
+                    TCAST(block_type_n_atoms));
         rot_spheres = std::get<0>(result).tensor;
         block_spheres = std::get<1>(result).tensor;
       }));
@@ -1151,17 +1151,17 @@ Tensor hbond_rotamer_dispatch_page_op(
         dispatch_indices =
             HBondRotamerScoreDispatch<DispatchMethod, Dev, Real, Int>::
                 rotamer_dispatch_page(
-                        mgr,
-                        TCAST(first_rot_block_type),
-                        TCAST(block_spheres),
-                        TCAST(n_rots_for_block),
-                        TCAST(rot_offset_for_block),
-                        TCAST(rot_spheres),
-                        TCAST(lockstep_group_for_block),
-                        Real(reach),
-                        static_cast<Int>(candidate_begin),
-                        static_cast<Int>(candidate_end))
-                .tensor;
+                    mgr,
+                    TCAST(first_rot_block_type),
+                    TCAST(block_spheres),
+                    TCAST(n_rots_for_block),
+                    TCAST(rot_offset_for_block),
+                    TCAST(rot_spheres),
+                    TCAST(lockstep_group_for_block),
+                    Real(reach),
+                    static_cast<Int>(candidate_begin),
+                    static_cast<Int>(candidate_end))
+                    .tensor;
       }));
   return dispatch_indices;
 }

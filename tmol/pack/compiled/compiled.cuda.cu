@@ -555,8 +555,7 @@ struct Annealer {
 
     int const max_traj = std::max(
         std::max(n_hitemp_simA_traj, n_lotemp_simA_traj), n_fullquench_traj);
-    int const max_quench_lite_rots =
-        (max_n_rotamers - 1) / 31 + max_n_res;
+    int const max_quench_lite_rots = (max_n_rotamers - 1) / 31 + max_n_res;
 
     auto scores_hitemp_t =
         TPack<float, 2, D>::zeros({n_poses, n_hitemp_simA_traj});
