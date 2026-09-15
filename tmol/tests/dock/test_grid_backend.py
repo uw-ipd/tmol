@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 from types import SimpleNamespace
 
+import numpy
 import pytest
 import torch
 
@@ -20,6 +21,7 @@ from tmol.dock import (
     run_ga_docking,
 )
 from tmol.dock.dock_loop import _repeat_pose_stack
+from tmol.dock.ga import _ligand_only_pose_stack
 from tmol.optimization.minimizers import build_kinforest_network, run_min
 from tmol.score.gridscore import score_ligand_grid_batched
 from tmol.tests.dock.test_dock_loop import _load_cdk2_pose_on_device
@@ -27,6 +29,8 @@ from tmol.tests.dock.test_ligand_dof_roundtrip import (
     _ligand_block,
     _load_cdk2_pose,
 )
+
+CUDA_AVAILABLE = torch.cuda.is_available()
 
 
 @pytest.fixture(scope="module")
@@ -53,6 +57,22 @@ def cpu_grid_case():
     )
 
 
+@pytest.fixture(params=["full_complex", "ligand_only"])
+def grid_pose_case(cpu_grid_case, request):
+    case = cpu_grid_case
+    if request.param == "full_complex":
+        return case
+    population = _ligand_only_pose_stack(case.population, case.ligand_block)
+    docking_dofs = build_ligand_docking_dofs(population, 0)
+    return SimpleNamespace(
+        backend=case.backend.for_ligand_block(0),
+        population=population,
+        ligand_block=0,
+        docking_dofs=docking_dofs,
+        layout=LigandGeneLayout.from_pose_stack(population, docking_dofs),
+    )
+
+
 def test_grid_backend_score_matches_direct_batched_grid_score(cpu_grid_case):
     case = cpu_grid_case
     atom_indices = case.backend._ligand_atom_indices(
@@ -76,10 +96,177 @@ def test_grid_backend_score_matches_direct_batched_grid_score(cpu_grid_case):
     ] is case.backend._grid_for(torch.device("cpu"), torch.float64)
 
 
-def test_grid_minimize_returns_direct_optimizer_gene(
-    cpu_grid_case, monkeypatch
-):
+def test_ligand_only_pose_stack_preserves_cdk2_ligand(cpu_grid_case):
     case = cpu_grid_case
+    references = _repeat_pose_stack(case.reference, 2)
+    source_indices = case.backend._ligand_atom_indices(references, case.ligand_block)
+    references.coords[1, source_indices[1]] += 0.125
+    ligand_only = _ligand_only_pose_stack(references, case.ligand_block)
+    pose_indices = torch.arange(references.n_poses, dtype=torch.int64)
+
+    assert ligand_only.n_poses == references.n_poses
+    assert ligand_only.max_n_blocks == 1
+    assert ligand_only.max_n_pose_atoms == len(case.backend.ligand_atom_types)
+    assert ligand_only.inter_block_bondsep.shape[1:3] == (1, 1)
+    assert torch.all(ligand_only.chain_id == 0)
+    torch.testing.assert_close(
+        ligand_only.coords,
+        references.coords[pose_indices[:, None], source_indices],
+        rtol=0.0,
+        atol=0.0,
+    )
+    source_offset = int(references.block_coord_offset64[0, case.ligand_block])
+    n_atoms = ligand_only.max_n_pose_atoms
+    assert numpy.array_equal(
+        ligand_only.pdb_info.atom_occupancy,
+        references.pdb_info.atom_occupancy[:, source_offset : source_offset + n_atoms],
+    )
+    assert numpy.array_equal(
+        ligand_only.pdb_info.atom_b_factor,
+        references.pdb_info.atom_b_factor[:, source_offset : source_offset + n_atoms],
+    )
+
+
+def test_grid_ga_rejects_backend_for_another_ligand_block(cpu_grid_case):
+    case = cpu_grid_case
+    wrong_ligand_block = case.ligand_block - 1
+    with pytest.raises(ValueError, match="backend was built for ligand block"):
+        run_ga_docking(
+            case.reference,
+            wrong_ligand_block,
+            case.backend,
+            schedule=GASchedule(generations=1, npool=1, maxiter=1),
+        )
+
+
+class _FullComplexGridBackend:
+    """Legacy full-complex adapter used as the M6 numerical oracle."""
+
+    def __init__(self, backend):
+        self.backend = backend
+
+    def score(self, pose_stack):
+        return self.backend.score(pose_stack)
+
+    def minimize(self, pose_stack, docking_dofs, **kwargs):
+        return self.backend.minimize(pose_stack, docking_dofs, **kwargs)
+
+
+def _assert_ligand_only_grid_ga_matches_full_complex(
+    reference, ligand_block, backend, atol
+):
+    schedule = GASchedule(
+        generations=2,
+        npool=4,
+        rmsdthreshold=0.0,
+        pmut=0.2,
+        maxiter=5,
+    )
+    full_complex = run_ga_docking(
+        reference,
+        ligand_block,
+        _FullComplexGridBackend(backend),
+        schedule=schedule,
+        seed=20260822,
+    )
+    ligand_only = run_ga_docking(
+        reference,
+        ligand_block,
+        backend,
+        schedule=schedule,
+        seed=20260822,
+    )
+
+    history_err = float(
+        torch.max(
+            torch.abs(
+                ligand_only.best_energy_history - full_complex.best_energy_history
+            )
+        )
+    )
+    gene_err = float(
+        torch.max(torch.abs(ligand_only.best_genes - full_complex.best_genes))
+    )
+    coord_err = float(
+        torch.max(
+            torch.abs(
+                ligand_only.best_pose_stack.coords - full_complex.best_pose_stack.coords
+            )
+        )
+    )
+    print(
+        f"ligand-only vs full-complex grid GA ({ligand_only.best_genes.dtype}): "
+        f"max |dHistory|={history_err:.3e} max |dGene|={gene_err:.3e} "
+        f"max |dCoord|={coord_err:.3e} A (atol={atol:.1e})"
+    )
+    torch.testing.assert_close(
+        ligand_only.best_energy_history,
+        full_complex.best_energy_history,
+        rtol=0.0,
+        atol=atol,
+    )
+    torch.testing.assert_close(
+        ligand_only.best_genes,
+        full_complex.best_genes,
+        rtol=0.0,
+        atol=atol,
+    )
+    torch.testing.assert_close(
+        ligand_only.best_pose_stack.coords,
+        full_complex.best_pose_stack.coords,
+        rtol=0.0,
+        atol=atol,
+    )
+    assert ligand_only.pool.pose_stack.max_n_blocks == 1
+    assert ligand_only.pool.pose_stack.max_n_pose_atoms == len(
+        backend.ligand_atom_types
+    )
+    assert ligand_only.best_pose_stack.max_n_blocks == reference.max_n_blocks
+
+
+@pytest.mark.slow
+def test_ligand_only_grid_ga_matches_full_complex_cdk2_fp64(cpu_grid_case):
+    # Definitive equivalence gate. In double precision the ligand-only and
+    # full-complex representations run the identical ligand kinematics + grid
+    # scoring and this reproduces the full GA trajectory to machine precision
+    # (measured max |dHistory|=|dGene|=|dCoord|=0 in job 16255846).
+    case = cpu_grid_case
+    _assert_ligand_only_grid_ga_matches_full_complex(
+        case.reference, case.ligand_block, case.backend, 1.0e-9
+    )
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(not CUDA_AVAILABLE, reason="requires a CUDA device")
+def test_ligand_only_grid_ga_matches_full_complex_cdk2_fp32(cpu_grid_case):
+    # Single precision cannot reproduce the fp64 bit-equivalence above: the two
+    # representations fold the ligand through different kinforest node orderings,
+    # so fp32 reassociation alone perturbs coordinates by ~5e-4 A (measured max
+    # |dCoord|=4.79e-4 A, |dGene|=1.5e-4, |dHistory|=4.6e-5 in job 16255847) --
+    # negligible versus any docking-relevant scale. The tolerance reflects that
+    # measured fp32 reassociation with margin; the fp64 test above is the actual
+    # mathematical-equivalence gate. A GA selection flip would diverge by O(0.1-1
+    # A) and still fail this bound loudly.
+    case = cpu_grid_case
+    reference, _ = _load_cdk2_pose_on_device(torch.device("cuda"))
+    ligand_block = _ligand_block(reference)
+    backend = GridBackend(
+        case.backend.grids,
+        ligand_block,
+        case.backend.ligand_atom_types,
+        case.backend.ligand_charges,
+        case.param_db,
+        kin_dtype=torch.float32,
+    )
+    _assert_ligand_only_grid_ga_matches_full_complex(
+        reference, ligand_block, backend, 2.0e-3
+    )
+
+
+def test_grid_minimize_returns_direct_optimizer_gene(
+    grid_pose_case, monkeypatch
+):
+    case = grid_pose_case
     genes = case.layout.genes_from_pose_stack(case.population)
     genes[:, :6] += torch.tensor(
         [0.2, -0.1, 0.15, 0.08, -0.06, 0.04], dtype=genes.dtype
@@ -120,8 +307,8 @@ def test_grid_minimize_returns_direct_optimizer_gene(
     )
 
 
-def test_lightweight_grid_dof_gradient_matches_finite_difference(cpu_grid_case):
-    case = cpu_grid_case
+def test_lightweight_grid_dof_gradient_matches_finite_difference(grid_pose_case):
+    case = grid_pose_case
     genes = case.layout.genes_from_pose_stack(case.population)
     genes[0, :6] += torch.tensor(
         [0.11, -0.07, 0.05, 0.03, -0.02, 0.04], dtype=genes.dtype
@@ -138,14 +325,13 @@ def test_lightweight_grid_dof_gradient_matches_finite_difference(cpu_grid_case):
         torch.float64,
         raw_dofs,
     )
-    # The lightweight objective now reuses the VALID full-pose kinforest (detached,
-    # no retained autograd graph) rather than a re-extracted ligand-only subtree, so
-    # the raw parent indices follow tmol's kinforest numbering (not a naive
-    # parent<child order). The load-bearing checks are the analytic-vs-finite-diff
-    # gradient and grad_fn is None (graph-free) below.
-    assert objective.forest.id.numel() > (
-        1 + proposed.n_poses * len(case.backend.ligand_atom_types)
-    )
+    # Each representation uses its complete, valid kinforest, detached from
+    # autograd. Only the full complex includes frozen receptor nodes.
+    ligand_node_count = 1 + proposed.n_poses * len(case.backend.ligand_atom_types)
+    if proposed.max_n_blocks == 1:
+        assert objective.forest.id.numel() == ligand_node_count
+    else:
+        assert objective.forest.id.numel() > ligand_node_count
     masked = objective.initial_masked_dofs.clone().requires_grad_(True)
     energies, analytic = objective.energy_and_gradient(masked)
     finite = torch.empty_like(analytic)
@@ -169,8 +355,8 @@ def test_lightweight_grid_dof_gradient_matches_finite_difference(cpu_grid_case):
 
 
 @pytest.mark.slow
-def test_lightweight_grid_minimize_matches_autograd_reference(cpu_grid_case):
-    case = cpu_grid_case
+def test_lightweight_grid_minimize_matches_autograd_reference(grid_pose_case):
+    case = grid_pose_case
     genes = case.layout.genes_from_pose_stack(case.population)
     genes[:, :6] += torch.tensor(
         [0.2, -0.1, 0.15, 0.08, -0.06, 0.04], dtype=genes.dtype
@@ -428,9 +614,20 @@ def test_run_docking_returns_ranked_single_cdk2_output(
         result.best_genes, result.ranked_genes[:, 0], rtol=0.0, atol=0.0
     )
     best_index = torch.argsort(result.ga_result.pool.energies)[:1]
+    expected_coords = result.ga_result.pool.pose_stack.coords[best_index]
+    if backend_kind == "grid":
+        assert result.ga_result.pool.pose_stack.max_n_blocks == 1
+        assert expected_coords.shape[1] == len(backend.ligand_atom_types)
+        ligand_indices = backend._ligand_atom_indices(reference, ligand_block)[0]
+        complex_coords = reference.coords.clone()
+        complex_coords[:, ligand_indices] = expected_coords
+        expected_coords = complex_coords
+    assert result.best_pose_stack.max_n_blocks == reference.max_n_blocks
+    assert result.best_pose_stack.pdb_info is reference.pdb_info
+    assert result.best_pose_stack.constraint_set is reference.constraint_set
     torch.testing.assert_close(
         result.best_pose_stack.coords,
-        result.ga_result.pool.pose_stack.coords[best_index],
+        expected_coords,
         rtol=0.0,
         atol=0.0,
     )

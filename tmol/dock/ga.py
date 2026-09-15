@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 import attr
+import numpy
 import torch
 
 from tmol.dock.dock_loop import DockingPerturbation, _repeat_pose_stack
@@ -29,10 +30,15 @@ from tmol.dock.ligand_dofs import (
     _wrap_angle,
     build_ligand_docking_dofs,
 )
-from tmol.dock.scoring_backend import MinimizationResult, ScoringBackend
+from tmol.dock.scoring_backend import (
+    GridBackend,
+    MinimizationResult,
+    ScoringBackend,
+)
 from tmol.kinematics.datatypes import JumpDOFTypes, NodeType
 from tmol.kinematics.move_map import MinimizerMap
 from tmol.kinematics.script_modules import PoseStackKinematicsModule
+from tmol.pose.pdb_info import PDBInfo
 from tmol.pose.pose_stack import PoseStack
 
 
@@ -328,6 +334,141 @@ class DockingResult:
     ranked_energies: torch.Tensor
     ranked_genes: torch.Tensor
     ga_result: GAResult
+
+
+def _ligand_only_pose_stack(pose_stack: PoseStack, ligand_block: int) -> PoseStack:
+    """Select a disconnected ligand block into a single-block PoseStack.
+
+    Coordinates and ligand metadata are copied exactly from each input pose.
+    Inter-block connections are empty, the retained diagonal bond-separation
+    table is 1x1, and the ligand is assigned to the only chain. Constraints are
+    omitted because the grid backend does not score them; the original
+    constraint set remains on the full-complex result PoseStack.
+    """
+
+    if not isinstance(ligand_block, int) or isinstance(ligand_block, bool):
+        raise TypeError("ligand_block must be an integer")
+    if ligand_block < 0 or ligand_block >= pose_stack.max_n_blocks:
+        raise ValueError("ligand_block is out of range")
+    if pose_stack.fragmented_ligand_mapping is not None:
+        raise ValueError(
+            "ligand-only docking does not support fragmented-ligand metadata"
+        )
+
+    block_type_indices = pose_stack.block_type_ind64[:, ligand_block]
+    if bool(torch.any(block_type_indices < 0)):
+        raise ValueError("ligand_block is absent from at least one pose")
+    if not bool(torch.all(block_type_indices == block_type_indices[0])):
+        raise ValueError("ligand-only docking requires one homogeneous ligand type")
+    block_type_index = int(block_type_indices[0])
+    block_type = pose_stack.packed_block_types.active_block_types[block_type_index]
+    n_atoms = block_type.n_atoms
+
+    source_connections = pose_stack.inter_residue_connections64[
+        :, ligand_block : ligand_block + 1
+    ]
+    if bool(torch.any(source_connections[..., 0] >= 0)):
+        raise ValueError(
+            "ligand-only grid docking requires a disconnected ligand block"
+        )
+
+    pose_indices = torch.arange(
+        pose_stack.n_poses, dtype=torch.int64, device=pose_stack.device
+    )
+    atom_indices = (
+        pose_stack.block_coord_offset64[:, ligand_block, None]
+        + torch.arange(n_atoms, dtype=torch.int64, device=pose_stack.device)[None, :]
+    )
+    coords = pose_stack.coords[pose_indices[:, None], atom_indices].clone()
+    block_coord_offset = torch.zeros(
+        (pose_stack.n_poses, 1), dtype=torch.int32, device=pose_stack.device
+    )
+    inter_residue_connections64 = torch.full_like(source_connections, -1)
+    inter_block_bondsep64 = pose_stack.inter_block_bondsep64[
+        :,
+        ligand_block : ligand_block + 1,
+        ligand_block : ligand_block + 1,
+    ].clone()
+    block_type_ind64 = block_type_indices[:, None].clone()
+    chain_id64 = torch.zeros_like(block_type_ind64)
+
+    source_atom_offsets = (
+        pose_stack.block_coord_offset64[:, ligand_block].detach().cpu().numpy()
+    )
+    pdb_atom_indices = source_atom_offsets[:, None] + numpy.arange(n_atoms)[None, :]
+    pdb_pose_indices = numpy.arange(pose_stack.n_poses)[:, None]
+    pdb_info = PDBInfo(
+        residue_labels=pose_stack.pdb_info.residue_labels[
+            :, ligand_block : ligand_block + 1
+        ].copy(),
+        residue_insertion_codes=pose_stack.pdb_info.residue_insertion_codes[
+            :, ligand_block : ligand_block + 1
+        ].copy(),
+        chain_labels=pose_stack.pdb_info.chain_labels[
+            :, ligand_block : ligand_block + 1
+        ].copy(),
+        atom_occupancy=pose_stack.pdb_info.atom_occupancy[
+            pdb_pose_indices, pdb_atom_indices
+        ].copy(),
+        atom_b_factor=pose_stack.pdb_info.atom_b_factor[
+            pdb_pose_indices, pdb_atom_indices
+        ].copy(),
+    )
+
+    return PoseStack(
+        packed_block_types=pose_stack.packed_block_types,
+        coords=coords,
+        block_coord_offset=block_coord_offset,
+        block_coord_offset64=block_coord_offset.to(torch.int64),
+        inter_residue_connections=inter_residue_connections64.to(torch.int32),
+        inter_residue_connections64=inter_residue_connections64,
+        inter_block_bondsep=inter_block_bondsep64.to(torch.int32),
+        inter_block_bondsep64=inter_block_bondsep64,
+        block_type_ind=block_type_ind64.to(torch.int32),
+        block_type_ind64=block_type_ind64,
+        chain_id=chain_id64.to(torch.int32),
+        chain_id64=chain_id64,
+        pdb_info=pdb_info,
+        constraint_set=None,
+        device=pose_stack.device,
+    )
+
+
+def _place_ligand_in_reference(
+    reference_pose_stack: PoseStack,
+    ligand_block: int,
+    ligand_pose_stack: PoseStack,
+) -> PoseStack:
+    """Copy one-block ligand coordinates into an unreplicated complex stack."""
+
+    if ligand_pose_stack.n_poses != reference_pose_stack.n_poses:
+        raise ValueError("ligand and reference pose counts must match")
+    block_type_indices = reference_pose_stack.block_type_ind64[:, ligand_block]
+    if not bool(
+        torch.all(block_type_indices == ligand_pose_stack.block_type_ind64[:, 0])
+    ):
+        raise ValueError("ligand and reference block types must match")
+    block_type_index = int(block_type_indices[0])
+    n_atoms = reference_pose_stack.packed_block_types.active_block_types[
+        block_type_index
+    ].n_atoms
+    if ligand_pose_stack.coords.shape[1] != n_atoms:
+        raise ValueError("ligand atom counts must match")
+
+    pose_indices = torch.arange(
+        reference_pose_stack.n_poses,
+        dtype=torch.int64,
+        device=reference_pose_stack.device,
+    )
+    atom_indices = (
+        reference_pose_stack.block_coord_offset64[:, ligand_block, None]
+        + torch.arange(n_atoms, dtype=torch.int64, device=reference_pose_stack.device)[
+            None, :
+        ]
+    )
+    coords = reference_pose_stack.coords.clone()
+    coords[pose_indices[:, None], atom_indices] = ligand_pose_stack.coords
+    return attr.evolve(reference_pose_stack, coords=coords)
 
 
 def _unit_vectors(
@@ -971,7 +1112,11 @@ def run_ga_docking(
     pocket_bounds: torch.Tensor | None = None,
     random_placement: RandomPlacement = RandomPlacement(),
 ) -> GAResult:
-    """Dock one reference ligand using a population of candidate poses."""
+    """Dock one reference ligand using a population of candidate poses.
+
+    Grid docking uses ligand-only single-block candidate poses and restores
+    the winning ligand coordinates to the original full complex.
+    """
 
     if pose_stack.n_poses != 1:
         raise ValueError("pose_stack must contain one reference pose")
@@ -981,6 +1126,18 @@ def run_ga_docking(
         raise ValueError("initialization must be 'jitter' or 'random'")
     if not isinstance(random_placement, RandomPlacement):
         raise TypeError("random_placement must be a RandomPlacement")
+    complex_reference = None
+    complex_ligand_block = ligand_block
+    if isinstance(backend, GridBackend):
+        if backend.ligand_block != ligand_block:
+            raise ValueError(
+                f"backend was built for ligand block {backend.ligand_block}, "
+                f"not {ligand_block}"
+            )
+        complex_reference = pose_stack
+        pose_stack = _ligand_only_pose_stack(pose_stack, ligand_block)
+        ligand_block = 0
+        backend = backend.for_ligand_block(ligand_block)
     population = _repeat_pose_stack(pose_stack, schedule.npool)
     docking_dofs = build_ligand_docking_dofs(population, ligand_block)
     layout = LigandGeneLayout.from_pose_stack(population, docking_dofs)
@@ -1032,6 +1189,10 @@ def run_ga_docking(
         best_energies,
         best_pose_stack,
     ) = _ranked_result(pose_stack, pool)
+    if complex_reference is not None:
+        best_pose_stack = _place_ligand_in_reference(
+            complex_reference, complex_ligand_block, best_pose_stack
+        )
     return GAResult(
         pool=pool,
         best_energy_history=torch.stack(best_history),

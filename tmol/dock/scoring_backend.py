@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+import copy
 from dataclasses import dataclass
 from typing import Optional
 
@@ -572,8 +573,27 @@ class GridBackend(ScoringBackend):
         ] = {}
         self._score_functions: dict[torch.device, ScoreFunction] = {}
         self._atom_index_cache: dict[
-            tuple[torch.device, int, int, int, int], torch.Tensor
+            tuple[torch.device, int, int, int, int, int], torch.Tensor
         ] = {}
+
+    def for_ligand_block(self, ligand_block: int) -> "GridBackend":
+        """Return a lightweight view targeting another ligand block index.
+
+        Grid construction fixes the ligand chemistry, not its block position in
+        a scoring PoseStack. The ligand-only docking representation places the
+        same block type at index zero. A shallow copy preserves the single grid
+        and its device/dtype caches while allowing that representation to use
+        the ordinary backend contract, whose ``score`` method has no block
+        argument.
+        """
+
+        if not isinstance(ligand_block, int) or isinstance(ligand_block, bool):
+            raise TypeError("ligand_block must be an integer")
+        if ligand_block < 0:
+            raise ValueError("ligand_block must be nonnegative")
+        result = copy.copy(self)
+        result.ligand_block = ligand_block
+        return result
 
     @classmethod
     def from_pose_stack(
@@ -671,6 +691,7 @@ class GridBackend(ScoringBackend):
             pose_stack.n_poses,
             pose_stack.max_n_pose_atoms,
             pose_stack.max_n_blocks,
+            ligand_block,
             id(pose_stack.packed_block_types),
         )
         cached = self._atom_index_cache.get(cache_key)
