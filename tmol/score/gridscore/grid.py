@@ -24,6 +24,7 @@ from tmol.score.score_types import ScoreType
 if TYPE_CHECKING:
     from tmol.score.score_function import ScoreFunction
     from .live_hbond import LiveHBondData
+    from .live_lk_ball import LiveLKBallData
 
 
 DEFAULT_VOXEL_SPACING = 0.25
@@ -367,8 +368,20 @@ GRID_SCORE_TYPES = (
     ScoreType.fa_elec,
 )
 
-LIVE_SCORE_TYPES = (ScoreType.hbond,)
+LK_BALL_SCORE_TYPES = (
+    ScoreType.lk_ball_iso,
+    ScoreType.lk_ball,
+    ScoreType.lk_bridge,
+    ScoreType.lk_bridge_uncpl,
+)
+LIVE_SCORE_TYPES = (ScoreType.hbond,) + LK_BALL_SCORE_TYPES
 GRID_AND_LIVE_SCORE_TYPES = GRID_SCORE_TYPES + LIVE_SCORE_TYPES
+
+
+def _apply_live_weights(values: torch.Tensor, weights: torch.Tensor) -> torch.Tensor:
+    """Multiply live channels while making zero weights an exact mask."""
+
+    return torch.where(weights != 0, values * weights, torch.zeros_like(values))
 
 
 def interpolate_grid(
@@ -509,12 +522,13 @@ def score_ligand_grid(
     *,
     score_function: "ScoreFunction | None" = None,
     live_hbond: "LiveHBondData | None" = None,
+    live_lk_ball: "LiveLKBallData | None" = None,
 ) -> torch.Tensor:
     """Return weighted grid and optional live ligand-interface energies.
 
     ``ligand_atom_types`` contains chemical atom-type names in the same order as
-    ``ligand_coords``. Without ``live_hbond`` the returned tensor follows
-    :data:`GRID_SCORE_TYPES`; with it, an hbond channel is appended.
+    ``ligand_coords``. Live hbond and LK-ball channels are appended when their
+    corresponding shared receptor structures are supplied.
     The channel-only API clamps OOB coordinates but does not assign the
     boundary penalty to a score type; the batched total scorer includes it.
     """
@@ -584,15 +598,27 @@ def score_ligand_grid(
         [score_function.get_weight(score_type) for score_type in GRID_SCORE_TYPES]
     ).to(device=ligand_coords.device, dtype=ligand_coords.dtype)
     weighted_terms = torch.sum(unweighted_terms * weights, dim=0)
-    if live_hbond is None:
-        return weighted_terms
-    from .live_hbond import score_ligand_hbond
+    live_terms = [weighted_terms]
+    if live_hbond is not None:
+        from .live_hbond import score_ligand_hbond
 
-    hbond = score_ligand_hbond(live_hbond, ligand_coords.unsqueeze(0))[0]
-    hbond_weight = score_function.get_weight(ScoreType.hbond).to(
-        device=ligand_coords.device, dtype=ligand_coords.dtype
-    )
-    return torch.cat((weighted_terms, (hbond * hbond_weight).unsqueeze(0)))
+        hbond = score_ligand_hbond(live_hbond, ligand_coords.unsqueeze(0))[0]
+        hbond_weight = score_function.get_weight(ScoreType.hbond).to(
+            device=ligand_coords.device, dtype=ligand_coords.dtype
+        )
+        live_terms.append((hbond * hbond_weight).unsqueeze(0))
+    if live_lk_ball is not None:
+        from .live_lk_ball import score_ligand_lk_ball
+
+        lk_ball = score_ligand_lk_ball(live_lk_ball, ligand_coords.unsqueeze(0))[0]
+        lk_ball_weights = torch.stack(
+            [
+                score_function.get_weight(score_type)
+                for score_type in LK_BALL_SCORE_TYPES
+            ]
+        ).to(device=ligand_coords.device, dtype=ligand_coords.dtype)
+        live_terms.append(_apply_live_weights(lk_ball, lk_ball_weights))
+    return torch.cat(live_terms)
 
 
 def score_ligand_grid_batched(
@@ -603,13 +629,14 @@ def score_ligand_grid_batched(
     *,
     score_function: "ScoreFunction | None" = None,
     live_hbond: "LiveHBondData | None" = None,
+    live_lk_ball: "LiveLKBallData | None" = None,
 ) -> torch.Tensor:
     """Score many ligand poses against one shared receptor grid.
 
     ``ligand_coords`` has shape ``[n_poses, n_atoms, 3]``. Atom types and
     charges are shared by every pose. The result has shape ``[n_poses]`` and
-    contains the atom-summed, weighted grid total plus live hbond when its
-    shared receptor structure is supplied.
+    contains the atom-summed, weighted grid total plus live hbond and LK-ball
+    when their shared receptor structures are supplied.
 
     It flattens all pose points before making one interpolation call per score
     channel; it neither copies nor rebuilds grid coefficients per pose. The
@@ -699,6 +726,22 @@ def score_ligand_grid_batched(
             device=ligand_coords.device, dtype=ligand_coords.dtype
         )
         totals = totals + hbond_weight * score_ligand_hbond(live_hbond, ligand_coords)
+    if live_lk_ball is not None:
+        from .live_lk_ball import score_ligand_lk_ball
+
+        lk_ball_weights = torch.stack(
+            [
+                score_function.get_weight(score_type)
+                for score_type in LK_BALL_SCORE_TYPES
+            ]
+        ).to(device=ligand_coords.device, dtype=ligand_coords.dtype)
+        totals = totals + torch.sum(
+            _apply_live_weights(
+                score_ligand_lk_ball(live_lk_ball, ligand_coords),
+                lk_ball_weights,
+            ),
+            dim=1,
+        )
     return totals
 
 
@@ -710,6 +753,7 @@ def score_ligand_grid_batched_with_gradients(
     *,
     score_function: "ScoreFunction | None" = None,
     live_hbond: "LiveHBondData | None" = None,
+    live_lk_ball: "LiveLKBallData | None" = None,
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """Return per-pose grid energies and analytic Cartesian gradients.
 
@@ -718,8 +762,8 @@ def score_ligand_grid_batched_with_gradients(
     applies the four grid-term weights, the inverse fa_rep transform
     derivative, the electrostatic charge multiplier, the out-of-bounds
     derivative, the grid-index-to-Cartesian scale, and the optional live hbond
-    derivative explicitly. No input is attached to a torch autograd graph,
-    even if the caller supplies a requires-grad tensor.
+    and LK-ball derivatives explicitly. No input is attached to a torch
+    autograd graph, even if the caller supplies a requires-grad tensor.
     """
     if ligand_coords.ndim != 3 or ligand_coords.shape[2] != 3:
         raise ValueError("ligand_coords must have shape [n_poses, n_atoms, 3]")
@@ -841,6 +885,29 @@ def score_ligand_grid_batched_with_gradients(
             )
             energies = energies + hbond_weight * hbond_energies
             coordinate_gradients = coordinate_gradients + hbond_weight * hbond_gradients
+
+        if live_lk_ball is not None:
+            from .live_lk_ball import score_ligand_lk_ball_with_gradients
+
+            lk_ball_energies, lk_ball_gradients = score_ligand_lk_ball_with_gradients(
+                live_lk_ball, ligand_coords
+            )
+            lk_ball_weights = torch.stack(
+                [
+                    score_function.get_weight(score_type)
+                    for score_type in LK_BALL_SCORE_TYPES
+                ]
+            ).to(device=ligand_coords.device, dtype=ligand_coords.dtype)
+            energies = energies + torch.sum(
+                _apply_live_weights(lk_ball_energies, lk_ball_weights), dim=1
+            )
+            coordinate_gradients = coordinate_gradients + torch.sum(
+                _apply_live_weights(
+                    lk_ball_gradients,
+                    lk_ball_weights[None, :, None, None],
+                ),
+                dim=1,
+            )
 
     return energies, coordinate_gradients
 

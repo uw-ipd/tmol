@@ -9,6 +9,8 @@ _ops = load_ops(
         "grid_interp_pose_score.cuda.cu",
         "live_hbond.cpu.cpp",
         "live_hbond.cuda.cu",
+        "live_lk_ball.cpu.cpp",
+        "live_lk_ball.cuda.cu",
     ],
     "tmol_gridscore",
 )
@@ -18,3 +20,4 @@ evaluate_pairs = _ops.evaluate_pairs
 interpolate = _ops.interpolate
 interpolate_with_derivatives = _ops.interpolate_with_derivatives
 live_hbond = _ops.live_hbond
+live_lk_ball = _ops.live_lk_ball

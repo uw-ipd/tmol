@@ -15,6 +15,7 @@
 #include <tmol/score/common/device_operations.hh>
 #include <tmol/score/gridscore/potentials/grid_interp_pose_score.hh>
 #include <tmol/score/gridscore/potentials/live_hbond.hh>
+#include <tmol/score/gridscore/potentials/live_lk_ball.hh>
 #include <tmol/score/ljlk/potentials/lj.hh>
 #include <tmol/score/ljlk/potentials/lk_isotropic.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
@@ -690,12 +691,172 @@ std::tuple<Tensor, Tensor> live_hbond(
   return std::make_tuple(energies, gradients);
 }
 
+std::tuple<Tensor, Tensor> live_lk_ball(
+    Tensor ligand_coords,
+    Tensor ligand_atom_params,
+    Tensor ligand_heavy_atoms,
+    Tensor ligand_polar_atoms,
+    Tensor ligand_atom_to_polar,
+    Tensor ligand_water_kinds,
+    Tensor ligand_water_atoms,
+    Tensor ligand_water_params,
+    Tensor ligand_water_is_ring,
+    Tensor receptor_coords,
+    Tensor receptor_params,
+    Tensor receptor_waters,
+    Tensor receptor_polar_atoms,
+    Tensor cell_origin,
+    Tensor cell_dims,
+    Tensor receptor_cell_offsets,
+    Tensor receptor_cell_indices,
+    Tensor receptor_polar_cell_offsets,
+    Tensor receptor_polar_cell_indices,
+    Tensor global_params,
+    bool use_cell_list) {
+  auto const device = ligand_coords.device();
+  auto const dtype = ligand_coords.scalar_type();
+  auto check_real = [&](Tensor const& value, char const* name) {
+    TORCH_CHECK(value.device() == device, name, " must match coordinate device");
+    TORCH_CHECK(value.scalar_type() == dtype, name, " must match coordinate dtype");
+    TORCH_CHECK(value.is_contiguous(), name, " must be contiguous");
+  };
+  auto check_int = [&](Tensor const& value, char const* name) {
+    TORCH_CHECK(value.device() == device, name, " must match coordinate device");
+    TORCH_CHECK(value.scalar_type() == torch::kInt64, name, " must be int64");
+    TORCH_CHECK(value.is_contiguous(), name, " must be contiguous");
+  };
+  check_real(ligand_coords, "ligand_coords");
+  check_real(ligand_atom_params, "ligand_atom_params");
+  check_real(ligand_water_params, "ligand_water_params");
+  check_real(receptor_coords, "receptor_coords");
+  check_real(receptor_params, "receptor_params");
+  check_real(receptor_waters, "receptor_waters");
+  check_real(cell_origin, "cell_origin");
+  check_real(global_params, "global_params");
+  check_int(ligand_heavy_atoms, "ligand_heavy_atoms");
+  check_int(ligand_polar_atoms, "ligand_polar_atoms");
+  check_int(ligand_atom_to_polar, "ligand_atom_to_polar");
+  check_int(ligand_water_kinds, "ligand_water_kinds");
+  check_int(ligand_water_atoms, "ligand_water_atoms");
+  check_int(ligand_water_is_ring, "ligand_water_is_ring");
+  check_int(receptor_polar_atoms, "receptor_polar_atoms");
+  check_int(cell_dims, "cell_dims");
+  check_int(receptor_cell_offsets, "receptor_cell_offsets");
+  check_int(receptor_cell_indices, "receptor_cell_indices");
+  check_int(receptor_polar_cell_offsets, "receptor_polar_cell_offsets");
+  check_int(receptor_polar_cell_indices, "receptor_polar_cell_indices");
+
+  TORCH_CHECK(
+      ligand_coords.dim() == 3 && ligand_coords.size(2) == 3
+          && ligand_coords.size(0) > 0 && ligand_coords.size(1) > 0,
+      "ligand_coords must have shape [n_poses, n_atoms, 3]");
+  int64_t const n_atoms = ligand_coords.size(1);
+  int64_t const n_ligand_polar = ligand_polar_atoms.size(0);
+  int64_t const n_receptor = receptor_coords.size(0);
+  int64_t const n_receptor_polar = receptor_polar_atoms.size(0);
+  TORCH_CHECK(
+      ligand_atom_params.dim() == 2 && ligand_atom_params.size(0) == n_atoms
+          && ligand_atom_params.size(1) == 9,
+      "ligand_atom_params must have shape [n_atoms, 9]");
+  TORCH_CHECK(
+      ligand_heavy_atoms.dim() == 1 && ligand_polar_atoms.dim() == 1
+          && ligand_atom_to_polar.dim() == 1
+          && ligand_atom_to_polar.size(0) == n_atoms,
+      "ligand atom index arrays have inconsistent shapes");
+  TORCH_CHECK(
+      ligand_water_kinds.dim() == 2
+          && ligand_water_kinds.size(0) == n_ligand_polar
+          && ligand_water_kinds.size(1) == 4
+          && ligand_water_atoms.dim() == 3
+          && ligand_water_atoms.size(0) == n_ligand_polar
+          && ligand_water_atoms.size(1) == 4
+          && ligand_water_atoms.size(2) == 3
+          && ligand_water_params.dim() == 3
+          && ligand_water_params.sizes() == ligand_water_atoms.sizes()
+          && ligand_water_is_ring.dim() == 2
+          && ligand_water_is_ring.sizes() == ligand_water_kinds.sizes(),
+      "ligand water arrays have inconsistent shapes");
+  TORCH_CHECK(
+      receptor_coords.dim() == 2 && receptor_coords.size(1) == 3
+          && n_receptor > 0 && receptor_params.dim() == 2
+          && receptor_params.size(0) == n_receptor
+          && receptor_params.size(1) == 9 && receptor_waters.dim() == 3
+          && receptor_waters.size(0) == n_receptor
+          && receptor_waters.size(1) == 4 && receptor_waters.size(2) == 3
+          && receptor_polar_atoms.dim() == 1,
+      "receptor LK-ball arrays have inconsistent shapes");
+  TORCH_CHECK(
+      cell_origin.dim() == 1 && cell_origin.size(0) == 3
+          && cell_dims.dim() == 1 && cell_dims.size(0) == 3,
+      "cell origin and dimensions must have shape [3]");
+  int64_t const n_cells = receptor_cell_offsets.size(0) - 1;
+  TORCH_CHECK(
+      receptor_cell_offsets.dim() == 1 && n_cells > 0
+          && receptor_polar_cell_offsets.dim() == 1
+          && receptor_polar_cell_offsets.size(0) == n_cells + 1,
+      "receptor cell offset arrays must have matching positive lengths");
+  TORCH_CHECK(
+      receptor_cell_indices.dim() == 1
+          && receptor_cell_indices.size(0) == n_receptor
+          && receptor_polar_cell_indices.dim() == 1
+          && receptor_polar_cell_indices.size(0) == n_receptor_polar,
+      "receptor cell index arrays have inconsistent shapes");
+  TORCH_CHECK(
+      global_params.dim() == 2 && global_params.size(0) == 1
+          && global_params.size(1) == 5,
+      "global_params must have shape [1, 5]");
+  TORCH_CHECK(
+      ligand_coords.size(0) <= std::numeric_limits<int>::max()
+          && n_atoms <= std::numeric_limits<int>::max()
+          && n_ligand_polar <= std::numeric_limits<int>::max(),
+      "live LK-ball dimensions exceed kernel integer range");
+
+  Tensor energies;
+  Tensor gradients;
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      ligand_coords.options(), "live_lk_ball", ([&] {
+        using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
+        auto result = LiveLKBallDispatch<
+                          common::DeviceOperations,
+                          Dev,
+                          Real,
+                          int64_t>::forward(
+            interpolation_context,
+            TCAST(ligand_coords),
+            TCAST(ligand_atom_params),
+            TCAST(ligand_heavy_atoms),
+            TCAST(ligand_polar_atoms),
+            TCAST(ligand_atom_to_polar),
+            TCAST(ligand_water_kinds),
+            TCAST(ligand_water_atoms),
+            TCAST(ligand_water_params),
+            TCAST(ligand_water_is_ring),
+            TCAST(receptor_coords),
+            TCAST(receptor_params),
+            TCAST(receptor_waters),
+            TCAST(receptor_polar_atoms),
+            TCAST(cell_origin),
+            TCAST(cell_dims),
+            TCAST(receptor_cell_offsets),
+            TCAST(receptor_cell_indices),
+            TCAST(receptor_polar_cell_offsets),
+            TCAST(receptor_polar_cell_indices),
+            TCAST(global_params),
+            use_cell_list);
+        energies = std::get<0>(result).tensor;
+        gradients = std::get<1>(result).tensor;
+      }));
+  return std::make_tuple(energies, gradients);
+}
+
 TORCH_LIBRARY(tmol_gridscore, m) {
   m.def("build_grid", &build_grid);
   m.def("evaluate_pairs", &evaluate_pairs);
   m.def("interpolate", &interpolate);
   m.def("interpolate_with_derivatives", &interpolate_with_derivatives);
   m.def("live_hbond", &live_hbond);
+  m.def("live_lk_ball", &live_lk_ball);
 }
 
 }  // namespace potentials
