@@ -70,6 +70,12 @@ struct DeviceOperations<tmol::Device::CUDA> {
 #endif
   }
 
+  static EIGEN_DEVICE_FUNC void bitwise_or(int32_t& target, int32_t value) {
+#ifdef __CUDA_ARCH__
+    atomicOr(reinterpret_cast<unsigned int*>(&target), unsigned(value));
+#endif
+  }
+
   template <typename Int, typename Func>
   static void foreach_combination_triple(
       ContextManager& mgr, Int dim1, Int dim2, Int dim3, Func f) {

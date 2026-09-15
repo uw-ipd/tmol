@@ -45,9 +45,11 @@ struct InteractionGraphBuilder {
           TPack<int64_t, 2, D>,    // rotamer_for_nonmolten_block
           TPack<int64_t, 1, D>,    // bc_rot_to_orig_rot
 
-          TPack<Real, 1, D>,  // bg/bg energies
-          TPack<Real, 1, D>,  // energy1b
-          TPack<int64_t, 3, D>,
+          TPack<Real, 1, D>,     // bg/bg energies
+          TPack<Real, 1, D>,     // energy1b
+          TPack<int64_t, 1, D>,  // neighbor row offsets
+          TPack<int32_t, 1, D>,  // neighbor blocks
+          TPack<int64_t, 1, D>,  // chunk offsets for neighbor block pairs
           TPack<int64_t, 1, D>,
           TPack<Real, 1, D> >;  // energy2b
 };
@@ -64,7 +66,9 @@ struct AnnealerDispatch {
       TView<int, 2, D> oneb_offsets,
       TView<int, 1, D> res_for_rot,
       int32_t chunk_size,
-      TView<int64_t, 3, D> chunk_offset_offsets,
+      TView<int64_t, 1, D> neighbor_row_offsets,
+      TView<int32_t, 1, D> neighbor_blocks,
+      TView<int64_t, 1, D> neighbor_chunk_offset_offsets,
       TView<int64_t, 1, D> chunk_offsets,
       TView<float, 1, D> energy1b,
       TView<float, 1, D> energy2b)
