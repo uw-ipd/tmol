@@ -555,6 +555,8 @@ struct Annealer {
 
     int const max_traj = std::max(
         std::max(n_hitemp_simA_traj, n_lotemp_simA_traj), n_fullquench_traj);
+    int const max_quench_lite_rots =
+        (max_n_rotamers - 1) / 31 + max_n_res;
 
     auto scores_hitemp_t =
         TPack<float, 2, D>::zeros({n_poses, n_hitemp_simA_traj});
@@ -591,8 +593,10 @@ struct Annealer {
     auto rotamer_assignments_final_t =
         TPack<int, 3, D>::zeros({n_poses, n_fullquench_traj, max_n_res});
 
-    auto quench_order_t =
-        TPack<int, 3, D>::zeros({n_poses, max_traj, max_n_rotamers});
+    auto quench_lite_order_t =
+        TPack<int, 3, D>::zeros({n_poses, max_traj, max_quench_lite_rots});
+    auto fullquench_order_t =
+        TPack<int, 3, D>::zeros({n_poses, n_fullquench_traj, max_n_rotamers});
 
     auto scores_hitemp = scores_hitemp_t.view;
     auto current_rotamer_assignments_hitemp =
@@ -621,7 +625,8 @@ struct Annealer {
     auto scores_final = scores_final_t.view;
     auto rotamer_assignments_final = rotamer_assignments_final_t.view;
 
-    auto quench_order = quench_order_t.view;
+    auto quench_lite_order = quench_lite_order_t.view;
+    auto fullquench_order = fullquench_order_t.view;
 
     // Increment the seed (and capture the current seed) for the
     // cuda generator. The number of calls to curand per thread
@@ -728,7 +733,7 @@ struct Annealer {
           ig,
           current_rotamer_assignments_hitemp[pose][traj_id],
           best_rotamer_assignments_hitemp[pose][traj_id],
-          quench_order[pose][traj_id],
+          quench_lite_order[pose][traj_id],
           high_temp_initial,
           low_temp_initial,
           n_outer_iterations_hitemp,
@@ -753,7 +758,7 @@ struct Annealer {
               ig,
               current_rotamer_assignments_hitemp_quenchlite[pose][traj_id],
               best_rotamer_assignments_hitemp[pose][traj_id],
-              quench_order[pose][traj_id],
+              quench_lite_order[pose][traj_id],
               high_temp_initial,
               low_temp_initial,
               1,  // quench on the (only) iteration
@@ -818,7 +823,7 @@ struct Annealer {
           ig,
           current_rotamer_assignments_lotemp[pose][traj_id],
           best_rotamer_assignments_lotemp[pose][traj_id],
-          quench_order[pose][traj_id],
+          quench_lite_order[pose][traj_id],
           high_temp_later,
           low_temp_later,
           n_outer_iterations_lotemp,
@@ -839,7 +844,7 @@ struct Annealer {
               ig,
               current_rotamer_assignments_lotemp[pose][traj_id],
               best_rotamer_assignments_lotemp[pose][traj_id],
-              quench_order[pose][traj_id],
+              quench_lite_order[pose][traj_id],
               high_temp_later,
               low_temp_later,
               1,  // quench on the (only) iteration
@@ -890,7 +895,7 @@ struct Annealer {
           ig,
           current_rotamer_assignments_fullquench[pose][traj_id],
           current_rotamer_assignments_fullquench[pose][traj_id],
-          quench_order[pose][traj_id],
+          fullquench_order[pose][traj_id],
           high_temp_later,
           low_temp_later,
           1,  // quench on the (only) iteration
