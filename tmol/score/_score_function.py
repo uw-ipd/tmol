@@ -1888,12 +1888,16 @@ class RotamerScoringModule:
         ]
         return min(compatible, key=lambda item: item[0])[1] if compatible else None
 
-    def _sequential_term_results(self, coords, execution_terms):
-        """Evaluate terms in order while reusing compatible sparse dispatches."""
+    def _sequential_term_results(
+        self, coords, execution_terms, retain_shared_dispatch=True
+    ):
+        """Evaluate terms in order, optionally retaining reusable dispatches."""
         dispatch_by_key = {}
         for term, score_weights, already_weighted in execution_terms:
-            shared_dispatch = self._compatible_dispatch(
-                term, dispatch_by_key, coords.device.type
+            shared_dispatch = (
+                self._compatible_dispatch(term, dispatch_by_key, coords.device.type)
+                if retain_shared_dispatch
+                else None
             )
             if already_weighted:
                 assert score_weights is not None
@@ -1905,7 +1909,11 @@ class RotamerScoringModule:
 
             cutoff = getattr(term, "block_neighbor_cutoff", None)
             dispatch_key = getattr(term, "rotamer_dispatch_key", None)
-            if dispatch_key is not None and cutoff is not None:
+            if (
+                retain_shared_dispatch
+                and dispatch_key is not None
+                and cutoff is not None
+            ):
                 dispatch_by_key.setdefault(dispatch_key, []).append((cutoff, result[1]))
             yield term, result, already_weighted
             # The consumer has retained the weighted values. Release the raw
@@ -1939,6 +1947,61 @@ class RotamerScoringModule:
             )
         return layout_index, compare_contents
 
+    @staticmethod
+    def _native_sparse_indices(indices: torch.Tensor) -> torch.Tensor:
+        """Normalize sparse coordinates for the native interaction graph."""
+        if indices.dtype == torch.int32:
+            return indices
+        if indices.dtype != torch.int64:
+            raise TypeError("rotamer score indices must have dtype int32 or int64")
+        if indices.numel() != 0:
+            min_index, max_index = torch.aminmax(indices)
+            if int(min_index) < 0 or int(max_index) > torch.iinfo(torch.int32).max:
+                raise OverflowError(
+                    "rotamer score indices exceed the native int32 range"
+                )
+        return indices.to(torch.int32)
+
+    def _iter_weighted_sparse_entries(
+        self, coords: torch.Tensor, *, retain_shared_dispatch: bool = True
+    ):
+        """Yield one weighted sparse score-term layout at a time.
+
+        The packing-only streaming path disables shared-dispatch retention so
+        advancing the iterator releases the preceding term's potentially large
+        index and score tensors. Public differentiable callers retain the
+        established dispatch reuse and consume this iterator into their current
+        aggregate representation.
+        """
+        if not torch.is_grad_enabled() and coords.requires_grad:
+            coords = coords.detach()
+
+        use_fused = (
+            self._fused_ljlk_elec is not None
+            and self._fused_ljlk_elec.is_compatible()
+            and not self.weights.requires_grad
+        )
+        execution_terms = self._execution_terms(use_fused)
+        term_results = self._sequential_term_results(
+            coords,
+            execution_terms,
+            retain_shared_dispatch=retain_shared_dispatch,
+        )
+        weights_offset = 0
+        for term, (scores, indices), already_weighted in term_results:
+            n_subterms = term.n_score_types if already_weighted else scores.shape[0]
+            indices = self._native_sparse_indices(indices)
+            if already_weighted:
+                weighted_values = scores[0]
+            else:
+                weights = self.weights[
+                    weights_offset : weights_offset + n_subterms, 0, 0, 0
+                ]
+                weighted_values = _weighted_score_sum(weights, scores)
+            weights_offset += n_subterms
+            yield term, indices, weighted_values
+            del scores, indices, weighted_values
+
     def _weighted_entries_by_layout(
         self, coords: torch.Tensor
     ) -> tuple[list[torch.Tensor], list[torch.Tensor], int | None, int | None]:
@@ -1948,8 +2011,6 @@ class RotamerScoringModule:
         important to the packer: COO construction promotes coordinates to
         int64, and coalescing then needs another potentially very large sort.
         """
-        if not torch.is_grad_enabled() and coords.requires_grad:
-            coords = coords.detach()
         # Accumulate weighted values and their indices across all terms at the
         # dense [nnz] level.  This avoids torch.stack on sparse tensors, which
         # previously created a [n_subterms, n_poses, n_rots, n_rots] 4D sparse
@@ -1959,8 +2020,6 @@ class RotamerScoringModule:
         layouts_by_nnz: dict[int, list[int]] = {}
         n_poses: int | None = None
         n_rots: int | None = None
-        weights_offset = 0
-
         differentiable = torch.is_grad_enabled() and (
             coords.requires_grad
             or self.weights.requires_grad
@@ -1997,44 +2056,35 @@ class RotamerScoringModule:
                 (term, future.result(), already_weighted)
                 for (term, _, already_weighted), future in zip(execution_terms, futures)
             )
+
+            def parallel_weighted_entries():
+                weights_offset = 0
+                for term, (scores, indices), already_weighted in term_results:
+                    n_subterms = (
+                        term.n_score_types if already_weighted else scores.shape[0]
+                    )
+                    if already_weighted:
+                        weighted_values = scores[0]
+                    else:
+                        weights = self.weights[
+                            weights_offset : weights_offset + n_subterms, 0, 0, 0
+                        ]
+                        weighted_values = _weighted_score_sum(weights, scores)
+                    weights_offset += n_subterms
+                    yield (
+                        term,
+                        self._native_sparse_indices(indices),
+                        weighted_values,
+                    )
+
+            weighted_entries = parallel_weighted_entries()
         else:
             # Do not retain every term's complete score/index tensors. CUDA
             # packing layouts can be many GiB apiece, so consume each result
             # before evaluating the next term.
-            term_results = self._sequential_term_results(coords, execution_terms)
+            weighted_entries = self._iter_weighted_sparse_entries(coords)
 
-        for term, (scores, indices), already_weighted in term_results:
-            # [n_subterms, nnz], [3, nnz]
-            n_subterms = term.n_score_types if already_weighted else scores.shape[0]
-
-            # Native rotamer terms already return compact int32 coordinates,
-            # while sparse/Python terms (notably constraints) may inherit
-            # PyTorch COO's int64 index dtype. Normalize only that uncommon
-            # path and reject a custom term whose coordinates cannot be
-            # represented by the native interaction graph.
-            if indices.dtype != torch.int32:
-                if indices.dtype != torch.int64:
-                    raise TypeError(
-                        "rotamer score indices must have dtype int32 or int64"
-                    )
-                if indices.numel() != 0:
-                    min_index, max_index = torch.aminmax(indices)
-                    if (
-                        int(min_index) < 0
-                        or int(max_index) > torch.iinfo(torch.int32).max
-                    ):
-                        raise OverflowError(
-                            "rotamer score indices exceed the native int32 range"
-                        )
-                indices = indices.to(torch.int32)
-
-            # Apply per-subterm weights and sum to [nnz] — no sparse tensor yet.
-            if already_weighted:
-                weighted_values = scores[0]
-            else:
-                w = self.weights[weights_offset : weights_offset + n_subterms, 0, 0, 0]
-                weighted_values = _weighted_score_sum(w, scores)
-
+        for term, indices, weighted_values in weighted_entries:
             # Several terms share the same block-pair dispatch. Pointer
             # identity is free to check at every size; reserve the device-wide
             # equality comparison for layouts large enough to recover its
@@ -2050,8 +2100,6 @@ class RotamerScoringModule:
                     layouts_by_nnz.setdefault(indices.shape[1], []).append(layout_index)
             else:
                 all_values[layout_index] = all_values[layout_index] + weighted_values
-            weights_offset += n_subterms
-
             if n_poses is None:
                 n_poses = term.n_poses
                 n_rots = term.n_rots
@@ -2059,7 +2107,7 @@ class RotamerScoringModule:
             # merging layouts, its temporary weighted values) alive during
             # the next call to the result generator. Autograd retains any
             # tensors it still needs for differentiable scoring.
-            del scores, weighted_values
+            del weighted_values
 
         return all_indices, all_values, n_poses, n_rots
 
