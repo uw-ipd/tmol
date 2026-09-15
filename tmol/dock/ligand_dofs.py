@@ -188,32 +188,78 @@ def _empirical_torsion_signs(
     raw_nodes: torch.Tensor,
     dof_types: torch.Tensor,
 ) -> torch.Tensor:
-    """Measure all d(declared-dihedral)/d(raw-DOF) signs together."""
+    """Measure and validate declared-dihedral responses to each raw DOF."""
 
+    if torsion_atoms.shape[0] == 0:
+        return torch.empty(0, dtype=torch.int64, device=raw_dofs.device)
+
+    # Measure the declared-dihedral responses in float64 regardless of the
+    # pose/docking dtype.  This is a one-shot, build-time geometric check, and
+    # float32 forward kinematics near the ligand root jump is not accurate
+    # enough for a 1e-3 finite-difference dihedral-response measurement: in
+    # float32 it produces spurious non-unit self-slopes and cross-coupling that
+    # are pure numerical artifacts, whereas the true geometry is clean unit-
+    # slope with near-zero coupling in float64 (worst observed cross-response
+    # ~3e-10 rad/rad across the validated ligands).  Only this
+    # validation is fp32-sensitive; the docking itself runs in the pose dtype.
+    measure_dofs = raw_dofs.double()
     delta = 1.0e-3
-    perturbed_dofs = raw_dofs.clone()
-    perturbed_dofs[raw_nodes, dof_types[None, :]] += delta
-
-    base_coords = kin_module(raw_dofs)
-    perturbed_coords = kin_module(perturbed_dofs)
+    base_coords = kin_module(measure_dofs)
     atom_nodes = ligand_nodes[:, torsion_atoms]
     base = _batched_coord_dihedrals(base_coords, atom_nodes)
-    changed = _batched_coord_dihedrals(perturbed_coords, atom_nodes)
-    slopes = _wrap_angle(changed - base) / delta
-    unit_slopes = torch.ones_like(slopes)
-    if not torch.allclose(
-        torch.abs(slopes), unit_slopes, rtol=5.0e-3, atol=5.0e-3
+
+    response_rows = []
+    for torsion_index in range(torsion_atoms.shape[0]):
+        perturbed_dofs = measure_dofs.clone()
+        perturbed_dofs[
+            raw_nodes[:, torsion_index], dof_types[torsion_index]
+        ] += delta
+        perturbed_coords = kin_module(perturbed_dofs)
+        changed = _batched_coord_dihedrals(perturbed_coords, atom_nodes)
+        response_rows.append(_wrap_angle(changed - base) / delta)
+    responses = torch.stack(response_rows, dim=1)
+    self_slopes = torch.diagonal(responses, dim1=1, dim2=2)
+
+    if not bool(torch.all(torch.isfinite(responses))):
+        raise ValueError(
+            "ligand torsion raw-DOF perturbation must have finite declared-"
+            f"dihedral responses; measured {responses.detach().cpu().tolist()}"
+        )
+
+    # Require UNIT magnitude, not merely non-degeneracy. The gene<->raw affine
+    # mapping (LigandTorsionDOF: logical = wrap(sign*raw + offset), with sign in
+    # {-1,+1} and a single-pose offset) carries NO scale term, so the public
+    # "gene == named logical chi" contract holds only when d(dihedral)/d(raw) is
+    # exactly +/-1. Measured in float64 the true self-slopes are unit to ~1e-10
+    # for every real ligand, so this costs nothing and still unblocks ache/egfr;
+    # a genuinely non-unit isolated response would silently miscalibrate the
+    # logical chi and must be rejected.
+    unit_tolerance = 5.0e-3
+    if not bool(
+        torch.all(torch.abs(torch.abs(self_slopes) - 1.0) <= unit_tolerance)
     ):
         raise ValueError(
             "ligand torsion raw-DOF perturbation must change its declared "
-            f"dihedral with unit slope; measured {slopes.detach().cpu().tolist()}"
+            f"dihedral with unit magnitude (tol {unit_tolerance}); measured "
+            f"{self_slopes.detach().cpu().tolist()}"
         )
 
-    positive = slopes > 0
+    isolation_tolerance = 1.0e-2
+    off_diagonal = ~torch.eye(
+        responses.shape[1], dtype=torch.bool, device=responses.device
+    )
+    if bool(torch.any(torch.abs(responses[:, off_diagonal]) > isolation_tolerance)):
+        raise ValueError(
+            "ligand torsion raw-DOF perturbation changes another declared "
+            f"dihedral by more than {isolation_tolerance} rad/rad; measured "
+            f"response matrices {responses.detach().cpu().tolist()}"
+        )
+
+    positive = self_slopes > 0
     if bool(torch.any(positive != positive[0:1])):
         raise ValueError(
             "ligand torsion raw-DOF slope has inconsistent signs across poses: "
-            f"{slopes.detach().cpu().tolist()}"
+            f"{self_slopes.detach().cpu().tolist()}"
         )
     return torch.where(positive[0], 1, -1)
 
@@ -249,9 +295,9 @@ def build_ligand_docking_dofs(
     opposite outer atom, matching Rosetta's bidirectional torsion lookup.
 
     The affine sign between the selected raw DOF and the declared four-atom
-    dihedral is measured by a small perturbation through the actual forward
-    kinematics and checked to have unit magnitude.  This makes the mapping
-    independent of which valid atom order declares the torsion.
+    dihedral is measured by small, one-at-a-time perturbations through the
+    actual forward kinematics.  Each response must be non-degenerate, isolated
+    from the other declared torsions, and sign-stable across poses.
 
     Every pose in the stack must place the same ligand block type at
     ``ligand_block``.  The returned MoveMap contains independent entries for
