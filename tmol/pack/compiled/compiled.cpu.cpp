@@ -6,6 +6,7 @@
 
 #include "simulated_annealing.hh"
 #include "compiled.impl.hh"
+#include "streaming_interaction_graph.impl.hh"
 
 #include <ctime>
 #include <vector>
@@ -308,6 +309,16 @@ template struct InteractionGraphBuilder<
     float,
     int64_t>;
 template struct InteractionGraphBuilder<
+    score::common::DeviceOperations,
+    tmol::Device::CPU,
+    double,
+    int64_t>;
+template struct StreamingInteractionGraph<
+    score::common::DeviceOperations,
+    tmol::Device::CPU,
+    float,
+    int64_t>;
+template struct StreamingInteractionGraph<
     score::common::DeviceOperations,
     tmol::Device::CPU,
     double,

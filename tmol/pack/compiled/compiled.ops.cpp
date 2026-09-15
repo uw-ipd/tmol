@@ -14,6 +14,7 @@
 
 #include "annealer.hh"
 #include "simulated_annealing.hh"
+#include "streaming_interaction_graph.hh"
 
 namespace tmol {
 namespace pack {
@@ -119,6 +120,160 @@ std::vector<Tensor> build_interaction_graph(
        chunk_pair_offset,
        energy2b});
   return result;
+}
+
+std::vector<Tensor> initialize_interaction_graph_topology(
+    int64_t const chunk_size,
+    Tensor n_rots_for_block,
+    Tensor n_bc_rots_for_molten_block,
+    Tensor energy_template) {
+  std::vector<Tensor> result;
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      energy_template.options(), "pack_initialize_ig_topology", ([&] {
+        constexpr tmol::Device Dev = device_t;
+        auto topology = StreamingInteractionGraph<
+            score::common::DeviceOperations,
+            Dev,
+            scalar_t,
+            int64_t>::
+            initialize(
+                mgr,
+                chunk_size,
+                TCAST(n_rots_for_block),
+                TCAST(n_bc_rots_for_molten_block));
+        result = {
+            std::get<0>(topology).tensor,
+            std::get<1>(topology).tensor,
+            std::get<2>(topology).tensor,
+            std::get<3>(topology).tensor,
+            std::get<4>(topology).tensor,
+            std::get<5>(topology).tensor};
+      }));
+  return result;
+}
+
+std::vector<Tensor> note_interaction_graph_topology(
+    int64_t const chunk_size,
+    Tensor n_rots_for_block,
+    Tensor rot_offset_for_block,
+    Tensor block_ind_for_rot,
+    Tensor orig_block_to_molten,
+    Tensor molten_block_chunk_offset,
+    Tensor n_chunks_per_pose,
+    Tensor pose_chunk_bitset_offset,
+    Tensor block_adjacency,
+    Tensor chunk_adjacency,
+    Tensor sparse_inds,
+    Tensor energy_template) {
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      energy_template.options(), "pack_note_ig_topology", ([&] {
+        constexpr tmol::Device Dev = device_t;
+        StreamingInteractionGraph<
+            score::common::DeviceOperations,
+            Dev,
+            scalar_t,
+            int64_t>::
+            note(
+                mgr,
+                chunk_size,
+                TCAST(n_rots_for_block),
+                TCAST(rot_offset_for_block),
+                TCAST(block_ind_for_rot),
+                TCAST(orig_block_to_molten),
+                TCAST(molten_block_chunk_offset),
+                TCAST(n_chunks_per_pose),
+                TCAST(pose_chunk_bitset_offset),
+                TCAST(block_adjacency),
+                TCAST(chunk_adjacency),
+                TCAST(sparse_inds));
+      }));
+  return {block_adjacency, chunk_adjacency};
+}
+
+std::vector<Tensor> finalize_interaction_graph_topology(
+    int64_t const chunk_size,
+    Tensor n_bc_rots_for_molten_block,
+    Tensor molten_block_chunk_offset,
+    Tensor n_chunks_per_pose,
+    Tensor pose_chunk_bitset_offset,
+    Tensor block_adjacency,
+    Tensor chunk_adjacency,
+    Tensor energy_template) {
+  std::vector<Tensor> result;
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      energy_template.options(), "pack_finalize_ig_topology", ([&] {
+        constexpr tmol::Device Dev = device_t;
+        auto topology = StreamingInteractionGraph<
+            score::common::DeviceOperations,
+            Dev,
+            scalar_t,
+            int64_t>::
+            finalize(
+                mgr,
+                chunk_size,
+                TCAST(n_bc_rots_for_molten_block),
+                TCAST(molten_block_chunk_offset),
+                TCAST(n_chunks_per_pose),
+                TCAST(pose_chunk_bitset_offset),
+                TCAST(block_adjacency),
+                TCAST(chunk_adjacency));
+        result = {
+            std::get<0>(topology).tensor,
+            std::get<1>(topology).tensor,
+            std::get<2>(topology).tensor,
+            std::get<3>(topology).tensor,
+            std::get<4>(topology).tensor};
+      }));
+  return result;
+}
+
+std::vector<Tensor> accumulate_interaction_graph_entries(
+    int64_t const chunk_size,
+    Tensor n_rots_for_block,
+    Tensor rot_offset_for_block,
+    Tensor block_ind_for_rot,
+    Tensor orig_block_to_molten,
+    Tensor rotamer_for_nonmolten_block,
+    Tensor n_bc_rots_for_molten_block,
+    Tensor bc_rot_offset_for_molten_block,
+    Tensor neighbor_row_offsets,
+    Tensor neighbor_blocks,
+    Tensor neighbor_chunk_offset_offsets,
+    Tensor chunk_offsets,
+    Tensor bg_bg_energies,
+    Tensor energy1b,
+    Tensor energy2b,
+    Tensor sparse_inds,
+    Tensor sparse_energies) {
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      sparse_energies.options(), "pack_accumulate_ig_entries", ([&] {
+        constexpr tmol::Device Dev = device_t;
+        StreamingInteractionGraph<
+            score::common::DeviceOperations,
+            Dev,
+            scalar_t,
+            int64_t>::
+            accumulate(
+                mgr,
+                chunk_size,
+                TCAST(n_rots_for_block),
+                TCAST(rot_offset_for_block),
+                TCAST(block_ind_for_rot),
+                TCAST(orig_block_to_molten),
+                TCAST(rotamer_for_nonmolten_block),
+                TCAST(n_bc_rots_for_molten_block),
+                TCAST(bc_rot_offset_for_molten_block),
+                TCAST(neighbor_row_offsets),
+                TCAST(neighbor_blocks),
+                TCAST(neighbor_chunk_offset_offsets),
+                TCAST(chunk_offsets),
+                TCAST(bg_bg_energies),
+                TCAST(energy1b),
+                TCAST(energy2b),
+                TCAST(sparse_inds),
+                TCAST(sparse_energies));
+      }));
+  return {bg_bg_energies, energy1b, energy2b};
 }
 
 std::vector<Tensor> anneal(
@@ -233,6 +388,16 @@ TORCH_LIBRARY(tmol_pack, m) {
   m.def("pack_anneal", &anneal);
   m.def("validate_energies", &validate_energies);
   m.def("build_interaction_graph", &build_interaction_graph);
+  m.def(
+      "initialize_interaction_graph_topology",
+      &initialize_interaction_graph_topology);
+  m.def("note_interaction_graph_topology", &note_interaction_graph_topology);
+  m.def(
+      "finalize_interaction_graph_topology",
+      &finalize_interaction_graph_topology);
+  m.def(
+      "accumulate_interaction_graph_entries",
+      &accumulate_interaction_graph_entries);
 }
 
 }  // namespace compiled
