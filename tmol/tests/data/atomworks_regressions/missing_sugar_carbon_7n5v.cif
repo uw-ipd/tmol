@@ -1,0 +1,197 @@
+data_missing_sugar_carbon_7n5v
+#
+_entry.id       missing_sugar_carbon_7n5v
+_entry.author   'tmol regression'
+_entry.date     2026-09-14
+_entry.time     00:00:00
+#
+_entity.id                 3
+_entity.type               polymer
+_entity.pdbx_description   .
+#
+_entity_poly.entity_id                      3
+_entity_poly.type                           polydeoxyribonucleotide
+_entity_poly.nstd_linkage                   no
+_entity_poly.nstd_monomer                   no
+_entity_poly.pdbx_seq_one_letter_code       TT
+_entity_poly.pdbx_seq_one_letter_code_can   TT
+_entity_poly.pdbx_strand_id                 E
+_entity_poly.pdbx_target_identifier         ?
+#
+loop_
+_entity_poly_seq.entity_id 
+_entity_poly_seq.hetero 
+_entity_poly_seq.mon_id 
+_entity_poly_seq.num 
+3 n DT 15
+3 n DT 16
+#
+_chem_comp.id                        DT
+_chem_comp.name                      DT
+_chem_comp.type                      'DNA LINKING'
+_chem_comp.formula                   ?
+_chem_comp.mon_nstd_parent_comp_id   ?
+_chem_comp.pdbx_synonyms             ?
+_chem_comp.formula_weight            ?
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+DT OP3   P      SING N
+DT OP3   HOP3   SING N
+DT P     OP1    DOUB N
+DT P     OP2    SING N
+DT P     "O5'"  SING N
+DT OP2   HOP2   SING N
+DT "O5'" "C5'"  SING N
+DT "C5'" "C4'"  SING N
+DT "C5'" "H5'"  SING N
+DT "C5'" "H5''" SING N
+DT "C4'" "O4'"  SING N
+DT "C4'" "C3'"  SING N
+DT "C4'" "H4'"  SING N
+DT "O4'" "C1'"  SING N
+DT "C3'" "O3'"  SING N
+DT "C3'" "C2'"  SING N
+DT "C3'" "H3'"  SING N
+DT "O3'" "HO3'" SING N
+DT "C2'" "C1'"  SING N
+DT "C2'" "H2'"  SING N
+DT "C2'" "H2''" SING N
+DT "C1'" N1     SING N
+DT "C1'" "H1'"  SING N
+DT N1    C2     SING N
+DT N1    C6     SING N
+DT C2    O2     DOUB N
+DT C2    N3     SING N
+DT N3    C4     SING N
+DT N3    H3     SING N
+DT C4    O4     DOUB N
+DT C4    C5     SING N
+DT C5    C7     SING N
+DT C5    C6     DOUB N
+DT C7    H71    SING N
+DT C7    H72    SING N
+DT C7    H73    SING N
+DT C6    H6     SING N
+#
+loop_
+_atom_site.group_PDB 
+_atom_site.type_symbol 
+_atom_site.label_atom_id 
+_atom_site.label_alt_id 
+_atom_site.label_comp_id 
+_atom_site.label_asym_id 
+_atom_site.label_entity_id 
+_atom_site.label_seq_id 
+_atom_site.pdbx_PDB_ins_code 
+_atom_site.auth_seq_id 
+_atom_site.auth_comp_id 
+_atom_site.auth_asym_id 
+_atom_site.auth_atom_id 
+_atom_site.id 
+_atom_site.B_iso_or_equiv 
+_atom_site.occupancy 
+_atom_site.pdbx_formal_charge 
+_atom_site.atom_array_index 
+_atom_site.Cartn_x 
+_atom_site.Cartn_y 
+_atom_site.Cartn_z 
+_atom_site.pdbx_PDB_model_num 
+ATOM P P     . DT E 3 15 . 15 DT E P     2316 148.80299 1.0 ? 0  -19.126 8.084  -74.236 1
+ATOM O OP1   . DT E 3 15 . 15 DT E OP1   2317 152.93063 1.0 ? 1  -18.006 7.117  -74.253 1
+ATOM O OP2   . DT E 3 15 . 15 DT E OP2   2318 148.64325 1.0 ? 2  -19.256 9.069  -75.332 1
+ATOM O "O5'" . DT E 3 15 . 15 DT E "O5'" 2319 143.68423 1.0 ? 3  -20.521 7.305  -74.136 1
+ATOM C "C5'" . DT E 3 15 . 15 DT E "C5'" 2320 143.08378 1.0 ? 4  -20.861 6.589  -72.952 1
+ATOM C "C4'" . DT E 3 15 . 15 DT E "C4'" 2321 152.6632  1.0 ? 5  -22.299 6.102  -73.016 1
+ATOM O "O4'" . DT E 3 15 . 15 DT E "O4'" 2322 143.48159 1.0 ? 6  -23.183 7.092  -72.436 1
+ATOM C "C3'" . DT E 3 15 . 15 DT E "C3'" 2323 158.08754 1.0 ? 7  -22.829 5.829  -74.429 1
+ATOM O "O3'" . DT E 3 15 . 15 DT E "O3'" 2324 154.69073 1.0 ? 8  -23.225 4.469  -74.543 1
+ATOM C "C2'" . DT E 3 15 . 15 DT E "C2'" 2325 143.48613 1.0 ? 9  -24.024 6.778  -74.588 1
+ATOM C "C1'" . DT E 3 15 . 15 DT E "C1'" 2326 132.17528 1.0 ? 10 -24.394 7.091  -73.148 1
+ATOM N N1    . DT E 3 15 . 15 DT E N1    2327 131.00252 1.0 ? 11 -25.056 8.417  -72.977 1
+ATOM C C2    . DT E 3 15 . 15 DT E C2    2328 129.17102 1.0 ? 12 -26.18  8.512  -72.189 1
+ATOM O O2    . DT E 3 15 . 15 DT E O2    2329 139.25765 1.0 ? 13 -26.678 7.559  -71.614 1
+ATOM N N3    . DT E 3 15 . 15 DT E N3    2330 131.54354 1.0 ? 14 -26.712 9.77   -72.1   1
+ATOM C C4    . DT E 3 15 . 15 DT E C4    2331 135.12232 1.0 ? 15 -26.241 10.92  -72.704 1
+ATOM O O4    . DT E 3 15 . 15 DT E O4    2332 144.16796 1.0 ? 16 -26.789 12.008 -72.563 1
+ATOM C C5    . DT E 3 15 . 15 DT E C5    2333 132.40145 1.0 ? 17 -25.059 10.751 -73.516 1
+ATOM C C7    . DT E 3 15 . 15 DT E C7    2334 134.97003 1.0 ? 18 -24.454 11.928 -74.223 1
+ATOM C C6    . DT E 3 15 . 15 DT E C6    2335 132.54107 1.0 ? 19 -24.53  9.522  -73.612 1
+ATOM P P     . DT E 3 16 . 16 DT E P     2336 144.67725 1.0 ? 20 -23.387 3.79   -75.99  1
+ATOM O OP1   . DT E 3 16 . 16 DT E OP1   2337 137.10839 1.0 ? 21 -22.776 2.443  -75.936 1
+ATOM O OP2   . DT E 3 16 . 16 DT E OP2   2338 144.4109  1.0 ? 22 -22.922 4.773  -76.994 1
+ATOM O "O5'" . DT E 3 16 . 16 DT E "O5'" 2339 147.84116 1.0 ? 23 -24.971 3.629  -76.15  1
+ATOM C "C5'" . DT E 3 16 . 16 DT E "C5'" 2340 128.88725 1.0 ? 24 -25.697 2.815  -75.237 1
+ATOM C "C4'" . DT E 3 16 . 16 DT E "C4'" 2341 127.43763 1.0 ? 25 -27.121 3.32   -75.079 1
+ATOM O "O4'" . DT E 3 16 . 16 DT E "O4'" 2342 123.30629 1.0 ? 26 -27.097 4.741  -74.735 1
+ATOM C "C3'" . DT E 3 16 . 16 DT E "C3'" 2343 123.51784 1.0 ? 27 -27.974 3.193  -76.339 1
+ATOM O "O3'" . DT E 3 16 . 16 DT E "O3'" 2344 118.282   1.0 ? 28 -28.888 2.115  -76.201 1
+ATOM C "C1'" . DT E 3 16 . 16 DT E "C1'" 2345 123.39714 1.0 ? 29 -28.375 5.329  -74.923 1
+ATOM N N1    . DT E 3 16 . 16 DT E N1    2346 129.84412 1.0 ? 30 -28.212 6.81   -75.038 1
+ATOM C C2    . DT E 3 16 . 16 DT E C2    2347 136.31918 1.0 ? 31 -29.05  7.637  -74.326 1
+ATOM O O2    . DT E 3 16 . 16 DT E O2    2348 124.54351 1.0 ? 32 -29.931 7.225  -73.593 1
+ATOM N N3    . DT E 3 16 . 16 DT E N3    2349 142.45588 1.0 ? 33 -28.821 8.975  -74.505 1
+ATOM C C4    . DT E 3 16 . 16 DT E C4    2350 138.98356 1.0 ? 34 -27.857 9.559  -75.307 1
+ATOM O O4    . DT E 3 16 . 16 DT E O4    2351 146.0083  1.0 ? 35 -27.73  10.776 -75.4   1
+ATOM C C5    . DT E 3 16 . 16 DT E C5    2352 132.42685 1.0 ? 36 -27.011 8.637  -76.026 1
+ATOM C C7    . DT E 3 16 . 16 DT E C7    2353 125.8659  1.0 ? 37 -25.929 9.153  -76.928 1
+ATOM C C6    . DT E 3 16 . 16 DT E C6    2354 130.12542 1.0 ? 38 -27.228 7.322  -75.861 1
+#
+_cell.length_a      51.292
+_cell.length_b      60.067
+_cell.length_c      133.729
+_cell.angle_alpha   90.0
+_cell.angle_beta    98.502
+_cell.angle_gamma   90.0
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_model_Cartn_x_ideal 
+_chem_comp_atom.pdbx_model_Cartn_y_ideal 
+_chem_comp_atom.pdbx_model_Cartn_z_ideal 
+DT OP3    O 0 N Y -3.9119999408721924   -2.311000108718872     1.6360000371932983
+DT P      P 0 N N -3.9679999351501465   -1.6649999618530273    3.118000030517578
+DT OP1    O 0 N N -4.406000137329102    -2.5989999771118164    4.208000183105469
+DT OP2    O 0 N N -4.901000022888184    -0.36000001430511475   2.9200000762939453
+DT "O5'"  O 0 N N -2.493000030517578    -1.027999997138977     3.315000057220459
+DT "C5'"  C 0 N N -2.005000114440918    -0.13600000739097595   2.3269999027252197
+DT "C4'"  C 0 N N -0.6110000014305115   0.328000009059906      2.7279999256134033
+DT "O4'"  O 0 N N 0.24699999392032623   -0.8289999961853027    2.7639999389648438
+DT "C3'"  C 0 N N 0.00800000037997961   1.2860000133514404     1.7200000286102295
+DT "O3'"  O 0 N N 0.9649999737739563    2.121000051498413      2.368000030517578
+DT "C2'"  C 0 N N 0.7099999785423279    0.36000001430511475    0.7540000081062317
+DT "C1'"  C 0 N N 1.156999945640564     -0.777999997138977     1.656999945640564
+DT N1     N 0 N N 1.1640000343322754    -2.046999931335449     0.9890000224113464
+DT C2     C 0 N N 2.3329999446868896    -2.5439999103546143    0.37400001287460327
+DT O2     O 0 N N 3.4100000858306885    -1.9450000524520874    0.3630000054836273
+DT N3     N 0 N N 2.194000005722046     -3.7929999828338623    -0.23999999463558197
+DT C4     C 0 N N 1.0470000505447388    -4.570000171661377     -0.30000001192092896
+DT O4     O 0 N N 0.9950000047683716    -5.663000106811523     -0.8569999933242798
+DT C5     C 0 N N -0.14300000667572021  -3.9800000190734863    0.36899998784065247
+DT C7     C 0 N N -1.4199999570846558   -4.756999969482422     0.34700000286102295
+DT C6     C 0 N N -0.013000000268220901 -2.7839999198913574    0.9580000042915344
+DT HOP3   H 0 N N -4.684000015258789    -2.822999954223633     1.312999963760376
+DT HOP2   H 0 N N -5.874000072479248    -0.4749999940395355    2.871000051498413
+DT "H5'"  H 0 N N -1.9709999561309814   -0.6539999842643738    1.3660000562667847
+DT "H5''" H 0 N N -2.683000087738037    0.7179999947547913     2.253999948501587
+DT "H4'"  H 0 N N -0.6439999938011169   0.753000020980835      3.7360000610351562
+DT "H3'"  H 0 N N -0.722000002861023    1.940999984741211      1.2359999418258667
+DT "HO3'" H 0 N Y 0.7429999709129333    3.0420000553131104     2.1459999084472656
+DT "H2'"  H 0 N N -0.003000000026077032 -0.0010000000474974513 0.003000000026077032
+DT "H2''" H 0 N N 1.555999994277954     0.8180000185966492     0.23199999332427979
+DT "H1'"  H 0 N N 2.1630001068115234    -0.6039999723434448    2.053999900817871
+DT H3     H 0 N N 3.0230000019073486    -4.171000003814697     -0.6890000104904175
+DT H71    H 0 N N -1.7350000143051147   -4.915999889373779     -0.6830000281333923
+DT H72    H 0 N N -2.194999933242798    -4.208000183105469     0.8809999823570251
+DT H73    H 0 N N -1.2719999551773071   -5.7210001945495605    0.8330000042915344
+DT H6     H 0 N N -0.8569999933242798   -2.318000078201294     1.4579999446868896
+#
