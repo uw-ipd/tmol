@@ -210,6 +210,29 @@ template <
     typename Real,
     typename Int>
 struct HBondRotamerScoreDispatch {
+  static auto rotamer_spheres(
+      ContextManager& mgr,
+      TView<Vec<Real, 3>, 1, Dev> rot_coords,
+      TView<Int, 1, Dev> rot_coord_offset,
+      TView<Int, 2, Dev> first_rot_block_type,
+      TView<Int, 1, Dev> block_type_ind_for_rot,
+      TView<Int, 2, Dev> n_rots_for_block,
+      TView<Int, 2, Dev> rot_offset_for_block,
+      TView<Int, 1, Dev> block_type_n_atoms)
+      -> std::tuple<TPack<Real, 2, Dev>, TPack<Real, 3, Dev>>;
+
+  static auto rotamer_dispatch_page(
+      ContextManager& mgr,
+      TView<Int, 2, Dev> first_rot_block_type,
+      TView<Real, 3, Dev> block_spheres,
+      TView<Int, 2, Dev> n_rots_for_block,
+      TView<Int, 2, Dev> rot_offset_for_block,
+      TView<Real, 2, Dev> rot_spheres,
+      TView<Int, 2, Dev> lockstep_group_for_block,
+      Real reach,
+      Int candidate_begin,
+      Int candidate_end) -> TPack<Int, 2, Dev>;
+
   static auto forward(
       ContextManager& mgr,
       // common params

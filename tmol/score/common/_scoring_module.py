@@ -252,6 +252,7 @@ class TermRotamerScoringModule(TermScoringModule):
         block_neighbor_cutoff=None,
         accepts_shared_dispatch=False,
         rotamer_dispatch_key=None,
+        packing_score_iterator=None,
     ):
         super(TermRotamerScoringModule, self).__init__(
             classname, term_parameters, term_score_poses
@@ -290,6 +291,7 @@ class TermRotamerScoringModule(TermScoringModule):
         self.block_neighbor_cutoff = block_neighbor_cutoff
         self.accepts_shared_dispatch = accepts_shared_dispatch
         self.rotamer_dispatch_key = rotamer_dispatch_key
+        self.packing_score_iterator = packing_score_iterator
         self.register_buffer(
             "_empty_dispatch_indices",
             torch.empty((0, 0), dtype=torch.int32, device=rotamer_set.coords.device),
@@ -313,6 +315,14 @@ class TermRotamerScoringModule(TermScoringModule):
         else:
             scores, indices = self.term_score_poses(flat, *tail)
         return scores, indices
+
+    def iter_packing_entries(self, coords, *, topology_only):
+        """Yield bounded raw score/index pages for packing."""
+        if self.packing_score_iterator is None:
+            raise NotImplementedError
+        flat = coords.flatten(start_dim=0, end_dim=-2)
+        tail = self._static_tail_for_coords(coords)
+        yield from self.packing_score_iterator(flat, *tail, topology_only)
 
     def forward_split(self, coords):
         scores, indices = self.forward(coords)
