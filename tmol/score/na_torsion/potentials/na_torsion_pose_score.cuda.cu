@@ -489,6 +489,7 @@ __global__ void na_torsion_kernel(
     int n_poses,
     int max_n_blocks,
     int n_atoms,
+    int n_bases,
     Real* derivatives,
     Real* output) {
   int flat_block = blockIdx.x * blockDim.x + threadIdx.x;
@@ -497,7 +498,7 @@ __global__ void na_torsion_kernel(
 
   int pose = flat_block / max_n_blocks;
   int base_ind = int(base[flat_block]);
-  int polymer = base_ind >> 2;
+  int polymer = base_ind / (n_bases / 2);
   Real torsion[N_TORSION];
 #pragma unroll
   for (int tor = 0; tor < N_TORSION; ++tor) {
@@ -716,8 +717,8 @@ __global__ void na_torsion_kernel(
     Real chi_weight_derivative = Real(0);
 #pragma unroll
     for (int puck = 0; puck < N_PUCKER; ++puck) {
-      Real anti = well_chi_syn[puck * 8 + base_ind];
-      Real syn = well_chi_syn[(N_PUCKER + puck) * 8 + base_ind];
+      Real anti = well_chi_syn[puck * n_bases + base_ind];
+      Real syn = well_chi_syn[(N_PUCKER + puck) * n_bases + base_ind];
       Real state_value = (Real(1) - w_syn) * anti + w_syn * syn;
       energy[1] += pucker[puck] * state_value;
       d_pucker[1][puck] += state_value;
@@ -807,6 +808,13 @@ std::tuple<at::Tensor, at::Tensor> na_torsion_pose_score_cuda(
     bool compute_derivs) {
   TORCH_CHECK(coords.is_cuda(), "na_torsion_pose_score requires CUDA tensors");
   TORCH_CHECK(coords.is_contiguous(), "coords must be contiguous");
+  int n_bases = int(chi_means.size(0));
+  TORCH_CHECK(
+      n_bases > 0 && n_bases % 2 == 0,
+      "chi tables must have equal DNA and RNA base counts");
+  TORCH_CHECK(
+      chi_means.size(1) == N_PUCKER && well_chi_syn.size(2) == n_bases,
+      "inconsistent nucleic-acid base table shapes");
   int n_poses = int(base.size(0));
   int max_n_blocks = int(base.size(1));
   auto output = at::zeros({2, n_poses}, coords.options());
@@ -849,6 +857,7 @@ std::tuple<at::Tensor, at::Tensor> na_torsion_pose_score_cuda(
               n_poses,
               max_n_blocks,
               int(coords.size(0)),
+              n_bases,
               nullptr,
               output.mutable_data_ptr<scalar_t>());
         } else {
@@ -881,6 +890,7 @@ std::tuple<at::Tensor, at::Tensor> na_torsion_pose_score_cuda(
               n_poses,
               max_n_blocks,
               int(coords.size(0)),
+              n_bases,
               derivatives.mutable_data_ptr<scalar_t>(),
               output.mutable_data_ptr<scalar_t>());
         }

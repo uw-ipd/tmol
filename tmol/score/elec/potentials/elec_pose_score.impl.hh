@@ -68,28 +68,28 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 
 // MACROS
 
-#define SCORE_INTER_ELEC_ATOM_PAIR                                      \
-  TMOL_DEVICE_FUNC(                                                     \
-      int start_atom1,                                                  \
-      int start_atom2,                                                  \
-      int atom_tile_ind1,                                               \
-      int atom_tile_ind2,                                               \
-      ElecScoringData<Real> const& inter_dat)                           \
-      ->std::array<Real, 1> {                                           \
-    int separation = interres_count_pair_separation<TILE_SIZE>(         \
-        inter_dat,                                                      \
-        atom_tile_ind1,                                                 \
-        atom_tile_ind2,                                                 \
-        block_type_is_ligand_fragment[inter_dat.r1.block_type]          \
-            && block_type_is_ligand_fragment[inter_dat.r2.block_type]); \
-    Real elec = elec_atom_energy_and_derivs(                            \
-        atom_tile_ind1,                                                 \
-        atom_tile_ind2,                                                 \
-        start_atom1,                                                    \
-        start_atom2,                                                    \
-        inter_dat,                                                      \
-        separation);                                                    \
-    return {elec};                                                      \
+#define SCORE_INTER_ELEC_ATOM_PAIR                                          \
+  TMOL_DEVICE_FUNC(                                                         \
+      int start_atom1,                                                      \
+      int start_atom2,                                                      \
+      int atom_tile_ind1,                                                   \
+      int atom_tile_ind2,                                                   \
+      ElecScoringData<Real> const& inter_dat)                               \
+      ->std::array<Real, 1> {                                               \
+    int separation = interres_count_pair_separation<TILE_SIZE>(             \
+        inter_dat,                                                          \
+        atom_tile_ind1,                                                     \
+        atom_tile_ind2,                                                     \
+        block_type_all_atoms_ligand_typed[inter_dat.r1.block_type]          \
+            && block_type_all_atoms_ligand_typed[inter_dat.r2.block_type]); \
+    Real elec = elec_atom_energy_and_derivs(                                \
+        atom_tile_ind1,                                                     \
+        atom_tile_ind2,                                                     \
+        start_atom1,                                                        \
+        start_atom2,                                                        \
+        inter_dat,                                                          \
+        separation);                                                        \
+    return {elec};                                                          \
   }
 
 #define SCORE_INTRA_ELEC_ATOM_PAIR                                   \
@@ -442,7 +442,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     // Entry i, j stores path_dist[rep(i), rep(j)]
     // Dimsize: n_block_types x max_n_atoms x max_n_atoms
     TView<Int, 3, D> block_type_intra_repr_path_distance,
-    TView<Int, 1, D> block_type_is_ligand_fragment,
+    TView<Int, 1, D> block_type_all_atoms_ligand_typed,
     //////////////////////
 
     // LJ parameters
@@ -979,7 +979,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     // Entry i, j stores path_dist[rep(i), rep(j)]
     // Dimsize: n_block_types x max_n_atoms x max_n_atoms
     TView<Int, 3, D> block_type_intra_repr_path_distance,
-    TView<Int, 1, D> block_type_is_ligand_fragment,
+    TView<Int, 1, D> block_type_all_atoms_ligand_typed,
     //////////////////////
 
     // LJ parameters
@@ -1209,6 +1209,9 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     TView<Int, 1, D> rot_offset_for_pose,
     TView<Int, 2, D> n_rots_for_block,
     TView<Int, 2, D> rot_offset_for_block,
+    // [n_poses, max_n_blocks]; blocks sharing an id >= 0 move in
+    // lockstep, so only matching rotamer indices ever coexist
+    TView<Int, 2, D> lockstep_group_for_block,
     Int max_n_rots_per_pose,
 
     // dims: n-poses x max-n-blocks x max-n-blocks
@@ -1253,7 +1256,7 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     // Entry i, j stores path_dist[rep(i), rep(j)]
     // Dimsize: n_block_types x max_n_atoms x max_n_atoms
     TView<Int, 3, D> block_type_intra_repr_path_distance,
-    TView<Int, 1, D> block_type_is_ligand_fragment,
+    TView<Int, 1, D> block_type_all_atoms_ligand_typed,
     //////////////////////
 
     // LJ parameters
@@ -1373,6 +1376,7 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
               n_rots_for_block,
               rot_offset_for_block,
               scratch_rot_spheres,
+              lockstep_group_for_block,
               max_dis);
   }
 
@@ -1570,7 +1574,7 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     // Entry i, j stores path_dist[rep(i), rep(j)]
     // Dimsize: n_block_types x max_n_atoms x max_n_atoms
     TView<Int, 3, D> block_type_intra_repr_path_distance,
-    TView<Int, 1, D> block_type_is_ligand_fragment,
+    TView<Int, 1, D> block_type_all_atoms_ligand_typed,
     //////////////////////
 
     // LJ parameters

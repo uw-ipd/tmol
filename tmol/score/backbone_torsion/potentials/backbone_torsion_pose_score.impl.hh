@@ -183,8 +183,11 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 
     int const rot_offset1 = rot_coord_offset[rot_ind1];
 
-    int const V_ind1 = output_block_pair_energies ? block_ind1 : 0;
-    int const V_ind2 = output_block_pair_energies ? block_ind2 : 0;
+    // correction for cyclic peptides
+    int const V_ind1 =
+        output_block_pair_energies ? min(block_ind1, block_ind2) : 0;
+    int const V_ind2 =
+        output_block_pair_energies ? max(block_ind1, block_ind2) : 0;
 
     bool valid_phipsi = true;
     Vec<Int, 4> phi_ats;
@@ -813,17 +816,6 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
   DeviceDispatch<Dev>::template forall<launch_t>(
       mgr, n_pose_block_cells, count_n_rotamer_energies);
 
-  int const max_n_rots_per_block = DeviceDispatch<Dev>::reduce(
-      mgr, n_rots_for_block.data(), n_pose_block_cells, mgpu::maximum_t<Int>());
-  int const pose_block_rot_cells = score::common::checked_dispatch_product(
-      n_pose_block_cells,
-      max_n_rots_per_block,
-      "backbone-torsion candidate dispatch");
-  int const candidate_dispatch = score::common::checked_dispatch_product(
-      pose_block_rot_cells,
-      max_n_rots_per_block,
-      "backbone-torsion candidate dispatch");
-
   auto n_energies_for_block_offset_t =
       TPack<int64_t, 2, Dev>::zeros({n_poses, max_n_blocks});
   auto n_energies_for_block_offset = n_energies_for_block_offset_t.view;
@@ -846,82 +838,80 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
   }
   auto dV_dxyz_t = TPack<Vec<Real, 3>, 2, Dev>::zeros({2, n_atoms});
 
+  // Which block each dispatch index belongs to. Walking the sparse list is
+  // what keeps this bounded: a dense (block x rot1 x rot2) grid would be
+  // quadratic in the largest block's rotamer count and overflow an int
+  // once a block carries a few thousand rotamers.
+  TPack<Int, 1, Dev> block_for_dispatch_t =
+      DeviceDispatch<Dev>::template load_balancing_search<launch_t>(
+          mgr,
+          n_dispatch_total,
+          n_energies_for_block_offset.data(),
+          n_poses * max_n_blocks);
+  auto block_for_dispatch = block_for_dispatch_t.view;
+
   auto V = V_t.view;
   auto dV_dxyz = dV_dxyz_t.view;
   auto dispatch_indices = dispatch_indices_t.view;
 
-  auto mark_dispatch_indices = ([=] TMOL_DEVICE_FUNC(int ind) {
-    int const pose_ind =
-        ind / (max_n_blocks * max_n_rots_per_block * max_n_rots_per_block);
-    ind =
-        ind
-        - pose_ind * max_n_blocks * max_n_rots_per_block * max_n_rots_per_block;
-    int const block1_ind = ind / (max_n_rots_per_block * max_n_rots_per_block);
-    ind = ind - block1_ind * max_n_rots_per_block * max_n_rots_per_block;
-    int const local_rot1_ind = ind / max_n_rots_per_block;
-    int const local_rot2_ind = ind % max_n_rots_per_block;
+  auto mark_dispatch_indices = ([=] TMOL_DEVICE_FUNC(int index) {
+    int const pose_and_block = block_for_dispatch[index];
+    int const pose_ind = pose_and_block / max_n_blocks;
+    int const block1_ind = pose_and_block % max_n_blocks;
 
     int const pose_block_type = pose_stack_block_type[pose_ind][block1_ind];
-    if (pose_block_type == -1) {
-      // Filter out blocks that are not real
-      return;
-    }
-    int const n_rots1 = n_rots_for_block[pose_ind][block1_ind];
-    if (local_rot1_ind >= n_rots1) {
-      return;
-    }
-
-    int const block1_sparse_dispatch_offset =
-        n_energies_for_block_offset[pose_ind][block1_ind];
-    int const block1_rot_offset = first_rot_for_block[pose_ind][block1_ind];
-
-    bool block1_has_upper_neighbor = true;
     int const upper_conn = block_type_upper_conn_ind[pose_block_type];
-    if (upper_conn < 0) {
-      block1_has_upper_neighbor = false;
-    } else {
-      int const upper_nbr_block_ind =
-          pose_stack_inter_block_connections[pose_ind][block1_ind][upper_conn]
-                                            [0];
-      if (upper_nbr_block_ind != -1) {
-        // the upper neighbor is a real residue: we will score
-        // the n_rots_i x n_rots_j rotamers for this pair
-        // This will properly include upper neighbors for circular peptides,
-        // too, unless we have a two residue circular peptide which feels
-        // chemically impossible.
-        int const upper_n_rots =
-            n_rots_for_block[pose_ind][upper_nbr_block_ind];
+    int const upper_nbr_block_ind =
+        pose_stack_inter_block_connections[pose_ind][block1_ind][upper_conn][0];
+    int const upper_n_rots = n_rots_for_block[pose_ind][upper_nbr_block_ind];
 
-        if (local_rot2_ind >= upper_n_rots) {
-          return;
-        }
-        int const sparse_index = block1_sparse_dispatch_offset
-                                 + local_rot1_ind * upper_n_rots
-                                 + local_rot2_ind;
-        int const rot1_ind = block1_rot_offset + local_rot1_ind;
-        int const rot2_ind =
-            first_rot_for_block[pose_ind][upper_nbr_block_ind] + local_rot2_ind;
+    // invert the sparse index this block's pairs were counted into
+    int const within =
+        index - n_energies_for_block_offset[pose_ind][block1_ind];
+    int const local_rot1_ind = within / upper_n_rots;
+    int const local_rot2_ind = within - local_rot1_ind * upper_n_rots;
 
-        dispatch_indices[0][sparse_index] = pose_ind;
-        dispatch_indices[1][sparse_index] = rot1_ind;
-        dispatch_indices[2][sparse_index] = rot2_ind;
-      }
-    }
+    int const rot1_ind =
+        first_rot_for_block[pose_ind][block1_ind] + local_rot1_ind;
+    int const rot2_ind =
+        first_rot_for_block[pose_ind][upper_nbr_block_ind] + local_rot2_ind;
+
+    dispatch_indices[0][index] = pose_ind;
+    // correction for cyclic peptides
+    dispatch_indices[1][index] = min(rot1_ind, rot2_ind);
+    dispatch_indices[2][index] = max(rot1_ind, rot2_ind);
   });
   DeviceDispatch<Dev>::template forall<launch_t>(
-      mgr, candidate_dispatch, mark_dispatch_indices);
+      mgr, n_dispatch_total, mark_dispatch_indices);
 
   auto rama_omega_func = ([=] TMOL_DEVICE_FUNC(int ind) {
     int const pose_ind = dispatch_indices[0][ind];
 
-    int const rot_ind1 = dispatch_indices[1][ind];
-    int const rot_ind2 = dispatch_indices[2][ind];
+    int rot_ind1 = dispatch_indices[1][ind];
+    int rot_ind2 = dispatch_indices[2][ind];
 
-    int const block_ind1 = block_ind_for_rot[rot_ind1];
-    int const block_ind2 = block_ind_for_rot[rot_ind2];
+    int block_ind1 = block_ind_for_rot[rot_ind1];
+    int block_ind2 = block_ind_for_rot[rot_ind2];
 
-    int const block_type1 = block_type_ind_for_rot[rot_ind1];
-    int const block_type2 = block_type_ind_for_rot[rot_ind2];
+    int block_type1 = block_type_ind_for_rot[rot_ind1];
+    int block_type2 = block_type_ind_for_rot[rot_ind2];
+
+    // correction for cyclic peptides
+    int const stored_upper_conn = block_type_upper_conn_ind[block_type1];
+    if (stored_upper_conn < 0
+        || pose_stack_inter_block_connections[pose_ind][block_ind1]
+                                             [stored_upper_conn][0]
+               != block_ind2) {
+      int const swap_rot = rot_ind1;
+      int const swap_block = block_ind1;
+      int const swap_block_type = block_type1;
+      rot_ind1 = rot_ind2;
+      block_ind1 = block_ind2;
+      block_type1 = block_type2;
+      rot_ind2 = swap_rot;
+      block_ind2 = swap_block;
+      block_type2 = swap_block_type;
+    }
 
     // Where will we write the output?
     // In block-pair-scoring mode, we store one energy per rotamer;
@@ -1186,14 +1176,31 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
   auto rama_omega_func = ([=] TMOL_DEVICE_FUNC(int ind) {
     int const pose_ind = dispatch_indices[0][ind];
 
-    int const rot_ind1 = dispatch_indices[1][ind];
-    int const rot_ind2 = dispatch_indices[2][ind];
+    int rot_ind1 = dispatch_indices[1][ind];
+    int rot_ind2 = dispatch_indices[2][ind];
 
-    int const block_ind1 = block_ind_for_rot[rot_ind1];
-    int const block_ind2 = block_ind_for_rot[rot_ind2];
+    int block_ind1 = block_ind_for_rot[rot_ind1];
+    int block_ind2 = block_ind_for_rot[rot_ind2];
 
-    int const block_type1 = block_type_ind_for_rot[rot_ind1];
-    int const block_type2 = block_type_ind_for_rot[rot_ind2];
+    int block_type1 = block_type_ind_for_rot[rot_ind1];
+    int block_type2 = block_type_ind_for_rot[rot_ind2];
+
+    // correction for cyclic peptides
+    int const stored_upper_conn = block_type_upper_conn_ind[block_type1];
+    if (stored_upper_conn < 0
+        || pose_stack_inter_block_connections[pose_ind][block_ind1]
+                                             [stored_upper_conn][0]
+               != block_ind2) {
+      int const swap_rot = rot_ind1;
+      int const swap_block = block_ind1;
+      int const swap_block_type = block_type1;
+      rot_ind1 = rot_ind2;
+      block_ind1 = block_ind2;
+      block_type1 = block_type2;
+      rot_ind2 = swap_rot;
+      block_ind2 = swap_block;
+      block_type2 = swap_block_type;
+    }
 
     // Where did we write the output?
     // In block-pair-scoring mode, we store one energy per rotamer;

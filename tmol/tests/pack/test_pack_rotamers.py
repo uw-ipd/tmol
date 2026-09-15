@@ -437,26 +437,22 @@ def test_shared_rotamer_dispatch_matches_independent_hbond_layout(
         )
         return sparse.coalesce().to_dense()
 
-    shared_coords = rotamer_set.coords.detach().clone().requires_grad_(True)
-    _, shared_indices = ljlk.forward(shared_coords)
+    coords = rotamer_set.coords.detach()
+    _, shared_indices = ljlk.forward(coords)
+    torch.testing.assert_close(dense_hbond(coords, shared_indices), dense_hbond(coords))
+
+    # Keep float32 scoring coverage above; compare derivatives in double so
+    # CUDA atomic summation order cannot masquerade as a dispatch discrepancy.
+    shared_coords = coords.double().clone().requires_grad_(True)
     shared = dense_hbond(shared_coords, shared_indices)
     (shared_grad,) = torch.autograd.grad(shared.sum(), shared_coords)
 
-    independent_coords = rotamer_set.coords.detach().clone().requires_grad_(True)
+    independent_coords = coords.double().clone().requires_grad_(True)
     independent = dense_hbond(independent_coords)
     (independent_grad,) = torch.autograd.grad(independent.sum(), independent_coords)
 
     torch.testing.assert_close(shared, independent)
-    if torch_device.type == "cuda":
-        repeat_coords = rotamer_set.coords.detach().clone().requires_grad_(True)
-        repeat = dense_hbond(repeat_coords)
-        (repeat_grad,) = torch.autograd.grad(repeat.sum(), repeat_coords)
-        torch.testing.assert_close(independent, repeat)
-        repeat_error = torch.max(torch.abs(independent_grad - repeat_grad))
-        shared_error = torch.max(torch.abs(shared_grad - independent_grad))
-        assert shared_error <= 2 * repeat_error + 1e-6
-    else:
-        torch.testing.assert_close(shared_grad, independent_grad)
+    torch.testing.assert_close(shared_grad, independent_grad, atol=1e-6, rtol=0)
 
     if torch_device.type == "cuda":
         dispatch_key = hbond.rotamer_dispatch_key

@@ -9,8 +9,11 @@ _compiled = load_module(
     "tmol.tests.score.hbond.potentials._ext",
 )
 
-# hbond_score_V_dV takes struct arguments — export raw (used with kwargs).
-hbond_score_V_dV = _compiled.hbond_score_V_dV
+# The test binding converts flat arrays into native parameter structs.
+hbond_score_V_dV = numpy.vectorize(
+    _compiled.hbond_score_V_dV,
+    signature="(3),(3),(3),(3),(3),(p),(q),(g)->(),(3),(3),(3),(3),(3)",
+)
 
 # The remaining functions take simple array/scalar args and are used
 # through VectorizedOp in gradcheck tests, so wrap with numpy.vectorize.

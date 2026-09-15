@@ -58,5 +58,8 @@ if not torch.cuda.is_available():
         "(check CUDA_VISIBLE_DEVICES and apptainer --nv)."
     )
 print(f"cuda device: {torch.cuda.get_device_name(0)}")
+# Availability/device-name queries do not detect a poisoned GPU context.
+torch.zeros(1, device="cuda").add_(1)
+torch.cuda.synchronize()
 PY
 }
