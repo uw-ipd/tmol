@@ -83,7 +83,9 @@ def test_na_sampler_chi_sit_at_scored_minima(
             torch.tensor([SYN_MEAN], dtype=chi.dtype, device=chi.device),
         )
     )
-    closest = (chi[:, 0].unsqueeze(-1) - allowed.unsqueeze(0)).abs().min(dim=1).values
+    # the sampler reports chi in radians; the tables that define it are degrees
+    chi1 = torch.rad2deg(chi[:, 0])
+    closest = (chi1.unsqueeze(-1) - allowed.unsqueeze(0)).abs().min(dim=1).values
     assert float(closest.max()) < 1e-3
 
 
@@ -93,7 +95,7 @@ def test_na_sampler_syn_is_rna_only(dna_pdb, rna_pdb, default_database, torch_de
 
     def has_syn(pdb_lines):
         _, _, _, chi = _sample(pdb_lines, default_database, torch_device)
-        chi1 = chi[:, 0]
+        chi1 = torch.rad2deg(chi[:, 0])
         return bool(torch.any((chi1 >= SYN_RANGE[0]) & (chi1 <= SYN_RANGE[1])))
 
     assert not has_syn(dna_pdb)
@@ -118,11 +120,18 @@ def test_na_sampler_expands_proton_chis(
     sampled = [c for c in range(1, chi.shape[1]) if len(torch.unique(chi[:, c])) > 1]
     assert len(sampled) == n_proton_chi
 
+    # three staggered samples, each with the expansions either side
+    expected = sorted(
+        (s + e) % 360.0 for s in (60.0, -60.0, 180.0) for e in (0.0, 20.0, -20.0)
+    )
     for col in sampled:
-        vals = torch.unique(chi[:, col])  # full circle in 20-degree steps
-        assert len(vals) == 18
-        assert float(vals.min()) == 0.0
-        assert float(vals.max()) == 340.0
+        # a block type without this chi contributes a zero in its column
+        vals = sorted(
+            float(v) % 360.0
+            for v in torch.rad2deg(torch.unique(chi[:, col]))
+            if float(v) != 0.0
+        )
+        assert vals == pytest.approx(expected, abs=1e-3)
 
 
 def test_na_sampler_chi_level_widens_the_rotamer_set(
@@ -243,3 +252,29 @@ def test_na_mutation_rotamers_preserve_sugar_coordinates(
             [rotamer_offset + rotamer_bt.atom_to_idx[name] for name in sugar_atoms]
         ]
         torch.testing.assert_close(mutated, original, atol=1e-3, rtol=0)
+
+
+def test_na_sampler_ignores_sampling_work_for_non_nucleotides(
+    default_database, torch_device, monkeypatch
+):
+    import copy
+    import tmol.pack.rotamer._na_chi_sampler as implementation
+
+    sampler = NaChiRotamerSampler.from_database(default_database, torch_device)
+    pbt = default_packed_block_types(torch_device)
+    # TYR has real proton sampling, but is owned by a different sampler.
+    source = next(bt for bt in pbt.active_block_types if bt.name == "TYR")
+    rt = copy.copy(source)
+    if hasattr(rt, "na_chi_sampler_params"):
+        object.__delattr__(rt, "na_chi_sampler_params")
+    assert rt.chi_samples
+
+    def unexpected_tree(_rt):
+        raise AssertionError("NA sampler must not construct a protein chi tree")
+
+    monkeypatch.setattr(
+        implementation, "construct_single_residue_kinforest", unexpected_tree
+    )
+    sampler.annotate_residue_type(rt)
+    assert rt.na_chi_sampler_params["base"] == -1
+    assert rt.na_chi_sampler_params["proton_chi"] == []

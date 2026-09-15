@@ -30,6 +30,24 @@ def get_compiled():
     )
 
 
+def _table_indices(resolver, names, torch_device):
+    """Table-set index of each named rotamer library.
+
+    Looked up rather than written down. The set grows when libraries are added
+    to it -- the mirrored ones for the D amino acids, say -- and the
+    semirotameric block moves down when it does, so a literal index silently
+    starts naming a different residue.
+    """
+    return [
+        int(i)
+        for i in resolver._indices_from_names(
+            resolver.all_table_indices,
+            numpy.array([list(names)], dtype=object),
+            torch_device,
+        )[0]
+    ]
+
+
 def test_annotate_residue_type(default_database):
     torch_device = torch.device("cpu")
 
@@ -134,15 +152,11 @@ def test_determine_n_possible_rots(default_database, torch_device):
     )
     dun_params = resolver.sampling_db
 
+    lys, ser, leu, trp, cys, tyr = _table_indices(
+        resolver, ("LYS", "SER", "LEU", "TRP", "CYS", "TYR"), torch_device
+    )
     rottable_set_for_buildable_restype = torch.tensor(
-        [
-            [0, 2],  # lys
-            [0, 7],  # ser
-            [1, 3],  # leu
-            [1, 16],  # trp
-            [1, 0],  # cys
-            [2, 17],
-        ],  # tyr
+        [[0, lys], [0, ser], [1, leu], [1, trp], [1, cys], [2, tyr]],
         dtype=torch.int32,
         device=torch_device,
     )
@@ -193,8 +207,9 @@ def test_interpolate_probabilities_for_possible_rotamers(
     )
     dun_params = resolver.sampling_db
 
+    (phe,) = _table_indices(resolver, ("PHE",), torch_device)
     rottable_set_for_buildable_restype = torch.tensor(
-        [[0, 12]], dtype=torch.int32, device=torch_device
+        [[0, phe]], dtype=torch.int32, device=torch_device
     )
     brt_for_possible_rotamer = torch.zeros(
         (18,), dtype=torch.int32, device=torch_device
@@ -218,6 +233,8 @@ def test_interpolate_probabilities_for_possible_rotamers(
         dun_params.rotameric_bb_start,
         dun_params.rotameric_bb_step,
         dun_params.rotameric_bb_periodicity,
+        dun_params.rotameric_bb_source_start,
+        dun_params.rotameric_bb_is_mirrored,
         dun_params.n_rotamers_for_tableset_offsets,
         dun_params.sorted_rotamer_2_rotamer,
         rottable_set_for_buildable_restype,
@@ -277,8 +294,8 @@ def test_interpolate_probabilities_for_possible_rotamers(
 
     # The upper endpoint is the same periodic coordinate as the table start.
     # It must wrap to bin zero instead of indexing one beyond the table.
-    table_start = dun_params.rotameric_bb_start[12]
-    table_period = dun_params.rotameric_bb_periodicity[12]
+    table_start = dun_params.rotameric_bb_start[phe]
+    table_period = dun_params.rotameric_bb_periodicity[phe]
     endpoint_dihedrals = table_start + table_period
     endpoint_probability = torch.full_like(rotamer_probability, -1.0)
     start_probability = torch.full_like(rotamer_probability, -1.0)
@@ -293,6 +310,8 @@ def test_interpolate_probabilities_for_possible_rotamers(
             dun_params.rotameric_bb_start,
             dun_params.rotameric_bb_step,
             dun_params.rotameric_bb_periodicity,
+            dun_params.rotameric_bb_source_start,
+            dun_params.rotameric_bb_is_mirrored,
             dun_params.n_rotamers_for_tableset_offsets,
             dun_params.sorted_rotamer_2_rotamer,
             rottable_set_for_buildable_restype,
@@ -444,15 +463,11 @@ def test_count_expanded_rotamers(default_database, torch_device):
         return torch.tensor(the_list, dtype=torch.int32, device=torch_device)
 
     nchi_for_buildable_restype = _ti32([4, 2, 2, 2, 2, 3])
+    lys, ser, leu, trp, cys, tyr = _table_indices(
+        resolver, ("LYS", "SER", "LEU", "TRP", "CYS", "TYR"), torch_device
+    )
     rottable_set_for_buildable_restype = _ti32(
-        [
-            [0, 2],  # lys
-            [0, 7],  # ser
-            [1, 3],  # leu
-            [1, 16],  # trp
-            [1, 0],  # cys
-            [2, 17],  # tyr
-        ]
+        [[0, lys], [0, ser], [1, leu], [1, trp], [1, cys], [2, tyr]]
     )
     chi_expansion_for_buildable_restype = _ti32(
         [
@@ -552,7 +567,8 @@ def test_sample_chi_for_rotamers(default_database, torch_device):
     # The code says "you want phe with an extra chi, you got it" and
     # maybe that's becuse you're modeling a weird phe + phosphate group
     # or something.
-    rottable_set_for_buildable_restype = _ti32([[0, 12]])
+    (phe,) = _table_indices(resolver, ("PHE",), torch_device)
+    rottable_set_for_buildable_restype = _ti32([[0, phe]])
     chi_expansion_for_buildable_restype = _ti32([[1, 1, 0, 0]])
     non_dunbrack_expansion_for_buildable_restype = torch.tensor(
         numpy.array([[[numpy.nan, numpy.nan], [numpy.nan, numpy.nan], [0.25, 1.25]]]),
@@ -586,6 +602,8 @@ def test_sample_chi_for_rotamers(default_database, torch_device):
         dun_params.rotameric_bb_start,
         dun_params.rotameric_bb_step,
         dun_params.rotameric_bb_periodicity,
+        dun_params.rotameric_bb_source_start,
+        dun_params.rotameric_bb_is_mirrored,
         dun_params.sorted_rotamer_2_rotamer,
         dun_params.nchi_for_table_set,
         rottable_set_for_buildable_restype,

@@ -179,3 +179,80 @@ def test_reused_pose_retains_each_database_energy_and_gradient(
     for state, module in [*modules.items(), (order[0], again)]:
         for actual, reference in zip(evaluate(module), expected[state]):
             torch.testing.assert_close(actual, reference, rtol=2e-6, atol=2e-6)
+
+
+@pytest.mark.parametrize(
+    "term_class,change",
+    [
+        (LJLKEnergyTerm, "type_order"),
+        (LJLKEnergyTerm, "ownership"),
+        (LKBallEnergyTerm, "donors"),
+        (LKBallEnergyTerm, "solvation"),
+        (HBondEnergyTerm, "donors"),
+        (HBondEnergyTerm, "hbond_family_order"),
+    ],
+)
+@pytest.mark.parametrize("changed_first", [False, True])
+def test_reused_rotamer_pose_retains_each_database(
+    ubq_pdb,
+    default_database,
+    torch_device,
+    dun_sampler,
+    term_class,
+    change,
+    changed_first,
+):
+    from tmol.pack import PackerPalette, PackerTask, SetPackerTask
+    from tmol.pack.rotamer import build_rotamers
+    from tmol.pose import PoseStackBuilder
+
+    pose = PoseStackBuilder.from_poses(
+        [
+            pose_stack_from_pdb_and_resnums(ubq_pdb, torch_device, [(0, count)])
+            for count in (4, 8)
+        ],
+        torch_device,
+    )
+    task = PackerTask(pose, PackerPalette())
+    task.restrict_to_repacking()
+    task.set_chi_sample_budget(128, 64)
+    task.add_conformer_sampler(dun_sampler)
+    pose, rotamers = build_rotamers(
+        pose, SetPackerTask.from_packer_task(task), default_database.chemical
+    )
+    pose = fresh_annotations(pose)
+    databases = [default_database, database_change(default_database, change)]
+    coords = rotamers.coords.double().clone().requires_grad_(True)
+
+    def evaluate(module):
+        values, indices = module(coords)
+        weights = torch.linspace(
+            0.3, 1.7, values.numel(), device=torch_device
+        ).reshape_as(values)
+        gradient = torch.autograd.grad(
+            (values * weights).sum(), coords, retain_graph=True
+        )[0]
+        return values, indices, gradient
+
+    expected = []
+    for db in databases:
+        clean = fresh_annotations(pose)
+        term = term_class(db, torch_device)
+        setup(term, clean)
+        expected.append(evaluate(term.render_rotamer_scoring_module(clean, rotamers)))
+    assert float(expected[0][0].detach().abs().sum()) > 0.01
+    if change in ("type_order", "hbond_family_order"):
+        for a, b in zip(expected[0], expected[1]):
+            torch.testing.assert_close(a, b, rtol=2e-6, atol=2e-6)
+    else:
+        assert not torch.allclose(expected[0][0], expected[1][0])
+    order = (1, 0) if changed_first else (0, 1)
+    modules, terms = {}, {}
+    for state in order:
+        terms[state] = term_class(databases[state], torch_device)
+        setup(terms[state], pose)
+        modules[state] = terms[state].render_rotamer_scoring_module(pose, rotamers)
+    again = terms[order[0]].render_rotamer_scoring_module(pose, rotamers)
+    for state, module in [*modules.items(), (order[0], again)]:
+        for actual, reference in zip(evaluate(module), expected[state]):
+            torch.testing.assert_close(actual, reference, rtol=2e-6, atol=2e-6)
