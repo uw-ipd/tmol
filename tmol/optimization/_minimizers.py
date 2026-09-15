@@ -266,6 +266,21 @@ class CartesianMinimizer:
         self.last_optimizer_reused = False
         self._lbfgs_factory = _ReusableLBFGSFactory()
 
+    def release_retained_state(self) -> None:
+        """Release topology-specific scoring and optimizer state.
+
+        The returned pose from :meth:`__call__` owns its coordinates, so callers
+        may drop the rendered scorer, CUDA graph pools, gradients, and L-BFGS
+        history before entering another memory-intensive phase.
+        """
+        self.network = None
+        self.optimizer = None
+        self.last_optimizer_reused = False
+        self._lbfgs_factory.optimizer = None
+        self._lbfgs_factory.parameter = None
+        self._lbfgs_factory.options = None
+        self._lbfgs_factory.last_reused = False
+
     def __call__(
         self,
         pose_stack: PoseStack,
