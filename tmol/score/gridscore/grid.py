@@ -48,6 +48,51 @@ def ixform_rep(transformed_rep: torch.Tensor) -> torch.Tensor:
     return torch.pow(transformed_rep, -4) - 1
 
 
+def _smooth_fa_rep_grid(
+    fa_rep: torch.Tensor, smoothing: float, voxel_spacing: float
+) -> torch.Tensor:
+    """Apply the truncated spherical maximum filter used for transformed fa_rep."""
+    if not math.isfinite(smoothing) or smoothing < 0:
+        raise ValueError("fa_rep_smoothing must be finite and nonnegative")
+    if smoothing == 0:
+        return fa_rep
+
+    window_width = math.ceil(smoothing / voxel_spacing)
+    smoothing_squared = smoothing * smoothing
+    smoothed = fa_rep.clone()
+    spatial_shape = fa_rep.shape[-3:]
+    for di in range(-window_width, window_width + 1):
+        for dj in range(-window_width, window_width + 1):
+            for dk in range(-window_width, window_width + 1):
+                distance_squared = (
+                    (di * voxel_spacing) ** 2
+                    + (dj * voxel_spacing) ** 2
+                    + (dk * voxel_spacing) ** 2
+                )
+                if distance_squared > smoothing_squared:
+                    continue
+                if di == 0 and dj == 0 and dk == 0:
+                    continue
+
+                destination = []
+                source = []
+                for size, offset in zip(spatial_shape, (di, dj, dk)):
+                    if offset < 0:
+                        destination.append(slice(-offset, size))
+                        source.append(slice(0, max(0, size + offset)))
+                    else:
+                        destination.append(slice(0, max(0, size - offset)))
+                        source.append(slice(offset, size))
+                destination_index = (..., *destination)
+                source_index = (..., *source)
+                torch.maximum(
+                    smoothed[destination_index],
+                    fa_rep[source_index],
+                    out=smoothed[destination_index],
+                )
+    return smoothed
+
+
 def _prefilter_cubic_bspline_axis_(values: torch.Tensor, axis: int) -> None:
     """Apply Rosetta's mirror-boundary cubic B-spline recursion on one axis."""
     lines_tensor = values.movedim(axis, -1).contiguous()
@@ -1620,11 +1665,14 @@ def build_grid(
     score_function: "ScoreFunction | None" = None,
     build_lk_ball: bool = False,
     excluded_receptor_blocks: tuple[int, ...] = (),
+    fa_rep_smoothing: float = 0.0,
 ) -> GridSet:
     """Build beta16 all-atom grids and optional Rosetta-style LK-ball grids.
 
     Probe atom-type names are deduplicated and sorted, making the grid-to-type
     mapping deterministic even when the caller passes a set.
+    ``fa_rep_smoothing`` is an opt-in radius in Angstroms (0.0 disables it);
+    Rosetta's reference radius is 0.375 A.
     """
     if pose_stack.n_poses != 1:
         raise ValueError("M2b grid construction supports exactly one pose")
@@ -1634,6 +1682,8 @@ def build_grid(
         raise TypeError("pose coordinates must be float32 or float64")
     if not isinstance(build_lk_ball, bool):
         raise TypeError("build_lk_ball must be bool")
+    if not math.isfinite(fa_rep_smoothing) or fa_rep_smoothing < 0:
+        raise ValueError("fa_rep_smoothing must be finite and nonnegative")
     if any(
         not isinstance(block, int) or isinstance(block, bool)
         for block in excluded_receptor_blocks
@@ -1751,6 +1801,7 @@ def build_grid(
         fa_atr, fa_rep, fa_sol, fa_elec = build_grid_op(*grid_args)
         lk_ball = lk_ball_water = lk_bridge = None
         lk_ball_enabled = lk_bridge_enabled = False
+    fa_rep = _smooth_fa_rep_grid(fa_rep, fa_rep_smoothing, geometry.voxel_spacing)
     return GridSet(
         geometry=geometry,
         atom_type_names=atom_type_names,

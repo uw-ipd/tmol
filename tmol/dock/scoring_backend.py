@@ -797,6 +797,7 @@ class GridBackend(ScoringBackend):
         include_ligand_intra: bool = True,
         sidechain_blocks: tuple[int, ...] | None = None,
         value_only_line_search: bool = False,
+        fa_rep_smoothing: float = 0.0,
     ) -> "GridBackend":
         """Build one CPU receptor grid/live-term structure and reusable backend.
 
@@ -804,6 +805,8 @@ class GridBackend(ScoringBackend):
         ``False`` retains the exact live LK-ball path. Ligand-intra scoring is
         enabled by default with Rosetta's softened search profile.
         ``value_only_line_search`` opts into energy-only Armijo trials.
+        ``fa_rep_smoothing`` opts into repulsive-grid smoothing with a radius
+        in Angstroms: 0.0 disables it; Rosetta's reference radius is 0.375 A.
         """
 
         if reference_pose_stack.n_poses != 1:
@@ -897,6 +900,7 @@ class GridBackend(ScoringBackend):
             voxel_spacing=voxel_spacing,
             bbox_padding=bbox_padding,
             build_lk_ball=lk_ball_grid,
+            fa_rep_smoothing=fa_rep_smoothing,
             excluded_receptor_blocks=(
                 normalized_sidechain_blocks + context_blocks
             ),
