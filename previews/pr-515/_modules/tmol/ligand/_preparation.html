@@ -1155,6 +1155,22 @@
     <span class="p">}</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_missing_cif_heavy_atom_names</span><span class="p">(</span>
+    <span class="n">prep</span><span class="p">:</span> <span class="n">LigandPreparation</span><span class="p">,</span> <span class="n">cif_heavy_names</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Return authored heavy-atom names absent from the prepared residue."""</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">cif_heavy_names</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">elements</span> <span class="o">=</span> <span class="n">prep</span><span class="o">.</span><span class="n">atom_type_elements</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="n">restype_heavy</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">prep</span><span class="o">.</span><span class="n">residue_type</span><span class="o">.</span><span class="n">atoms</span><span class="p">:</span>
+        <span class="n">element</span> <span class="o">=</span> <span class="n">elements</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">atom_type</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">element</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">element</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"H"</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">restype_heavy</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">cif_heavy_names</span> <span class="o">-</span> <span class="n">restype_heavy</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_residue_covers_cif_heavy_atoms</span><span class="p">(</span>
     <span class="n">prep</span><span class="p">:</span> <span class="n">LigandPreparation</span><span class="p">,</span> <span class="n">cif_heavy_names</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -1164,16 +1180,7 @@
 <span class="sd">    CIF ligand's heavy-atom names, pose-build can place every CIF heavy-atom</span>
 <span class="sd">    coordinate by ``(res_name, atom_name)`` match.</span>
 <span class="sd">    """</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">cif_heavy_names</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">True</span>
-    <span class="n">elements</span> <span class="o">=</span> <span class="n">prep</span><span class="o">.</span><span class="n">atom_type_elements</span> <span class="ow">or</span> <span class="p">{}</span>
-    <span class="n">restype_heavy</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
-    <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">prep</span><span class="o">.</span><span class="n">residue_type</span><span class="o">.</span><span class="n">atoms</span><span class="p">:</span>
-        <span class="n">element</span> <span class="o">=</span> <span class="n">elements</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">atom_type</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">element</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">element</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"H"</span><span class="p">:</span>
-            <span class="k">continue</span>
-        <span class="n">restype_heavy</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">cif_heavy_names</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">restype_heavy</span><span class="p">)</span>
+    <span class="k">return</span> <span class="ow">not</span> <span class="n">_missing_cif_heavy_atom_names</span><span class="p">(</span><span class="n">prep</span><span class="p">,</span> <span class="n">cif_heavy_names</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_ligand_via_smiles</span><span class="p">(</span>
@@ -1190,8 +1197,7 @@
 <span class="sd">    Derives a SMILES from the ligand's atom array (from its explicit bond table;</span>
 <span class="sd">    never geometry perception, never a CCD lookup) and runs it through the</span>
 <span class="sd">    SMILES -&gt; mol2 -&gt; params pipeline. The prepared residue's heavy-atom names</span>
-<span class="sd">    should cover the original ligand's heavy atoms; if they don't, the</span>
-<span class="sd">    preparation is still returned best-effort.</span>
+<span class="sd">    must cover the original ligand's heavy atoms.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        ligand_info: The detected (CIF/atom-array) ligand.</span>
@@ -1235,11 +1241,14 @@
             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">ligand_info</span><span class="o">.</span><span class="n">res_name</span><span class="si">}</span><span class="s2">: failed to prepare ligand via SMILES </span><span class="si">{</span><span class="n">smiles</span><span class="si">!r}</span><span class="s2">: </span><span class="si">{</span><span class="n">err</span><span class="si">}</span><span class="s2">"</span>
         <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">err</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">_residue_covers_cif_heavy_atoms</span><span class="p">(</span><span class="n">prep</span><span class="p">,</span> <span class="n">_cif_heavy_atom_names</span><span class="p">(</span><span class="n">ligand_info</span><span class="p">)):</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-            <span class="s2">"Prepared SMILES for </span><span class="si">%s</span><span class="s2"> did not cover all CIF heavy-atom names; "</span>
-            <span class="s2">"using best-effort preparation"</span><span class="p">,</span>
-            <span class="n">ligand_info</span><span class="o">.</span><span class="n">res_name</span><span class="p">,</span>
+    <span class="n">missing_heavy_names</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+        <span class="n">_missing_cif_heavy_atom_names</span><span class="p">(</span><span class="n">prep</span><span class="p">,</span> <span class="n">_cif_heavy_atom_names</span><span class="p">(</span><span class="n">ligand_info</span><span class="p">))</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">missing_heavy_names</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">ligand_info</span><span class="o">.</span><span class="n">res_name</span><span class="si">}</span><span class="s2">: generated chemistry does not cover authored "</span>
+            <span class="s2">"source heavy-atom names: "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">missing_heavy_names</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
         <span class="p">)</span>
     <span class="k">return</span> <span class="n">prep</span>
 
@@ -1286,7 +1295,7 @@
             <span class="nb">frozenset</span><span class="p">((</span><span class="n">nitrogen</span><span class="p">,</span> <span class="n">carbonyl</span><span class="p">))</span>
             <span class="k">for</span> <span class="n">nitrogen</span> <span class="ow">in</span> <span class="n">lig</span><span class="o">.</span><span class="n">connection_atom_names</span>
             <span class="k">if</span> <span class="n">elements</span><span class="p">[</span><span class="n">nitrogen</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"N"</span>
-            <span class="k">for</span> <span class="n">carbonyl</span> <span class="ow">in</span> <span class="n">_chain_end_candidates</span><span class="p">(</span><span class="n">lig</span><span class="o">.</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">nitrogen</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">carbonyl</span> <span class="ow">in</span> <span class="p">(</span><span class="n">_chain_end_candidates</span><span class="p">(</span><span class="n">lig</span><span class="o">.</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">nitrogen</span><span class="p">)</span> <span class="ow">or</span> <span class="p">())</span>
             <span class="k">if</span> <span class="n">carbonyl</span> <span class="ow">in</span> <span class="n">lig</span><span class="o">.</span><span class="n">connection_atom_names</span>
         <span class="p">}</span>
         <span class="c1"># Sidechain crosslinks do not erase an unambiguous peptide backbone.</span>
@@ -1431,6 +1440,8 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">canonical_conjugation_sites</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">chemical_database</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Undeclared attachment sites on existing types, including canonical pairs."""</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._conjugate_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">attachment_connection_name</span>
+
     <span class="k">if</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">bonds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="p">{}</span>
     <span class="n">definitions</span> <span class="o">=</span> <span class="p">{</span>
@@ -1454,22 +1465,25 @@
     <span class="n">bonds</span> <span class="o">=</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">bonds</span><span class="o">.</span><span class="n">as_array</span><span class="p">()[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span>
     <span class="n">residues</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">starts</span><span class="p">,</span> <span class="n">bonds</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s2">"right"</span><span class="p">)</span>
     <span class="n">cross</span> <span class="o">=</span> <span class="n">bonds</span><span class="p">[</span><span class="n">residues</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">residues</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]]</span>
-    <span class="n">endpoints</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="nb">int</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">pair</span> <span class="ow">in</span> <span class="n">cross</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span>
+    <span class="n">sites</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">pair</span> <span class="ow">in</span> <span class="n">cross</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">all</span><span class="p">(</span>
             <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span> <span class="nb">str</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">atom_name</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span> <span class="ow">in</span> <span class="n">disulfides</span>
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">pair</span>
-        <span class="p">)</span>
-        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">pair</span>
-    <span class="p">}</span>
-    <span class="n">sites</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">endpoints</span><span class="p">:</span>
-        <span class="n">name</span><span class="p">,</span> <span class="n">atom</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">index</span><span class="p">]),</span> <span class="nb">str</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">atom_name</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">atom</span><span class="p">)</span> <span class="ow">in</span> <span class="n">prepared_sites</span><span class="p">:</span>
+        <span class="p">):</span>
             <span class="k">continue</span>
-        <span class="n">residue</span> <span class="o">=</span> <span class="n">definitions</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">residue</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">atom</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="n">c</span><span class="o">.</span><span class="n">atom</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">residue</span><span class="o">.</span><span class="n">connections</span><span class="p">}:</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">partner</span> <span class="ow">in</span> <span class="p">(</span><span class="n">pair</span><span class="p">,</span> <span class="n">pair</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]):</span>
+            <span class="n">index</span><span class="p">,</span> <span class="n">partner</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">index</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">partner</span><span class="p">)</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
+            <span class="n">atom</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">atom_name</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
+            <span class="n">residue</span> <span class="o">=</span> <span class="n">definitions</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">residue</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">connection</span> <span class="o">=</span> <span class="n">attachment_connection_name</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">partner</span><span class="p">,</span> <span class="n">residue</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">connection</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"up"</span><span class="p">,</span> <span class="s2">"down"</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">atom</span><span class="p">)</span> <span class="ow">in</span> <span class="n">prepared_sites</span><span class="p">:</span>
+                <span class="k">continue</span>
             <span class="n">sites</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">atom</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">sites</span>
 
@@ -1571,14 +1585,20 @@
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Patches and charges for the database residues a component attaches to."""</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._conjugation_patches</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">_hydrogens_on</span><span class="p">,</span>
         <span class="n">charges_for_database_residue</span><span class="p">,</span>
+        <span class="n">combined_terminal_conjugation_patch</span><span class="p">,</span>
+        <span class="n">conjugation_patch</span><span class="p">,</span>
         <span class="n">conjugation_charge_entries</span><span class="p">,</span>
-        <span class="n">conjugation_patches</span><span class="p">,</span>
     <span class="p">)</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._parameter_replacements</span><span class="w"> </span><span class="kn">import</span> <span class="n">_baseline_charges</span>
 
     <span class="n">variants</span><span class="p">,</span> <span class="n">charges</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">{}</span>
+    <span class="n">charge_index</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">res</span><span class="p">,</span> <span class="n">entry</span><span class="o">.</span><span class="n">atom</span><span class="p">):</span> <span class="n">entry</span><span class="o">.</span><span class="n">charge</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">elec</span><span class="o">.</span><span class="n">atom_charge_parameters</span>
+    <span class="p">}</span>
     <span class="k">for</span> <span class="n">res_name</span><span class="p">,</span> <span class="n">partners</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">sites</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
-        <span class="n">atoms</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">partners</span><span class="p">)</span>
         <span class="n">residue_type</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
             <span class="p">(</span>
                 <span class="n">r</span>
@@ -1590,28 +1610,72 @@
         <span class="k">if</span> <span class="n">residue_type</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">continue</span>
         <span class="n">base</span> <span class="o">=</span> <span class="n">charges_for_database_residue</span><span class="p">(</span><span class="n">param_db</span><span class="p">,</span> <span class="n">residue_type</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-        <span class="n">distances</span> <span class="o">=</span> <span class="p">{</span><span class="n">atom</span><span class="p">:</span> <span class="n">lengths</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">res_name</span><span class="p">,</span> <span class="n">atom</span><span class="p">))</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">}</span>
-        <span class="n">hydrogens</span> <span class="o">=</span> <span class="p">{</span><span class="n">atom</span><span class="p">:</span> <span class="n">hydrogen_counts</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">res_name</span><span class="p">,</span> <span class="n">atom</span><span class="p">))</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">}</span>
-        <span class="n">orders</span> <span class="o">=</span> <span class="p">{</span><span class="n">atom</span><span class="p">:</span> <span class="n">bond_types</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">res_name</span><span class="p">,</span> <span class="n">atom</span><span class="p">),</span> <span class="s2">"SINGLE"</span><span class="p">)</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">}</span>
-        <span class="n">leaving</span> <span class="o">=</span> <span class="p">{</span><span class="n">atom</span><span class="p">:</span> <span class="n">heavy_leaving</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">res_name</span><span class="p">,</span> <span class="n">atom</span><span class="p">),</span> <span class="p">())</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">}</span>
-        <span class="n">patches</span> <span class="o">=</span> <span class="n">conjugation_patches</span><span class="p">(</span>
-            <span class="n">residue_type</span><span class="p">,</span>
-            <span class="n">atoms</span><span class="p">,</span>
-            <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">,</span>
-            <span class="n">distances</span><span class="p">,</span>
-            <span class="n">hydrogens</span><span class="p">,</span>
-            <span class="n">orders</span><span class="p">,</span>
-            <span class="n">leaving</span><span class="p">,</span>
-            <span class="p">{</span><span class="n">atom</span><span class="p">:</span> <span class="n">open_geometries</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">res_name</span><span class="p">,</span> <span class="n">atom</span><span class="p">))</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">},</span>
-        <span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">patches</span><span class="p">:</span>
-            <span class="k">continue</span>
-        <span class="n">variants</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">patches</span><span class="p">)</span>
-        <span class="n">charges</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
-            <span class="n">conjugation_charge_entries</span><span class="p">(</span>
-                <span class="n">residue_type</span><span class="p">,</span> <span class="n">atoms</span><span class="p">,</span> <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">hydrogens</span><span class="p">,</span> <span class="n">leaving</span>
+        <span class="n">connections</span> <span class="o">=</span> <span class="p">{</span><span class="n">conn</span><span class="o">.</span><span class="n">atom</span><span class="p">:</span> <span class="n">conn</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">conn</span> <span class="ow">in</span> <span class="n">residue_type</span><span class="o">.</span><span class="n">connections</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">partners</span><span class="p">):</span>
+            <span class="n">count</span> <span class="o">=</span> <span class="n">hydrogen_counts</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">res_name</span><span class="p">,</span> <span class="n">atom</span><span class="p">))</span>
+            <span class="n">leaving</span> <span class="o">=</span> <span class="n">heavy_leaving</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">res_name</span><span class="p">,</span> <span class="n">atom</span><span class="p">),</span> <span class="p">())</span>
+            <span class="n">distance</span> <span class="o">=</span> <span class="n">lengths</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">res_name</span><span class="p">,</span> <span class="n">atom</span><span class="p">))</span>
+            <span class="n">order</span> <span class="o">=</span> <span class="n">bond_types</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">res_name</span><span class="p">,</span> <span class="n">atom</span><span class="p">),</span> <span class="s2">"SINGLE"</span><span class="p">)</span>
+            <span class="n">geometry</span> <span class="o">=</span> <span class="n">open_geometries</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">res_name</span><span class="p">,</span> <span class="n">atom</span><span class="p">))</span>
+            <span class="n">terminal_type</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="n">rt</span>
+                    <span class="k">for</span> <span class="n">rt</span> <span class="ow">in</span> <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="o">.</span><span class="n">residues</span>
+                    <span class="k">if</span> <span class="n">rt</span><span class="o">.</span><span class="n">base_name</span> <span class="o">==</span> <span class="n">residue_type</span><span class="o">.</span><span class="n">base_name</span>
+                    <span class="ow">and</span> <span class="n">rt</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">":"</span><span class="p">)[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">==</span> <span class="p">[</span><span class="s2">"nterm"</span><span class="p">]</span>
+                <span class="p">),</span>
+                <span class="kc">None</span><span class="p">,</span>
             <span class="p">)</span>
-        <span class="p">)</span>
+            <span class="n">base_hydrogens</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">_hydrogens_on</span><span class="p">(</span><span class="n">residue_type</span><span class="p">,</span> <span class="n">atom</span><span class="p">,</span> <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">))</span>
+            <span class="n">is_terminal_amine</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">terminal_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="ow">and</span> <span class="n">connections</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">atom</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"down"</span>
+                <span class="ow">and</span> <span class="n">count</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="ow">and</span> <span class="n">count</span> <span class="o">&gt;</span> <span class="n">base_hydrogens</span>
+            <span class="p">)</span>
+            <span class="n">patch_source</span> <span class="o">=</span> <span class="n">terminal_type</span> <span class="k">if</span> <span class="n">is_terminal_amine</span> <span class="k">else</span> <span class="n">residue_type</span>
+            <span class="n">patch</span> <span class="o">=</span> <span class="n">conjugation_patch</span><span class="p">(</span>
+                <span class="n">patch_source</span><span class="p">,</span>
+                <span class="n">atom</span><span class="p">,</span>
+                <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">,</span>
+                <span class="n">distance</span><span class="p">,</span>
+                <span class="n">n_hydrogens</span><span class="o">=</span><span class="n">count</span><span class="p">,</span>
+                <span class="n">bond_type</span><span class="o">=</span><span class="n">order</span><span class="p">,</span>
+                <span class="n">heavy_leaving</span><span class="o">=</span><span class="n">leaving</span><span class="p">,</span>
+                <span class="n">open_geometry</span><span class="o">=</span><span class="n">geometry</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">patch</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">is_terminal_amine</span><span class="p">:</span>
+                <span class="n">patch</span> <span class="o">=</span> <span class="n">combined_terminal_conjugation_patch</span><span class="p">(</span>
+                    <span class="n">residue_type</span><span class="p">,</span> <span class="n">terminal_type</span><span class="p">,</span> <span class="n">patch</span><span class="p">,</span> <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">patch</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">terminal_charges</span> <span class="o">=</span> <span class="n">_baseline_charges</span><span class="p">(</span><span class="n">charge_index</span><span class="p">,</span> <span class="n">terminal_type</span><span class="p">)</span>
+                <span class="n">entry</span> <span class="o">=</span> <span class="n">conjugation_charge_entries</span><span class="p">(</span>
+                    <span class="n">terminal_type</span><span class="p">,</span>
+                    <span class="p">{</span><span class="n">atom</span><span class="p">},</span>
+                    <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">,</span>
+                    <span class="n">terminal_charges</span><span class="p">,</span>
+                    <span class="p">{</span><span class="n">atom</span><span class="p">:</span> <span class="n">count</span><span class="p">},</span>
+                    <span class="p">{</span><span class="n">atom</span><span class="p">:</span> <span class="n">leaving</span><span class="p">},</span>
+                <span class="p">)</span>
+                <span class="n">charges</span><span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">residue_type</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">patch</span><span class="o">.</span><span class="n">display_name</span><span class="si">}</span><span class="s2">"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+                    <span class="nb">iter</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">charges</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                    <span class="n">conjugation_charge_entries</span><span class="p">(</span>
+                        <span class="n">residue_type</span><span class="p">,</span>
+                        <span class="p">{</span><span class="n">atom</span><span class="p">},</span>
+                        <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">,</span>
+                        <span class="n">base</span><span class="p">,</span>
+                        <span class="p">{</span><span class="n">atom</span><span class="p">:</span> <span class="n">count</span><span class="p">},</span>
+                        <span class="p">{</span><span class="n">atom</span><span class="p">:</span> <span class="n">leaving</span><span class="p">},</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="n">variants</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">patch</span><span class="p">)</span>
     <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">variants</span><span class="p">),</span> <span class="n">charges</span>
 
 
@@ -1935,7 +1999,9 @@
             <span class="k">continue</span>
 
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-            <span class="s2">"Preparing </span><span class="si">%s</span><span class="s2"> (declared type: </span><span class="si">%s</span><span class="s2">)"</span><span class="p">,</span> <span class="n">lig</span><span class="o">.</span><span class="n">res_name</span><span class="p">,</span> <span class="n">lig</span><span class="o">.</span><span class="n">component_type</span>
+            <span class="s2">"Preparing </span><span class="si">%s</span><span class="s2"> (declared component type: </span><span class="si">%s</span><span class="s2">)"</span><span class="p">,</span>
+            <span class="n">lig</span><span class="o">.</span><span class="n">res_name</span><span class="p">,</span>
+            <span class="n">lig</span><span class="o">.</span><span class="n">component_type</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">bonds</span> <span class="o">=</span> <span class="n">lig</span><span class="o">.</span><span class="n">atom_array</span><span class="o">.</span><span class="n">bonds</span>

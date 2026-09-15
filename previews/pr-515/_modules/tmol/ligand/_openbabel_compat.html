@@ -604,7 +604,7 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_compute_charges_with_fallback</span><span class="p">(</span><span class="n">openbabel</span><span class="p">,</span> <span class="n">pymol</span><span class="p">,</span> <span class="n">forcefield</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Compute finite, charge-conserving charges, falling back on failure.</span>
+<span class="w">    </span><span class="sd">"""Compute complete finite charges, falling back on failure.</span>
 
 <span class="sd">    Returns the name of the model actually used.</span>
 
@@ -619,16 +619,13 @@
         <span class="n">charges</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">atom</span><span class="o">.</span><span class="n">GetPartialCharge</span><span class="p">()</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBMolAtomIter</span><span class="p">(</span><span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="p">)</span>
         <span class="p">]</span>
-        <span class="k">if</span> <span class="p">(</span>
-            <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">charges</span><span class="p">)</span>
-            <span class="ow">or</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">charges</span><span class="p">)</span> <span class="o">-</span> <span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="o">.</span><span class="n">GetTotalCharge</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mf">1e-4</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">charges</span><span class="p">)</span> <span class="o">!=</span> <span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="o">.</span><span class="n">NumAtoms</span><span class="p">()</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span>
+            <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">charges</span>
         <span class="p">):</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                <span class="s2">"Rejecting </span><span class="si">%s</span><span class="s2"> partial charges for </span><span class="si">%r</span><span class="s2">: total </span><span class="si">%s</span><span class="s2"> does not match formal charge </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span>
+                <span class="s2">"Rejecting incomplete or non-finite </span><span class="si">%s</span><span class="s2"> partial charges for </span><span class="si">%r</span><span class="s2">"</span><span class="p">,</span>
                 <span class="n">name</span><span class="p">,</span>
                 <span class="n">smiles</span><span class="p">,</span>
-                <span class="nb">sum</span><span class="p">(</span><span class="n">charges</span><span class="p">),</span>
-                <span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="o">.</span><span class="n">GetTotalCharge</span><span class="p">(),</span>
             <span class="p">)</span>
             <span class="k">continue</span>
         <span class="k">if</span> <span class="n">name</span> <span class="o">!=</span> <span class="n">forcefield</span><span class="p">:</span>
