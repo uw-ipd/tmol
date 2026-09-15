@@ -667,6 +667,71 @@ def test_weighted_fused_ljlk_elec_rotamer_scores_match_fallback(
     assert torch.count_nonzero(scorer.weights.grad[:4]) != 0
 
 
+def test_packing_pages_shared_lk_ball_dispatch(
+    default_database, ubq_pdb, dun_sampler, torch_device, monkeypatch
+):
+    from tmol.score import _score_function
+
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=10)
+    pose_stack, task = setup_pose_stack_and_task([pose], torch_device, dun_sampler)
+    pose_stack, rotamer_set = build_rotamers(
+        pose_stack,
+        SetPackerTask.from_packer_task(task),
+        pose_stack.packed_block_types.chem_db,
+    )
+    scorer = get_packer_sfxn(
+        default_database, torch_device
+    ).render_rotamer_scoring_module(pose_stack, rotamer_set)
+    lk_ball = next(term for term in scorer.term_modules if term.classname == "LKBall")
+    lk_ball_index = scorer.term_modules.index(lk_ball)
+    weight_offset = sum(
+        term.n_score_types for term in scorer.term_modules[:lk_ball_index]
+    )
+    weights = scorer.weights[
+        weight_offset : weight_offset + lk_ball.n_score_types, 0, 0, 0
+    ]
+
+    with torch.no_grad():
+        # The canonical dispatch is only ever produced in bounded pages; join
+        # them here to build the full-dispatch reference this test compares to.
+        dispatch = torch.cat(
+            list(scorer._fused_ljlk_elec.iter_packing_dispatches(rotamer_set.coords)),
+            dim=1,
+        )
+        full_scores, full_indices = lk_ball.forward(rotamer_set.coords, dispatch)
+        expected_values = torch.sum(weights[:, None] * full_scores, dim=0)
+
+        monkeypatch.setattr(_score_function, "_PACK_FUSED_ROTAMER_SCORE_WINDOW", 7)
+        pages = [
+            (indices, values)
+            for term, indices, values in scorer._iter_weighted_sparse_entries(
+                rotamer_set.coords, retain_shared_dispatch=False
+            )
+            if term is lk_ball
+        ]
+        topology_pages = [
+            (indices, values)
+            for term, indices, values in scorer._iter_weighted_sparse_entries(
+                rotamer_set.coords,
+                retain_shared_dispatch=False,
+                topology_only=True,
+            )
+            if term is lk_ball
+        ]
+
+    assert len(pages) > 1
+    assert torch.equal(
+        torch.cat([indices for indices, _ in pages], dim=1), full_indices
+    )
+    torch.testing.assert_close(
+        torch.cat([values for _, values in pages]), expected_values
+    )
+    assert torch.equal(
+        torch.cat([indices for indices, _ in topology_pages], dim=1), full_indices
+    )
+    assert all(values.numel() == 0 for _, values in topology_pages)
+
+
 def test_fused_ljlk_elec_empty_table_gradient(monkeypatch):
     from tmol.score import _score_function
     from tmol.score.ljlk import potentials
