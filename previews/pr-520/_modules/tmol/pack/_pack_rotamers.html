@@ -742,8 +742,16 @@
 
     <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
     <span class="n">rotamer_scoring_module</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_rotamer_scoring_module</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">rotamer_set</span><span class="p">)</span>
+    <span class="n">stream_interaction_graph</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"cuda"</span>
+        <span class="ow">and</span> <span class="ow">not</span> <span class="n">rotamer_set</span><span class="o">.</span><span class="n">correlated_groups</span>
+        <span class="ow">and</span> <span class="ow">not</span> <span class="n">task</span><span class="o">.</span><span class="n">bump_check</span>
+    <span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"cuda"</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">rotamer_set</span><span class="o">.</span><span class="n">correlated_groups</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">stream_interaction_graph</span><span class="p">:</span>
+        <span class="n">energy_indices</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">energy_values</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">elif</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"cuda"</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">rotamer_set</span><span class="o">.</span><span class="n">correlated_groups</span><span class="p">:</span>
         <span class="c1"># CUDA graph construction atomically accumulates duplicate coordinates,</span>
         <span class="c1"># so it can consume raw int32 entries. Avoid constructing/coalescing a</span>
         <span class="c1"># PyTorch COO tensor: COO promotes coordinates to int64 and sorting can</span>
@@ -793,6 +801,33 @@
 
     <span class="n">chunk_size</span> <span class="o">=</span> <span class="n">_interaction_graph_chunk_size</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
 
+    <span class="n">graph_inputs</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span>
+        <span class="n">n_rots_for_pose</span><span class="p">,</span>
+        <span class="n">rot_offset_for_pose</span><span class="p">,</span>
+        <span class="n">n_rots_for_block</span><span class="p">,</span>
+        <span class="n">rot_offset_for_block</span><span class="p">,</span>
+        <span class="n">pose_for_rot</span><span class="p">,</span>
+        <span class="n">block_type_ind_for_rot</span><span class="p">,</span>
+        <span class="n">block_ind_for_rot</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">stream_interaction_graph</span><span class="p">:</span>
+        <span class="n">graph_result</span> <span class="o">=</span> <span class="n">_build_streaming_interaction_graph</span><span class="p">(</span>
+            <span class="n">rotamer_scoring_module</span><span class="p">,</span>
+            <span class="n">rotamer_set</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span>
+            <span class="n">chunk_size</span><span class="p">,</span>
+            <span class="n">graph_inputs</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">graph_result</span> <span class="o">=</span> <span class="n">build_interaction_graph</span><span class="p">(</span>
+            <span class="n">task</span><span class="o">.</span><span class="n">bump_check</span><span class="p">,</span>
+            <span class="n">chunk_size</span><span class="p">,</span>
+            <span class="o">*</span><span class="n">graph_inputs</span><span class="p">,</span>
+            <span class="n">energy_indices</span><span class="p">,</span>
+            <span class="n">energy_values</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="p">,</span>
+        <span class="p">)</span>
     <span class="p">(</span>
         <span class="n">max_n_bump_checked_rotamers_per_pose_tensor</span><span class="p">,</span>
         <span class="n">n_molten_blocks_per_pose</span><span class="p">,</span>
@@ -805,24 +840,12 @@
         <span class="n">bc_rot_to_orig_rot</span><span class="p">,</span>
         <span class="n">bg_bg_energies</span><span class="p">,</span>
         <span class="n">energy1b</span><span class="p">,</span>
-        <span class="n">chunk_pair_offset_for_block_pair</span><span class="p">,</span>
+        <span class="n">neighbor_row_offsets</span><span class="p">,</span>
+        <span class="n">neighbor_blocks</span><span class="p">,</span>
+        <span class="n">neighbor_chunk_offset_offsets</span><span class="p">,</span>
         <span class="n">chunk_pair_offset</span><span class="p">,</span>
         <span class="n">energy2b</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">=</span> <span class="n">build_interaction_graph</span><span class="p">(</span>
-        <span class="n">task</span><span class="o">.</span><span class="n">bump_check</span><span class="p">,</span>
-        <span class="n">chunk_size</span><span class="p">,</span>
-        <span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span>
-        <span class="n">n_rots_for_pose</span><span class="p">,</span>
-        <span class="n">rot_offset_for_pose</span><span class="p">,</span>
-        <span class="n">n_rots_for_block</span><span class="p">,</span>
-        <span class="n">rot_offset_for_block</span><span class="p">,</span>
-        <span class="n">pose_for_rot</span><span class="p">,</span>
-        <span class="n">block_type_ind_for_rot</span><span class="p">,</span>
-        <span class="n">block_ind_for_rot</span><span class="p">,</span>
-        <span class="n">energy_indices</span><span class="p">,</span>
-        <span class="n">energy_values</span><span class="p">,</span>
-        <span class="n">verbose</span><span class="p">,</span>
-    <span class="p">)</span>
+    <span class="p">)</span> <span class="o">=</span> <span class="n">graph_result</span>
     <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
         <span class="n">synchronize_device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="n">end_time3</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
@@ -847,7 +870,9 @@
         <span class="n">oneb_offsets</span><span class="o">=</span><span class="n">bc_rot_offset_for_molten_block</span><span class="p">,</span>
         <span class="n">res_for_rot</span><span class="o">=</span><span class="n">molten_block_ind_for_bc_rot</span><span class="p">,</span>
         <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
-        <span class="n">chunk_offset_offsets</span><span class="o">=</span><span class="n">chunk_pair_offset_for_block_pair</span><span class="p">,</span>
+        <span class="n">neighbor_row_offsets</span><span class="o">=</span><span class="n">neighbor_row_offsets</span><span class="p">,</span>
+        <span class="n">neighbor_blocks</span><span class="o">=</span><span class="n">neighbor_blocks</span><span class="p">,</span>
+        <span class="n">neighbor_chunk_offset_offsets</span><span class="o">=</span><span class="n">neighbor_chunk_offset_offsets</span><span class="p">,</span>
         <span class="n">chunk_offsets</span><span class="o">=</span><span class="n">chunk_pair_offset</span><span class="p">,</span>
         <span class="n">energy1b</span><span class="o">=</span><span class="n">energy1b</span><span class="p">,</span>
         <span class="n">energy2b</span><span class="o">=</span><span class="n">energy2b</span><span class="p">,</span>
@@ -864,6 +889,154 @@
         <span class="n">end_time2</span><span class="p">,</span>
         <span class="n">end_time3</span><span class="p">,</span>
     <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_streaming_interaction_graph</span><span class="p">(</span>
+    <span class="n">rotamer_scoring_module</span><span class="p">,</span>
+    <span class="n">coords</span><span class="p">,</span>
+    <span class="n">chunk_size</span><span class="p">,</span>
+    <span class="n">graph_inputs</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Build a CUDA interaction graph with two bounded score passes."""</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.compiled</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">accumulate_interaction_graph_entries</span><span class="p">,</span>
+        <span class="n">build_interaction_graph</span><span class="p">,</span>
+        <span class="n">finalize_interaction_graph_topology</span><span class="p">,</span>
+        <span class="n">initialize_interaction_graph_topology</span><span class="p">,</span>
+        <span class="n">note_interaction_graph_topology</span><span class="p">,</span>
+        <span class="n">resize_interaction_graph_topology</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="p">(</span>
+        <span class="n">max_n_block_types</span><span class="p">,</span>
+        <span class="n">n_rots_for_pose</span><span class="p">,</span>
+        <span class="n">rot_offset_for_pose</span><span class="p">,</span>
+        <span class="n">n_rots_for_block</span><span class="p">,</span>
+        <span class="n">rot_offset_for_block</span><span class="p">,</span>
+        <span class="n">pose_for_rot</span><span class="p">,</span>
+        <span class="n">block_type_ind_for_rot</span><span class="p">,</span>
+        <span class="n">block_ind_for_rot</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">=</span> <span class="n">graph_inputs</span>
+    <span class="n">empty_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">empty_values</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="c1"># Empty no-bump construction establishes the canonical kept/fixed rotamer</span>
+    <span class="c1"># numbering without retaining any score layout.</span>
+    <span class="n">base</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+        <span class="n">build_interaction_graph</span><span class="p">(</span>
+            <span class="kc">False</span><span class="p">,</span>
+            <span class="n">chunk_size</span><span class="p">,</span>
+            <span class="n">max_n_block_types</span><span class="p">,</span>
+            <span class="n">n_rots_for_pose</span><span class="p">,</span>
+            <span class="n">rot_offset_for_pose</span><span class="p">,</span>
+            <span class="n">n_rots_for_block</span><span class="p">,</span>
+            <span class="n">rot_offset_for_block</span><span class="p">,</span>
+            <span class="n">pose_for_rot</span><span class="p">,</span>
+            <span class="n">block_type_ind_for_rot</span><span class="p">,</span>
+            <span class="n">block_ind_for_rot</span><span class="p">,</span>
+            <span class="n">empty_indices</span><span class="p">,</span>
+            <span class="n">empty_values</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">topology</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+        <span class="n">initialize_interaction_graph_topology</span><span class="p">(</span>
+            <span class="n">chunk_size</span><span class="p">,</span>
+            <span class="n">n_rots_for_block</span><span class="p">,</span>
+            <span class="n">base</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
+            <span class="n">empty_values</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+    <span class="p">(</span>
+        <span class="n">block_adjacency</span><span class="p">,</span>
+        <span class="n">chunk_pair_keys</span><span class="p">,</span>
+        <span class="n">orig_block_to_molten</span><span class="p">,</span>
+        <span class="n">molten_block_chunk_offset</span><span class="p">,</span>
+        <span class="n">n_chunks_per_pose</span><span class="p">,</span>
+        <span class="n">pose_global_chunk_offset</span><span class="p">,</span>
+        <span class="n">hash_overflow</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">=</span> <span class="n">topology</span>
+
+    <span class="c1"># Pass one records only topology. Disabling dispatch retention bounds live</span>
+    <span class="c1"># score/index storage to the current term.</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">rotamer_scoring_module</span><span class="o">.</span><span class="n">_iter_weighted_sparse_entries</span><span class="p">(</span>
+        <span class="n">coords</span><span class="p">,</span> <span class="n">retain_shared_dispatch</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">):</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">hash_overflow</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
+            <span class="p">(</span>
+                <span class="n">block_adjacency</span><span class="p">,</span>
+                <span class="n">chunk_pair_keys</span><span class="p">,</span>
+                <span class="n">hash_overflow</span><span class="p">,</span>
+            <span class="p">)</span> <span class="o">=</span> <span class="n">note_interaction_graph_topology</span><span class="p">(</span>
+                <span class="n">chunk_size</span><span class="p">,</span>
+                <span class="n">n_rots_for_block</span><span class="p">,</span>
+                <span class="n">rot_offset_for_block</span><span class="p">,</span>
+                <span class="n">block_ind_for_rot</span><span class="p">,</span>
+                <span class="n">orig_block_to_molten</span><span class="p">,</span>
+                <span class="n">molten_block_chunk_offset</span><span class="p">,</span>
+                <span class="n">n_chunks_per_pose</span><span class="p">,</span>
+                <span class="n">pose_global_chunk_offset</span><span class="p">,</span>
+                <span class="n">block_adjacency</span><span class="p">,</span>
+                <span class="n">chunk_pair_keys</span><span class="p">,</span>
+                <span class="n">hash_overflow</span><span class="p">,</span>
+                <span class="n">indices</span><span class="p">,</span>
+                <span class="n">values</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">hash_overflow</span><span class="o">.</span><span class="n">item</span><span class="p">():</span>
+                <span class="k">break</span>
+            <span class="n">chunk_pair_keys</span> <span class="o">=</span> <span class="n">resize_interaction_graph_topology</span><span class="p">(</span>
+                <span class="n">chunk_pair_keys</span><span class="p">,</span>
+                <span class="n">chunk_pair_keys</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>
+                <span class="n">values</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">del</span> <span class="n">indices</span><span class="p">,</span> <span class="n">values</span>
+
+    <span class="p">(</span>
+        <span class="n">base</span><span class="p">[</span><span class="mi">11</span><span class="p">],</span>
+        <span class="n">base</span><span class="p">[</span><span class="mi">12</span><span class="p">],</span>
+        <span class="n">base</span><span class="p">[</span><span class="mi">13</span><span class="p">],</span>
+        <span class="n">base</span><span class="p">[</span><span class="mi">14</span><span class="p">],</span>
+        <span class="n">base</span><span class="p">[</span><span class="mi">15</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">=</span> <span class="n">finalize_interaction_graph_topology</span><span class="p">(</span>
+        <span class="n">chunk_size</span><span class="p">,</span>
+        <span class="n">base</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
+        <span class="n">molten_block_chunk_offset</span><span class="p">,</span>
+        <span class="n">n_chunks_per_pose</span><span class="p">,</span>
+        <span class="n">pose_global_chunk_offset</span><span class="p">,</span>
+        <span class="n">block_adjacency</span><span class="p">,</span>
+        <span class="n">chunk_pair_keys</span><span class="p">,</span>
+        <span class="n">empty_values</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">del</span> <span class="n">topology</span><span class="p">,</span> <span class="n">block_adjacency</span><span class="p">,</span> <span class="n">chunk_pair_keys</span>
+
+    <span class="c1"># Pass two adds terms in the same canonical order. Native accumulation is</span>
+    <span class="c1"># additive, preserving duplicate coordinates and CSR transpose symmetry.</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">rotamer_scoring_module</span><span class="o">.</span><span class="n">_iter_weighted_sparse_entries</span><span class="p">(</span>
+        <span class="n">coords</span><span class="p">,</span> <span class="n">retain_shared_dispatch</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">):</span>
+        <span class="n">base</span><span class="p">[</span><span class="mi">9</span><span class="p">],</span> <span class="n">base</span><span class="p">[</span><span class="mi">10</span><span class="p">],</span> <span class="n">base</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span> <span class="o">=</span> <span class="n">accumulate_interaction_graph_entries</span><span class="p">(</span>
+            <span class="n">chunk_size</span><span class="p">,</span>
+            <span class="n">n_rots_for_block</span><span class="p">,</span>
+            <span class="n">rot_offset_for_block</span><span class="p">,</span>
+            <span class="n">block_ind_for_rot</span><span class="p">,</span>
+            <span class="n">orig_block_to_molten</span><span class="p">,</span>
+            <span class="n">base</span><span class="p">[</span><span class="mi">7</span><span class="p">],</span>
+            <span class="n">base</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
+            <span class="n">base</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span>
+            <span class="n">base</span><span class="p">[</span><span class="mi">11</span><span class="p">],</span>
+            <span class="n">base</span><span class="p">[</span><span class="mi">12</span><span class="p">],</span>
+            <span class="n">base</span><span class="p">[</span><span class="mi">13</span><span class="p">],</span>
+            <span class="n">base</span><span class="p">[</span><span class="mi">14</span><span class="p">],</span>
+            <span class="n">base</span><span class="p">[</span><span class="mi">9</span><span class="p">],</span>
+            <span class="n">base</span><span class="p">[</span><span class="mi">10</span><span class="p">],</span>
+            <span class="n">base</span><span class="p">[</span><span class="mi">15</span><span class="p">],</span>
+            <span class="n">indices</span><span class="p">,</span>
+            <span class="n">values</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">del</span> <span class="n">indices</span><span class="p">,</span> <span class="n">values</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
 </pre></div>
 
                 </article>

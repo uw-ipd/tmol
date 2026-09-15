@@ -465,6 +465,9 @@
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 <span class="n">SKIP_RESIDUES</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">"HOH"</span><span class="p">,</span> <span class="s2">"WAT"</span><span class="p">,</span> <span class="s2">"DOD"</span><span class="p">,</span> <span class="s2">"VRT"</span><span class="p">})</span>
+<span class="n">_HALOGEN_ELEMENTS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">"F"</span><span class="p">,</span> <span class="s2">"Cl"</span><span class="p">,</span> <span class="s2">"Br"</span><span class="p">,</span> <span class="s2">"I"</span><span class="p">,</span> <span class="s2">"At"</span><span class="p">,</span> <span class="s2">"Ts"</span><span class="p">})</span>
+<span class="n">_SOURCE_FORMAL_CHARGE_ANNOTATION</span> <span class="o">=</span> <span class="s2">"tmol_source_formal_charge"</span>
+<span class="n">_FORMAL_CHARGE_SPECIFIED_ANNOTATION</span> <span class="o">=</span> <span class="s2">"tmol_formal_charge_specified"</span>
 
 
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -529,6 +532,76 @@
     <span class="n">chemistry_problem</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="c1"># {own connection atom: {(partner residue name, partner atom name)}}</span>
     <span class="n">connection_partners</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">hash</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_formal_charge_is_specified</span><span class="p">(</span><span class="n">residue</span><span class="p">:</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Whether a monatomic residue carries an authoritative formal charge."""</span>
+    <span class="k">if</span> <span class="n">_FORMAL_CHARGE_SPECIFIED_ANNOTATION</span> <span class="ow">in</span> <span class="n">residue</span><span class="o">.</span><span class="n">get_annotation_categories</span><span class="p">():</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">residue</span><span class="o">.</span><span class="n">get_annotation</span><span class="p">(</span><span class="n">_FORMAL_CHARGE_SPECIFIED_ANNOTATION</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">_SOURCE_FORMAL_CHARGE_ANNOTATION</span> <span class="ow">in</span> <span class="n">residue</span><span class="o">.</span><span class="n">get_annotation_categories</span><span class="p">():</span>
+        <span class="n">source_text</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span>
+            <span class="n">residue</span><span class="o">.</span><span class="n">get_annotation</span><span class="p">(</span><span class="n">_SOURCE_FORMAL_CHARGE_ANNOTATION</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">source_text</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">""</span><span class="p">,</span> <span class="s2">"."</span><span class="p">,</span> <span class="s2">"?"</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">residue</span><span class="o">.</span><span class="n">charge</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">0</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_isolated_atom_charge_problem</span><span class="p">(</span>
+    <span class="n">atom_array</span><span class="p">:</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">,</span>
+    <span class="n">residue</span><span class="p">:</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">covalently_linked</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Explain why an isolated atom's charge cannot be safely regenerated."""</span>
+    <span class="k">if</span> <span class="n">covalently_linked</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">residue</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">res_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">residue</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">atom_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">residue</span><span class="o">.</span><span class="n">atom_name</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">element</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">residue</span><span class="o">.</span><span class="n">element</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_formal_charge_is_specified</span><span class="p">(</span><span class="n">residue</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">res_name</span><span class="si">}</span><span class="s2">: formal charge is unspecified for isolated </span><span class="si">{</span><span class="n">element</span><span class="si">}</span><span class="s2"> atom "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">atom_name</span><span class="si">}</span><span class="s2">; no bond or hydrogen valence can establish its charge. "</span>
+            <span class="s2">"Supply _atom_site.pdbx_formal_charge or _chem_comp_atom.charge, enable "</span>
+            <span class="s2">"use_ccd for a CCD component, or load its prepared .tmol parameters"</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">element</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_HALOGEN_ELEMENTS</span> <span class="ow">or</span> <span class="nb">int</span><span class="p">(</span><span class="n">residue</span><span class="o">.</span><span class="n">charge</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">source_text</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="nb">str</span><span class="p">(</span><span class="n">residue</span><span class="o">.</span><span class="n">get_annotation</span><span class="p">(</span><span class="n">_SOURCE_FORMAL_CHARGE_ANNOTATION</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">_SOURCE_FORMAL_CHARGE_ANNOTATION</span> <span class="ow">in</span> <span class="n">residue</span><span class="o">.</span><span class="n">get_annotation_categories</span><span class="p">()</span>
+        <span class="k">else</span> <span class="s2">""</span>
+    <span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">source_charge</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">source_text</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">source_charge</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">residue</span><span class="o">.</span><span class="n">charge</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="n">template</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="s2">"_custom_ccd_registry"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">res_name</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span>
+    <span class="n">ccd_charge</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">template</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">selected</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">atom_name</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span> <span class="o">==</span> <span class="n">atom_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">selected</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">ccd_charge</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">charge</span><span class="p">[</span><span class="n">selected</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
+
+    <span class="n">disagreement</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s2">", while the CCD component definition declares </span><span class="si">{</span><span class="n">ccd_charge</span><span class="si">}</span><span class="s2">"</span>
+        <span class="k">if</span> <span class="n">ccd_charge</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">ccd_charge</span> <span class="o">!=</span> <span class="n">source_charge</span>
+        <span class="k">else</span> <span class="s2">""</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">res_name</span><span class="si">}</span><span class="s2">: source explicitly declares formal charge </span><span class="si">{</span><span class="n">source_charge</span><span class="si">}</span><span class="s2"> "</span>
+        <span class="sa">f</span><span class="s2">"for isolated </span><span class="si">{</span><span class="n">element</span><span class="si">}{</span><span class="n">disagreement</span><span class="si">}</span><span class="s2">. Neutral monatomic </span><span class="si">{</span><span class="n">element</span><span class="si">}</span><span class="s2"> "</span>
+        <span class="s2">"cannot be safely regenerated as an aqueous ligand because closed-shell "</span>
+        <span class="s2">"preparation may create HCl-like hydrogen-halide chemistry. Correct the "</span>
+        <span class="s2">"source formal charge, supply explicit HCl/hydrogen-halide chemistry, "</span>
+        <span class="s2">"provide prepared parameters with params_files, or skip the residue with "</span>
+        <span class="s2">"strict_ligands=False."</span>
+    <span class="p">)</span>
 
 
 <div class="viewcode-block" id="get_chem_comp_type">
@@ -775,15 +848,13 @@
                 <span class="n">atom_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
     <span class="n">mol</span><span class="o">.</span><span class="n">GetConformer</span><span class="p">()</span><span class="o">.</span><span class="n">SetPositions</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">coordinates</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">))</span>
-    <span class="n">_resolve_mol2_delocalized_oxygens</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">declared_charges</span><span class="p">,</span> <span class="n">delocalized_bonds</span><span class="p">)</span>
+    <span class="n">_infer_oxyacid_bonds</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">declared_charges</span><span class="p">,</span> <span class="n">delocalized_bonds</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">declared_charges</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_resolve_mol2_delocalized_oxygens</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">charges</span><span class="p">,</span> <span class="n">delocalized_bonds</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Use declared charges to localize acyclic carbonate/carboxylate/phosphate O.co2."""</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_infer_oxyacid_bonds</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">charges</span><span class="p">,</span> <span class="n">delocalized_bonds</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Localize delocalized oxyacid bonds from explicit oxygen charges."""</span>
     <span class="k">for</span> <span class="n">center</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">():</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">center</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">(),</span> <span class="n">center</span><span class="o">.</span><span class="n">GetDegree</span><span class="p">())</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">((</span><span class="mi">6</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">4</span><span class="p">)):</span>
-            <span class="k">continue</span>
         <span class="n">oxygens</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">atom</span>
             <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">center</span><span class="o">.</span><span class="n">GetNeighbors</span><span class="p">()</span>
@@ -880,20 +951,7 @@
     <span class="n">probe</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
     <span class="n">invalid</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">Chem</span><span class="o">.</span><span class="n">SanitizeMol</span><span class="p">(</span><span class="n">probe</span><span class="p">,</span> <span class="n">catchErrors</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
     <span class="n">charge_model</span> <span class="o">=</span> <span class="n">_mol2_charge_model_from_text</span><span class="p">(</span><span class="n">mol2_block</span><span class="p">)</span>
-    <span class="n">charges</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="nb">float</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">GetProp</span><span class="p">(</span><span class="s2">"_TriposPartialCharge"</span><span class="p">))</span>
-        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">HasProp</span><span class="p">(</span><span class="s2">"_TriposPartialCharge"</span><span class="p">)</span>
-    <span class="p">]</span>
-    <span class="n">total_charge</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">charges</span><span class="p">)</span>
-    <span class="n">mismatch</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">_charge_model_is_authoritative</span><span class="p">(</span><span class="n">charge_model</span><span class="p">)</span>
-        <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">charges</span><span class="p">)</span> <span class="o">==</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetNumAtoms</span><span class="p">()</span>
-        <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">charges</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
-        <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span><span class="n">total_charge</span> <span class="o">-</span> <span class="nb">round</span><span class="p">(</span><span class="n">total_charge</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mf">0.01</span>
-        <span class="ow">and</span> <span class="nb">round</span><span class="p">(</span><span class="n">total_charge</span><span class="p">)</span> <span class="o">!=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">GetFormalCharge</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
-    <span class="p">)</span>
-    <span class="k">if</span> <span class="n">invalid</span> <span class="ow">or</span> <span class="n">mismatch</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">invalid</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">alternate</span> <span class="o">=</span> <span class="n">obabel_read_mol2_block</span><span class="p">(</span><span class="n">mol2_block</span><span class="p">)</span>
         <span class="k">except</span> <span class="n">OpenBabelUnavailableError</span><span class="p">:</span>
@@ -1031,7 +1089,6 @@
         <span class="ow">and</span> <span class="ow">not</span> <span class="n">missing_hydrogens</span>
         <span class="ow">and</span> <span class="n">_charge_model_is_authoritative</span><span class="p">(</span><span class="n">charge_model</span><span class="p">)</span>
         <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">partial_charges</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
-        <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">partial_charges</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="o">-</span> <span class="n">Chem</span><span class="o">.</span><span class="n">GetFormalCharge</span><span class="p">(</span><span class="n">mol</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mf">0.01</span>
     <span class="p">)</span>
     <span class="n">authoritative_q</span> <span class="o">=</span> <span class="n">partial_charges</span> <span class="k">if</span> <span class="n">use_input_charges</span> <span class="k">else</span> <span class="kc">None</span>
 
@@ -1286,6 +1343,7 @@
             <span class="n">atom_array</span><span class="p">,</span> <span class="n">residue_starts</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">connections</span><span class="p">,</span> <span class="n">heavy_counts</span>
         <span class="p">)</span>
         <span class="n">component_type</span> <span class="o">=</span> <span class="n">get_chem_comp_type</span><span class="p">(</span><span class="n">res_name</span><span class="p">,</span> <span class="n">chem_comp_types</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"UNKNOWN"</span>
+        <span class="n">covalently_linked</span> <span class="o">=</span> <span class="n">res_name</span> <span class="ow">in</span> <span class="n">covalently_linked_names</span>
 
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
             <span class="s2">"Detected non-standard residue </span><span class="si">%s</span><span class="s2"> (declared type: </span><span class="si">%s</span><span class="s2">, polymer "</span>
@@ -1308,7 +1366,7 @@
                 <span class="n">elements</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">sub</span><span class="o">.</span><span class="n">element</span><span class="p">),</span>
                 <span class="n">coords</span><span class="o">=</span><span class="n">sub</span><span class="o">.</span><span class="n">coord</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
                 <span class="n">atom_array</span><span class="o">=</span><span class="n">sub</span><span class="p">,</span>
-                <span class="n">covalently_linked</span><span class="o">=</span><span class="n">res_name</span> <span class="ow">in</span> <span class="n">covalently_linked_names</span><span class="p">,</span>
+                <span class="n">covalently_linked</span><span class="o">=</span><span class="n">covalently_linked</span><span class="p">,</span>
                 <span class="n">connection_atom_names</span><span class="o">=</span><span class="nb">frozenset</span><span class="p">(</span>
                     <span class="n">connection_atoms_by_name</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">res_name</span><span class="p">,</span> <span class="p">())</span>
                 <span class="p">),</span>
@@ -1319,6 +1377,9 @@
                     <span class="n">atom</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">far_side</span><span class="p">)</span>
                     <span class="k">for</span> <span class="n">atom</span><span class="p">,</span> <span class="n">far_side</span> <span class="ow">in</span> <span class="n">partners_by_name</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">res_name</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
                 <span class="p">},</span>
+                <span class="n">chemistry_problem</span><span class="o">=</span><span class="n">_isolated_atom_charge_problem</span><span class="p">(</span>
+                    <span class="n">atom_array</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">covalently_linked</span><span class="o">=</span><span class="n">covalently_linked</span>
+                <span class="p">),</span>
             <span class="p">)</span>
         <span class="p">)</span>
 
@@ -1367,15 +1428,14 @@
 <span class="w">    </span><span class="sd">"""Resolve scratch geometry for parameter generation from declared chemistry.</span>
 
 <span class="sd">    Input-scoped AtomWorks templates take precedence over the bundled CCD.</span>
-<span class="sd">    Their coordinates define stereochemistry even for a wholly unresolved</span>
-<span class="sd">    component; they do not place that component in the pose. Partially observed</span>
-<span class="sd">    components require three anchors for alignment. Supplied coordinates and</span>
-<span class="sd">    the caller's NaNs remain unchanged.</span>
+<span class="sd">    Partially observed components require three anchors for alignment. A wholly</span>
+<span class="sd">    unresolved component returns None because template geometry cannot place it</span>
+<span class="sd">    in the pose. Supplied coordinates and the caller's NaNs remain unchanged.</span>
 <span class="sd">    """</span>
     <span class="n">unresolved</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">coord</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">unresolved</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
         <span class="k">return</span> <span class="n">atom_array</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">use_ccd</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">unresolved</span><span class="o">.</span><span class="n">all</span><span class="p">()</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">use_ccd</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
     <span class="n">template</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="s2">"_custom_ccd_registry"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">res_name</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.ccd</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_array_from_ccd_code</span><span class="p">,</span> <span class="n">custom_ccd_residues</span>
@@ -1393,15 +1453,14 @@
         <span class="k">return</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">ideal</span><span class="p">[</span><span class="n">unresolved</span><span class="p">])</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
         <span class="k">return</span> <span class="kc">None</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">unresolved</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
-        <span class="n">anchors</span> <span class="o">=</span> <span class="o">~</span><span class="n">unresolved</span> <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">ideal</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">anchors</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">None</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">_</span><span class="p">,</span> <span class="n">transform</span> <span class="o">=</span> <span class="n">struc</span><span class="o">.</span><span class="n">superimpose</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">coord</span><span class="p">[</span><span class="n">anchors</span><span class="p">],</span> <span class="n">ideal</span><span class="p">[</span><span class="n">anchors</span><span class="p">])</span>
-            <span class="n">ideal</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">ideal</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">anchors</span> <span class="o">=</span> <span class="o">~</span><span class="n">unresolved</span> <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">ideal</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">anchors</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">transform</span> <span class="o">=</span> <span class="n">struc</span><span class="o">.</span><span class="n">superimpose</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">coord</span><span class="p">[</span><span class="n">anchors</span><span class="p">],</span> <span class="n">ideal</span><span class="p">[</span><span class="n">anchors</span><span class="p">])</span>
+        <span class="n">ideal</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">ideal</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
     <span class="n">filled</span> <span class="o">=</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="n">filled</span><span class="o">.</span><span class="n">coord</span><span class="p">[</span><span class="n">unresolved</span><span class="p">]</span> <span class="o">=</span> <span class="n">ideal</span><span class="p">[</span><span class="n">unresolved</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">filled</span>
