@@ -59,12 +59,22 @@ RosettaVS even when a polar-H chi is counted but later skipped).
 
 from __future__ import annotations
 
+import attr
 from rdkit import Chem
 
 from tmol.database.chemical import ChiSamples, Torsion, UnresolvedAtom
 
 # RosettaVS hard-coded constant (Molecule.py): controls EXTRA expansion.
 MAX_CONFS = 5000
+
+# How many conformers a residue's own sampled chi may multiply its rotamers
+# by. The +/-20 degree expansions are kept while the product stays under the
+# first limit and dropped at the second; past it, chi are frozen from the tip
+# inward. A borrowed rotamer library multiplies this again, so its own count
+# is folded in as 3 ** n_library_chi -- exact for a rotameric library and low
+# by at most four for a semirotameric one, which is close enough to bound.
+EXPANDED_CONF_LIMIT = 100
+CONF_LIMIT = 1000
 
 # Heteroatoms that can carry a rotatable polar hydrogen (O, N, S).
 _POLAR_HEAVY = {7, 8, 16}
@@ -171,6 +181,29 @@ def _share_ring(ring_membership: dict[int, set[int]], a: int, b: int) -> bool:
     return bool(ring_membership.get(a, set()) & ring_membership.get(b, set()))
 
 
+def _symmetry_order(mol: Chem.Mol, b: int, c: int) -> int:
+    """How many times the b-c torsion turns the tip onto itself in a full turn.
+
+    A tip of interchangeable terminal substituents -- a carboxylate's two
+    oxygens, a phosphate's three -- repeats every 360/order degrees, so only
+    that much of the circle holds distinct structures.
+    """
+    others = [
+        n.GetIdx() for n in mol.GetAtomWithIdx(c).GetNeighbors() if n.GetIdx() != b
+    ]
+    if len(others) < 2:
+        return 1
+    # equivalent tips differ only by where the formal charge was written down,
+    #    so the element alone decides
+    elements = set()
+    for idx in others:
+        atom = mol.GetAtomWithIdx(idx)
+        if atom.GetDegree() != 1:
+            return 1
+        elements.add(atom.GetAtomicNum())
+    return len(others) if len(elements) == 1 else 1
+
+
 def build_chi_topology(  # noqa: C901
     mol: Chem.Mol,
     order: list[int],
@@ -181,6 +214,8 @@ def build_chi_topology(  # noqa: C901
     *,
     atype_by_idx: dict[int, str] | None = None,
     original_single_bonds: frozenset[frozenset[str]] | None = None,
+    assign_ring_chis: bool = False,
+    generate_heavy_chi_samples: bool = False,
     logger=None,
 ) -> tuple[tuple[Torsion, ...], tuple[ChiSamples, ...]]:
     """Classify rotatable bonds and return ``(torsions, chi_samples)``.
@@ -190,6 +225,10 @@ def build_chi_topology(  # noqa: C901
     is the root itself).  ``atom_names[idx]`` is the final residue atom name
     (or ``None`` for dropped atoms).  ``typing_state`` is a
     :class:`~tmol.ligand._atom_typing.RosettaTypingState`.
+
+    ``assign_ring_chis`` keeps single bonds inside a non-aromatic ring as chi,
+    the way proline's chi2/chi3 are defined. Polymer residues set it; ligands
+    do not.
 
     ``original_single_bonds`` (optional) is a set of ``frozenset({name_a,
     name_b})`` pairs that the source mol2 records as literal single bonds.
@@ -314,6 +353,16 @@ def build_chi_topology(  # noqa: C901
         # Determine the tip atom d (on c's side) and the chi kind.
         c_children = children.get(c, [])
         heavy_children = [x for x in c_children if _is_heavy(mol, x)]
+        if assign_ring_chis and not heavy_children:
+            # the last atom of a ring reaches the rest of it by a back edge, so
+            #    its tip is a neighbour rather than a tree child
+            heavy_children = [
+                x.GetIdx()
+                for x in mol.GetAtomWithIdx(c).GetNeighbors()
+                if x.GetIdx() != b
+                and x.GetIdx() in valid
+                and _is_heavy(mol, x.GetIdx())
+            ]
         polar_h_children = [x for x in c_children if _is_polar_hydrogen(mol, x)]
         if heavy_children:
             is_proton = False
@@ -387,7 +436,7 @@ def build_chi_topology(  # noqa: C901
                 _trace(c, b, "skip: same aromatic ring")
                 continue
             # ring-ring single bond: report_ringring_chi=True -> keep
-        elif _share_ring(ring_membership, b, c):
+        elif _share_ring(ring_membership, b, c) and not assign_ring_chis:
             _trace(c, b, "skip: non-aromatic ring-internal")
             continue
 
@@ -445,15 +494,142 @@ def build_chi_topology(  # noqa: C901
                 d=UnresolvedAtom(atom=atom_names[d]),
             )
         )
+        # sp2 (2-coordinate) heteroatom -> samples 0/180; sp3 -> 60/-60/180.
+        samples = (0.0, 180.0) if is_sp2 else (60.0, -60.0, 180.0)
         if is_proton:
-            # sp2 (2-coordinate) heteroatom -> samples 0/180; sp3 -> 60/-60/180.
-            samples = (0.0, 180.0) if is_sp2 else (60.0, -60.0, 180.0)
             chi_samples.append(
                 ChiSamples(
                     chi_dihedral=name,
                     samples=samples,
                     expansions=extra_expansions,
+                    is_proton=True,
                 )
             )
+        elif generate_heavy_chi_samples:
+            # a ring torsion cannot be turned on its own without tearing the
+            #    ring open, whatever the chi definition says
+            bond = mol.GetBondBetweenAtoms(b, c)
+            if bond is not None and not bond.IsInRing():
+                # spread the samples over the distinct part of the circle, so a
+                #    symmetric tip is covered once rather than repeatedly
+                step = 360.0 / _symmetry_order(mol, b, c) / len(samples)
+                chi_samples.append(
+                    ChiSamples(
+                        chi_dihedral=name,
+                        samples=tuple(
+                            samples[0] + i * step for i in range(len(samples))
+                        ),
+                        expansions=extra_expansions,
+                        is_proton=False,
+                    )
+                )
 
     return tuple(torsions), tuple(chi_samples)
+
+
+def rigid_central_bonds(
+    mol: Chem.Mol,
+    atom_names: list,
+    typing_state,
+    *,
+    original_single_bonds: frozenset[frozenset[str]] | None = None,
+) -> frozenset:
+    """Heavy-atom bonds that no chi may turn, as frozensets of atom names.
+
+    A bond-level verdict, unlike the chi emitted by :func:`build_chi_topology`:
+    which bonds a tree walk reaches depends on where it is rooted, and a ring
+    containing backbone atoms is entered from both ends. Callers that enumerate
+    chi themselves need the chemistry without the tree.
+
+    Rigid means a bond order above one, a bond inside an aromatic ring, or one
+    inside a strained ring. Biaryl pivots are not detected here, so a ring-to-
+    conjugated-group pivot is reported rigid.
+    """
+    ring_membership = typing_state.ring_membership_by_idx
+    atms_aro = typing_state.atms_aro
+    atms_strained = typing_state.atms_strained
+
+    rigid = set()
+    for bond in mol.GetBonds():
+        b = bond.GetBeginAtomIdx()
+        c = bond.GetEndAtomIdx()
+        if not _is_heavy(mol, b) or not _is_heavy(mol, c):
+            continue
+        name_b, name_c = atom_names[b], atom_names[c]
+        if name_b is None or name_c is None:
+            continue
+        border = _bond_order(bond)
+        if (
+            original_single_bonds
+            and frozenset((name_b, name_c)) in original_single_bonds
+        ):
+            border = 1
+        shares_ring = _share_ring(ring_membership, b, c)
+        if (
+            border > 1
+            or (shares_ring and b in atms_aro and c in atms_aro)
+            or (shares_ring and b in atms_strained and c in atms_strained)
+        ):
+            rigid.add(frozenset((name_b, name_c)))
+    return frozenset(rigid)
+
+
+def planar_heavy_atoms(mol: Chem.Mol, atom_names: list) -> frozenset:
+    """Heavy atoms carrying a bond that is not a plain single, by name.
+
+    A torsion turning between two such atoms is two-fold and planar, where one
+    between sp3 centres is three-fold; a rotamer library measured on the one
+    cannot supply the other.
+    """
+    planar = set()
+    for bond in mol.GetBonds():
+        b, c = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
+        if not _is_heavy(mol, b) or not _is_heavy(mol, c):
+            continue
+        if _bond_order(bond) > 1 or bond.GetIsAromatic():
+            for idx in (b, c):
+                if atom_names[idx] is not None:
+                    planar.add(atom_names[idx])
+    return frozenset(planar)
+
+
+def _conformers(chi_samples, expanded: bool) -> int:
+    """How many conformers this set of sampled chi enumerates."""
+    total = 1
+    for cs in chi_samples:
+        if cs is None:  # frozen
+            continue
+        total *= len(cs.samples) * (1 + 2 * len(cs.expansions) if expanded else 1)
+    return total
+
+
+def apply_chi_sample_budget(chi_samples, n_library_chi: int = 0) -> tuple:
+    """Trim sampled chi so the rotamers they enumerate stay bounded.
+
+    A proton chi is never frozen: its hydrogen has no other source of
+    placement, and optH reads the same samples. Heavy chi are frozen from the
+    tip inward, since a chi near the backbone swings the whole sidechain where
+    one at the tip moves a couple of atoms.
+    """
+    # a chi the borrowed library defines is read from the library, not sampled
+    samples = [
+        cs
+        for cs in chi_samples
+        if cs.is_proton or int(cs.chi_dihedral[3:]) > n_library_chi
+    ]
+    library = 3**n_library_chi
+    if library * _conformers(samples, True) <= EXPANDED_CONF_LIMIT:
+        return tuple(samples)
+
+    samples = [attr.evolve(cs, expansions=()) for cs in samples]
+    # chi are numbered outward from the backbone, so the last is the tip
+    heavy = sorted(
+        (i for i, cs in enumerate(samples) if not cs.is_proton),
+        key=lambda i: int(samples[i].chi_dihedral[3:]),
+        reverse=True,
+    )
+    for index in heavy:
+        if library * _conformers(samples, False) <= CONF_LIMIT:
+            break
+        samples[index] = None
+    return tuple(cs for cs in samples if cs is not None)

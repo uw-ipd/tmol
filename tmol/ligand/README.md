@@ -21,7 +21,9 @@ from tmol.ligand import (
 
 # 1) MOL2 — richest input. With an authoritative charge model (MMFF94), atom
 #    names, coordinates, bond orders, and partial charges are read verbatim; no
-#    SMILES or 3D-generation step. A mol2 with a non-authoritative charge model
+#    SMILES or 3D-generation step in mode="auto" (the default).
+#    mode="keep" requires prepared input; mode="regenerate" always applies pH.
+#    A mol2 with an unsupported or invalid charge model
 #    (e.g. GASTEIGER) instead falls back to the derived-SMILES path below.
 param_db, co = prepare_ligand_from_mol2("ligand.mol2")
 
@@ -40,15 +42,21 @@ To detect and prepare **every** non-standard residue in a structure at once
 `AtomArray` is a biotite structure loaded from a CIF or PDB file:
 
 ```python
-import biotite.structure.io
+from tmol.io import atom_array_from_cif
 from tmol.ligand import prepare_ligands
 
-atom_array = biotite.structure.io.load_structure("complex.cif")
-if hasattr(atom_array, "__len__") and len(atom_array) > 1:
-    atom_array = atom_array[0]  # first model of a multi-model file
-
+atom_array = atom_array_from_cif("complex.cif", model=1)
 param_db, co = prepare_ligands(atom_array, ph=7.4)
 ```
+
+File reading retains unresolved atoms at NaN. To select a biological assembly,
+pass its ID, for example `assembly_id="1"`, to `atom_array_from_cif` or
+`pose_stack_from_cif`. The default is the asymmetric unit, which can contain
+overlapping alternative assemblies (145D is one example). AtomWorks applies the
+declared transforms; the reader uses distinct chain-instance IDs for assembly
+copies. Direct AtomWorks arrays carrying `chain_iid` use the same identities
+in `build_context_from_biotite` and `pose_stack_from_biotite` without mutating
+the supplied array.
 
 **On PDB inputs:** tmol accepts PDB for structures generally, but PDB does not
 carry reliable bond orders. Deriving ligand parameters requires an input that
@@ -61,8 +69,8 @@ the ligand from one of those formats even when the rest of the complex is a PDB.
 - Build the score function from the **ligand-extended** database
   (`beta2016_score_function(device, param_db=context.parameter_database)`),
   not the default database. A freshly prepared ligand block type has no
-  scoring parameters in the default database, so scoring against it silently
-  contributes nothing.
+  scoring parameters in the default database; missing used atom types or
+  charges are rejected during scoring setup.
 
 ## User-defined ligand fragmentation
 
@@ -219,6 +227,14 @@ for struct in structures:
     pose_stack = pose_stack_from_biotite(struct, device, context=context)
 ```
 
+Coordinate ingestion preserves finite hydrogens by default. For generated residue
+types whose source hydrogen names are known to match the prepared context, also
+pass `trust_hydrogen_names=True`; otherwise those hydrogens are rebuilt because
+raw input names may change during protonation. Direct canonical tensor inputs can
+use `trust_hydrogen_names=True` to preserve those coordinates and their gradients.
+AtomArray export detaches coordinates onto the CPU; keep canonical tensors or the
+PoseStack for guidance.
+
 ### Persist to `.tmol` (for manual edits or cold reuse)
 
 Preparation (SMILES → 3D → typing) is expensive and, for edge-case
@@ -249,6 +265,48 @@ For a `.tmol` you already have, `inject_params_file(param_db, "my_ligand.tmol")`
 extends a database directly. Prefer context reuse over file round-trips when the
 ligand topology is fixed within a run; use `.tmol` when you need persistence
 across runs or manual control.
+
+Conjugate exports include patches and charges for canonical attachment partners,
+even when those partners' base residue definitions already come from the standard
+database. Explicit `ConnectionCartRes` records are stored under
+`cartbonded.connection_params`, including their provenance. The loader carries
+shared additions once in the returned preparation list; inject the whole list to
+restore the bundle. Adding the bundle after its source ligand has already been
+registered still installs its attachment metadata. Numeric internal coordinates
+and bond order in the definition are preserved during export.
+The writer uses version 2.0 for attachment metadata, 3.0 for explicit
+`genbonded_type` references, 4.0 for guarded residue replacements, and 5.0 for
+explicit atom-type elements. This reader accepts versions 1–5. Older readers
+reject unsupported versions rather than silently dropping chemistry; metadata
+omitted by an older writer cannot be recovered.
+
+An atom's optional `genbonded_type` controls only generic bonded parameter lookup.
+Its `atom_type` still controls nonbonded typing and the generic term’s ownership
+checks. Changing physical types also requires reviewing any retained, named
+`CartRes` torsions; a lookup reference does not rewrite those records. A reference must be a known concrete type of the same element. This
+lets, for example, an amide's canonical carbon and hydrogen neighbors supply
+appropriate generic lookup types without transferring their canonical torsions
+to the generic term.
+
+Preparation generates missing attachment bond/angle records from the conformer
+generator's ideal targets, using the ordinary ligand constants (`K=300` for
+bonds and `K=80` for angles). The same connected model corrects local atom types,
+bonded terms and construction frames while preserving prepared residue charges
+and Rosetta/generic torsion ownership. For example, acylated lysine uses an amide
+nitrogen and constructs its retained hydrogen in the attachment plane.
+Supplied connection records take precedence and preserve both endpoint residue
+types. Exports include guarded local replacements; loading them checks the
+baseline and repeated preparation does not apply the corrections again.
+
+An exact patched name in `cartbonded.residue_params`, such as `LYS:conj_NZ`,
+supplies a complete `CartRes` replacement for that type; other forms of lysine
+keep their base parameters. Use a copy of the base record with the needed rows
+changed when making a local correction. This does not merge partial records or
+infer applicability to other combinations of patches. Existing wildcard lookup
+and explicit connection-record precedence still apply. A preparation can carry
+such records for a partner in `additional_cartbonded_params`; they are retained
+on export/reload even when the partner's base definition comes from the standard
+database. Conflicting bonded definitions within a bundle raise an error.
 
 ## Pipeline Overview
 
@@ -331,4 +389,4 @@ it into the pose. Failure modes, in order of likelihood:
 | `_residue_builder.py` | `RawResidueType` from a `Chem.Mol` (atom tree, ICs, bond order) |
 | `_registry.py` | `ParameterDatabase` injection, cartbonded params |
 | `_params_file.py` | Load/inject `.tmol` YAML params |
-| `_params_io.py` | Write `.params`/`.tmol`; read Rosetta `.params` |
+| `_params_io.py` | Write `.tmol` params bundles |

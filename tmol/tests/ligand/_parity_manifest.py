@@ -34,7 +34,6 @@ class LigandParityEntry:
         params: Path to the Rosetta ``.params`` reference.
         mol2: Path to the prepared mol2, or ``None`` for SMILES-path-only seeds.
         charge_mode: Charge policy for preparation (default ``auto``).
-        sample_proton_chi: Whether proton-chi sampling is enabled (default on).
         expected_unsupported_fields: Rosetta fields known to be unsupported by
             tmol for this molecule (e.g. ``CUT_BOND``), asserted absent-by-design.
     """
@@ -45,7 +44,6 @@ class LigandParityEntry:
     params: Path
     mol2: Optional[Path] = None
     charge_mode: str = "auto"
-    sample_proton_chi: bool = True
     expected_unsupported_fields: tuple[str, ...] = ()
 
     @property
@@ -74,9 +72,8 @@ def _seed_entries(root: Path) -> list[LigandParityEntry]:
     (a different molecule than ``ref{1,2}.params``), so seed entries leave
     ``mol2`` unset and exercise only the SMILES-path and serialization checks.
 
-    The seed references carry ``PROTON_CHI`` records, so seed entries request
-    proton-chi sampling (``sample_proton_chi=True``) to emit the matching
-    samples — now also the production default.
+    The seed references carry ``PROTON_CHI`` records, which preparation always
+    emits samples for.
     """
     inputs = _load_named_smiles(root / "designs.smi")
     protonated = _load_named_smiles(root / "designs.prot.smi")
@@ -92,7 +89,6 @@ def _seed_entries(root: Path) -> list[LigandParityEntry]:
                 expected_prot_smiles=protonated.get(name, inputs[name]),
                 params=params,
                 mol2=None,
-                sample_proton_chi=True,
             )
         )
     return entries
@@ -143,7 +139,6 @@ def _entry_from_record(record: dict, manifest_dir: Path) -> LigandParityEntry:
         params=params,
         mol2=mol2,
         charge_mode=record.get("charge_mode", "auto"),
-        sample_proton_chi=bool(record.get("sample_proton_chi", True)),
         expected_unsupported_fields=unsupported,
     )
 

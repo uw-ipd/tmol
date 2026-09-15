@@ -85,6 +85,19 @@ def _load_complex_cif(target: str):
     )
     if isinstance(structure, struc.AtomArrayStack):
         structure = structure[0]
+    # These exported fixtures reuse blank chain labels when residue numbering
+    # restarts. Biotite's inferred peptide bonds must respect those chain breaks.
+    starts = struc.get_chain_starts(structure, add_exclusive_stop=True)
+    chain = numpy.repeat(numpy.arange(len(starts) - 1), numpy.diff(starts))
+    # Make this legacy export's inferred segments explicit for the AtomArray
+    # input contract; residue-number decreases alone no longer define a chain.
+    structure.chain_id = chain.astype(str)
+    for first, second, _ in structure.bonds.as_array():
+        if chain[first] != chain[second] and {
+            structure.atom_name[first],
+            structure.atom_name[second],
+        } == {"C", "N"}:
+            structure.bonds.remove_bond(int(first), int(second))
     return structure
 
 
@@ -120,7 +133,6 @@ def _weighted_ddg_from_fixtures(target: str, torch_device: torch.device) -> floa
         prepare_ligands=True,
         ligand_params_files=[str(tmol_path)],
         no_optH=True,
-        sample_proton_chi=False,
         param_db=ParameterDatabase.get_default(),
         return_context=True,
     )
