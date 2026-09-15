@@ -21,11 +21,12 @@ struct StreamingInteractionGraph {
       TView<Int, 2, D> n_bc_rots_for_molten_block)
       -> std::tuple<
           TPack<int32_t, 3, D>,
-          TPack<int32_t, 1, D>,
+          TPack<int64_t, 1, D>,
           TPack<int64_t, 2, D>,
           TPack<int64_t, 2, D>,
           TPack<int64_t, 1, D>,
-          TPack<int64_t, 1, D>>;
+          TPack<int64_t, 1, D>,
+          TPack<int32_t, 1, D>>;
 
   static void note(
       ContextManager& mgr,
@@ -36,10 +37,16 @@ struct StreamingInteractionGraph {
       TView<int64_t, 2, D> orig_block_to_molten,
       TView<int64_t, 2, D> molten_block_chunk_offset,
       TView<int64_t, 1, D> n_chunks_per_pose,
-      TView<int64_t, 1, D> pose_chunk_bitset_offset,
+      TView<int64_t, 1, D> pose_global_chunk_offset,
       TView<int32_t, 3, D> block_adjacency,
-      TView<int32_t, 1, D> chunk_adjacency,
+      TView<int64_t, 1, D> chunk_pair_keys,
+      TView<int32_t, 1, D> hash_overflow,
       TView<int32_t, 2, D> sparse_inds);
+
+  static TPack<int64_t, 1, D> resize_chunk_pair_keys(
+      ContextManager& mgr,
+      TView<int64_t, 1, D> old_chunk_pair_keys,
+      int64_t new_capacity);
 
   static auto finalize(
       ContextManager& mgr,
@@ -47,9 +54,9 @@ struct StreamingInteractionGraph {
       TView<Int, 2, D> n_bc_rots_for_molten_block,
       TView<int64_t, 2, D> molten_block_chunk_offset,
       TView<int64_t, 1, D> n_chunks_per_pose,
-      TView<int64_t, 1, D> pose_chunk_bitset_offset,
+      TView<int64_t, 1, D> pose_global_chunk_offset,
       TView<int32_t, 3, D> block_adjacency,
-      TView<int32_t, 1, D> chunk_adjacency)
+      TView<int64_t, 1, D> chunk_pair_keys)
       -> std::tuple<
           TPack<int64_t, 1, D>,
           TPack<int32_t, 1, D>,

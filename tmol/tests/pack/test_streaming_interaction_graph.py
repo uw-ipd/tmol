@@ -10,6 +10,7 @@ from tmol.pack.compiled import (
     initialize_interaction_graph_topology,
     note_interaction_graph_topology,
     pack_anneal,
+    resize_interaction_graph_topology,
 )
 from tmol.pack._pack_rotamers import _build_streaming_interaction_graph
 from tmol.tests import requires_cuda
@@ -111,20 +112,28 @@ def staged_graph(metadata, term_entries, chunk_size):
         )
     )
     for indices, values in term_entries:
-        topology[0], topology[1] = note_interaction_graph_topology(
-            chunk_size,
-            metadata[2],
-            metadata[3],
-            metadata[6],
-            topology[2],
-            topology[3],
-            topology[4],
-            topology[5],
-            topology[0],
-            topology[1],
-            indices,
-            values,
-        )
+        while True:
+            topology[6].zero_()
+            topology[0], topology[1], topology[6] = note_interaction_graph_topology(
+                chunk_size,
+                metadata[2],
+                metadata[3],
+                metadata[6],
+                topology[2],
+                topology[3],
+                topology[4],
+                topology[5],
+                topology[0],
+                topology[1],
+                topology[6],
+                indices,
+                values,
+            )
+            if not topology[6].item():
+                break
+            topology[1] = resize_interaction_graph_topology(
+                topology[1], topology[1].numel() * 2, values
+            )
     base[11:16] = finalize_interaction_graph_topology(
         chunk_size,
         base[4],
@@ -230,6 +239,44 @@ def test_streaming_graph_matches_existing(torch_device, counts, edges, duplicate
                         row_offsets[reverse_row] : row_offsets[reverse_row + 1]
                     ].tolist()
                 )
+
+
+def test_streaming_graph_resizes_sparse_chunk_topology(torch_device):
+    """Preserve graph contents while growing the observed chunk-pair set."""
+    counts = [[64] * 40]
+    metadata = graph_metadata(counts, torch_device)
+    rot_offsets = metadata[3][0]
+    entries = [
+        (
+            0,
+            int(rot_offsets[first]) + first_chunk * 32,
+            int(rot_offsets[second]) + second_chunk * 32,
+        )
+        for first in range(40)
+        for second in range(first + 1, 40)
+        for first_chunk in range(2)
+        for second_chunk in range(2)
+    ]
+    indices = torch.tensor(
+        entries, dtype=torch.int32, device=torch_device
+    ).T.contiguous()
+    values = torch.arange(1, len(entries) + 1, dtype=torch.float32, device=torch_device)
+
+    streamed = staged_graph(metadata, [(indices, values)], chunk_size=32)
+    existing = build_interaction_graph(
+        False,
+        32,
+        1,
+        *metadata,
+        indices,
+        values,
+        False,
+    )
+    for index, (actual, expected) in enumerate(zip(streamed, existing)):
+        if index in (9, 10, 15):
+            torch.testing.assert_close(actual, expected, atol=1e-6, rtol=1e-6)
+        else:
+            assert torch.equal(actual, expected)
 
 
 def annealer_inputs(graph, chunk_size):
