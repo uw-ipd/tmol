@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Run tmol's SMILES -> Rosetta .params + tmol .tmol pipeline manually.
+"""Run tmol's SMILES -> tmol .tmol pipeline manually.
 
 Pipeline (all in tmol.ligand):
   1. nonstandard_residue_info_from_smiles_via_mol2(smiles)
@@ -7,27 +7,27 @@ Pipeline (all in tmol.ligand):
        MMFF94 mol2  ->  read the mol2 (names/coords/charges/bonds preserved).
   2. prepare_single_ligand(info)  ->  LigandPreparation
        (residue_type + partial_charges + cartbonded_params).
-  3. params_io.write_params_file(prep, path, format="rosetta")  ->  Rosetta .params
-     params_io.write_params_file(prep, path, format="tmol")     ->  tmol .tmol
+  3. params_io.write_params_file(prep, path)  ->  tmol .tmol
 
 Requires the optional `openbabel` package (the SMILES->mol2 step).
 
 Usage:
   python smiles_to_params.py "<SMILES>" <out_prefix> [--res-name LG1]
                              [--ph 7.4] [--no-protonate] [--sample-proton-chi]
-Writes <out_prefix>.params and <out_prefix>.tmol .
+Writes <out_prefix>.tmol .
 """
 
 import argparse
 
-from tmol.ligand import prepare_single_ligand, params_io
+from tmol.ligand import _params_io as params_io
+from tmol.ligand import prepare_single_ligand
 from tmol.ligand._detect import nonstandard_residue_info_from_smiles_via_mol2
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("smiles", help="input SMILES string")
-    ap.add_argument("out_prefix", help="output path prefix (.params/.tmol appended)")
+    ap.add_argument("out_prefix", help="output path prefix (.tmol appended)")
     ap.add_argument("--res-name", default="LG1", help="residue name (default LG1)")
     ap.add_argument(
         "--ph", type=float, default=7.4, help="protonation pH (default 7.4)"
@@ -59,13 +59,10 @@ def main() -> None:
     )
     # 2. prepare (type, charges, cartbonded)
     prep = prepare_single_ligand(info, sample_proton_chi=args.sample_proton_chi)
-    # 3a. Rosetta .params  3b. tmol .tmol  (one merged writer, format-dispatched)
-    params_path = f"{args.out_prefix}.params"
+    # 3. tmol .tmol
     tmol_path = f"{args.out_prefix}.tmol"
-    params_io.write_params_file(prep, params_path, format="rosetta")
-    params_io.write_params_file(prep, tmol_path, format="tmol")
-    print(f"wrote {params_path}  ({len(prep.residue_type.atoms)} atoms)")
-    print(f"wrote {tmol_path}")
+    params_io.write_params_file(prep, tmol_path)
+    print(f"wrote {tmol_path}  ({len(prep.residue_type.atoms)} atoms)")
 
 
 if __name__ == "__main__":
