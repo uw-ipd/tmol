@@ -23,6 +23,7 @@
 #include <curand_philox4x32_x.h>
 
 #include "compiled.impl.hh"
+#include "streaming_interaction_graph.impl.hh"
 
 namespace tmol {
 namespace pack {
@@ -308,6 +309,7 @@ MGPU_DEVICE float warp_wide_sim_annealing(
         for (int j = g.thread_rank(); j < n_res; j += 32) {
           current_rotamer_assignment[j] = best_rotamer_assignment[j];
         }
+        g.sync();
         current_total_energy =
             ig.template total_energy_for_assignment_parallel<ChunkSize>(
                 pose, g, current_rotamer_assignment);
@@ -1072,6 +1074,16 @@ template struct InteractionGraphBuilder<
     float,
     int64_t>;
 template struct InteractionGraphBuilder<
+    score::common::DeviceOperations,
+    tmol::Device::CUDA,
+    double,
+    int64_t>;
+template struct StreamingInteractionGraph<
+    score::common::DeviceOperations,
+    tmol::Device::CUDA,
+    float,
+    int64_t>;
+template struct StreamingInteractionGraph<
     score::common::DeviceOperations,
     tmol::Device::CUDA,
     double,

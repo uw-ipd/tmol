@@ -76,3 +76,27 @@ def test_cuda_annealer_assignment_cache_boundaries(chunk_size, n_res):
     # above the shared-cache capacity and dynamic chunk sizes.
     assert torch.count_nonzero(scores).item() == 0
     assert torch.count_nonzero(assignments).item() == 0
+
+
+@requires_cuda
+@pytest.mark.parametrize("n_res", [128, 129])
+def test_cuda_annealer_fixed_seed_is_repeatedly_exact(n_res):
+    """Preserve assignments and generator advancement across the cache boundary."""
+    from tmol.pack.compiled import pack_anneal
+
+    inputs = independent_minimum_tables([2] * n_res, 16, torch.device("cuda"))
+    expected_scores = None
+    expected_assignments = None
+    expected_rng_state = None
+    for _ in range(3):
+        torch.manual_seed(20260915)
+        scores, assignments = pack_anneal(*inputs)
+        rng_state = torch.cuda.get_rng_state()
+        if expected_scores is None:
+            expected_scores = scores.clone()
+            expected_assignments = assignments.clone()
+            expected_rng_state = rng_state.clone()
+            continue
+        assert torch.equal(scores, expected_scores)
+        assert torch.equal(assignments, expected_assignments)
+        assert torch.equal(rng_state, expected_rng_state)
