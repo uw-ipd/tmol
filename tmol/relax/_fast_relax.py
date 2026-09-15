@@ -323,7 +323,7 @@ def fast_relax(  # noqa: C901
     wpsm = sfxn.render_whole_pose_scoring_module(pose_stack)
     best_score = wpsm(pose_stack.coords)
     del wpsm
-    best_ps = pose_stack.clone()
+    best_ps = pose_stack.clone_sharing_topology()
 
     if min_fn is None:
         min_fn = _DefaultCartesianMinimizer(
@@ -348,7 +348,7 @@ def fast_relax(  # noqa: C901
             )
 
         best_ps, best_score = accept_best(sfxn, best_ps, best_score, ps, verbose)
-        ps = best_ps.clone()
+        ps = best_ps.clone_sharing_topology()
     if use_constraints:
         # Restore original constraint weight to the score function
         sfxn.set_weight(ScoreType.constraint, constraint_weight_start)
