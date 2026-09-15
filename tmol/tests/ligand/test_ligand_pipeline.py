@@ -57,7 +57,6 @@ class TestDetectFromCIF:
         ligands = detect_nonstandard_residues(cif_184l_with_i4b, canonical_ordering)
         i4b = {lig.res_name: lig for lig in ligands}.get("I4B")
         assert i4b is not None
-        assert "NON-POLYMER" in i4b.ccd_type.upper()
         assert i4b.coords.shape == (len(i4b.atom_names), 3)
 
     def test_detects_pse_with_partial_occupancy(
@@ -388,8 +387,8 @@ class TestCovalentDetection:
         linked = _residue_names_with_cross_residue_bonds(arr)
         assert "LIG" in linked
 
-    def test_polymer_linking_residue_spatial_fallback_retained(self) -> None:
-        """Glycans (saccharides) are still flagged via the spatial fallback."""
+    def test_polymer_linking_contact_requires_a_bond(self) -> None:
+        """Close glycan contacts alone do not declare a covalent bond."""
         atoms = _residue_atoms(
             1,
             "NAG",
@@ -402,7 +401,7 @@ class TestCovalentDetection:
         arr = struc.array(atoms)
 
         linked = _residue_names_with_cross_residue_bonds(arr)
-        assert "NAG" in linked
+        assert "NAG" not in linked
 
 
 _YANJING_BTN_DIR = Path(

@@ -37,5 +37,5 @@ if command -v ccache >/dev/null; then
   )
 fi
 extras="${TMOL_INSTALL_EXTRAS:-dev}"
-MAX_JOBS="${MAX_JOBS:-4}" uv pip install --no-build-isolation -e ".[${extras}]" \
+MAX_JOBS="${MAX_JOBS:-4}" uv pip install --no-build-isolation-package tmol -e ".[${extras}]" \
   "${cmake_args[@]}"

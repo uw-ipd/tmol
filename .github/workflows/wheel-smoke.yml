@@ -124,6 +124,8 @@ jobs:
           - { torch-version: "2.13", runs-on: ubuntu-22.04, arch: x86_64 }
           - { torch-version: "2.14", runs-on: ubuntu-24.04-arm, arch: aarch64 }
     steps:
+      - uses: actions/checkout@v5
+
       - uses: actions/download-artifact@v4
         with:
           name: wheel-cp312-cputorch${{ matrix.torch-version }}-${{ matrix.arch }}
@@ -134,6 +136,8 @@ jobs:
           python-version: "3.12"
 
       - name: Install wheel with its PyTorch ABI
+        env:
+          ATOMWORKS_DEPLOY_KEY: ${{ secrets.ATOMWORKS_DEPLOY_KEY }}
         run: |
           set -euo pipefail
           set -- wheels/*.whl
@@ -149,7 +153,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install 'torch==${{ matrix.torch-version }}.0' \
             --index-url https://download.pytorch.org/whl/cpu
-          python -m pip install "$1"
+          .github/ci/with_atomworks_access.sh python -m pip install "$1"
 
       - name: Load native extensions
         working-directory: /tmp
@@ -188,6 +192,8 @@ jobs:
             torch-index-url: "https://download.pytorch.org/whl/cu132"
             local-tag: cu132torch2.14
     steps:
+      - uses: actions/checkout@v5
+
       - uses: actions/download-artifact@v4
         with:
           name: wheel-cp312-${{ matrix.local-tag }}-x86_64
@@ -198,6 +204,8 @@ jobs:
           python-version: "3.12"
 
       - name: Install wheel with its PyTorch ABI
+        env:
+          ATOMWORKS_DEPLOY_KEY: ${{ secrets.ATOMWORKS_DEPLOY_KEY }}
         run: |
           set -euo pipefail
           set -- wheels/*.whl
@@ -212,7 +220,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install 'torch==${{ matrix.torch-package-version }}' \
             --index-url '${{ matrix.torch-index-url }}'
-          python -m pip install "$1"
+          .github/ci/with_atomworks_access.sh python -m pip install "$1"
 
       - name: Load native extensions
         working-directory: /tmp
@@ -260,6 +268,8 @@ jobs:
         python: ${{ fromJSON(github.event_name == 'pull_request' && '[{"version":"3.12","tag":"312"}]' || '[{"version":"3.11","tag":"311"},{"version":"3.12","tag":"312"},{"version":"3.13","tag":"313"},{"version":"3.14","tag":"314"}]') }}
         torch-version: ["2.13", "2.14"]
     steps:
+      - uses: actions/checkout@v5
+
       - uses: actions/download-artifact@v4
         with:
           name: wheel-cp${{ matrix.python.tag }}-cputorch${{ matrix.torch-version }}-arm64
@@ -270,6 +280,8 @@ jobs:
           python-version: ${{ matrix.python.version }}
 
       - name: Install wheel with its PyTorch ABI
+        env:
+          ATOMWORKS_DEPLOY_KEY: ${{ secrets.ATOMWORKS_DEPLOY_KEY }}
         run: |
           set -euo pipefail
           set -- wheels/*.whl
@@ -283,7 +295,7 @@ jobs:
           esac
           python -m pip install --upgrade pip
           python -m pip install 'torch==${{ matrix.torch-version }}.0'
-          python -m pip install "$1"
+          .github/ci/with_atomworks_access.sh python -m pip install "$1"
 
       - name: Load native extensions
         working-directory: /tmp
@@ -358,6 +370,8 @@ jobs:
           grep -q "manylinux_2_28_${{ matrix.arch }}" auditwheel.txt
 
       - name: Install wheel
+        env:
+          ATOMWORKS_DEPLOY_KEY: ${{ secrets.ATOMWORKS_DEPLOY_KEY }}
         shell: bash
         run: |
           set -euo pipefail
@@ -365,7 +379,7 @@ jobs:
           wheels=(wheels/*.whl)
           python -m pip install "torch==${{ matrix.torch-package-version }}" \
             --index-url "${{ matrix.torch-index-url }}"
-          python -m pip install "${wheels[0]}"
+          .github/ci/with_atomworks_access.sh python -m pip install "${wheels[0]}"
 
       - name: Load native extensions
         working-directory: /tmp
@@ -421,12 +435,15 @@ jobs:
           PY
 
       - name: Check representative glibc 2.28 container install
+        env:
+          ATOMWORKS_DEPLOY_KEY: ${{ secrets.ATOMWORKS_DEPLOY_KEY }}
         if: matrix.portability == true
         shell: bash
         run: |
           set -euo pipefail
           py_tag="${{ matrix.python-tag }}"
-          docker run --rm \
+          docker run --rm -e ATOMWORKS_DEPLOY_KEY \
+            -v "$PWD/.github/ci:/tmol-ci:ro" \
             -v "$PWD/wheels:/wheels:ro" \
             "quay.io/pypa/manylinux_2_28_${{ matrix.arch }}" \
             bash -euo pipefail -c "
@@ -436,7 +453,8 @@ jobs:
               /tmp/tmol-smoke/bin/pip install \
                 'torch==${{ matrix.torch-package-version }}' \
                 --index-url '${{ matrix.torch-index-url }}'
-              /tmp/tmol-smoke/bin/pip install /wheels/*.whl
+              /tmol-ci/with_atomworks_access.sh /tmp/tmol-smoke/bin/pip install /wheels/*.whl
+              unset ATOMWORKS_DEPLOY_KEY
               cd /tmp
               /tmp/tmol-smoke/bin/python - <<'PY'
           import tmol
@@ -462,6 +480,8 @@ jobs:
           path: wheels
 
       - name: Install representative wheel in GPU CI container
+        env:
+          APPTAINERENV_ATOMWORKS_DEPLOY_KEY: ${{ secrets.ATOMWORKS_DEPLOY_KEY }}
         shell: bash
         run: |
           set -euo pipefail
@@ -475,7 +495,8 @@ jobs:
               python -m pip install --upgrade pip
               python -m pip install "torch==2.8.0" \
                 --index-url https://download.pytorch.org/whl/cu129
-              python -m pip install wheels/*.whl
+              .github/ci/with_atomworks_access.sh python -m pip install wheels/*.whl
+              unset ATOMWORKS_DEPLOY_KEY APPTAINERENV_ATOMWORKS_DEPLOY_KEY
               cd /tmp
               python - <<'"'"'PY'"'"'
           import torch
