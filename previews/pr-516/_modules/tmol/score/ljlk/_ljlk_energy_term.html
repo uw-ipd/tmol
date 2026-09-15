@@ -524,6 +524,7 @@
             <span class="s2">"_ljlk_annotation"</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_ljlk_block_key</span><span class="p">,</span>
             <span class="p">(</span><span class="n">heavy_atoms_in_tile</span><span class="p">,</span> <span class="n">n_in_tile</span><span class="p">),</span>
+            <span class="n">fields</span><span class="o">=</span><span class="p">(</span><span class="s2">"ljlk_heavy_atoms_in_tile"</span><span class="p">,</span> <span class="s2">"ljlk_n_heavy_atoms_in_tile"</span><span class="p">),</span>
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_packed_block_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
@@ -608,6 +609,20 @@
                 <span class="n">atom_params</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
                 <span class="n">ljlk_bond_separation</span><span class="p">,</span>
                 <span class="n">packed_block_types</span><span class="o">.</span><span class="n">ljlk_all_atoms_ligand_typed</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">fields</span><span class="o">=</span><span class="p">(</span>
+                <span class="s2">"ljlk_n_heavy_atoms_in_tile"</span><span class="p">,</span>
+                <span class="s2">"ljlk_heavy_atoms_in_tile"</span><span class="p">,</span>
+                <span class="s2">"ljlk_bond_separation"</span><span class="p">,</span>
+                <span class="s2">"ljlk_all_atoms_ligand_typed"</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">bindings</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="n">field</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">block_type</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+                <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="p">(</span>
+                    <span class="s2">"ljlk_heavy_atoms_in_tile"</span><span class="p">,</span>
+                    <span class="s2">"ljlk_n_heavy_atoms_in_tile"</span><span class="p">,</span>
+                <span class="p">)</span>
             <span class="p">),</span>
         <span class="p">)</span>
 
