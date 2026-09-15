@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from typing import Literal
 
 import attr
 import torch
@@ -59,6 +60,29 @@ class GASchedule:
             raise ValueError("rmsdthreshold must be finite and nonnegative")
         if not math.isfinite(self.pmut) or not 0.0 <= self.pmut <= 1.0:
             raise ValueError("pmut must be between zero and one")
+
+
+@dataclass(frozen=True)
+class RandomPlacement:
+    """Ranges for an unbiased initial ligand population.
+
+    The ligand heavy-atom centroid is placed uniformly inside the supplied
+    pocket axis-aligned bounding box.  When no box is supplied, the reference
+    ligand-heavy-atom box is expanded by ``pocket_padding_angstrom`` on every
+    side.  Orientations are uniform on SO(3), and each logical torsion is
+    uniform on ``(-pi, pi]``.
+    """
+
+    pocket_padding_angstrom: float = 2.0
+
+    def __post_init__(self) -> None:
+        if (
+            not math.isfinite(self.pocket_padding_angstrom)
+            or self.pocket_padding_angstrom < 0
+        ):
+            raise ValueError(
+                "pocket_padding_angstrom must be finite and nonnegative"
+            )
 
 
 @dataclass(frozen=True)
@@ -287,6 +311,23 @@ class GAResult:
     pool: GAPool
     best_energy_history: torch.Tensor
     diverse_count_history: tuple[int, ...]
+    ranked_genes: torch.Tensor | None = None
+    ranked_energies: torch.Tensor | None = None
+    best_genes: torch.Tensor | None = None
+    best_energies: torch.Tensor | None = None
+    best_pose_stack: PoseStack | None = None
+
+
+@dataclass(frozen=True)
+class DockingResult:
+    """Ranked end-to-end docking output for one input ligand."""
+
+    best_pose_stack: PoseStack
+    best_energies: torch.Tensor
+    best_genes: torch.Tensor
+    ranked_energies: torch.Tensor
+    ranked_genes: torch.Tensor
+    ga_result: GAResult
 
 
 def _unit_vectors(
@@ -804,6 +845,121 @@ def _initial_genes(
     return _canonicalize_genes(result)
 
 
+def _normalize_pocket_bounds(
+    layout: LigandGeneLayout,
+    *,
+    pocket_bounds: torch.Tensor | None,
+    placement: RandomPlacement,
+) -> torch.Tensor:
+    """Return the reference ligand's pocket box as ``[min/max, xyz]``."""
+
+    if pocket_bounds is None:
+        heavy = layout.ligand_heavy_coords(layout.template)[0]
+        padding = placement.pocket_padding_angstrom
+        return torch.stack(
+            (
+                torch.amin(heavy, dim=0) - padding,
+                torch.amax(heavy, dim=0) + padding,
+            ),
+            dim=0,
+        )
+    bounds = torch.as_tensor(
+        pocket_bounds, dtype=layout.base_raw_dofs.dtype, device=layout.template.device
+    )
+    if bounds.shape != (2, 3):
+        raise ValueError("pocket_bounds must have shape [2, 3]")
+    if not torch.all(torch.isfinite(bounds)) or not torch.all(
+        bounds[1] >= bounds[0]
+    ):
+        raise ValueError("pocket bounds must be finite with max >= min")
+    return bounds
+
+
+def _random_initial_genes(
+    layout: LigandGeneLayout,
+    *,
+    pocket_bounds: torch.Tensor | None,
+    placement: RandomPlacement,
+    generator: torch.Generator,
+) -> torch.Tensor:
+    """Sample random position, uniform SO(3) orientation, and full torsions.
+
+    Position means the ligand heavy-atom centroid.  It is uniform along each
+    axis of the pocket box.  All logical torsions are uniform on ``(-pi, pi]``.
+    """
+
+    genes = layout.genes_from_pose_stack(layout.template)
+    npool = genes.shape[0]
+    bounds = _normalize_pocket_bounds(
+        layout,
+        pocket_bounds=pocket_bounds,
+        placement=placement,
+    )
+    dtype, device = genes.dtype, genes.device
+    unit_position = torch.rand(
+        (npool, 3), dtype=dtype, device=device, generator=generator
+    )
+    target_centroid = bounds[0] + unit_position * (bounds[1] - bounds[0])
+    result = genes.clone()
+
+    random_values = torch.rand(
+        (npool, 3), dtype=dtype, device=device, generator=generator
+    )
+    u1, u2, u3 = torch.unbind(random_values, dim=1)
+    u2 = 2 * math.pi * u2
+    u3 = 2 * math.pi * u3
+    quaternion = torch.stack(
+        (
+            torch.sqrt(u1) * torch.cos(u3),
+            torch.sqrt(1 - u1) * torch.sin(u2),
+            torch.sqrt(1 - u1) * torch.cos(u2),
+            torch.sqrt(u1) * torch.sin(u3),
+        ),
+        dim=1,
+    )
+    result[:, 3:6] = _rotation_matrix_to_zyx(
+        _quaternion_rotation_matrix(quaternion).transpose(-1, -2)
+    )
+    if result.shape[1] > 6:
+        result[:, 6:] = 2 * math.pi * torch.rand(
+            (npool, result.shape[1] - 6),
+            dtype=dtype,
+            device=device,
+            generator=generator,
+        ) - math.pi
+    result = _canonicalize_genes(result)
+    oriented = layout.pose_stack_from_genes(result)
+    current_centroid = layout.ligand_heavy_coords(oriented).mean(dim=1)
+    result[:, :3] += target_centroid - current_centroid
+    return result
+
+
+def _ranked_result(
+    reference_pose_stack: PoseStack,
+    pool: GAPool,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, PoseStack]:
+    """Rank the candidate population and construct the single best pose.
+
+    Ranked tensors keep a leading singleton dimension, matching the single
+    reference pose: energies are ``[1, npool]`` and genes ``[1, npool, ndof]``.
+    """
+
+    order = torch.argsort(pool.energies)
+    ranked_energies = pool.energies[order].unsqueeze(0)
+    ranked_genes = pool.genes[order].unsqueeze(0)
+    best_pose_stack = attr.evolve(
+        reference_pose_stack,
+        coords=pool.pose_stack.coords[order[:1]].detach().clone(),
+    )
+    return (
+        ranked_genes,
+        ranked_energies,
+        ranked_genes[:, 0],
+        ranked_energies[:, 0],
+        best_pose_stack,
+    )
+
+
 def run_ga_docking(
     pose_stack: PoseStack,
     ligand_block: int,
@@ -811,22 +967,37 @@ def run_ga_docking(
     *,
     schedule: GASchedule = GASchedule(),
     seed: int = 0,
+    initialization: Literal["jitter", "random"] = "jitter",
+    pocket_bounds: torch.Tensor | None = None,
+    random_placement: RandomPlacement = RandomPlacement(),
 ) -> GAResult:
-    """Run the vectorized continuous GA from an initially perturbed pool."""
+    """Dock one reference ligand using a population of candidate poses."""
 
     if pose_stack.n_poses != 1:
         raise ValueError("pose_stack must contain one reference pose")
     if not isinstance(seed, int) or isinstance(seed, bool):
         raise TypeError("seed must be an integer")
+    if initialization not in ("jitter", "random"):
+        raise ValueError("initialization must be 'jitter' or 'random'")
+    if not isinstance(random_placement, RandomPlacement):
+        raise TypeError("random_placement must be a RandomPlacement")
     population = _repeat_pose_stack(pose_stack, schedule.npool)
     docking_dofs = build_ligand_docking_dofs(population, ligand_block)
     layout = LigandGeneLayout.from_pose_stack(population, docking_dofs)
     generator = torch.Generator(device=pose_stack.device)
     generator.manual_seed(seed)
 
-    genes = _initial_genes(
-        layout, schedule.initial_perturbation, generator
-    )
+    if initialization == "jitter":
+        genes = _initial_genes(
+            layout, schedule.initial_perturbation, generator
+        )
+    else:
+        genes = _random_initial_genes(
+            layout,
+            pocket_bounds=pocket_bounds,
+            placement=random_placement,
+            generator=generator,
+        )
     pool = optimize_generation(
         genes, layout, backend, maxiter=schedule.maxiter
     )
@@ -854,10 +1025,59 @@ def run_ga_docking(
         best_history.append(torch.min(pool.energies))
         diverse_history.append(pool.n_diverse)
 
+    (
+        ranked_genes,
+        ranked_energies,
+        best_genes,
+        best_energies,
+        best_pose_stack,
+    ) = _ranked_result(pose_stack, pool)
     return GAResult(
         pool=pool,
         best_energy_history=torch.stack(best_history),
         diverse_count_history=tuple(diverse_history),
+        ranked_genes=ranked_genes,
+        ranked_energies=ranked_energies,
+        best_genes=best_genes,
+        best_energies=best_energies,
+        best_pose_stack=best_pose_stack,
+    )
+
+
+def run_docking(
+    pose_stack: PoseStack,
+    ligand_block: int,
+    backend: ScoringBackend,
+    *,
+    schedule: GASchedule = GASchedule(),
+    seed: int = 0,
+    pocket_bounds: torch.Tensor | None = None,
+    random_placement: RandomPlacement = RandomPlacement(),
+) -> DockingResult:
+    """Run one prepared ligand through random placement and GA docking.
+
+    The returned ``best_pose_stack`` contains one pose, while the ranked
+    tensors retain all ``schedule.npool`` final candidates with a leading
+    singleton dimension.
+    """
+
+    ga_result = run_ga_docking(
+        pose_stack,
+        ligand_block,
+        backend,
+        schedule=schedule,
+        seed=seed,
+        initialization="random",
+        pocket_bounds=pocket_bounds,
+        random_placement=random_placement,
+    )
+    return DockingResult(
+        best_pose_stack=ga_result.best_pose_stack,
+        best_energies=ga_result.best_energies,
+        best_genes=ga_result.best_genes,
+        ranked_energies=ga_result.ranked_energies,
+        ranked_genes=ga_result.ranked_genes,
+        ga_result=ga_result,
     )
 
 
@@ -865,12 +1085,15 @@ __all__ = [
     "GAPool",
     "GAResult",
     "GASchedule",
+    "DockingResult",
     "LigandGeneLayout",
+    "RandomPlacement",
     "crossover",
     "ligand_heavy_atom_rms",
     "mutate",
     "next_generation",
     "optimize_generation",
     "run_ga_docking",
+    "run_docking",
     "update_pool",
 ]
