@@ -3,11 +3,12 @@
 The control flow mirrors Rosetta ``GAOptimizer.cc:104-113``: generate an
 offspring batch, optimize the whole batch, then merge it into the parent pool.
 The gene is exactly the MoveMap-freed raw DOFs: the ligand jump's three
-translations and three delta rotations followed by logical ligand chis.
-Logical chis use the docking-local sign/offset mapping in ``ligand_dofs.py``.
+translations and three delta rotations followed by logical ligand chis and
+then selected receptor-sidechain chis. Logical chis use the docking-local
+sign/offset mapping in ``ligand_dofs.py``.
 Genes are only converted to coordinates by forward kinematics; minimized genes
 come directly from the optimizer's freed DOFs, never from inverse kinematics of
-the minimized pose. Ring and receptor-sidechain genes are out of scope.
+the minimized pose. Ring genes are out of scope.
 Continuous scoring has no grid smoothing or fa_rep ramp, so this module runs
 the same schedule un-ramped until a grid backend implements those knobs.
 """
@@ -25,8 +26,12 @@ import torch
 from tmol.dock.dock_loop import DockingPerturbation, _repeat_pose_stack
 from tmol.dock.ligand_dofs import (
     LigandDockingDOFs,
+    _block_kinforest_nodes,
     _inverse_dofs,
     _ligand_kinforest_nodes,
+    _sidechain_coordinate_metadata,
+    _sidechain_logical_torsions_from_coords,
+    _validated_sidechain_blocks,
     _wrap_angle,
     build_ligand_docking_dofs,
 )
@@ -96,7 +101,7 @@ class RandomPlacement:
 
 @dataclass(frozen=True)
 class LigandGeneLayout:
-    """Map ``[pose, six raw jump DOFs + logical chis]`` to coordinates."""
+    """Map ``[pose, jump | ligand chis | receptor chis]`` to coordinates."""
 
     template: PoseStack
     docking_dofs: LigandDockingDOFs
@@ -110,6 +115,9 @@ class LigandGeneLayout:
     ligand_nodes: torch.Tensor
     ligand_local_atoms: torch.Tensor
     heavy_local_atoms: torch.Tensor
+    sidechain_nodes: torch.Tensor
+    sidechain_atom_indices: torch.Tensor
+    sidechain_atom_influence: torch.Tensor
 
     @classmethod
     def from_pose_stack(
@@ -154,24 +162,46 @@ class LigandGeneLayout:
             block_type.n_atoms,
             kmd.forest.id,
         )
+        all_torsions = docking_dofs.torsions + docking_dofs.sidechain_torsions
         raw_atoms = torch.tensor(
             [mapping.raw_atom for mapping in docking_dofs.torsions],
             dtype=torch.int64,
             device=pose_stack.device,
         )
+        ligand_torsion_nodes = ligand_nodes[:, raw_atoms]
+        if docking_dofs.sidechain_torsions:
+            sidechain_torsion_nodes = torch.stack(
+                [
+                    _block_kinforest_nodes(
+                        pose_stack,
+                        mapping.block,
+                        pose_stack.packed_block_types.active_block_types[
+                            int(pose_stack.block_type_ind64[0, mapping.block])
+                        ].n_atoms,
+                        kmd.forest.id,
+                    )[:, mapping.raw_atom]
+                    for mapping in docking_dofs.sidechain_torsions
+                ],
+                dim=1,
+            )
+            torsion_nodes = torch.cat(
+                (ligand_torsion_nodes, sidechain_torsion_nodes), dim=1
+            )
+        else:
+            torsion_nodes = ligand_torsion_nodes
         torsion_dof_types = torch.tensor(
-            [int(mapping.dof_type) for mapping in docking_dofs.torsions],
+            [int(mapping.dof_type) for mapping in all_torsions],
             dtype=torch.int64,
             device=pose_stack.device,
         )
         torsion_signs = torch.tensor(
-            [mapping.sign for mapping in docking_dofs.torsions],
+            [mapping.sign for mapping in all_torsions],
             dtype=raw_dofs.dtype,
             device=pose_stack.device,
         )
-        if docking_dofs.torsions:
+        if all_torsions:
             torsion_offsets = torch.stack(
-                [mapping.offset for mapping in docking_dofs.torsions], dim=1
+                [mapping.offset for mapping in all_torsions], dim=1
             ).to(dtype=raw_dofs.dtype)
         else:
             torsion_offsets = torch.empty(
@@ -185,6 +215,11 @@ class LigandGeneLayout:
             ].to(torch.bool),
             as_tuple=False,
         ).flatten()
+        (
+            sidechain_nodes,
+            sidechain_atom_indices,
+            sidechain_atom_influence,
+        ) = _sidechain_coordinate_metadata(pose_stack, docking_dofs, kmd.forest)
 
         return cls(
             template=pose_stack,
@@ -192,7 +227,7 @@ class LigandGeneLayout:
             kin_module=kin_module,
             base_raw_dofs=raw_dofs,
             jump_nodes=jump_nodes,
-            torsion_nodes=ligand_nodes[:, raw_atoms],
+            torsion_nodes=torsion_nodes,
             torsion_dof_types=torsion_dof_types,
             torsion_signs=torsion_signs,
             torsion_offsets=torsion_offsets,
@@ -203,6 +238,9 @@ class LigandGeneLayout:
                 device=pose_stack.device,
             ),
             heavy_local_atoms=heavy_local_atoms,
+            sidechain_nodes=sidechain_nodes,
+            sidechain_atom_indices=sidechain_atom_indices,
+            sidechain_atom_influence=sidechain_atom_influence,
         )
 
     @property
@@ -240,7 +278,32 @@ class LigandGeneLayout:
         if pose_stack.n_poses != self.template.n_poses:
             raise ValueError("pose stack size does not match the gene layout")
         raw_dofs = _inverse_dofs(pose_stack, self.kin_module)
-        return self.genes_from_raw_dofs(raw_dofs)
+        genes = self.genes_from_raw_dofs(raw_dofs)
+        n_sidechain_torsions = len(self.docking_dofs.sidechain_torsions)
+        if n_sidechain_torsions:
+            # Recover each sidechain gene from its pose-local named chi delta.
+            # Starting from the base raw-DOF gene preserves the native path's
+            # bit identity while avoiding the cross-pose corruption observed
+            # in batched inverse-kinematics sidechain columns.
+            base_genes = self.genes_from_raw_dofs(self.base_raw_dofs)[
+                :, -n_sidechain_torsions:
+            ]
+            base_chis = _sidechain_logical_torsions_from_coords(
+                self.template, self.docking_dofs
+            )
+            chis = _sidechain_logical_torsions_from_coords(
+                pose_stack, self.docking_dofs
+            )
+            sidechain_genes = base_genes + _wrap_angle(chis - base_chis)
+            in_canonical_range = (sidechain_genes > -math.pi) & (
+                sidechain_genes <= math.pi
+            )
+            genes[:, -n_sidechain_torsions:] = torch.where(
+                in_canonical_range,
+                sidechain_genes,
+                _wrap_angle(sidechain_genes),
+            )
+        return genes
 
     def raw_dofs_from_genes(self, genes: torch.Tensor) -> torch.Tensor:
         """Write genes into a clone of the template raw-DOF tensor."""
@@ -270,7 +333,7 @@ class LigandGeneLayout:
         return raw_dofs
 
     def pose_stack_from_genes(self, genes: torch.Tensor) -> PoseStack:
-        """Rebuild all ligand coordinates without copying or changing receptor atoms."""
+        """Rebuild ligand and movable-sidechain coordinates from genes."""
 
         raw_dofs = self.raw_dofs_from_genes(genes)
         kin_coords = self.kin_module(raw_dofs)
@@ -286,24 +349,100 @@ class LigandGeneLayout:
             ]
             + self.ligand_local_atoms[None, :]
         )
-        coords[pose_indices[:, None], atom_indices] = kin_coords[
-            self.ligand_nodes
-        ].to(coords.dtype)
+        coords[pose_indices[:, None], atom_indices] = kin_coords[self.ligand_nodes].to(
+            coords.dtype
+        )
+        if self.sidechain_nodes.shape[1]:
+            rebuilt_sidechains = kin_coords[self.sidechain_nodes].to(coords.dtype)
+            coords[
+                pose_indices[:, None], self.sidechain_atom_indices
+            ] = rebuilt_sidechains
         return attr.evolve(self.template, coords=coords)
 
     def ligand_heavy_coords(self, pose_stack: PoseStack) -> torch.Tensor:
         """Gather ligand heavy atoms as ``[pose, heavy_atom, xyz]``."""
 
-        pose_indices = torch.arange(
-            pose_stack.n_poses, dtype=torch.int64, device=pose_stack.device
+        return _block_heavy_coords(
+            pose_stack,
+            self.docking_dofs.ligand_block,
+            self.heavy_local_atoms,
         )
-        atom_indices = (
-            pose_stack.block_coord_offset64[
-                :, self.docking_dofs.ligand_block, None
-            ]
-            + self.heavy_local_atoms[None, :]
-        )
-        return pose_stack.coords[pose_indices[:, None], atom_indices]
+
+
+def _block_heavy_coords(
+    pose_stack: PoseStack,
+    block: int,
+    heavy_local_atoms: torch.Tensor | None = None,
+) -> torch.Tensor:
+    """Gather one homogeneous block's heavy-atom coordinates."""
+
+    block_type_indices = pose_stack.block_type_ind64[:, block]
+    if bool(torch.any(block_type_indices < 0)):
+        raise ValueError(f"block {block} is absent from at least one pose")
+    if bool(torch.any(block_type_indices != block_type_indices[0])):
+        raise ValueError(f"all poses must use the same type at block {block}")
+    block_type_index = int(block_type_indices[0])
+    block_type = pose_stack.packed_block_types.active_block_types[block_type_index]
+    if heavy_local_atoms is None:
+        heavy_local_atoms = torch.nonzero(
+            ~pose_stack.packed_block_types.atom_is_hydrogen[
+                block_type_index, : block_type.n_atoms
+            ].to(torch.bool),
+            as_tuple=False,
+        ).flatten()
+    pose_indices = torch.arange(
+        pose_stack.n_poses, dtype=torch.int64, device=pose_stack.device
+    )
+    atom_indices = (
+        pose_stack.block_coord_offset64[:, block, None]
+        + heavy_local_atoms[None, :]
+    )
+    return pose_stack.coords[pose_indices[:, None], atom_indices]
+
+
+def select_pocket_residue_blocks(
+    pose_stack: PoseStack,
+    ligand_block: int,
+    cutoff: float = 6.0,
+) -> torch.Tensor:
+    """Return sorted polymer blocks contacting ligand heavy atoms.
+
+    A block is selected when any of its heavy atoms is within ``cutoff`` of a
+    ligand heavy atom in any pose. Non-polymer blocks, including cofactors and
+    solvent, are excluded.
+    """
+
+    if not isinstance(ligand_block, int) or isinstance(ligand_block, bool):
+        raise TypeError("ligand_block must be an integer")
+    if ligand_block < 0 or ligand_block >= pose_stack.max_n_blocks:
+        raise ValueError("ligand_block is out of range")
+    if not isinstance(cutoff, (int, float)) or isinstance(cutoff, bool):
+        raise TypeError("cutoff must be a real number")
+    cutoff = float(cutoff)
+    if not math.isfinite(cutoff) or cutoff < 0:
+        raise ValueError("cutoff must be finite and nonnegative")
+
+    ligand_heavy = _block_heavy_coords(pose_stack, ligand_block)
+    selected = []
+    for block in range(pose_stack.max_n_blocks):
+        if block == ligand_block:
+            continue
+        block_type_indices = pose_stack.block_type_ind64[:, block]
+        if bool(torch.any(block_type_indices < 0)):
+            continue
+        if bool(torch.any(block_type_indices != block_type_indices[0])):
+            raise ValueError(f"all poses must use the same type at block {block}")
+        block_type = pose_stack.packed_block_types.active_block_types[
+            int(block_type_indices[0])
+        ]
+        if not block_type.properties.polymer.is_polymer:
+            continue
+        receptor_heavy = _block_heavy_coords(pose_stack, block)
+        if bool(torch.any(torch.cdist(receptor_heavy, ligand_heavy) <= cutoff)):
+            selected.append(block)
+    return torch.tensor(
+        selected, dtype=torch.int64, device=pose_stack.device
+    )
 
 
 @dataclass(frozen=True)
@@ -472,6 +611,120 @@ def _ligand_only_pose_stack(pose_stack: PoseStack, ligand_block: int) -> PoseSta
         block_coord_offset64=block_coord_offset.to(torch.int64),
         inter_residue_connections=inter_residue_connections64.to(torch.int32),
         inter_residue_connections64=inter_residue_connections64,
+        inter_block_bondsep=inter_block_bondsep64.to(torch.int32),
+        inter_block_bondsep64=inter_block_bondsep64,
+        block_type_ind=block_type_ind64.to(torch.int32),
+        block_type_ind64=block_type_ind64,
+        chain_id=chain_id64.to(torch.int32),
+        chain_id64=chain_id64,
+        pdb_info=pdb_info,
+        constraint_set=None,
+        device=pose_stack.device,
+    )
+
+
+def _movable_pose_stack(
+    pose_stack: PoseStack,
+    ligand_block: int,
+    sidechain_blocks=(),
+) -> PoseStack:
+    """Select ligand plus movable polymer residues into a compact PoseStack.
+
+    The ligand is block 0, remains disconnected, and receives a compact chain
+    id distinct from every receptor chain so it is always an independent
+    kinematic root. Selected receptor blocks follow in ascending source-block
+    order; connections between retained polymer residues are remapped, while
+    connections to omitted residues are cleared. Passing no sidechain blocks
+    delegates to the historical ligand-only builder exactly.
+    """
+
+    sidechain_blocks = _validated_sidechain_blocks(
+        pose_stack, ligand_block, sidechain_blocks
+    )
+    if not sidechain_blocks:
+        return _ligand_only_pose_stack(pose_stack, ligand_block)
+    if pose_stack.fragmented_ligand_mapping is not None:
+        raise ValueError(
+            "movable grid docking does not support fragmented-ligand metadata"
+        )
+    if not bool(
+        torch.all(pose_stack.block_type_ind64 == pose_stack.block_type_ind64[0:1])
+    ):
+        raise ValueError("movable grid docking requires homogeneous topology")
+    if bool(
+        torch.any(pose_stack.inter_residue_connections64[:, ligand_block, :, 0] >= 0)
+    ):
+        raise ValueError("movable grid docking requires a disconnected ligand block")
+
+    keep_blocks = torch.tensor(
+        (ligand_block,) + sidechain_blocks,
+        dtype=torch.int64,
+        device=pose_stack.device,
+    )
+    old_to_new = torch.full(
+        (pose_stack.max_n_blocks,),
+        -1,
+        dtype=torch.int64,
+        device=pose_stack.device,
+    )
+    old_to_new[keep_blocks] = torch.arange(
+        keep_blocks.numel(), dtype=torch.int64, device=pose_stack.device
+    )
+
+    connections64 = pose_stack.inter_residue_connections64[:, keep_blocks].clone()
+    partner_blocks = connections64[..., 0]
+    real_partners = partner_blocks >= 0
+    mapped_partners = torch.full_like(partner_blocks, -1)
+    mapped_partners[real_partners] = old_to_new[partner_blocks[real_partners]]
+    omitted_partners = real_partners & (mapped_partners < 0)
+    connections64[omitted_partners] = -1
+    retained_partners = mapped_partners >= 0
+    partner_blocks[retained_partners] = mapped_partners[retained_partners]
+
+    block_type_ind64 = pose_stack.block_type_ind64[:, keep_blocks].clone()
+    pbt = pose_stack.packed_block_types
+    atom_counts = pbt.n_atoms[block_type_ind64[0]].to(torch.int64)
+    offsets64 = torch.zeros_like(block_type_ind64)
+    offsets64[:, 1:] = torch.cumsum(atom_counts[:-1], dim=0)[None, :]
+
+    source_atom_parts = []
+    for source_block, n_atoms in zip(keep_blocks, atom_counts):
+        start = pose_stack.block_coord_offset64[0, source_block]
+        source_atom_parts.append(
+            start
+            + torch.arange(
+                int(n_atoms), dtype=torch.int64, device=pose_stack.device
+            )
+        )
+    source_atoms = torch.cat(source_atom_parts)
+    coords = pose_stack.coords[:, source_atoms].clone()
+
+    keep_host = keep_blocks.detach().cpu().numpy()
+    source_host = source_atoms.detach().cpu().numpy()
+    pdb_info = PDBInfo(
+        residue_labels=pose_stack.pdb_info.residue_labels[:, keep_host].copy(),
+        residue_insertion_codes=(
+            pose_stack.pdb_info.residue_insertion_codes[:, keep_host].copy()
+        ),
+        chain_labels=pose_stack.pdb_info.chain_labels[:, keep_host].copy(),
+        atom_occupancy=pose_stack.pdb_info.atom_occupancy[:, source_host].copy(),
+        atom_b_factor=pose_stack.pdb_info.atom_b_factor[:, source_host].copy(),
+    )
+    inter_block_bondsep64 = pose_stack.inter_block_bondsep64[
+        :, keep_blocks[:, None], keep_blocks[None, :]
+    ].clone()
+    chain_id64 = pose_stack.chain_id64[:, keep_blocks].clone()
+    # Source chain ids are compact indices. One past the retained receptor
+    # maximum preserves all receptor relationships and cannot collide with any.
+    chain_id64[:, 0] = torch.amax(chain_id64[:, 1:], dim=1) + 1
+
+    return PoseStack(
+        packed_block_types=pbt,
+        coords=coords,
+        block_coord_offset=offsets64.to(torch.int32),
+        block_coord_offset64=offsets64,
+        inter_residue_connections=connections64.to(torch.int32),
+        inter_residue_connections64=connections64,
         inter_block_bondsep=inter_block_bondsep64.to(torch.int32),
         inter_block_bondsep64=inter_block_bondsep64,
         block_type_ind=block_type_ind64.to(torch.int32),
@@ -1352,5 +1605,6 @@ __all__ = [
     "optimize_generation",
     "run_ga_docking",
     "run_docking",
+    "select_pocket_residue_blocks",
     "update_pool",
 ]

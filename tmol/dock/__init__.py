@@ -3,6 +3,7 @@
 from .ligand_dofs import (
     LigandDockingDOFs,
     LigandTorsionDOF,
+    SidechainTorsionDOF,
     build_ligand_docking_dofs,
 )
 from .scoring_backend import (
@@ -30,6 +31,7 @@ from .ga import (
     optimize_generation,
     run_docking,
     run_ga_docking,
+    select_pocket_residue_blocks,
     update_pool,
 )
 from .finalization import (
@@ -54,6 +56,7 @@ __all__ = [
     "MinimizationResult",
     "RandomPlacement",
     "ScoringBackend",
+    "SidechainTorsionDOF",
     "build_ligand_docking_dofs",
     "crossover",
     "count_non_proton_ligand_chis",
@@ -64,6 +67,7 @@ __all__ = [
     "optimize_generation",
     "run_docking",
     "run_ga_docking",
+    "select_pocket_residue_blocks",
     "run_one_generation",
     "update_pool",
 ]

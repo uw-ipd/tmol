@@ -13,7 +13,9 @@ import torch
 from tmol.database import ParameterDatabase
 from tmol.dock.ligand_dofs import (
     LigandDockingDOFs,
+    _block_kinforest_nodes,
     _ligand_kinforest_nodes,
+    _sidechain_coordinate_indices,
     _wrap_angle,
 )
 from tmol.kinematics.datatypes import KinForest, JumpDOFTypes, NodeType
@@ -50,8 +52,8 @@ class MinimizationResult:
     """A minimized pose and its optimizer-authored freed-DOF gene.
 
     ``genes`` is ``None`` only for backends that do not participate in the GA.
-    Continuous minimization always returns the fixed-order six-jump-plus-chi
-    tensor directly from its final kinematic DOFs.
+    Continuous minimization always returns the fixed-order jump, ligand-chi,
+    and selected-sidechain-chi tensor directly from its final kinematic DOFs.
     """
 
     pose_stack: PoseStack
@@ -132,19 +134,41 @@ def _genes_from_raw_kinforest_dofs(
         dtype=torch.int64,
         device=pose_stack.device,
     )
+    ligand_torsion_nodes = ligand_nodes[:, raw_atoms]
+    if docking_dofs.sidechain_torsions:
+        sidechain_torsion_nodes = torch.stack(
+            [
+                _block_kinforest_nodes(
+                    pose_stack,
+                    mapping.block,
+                    pose_stack.packed_block_types.active_block_types[
+                        int(pose_stack.block_type_ind64[0, mapping.block])
+                    ].n_atoms,
+                    forest.id,
+                )[:, mapping.raw_atom]
+                for mapping in docking_dofs.sidechain_torsions
+            ],
+            dim=1,
+        )
+        torsion_nodes = torch.cat(
+            (ligand_torsion_nodes, sidechain_torsion_nodes), dim=1
+        )
+    else:
+        torsion_nodes = ligand_torsion_nodes
+    all_torsions = docking_dofs.torsions + docking_dofs.sidechain_torsions
     dof_types = torch.tensor(
-        [int(mapping.dof_type) for mapping in docking_dofs.torsions],
+        [int(mapping.dof_type) for mapping in all_torsions],
         dtype=torch.int64,
         device=pose_stack.device,
     )
     signs = torch.tensor(
-        [mapping.sign for mapping in docking_dofs.torsions],
+        [mapping.sign for mapping in all_torsions],
         dtype=raw_dofs.dtype,
         device=pose_stack.device,
     )
-    if docking_dofs.torsions:
+    if all_torsions:
         offsets = torch.stack(
-            [mapping.offset for mapping in docking_dofs.torsions], dim=1
+            [mapping.offset for mapping in all_torsions], dim=1
         ).to(dtype=raw_dofs.dtype)
     else:
         offsets = torch.empty(
@@ -152,12 +176,8 @@ def _genes_from_raw_kinforest_dofs(
             dtype=raw_dofs.dtype,
             device=pose_stack.device,
         )
-    raw_torsions = raw_dofs[
-        ligand_nodes[:, raw_atoms], dof_types[None, :]
-    ]
-    logical_torsions = _wrap_angle(
-        signs[None, :] * raw_torsions + offsets
-    )
+    raw_torsions = raw_dofs[torsion_nodes, dof_types[None, :]]
+    logical_torsions = _wrap_angle(signs[None, :] * raw_torsions + offsets)
     return torch.cat((jump_dofs, logical_torsions), dim=1).to(
         dtype=pose_stack.coords.dtype
     )
@@ -249,7 +269,7 @@ class ContinuousBackend(ScoringBackend):
         maxiter: Optional[int] = None,
         initial_raw_dofs: Optional[torch.Tensor] = None,
     ) -> MinimizationResult:
-        """Run ligand-only minimization and return optimizer-authored genes."""
+        """Run docking-DOF minimization and return optimizer-authored genes."""
 
         if maxiter is not None and (
             not isinstance(maxiter, int)
@@ -327,7 +347,7 @@ class _GridPoseObjective(torch.nn.Module):
 
 
 class _LightweightGridObjective:
-    """Graph-free grid energy and ligand-DOF derivative evaluator."""
+    """Graph-free ligand-grid energy and docking-DOF derivative evaluator."""
 
     def __init__(
         self,
@@ -384,10 +404,11 @@ class _LightweightGridObjective:
             len(backend.ligand_atom_types),
             self.forest.id,
         )
-        # Reuse the already-validated full-pose ordering. Only ligand DOFs are
-        # movable, and all compiled operations run under no_grad, so retaining
-        # receptor nodes costs forward buffers but does not retain an autograd
-        # graph across L-BFGS iterations.
+        # Reuse the already-validated full-pose ordering. All compiled operations
+        # run under no_grad, so retaining fixed receptor nodes costs forward
+        # buffers but does not retain an autograd graph across L-BFGS iterations.
+        # M13a-1 deliberately scores ligand atoms only: selected sidechain DOFs
+        # therefore receive zero grid gradient until moving-set scoring is added.
         self.nodes_f = kin_module.nodes_f
         self.scans_f = kin_module.scans_f
         self.gens_f = kin_module.gens_f
@@ -411,6 +432,11 @@ class _LightweightGridObjective:
 
         self.ligand_atom_indices = backend._ligand_atom_indices(
             pose_stack, docking_dofs.ligand_block
+        )
+        self.sidechain_nodes, self.sidechain_atom_indices = (
+            _sidechain_coordinate_indices(
+                pose_stack, docking_dofs, self.forest
+            )
         )
 
         pose_for_node = torch.div(
@@ -503,9 +529,13 @@ class _LightweightGridObjective:
                 dtype=torch.int64,
                 device=self.pose_stack.device,
             )
-            full_coords[
-                pose_indices[:, None], self.ligand_atom_indices
-            ] = kin_coords[self.ligand_nodes].to(full_coords.dtype)
+            full_coords[pose_indices[:, None], self.ligand_atom_indices] = kin_coords[
+                self.ligand_nodes
+            ].to(full_coords.dtype)
+            if self.sidechain_nodes.shape[1]:
+                full_coords[
+                    pose_indices[:, None], self.sidechain_atom_indices
+                ] = kin_coords[self.sidechain_nodes].to(full_coords.dtype)
             minimized_pose = attrs.evolve(self.pose_stack, coords=full_coords)
             genes = _genes_from_raw_kinforest_dofs(
                 self.pose_stack,
@@ -918,12 +948,13 @@ class GridBackend(ScoringBackend):
     ) -> MinimizationResult:
         """Minimize with direct analytic grid and kinematic derivatives.
 
-        The optimizer holds only freed ligand DOFs and a bounded L-BFGS
+        The optimizer holds only freed docking DOFs and a bounded L-BFGS
         history. Each closure uses the valid full-pose KinForest ordering,
         short-lived compiled kinematic/grid-gradient buffers, and explicitly
         assigned gradients. Ligand-intra kernels use a local autograd graph
         internally and return detached values; no graph reaches the optimizer.
-        Receptor DOFs remain fixed.
+        Selected receptor-sidechain DOFs are accepted but remain unscored in
+        this milestone; all other receptor DOFs remain fixed.
         """
 
         if docking_dofs.ligand_block != self.ligand_block:
