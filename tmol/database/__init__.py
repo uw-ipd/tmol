@@ -16,6 +16,7 @@ from ._patched_chemdb import PatchedChemicalDatabase  # noqa: F401
 from .scoring import ScoringDatabase  # noqa: F401
 from .scoring._elec import PartialCharges  # noqa: F401
 from .scoring._cartbonded import CartRes, ConnectionCartRes  # noqa: F401
+from .scoring._mirrored_dunbrack import with_mirrored_libraries
 
 
 @attr.s(frozen=True)
@@ -48,7 +49,76 @@ class ParameterDatabase:
         patched_chemdb = PatchedChemicalDatabase.from_chem_db(chemdb)
         scoring = ScoringDatabase.from_file(os.path.join(path, "scoring"))
 
+        # a d-amino acid's rotamer statistics are its l form's at negated
+        #    torsions; the mirrored libraries are built here rather than stored,
+        #    since which residues need them is a property of the chemical database
+        d_names = {
+            l_base_name(residue): residue.name
+            for residue in patched_chemdb.residues
+            if residue.name == residue.base_name
+            and residue.properties.polymer.sidechain_chirality == "d"
+        }
+        if d_names:
+            scoring = attr.evolve(
+                scoring, dun=with_mirrored_libraries(scoring.dun, d_names)
+            )
         return cls(scoring=scoring, chemical=patched_chemdb)
+
+    def with_symmetric_gly(self) -> "ParameterDatabase":
+        """A copy with symmetric glycine backbone tables and C-alpha hydrogens.
+
+        Glycine is achiral, but the tables derived from PDB statistics are not,
+        so by default a structure and its mirror image score differently. This
+        points glycine at the symmetrized tables instead. Its two C-alpha
+        hydrogen ideal lengths and bonded targets are averaged, so rebuilding
+        glycine also preserves reflection when the equivalent H names exchange.
+        Other residues are untouched.
+
+        This optional model uses uniformly trans glycine bbdep-omega tables.
+        Uniformity is a modeling choice, not a consequence of achirality.
+        """
+        rama = self.scoring.rama
+        omega = self.scoring.omega_bbdep
+
+        def retarget(rows, mapping):
+            return tuple(
+                (
+                    attr.evolve(row, table_id=mapping[row.table_id])
+                    if row.res_middle == "GLY" and row.table_id in mapping
+                    else row
+                )
+                for row in rows
+            )
+
+        rama = attr.evolve(
+            rama,
+            rama_lookup=retarget(
+                rama.rama_lookup,
+                {"GLY": "GLY_symm", "GLY_prepro": "GLY_prepro_symm"},
+            ),
+        )
+        omega = attr.evolve(
+            omega,
+            bbdep_omega_lookup=retarget(
+                omega.bbdep_omega_lookup,
+                {"gly": "gly_symm", "prepro": "prepro_gly_symm"},
+            ),
+        )
+        from ._symmetric_gly import symmetric_gly_geometry
+
+        chemical, cartbonded = symmetric_gly_geometry(
+            self.chemical, self.scoring.cartbonded
+        )
+        return attr.evolve(
+            self,
+            chemical=chemical,
+            scoring=attr.evolve(
+                self.scoring,
+                cartbonded=cartbonded,
+                rama=attr.evolve(rama, uniq_id=rama.content_id()),
+                omega_bbdep=attr.evolve(omega, uniq_id=omega.content_id()),
+            ),
+        )
 
     def create_stable_subset(
         self, desired_names: list[str], desired_variants: list[str]
