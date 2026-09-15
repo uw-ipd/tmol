@@ -138,6 +138,14 @@ relaxed_pose_stack = fast_relax(
 )
 ```
 
+Default repacking uses the score function's parameter database, including
+nucleic-acid chi sampling and joint conformers for covalently attached groups.
+Free ligands retain their current conformation during packing and can move in
+Cartesian minimization. Custom `task_operations` replace this sampler setup.
+Supplemental Dunbrack chi products obey the sampling budget before enumeration;
+required library states are retained. Frozen chi keep their input angles for
+repacking, or generated ideal angles for a new chemical identity.
+
 The default minimizer is Cartesian and reads
 `CartesianMoveMap.coord_mask`; the fold forest is accepted by the common
 protocol but is not used by that minimizer. To minimize kinematic degrees of

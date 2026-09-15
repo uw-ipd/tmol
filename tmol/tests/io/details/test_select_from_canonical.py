@@ -54,7 +54,7 @@ def test_assert_connections_are_well_formed_reports_malformed(torch_device):
     connections[0, 0, 0] = torch.tensor([1, 1], device=torch_device)
     connections[0, 1, 1] = torch.tensor([2, 0], device=torch_device)
 
-    with pytest.raises(RuntimeError, match="which points back at 2"):
+    with pytest.raises(RuntimeError, match=r"malformed.*\[0, 1, 1, 2, 0\]"):
         _assert_connections_are_well_formed(None, block_types, connections)
 
 
@@ -63,7 +63,7 @@ def test_assert_connections_are_well_formed_reports_out_of_range(torch_device):
     connections = torch.full((1, 3, 2, 2), -1, dtype=torch.int64, device=torch_device)
     connections[0, 0, 0] = torch.tensor([3, 0], device=torch_device)
 
-    with pytest.raises(RuntimeError, match="connects to invalid block 3"):
+    with pytest.raises(RuntimeError, match=r"malformed.*\[0, 0, 0, 3, 0\]"):
         _assert_connections_are_well_formed(None, block_types, connections)
 
 
@@ -76,6 +76,8 @@ def dslf_and_his_resolved_pose_stack_from_canonical_form(
         coords,
         at_is_pres,
         _1,
+        _cyc,
+        _cov,
         _2,
         _res_labs,
         _res_ins,

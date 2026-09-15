@@ -15,7 +15,7 @@ corresponding Tutorials for deeper analysis.
   <a class="docs-card" href="../user_guide/integrations.html">
     <span class="docs-card-kicker">Connect</span>
     <span class="docs-card-title">Model and structure integrations</span>
-    <span class="docs-card-description">Convert RoseTTAFold2, OpenFold, Biotite, and AtomWorks representations into compatible PoseStacks.</span>
+    <span class="docs-card-description">Read structures through AtomWorks or map named model tensors into differentiable PoseStacks.</span>
   </a>
   <a class="docs-card" href="gpu_batching.html">
     <span class="docs-card-kicker">Scale</span>

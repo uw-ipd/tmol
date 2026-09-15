@@ -188,17 +188,15 @@ TMol separates canonical database concerns:
 
 TMol's versioned `.tmol` YAML bundles ligand additions to those three domains. A
 {class}`tmol.ligand.LigandPreparation`
-contains the residue definition, partial charges, and cartbonded parameters,
-and the supported {func}`tmol.ligand.write_params_file`
-can emit either format from one preparation. The Rosetta writer emits
-`BOND_TYPE` records and writes partial charges in `ATOM` records, but the two
-outputs are not equivalent parameterizations.
+contains the residue definition, partial charges, and cartbonded parameters, and
+{func}`tmol.ligand.write_params_file` serializes one to `.tmol`.
 
-The Rosetta reader is intentionally partial: it recognizes `NAME`, `ATOM`,
-`BOND`/`BOND_TYPE`, `CHI`, `PROTON_CHI`, `NBR_ATOM`, and `ICOOR_INTERNAL`, but
-ignores other records and drops the charge values on `ATOM` lines. It cannot
-reconstruct the `.tmol` electrostatic and cartbonded sections, so arbitrary
-`.params` to `.tmol` conversion is not general or lossless.
+`.tmol` is TMol's only parameter format: TMol neither reads nor writes Rosetta
+`.params`. The two formats carry different content -- `.params` is a single
+line-oriented residue record, while `.tmol` bundles chemistry, electrostatics,
+and cartbonded parameters together -- so no general or lossless conversion
+exists in either direction. Parameterize a ligand for Rosetta with a
+Rosetta-native workflow, and for TMol with the ligand preparation pipeline.
 
 These facilities support preparation, registration, scoring, local pocket
 repacking, and Cartesian refinement. They do not provide native ligand docking,
