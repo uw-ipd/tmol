@@ -460,7 +460,8 @@
 <span class="p">)</span>
 
 <span class="c1"># Use AtomWorks' protein token order and atom slots as the source of truth.</span>
-<span class="c1"># Copy the public lists so callers cannot mutate AtomWorks' shared encoding.</span>
+<span class="c1"># This module therefore has a runtime AtomWorks dependency. Copy the public</span>
+<span class="c1"># lists so callers cannot mutate AtomWorks' shared encoding.</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.ml.encoding_definitions</span><span class="w"> </span><span class="kn">import</span> <span class="n">UNIFIED_ATOM37_ENCODING</span>
 
 <span class="n">_ATOMWORKS_MIN_PROTEIN_IDX</span> <span class="o">=</span> <span class="n">UNIFIED_ATOM37_ENCODING</span><span class="o">.</span><span class="n">token_to_idx</span><span class="p">[</span><span class="s2">"ALA"</span><span class="p">]</span>
@@ -533,7 +534,7 @@
     <span class="n">atom37_coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">biotite_structure</span><span class="p">:</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArray</span> <span class="o">|</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">,</span>
     <span class="n">context</span><span class="p">:</span> <span class="n">PoseBuildContext</span><span class="p">,</span>
-    <span class="n">no_optH</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">no_optH</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PoseStack</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PoseStack</span><span class="p">,</span> <span class="n">PoseBuildContext</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Build a differentiable PoseStack from atom37 coordinates and a topology.</span>
@@ -541,20 +542,20 @@
 <span class="sd">    Unlike :func:`pose_stack_from_atomworks`, this supports any chemistry shared</span>
 <span class="sd">    by AtomWorks and the supplied TMol context (including ordinary ligands and</span>
 <span class="sd">    nucleic acids): the *chemical topology* is taken from</span>
-<span class="sd">    ``biotite_structure`` while the *coordinates* come from the</span>
-<span class="sd">    autograd-tracked ``atom37_coords`` tensor. This is the entry point for</span>
-<span class="sd">    differentiable scoring/guidance over atomized inputs, where the same fixed</span>
-<span class="sd">    topology is scored repeatedly as coordinates move.</span>
+<span class="sd">    ``biotite_structure`` while mapped coordinates come from the</span>
+<span class="sd">    autograd-tracked ``atom37_coords`` tensor. Unmapped finite reference atoms</span>
+<span class="sd">    remain context. This is the entry point for differentiable scoring/guidance</span>
+<span class="sd">    over atomized inputs, where the same fixed topology is scored repeatedly as</span>
+<span class="sd">    coordinates move.</span>
 
 <span class="sd">    Build ``context`` once with :func:`build_context_from_biotite` (with</span>
 <span class="sd">    ``prepare_ligands=True`` when ligands are present). For repeated diffusion</span>
 <span class="sd">    or search steps, bind the topology once with</span>
 <span class="sd">    :func:`prepare_pose_stack_from_atom37` and call the returned builder with</span>
-<span class="sd">    each coordinate batch. ``biotite_structure`` is used only for its chemical</span>
-<span class="sd">    identity, so a single reference structure can be reused regardless of its</span>
-<span class="sd">    coordinates. It must carry two integer annotations that map each atom into</span>
-<span class="sd">    the atom37 tensor: ``token_id`` (the token axis) and ``atom37_slot`` (the</span>
-<span class="sd">    0..36 slot).</span>
+<span class="sd">    each coordinate batch. Mapped reference coordinates are ignored, so one</span>
+<span class="sd">    reference topology can be reused as those coordinates change. It must carry</span>
+<span class="sd">    two integer annotations that map each atom into the atom37 tensor:</span>
+<span class="sd">    ``token_id`` (the token axis) and ``atom37_slot`` (the 0..36 slot).</span>
 
 <span class="sd">    Topology is derived from chemical identity alone -- ``missing_density`` breaks</span>
 <span class="sd">    and automatic disulfide detection (both coordinate-dependent) are disabled --</span>
@@ -572,8 +573,9 @@
 <span class="sd">    context : PoseBuildContext</span>
 <span class="sd">        Structure-independent context from :func:`build_context_from_biotite`.</span>
 <span class="sd">    no_optH : bool</span>
-<span class="sd">        Run TMol's hydrogen optimization pipeline when False (default). Pass</span>
-<span class="sd">        True to leave newly built hydrogens at ideal positions.</span>
+<span class="sd">        Preserve finite input hydrogens and leave newly built hydrogens at ideal</span>
+<span class="sd">        positions when True (default). Pass False to run TMol's hydrogen</span>
+<span class="sd">        optimization pipeline.</span>
 <span class="sd">    **kwargs</span>
 <span class="sd">        Additional arguments forwarded to ``pose_stack_from_biotite``.</span>
 

@@ -8,7 +8,9 @@ coordinates with general Biotite topology, including nucleic acids and ligands,
 use :func:`tmol.io.pose_stack_from_atom37_and_biotite`. Repeated diffusion,
 guidance, and search workloads should bind their fixed topology once with
 :func:`tmol.io.prepare_pose_stack_from_atom37`; its returned callable accepts
-each coordinate batch and optimizes hydrogens by default.
+each coordinate batch and preserves ordinary finite authored protein hydrogens
+by default. Generated ligand types may rebuild hydrogens unless
+``trust_hydrogen_names=True``.
 
 Use :func:`tmol.io.atom_array_from_file` or
 :func:`tmol.io.pose_stack_from_file` for PDB, CIF, compressed CIF and binary CIF.
@@ -38,10 +40,12 @@ and repeated construction. Direct AtomArray inputs follow the same contract.
    )
 
 :func:`tmol.io.pose_stack_from_pdb` accepts paths, text and lists of lines through
-the same file path. File and AtomArray inputs preserve matching supplied coordinates.
-Pose construction optimizes hydrogens by default; the PDB compatibility wrapper
-sets ``no_optH=True``. ``trust_hydrogen_names`` controls whether regenerated ligand
-hydrogen names are compatible with supplied coordinates.
+the same file path. File and AtomArray inputs preserve matching supplied coordinates
+for ordinary protein residues. Pose construction builds missing hydrogens but
+preserves finite authored protein hydrogen coordinates by default. Pass
+``no_optH=False`` to request OptH packing. Generated ligand types may rebuild
+hydrogens whose names changed during parameter generation; pass
+``trust_hydrogen_names=True`` only when those names match the prepared database.
 Low-level PDB atom-record/DataFrame utilities retain their canonical-only contract.
 
 .. automodule:: tmol.io

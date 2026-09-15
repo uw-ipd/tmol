@@ -447,6 +447,11 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._packed_block_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackedBlockTypes</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score._annotation_cache</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">AnnotationKey</span><span class="p">,</span>
+    <span class="n">cached_annotation</span><span class="p">,</span>
+    <span class="n">store_annotation</span><span class="p">,</span>
+<span class="p">)</span>
 
 
 <div class="viewcode-block" id="constrain_all_ca">
@@ -505,7 +510,7 @@
 
 <div class="viewcode-block" id="MCAtomIndices">
 <a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.constraint.MCAtomIndices">[docs]</a>
-<span class="nd">@attrs</span><span class="o">.</span><span class="n">define</span>
+<span class="nd">@attrs</span><span class="o">.</span><span class="n">define</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">MCAtomIndices</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Padded main-chain atom indices for every packed block type."""</span>
 
@@ -516,10 +521,16 @@
 
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_annotate_mainchain_atom_indices</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_annotate_mainchain_atom_indices</span><span class="p">(</span>
+    <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MCAtomIndices</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Get the list of mainchain atoms for each block type and annotate their indices."""</span>
-    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"mainchain_atom_indices"</span><span class="p">):</span>
-        <span class="k">return</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="n">AnnotationKey</span><span class="o">.</span><span class="n">from_sources</span><span class="p">(</span><span class="n">settings</span><span class="o">=</span><span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="p">,))</span>
+    <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span>
+        <span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"_mainchain_atom_indices_annotation"</span><span class="p">,</span> <span class="n">key</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">cached</span>
     <span class="n">mainchain_atom_indices</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">block_type</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">:</span>
         <span class="n">mainchain_atom_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
@@ -561,6 +572,13 @@
         <span class="n">is_real_mainchain_atom</span><span class="o">=</span><span class="n">is_real_mainchain_atom</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"mainchain_atom_indices"</span><span class="p">,</span> <span class="n">mcatominds</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+        <span class="n">packed_block_types</span><span class="p">,</span>
+        <span class="s2">"_mainchain_atom_indices_annotation"</span><span class="p">,</span>
+        <span class="n">key</span><span class="p">,</span>
+        <span class="n">mcatominds</span><span class="p">,</span>
+        <span class="n">fields</span><span class="o">=</span><span class="p">(</span><span class="s2">"mainchain_atom_indices"</span><span class="p">,),</span>
+    <span class="p">)</span>
 
 
 <div class="viewcode-block" id="create_mainchain_coordinate_constraints">
