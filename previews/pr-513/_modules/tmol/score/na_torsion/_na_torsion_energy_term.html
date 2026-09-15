@@ -421,6 +421,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.._energy_term</span><span class="w"> </span><span class="kn">import</span> <span class="n">EnergyTerm</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.._annotation_cache</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnnotationKey</span><span class="p">,</span> <span class="n">cached_annotation</span><span class="p">,</span> <span class="n">store_annotation</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
@@ -466,6 +467,13 @@
             <span class="n">at</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">at</span><span class="o">.</span><span class="n">element</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="o">.</span><span class="n">atom_types</span>
         <span class="p">}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_block_annotation_key</span> <span class="o">=</span> <span class="n">AnnotationKey</span><span class="o">.</span><span class="n">from_sources</span><span class="p">(</span><span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_packed_annotation_key</span> <span class="o">=</span> <span class="n">AnnotationKey</span><span class="o">.</span><span class="n">from_sources</span><span class="p">(</span>
+            <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">,</span> <span class="n">settings</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pose_annotation_key</span> <span class="o">=</span> <span class="n">AnnotationKey</span><span class="o">.</span><span class="n">from_sources</span><span class="p">(</span>
+            <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">,</span> <span class="n">settings</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,)</span>
+        <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">class_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
@@ -482,22 +490,35 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_block_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_type</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">NaTorsionEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_block_type</span><span class="p">(</span><span class="n">block_type</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"na_torsion_params"</span><span class="p">):</span>
-            <span class="k">return</span>
-        <span class="nb">setattr</span><span class="p">(</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span>
+            <span class="n">block_type</span><span class="p">,</span> <span class="s2">"_na_torsion_annotation"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_block_annotation_key</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cached</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">block_type_params</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">element_for_atom_type</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"na_torsion_params"</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
             <span class="n">block_type</span><span class="p">,</span>
-            <span class="s2">"na_torsion_params"</span><span class="p">,</span>
-            <span class="n">block_type_params</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">element_for_atom_type</span><span class="p">),</span>
+            <span class="s2">"_na_torsion_annotation"</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_block_annotation_key</span><span class="p">,</span>
+            <span class="n">params</span><span class="p">,</span>
+            <span class="n">fields</span><span class="o">=</span><span class="p">(</span><span class="s2">"na_torsion_params"</span><span class="p">,),</span>
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_packed_block_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">NaTorsionEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_packed_block_types</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"na_torsion_base"</span><span class="p">):</span>
-            <span class="k">return</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span>
+            <span class="n">packed_block_types</span><span class="p">,</span>
+            <span class="s2">"_na_torsion_annotation"</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_packed_annotation_key</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cached</span>
 
         <span class="n">bts</span> <span class="o">=</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+        <span class="n">block_params</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">setup_block_type</span><span class="p">(</span><span class="n">bt</span><span class="p">)</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">bts</span><span class="p">]</span>
         <span class="n">stack</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">key</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>  <span class="c1"># noqa: E731</span>
-            <span class="p">[</span><span class="n">bt</span><span class="o">.</span><span class="n">na_torsion_params</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">bts</span><span class="p">]</span>
+            <span class="p">[</span><span class="n">params</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">block_params</span><span class="p">]</span>
         <span class="p">)</span>
 
         <span class="k">def</span><span class="w"> </span><span class="nf">to_t</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
@@ -506,20 +527,44 @@
         <span class="nb">setattr</span><span class="p">(</span>
             <span class="n">packed_block_types</span><span class="p">,</span>
             <span class="s2">"na_torsion_base"</span><span class="p">,</span>
-            <span class="n">to_t</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">bt</span><span class="o">.</span><span class="n">na_torsion_params</span><span class="p">[</span><span class="s2">"base"</span><span class="p">]</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">bts</span><span class="p">])),</span>
+            <span class="n">to_t</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">params</span><span class="p">[</span><span class="s2">"base"</span><span class="p">]</span> <span class="k">for</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">block_params</span><span class="p">])),</span>
         <span class="p">)</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"na_torsion_uaids"</span><span class="p">,</span> <span class="n">to_t</span><span class="p">(</span><span class="n">stack</span><span class="p">(</span><span class="s2">"uaids"</span><span class="p">)))</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"na_torsion_ring"</span><span class="p">,</span> <span class="n">to_t</span><span class="p">(</span><span class="n">stack</span><span class="p">(</span><span class="s2">"ring"</span><span class="p">)))</span>
         <span class="nb">setattr</span><span class="p">(</span>
             <span class="n">packed_block_types</span><span class="p">,</span>
             <span class="s2">"na_torsion_down"</span><span class="p">,</span>
-            <span class="n">to_t</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">bt</span><span class="o">.</span><span class="n">na_torsion_params</span><span class="p">[</span><span class="s2">"down"</span><span class="p">]</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">bts</span><span class="p">])),</span>
+            <span class="n">to_t</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">params</span><span class="p">[</span><span class="s2">"down"</span><span class="p">]</span> <span class="k">for</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">block_params</span><span class="p">])),</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+            <span class="n">packed_block_types</span><span class="p">,</span>
+            <span class="s2">"_na_torsion_annotation"</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_packed_annotation_key</span><span class="p">,</span>
+            <span class="p">(</span>
+                <span class="n">packed_block_types</span><span class="o">.</span><span class="n">na_torsion_base</span><span class="p">,</span>
+                <span class="n">packed_block_types</span><span class="o">.</span><span class="n">na_torsion_uaids</span><span class="p">,</span>
+                <span class="n">packed_block_types</span><span class="o">.</span><span class="n">na_torsion_ring</span><span class="p">,</span>
+                <span class="n">packed_block_types</span><span class="o">.</span><span class="n">na_torsion_down</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">fields</span><span class="o">=</span><span class="p">(</span>
+                <span class="s2">"na_torsion_base"</span><span class="p">,</span>
+                <span class="s2">"na_torsion_uaids"</span><span class="p">,</span>
+                <span class="s2">"na_torsion_ring"</span><span class="p">,</span>
+                <span class="s2">"na_torsion_down"</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">bindings</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"na_torsion_params"</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">block_type</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+            <span class="p">),</span>
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_poses</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">poses</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">NaTorsionEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_poses</span><span class="p">(</span><span class="n">poses</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">poses</span><span class="p">,</span> <span class="s2">"na_torsion_pose_params"</span><span class="p">):</span>
-            <span class="k">return</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span>
+            <span class="n">poses</span><span class="p">,</span> <span class="s2">"_na_torsion_annotation"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pose_annotation_key</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cached</span>
 
         <span class="n">pbt</span> <span class="o">=</span> <span class="n">poses</span><span class="o">.</span><span class="n">packed_block_types</span>
         <span class="n">params</span> <span class="o">=</span> <span class="n">_pose_indices</span><span class="p">(</span>
@@ -535,6 +580,13 @@
         <span class="p">)</span>
         <span class="n">poses</span><span class="o">.</span><span class="n">na_torsion_pose_params</span> <span class="o">=</span> <span class="n">params</span>
         <span class="n">poses</span><span class="o">.</span><span class="n">na_torsion_has_na</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">any</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+            <span class="n">poses</span><span class="p">,</span>
+            <span class="s2">"_na_torsion_annotation"</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pose_annotation_key</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">poses</span><span class="o">.</span><span class="n">na_torsion_has_na</span><span class="p">),</span>
+            <span class="n">fields</span><span class="o">=</span><span class="p">(</span><span class="s2">"na_torsion_pose_params"</span><span class="p">,</span> <span class="s2">"na_torsion_has_na"</span><span class="p">),</span>
+        <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_pose_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">eval_na_torsion_for_pose</span>
