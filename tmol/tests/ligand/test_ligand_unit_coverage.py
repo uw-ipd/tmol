@@ -72,7 +72,7 @@ class TestDetectHelpers:
         rw2.AddAtom(Chem.Atom(6))
         rw2.AddBond(0, 1, Chem.BondType.DATIVE)
         dative = rw2.GetBondBetweenAtoms(0, 1)
-        assert _rdkit_bond_to_biotite_type(dative) == int(struc.BondType.SINGLE)
+        assert _rdkit_bond_to_biotite_type(dative) == int(struc.BondType.ANY)
 
     def test_infer_res_name_from_mol2(self) -> None:
         from tmol.ligand import _infer_res_name_from_mol2
@@ -250,7 +250,7 @@ class TestLigandAtomArrayToRdkitMol:
 
         return NonStandardResidueInfo(
             res_name="LG1",
-            ccd_type="UNKNOWN",
+            component_type="UNKNOWN",
             atom_names=tuple(str(n) for n in arr.atom_name),
             elements=tuple(str(e) for e in arr.element),
             coords=arr.coord.copy(),
