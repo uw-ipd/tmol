@@ -474,10 +474,8 @@ struct DunbrackChiSampler {
       TensorAccessor<Real, 2, D> rotprob_slice(
           rotameric_prob_tables.data()
               + rot_table_ind * rotameric_prob_tables.stride(0),
-          rotprob_table_sizes.data()->data()
-              + rot_table_ind * rotprob_table_sizes.stride(0),
-          rotprob_table_strides.data()->data()
-              + rot_table_ind * rotprob_table_strides.stride(0));
+          rotprob_table_sizes[rot_table_ind].data(),
+          rotprob_table_strides[rot_table_ind].data());
       auto prob_and_derivs =
           tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
               rotprob_slice, bbdihe);
@@ -762,10 +760,8 @@ struct DunbrackChiSampler {
           TensorAccessor<Real, 2, D> rotmean_slice(
               rotameric_mean_tables.data()
                   + (rot_table_start + ii) * rotameric_mean_tables.stride(0),
-              rotmean_table_sizes.data()->data()
-                  + (rot_table_start + ii) * rotmean_table_sizes.stride(0),
-              rotmean_table_strides.data()->data()
-                  + (rot_table_start + ii) * rotmean_table_strides.stride(0));
+              rotmean_table_sizes[rot_table_start + ii].data(),
+              rotmean_table_strides[rot_table_start + ii].data());
 
           auto mean_and_derivs =
               tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
@@ -776,10 +772,8 @@ struct DunbrackChiSampler {
             TensorAccessor<Real, 2, D> rotsdev_slice(
                 rotameric_sdev_tables.data()
                     + (rot_table_start + ii) * rotameric_sdev_tables.stride(0),
-                rotmean_table_sizes.data()->data()
-                    + (rot_table_start + ii) * rotmean_table_sizes.stride(0),
-                rotmean_table_strides.data()->data()
-                    + (rot_table_start + ii) * rotmean_table_strides.stride(0));
+                rotmean_table_sizes[rot_table_start + ii].data(),
+                rotmean_table_strides[rot_table_start + ii].data());
             auto sdev_and_derivs =
                 tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::
                     interpolate(rotsdev_slice, bbdihe);

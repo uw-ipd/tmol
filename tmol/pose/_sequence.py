@@ -19,7 +19,7 @@ _NTERM_VARIANTS = ("nterm", "na5prime")
 _CTERM_VARIANTS = ("cterm", "na3prime")
 
 # Backbone type a one-letter code refers to, by case.
-_UPPER_BACKBONE = "alpha"
+_UPPER_BACKBONE = "alpha_aa"
 _LOWER_BACKBONE = "dna"
 
 
@@ -141,7 +141,7 @@ def _read_delimited(seq: str, start: int) -> Tuple[str, int]:
 def _one_letter_index(restype_set) -> Dict[Tuple[str, str], str]:
     index: Dict[Tuple[str, str], str] = {}
     for rt in restype_set.residue_types:
-        if rt.one_letter_code is None:
+        if rt.one_letter_code is None or ":" in rt.name:
             continue
         key = (rt.properties.polymer.backbone_type, rt.one_letter_code)
         if key in index:

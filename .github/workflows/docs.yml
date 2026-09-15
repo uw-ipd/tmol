@@ -81,6 +81,7 @@ jobs:
     concurrency:
       group: docs-pages-publish
       cancel-in-progress: false
+      queue: max
     permissions:
       contents: write
     steps:

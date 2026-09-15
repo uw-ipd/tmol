@@ -81,6 +81,9 @@ class AtomType:
     is_hydroxyl: bool = False
     is_polarh: bool = False
     acceptor_hybridization: Optional[AcceptorHybridization] = None
+    # the type this atom takes when a covalent bond replaces its hydrogen:
+    #    a hydroxyl becomes an ether, a thiol a thioether
+    conjugated_type: Optional[str] = None
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -89,6 +92,23 @@ class Atom:
 
     name: str = attr.ib()
     atom_type: str = attr.ib()
+    # Generic bonded lookup can describe a changed local environment without
+    # changing nonbonded typing or transferring Rosetta torsion ownership.
+    #
+    # This is deliberately per atom rather than a wider genbonded hierarchy.
+    # The hierarchy is a property of an atom type and is global: it fixes gaps
+    # like Nbb reaching NG2 without passing through Nad, and that fix belongs
+    # in scoring/genbonded.yaml. Conjugation is different -- it changes one
+    # atom's chemistry as a function of what became bonded to it, while the
+    # base residue keeps the Rosetta type that owns its canonical torsions.
+    # ASN:conj_ND2 is the worked example: ND2 stays Nglyc for the Rosetta
+    # terms and looks up generic parameters as the amide Nad it has become.
+    # No per-type hierarchy can express that, because it depends on the
+    # partner, not on the atom type.
+    genbonded_type: Optional[str] = None
+    # Fallback peptide role for cross-residue Cartesian parameter lookup.
+    # Authored atom names and explicitly supplied parameters retain priority.
+    cartbonded_reference: Optional[str] = None
 
 
 @attr.s(frozen=True, slots=True)
@@ -97,6 +117,19 @@ class AtomAlias:
 
     name: str = attr.ib()
     alt_name: str = attr.ib()
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class Name3Alias:
+    """An input residue name that is read as another residue's.
+
+    The residue is read, scored and written as ``read_as``; its own name does
+    not survive. Reserved for a component the database deliberately does not
+    describe, where the substitute is chemically the same molecule.
+    """
+
+    name3: str
+    read_as: str
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -143,11 +176,17 @@ class Torsion:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class ChiSamples:
-    """Discrete samples and expansions for one chi dihedral."""
+    """Discrete values a torsion is sampled at, where no library supplies them.
+
+    A proton chi turns a hydrogen and is optH's to place as well as the
+    packer's; any other sampled chi moves heavy atoms and is the packer's
+    alone.
+    """
 
     chi_dihedral: str
     samples: Tuple[float, ...]
     expansions: Tuple[float, ...]
+    is_proton: bool = True
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -216,9 +255,18 @@ class RawResidueType:
     hydrogens_regenerated: bool = False
     # True only for blocks produced by user-defined ligand fragmentation.
     is_ligand_fragment: bool = False
+    # reference restype supplying each torsion potential; None = no reference
+    rama_reference: Optional[str] = None
+    dunbrack_reference: Optional[str] = None
+    na_base_reference: Optional[str] = None
+    # D-AAs: residue is mirror image of reference
+    reference_mirrored: bool = False
     # One-letter sequence code; unique only within a backbone type ...
     #   "a" is both DA and RA.
     one_letter_code: Optional[str] = None
+    # Attachment atom, partner equivalence class, partner atom. Equal atom
+    # inventories can need different parameters (e.g. ester vs thioester).
+    conjugation_context: Tuple[Tuple[str, str, str], ...] = ()
 
     def atom_name(self, index: int) -> str:
         """Return the name of the atom at ``index``."""
@@ -231,9 +279,10 @@ class IcoorVariant:
 
     name: str
     source: Optional[str] = None
-    phi: Optional[DihedralAngle] = 0.0
-    theta: Optional[BondAngle] = 0.0
-    d: Optional[float] = 0.0
+    # absent means "take the source's", so 0.0 can be asked for outright
+    phi: Optional[DihedralAngle] = None
+    theta: Optional[BondAngle] = None
+    d: Optional[float] = None
     parent: Optional[str] = None
     grand_parent: Optional[str] = None
     great_grand_parent: Optional[str] = None
@@ -292,6 +341,22 @@ class VariantType:
     applies_to: VariantScope = VariantScope()
 
 
+def l_base_name(restype) -> str:
+    """The L residue type a block type's base name corresponds to.
+
+    A d-amino acid is named after the L form it mirrors. Tautomer and disulfide
+    states belong to the sidechain, which a mirror image shares, so code keying
+    on those states must see the same name for both forms.
+    """
+    base = restype.base_name
+    if restype.properties.polymer.sidechain_chirality == "d":
+        return base[1:]
+    return base
+
+
+GENERATED_RESIDUE_FILES = ("d_amino_acids.yaml",)
+
+
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class ChemicalDatabase:
     """Immutable collection of chemical types, residues, and patches."""
@@ -302,6 +367,7 @@ class ChemicalDatabase:
     atom_types: Tuple[AtomType, ...]
     residues: Tuple[RawResidueType, ...]
     variants: Tuple[VariantType, ...]
+    name3_aliases: Tuple[Name3Alias, ...] = ()
 
     @classmethod
     def get_default(cls) -> "ChemicalDatabase":
@@ -314,10 +380,17 @@ class ChemicalDatabase:
 
     @classmethod
     def from_file(cls, path: str | os.PathLike[str]) -> "ChemicalDatabase":
-        """Load a chemical database from a directory containing YAML data."""
-        path = os.path.join(path, "chemical.yaml")
-        with open(path, "r") as infile:
+        """Load chemical definitions and their generated residue tables."""
+        with open(os.path.join(path, "chemical.yaml"), "r") as infile:
             raw = safe_load(infile)
+        # residue sets written by a support script live in their own files so
+        #    regenerating one does not rewrite the hand-maintained database
+        for generated in GENERATED_RESIDUE_FILES:
+            generated_path = os.path.join(path, generated)
+            if not os.path.exists(generated_path):
+                continue
+            with open(generated_path, "r") as infile:
+                raw["residues"].extend(safe_load(infile)["residues"])
         raw = normalize_bond_tuples(raw)
 
         return cattr.structure(raw, cls)

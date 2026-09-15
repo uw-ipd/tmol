@@ -6,11 +6,16 @@ import os
 import attr
 from typing import Mapping, Optional
 
-from .chemical import AtomType, ChemicalDatabase, RawResidueType  # noqa: F401
+from .chemical import (  # noqa: F401
+    AtomType,
+    ChemicalDatabase,
+    RawResidueType,
+    l_base_name,
+)
 from ._patched_chemdb import PatchedChemicalDatabase  # noqa: F401
 from .scoring import ScoringDatabase  # noqa: F401
 from .scoring._elec import PartialCharges  # noqa: F401
-from .scoring._cartbonded import CartRes  # noqa: F401
+from .scoring._cartbonded import CartRes, ConnectionCartRes  # noqa: F401
 
 
 @attr.s(frozen=True)
@@ -41,10 +46,9 @@ class ParameterDatabase:
         """Load chemical and scoring parameters rooted at ``path``."""
         chemdb = ChemicalDatabase.from_file(os.path.join(path, "chemical"))
         patched_chemdb = PatchedChemicalDatabase.from_chem_db(chemdb)
-        return cls(
-            scoring=ScoringDatabase.from_file(os.path.join(path, "scoring")),
-            chemical=patched_chemdb,
-        )
+        scoring = ScoringDatabase.from_file(os.path.join(path, "scoring"))
+
+        return cls(scoring=scoring, chemical=patched_chemdb)
 
     def create_stable_subset(
         self, desired_names: list[str], desired_variants: list[str]
@@ -97,6 +101,8 @@ def inject_residue_params(
     atom_types: Optional[list[AtomType]] = None,
     partial_charges: Optional[Mapping[str, dict[str, float]]] = None,
     cartbonded_params: Optional[Mapping[str, CartRes]] = None,
+    variants: Optional[list] = None,
+    connection_params: Optional[tuple[ConnectionCartRes, ...]] = None,
 ) -> ParameterDatabase:
     """Return a new ParameterDatabase with additional residue type data.
 
@@ -109,12 +115,13 @@ def inject_residue_params(
         atom_types: Optional new AtomType entries (deduplicated by name).
         partial_charges: Per-residue charge dicts ``{res_name: {atom: charge}}``.
         cartbonded_params: Per-residue CartRes ``{res_name: CartRes}``.
+        connection_params: Complete length/angle records for named connection pairs.
+        variants: Optional patches the new residues bring with them, applied
+            alongside the database's own.
 
     Returns:
         A new frozen ParameterDatabase with the additional data.
     """
-    new_chem_residues = (*param_db.chemical.residues, *residue_types)
-
     new_atom_types = param_db.chemical.atom_types
     if atom_types:
         existing_names = {at.name for at in new_atom_types}
@@ -122,11 +129,14 @@ def inject_residue_params(
         if deduped:
             new_atom_types = (*new_atom_types, *deduped)
 
-    new_patched = attr.evolve(
-        param_db.chemical,
-        residues=new_chem_residues,
-        atom_types=new_atom_types,
-    )
+    # patching runs at db load
+    # injected residues get all db variants applied here
+    chemical = param_db.chemical
+    if variants:
+        # Attachments also patch partners already present in the database.
+        chemical = attr.evolve(chemical, atom_types=new_atom_types)
+        chemical = chemical.with_variants_applied(variants)
+    new_patched = chemical.with_added_residues(residue_types, atom_types=new_atom_types)
 
     new_elec = param_db.scoring.elec
     if partial_charges:
@@ -141,9 +151,15 @@ def inject_residue_params(
         )
 
     new_cart = param_db.scoring.cartbonded
-    if cartbonded_params:
-        new_res_params = {**new_cart.residue_params, **cartbonded_params}
-        new_cart = attr.evolve(new_cart, residue_params=new_res_params)
+    if cartbonded_params or connection_params:
+        new_res_params = {**new_cart.residue_params, **(cartbonded_params or {})}
+        new_connections = tuple(
+            dict.fromkeys((*new_cart.connection_params, *(connection_params or ())))
+        )
+        # Scoring annotations are keyed by this content hash. Carrying the
+        # old hash into an extended database can reuse another database's
+        # bonded parameters on an already annotated block type or pose.
+        new_cart = type(new_cart).from_cartres_dict(new_res_params, new_connections)
 
     new_scoring = attr.evolve(
         param_db.scoring,
