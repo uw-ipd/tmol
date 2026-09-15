@@ -50,6 +50,7 @@ _CUDA_PARALLEL_GRAD_SCORE_MIN_COORD_ELEMENTS = 100 * 1024
 _CUDA_WEIGHTED_FUSED_MIN_SINGLE_POSE_ATOMS = 15_000
 _CUDA_WEIGHTED_FUSED_MIN_BATCH_ATOMS_PER_POSE = 2_000
 _CUDA_WEIGHTED_FUSED_MIN_GRAD_COORD_ELEMENTS = 64 * 1024
+_PACK_FUSED_ROTAMER_SCORE_WINDOW = 64 * 1024 * 1024
 _CPU_SCORE_TERM_EXECUTORS: dict[int, ThreadPoolExecutor] = {}
 _CPU_SCORE_TERM_EXECUTOR_LOCK = threading.Lock()
 _ScoreCallResult = TypeVar("_ScoreCallResult")
@@ -1775,6 +1776,45 @@ class _FusedLJLKAndElecRotamerModule(torch.nn.Module):
         )
         return scores, indices
 
+    def iter_packing_entries(self, coords, score_weights, *, topology_only):
+        """Yield bounded canonical dispatch windows for packing."""
+        from tmol.score.ljlk.potentials import (
+            ljlk_elec_rotamer_dispatch,
+            ljlk_elec_weighted_rotamer_scores,
+        )
+
+        if score_weights.dtype != coords.dtype:
+            score_weights = score_weights.to(dtype=coords.dtype)
+        native_args = self._native_arguments(coords)
+        dispatch_indices = ljlk_elec_rotamer_dispatch(
+            native_args[0],
+            native_args[1],
+            native_args[4],
+            native_args[7],
+            native_args[10],
+            native_args[11],
+            native_args[12],
+            native_args[16],
+            native_args[-1],
+        )
+        empty_values = score_weights.new_empty(0)
+        for begin in range(
+            0, dispatch_indices.shape[1], _PACK_FUSED_ROTAMER_SCORE_WINDOW
+        ):
+            indices = dispatch_indices[
+                :, begin : begin + _PACK_FUSED_ROTAMER_SCORE_WINDOW
+            ]
+            if topology_only:
+                yield indices, empty_values
+                continue
+            scores, indices, _ = ljlk_elec_weighted_rotamer_scores(
+                *native_args,
+                score_weights,
+                empty_values,
+                indices,
+            )
+            yield indices, scores[0]
+
 
 def _fused_ljlk_elec_rotamer_module(term_modules):
     """Return the canonical default LJ/LK+Elec packing group, if present."""
@@ -1963,7 +2003,11 @@ class RotamerScoringModule:
         return indices.to(torch.int32)
 
     def _iter_weighted_sparse_entries(
-        self, coords: torch.Tensor, *, retain_shared_dispatch: bool = True
+        self,
+        coords: torch.Tensor,
+        *,
+        retain_shared_dispatch: bool = True,
+        topology_only: bool = False,
     ):
         """Yield one weighted sparse score-term layout at a time.
 
@@ -1982,6 +2026,30 @@ class RotamerScoringModule:
             and not self.weights.requires_grad
         )
         execution_terms = self._execution_terms(use_fused)
+        if not retain_shared_dispatch and use_fused:
+            weights_offset = 0
+            for term, score_weights, already_weighted in execution_terms:
+                if already_weighted:
+                    assert score_weights is not None
+                    for indices, weighted_values in term.iter_packing_entries(
+                        coords, score_weights, topology_only=topology_only
+                    ):
+                        yield term, indices, weighted_values
+                    weights_offset += term.n_score_types
+                    continue
+
+                scores, indices = term.forward(coords)
+                n_subterms = scores.shape[0]
+                indices = self._native_sparse_indices(indices)
+                weights = self.weights[
+                    weights_offset : weights_offset + n_subterms, 0, 0, 0
+                ]
+                weighted_values = _weighted_score_sum(weights, scores)
+                weights_offset += n_subterms
+                yield term, indices, weighted_values
+                del scores, indices, weighted_values
+            return
+
         term_results = self._sequential_term_results(
             coords,
             execution_terms,

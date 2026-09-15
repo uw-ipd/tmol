@@ -74,13 +74,6 @@ struct DeviceOperations<tmol::Device::CPU> {
     __atomic_fetch_or(&target, value, __ATOMIC_RELAXED);
   }
 
-  static EIGEN_DEVICE_FUNC int64_t
-  compare_exchange(int64_t& target, int64_t expected, int64_t value) {
-    __atomic_compare_exchange_n(
-        &target, &expected, value, false, __ATOMIC_RELAXED, __ATOMIC_RELAXED);
-    return expected;
-  }
-
   template <typename Int, typename Func>
   static void foreach_combination_triple(
       ContextManager&, Int dim1, Int dim2, Int dim3, Func f) {

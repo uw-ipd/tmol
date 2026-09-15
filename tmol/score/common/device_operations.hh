@@ -33,8 +33,6 @@ struct DeviceOperations {
   static EIGEN_DEVICE_FUNC void store_idempotent(
       int64_t& target, int64_t value);
   static EIGEN_DEVICE_FUNC void bitwise_or(int32_t& target, int32_t value);
-  static EIGEN_DEVICE_FUNC int64_t
-  compare_exchange(int64_t& target, int64_t expected, int64_t value);
 
   template <typename Int, typename Func>
   static void foreach_combination_triple(
