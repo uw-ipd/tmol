@@ -54,6 +54,11 @@ from ._pose_stack_deconstruction import (  # noqa: F401
     canonical_form_from_pose_stack,
     determine_res_not_connected_from_pose_stack,
 )
+from ._pose_stack_from_atom37 import (  # noqa: F401
+    atom37_slot_map_for_ordering,
+    canonical_form_from_atom37,
+    pose_stack_from_atom37,
+)
 from ._pose_stack_from_atomworks import (  # noqa: F401
     ATOMWORKS_NAME3S,
     ATOMWORKS_ATOM37_NAMES,
@@ -120,6 +125,9 @@ __all__ = [
     "fetch_pdb",
     "packed_block_types_for_atomworks",
     "packed_block_types_for_biotite",
+    "atom37_slot_map_for_ordering",
+    "canonical_form_from_atom37",
+    "pose_stack_from_atom37",
     "pose_stack_from_canonical_aa_atom37",
     "pose_stack_from_file",
     "pose_stack_from_canonical_form_and_context",
