@@ -37,7 +37,9 @@ struct LJLKAndElecPoseScoreDispatch {
       TView<Int, 2, D> rot_offset_for_block,
       TView<Int, 2, D> lockstep_group_for_block,
       TView<Int, 1, D> block_type_n_atoms,
-      Real max_dis) -> TPack<Int, 2, D>;
+      Real max_dis,
+      int64_t candidate_begin = 0,
+      int64_t candidate_count = -1) -> TPack<Int, 2, D>;
 
   static auto forward(
       ContextManager& mgr,
