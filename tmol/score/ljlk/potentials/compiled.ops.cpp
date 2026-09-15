@@ -1072,7 +1072,9 @@ Tensor ljlk_elec_rotamer_dispatch_op(
     Tensor rot_offset_for_block,
     Tensor lockstep_group_for_block,
     Tensor block_type_n_atoms,
-    double max_dis) {
+    double max_dis,
+    int64_t candidate_begin,
+    int64_t candidate_count) {
   Tensor dispatch_indices;
   using Int = int32_t;
   TMOL_DISPATCH_FLOATING_DEVICE(
@@ -1091,7 +1093,9 @@ Tensor ljlk_elec_rotamer_dispatch_op(
                     TCAST(rot_offset_for_block),
                     TCAST(lockstep_group_for_block),
                     TCAST(block_type_n_atoms),
-                    (Real)max_dis)
+                    (Real)max_dis,
+                    candidate_begin,
+                    candidate_count)
                     .tensor;
       }));
   return dispatch_indices;

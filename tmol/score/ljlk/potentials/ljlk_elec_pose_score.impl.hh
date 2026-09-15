@@ -1130,7 +1130,9 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
         TView<Int, 2, D> rot_offset_for_block,
         TView<Int, 2, D> lockstep_group_for_block,
         TView<Int, 1, D> block_type_n_atoms,
-        Real max_dis) -> TPack<Int, 2, D> {
+        Real max_dis,
+        int64_t candidate_begin,
+        int64_t candidate_count) -> TPack<Int, 2, D> {
   int const n_rots = rot_coord_offset.size(0);
   int const n_poses = first_rot_block_type.size(0);
   int const max_n_blocks = first_rot_block_type.size(1);
@@ -1167,7 +1169,9 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
         rot_offset_for_block,
         scratch_rot_spheres_t.view,
         lockstep_group_for_block,
-        max_dis);
+        max_dis,
+        candidate_begin,
+        candidate_count);
 }
 
 template <
