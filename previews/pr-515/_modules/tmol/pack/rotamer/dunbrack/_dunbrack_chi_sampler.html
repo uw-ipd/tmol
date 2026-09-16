@@ -751,7 +751,15 @@
             <span class="n">frozen_chi</span><span class="o">=</span><span class="n">frozen_chi</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">restype</span><span class="p">,</span> <span class="s2">"dun_sampler_cache"</span><span class="p">,</span> <span class="n">cache</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span><span class="n">restype</span><span class="p">,</span> <span class="s2">"_dun_sampler_annotation"</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">cache</span><span class="p">)</span></div>
+        <span class="c1"># sample_chi_for_poses reads the alias, not the returned snapshot, so a</span>
+        <span class="c1"># later cache hit has to restore it or one sampler reads another's tables.</span>
+        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+            <span class="n">restype</span><span class="p">,</span>
+            <span class="s2">"_dun_sampler_annotation"</span><span class="p">,</span>
+            <span class="n">key</span><span class="p">,</span>
+            <span class="n">cache</span><span class="p">,</span>
+            <span class="n">fields</span><span class="o">=</span><span class="p">(</span><span class="s2">"dun_sampler_cache"</span><span class="p">,),</span>
+        <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="DunbrackChiSampler.annotate_packed_block_types">
@@ -849,7 +857,11 @@
         <span class="p">)</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"dun_sampler_cache"</span><span class="p">,</span> <span class="n">cache</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
-            <span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"_dun_sampler_annotation"</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">cache</span>
+            <span class="n">packed_block_types</span><span class="p">,</span>
+            <span class="s2">"_dun_sampler_annotation"</span><span class="p">,</span>
+            <span class="n">key</span><span class="p">,</span>
+            <span class="n">cache</span><span class="p">,</span>
+            <span class="n">fields</span><span class="o">=</span><span class="p">(</span><span class="s2">"dun_sampler_cache"</span><span class="p">,),</span>
         <span class="p">)</span></div>
 
 

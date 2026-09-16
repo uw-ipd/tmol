@@ -776,6 +776,15 @@
                 <span class="n">pairs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="nb">int</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="mi">2</span><span class="p">])))</span>
             <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
                 <span class="k">continue</span>
+    <span class="k">if</span> <span class="n">atom_ids</span><span class="p">:</span>
+        <span class="n">missing</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">({</span><span class="n">a</span> <span class="k">for</span> <span class="n">pair</span> <span class="ow">in</span> <span class="n">pairs</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">pair</span><span class="p">}</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">atom_ids</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"MOL2 bond records reference undeclared atom IDs </span><span class="si">{</span><span class="n">missing</span><span class="si">}</span><span class="s2">; Tripos "</span>
+                <span class="s2">"IDs need not be consecutive, so an unmatched ID is not an index"</span>
+            <span class="p">)</span>
+    <span class="c1"># A fragment carrying no ATOM section declares nothing to resolve against,</span>
+    <span class="c1"># so its own numbering is all it can mean.</span>
     <span class="k">return</span> <span class="nb">frozenset</span><span class="p">(</span>
         <span class="nb">frozenset</span><span class="p">((</span><span class="n">atom_ids</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">a</span><span class="p">),</span> <span class="n">atom_ids</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">b</span><span class="p">)))</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">pairs</span>
     <span class="p">)</span>
@@ -1416,12 +1425,13 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">wanted</span> <span class="o">&lt;=</span> <span class="nb">set</span><span class="p">(</span><span class="n">candidate</span><span class="o">.</span><span class="n">atom_name</span><span class="p">):</span>
             <span class="k">continue</span>
         <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">candidate</span><span class="o">.</span><span class="n">coord</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
-            <span class="k">return</span> <span class="n">candidate</span>
+            <span class="k">return</span> <span class="n">candidate</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">fallback</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">fallback</span><span class="p">,</span> <span class="n">best_count</span> <span class="o">=</span> <span class="n">candidate</span><span class="p">,</span> <span class="n">heavy_counts</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">fallback</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">fallback</span>
-    <span class="k">return</span> <span class="n">atom_array</span><span class="p">[</span><span class="n">start</span> <span class="p">:</span> <span class="n">ends</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">residue_starts</span><span class="p">,</span> <span class="n">start</span><span class="p">)]]</span>
+        <span class="k">return</span> <span class="n">fallback</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="c1"># Slicing an AtomArray yields a view; the caller owns what it gets back.</span>
+    <span class="k">return</span> <span class="n">atom_array</span><span class="p">[</span><span class="n">start</span> <span class="p">:</span> <span class="n">ends</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">residue_starts</span><span class="p">,</span> <span class="n">start</span><span class="p">)]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">with_resolved_coordinates</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">use_ccd</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
