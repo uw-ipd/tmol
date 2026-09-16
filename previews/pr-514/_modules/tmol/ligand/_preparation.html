@@ -574,7 +574,7 @@
         <span class="n">preparations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">replace</span><span class="p">(</span>
             <span class="n">first</span><span class="p">,</span> <span class="n">connection_params</span><span class="o">=</span><span class="p">(</span><span class="o">*</span><span class="n">first</span><span class="o">.</span><span class="n">connection_params</span><span class="p">,</span> <span class="o">*</span><span class="n">records</span><span class="p">)</span>
         <span class="p">)</span>
-        <span class="n">write_params_file</span><span class="p">(</span><span class="n">preparations</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"tmol"</span><span class="p">)</span>
+        <span class="n">write_params_file</span><span class="p">(</span><span class="n">preparations</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Wrote params to </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
 
 
@@ -2038,13 +2038,16 @@
                     <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
                     <span class="n">generate_heavy_chi_samples</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">conjugations</span><span class="p">),</span>
                 <span class="p">)</span>
-        <span class="k">except</span> <span class="n">LigandPreparationError</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">is_polymer</span><span class="p">:</span>
-                <span class="k">raise</span>
+        <span class="k">except</span> <span class="n">LigandPreparationError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="c1"># strict_ligands=False means "drop what you cannot prepare". That has</span>
+            <span class="c1"># to hold for ligands too, not just polymer residues: a conjugated</span>
+            <span class="c1"># residue whose partner needs unsupported chemistry raises here, and</span>
+            <span class="c1"># re-raising regardless of the flag turned a skip into a crash.</span>
             <span class="k">if</span> <span class="n">strict_ligands</span><span class="p">:</span>
                 <span class="k">raise</span>
+            <span class="n">kind</span> <span class="o">=</span> <span class="s2">"polymer residue"</span> <span class="k">if</span> <span class="n">is_polymer</span> <span class="k">else</span> <span class="s2">"ligand"</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                <span class="s2">"Skipping </span><span class="si">%s</span><span class="s2">: polymer residue preparation failed"</span><span class="p">,</span> <span class="n">lig</span><span class="o">.</span><span class="n">res_name</span>
+                <span class="s2">"Skipping </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2"> preparation failed (</span><span class="si">%s</span><span class="s2">)"</span><span class="p">,</span> <span class="n">lig</span><span class="o">.</span><span class="n">res_name</span><span class="p">,</span> <span class="n">kind</span><span class="p">,</span> <span class="n">err</span>
             <span class="p">)</span>
             <span class="k">continue</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>  <span class="c1"># noqa: BLE001  SMILES/typing/build failure</span>
