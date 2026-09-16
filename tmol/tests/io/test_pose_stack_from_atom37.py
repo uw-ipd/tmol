@@ -143,7 +143,7 @@ def test_slot_map_leaves_terminus_atoms_unmapped(torch_device):
 
     terminus_atoms = {
         atom
-        for atoms in canonical_ordering.termini_patch_added_atoms.values()
+        for atoms in canonical_ordering.termini_only_atoms.values()
         for atom in atoms
     }
     assert terminus_atoms, "expected the database to define terminus-added atoms"
