@@ -18,21 +18,29 @@ from tmol.dock.ga import (
     _sidechain_context_blocks,
 )
 from tmol.dock.ligand_dofs import build_ligand_docking_dofs
-from tmol.optimization.minimizers import run_cart_min
+from tmol.optimization.minimizers import run_cart_min, run_kin_min
 from tmol.pose.constraint_set import ConstraintSet
 from tmol.pose.pdb_info import PDBInfo
 from tmol.pose.pose_stack import PoseStack
+from tmol.database import ParameterDatabase
 from tmol.score import beta2016_score_function
 from tmol.score.constraint.constraint_energy_term import ConstraintEnergyTerm
 from tmol.score.score_types import ScoreType
+
+
+# Rosetta dockflex "bbsc1" final refinement: one hard-rep Cartesian minimization
+# (fa_rep multiplier 1.0, MinMover tolerance 1e-5, up to 200 iterations). Used for
+# the flexible branch; the rigid branch uses the torsion-space soft->hard schedule.
+_DOCKFLEX_SCHEDULE = ((1.0, 1e-5, 200),)
 
 
 @dataclass(frozen=True)
 class DockingFinalization:
     """Exact-refined candidates and their RosettaVS ranking components.
 
-    Candidate tensors have shape ``[1, top_k]`` and are sorted by ``dG`` for
-    the single input ligand. ``pose_stack`` uses the same candidate order.
+    Candidate tensors have shape ``[1, top_k]`` and are sorted by the selected
+    metric (``dG`` by default) for the single input ligand. ``pose_stack`` uses
+    the same candidate order.
     """
 
     pose_stack: PoseStack
@@ -51,6 +59,132 @@ def _score_pose_stack(pose_stack: PoseStack, sfxn) -> torch.Tensor:
     scorer = sfxn.render_whole_pose_scoring_module(pose_stack)
     with torch.no_grad():
         return scorer(pose_stack.coords)
+
+
+def _refine_fa_rep_scaled(base_fa_ljrep, param_db, device, rep_mult):
+    """Fresh beta2016 with scaled fa_ljrep and all other weights identical."""
+    sfxn = beta2016_score_function(device, param_db=param_db)
+    sfxn.set_weight(ScoreType.fa_ljrep, float(base_fa_ljrep) * float(rep_mult))
+    return sfxn
+
+
+def _soft_hard_refine(
+    promoted, coord_mask, *, param_db, device, exact_sfxn, schedule, cycles
+):
+    """Run soft-to-hard cycles, accepting each pose's best exact-energy state."""
+    # beta2016_score_function MEMOIZES when param_db is None, so a None db would
+    # make the soft/hard/exact score functions ALIAS one object (set_weight on
+    # "hard" would clobber "soft"). Resolve an explicit database so every stage
+    # is an independent, freshly built score function.
+    if param_db is None:
+        param_db = ParameterDatabase.get_default()
+    base_fa_ljrep = float(exact_sfxn.get_weight(ScoreType.fa_ljrep))
+    step_sfxns = [
+        (
+            _refine_fa_rep_scaled(base_fa_ljrep, param_db, device, rep_mult),
+            tol,
+            max_iter,
+        )
+        for rep_mult, tol, max_iter in schedule
+    ]
+    best_coords = promoted.coords.clone()
+    best_energy = _score_pose_stack(promoted, exact_sfxn)
+    # A non-finite pre-refine score (e.g. a severe clash scoring to +/-inf/NaN)
+    # must not block accept-to-best: seed it to +inf so any finite refined-cycle
+    # energy is accepted. A candidate that stays non-finite ranks last (dH/dG=inf)
+    # rather than poisoning the sort with NaN.
+    best_energy = torch.where(
+        torch.isfinite(best_energy),
+        best_energy,
+        torch.full_like(best_energy, float("inf")),
+    )
+    current = promoted
+    # Cartesian L-BFGS, not Rosetta torsion-space linmin; preserve the rep ramp
+    # and accept-to-best. Omit Rosetta's preliminary cycle and global optH.
+    for _ in range(cycles):
+        for step_sfxn, tol, max_iter in step_sfxns:
+            current = run_cart_min(
+                current,
+                step_sfxn,
+                coord_mask=coord_mask,
+                # LBFGS_Armijo accepts relative energy tolerance via rtol.
+                optimizer_kwargs={"max_iter": max_iter, "rtol": tol},
+            )
+        energy = _score_pose_stack(current, exact_sfxn)
+        improved = torch.isfinite(energy) & (energy < best_energy)
+        best_coords = torch.where(
+            improved[:, None, None], current.coords, best_coords
+        )
+        best_energy = torch.where(improved, energy, best_energy)
+        current = attr.evolve(current, coords=best_coords.clone())
+    return attr.evolve(promoted, coords=best_coords), best_energy
+
+
+def _ligand_cartmin(
+    pose_stack, exact_sfxn, ligand_coord_mask, *, max_iter=50, rtol=1e-4
+):
+    """Ligand-only Cartesian minimization at exact hard weights."""
+    return run_cart_min(
+        pose_stack,
+        exact_sfxn,
+        coord_mask=ligand_coord_mask,
+        optimizer_kwargs={"max_iter": max_iter, "rtol": rtol},
+    )
+
+
+def _torsion_soft_hard_refine(
+    promoted, ligand_block, *, param_db, device, exact_sfxn, schedule, cycles
+):
+    """Refine ligand jump and named torsions, accepting best exact energies."""
+    # An explicit database keeps the soft/hard score functions independent.
+    if param_db is None:
+        param_db = ParameterDatabase.get_default()
+    base_fa_ljrep = float(exact_sfxn.get_weight(ScoreType.fa_ljrep))
+    step_sfxns = [
+        (
+            _refine_fa_rep_scaled(base_fa_ljrep, param_db, device, rep_mult),
+            tol,
+            max_iter,
+        )
+        for rep_mult, tol, max_iter in schedule
+    ]
+    ldofs = build_ligand_docking_dofs(promoted, ligand_block, sidechain_blocks=())
+    ff, mm = ldofs.fold_forest, ldofs.move_map
+    best_coords = promoted.coords.clone()
+    best_energy = _score_pose_stack(promoted, exact_sfxn)
+    # Non-finite starting energies must not block accept-to-best.
+    best_energy = torch.where(
+        torch.isfinite(best_energy),
+        best_energy,
+        torch.full_like(best_energy, float("inf")),
+    )
+    current = promoted
+    # Fixed-hydrogen harness: omit whole-pose optH (including His/Asn/Gln
+    # flips) and its extra pre-optH torsional cycle. Ramp steps minimize only;
+    # ligand rotamer/proton-chi packing is not reproduced.
+    # Ignore ramp_repack_min's third (coordinate-constraint ramp) argument:
+    # Rosetta dockrigid defaults ramp_down_constraints to false, so it is inert.
+    for _ in range(cycles):
+        for step_sfxn, tol, max_iter in step_sfxns:
+            current = run_kin_min(
+                current,
+                step_sfxn,
+                ff,
+                mm,
+                # rtol maps Rosetta's fractional-energy tolerance. In float32,
+                # 1e-5 is below the optimizer's dtype floor (harmless warning);
+                # the hard step then stops by gradient/atol/max_iter.
+                optimizer_kwargs={"max_iter": max_iter, "rtol": tol},
+                kin_dtype=promoted.coords.dtype,
+            )
+        energy = _score_pose_stack(current, exact_sfxn)
+        improved = torch.isfinite(energy) & (energy < best_energy)
+        best_coords = torch.where(
+            improved[:, None, None], current.coords, best_coords
+        )
+        best_energy = torch.where(improved, energy, best_energy)
+        current = attr.evolve(current, coords=best_coords.clone())
+    return attr.evolve(promoted, coords=best_coords), best_energy
 
 
 def _ligand_atom_indices(pose_stack: PoseStack, ligand_block: int) -> torch.Tensor:
@@ -363,13 +497,26 @@ def finalize_ga_docking(
     ga_result: GAResult,
     *,
     top_k: int = 1,
+    refine_schedule: tuple[tuple[float, float, int], ...] = (
+        (0.02, 0.01, 50),
+        (1.0, 1e-5, 50),
+    ),
+    refine_cycles: int = 3,
+    top_pose_metric: str = "dG",
 ) -> DockingFinalization:
-    """Refine top GA candidates and rank them by ``dG = dH + 0.4*nchi``."""
+    """Soft-to-hard refine candidates and rank by dG or exact complex score.
+
+    ``refine_schedule`` contains (rep multiplier, relative energy tolerance,
+    max iterations) steps repeated ``refine_cycles`` times. ``top_pose_metric``
+    selects ``"dG"`` (``dH + 0.4*nchi``) or ``"score"`` (exact complex energy).
+    """
 
     if reference_pose_stack.n_poses != 1:
         raise ValueError("finalization requires one reference pose")
     if not isinstance(top_k, int) or isinstance(top_k, bool) or top_k < 1:
         raise ValueError("top_k must be a positive integer")
+    if top_pose_metric not in ("dG", "score"):
+        raise ValueError('top_pose_metric must be "dG" or "score"')
     npool = ga_result.ranked_energies.shape[1]
     if top_k > npool:
         raise ValueError(f"top_k ({top_k}) cannot exceed GA pool size ({npool})")
@@ -408,13 +555,49 @@ def finalize_ga_docking(
         coord_mask.scatter_(
             1, _mapped_atom_indices(promoted, block_local_atoms), True
         )
-    refined = run_cart_min(
-        promoted,
-        exact_sfxn,
-        coord_mask=coord_mask,
-        optimizer_kwargs={"max_iter": 50},
-    )
-    complex_energy = _score_pose_stack(refined, exact_sfxn)
+    if sidechain_blocks:
+        # FLEX: Rosetta dockflex uses a Cartesian "bbsc1" refinement = a single
+        # hard-rep minimization (repeat 1, fa_rep 1.0, tol 1e-5, <=200 iter), NOT
+        # a soft->hard ramp. Reproduce that here (ligand + flexible-sidechain atoms
+        # move in Cartesian space; accept-to-best as in Rosetta).
+        refined, complex_energy = _soft_hard_refine(
+            promoted,
+            coord_mask,
+            param_db=backend.param_db,
+            device=promoted.device,
+            exact_sfxn=exact_sfxn,
+            schedule=_DOCKFLEX_SCHEDULE,
+            cycles=1,
+        )
+    else:
+        # RIGID: bracket torsion-space soft-to-hard with ligand Cartesian min.
+        ligand_mask = coord_mask  # No flexible sidechains: ligand atoms only.
+        promoted = _ligand_cartmin(promoted, exact_sfxn, ligand_mask)
+        promoted, _ = _torsion_soft_hard_refine(
+            promoted,
+            ligand_block,
+            param_db=backend.param_db,
+            device=promoted.device,
+            exact_sfxn=exact_sfxn,
+            schedule=refine_schedule,
+            cycles=refine_cycles,
+        )
+        refined = _ligand_cartmin(promoted, exact_sfxn, ligand_mask)
+        # Rigid docking fixes the receptor by construction, but run_kin_min
+        # refolds the whole pose from internal DOFs and float32 forward
+        # kinematics near the ligand root jump leaves ~1e-3 A noise on the
+        # nominally fixed receptor atoms. Restore every non-ligand atom to the
+        # reference so only the ligand is refined (ligand_mask marks the ligand).
+        keep_ligand = ligand_mask.unsqueeze(-1)
+        refined = attr.evolve(
+            refined,
+            coords=torch.where(
+                keep_ligand,
+                refined.coords,
+                reference_pose_stack.coords.expand(refined.n_poses, -1, -1),
+            ),
+        )
+        complex_energy = _score_pose_stack(refined, exact_sfxn)
 
     ligand_only = _ligand_only_pose_stack(refined, ligand_block)
     constrained_ligand = _with_coordinate_constraints(ligand_only)
@@ -471,15 +654,15 @@ def finalize_ga_docking(
     dH = complex_energy - free_ligand_energy - free_receptor_energies
     dG = dH + TdS
 
-    dG_matrix = dG.reshape(1, top_k)
-    dG_order = torch.argsort(dG_matrix, dim=1)
+    sort_key = dG if top_pose_metric == "dG" else complex_energy
+    sort_order = torch.argsort(sort_key.reshape(1, top_k), dim=1)
 
     def rank(values: torch.Tensor) -> torch.Tensor:
         matrix = values.reshape(1, top_k)
-        return matrix.gather(1, dG_order)
+        return matrix.gather(1, sort_order)
 
-    ranked_genes = genes.gather(1, dG_order[:, :, None].expand(-1, -1, genes.shape[2]))
-    ranked_flat = dG_order.reshape(-1)
+    ranked_genes = genes.gather(1, sort_order[:, :, None].expand(-1, -1, genes.shape[2]))
+    ranked_flat = sort_order.reshape(-1)
     ranked_pose_stack = attr.evolve(
         refined, coords=refined.coords[ranked_flat].detach().clone()
     )
