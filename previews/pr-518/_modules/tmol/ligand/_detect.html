@@ -534,6 +534,19 @@
     <span class="n">connection_partners</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">hash</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_formal_charge</span><span class="p">(</span><span class="n">residue</span><span class="p">:</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Formal charge of one atom, or zero when the array declares none.</span>
+
+<span class="sd">    ``charge`` is an optional Biotite annotation: an array built by hand, or</span>
+<span class="sd">    read by a path that never saw a formal-charge column, simply does not have</span>
+<span class="sd">    it. Treat that as uncharged rather than raising, which is what the callers</span>
+<span class="sd">    below already do for the two tmol-specific charge annotations.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="s2">"charge"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">residue</span><span class="o">.</span><span class="n">get_annotation_categories</span><span class="p">():</span>
+        <span class="k">return</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">residue</span><span class="o">.</span><span class="n">charge</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_formal_charge_is_specified</span><span class="p">(</span><span class="n">residue</span><span class="p">:</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Whether a monatomic residue carries an authoritative formal charge."""</span>
     <span class="k">if</span> <span class="n">_FORMAL_CHARGE_SPECIFIED_ANNOTATION</span> <span class="ow">in</span> <span class="n">residue</span><span class="o">.</span><span class="n">get_annotation_categories</span><span class="p">():</span>
@@ -544,7 +557,7 @@
         <span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">source_text</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">""</span><span class="p">,</span> <span class="s2">"."</span><span class="p">,</span> <span class="s2">"?"</span><span class="p">):</span>
             <span class="k">return</span> <span class="kc">True</span>
-    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">residue</span><span class="o">.</span><span class="n">charge</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="n">_formal_charge</span><span class="p">(</span><span class="n">residue</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_isolated_atom_charge_problem</span><span class="p">(</span>
@@ -568,7 +581,7 @@
             <span class="s2">"use_ccd for a CCD component, or load its prepared .tmol parameters"</span>
         <span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">element</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_HALOGEN_ELEMENTS</span> <span class="ow">or</span> <span class="nb">int</span><span class="p">(</span><span class="n">residue</span><span class="o">.</span><span class="n">charge</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">element</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_HALOGEN_ELEMENTS</span> <span class="ow">or</span> <span class="n">_formal_charge</span><span class="p">(</span><span class="n">residue</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
 
     <span class="n">source_text</span> <span class="o">=</span> <span class="p">(</span>
@@ -579,7 +592,7 @@
     <span class="k">try</span><span class="p">:</span>
         <span class="n">source_charge</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">source_text</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-        <span class="n">source_charge</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">residue</span><span class="o">.</span><span class="n">charge</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">source_charge</span> <span class="o">=</span> <span class="n">_formal_charge</span><span class="p">(</span><span class="n">residue</span><span class="p">)</span>
 
     <span class="n">template</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="s2">"_custom_ccd_registry"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">res_name</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span>
     <span class="n">ccd_charge</span> <span class="o">=</span> <span class="kc">None</span>

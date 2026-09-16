@@ -480,10 +480,10 @@
 <span class="c1"># ---------------------------------------------------------------------------</span>
 
 
-<div class="viewcode-block" id="pose_stack_from_atomworks">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.pose_stack_from_atomworks">[docs]</a>
+<div class="viewcode-block" id="pose_stack_from_canonical_aa_atom37">
+<a class="viewcode-back" href="../../../api/io.html#tmol.io.pose_stack_from_canonical_aa_atom37">[docs]</a>
 <span class="nd">@validate_args</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">pose_stack_from_atomworks</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">pose_stack_from_canonical_aa_atom37</span><span class="p">(</span>
     <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">residue_type</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">chain_iid</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
@@ -491,10 +491,19 @@
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Build a PoseStack from atomworks UNIFIED_ATOM37_ENCODING tensors.</span>
 
-<span class="sd">    This function will build a PoseStack using a limited set of residue types:</span>
-<span class="sd">    only the canonical amino acids with the canonical n- and c-termini patches.</span>
-<span class="sd">    It begins by constructing a "canonical form" and then passes that canonical</span>
-<span class="sd">    form to the pose_stack_from_canonical_form function.</span>
+<span class="sd">    This is the **tensor-only** Atom37 entry point. Residue identity comes from</span>
+<span class="sd">    ``residue_type`` alone, so nothing but tensors is required -- but for the</span>
+<span class="sd">    same reason it is limited to the canonical amino acids with the canonical</span>
+<span class="sd">    n- and c-termini patches.</span>
+
+<span class="sd">    For anything else -- noncanonical residues, ligands, nucleic acids, or</span>
+<span class="sd">    covalent links -- residue identity cannot be read off a 1..20 token, and</span>
+<span class="sd">    :py:func:`~tmol.io.pose_stack_from_atom37_and_topology` is the entry point;</span>
+<span class="sd">    it takes the chemistry from a supplied topology instead.</span>
+
+<span class="sd">    Both build a :py:class:`~tmol.io.CanonicalForm` and finish in the same</span>
+<span class="sd">    constructor, so the choice here is only about how residue identity is</span>
+<span class="sd">    supplied, not about how the pose is built.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -527,10 +536,10 @@
 
 
 
-<div class="viewcode-block" id="pose_stack_from_atom37_and_biotite">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.pose_stack_from_atom37_and_biotite">[docs]</a>
+<div class="viewcode-block" id="pose_stack_from_atom37_and_topology">
+<a class="viewcode-back" href="../../../api/io.html#tmol.io.pose_stack_from_atom37_and_topology">[docs]</a>
 <span class="nd">@validate_args</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">pose_stack_from_atom37_and_biotite</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">pose_stack_from_atom37_and_topology</span><span class="p">(</span>
     <span class="n">atom37_coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">biotite_structure</span><span class="p">:</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArray</span> <span class="o">|</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">,</span>
     <span class="n">context</span><span class="p">:</span> <span class="n">PoseBuildContext</span><span class="p">,</span>
@@ -539,11 +548,20 @@
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PoseStack</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PoseStack</span><span class="p">,</span> <span class="n">PoseBuildContext</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Build a differentiable PoseStack from atom37 coordinates and a topology.</span>
 
-<span class="sd">    Unlike :func:`pose_stack_from_atomworks`, this supports any chemistry shared</span>
-<span class="sd">    by AtomWorks and the supplied TMol context (including ordinary ligands and</span>
-<span class="sd">    nucleic acids): the *chemical topology* is taken from</span>
-<span class="sd">    ``biotite_structure`` while mapped coordinates come from the</span>
-<span class="sd">    autograd-tracked ``atom37_coords`` tensor. Unmapped finite reference atoms</span>
+<span class="sd">    This is the **topology-supplied** Atom37 entry point. Unlike</span>
+<span class="sd">    :func:`pose_stack_from_canonical_aa_atom37`, which reads residue identity</span>
+<span class="sd">    from a 1..20 token tensor and so covers only canonical amino acids, this</span>
+<span class="sd">    supports any chemistry shared by AtomWorks and the supplied TMol context</span>
+<span class="sd">    (including ordinary ligands and nucleic acids): the *chemical topology* is</span>
+<span class="sd">    taken from ``biotite_structure`` while mapped coordinates come from the</span>
+<span class="sd">    autograd-tracked ``atom37_coords`` tensor.</span>
+
+<span class="sd">    The topology is only read to derive residue identity and the Atom37 slot</span>
+<span class="sd">    map. Once derived, construction is pure tensor work in the shared</span>
+<span class="sd">    :py:func:`~tmol.io.pose_stack_from_canonical_form_and_context`. When the</span>
+<span class="sd">    same topology is scored repeatedly, use</span>
+<span class="sd">    :py:func:`~tmol.io.prepare_atom37_pose_builder` to pay that derivation once;</span>
+<span class="sd">    the returned builder never touches the ``AtomArray`` again. Unmapped finite reference atoms</span>
 <span class="sd">    remain context. This is the entry point for differentiable scoring/guidance</span>
 <span class="sd">    over atomized inputs, where the same fixed topology is scored repeatedly as</span>
 <span class="sd">    coordinates move.</span>
@@ -551,7 +569,7 @@
 <span class="sd">    Build ``context`` once with :func:`build_context_from_biotite` (with</span>
 <span class="sd">    ``prepare_ligands=True`` when ligands are present). For repeated diffusion</span>
 <span class="sd">    or search steps, bind the topology once with</span>
-<span class="sd">    :func:`prepare_pose_stack_from_atom37` and call the returned builder with</span>
+<span class="sd">    :func:`prepare_atom37_pose_builder` and call the returned builder with</span>
 <span class="sd">    each coordinate batch. Mapped reference coordinates are ignored, so one</span>
 <span class="sd">    reference topology can be reused as those coordinates change. It must carry</span>
 <span class="sd">    two integer annotations that map each atom into the atom37 tensor:</span>
