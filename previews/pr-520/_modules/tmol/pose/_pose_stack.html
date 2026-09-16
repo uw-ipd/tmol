@@ -457,7 +457,7 @@
 
 <div class="viewcode-block" id="PoseStack">
 <a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PoseStack">[docs]</a>
-<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">PoseStack</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Batch of molecular systems with shared residue-type definitions.</span>
 
@@ -474,7 +474,7 @@
 <span class="sd">        inter_residue_connections: Connected residue and connection indices.</span>
 <span class="sd">        inter_residue_connections64: 64-bit connection-index copy.</span>
 <span class="sd">        inter_block_bondsep: Capped bond separation between residue connections.</span>
-<span class="sd">        inter_block_bondsep64: Legacy derived input; retained as an on-demand property.</span>
+<span class="sd">        inter_block_bondsep64: 64-bit bond-separation copy.</span>
 <span class="sd">        block_type_ind: Packed block-type index for each residue; ``-1`` is padding.</span>
 <span class="sd">        block_type_ind64: 64-bit block-type-index copy.</span>
 <span class="sd">        chain_id: Chain index for each residue.</span>
@@ -499,6 +499,7 @@
     <span class="n">inter_residue_connections64</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">]</span>
 
     <span class="n">inter_block_bondsep</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span>
+    <span class="n">inter_block_bondsep64</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span>
 
     <span class="n">block_type_ind</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:]</span>
     <span class="n">block_type_ind64</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:]</span>
@@ -511,18 +512,6 @@
 
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
     <span class="n">split_block_mapping</span><span class="p">:</span> <span class="s2">"SplitBlockMapping | None"</span> <span class="o">=</span> <span class="kc">None</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">inter_block_bondsep64</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="c1"># Legacy keyword callers may supply the redundant derived tensor.</span>
-        <span class="c1"># Native scoring uses int32 separations; never retain a second dense copy.</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">7</span> <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">7</span><span class="p">],</span> <span class="s2">"ndim"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span>
-            <span class="n">args</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">[:</span><span class="mi">7</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">[</span><span class="mi">8</span><span class="p">:])</span>  <span class="c1"># Legacy positional int64 copy.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">__attrs_init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">inter_block_bondsep64</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">"""Return int64 bond separations on demand, without retaining a dense copy."""</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">inter_block_bondsep</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
 
     <span class="c1">#################### INIT #####################</span>
 
@@ -643,6 +632,7 @@
             <span class="n">inter_residue_connections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inter_residue_connections</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
             <span class="n">inter_residue_connections64</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inter_residue_connections64</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
             <span class="n">inter_block_bondsep</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inter_block_bondsep</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
+            <span class="n">inter_block_bondsep64</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inter_block_bondsep64</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
             <span class="n">block_type_ind</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">block_type_ind</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
             <span class="n">block_type_ind64</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
             <span class="n">chain_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">chain_id</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
@@ -687,6 +677,7 @@
             <span class="n">inter_residue_connections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inter_residue_connections</span><span class="p">,</span>
             <span class="n">inter_residue_connections64</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inter_residue_connections64</span><span class="p">,</span>
             <span class="n">inter_block_bondsep</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inter_block_bondsep</span><span class="p">,</span>
+            <span class="n">inter_block_bondsep64</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inter_block_bondsep64</span><span class="p">,</span>
             <span class="n">block_type_ind</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">block_type_ind</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
             <span class="n">block_type_ind64</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
             <span class="n">chain_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">chain_id</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
@@ -720,6 +711,9 @@
             <span class="o">.</span><span class="n">detach</span><span class="p">()</span>
             <span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
             <span class="n">inter_block_bondsep</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inter_block_bondsep</span><span class="p">[</span><span class="n">index</span> <span class="p">:</span> <span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+            <span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
+            <span class="n">inter_block_bondsep64</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inter_block_bondsep64</span><span class="p">[</span><span class="n">index</span> <span class="p">:</span> <span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
             <span class="o">.</span><span class="n">detach</span><span class="p">()</span>
             <span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
             <span class="n">block_type_ind</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">[</span><span class="n">index</span> <span class="p">:</span> <span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
