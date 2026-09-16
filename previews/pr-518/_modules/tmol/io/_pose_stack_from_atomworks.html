@@ -788,12 +788,19 @@
 <span class="nd">@toolz</span><span class="o">.</span><span class="n">functoolz</span><span class="o">.</span><span class="n">memoize</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_paramdb_for_atomworks</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">ParameterDatabase</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Construct the ParameterDatabase for the subset of residue types</span>
-<span class="sd">    that the atomworks atom37 protein encoding covers: the 20 canonical</span>
-<span class="sd">    amino acids (plus HIS_D and CYD tautomers) and the canonical n-</span>
-<span class="sd">    and c-termini patches.</span>
+<span class="sd">    that the atomworks atom37 protein encoding covers: the canonical amino</span>
+<span class="sd">    acids together with every tautomer and disulfide form sharing their IO</span>
+<span class="sd">    equivalence class, and the canonical n- and c-termini patches.</span>
 <span class="sd">    """</span>
+    <span class="n">covered_equiv_classes</span> <span class="o">=</span> <span class="p">{</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">ATOMWORKS_NAME3S</span> <span class="k">if</span> <span class="n">n</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"&lt;M&gt;"</span><span class="p">,</span> <span class="s2">"UNK"</span><span class="p">)}</span>
+    <span class="n">chemdb</span> <span class="o">=</span> <span class="n">ParameterDatabase</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span><span class="o">.</span><span class="n">chemical</span>
+    <span class="c1"># The encoding names residues by IO equivalence class, so ask the database</span>
+    <span class="c1"># which unpatched types fall into each rather than listing them here; a</span>
+    <span class="c1"># list would silently omit a form the rest of the pipeline can produce.</span>
     <span class="n">desired_rt_names</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
-        <span class="p">[</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">ATOMWORKS_NAME3S</span> <span class="k">if</span> <span class="n">n</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"&lt;M&gt;"</span><span class="p">,</span> <span class="s2">"UNK"</span><span class="p">)]</span> <span class="o">+</span> <span class="p">[</span><span class="s2">"HIS_D"</span><span class="p">,</span> <span class="s2">"CYD"</span><span class="p">]</span>
+        <span class="n">rt</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">for</span> <span class="n">rt</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">residues</span>
+        <span class="k">if</span> <span class="n">rt</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">rt</span><span class="o">.</span><span class="n">base_name</span> <span class="ow">and</span> <span class="n">rt</span><span class="o">.</span><span class="n">io_equiv_class</span> <span class="ow">in</span> <span class="n">covered_equiv_classes</span>
     <span class="p">)</span>
     <span class="n">desired_variants_display_names</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"nterm"</span><span class="p">,</span> <span class="s2">"cterm"</span><span class="p">]</span>
 
