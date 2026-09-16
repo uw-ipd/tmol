@@ -233,3 +233,59 @@ jobs:
           files: wheels/*.whl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # The wheels carry PEP 440 local version segments, so PyPI cannot serve them
+  # and the job above attaches them to the GitHub Release instead. A PEP 503
+  # index has no such restriction -- download.pytorch.org serves local versions,
+  # and tmol's own build already consumes that index. Publishing one here lets
+  # pip resolve a wheel against the *target* environment, which is the one thing
+  # the sdist's build-time fetch cannot do: it runs in pip's isolated build
+  # environment and sees that torch, not the user's.
+  #
+  # The index links straight at the release assets, so it costs no storage and
+  # needs no wheel rebuild. It is rebuilt over every release, so older versions
+  # stay resolvable.
+  publish_wheel_index:
+    name: Publish PEP 503 wheel index
+    needs: [upload]
+    runs-on: ubuntu-latest
+    # Docs publish to the same branch; share their group so the two never race.
+    concurrency:
+      group: docs-pages-publish
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Checkout gh-pages
+        uses: actions/checkout@v5
+        with:
+          ref: gh-pages
+          path: gh-pages
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build the index over every release's wheels
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rm -rf gh-pages/whl
+          python scripts/build_wheel_index.py \
+            --repo "${{ github.repository }}" \
+            --out gh-pages/whl
+          echo "Wheel index: https://uw-ipd.github.io/tmol/whl/" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: gh-pages
+          keep_files: false
+          force_orphan: false
+          user_name: github-actions[bot]
+          user_email: github-actions[bot]@users.noreply.github.com

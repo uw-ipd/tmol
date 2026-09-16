@@ -37,8 +37,23 @@ pip install tmol
 ```
 
 TMol first looks for a matching prebuilt wheel and otherwise builds locally.
-For a deterministic CPU/GPU binary install, supported Python/PyTorch/CUDA
-combinations, Colab, macOS, and HPC troubleshooting, see the
+That lookup runs inside pip's isolated build environment, so it sees that
+environment's torch rather than yours; when the two disagree it falls back to a
+source build.
+
+For a deterministic binary install, name the variant you want. TMol serves a
+PEP 503 index over the release wheels, one sub-index per CUDA/PyTorch pairing,
+in the same shape as `download.pytorch.org`:
+
+```bash
+# install torch first, then match its CUDA and minor version
+pip install tmol --extra-index-url https://uw-ipd.github.io/tmol/whl/cu130torch2.13/
+```
+
+Browse the available variants at
+**[uw-ipd.github.io/tmol/whl/](https://uw-ipd.github.io/tmol/whl/)**. For
+supported Python/PyTorch/CUDA combinations, Colab, macOS, and HPC
+troubleshooting, see the
 **[installation guide](https://uw-ipd.github.io/tmol/latest/installation.html)**
 and **[GitHub Releases](https://github.com/uw-ipd/tmol/releases)**.
 

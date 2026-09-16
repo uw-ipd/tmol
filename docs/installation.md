@@ -16,13 +16,28 @@ C++/CUDA extensions for scoring, packing, kinematics, and minimization kernels.
 Pre-built wheels include ahead-of-time compiled extensions, so installing a
 wheel does not require `nvcc`.
 
-TMol uses two distribution channels:
+TMol uses three distribution channels:
 
 - PyPI provides source distributions for `pip install tmol`.
 - GitHub Releases provide pre-built CPU and GPU wheels.
+- A PEP 503 index serves those same wheels to `pip`, one sub-index per
+  CUDA/PyTorch pairing, in the same shape as `download.pytorch.org`.
 
-The most deterministic install path is an explicit wheel URL from the
-[GitHub Releases page](https://github.com/uw-ipd/tmol/releases):
+The index is the simplest deterministic path. Install the matching PyTorch
+first, then name its lane:
+
+```bash
+pip install "torch==2.13.*" --index-url https://download.pytorch.org/whl/cu130
+pip install tmol --extra-index-url https://uw-ipd.github.io/tmol/whl/cu130torch2.13/
+```
+
+Unlike the source-distribution path below, this resolves against the
+environment you are installing into rather than pip's isolated build
+environment, so it cannot pick a wheel built for a different PyTorch. Browse
+the lanes at [uw-ipd.github.io/tmol/whl/](https://uw-ipd.github.io/tmol/whl/).
+
+Pinning an explicit wheel URL from the
+[GitHub Releases page](https://github.com/uw-ipd/tmol/releases) also works:
 
 ```bash
 pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu132torch2.14-cp313-cp313-manylinux_2_28_x86_64.whl"
