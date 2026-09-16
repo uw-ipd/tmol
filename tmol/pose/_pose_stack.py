@@ -230,6 +230,7 @@ class PoseStack:
             inter_residue_connections=self.inter_residue_connections,
             inter_residue_connections64=self.inter_residue_connections64,
             inter_block_bondsep=self.inter_block_bondsep,
+            inter_block_bondsep64=self.inter_block_bondsep64,
             block_type_ind=self.block_type_ind.detach().clone(),
             block_type_ind64=self.block_type_ind64.detach().clone(),
             chain_id=self.chain_id.detach().clone(),
