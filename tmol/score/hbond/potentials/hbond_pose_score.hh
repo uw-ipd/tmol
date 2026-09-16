@@ -117,7 +117,7 @@ struct HBondPoseScoreDispatch {
       -> std::tuple<
           TPack<Real, 4, Dev>,
           TPack<Vec<Real, 3>, 2, Dev>,
-          TPack<Int, 3, Dev> >;
+          TPack<Int, 3, Dev>>;
 
   static auto backward(
       ContextManager& mgr,
@@ -322,7 +322,7 @@ struct HBondRotamerScoreDispatch {
       -> std::tuple<
           TPack<Real, 2, Dev>,
           TPack<Vec<Real, 3>, 2, Dev>,
-          TPack<Int, 2, Dev> >;
+          TPack<Int, 2, Dev>>;
 
   static auto backward(
       ContextManager& mgr,

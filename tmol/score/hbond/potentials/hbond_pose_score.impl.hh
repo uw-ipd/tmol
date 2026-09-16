@@ -506,7 +506,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     -> std::tuple<
         TPack<Real, 4, Dev>,
         TPack<Vec<Real, 3>, 2, Dev>,
-        TPack<Int, 3, Dev> > {
+        TPack<Int, 3, Dev>> {
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
 
@@ -1153,8 +1153,7 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::rotamer_spheres(
     TView<Int, 2, Dev> rot_offset_for_block,
     TView<Int, 1, Dev> block_type_n_atoms)
     -> std::tuple<TPack<Real, 2, Dev>, TPack<Real, 3, Dev>> {
-  auto rot_spheres =
-      TPack<Real, 2, Dev>::empty({rot_coord_offset.size(0), 4});
+  auto rot_spheres = TPack<Real, 2, Dev>::empty({rot_coord_offset.size(0), 4});
   auto block_spheres = TPack<Real, 3, Dev>::empty(
       {first_rot_block_type.size(0), first_rot_block_type.size(1), 4});
   score::common::sphere_overlap::
@@ -1208,8 +1207,9 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
             reach,
             int64_t(candidate_begin),
             // The shared window API is count-based; -1 means "to the end".
-            candidate_end < 0 ? int64_t(-1)
-                              : int64_t(candidate_end) - int64_t(candidate_begin));
+            candidate_end < 0
+                ? int64_t(-1)
+                : int64_t(candidate_end) - int64_t(candidate_begin));
 }
 
 template <
@@ -1306,7 +1306,7 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     -> std::tuple<
         TPack<Real, 2, Dev>,
         TPack<Vec<Real, 3>, 2, Dev>,
-        TPack<Int, 2, Dev> > {
+        TPack<Int, 2, Dev>> {
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
 
