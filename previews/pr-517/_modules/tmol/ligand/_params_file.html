@@ -505,10 +505,11 @@
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">LigandPreparation</span>
 
 
-<span class="c1"># Current .tmol format version.  Bump the major version on breaking</span>
-<span class="c1"># schema changes; bump the minor version on backward-compatible additions.</span>
-<span class="c1"># Writers choose the oldest supported major that preserves the bundle;</span>
-<span class="c1"># this is the newest supported version. Every file is checked on load.</span>
+<span class="c1"># Current .tmol format version. Bump the major version on breaking schema</span>
+<span class="c1"># changes; bump the minor version on backward-compatible additions. Writers</span>
+<span class="c1"># always emit this version: until the format settles at 1.0, tracking a</span>
+<span class="c1"># per-feature minimum version costs more than it buys. Every file is checked</span>
+<span class="c1"># on load.</span>
 <span class="n">TMOL_FORMAT_VERSION</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"5.0"</span>
 
 
@@ -569,15 +570,11 @@
     <span class="k">return</span> <span class="n">cattr</span><span class="o">.</span><span class="n">structure</span><span class="p">(</span><span class="n">populated</span><span class="p">,</span> <span class="n">RawResidueType</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_replacement_metadata</span><span class="p">(</span><span class="n">chem</span><span class="p">,</span> <span class="n">elec</span><span class="p">,</span> <span class="n">cart</span><span class="p">,</span> <span class="n">residues</span><span class="p">,</span> <span class="n">file_major</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_replacement_metadata</span><span class="p">(</span><span class="n">chem</span><span class="p">,</span> <span class="n">elec</span><span class="p">,</span> <span class="n">cart</span><span class="p">,</span> <span class="n">residues</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Read guarded metadata separately from ordinary additions."""</span>
     <span class="n">residue_names</span> <span class="o">=</span> <span class="p">{</span><span class="n">r</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">residues</span><span class="p">}</span>
     <span class="n">replacement_baselines</span> <span class="o">=</span> <span class="n">chem</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"replacement_baselines"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
     <span class="k">if</span> <span class="n">replacement_baselines</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">file_major</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"4"</span><span class="p">,</span> <span class="s2">"5"</span><span class="p">}:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">"Replacement baselines require .tmol format version 4 or later"</span>
-            <span class="p">)</span>
         <span class="k">if</span> <span class="p">(</span>
             <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">replacement_baselines</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
             <span class="ow">or</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="n">replacement_baselines</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">residue_names</span>
@@ -608,13 +605,11 @@
     <span class="k">return</span> <span class="n">replacement_baselines</span><span class="p">,</span> <span class="n">baseline_charges</span><span class="p">,</span> <span class="n">baseline_cart</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_element_metadata</span><span class="p">(</span><span class="n">chem</span><span class="p">,</span> <span class="n">residues</span><span class="p">,</span> <span class="n">file_major</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_element_metadata</span><span class="p">(</span><span class="n">chem</span><span class="p">,</span> <span class="n">residues</span><span class="p">):</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">_validate_atom_type_elements</span>
 
     <span class="n">elements</span> <span class="o">=</span> <span class="n">chem</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"atom_type_elements"</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">elements</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">file_major</span> <span class="o">!=</span> <span class="s2">"5"</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"atom_type_elements require .tmol format version 5"</span><span class="p">)</span>
         <span class="n">elements</span> <span class="o">=</span> <span class="n">_validate_atom_type_elements</span><span class="p">(</span><span class="n">elements</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">elements</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">residues</span><span class="p">:</span>
@@ -712,7 +707,7 @@
 
     <span class="n">res_list</span> <span class="o">=</span> <span class="n">chem</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"residues"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]</span>
     <span class="n">residues</span> <span class="o">=</span> <span class="p">[</span><span class="n">_structure_residue</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">res_list</span><span class="p">]</span>
-    <span class="n">elements</span> <span class="o">=</span> <span class="n">_element_metadata</span><span class="p">(</span><span class="n">chem</span><span class="p">,</span> <span class="n">residues</span><span class="p">,</span> <span class="n">file_major</span><span class="p">)</span>
+    <span class="n">elements</span> <span class="o">=</span> <span class="n">_element_metadata</span><span class="p">(</span><span class="n">chem</span><span class="p">,</span> <span class="n">residues</span><span class="p">)</span>
 
     <span class="c1"># Bundle-wide additions need not target a residue defined in this file:</span>
     <span class="c1"># a glycan, for example, brings a patch for its canonical ASN partner.</span>
@@ -720,7 +715,7 @@
     <span class="c1"># owners would reorder patches when a bundle's residue order changes.</span>
     <span class="n">residue_names</span> <span class="o">=</span> <span class="p">{</span><span class="n">r</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">residues</span><span class="p">}</span>
     <span class="n">replacement_baselines</span><span class="p">,</span> <span class="n">baseline_charges</span><span class="p">,</span> <span class="n">baseline_cart</span> <span class="o">=</span> <span class="n">_replacement_metadata</span><span class="p">(</span>
-        <span class="n">chem</span><span class="p">,</span> <span class="n">elec</span><span class="p">,</span> <span class="n">cart</span><span class="p">,</span> <span class="n">residues</span><span class="p">,</span> <span class="n">file_major</span>
+        <span class="n">chem</span><span class="p">,</span> <span class="n">elec</span><span class="p">,</span> <span class="n">cart</span><span class="p">,</span> <span class="n">residues</span>
     <span class="p">)</span>
     <span class="n">patches</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">chem</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"adds_patches"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]:</span>

@@ -666,7 +666,7 @@
 <span class="sd">        """</span>
         <span class="n">canonical_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_canonical_coords</span><span class="p">(</span><span class="n">atom37_coords</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_topology_cache_safe</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">_pose_stack_from_canonical_and_context</span><span class="p">(</span>
+            <span class="k">return</span> <span class="n">pose_stack_from_canonical_form_and_context</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_canonical_form</span><span class="p">(</span><span class="n">canonical_coords</span><span class="p">),</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">,</span>
                 <span class="n">no_optH</span><span class="o">=</span><span class="ow">not</span> <span class="n">opt_h</span><span class="p">,</span>
@@ -678,7 +678,7 @@
         <span class="n">topology_was_cached</span> <span class="o">=</span> <span class="n">topology</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">topology</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">cf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_canonical_form</span><span class="p">(</span><span class="n">canonical_coords</span><span class="p">)</span>
-            <span class="n">pose_stack</span><span class="p">,</span> <span class="n">details</span> <span class="o">=</span> <span class="n">_pose_stack_from_canonical_and_context</span><span class="p">(</span>
+            <span class="n">pose_stack</span><span class="p">,</span> <span class="n">details</span> <span class="o">=</span> <span class="n">pose_stack_from_canonical_form_and_context</span><span class="p">(</span>
                 <span class="n">cf</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">,</span>
                 <span class="n">no_optH</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -690,7 +690,7 @@
             <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">block_has_missing_atoms</span><span class="p">)):</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="n">opt_h</span><span class="p">:</span>
                     <span class="k">return</span> <span class="n">pose_stack</span>
-                <span class="k">return</span> <span class="n">_pose_stack_from_canonical_and_context</span><span class="p">(</span>
+                <span class="k">return</span> <span class="n">pose_stack_from_canonical_form_and_context</span><span class="p">(</span>
                     <span class="n">cf</span><span class="p">,</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">,</span>
                     <span class="n">no_optH</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -707,7 +707,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">topology</span><span class="o">.</span><span class="n">has_missing_nonleaf</span><span class="p">(</span><span class="n">canonical_coords</span><span class="p">):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_pose_topologies</span><span class="p">[</span><span class="n">n_poses</span><span class="p">]</span> <span class="o">=</span> <span class="n">topology</span>
-                <span class="k">return</span> <span class="n">_pose_stack_from_canonical_and_context</span><span class="p">(</span>
+                <span class="k">return</span> <span class="n">pose_stack_from_canonical_form_and_context</span><span class="p">(</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_canonical_form</span><span class="p">(</span><span class="n">canonical_coords</span><span class="p">),</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">,</span>
                     <span class="n">no_optH</span><span class="o">=</span><span class="ow">not</span> <span class="n">opt_h</span><span class="p">,</span>
@@ -817,17 +817,17 @@
 
 
 
-<div class="viewcode-block" id="prepare_pose_stack_from_atom37">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.prepare_pose_stack_from_atom37">[docs]</a>
+<div class="viewcode-block" id="prepare_atom37_pose_builder">
+<a class="viewcode-back" href="../../../api/io.html#tmol.io.prepare_atom37_pose_builder">[docs]</a>
 <span class="nd">@validate_args</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">prepare_pose_stack_from_atom37</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">prepare_atom37_pose_builder</span><span class="p">(</span>
     <span class="n">biotite_structure</span><span class="p">:</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArray</span> <span class="o">|</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">,</span>
     <span class="n">context</span><span class="p">:</span> <span class="n">PoseBuildContext</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PreparedAtom37PoseBuilder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Prepare a callable for repeatedly binding Atom37 coordinates to topology.</span>
 
 <span class="sd">    This is the campaign-oriented counterpart to</span>
-<span class="sd">    :func:`pose_stack_from_atom37_and_biotite`: immutable residue identity,</span>
+<span class="sd">    :func:`pose_stack_from_atom37_and_topology`: immutable residue identity,</span>
 <span class="sd">    connectivity, fragmentation, and Atom37 routing are resolved once. Calling</span>
 <span class="sd">    the returned builder with a coordinate tensor constructs a differentiable</span>
 <span class="sd">    pose while retaining TMol's usual missing-atom behavior. The returned</span>
@@ -1224,7 +1224,7 @@
             <span class="n">bonds</span> <span class="o">=</span> <span class="n">bonds</span><span class="p">[</span><span class="o">~</span><span class="n">remove</span><span class="p">]</span>
         <span class="n">cf</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">cf</span><span class="p">,</span> <span class="n">res_not_connected</span><span class="o">=</span><span class="n">disconnected</span><span class="p">,</span> <span class="n">covalent_bonds</span><span class="o">=</span><span class="n">bonds</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">_pose_stack_from_canonical_and_context</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">pose_stack_from_canonical_form_and_context</span><span class="p">(</span>
         <span class="n">cf</span><span class="p">,</span>
         <span class="n">context</span><span class="p">,</span>
         <span class="n">no_optH</span><span class="o">=</span><span class="n">no_optH</span><span class="p">,</span>
@@ -1236,7 +1236,9 @@
 
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_pose_stack_from_canonical_and_context</span><span class="p">(</span>
+<div class="viewcode-block" id="pose_stack_from_canonical_form_and_context">
+<a class="viewcode-back" href="../../../api/io.html#tmol.io.pose_stack_from_canonical_form_and_context">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">pose_stack_from_canonical_form_and_context</span><span class="p">(</span>
     <span class="n">cf</span><span class="p">:</span> <span class="n">CanonicalForm</span><span class="p">,</span>
     <span class="n">context</span><span class="p">:</span> <span class="n">PoseBuildContext</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -1246,7 +1248,35 @@
     <span class="n">return_context</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PoseStack</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PoseStack</span><span class="p">,</span> <span class="n">PoseBuildContext</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""Finish pose construction from a canonical form and reusable context."""</span>
+<span class="w">    </span><span class="sd">"""Build a pose from a canonical form and a reusable build context.</span>
+
+<span class="sd">    This is the single construction path. Every entry point -- canonical</span>
+<span class="sd">    amino-acid Atom37 tensors, an Atom37 batch bound to a fixed topology, a</span>
+<span class="sd">    parsed CIF/PDB structure -- reduces its input to a</span>
+<span class="sd">    :py:class:`~tmol.io.CanonicalForm` plus a</span>
+<span class="sd">    :py:class:`~tmol.io.PoseBuildContext` and finishes here. The entry points</span>
+<span class="sd">    differ only in how they *derive* those two objects, not in how a pose is</span>
+<span class="sd">    built from them.</span>
+
+<span class="sd">    The context carries the canonical ordering and packed block types, so</span>
+<span class="sd">    noncanonical residues, ligands, and covalent links are handled by the same</span>
+<span class="sd">    code as standard amino acids: nothing here inspects an ``AtomArray``.</span>
+<span class="sd">    Callers that already hold a canonical form and a context -- notably</span>
+<span class="sd">    repeated guidance or search steps over one fixed topology -- should call</span>
+<span class="sd">    this directly rather than re-deriving topology per batch.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      cf: Canonical-form tensors describing residue identity and coordinates.</span>
+<span class="sd">      context: Structure-independent chemistry resolved once.</span>
+<span class="sd">      no_optH: Preserve finite input hydrogens instead of optimizing them.</span>
+<span class="sd">      atom37_coords: When supplied, the autograd-tracked source of ``cf``'s</span>
+<span class="sd">        coordinates; retained so gradients survive hydrogen rebuilding.</span>
+<span class="sd">      fragment_mapping: Mapping produced when fragmented ligands were expanded.</span>
+<span class="sd">      return_context: Also return the context used.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The constructed pose, optionally with atom mappings or the context.</span>
+<span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_canonical_form</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_missing_sidechains</span>
 
@@ -1336,7 +1366,8 @@
         <span class="k">return</span> <span class="n">pose_stack</span><span class="p">,</span> <span class="n">context</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">opt_return_vals</span><span class="p">)</span> <span class="o">&gt;</span> <span class="p">(</span><span class="mi">0</span> <span class="k">if</span> <span class="n">return_block_has_missing_atoms</span> <span class="k">else</span> <span class="mi">1</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">pose_stack</span><span class="p">,</span> <span class="n">opt_return_vals</span>
-    <span class="k">return</span> <span class="n">pose_stack</span>
+    <span class="k">return</span> <span class="n">pose_stack</span></div>
+
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_restore_canonical_input_coords</span><span class="p">(</span>
@@ -2305,7 +2336,7 @@
 <span class="sd">            treated as missing while unmapped finite reference atoms remain</span>
 <span class="sd">            context. The geometry-based missing-density check is skipped so the</span>
 <span class="sd">            topology stays fixed and gradients flow. See</span>
-<span class="sd">            :func:`~tmol.io.pose_stack_from_atom37_and_biotite`.</span>
+<span class="sd">            :func:`~tmol.io.pose_stack_from_atom37_and_topology`.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        CanonicalForm: A data structure containing:</span>
