@@ -607,6 +607,10 @@
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cuda_graph</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">minimizer</span> <span class="o">=</span> <span class="n">CartesianMinimizer</span><span class="p">(</span><span class="n">cuda_graph</span><span class="o">=</span><span class="n">cuda_graph</span><span class="p">)</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">release_retained_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Release scorer and optimizer storage between relax stages."""</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">minimizer</span><span class="o">.</span><span class="n">release_retained_state</span><span class="p">()</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
@@ -685,7 +689,10 @@
 <span class="sd">            minimize, and optional constraint fractions. Defaults to</span>
 <span class="sd">            ``DEFAULT_RELAX_SCHEDULE``.</span>
 <span class="sd">        min_fn: Minimizer called with the pose, score function, fold forest,</span>
-<span class="sd">            move map, and verbosity. Defaults to Cartesian minimization.</span>
+<span class="sd">            move map, and verbosity. If it provides ``release_retained_state()``,</span>
+<span class="sd">            FastRelax calls that hook after extracting each minimized pose so</span>
+<span class="sd">            packing does not overlap retained scorer or optimizer storage.</span>
+<span class="sd">            Defaults to Cartesian minimization.</span>
 <span class="sd">        cuda_graph: Capture the default Cartesian minimizer's repeated CUDA</span>
 <span class="sd">            scoring path. By default, enable it automatically for CUDA poses</span>
 <span class="sd">            containing DNA or RNA, where replay savings exceed capture setup.</span>
@@ -757,7 +764,8 @@
 
     <span class="n">wpsm</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
     <span class="n">best_score</span> <span class="o">=</span> <span class="n">wpsm</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
-    <span class="n">best_ps</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+    <span class="k">del</span> <span class="n">wpsm</span>
+    <span class="n">best_ps</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">clone_sharing_topology</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">min_fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">min_fn</span> <span class="o">=</span> <span class="n">_DefaultCartesianMinimizer</span><span class="p">(</span>
@@ -782,7 +790,7 @@
             <span class="p">)</span>
 
         <span class="n">best_ps</span><span class="p">,</span> <span class="n">best_score</span> <span class="o">=</span> <span class="n">accept_best</span><span class="p">(</span><span class="n">sfxn</span><span class="p">,</span> <span class="n">best_ps</span><span class="p">,</span> <span class="n">best_score</span><span class="p">,</span> <span class="n">ps</span><span class="p">,</span> <span class="n">verbose</span><span class="p">)</span>
-        <span class="n">ps</span> <span class="o">=</span> <span class="n">best_ps</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="n">ps</span> <span class="o">=</span> <span class="n">best_ps</span><span class="o">.</span><span class="n">clone_sharing_topology</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">use_constraints</span><span class="p">:</span>
         <span class="c1"># Restore original constraint weight to the score function</span>
         <span class="n">sfxn</span><span class="o">.</span><span class="n">set_weight</span><span class="p">(</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">constraint</span><span class="p">,</span> <span class="n">constraint_weight_start</span><span class="p">)</span>
@@ -857,6 +865,9 @@
         <span class="n">move_map</span><span class="o">=</span><span class="n">move_map</span><span class="p">,</span>
         <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
     <span class="p">)</span>
+    <span class="n">release_retained_state</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">min_fn</span><span class="p">,</span> <span class="s2">"release_retained_state"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">release_retained_state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">release_retained_state</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
         <span class="n">synchronize_device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="n">end_time3</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>

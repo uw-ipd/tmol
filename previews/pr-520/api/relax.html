@@ -533,7 +533,10 @@ to true; the input weight is restored after relaxation.</p></li>
 minimize, and optional constraint fractions. Defaults to
 <code class="docutils literal notranslate"><span class="pre">DEFAULT_RELAX_SCHEDULE</span></code>.</p></li>
 <li><p><strong>min_fn</strong> – Minimizer called with the pose, score function, fold forest,
-move map, and verbosity. Defaults to Cartesian minimization.</p></li>
+move map, and verbosity. If it provides <code class="docutils literal notranslate"><span class="pre">release_retained_state()</span></code>,
+FastRelax calls that hook after extracting each minimized pose so
+packing does not overlap retained scorer or optimizer storage.
+Defaults to Cartesian minimization.</p></li>
 <li><p><strong>cuda_graph</strong> – Capture the default Cartesian minimizer’s repeated CUDA
 scoring path. By default, enable it automatically for CUDA poses
 containing DNA or RNA, where replay savings exceed capture setup.

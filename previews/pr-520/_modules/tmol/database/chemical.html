@@ -540,6 +540,17 @@
     <span class="n">atom_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
     <span class="c1"># Generic bonded lookup can describe a changed local environment without</span>
     <span class="c1"># changing nonbonded typing or transferring Rosetta torsion ownership.</span>
+    <span class="c1">#</span>
+    <span class="c1"># This is deliberately per atom rather than a wider genbonded hierarchy.</span>
+    <span class="c1"># The hierarchy is a property of an atom type and is global: it fixes gaps</span>
+    <span class="c1"># like Nbb reaching NG2 without passing through Nad, and that fix belongs</span>
+    <span class="c1"># in scoring/genbonded.yaml. Conjugation is different -- it changes one</span>
+    <span class="c1"># atom's chemistry as a function of what became bonded to it, while the</span>
+    <span class="c1"># base residue keeps the Rosetta type that owns its canonical torsions.</span>
+    <span class="c1"># ASN:conj_ND2 is the worked example: ND2 stays Nglyc for the Rosetta</span>
+    <span class="c1"># terms and looks up generic parameters as the amide Nad it has become.</span>
+    <span class="c1"># No per-type hierarchy can express that, because it depends on the</span>
+    <span class="c1"># partner, not on the atom type.</span>
     <span class="n">genbonded_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="c1"># Fallback peptide role for cross-residue Cartesian parameter lookup.</span>
     <span class="c1"># Authored atom names and explicitly supplied parameters retain priority.</span>

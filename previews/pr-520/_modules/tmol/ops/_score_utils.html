@@ -444,9 +444,11 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreFunction</span><span class="p">,</span> <span class="n">beta2016_score_function</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">pack_rotamers</span><span class="p">,</span> <span class="n">PackerTask</span><span class="p">,</span> <span class="n">PackerPalette</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">IncludeCurrentSampler</span><span class="p">,</span> <span class="n">FixedAAChiSampler</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._conjugated_groups</span><span class="w"> </span><span class="kn">import</span> <span class="n">add_conjugated_group_sampler</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.dunbrack</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_dunbrack_sampler_from_database</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ConjugatedSCSampler</span><span class="p">,</span>
+    <span class="n">IncludeCurrentSampler</span><span class="p">,</span>
+    <span class="n">SidechainSampler</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_cart_min</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
 
@@ -610,16 +612,13 @@
 
         <span class="k">if</span> <span class="n">database</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">database</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sfxn</span><span class="p">,</span> <span class="s2">"_param_db"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="n">dun_sampler</span> <span class="o">=</span> <span class="n">create_dunbrack_sampler_from_database</span><span class="p">(</span><span class="n">database</span><span class="p">,</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-
         <span class="n">task</span> <span class="o">=</span> <span class="n">PackerTask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">palette</span><span class="p">)</span>
-        <span class="n">fixed_sampler</span> <span class="o">=</span> <span class="n">FixedAAChiSampler</span><span class="p">()</span>
-        <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler</span><span class="p">(</span><span class="n">dun_sampler</span><span class="p">)</span>
-        <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler</span><span class="p">(</span><span class="n">fixed_sampler</span><span class="p">)</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler</span><span class="p">(</span>
+            <span class="n">ConjugatedSCSampler</span><span class="p">(</span>
+                <span class="n">SidechainSampler</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">database</span><span class="p">,</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
         <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler</span><span class="p">(</span><span class="n">IncludeCurrentSampler</span><span class="p">())</span>
-        <span class="c1"># a residue with something bonded to its sidechain packs together with</span>
-        <span class="c1">#    it; sampling the two apart would break the bond</span>
-        <span class="n">add_conjugated_group_sampler</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">)</span>
         <span class="n">task</span><span class="o">.</span><span class="n">restrict_to_repacking</span><span class="p">()</span>
 
         <span class="c1"># Disable packing for blocks that are not in the pack_mask.</span>

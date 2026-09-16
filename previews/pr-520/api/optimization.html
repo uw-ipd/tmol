@@ -506,6 +506,15 @@ score path.  This has a one-time setup and memory cost and requires
 CUDA, so it is most useful when the instance will be reused.</p>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.optimization.CartesianMinimizer.release_retained_state">
+<span class="sig-name descname"><span class="pre">release_retained_state</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/tmol/optimization/_minimizers.html#CartesianMinimizer.release_retained_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.CartesianMinimizer.release_retained_state" title="Link to this definition">#</a></dt>
+<dd><p>Release topology-specific scoring and optimizer state.</p>
+<p>The returned pose from <code class="xref py py-meth docutils literal notranslate"><span class="pre">__call__()</span></code> owns its coordinates, so callers
+may drop the rendered scorer, CUDA graph pools, gradients, and L-BFGS
+history before entering another memory-intensive phase.</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -696,7 +705,10 @@ support it.</p></li>
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.CartesianMinimizer"><code class="docutils literal notranslate"><span class="pre">CartesianMinimizer</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.CartesianMinimizer"><code class="docutils literal notranslate"><span class="pre">CartesianMinimizer</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.CartesianMinimizer.release_retained_state"><code class="docutils literal notranslate"><span class="pre">CartesianMinimizer.release_retained_state()</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.CartesianSfxnNetwork"><code class="docutils literal notranslate"><span class="pre">CartesianSfxnNetwork</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.CartesianSfxnNetwork.forward"><code class="docutils literal notranslate"><span class="pre">CartesianSfxnNetwork.forward()</span></code></a></li>
 </ul>

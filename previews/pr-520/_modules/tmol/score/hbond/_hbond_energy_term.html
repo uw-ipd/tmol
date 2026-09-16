@@ -455,6 +455,8 @@
     <span class="n">PoseStack</span><span class="p">,</span>
 <span class="p">)</span>
 
+<span class="n">_PACK_HBOND_ROTAMER_CANDIDATE_WINDOW</span> <span class="o">=</span> <span class="mi">16</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span>
+
 
 <div class="viewcode-block" id="HBondEnergyTerm">
 <a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.hbond.HBondEnergyTerm">[docs]</a>
@@ -586,17 +588,13 @@
             <span class="n">allow_split_pairs</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">rotamer_score_hbond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_rotamer_hbond_score_args</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">common_args</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">,</span> <span class="n">hbond_params</span><span class="p">,</span> <span class="n">block_pair_scoring</span>
+    <span class="p">):</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.hbond.potentials</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-            <span class="n">hbond_rotamer_scores</span><span class="p">,</span>
-            <span class="n">hbond_rotamer_scores_shared</span><span class="p">,</span>
             <span class="n">gen_hbond_bases</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="n">common_args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span>
-        <span class="n">pose_stack</span><span class="p">,</span> <span class="n">hbond_params</span><span class="p">,</span> <span class="n">block_pair_scoring</span><span class="p">,</span> <span class="n">shared_dispatch_indices</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span>
-            <span class="o">-</span><span class="mi">4</span><span class="p">:</span>
-        <span class="p">]</span>
         <span class="n">coords_dtype</span> <span class="o">=</span> <span class="n">common_args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span>
         <span class="n">pair_param_table</span><span class="p">,</span> <span class="n">pair_poly_table</span><span class="p">,</span> <span class="n">global_param_table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_param_tables</span><span class="p">(</span>
             <span class="n">coords_dtype</span>
@@ -626,11 +624,6 @@
                 <span class="n">hbond_params</span><span class="o">.</span><span class="n">is_hydrogen</span><span class="p">,</span>
             <span class="p">)</span>
 
-        <span class="n">score_op</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">hbond_rotamer_scores_shared</span>
-            <span class="k">if</span> <span class="n">shared_dispatch_indices</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">0</span>
-            <span class="k">else</span> <span class="n">hbond_rotamer_scores</span>
-        <span class="p">)</span>
         <span class="n">score_args</span> <span class="o">=</span> <span class="p">(</span>
             <span class="o">*</span><span class="n">common_args</span><span class="p">,</span>
             <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections</span><span class="p">,</span>
@@ -658,9 +651,85 @@
             <span class="n">derived_atom_inds</span><span class="p">,</span>
             <span class="n">block_pair_scoring</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="k">return</span> <span class="n">score_args</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">rotamer_score_hbond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.hbond.potentials</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+            <span class="n">hbond_rotamer_scores</span><span class="p">,</span>
+            <span class="n">hbond_rotamer_scores_shared</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">common_args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span>
+        <span class="n">pose_stack</span><span class="p">,</span> <span class="n">hbond_params</span><span class="p">,</span> <span class="n">block_pair_scoring</span><span class="p">,</span> <span class="n">shared_dispatch_indices</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span>
+            <span class="o">-</span><span class="mi">4</span><span class="p">:</span>
+        <span class="p">]</span>
+        <span class="n">score_args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rotamer_hbond_score_args</span><span class="p">(</span>
+            <span class="n">common_args</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">,</span> <span class="n">hbond_params</span><span class="p">,</span> <span class="n">block_pair_scoring</span>
+        <span class="p">)</span>
+        <span class="n">score_op</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">hbond_rotamer_scores_shared</span>
+            <span class="k">if</span> <span class="n">shared_dispatch_indices</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">0</span>
+            <span class="k">else</span> <span class="n">hbond_rotamer_scores</span>
+        <span class="p">)</span>
         <span class="k">if</span> <span class="n">shared_dispatch_indices</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">score_args</span> <span class="o">+=</span> <span class="p">(</span><span class="n">shared_dispatch_indices</span><span class="p">,)</span>
+            <span class="n">score_args</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">score_args</span><span class="p">,</span> <span class="n">shared_dispatch_indices</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">score_op</span><span class="p">(</span><span class="o">*</span><span class="n">score_args</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">iter_packing_rotamer_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Yield canonical H-bond rotamer scores in bounded candidate pages."""</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.hbond.potentials</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+            <span class="n">hbond_rotamer_dispatch_page</span><span class="p">,</span>
+            <span class="n">hbond_rotamer_scores_shared</span><span class="p">,</span>
+            <span class="n">hbond_rotamer_spheres</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="o">*</span><span class="n">score_args</span><span class="p">,</span> <span class="n">topology_only</span> <span class="o">=</span> <span class="n">args</span>
+        <span class="n">common_args</span> <span class="o">=</span> <span class="n">score_args</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">pose_stack</span><span class="p">,</span> <span class="n">hbond_params</span><span class="p">,</span> <span class="n">block_pair_scoring</span> <span class="o">=</span> <span class="n">score_args</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:]</span>
+        <span class="n">first_rot_block_type</span> <span class="o">=</span> <span class="n">common_args</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+        <span class="n">n_rots_for_block</span> <span class="o">=</span> <span class="n">common_args</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span>
+        <span class="n">rot_offset_for_block</span> <span class="o">=</span> <span class="n">common_args</span><span class="p">[</span><span class="mi">11</span><span class="p">]</span>
+        <span class="n">lockstep_group_for_block</span> <span class="o">=</span> <span class="n">common_args</span><span class="p">[</span><span class="mi">12</span><span class="p">]</span>
+        <span class="n">rot_spheres</span><span class="p">,</span> <span class="n">block_spheres</span> <span class="o">=</span> <span class="n">hbond_rotamer_spheres</span><span class="p">(</span>
+            <span class="n">common_args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">common_args</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">first_rot_block_type</span><span class="p">,</span>
+            <span class="n">common_args</span><span class="p">[</span><span class="mi">7</span><span class="p">],</span>
+            <span class="n">n_rots_for_block</span><span class="p">,</span>
+            <span class="n">rot_offset_for_block</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span> <span class="o">=</span> <span class="n">first_rot_block_type</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">candidates_per_pose</span> <span class="o">=</span> <span class="n">max_n_blocks</span> <span class="o">*</span> <span class="p">(</span><span class="n">max_n_blocks</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="n">n_candidates</span> <span class="o">=</span> <span class="n">n_poses</span> <span class="o">*</span> <span class="n">candidates_per_pose</span>
+        <span class="n">prepared_score_args</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">topology_only</span><span class="p">:</span>
+            <span class="n">prepared_score_args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rotamer_hbond_score_args</span><span class="p">(</span>
+                <span class="n">common_args</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">,</span> <span class="n">hbond_params</span><span class="p">,</span> <span class="n">block_pair_scoring</span>
+            <span class="p">)</span>
+        <span class="k">for</span> <span class="n">candidate_begin</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
+            <span class="mi">0</span><span class="p">,</span> <span class="n">n_candidates</span><span class="p">,</span> <span class="n">_PACK_HBOND_ROTAMER_CANDIDATE_WINDOW</span>
+        <span class="p">):</span>
+            <span class="n">candidate_end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
+                <span class="n">candidate_begin</span> <span class="o">+</span> <span class="n">_PACK_HBOND_ROTAMER_CANDIDATE_WINDOW</span><span class="p">,</span>
+                <span class="n">n_candidates</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">indices</span> <span class="o">=</span> <span class="n">hbond_rotamer_dispatch_page</span><span class="p">(</span>
+                <span class="n">first_rot_block_type</span><span class="p">,</span>
+                <span class="n">block_spheres</span><span class="p">,</span>
+                <span class="n">n_rots_for_block</span><span class="p">,</span>
+                <span class="n">rot_offset_for_block</span><span class="p">,</span>
+                <span class="n">rot_spheres</span><span class="p">,</span>
+                <span class="n">lockstep_group_for_block</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_block_neighbor_cutoff</span><span class="p">(),</span>
+                <span class="n">candidate_begin</span><span class="p">,</span>
+                <span class="n">candidate_end</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">topology_only</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="kc">None</span><span class="p">,</span> <span class="n">indices</span>
+                <span class="k">continue</span>
+            <span class="n">scores</span><span class="p">,</span> <span class="n">indices</span> <span class="o">=</span> <span class="n">hbond_rotamer_scores_shared</span><span class="p">(</span><span class="o">*</span><span class="n">prepared_score_args</span><span class="p">,</span> <span class="n">indices</span><span class="p">)</span>
+            <span class="k">yield</span> <span class="n">scores</span><span class="p">,</span> <span class="n">indices</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">score_only_in_no_grad</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -673,6 +742,9 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_rotamer_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rotamer_score_hbond</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_packing_rotamer_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_packing_rotamer_scores</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_block_neighbor_cutoff</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="mf">5.5</span>

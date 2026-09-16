@@ -661,16 +661,14 @@ show the conventional workflow.</p>
 </ul>
 <p>TMol’s versioned <code class="docutils literal notranslate"><span class="pre">.tmol</span></code> YAML bundles ligand additions to those three domains. A
 <a class="reference internal" href="../api/ligand.html#tmol.ligand.LigandPreparation" title="tmol.ligand.LigandPreparation"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.ligand.LigandPreparation</span></code></a>
-contains the residue definition, partial charges, and cartbonded parameters,
-and the supported <a class="reference internal" href="../api/ligand.html#tmol.ligand.write_params_file" title="tmol.ligand.write_params_file"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmol.ligand.write_params_file()</span></code></a>
-can emit either format from one preparation. The Rosetta writer emits
-<code class="docutils literal notranslate"><span class="pre">BOND_TYPE</span></code> records and writes partial charges in <code class="docutils literal notranslate"><span class="pre">ATOM</span></code> records, but the two
-outputs are not equivalent parameterizations.</p>
-<p>The Rosetta reader is intentionally partial: it recognizes <code class="docutils literal notranslate"><span class="pre">NAME</span></code>, <code class="docutils literal notranslate"><span class="pre">ATOM</span></code>,
-<code class="docutils literal notranslate"><span class="pre">BOND</span></code>/<code class="docutils literal notranslate"><span class="pre">BOND_TYPE</span></code>, <code class="docutils literal notranslate"><span class="pre">CHI</span></code>, <code class="docutils literal notranslate"><span class="pre">PROTON_CHI</span></code>, <code class="docutils literal notranslate"><span class="pre">NBR_ATOM</span></code>, and <code class="docutils literal notranslate"><span class="pre">ICOOR_INTERNAL</span></code>, but
-ignores other records and drops the charge values on <code class="docutils literal notranslate"><span class="pre">ATOM</span></code> lines. It cannot
-reconstruct the <code class="docutils literal notranslate"><span class="pre">.tmol</span></code> electrostatic and cartbonded sections, so arbitrary
-<code class="docutils literal notranslate"><span class="pre">.params</span></code> to <code class="docutils literal notranslate"><span class="pre">.tmol</span></code> conversion is not general or lossless.</p>
+contains the residue definition, partial charges, and cartbonded parameters, and
+<a class="reference internal" href="../api/ligand.html#tmol.ligand.write_params_file" title="tmol.ligand.write_params_file"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmol.ligand.write_params_file()</span></code></a> serializes one to <code class="docutils literal notranslate"><span class="pre">.tmol</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">.tmol</span></code> is TMol’s only parameter format: TMol neither reads nor writes Rosetta
+<code class="docutils literal notranslate"><span class="pre">.params</span></code>. The two formats carry different content – <code class="docutils literal notranslate"><span class="pre">.params</span></code> is a single
+line-oriented residue record, while <code class="docutils literal notranslate"><span class="pre">.tmol</span></code> bundles chemistry, electrostatics,
+and cartbonded parameters together – so no general or lossless conversion
+exists in either direction. Parameterize a ligand for Rosetta with a
+Rosetta-native workflow, and for TMol with the ligand preparation pipeline.</p>
 <p>These facilities support preparation, registration, scoring, local pocket
 repacking, and Cartesian refinement. They do not provide native ligand docking,
 global pose search, GALigandDock, or a binding-affinity calculation.</p>

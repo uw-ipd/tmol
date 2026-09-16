@@ -630,18 +630,16 @@ set, and packed block types for every structure.</p>
 </section>
 <section id="smiles-to-params-cli">
 <h2>SMILES to Params CLI<a class="headerlink" href="#smiles-to-params-cli" title="Link to this heading">#</a></h2>
-<p>The ligand-prep script writes Rosetta <code class="docutils literal notranslate"><span class="pre">.params</span></code> and TMol <code class="docutils literal notranslate"><span class="pre">.tmol</span></code> files:</p>
+<p>The ligand-prep script writes a TMol <code class="docutils literal notranslate"><span class="pre">.tmol</span></code> parameter bundle:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>scripts/ligand_prep/smiles_to_params.py<span class="w"> </span><span class="s2">"&lt;SMILES&gt;"</span><span class="w"> </span>&lt;out_prefix&gt;<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--res-name<span class="w"> </span>LG1<span class="w"> </span>--ph<span class="w"> </span><span class="m">7</span>.4
 </pre></div>
 </div>
 <p>Useful flags include <code class="docutils literal notranslate"><span class="pre">--no-protonate</span></code>, <code class="docutils literal notranslate"><span class="pre">--sample-proton-chi</span></code>, and
 <code class="docutils literal notranslate"><span class="pre">--no-conformer-search</span></code>.</p>
-<p>The emitted Rosetta-syntax <code class="docutils literal notranslate"><span class="pre">.params</span></code> file is an experimental interchange
-artifact, not a Rosetta-validated parameterization. It carries TMol’s atom-type
-strings into the Rosetta atom-type field, uses MM type <code class="docutils literal notranslate"><span class="pre">X</span></code>, and writes a
-placeholder <code class="docutils literal notranslate"><span class="pre">NBR_RADIUS</span> <span class="pre">999.0</span></code>. Use a Rosetta-native preparation and validation
-workflow before running the ligand in Rosetta.</p>
+<p><code class="docutils literal notranslate"><span class="pre">.tmol</span></code> is TMol’s only parameter format. TMol does not read or write Rosetta
+<code class="docutils literal notranslate"><span class="pre">.params</span></code>; use a Rosetta-native preparation workflow to parameterize a ligand
+for Rosetta.</p>
 </section>
 <section id="interaction-scores">
 <h2>Interaction Scores<a class="headerlink" href="#interaction-scores" title="Link to this heading">#</a></h2>
