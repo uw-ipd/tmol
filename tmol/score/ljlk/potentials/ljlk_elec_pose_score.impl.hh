@@ -1157,21 +1157,22 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
           n_rots_for_block,
           rot_offset_for_block,
           scratch_block_spheres_t.view);
-  return score::common::sphere_overlap::rot_neighbor_indices_from_block_neighbors<
-      DeviceOperations,
-      D,
-      Real,
-      Int>::
-      f(mgr,
-        first_rot_block_type,
-        scratch_block_spheres_t.view,
-        n_rots_for_block,
-        rot_offset_for_block,
-        scratch_rot_spheres_t.view,
-        lockstep_group_for_block,
-        max_dis,
-        candidate_begin,
-        candidate_count);
+  return score::common::sphere_overlap::
+      rot_neighbor_indices_from_block_neighbors<
+          DeviceOperations,
+          D,
+          Real,
+          Int>::
+          f(mgr,
+            first_rot_block_type,
+            scratch_block_spheres_t.view,
+            n_rots_for_block,
+            rot_offset_for_block,
+            scratch_rot_spheres_t.view,
+            lockstep_group_for_block,
+            max_dis,
+            candidate_begin,
+            candidate_count);
 }
 
 template <
@@ -1263,7 +1264,8 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
           D,
           Real,
           Int>(TMOL_LJLK_ELEC_WEIGHTED_ROTAMER_ARGS);
-      return {std::get<0>(result), std::get<1>(result), rotamer_dispatch_indices};
+      return {
+          std::get<0>(result), std::get<1>(result), rotamer_dispatch_indices};
     }
     auto result = ljlk_elec_forward_impl<
         true,
