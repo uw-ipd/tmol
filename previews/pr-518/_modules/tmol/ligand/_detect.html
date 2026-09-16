@@ -990,10 +990,13 @@
             <span class="k">if</span> <span class="p">(</span>
                 <span class="n">preserves_charges</span>
                 <span class="ow">and</span> <span class="ow">not</span> <span class="n">Chem</span><span class="o">.</span><span class="n">SanitizeMol</span><span class="p">(</span><span class="n">alternate</span><span class="p">,</span> <span class="n">catchErrors</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-                <span class="ow">and</span> <span class="n">Chem</span><span class="o">.</span><span class="n">GetFormalCharge</span><span class="p">(</span><span class="n">alternate</span><span class="p">)</span> <span class="o">==</span> <span class="n">declared_net</span>
                 <span class="ow">and</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span>
                     <span class="n">atom</span><span class="o">.</span><span class="n">GetNumRadicalElectrons</span><span class="p">()</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">alternate</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()</span>
                 <span class="p">)</span>
+                <span class="c1"># When the primary reader is unusable the alternate is the only</span>
+                <span class="c1"># candidate; require the declared net charge only when we are</span>
+                <span class="c1"># rejecting a primary that parsed but rewrote the chemistry.</span>
+                <span class="ow">and</span> <span class="p">(</span><span class="n">invalid</span> <span class="ow">or</span> <span class="n">Chem</span><span class="o">.</span><span class="n">GetFormalCharge</span><span class="p">(</span><span class="n">alternate</span><span class="p">)</span> <span class="o">==</span> <span class="n">declared_net</span><span class="p">)</span>
             <span class="p">):</span>
                 <span class="n">mol</span> <span class="o">=</span> <span class="n">alternate</span>
                 <span class="n">invalid</span> <span class="o">=</span> <span class="kc">False</span>
