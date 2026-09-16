@@ -533,7 +533,7 @@ preparation, strict errors and reusable parameter bundles.</p>
 <section id="direct-prediction-tensors">
 <h2>Direct prediction tensors<a class="headerlink" href="#direct-prediction-tensors" title="Link to this heading">#</a></h2>
 <p>Canonical proteins in AtomWorks’ <code class="docutils literal notranslate"><span class="pre">UNIFIED_ATOM37_ENCODING</span></code> can use
-<code class="docutils literal notranslate"><span class="pre">pose_stack_from_atomworks(coords,</span> <span class="pre">residue_type,</span> <span class="pre">chain_iid)</span></code> directly. Coordinates
+<code class="docutils literal notranslate"><span class="pre">pose_stack_from_canonical_aa_atom37(coords,</span> <span class="pre">residue_type,</span> <span class="pre">chain_iid)</span></code> directly. Coordinates
 have shape <code class="docutils literal notranslate"><span class="pre">[batch,</span> <span class="pre">residues,</span> <span class="pre">37,</span> <span class="pre">3]</span></code>; token IDs and chain IDs have shape
 <code class="docutils literal notranslate"><span class="pre">[batch,</span> <span class="pre">residues]</span></code>. The function uses AtomWorks’ token order and atom names.
 Tensor shape alone does not identify an encoding.</p>
@@ -562,7 +562,7 @@ steps:</p>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">build_context_from_biotite</span><span class="p">,</span>
-    <span class="n">prepare_pose_stack_from_atom37</span><span class="p">,</span>
+    <span class="n">prepare_atom37_pose_builder</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
 
@@ -575,7 +575,7 @@ steps:</p>
     <span class="n">atom37_coords</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
     <span class="n">prepare_ligands</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="n">pose_builder</span> <span class="o">=</span> <span class="n">prepare_pose_stack_from_atom37</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+<span class="n">pose_builder</span> <span class="o">=</span> <span class="n">prepare_atom37_pose_builder</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
 
 <span class="c1"># One call accepts one sample or a same-topology batch. The builder can be</span>
 <span class="c1"># reused at every diffusion, guidance, or search step.</span>
@@ -594,7 +594,7 @@ optimization is enabled by default. For high-throughput diffusion or search,
 reuse both <code class="docutils literal notranslate"><span class="pre">pose_builder</span></code> and the scoring module for every compatible topology
 and batch shape. Pass <code class="docutils literal notranslate"><span class="pre">opt_h=False</span></code> to the builder only when ideal hydrogen
 placement is an intentional speed/accuracy tradeoff. For one-off conversion,
-<code class="docutils literal notranslate"><span class="pre">pose_stack_from_atom37_and_biotite(atom37_coords,</span> <span class="pre">atom_array,</span> <span class="pre">context)</span></code> remains
+<code class="docutils literal notranslate"><span class="pre">pose_stack_from_atom37_and_topology(atom37_coords,</span> <span class="pre">atom_array,</span> <span class="pre">context)</span></code> remains
 available.</p>
 <p>A single <code class="docutils literal notranslate"><span class="pre">AtomArray</span></code> may provide topology for a batch of coordinate tensors. An
 <code class="docutils literal notranslate"><span class="pre">AtomArrayStack</span></code> must either have the same number of models as the tensor batch

@@ -497,8 +497,8 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">._pose_stack_from_atomworks</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: F401</span>
     <span class="n">ATOMWORKS_NAME3S</span><span class="p">,</span>
     <span class="n">ATOMWORKS_ATOM37_NAMES</span><span class="p">,</span>
-    <span class="n">pose_stack_from_atomworks</span><span class="p">,</span>
-    <span class="n">pose_stack_from_atom37_and_biotite</span><span class="p">,</span>
+    <span class="n">pose_stack_from_canonical_aa_atom37</span><span class="p">,</span>
+    <span class="n">pose_stack_from_atom37_and_topology</span><span class="p">,</span>
     <span class="n">canonical_form_from_atomworks</span><span class="p">,</span>
     <span class="n">atomworks_from_pose_stack</span><span class="p">,</span>
     <span class="n">canonical_ordering_for_atomworks</span><span class="p">,</span>
@@ -524,7 +524,8 @@
     <span class="n">canonical_form_from_biotite</span><span class="p">,</span>
     <span class="n">canonical_ordering_for_biotite</span><span class="p">,</span>
     <span class="n">packed_block_types_for_biotite</span><span class="p">,</span>
-    <span class="n">prepare_pose_stack_from_atom37</span><span class="p">,</span>
+    <span class="n">pose_stack_from_canonical_form_and_context</span><span class="p">,</span>
+    <span class="n">prepare_atom37_pose_builder</span><span class="p">,</span>
     <span class="n">biotite_from_canonical_form</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">._write_pose_stack_pdb</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: F401</span>
@@ -559,10 +560,11 @@
     <span class="s2">"fetch_pdb"</span><span class="p">,</span>
     <span class="s2">"packed_block_types_for_atomworks"</span><span class="p">,</span>
     <span class="s2">"packed_block_types_for_biotite"</span><span class="p">,</span>
-    <span class="s2">"pose_stack_from_atomworks"</span><span class="p">,</span>
+    <span class="s2">"pose_stack_from_canonical_aa_atom37"</span><span class="p">,</span>
     <span class="s2">"pose_stack_from_file"</span><span class="p">,</span>
-    <span class="s2">"prepare_pose_stack_from_atom37"</span><span class="p">,</span>
-    <span class="s2">"pose_stack_from_atom37_and_biotite"</span><span class="p">,</span>
+    <span class="s2">"pose_stack_from_canonical_form_and_context"</span><span class="p">,</span>
+    <span class="s2">"prepare_atom37_pose_builder"</span><span class="p">,</span>
+    <span class="s2">"pose_stack_from_atom37_and_topology"</span><span class="p">,</span>
     <span class="s2">"pose_stack_from_biotite"</span><span class="p">,</span>
     <span class="s2">"pose_stack_from_cif"</span><span class="p">,</span>
     <span class="s2">"atom_array_from_cif"</span><span class="p">,</span>

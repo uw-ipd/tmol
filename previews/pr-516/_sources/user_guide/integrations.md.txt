@@ -53,7 +53,7 @@ preparation, strict errors and reusable parameter bundles.
 ## Direct prediction tensors
 
 Canonical proteins in AtomWorks' `UNIFIED_ATOM37_ENCODING` can use
-`pose_stack_from_atomworks(coords, residue_type, chain_iid)` directly. Coordinates
+`pose_stack_from_canonical_aa_atom37(coords, residue_type, chain_iid)` directly. Coordinates
 have shape `[batch, residues, 37, 3]`; token IDs and chain IDs have shape
 `[batch, residues]`. The function uses AtomWorks' token order and atom names.
 Tensor shape alone does not identify an encoding.
@@ -86,7 +86,7 @@ import torch
 
 from tmol.io import (
     build_context_from_biotite,
-    prepare_pose_stack_from_atom37,
+    prepare_atom37_pose_builder,
 )
 from tmol.score import beta2016_score_function
 
@@ -99,7 +99,7 @@ context = build_context_from_biotite(
     atom37_coords.device,
     prepare_ligands=True,
 )
-pose_builder = prepare_pose_stack_from_atom37(atom_array, context)
+pose_builder = prepare_atom37_pose_builder(atom_array, context)
 
 # One call accepts one sample or a same-topology batch. The builder can be
 # reused at every diffusion, guidance, or search step.
@@ -118,7 +118,7 @@ optimization is enabled by default. For high-throughput diffusion or search,
 reuse both `pose_builder` and the scoring module for every compatible topology
 and batch shape. Pass `opt_h=False` to the builder only when ideal hydrogen
 placement is an intentional speed/accuracy tradeoff. For one-off conversion,
-`pose_stack_from_atom37_and_biotite(atom37_coords, atom_array, context)` remains
+`pose_stack_from_atom37_and_topology(atom37_coords, atom_array, context)` remains
 available.
 
 A single `AtomArray` may provide topology for a batch of coordinate tensors. An
