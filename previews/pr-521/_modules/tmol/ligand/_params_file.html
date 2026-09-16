@@ -669,12 +669,10 @@
             <span class="sa">f</span><span class="s2">"Regenerate the file with the current version."</span>
         <span class="p">)</span>
     <span class="n">file_version</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">file_version</span><span class="p">)</span>
-    <span class="c1"># Read legacy single-residue bundles as well as complete conjugates.</span>
-    <span class="c1"># v2 adds shared partner patches and connection parameters; v3 adds</span>
-    <span class="c1"># per-atom generic bonded references; v4 adds guarded exact-residue</span>
-    <span class="c1"># replacements; v5 preserves atom-type element declarations.</span>
-    <span class="c1"># Old readers must reject fields</span>
-    <span class="c1"># they would otherwise silently drop.</span>
+    <span class="c1"># Read legacy single-residue bundles as well as complete conjugates. The</span>
+    <span class="c1"># majors below are the ones this reader understands; writers always stamp</span>
+    <span class="c1"># the current version rather than the lowest that describes the file, so</span>
+    <span class="c1"># there is no per-feature minimum to enforce here.</span>
     <span class="n">file_major</span> <span class="o">=</span> <span class="n">file_version</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">file_major</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"1"</span><span class="p">,</span> <span class="s2">"2"</span><span class="p">,</span> <span class="s2">"3"</span><span class="p">,</span> <span class="s2">"4"</span><span class="p">,</span> <span class="s2">"5"</span><span class="p">}:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
