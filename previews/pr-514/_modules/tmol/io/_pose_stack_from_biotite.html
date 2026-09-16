@@ -843,6 +843,7 @@
     <span class="n">strict_atom_types</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">strict_ligands</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">ligand_params_files</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">ligand_seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseBuildContext</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Build the structure-independent construction context.</span>
 
@@ -873,6 +874,7 @@
 <span class="sd">            used when prepare_ligands=True.</span>
 <span class="sd">        ligand_params_files: Optional list of tmol YAML params file paths.</span>
 <span class="sd">            Residues defined in these files skip the RDKit/OB pipeline.</span>
+<span class="sd">        ligand_seed: Fixed RNG seed for each prepared ligand conformer.</span>
 <span class="sd">    Returns:</span>
 <span class="sd">        PoseBuildContext containing canonical ordering, packed block</span>
 <span class="sd">        types, parameter database, and residue type set.</span>
@@ -891,6 +893,7 @@
             <span class="n">ph</span><span class="o">=</span><span class="n">ligand_ph</span><span class="p">,</span>
             <span class="n">strict_atom_types</span><span class="o">=</span><span class="n">strict_atom_types</span><span class="p">,</span>
             <span class="n">params_files</span><span class="o">=</span><span class="n">ligand_params_files</span><span class="p">,</span>
+            <span class="n">seed</span><span class="o">=</span><span class="n">ligand_seed</span><span class="p">,</span>
             <span class="n">strict_ligands</span><span class="o">=</span><span class="n">strict_ligands</span><span class="p">,</span>
             <span class="n">return_fragment_definitions</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="p">)</span>
@@ -941,6 +944,7 @@
     <span class="n">strict_atom_types</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">strict_ligands</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">ligand_params_files</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">ligand_seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">return_context</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">context</span><span class="p">:</span> <span class="n">PoseBuildContext</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">atom37_coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -985,6 +989,7 @@
 <span class="sd">            be prepared and registered, instead of silently dropping it. Pass</span>
 <span class="sd">            False to warn-and-skip. Only used when prepare_ligands=True.</span>
 <span class="sd">        ligand_params_files: Optional list of tmol YAML params file paths.</span>
+<span class="sd">        ligand_seed: Fixed RNG seed for each prepared ligand conformer.</span>
 <span class="sd">        return_context: If True, return ``(pose_stack, PoseBuildContext)``.</span>
 <span class="sd">        context: Reusable context from ``build_context_from_biotite``. It must</span>
 <span class="sd">            be on ``torch_device`` and is mutually exclusive with ``param_db``</span>
@@ -1038,6 +1043,7 @@
             <span class="n">strict_atom_types</span><span class="o">=</span><span class="n">strict_atom_types</span><span class="p">,</span>
             <span class="n">strict_ligands</span><span class="o">=</span><span class="n">strict_ligands</span><span class="p">,</span>
             <span class="n">ligand_params_files</span><span class="o">=</span><span class="n">ligand_params_files</span><span class="p">,</span>
+            <span class="n">ligand_seed</span><span class="o">=</span><span class="n">ligand_seed</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="n">fragment_mapping</span> <span class="o">=</span> <span class="kc">None</span>
