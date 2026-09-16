@@ -798,6 +798,7 @@ class GridBackend(ScoringBackend):
         sidechain_blocks: tuple[int, ...] | None = None,
         value_only_line_search: bool = False,
         fa_rep_smoothing: float = 0.0,
+        ligand_intra_weight_profile: str = "search",
     ) -> "GridBackend":
         """Build one CPU receptor grid/live-term structure and reusable backend.
 
@@ -917,7 +918,7 @@ class GridBackend(ScoringBackend):
                 reference_pose_stack,
                 ligand_block,
                 param_db,
-                weight_profile="search",
+                weight_profile=ligand_intra_weight_profile,
                 sidechain_blocks=normalized_sidechain_blocks,
             )
             if include_ligand_intra
