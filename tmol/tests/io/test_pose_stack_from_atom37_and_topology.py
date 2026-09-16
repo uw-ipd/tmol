@@ -437,7 +437,8 @@ def test_prepared_atom37_builder_replays_variable_leaf_presence(
 
     assert torch.isfinite(first.coords[first.real_atoms]).all()
     assert builder._topology_cache_safe
-    assert set(builder._pose_topologies) == {1}
+    # One topology, cached under the batch size it was prepared for.
+    assert set(builder._pose_topologies) == {atom37.shape[0]}
     torch.testing.assert_close(actual_second.coords, expected_second.coords)
 
 
