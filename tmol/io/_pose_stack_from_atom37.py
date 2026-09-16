@@ -61,7 +61,7 @@ def atom37_slot_map_for_ordering(
     )
     terminus_atoms = {
         atom
-        for atoms in canonical_ordering.termini_patch_added_atoms.values()
+        for atoms in canonical_ordering.termini_only_atoms.values()
         for atom in atoms
     }
     for restype_index, name3 in enumerate(canonical_ordering.restype_io_equiv_classes):
