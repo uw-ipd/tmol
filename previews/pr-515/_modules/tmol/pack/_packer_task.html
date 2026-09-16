@@ -745,6 +745,9 @@
 <span class="w">    </span><span class="sd">"""Configure residue identities, conformers, and movable sites for packing."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">systems</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">palette</span><span class="p">:</span> <span class="n">PackerPalette</span><span class="p">):</span>
+        <span class="c1"># Retained so a sampler bundle can inspect connectivity when it</span>
+        <span class="c1"># registers itself; the task already derives its tensors from here.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span> <span class="o">=</span> <span class="n">systems</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pbt</span> <span class="o">=</span> <span class="n">systems</span><span class="o">.</span><span class="n">packed_block_types</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">systems</span><span class="o">.</span><span class="n">device</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">is_real_block</span> <span class="o">=</span> <span class="n">systems</span><span class="o">.</span><span class="n">block_type_ind64</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
@@ -883,8 +886,17 @@
 
 <div class="viewcode-block" id="PackerTask.add_conformer_sampler">
 <a class="viewcode-back" href="../../../api/pack.html#tmol.pack.PackerTask.add_conformer_sampler">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">add_conformer_sampler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sampler</span><span class="p">:</span> <span class="n">ConformerSampler</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Enable this sampler everywhere, registering its identity once."""</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_conformer_sampler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sampler</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Enable this sampler everywhere, registering its identity once.</span>
+
+<span class="sd">        A sampler bundle -- anything exposing ``expand_into_task`` -- registers</span>
+<span class="sd">        the samplers it is composed of instead, so callers can declare what</span>
+<span class="sd">        they want sampled without composing it themselves.</span>
+<span class="sd">        """</span>
+        <span class="n">expand_into_task</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sampler</span><span class="p">,</span> <span class="s2">"expand_into_task"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">expand_into_task</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">expand_into_task</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="k">return</span>
         <span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conformer_sampler_index</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="n">sampler</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">per_block_conformer_sampler_allowed</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">index</span><span class="p">]</span><span class="o">.</span><span class="n">fill_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>

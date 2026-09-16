@@ -1304,9 +1304,24 @@
     <span class="n">gbt_block_type_ind</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_block_type</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
 
     <span class="c1"># Step 4</span>
-    <span class="n">conformer_samples</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">sampler</span><span class="o">.</span><span class="n">create_samples_for_poses</span><span class="p">(</span><span class="n">poses</span><span class="p">,</span> <span class="n">task</span><span class="p">)</span> <span class="k">for</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="n">samplers</span>
-    <span class="p">]</span>
+    <span class="c1"># A sampler that fills gaps left by the others must see what they actually</span>
+    <span class="c1"># built, so it runs last and receives the measured per-block totals.</span>
+    <span class="n">deferred</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">samplers</span><span class="p">)</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">samples_after_other_samplers</span><span class="p">]</span>
+    <span class="n">conformer_samples</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">samplers</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">samplers</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">deferred</span><span class="p">:</span>
+            <span class="n">conformer_samples</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">sampler</span><span class="o">.</span><span class="n">create_samples_for_poses</span><span class="p">(</span><span class="n">poses</span><span class="p">,</span> <span class="n">task</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">deferred</span><span class="p">:</span>
+        <span class="n">built</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">sample</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">conformer_samples</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">sample</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">counts</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">built</span> <span class="o">=</span> <span class="n">counts</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span> <span class="k">if</span> <span class="n">built</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">built</span> <span class="o">+</span> <span class="n">counts</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">deferred</span><span class="p">:</span>
+            <span class="n">conformer_samples</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">samplers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">create_samples_for_poses</span><span class="p">(</span>
+                <span class="n">poses</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">built_rotamer_counts</span><span class="o">=</span><span class="n">built</span>
+            <span class="p">)</span>
 
     <span class="n">correlated_groups</span> <span class="o">=</span> <span class="n">_correlated_groups_for_samples</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">conformer_samples</span><span class="p">)</span>
 

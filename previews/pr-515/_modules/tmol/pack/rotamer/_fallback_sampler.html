@@ -417,7 +417,7 @@
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClassVar</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Tensor</span><span class="p">,</span>
@@ -443,15 +443,22 @@
 
 <span class="sd">    This is the default sampler in PackerPalette. Unlike IncludeCurrentSampler,</span>
 <span class="sd">    it does not unconditionally add a rotamer for every position; instead it</span>
-<span class="sd">    activates only when every other sampler in the block-level task returns</span>
-<span class="sd">    False from defines_rotamers_for_rt for the original block type, ensuring</span>
-<span class="sd">    that positions covered by, e.g., DunbrackChiSampler do not accumulate an</span>
-<span class="sd">    extra current-conformation rotamer.</span>
+<span class="sd">    activates only where the other samplers actually produced no rotamers,</span>
+<span class="sd">    ensuring that positions covered by, e.g., DunbrackChiSampler do not</span>
+<span class="sd">    accumulate an extra current-conformation rotamer.</span>
+
+<span class="sd">    The trigger is measured rather than declared. A sampler may report through</span>
+<span class="sd">    defines_rotamers_for_bts that it handles a block type and still build no</span>
+<span class="sd">    rotamers for a given block; trusting the declaration would leave that</span>
+<span class="sd">    position with nothing to pack. Sampling last and counting what was built</span>
+<span class="sd">    also means a new sampler needs no special registration here.</span>
 
 <span class="sd">    The disable_packing case (all block types disallowed) is also handled: a</span>
 <span class="sd">    rotamer from the input conformation is always produced so the packer has</span>
 <span class="sd">    something to represent for fixed residues.</span>
 <span class="sd">    """</span>
+
+    <span class="n">samples_after_other_samplers</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
 
 <div class="viewcode-block" id="FallbackSampler.sampler_name">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.FallbackSampler.sampler_name">[docs]</a>
@@ -494,15 +501,23 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
         <span class="n">task</span><span class="p">:</span> <span class="s2">"SetPackerTask"</span><span class="p">,</span>  <span class="c1"># noqa: F821</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">built_rotamer_counts</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span>  <span class="c1"># noqa F821</span>
         <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>  <span class="c1"># n_rots_for_gbt</span>
         <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>  <span class="c1"># gbt_for_rotamer</span>
         <span class="nb">dict</span><span class="p">,</span>
     <span class="p">]:</span>
-<span class="w">        </span><span class="sd">"""Create rotamers for the blocks that either (1) have no allowed block types, in which case the residue</span>
-<span class="sd">        is considered fixed and we simply create a rotamer of the input conformation, or (2) have no conformer</span>
-<span class="sd">        sampler that defines conformers for it. So the first step is to look at the other conformers stored</span>
-<span class="sd">        in the SetPackerTask and ask them which block types they define rotamers for.</span>
+<span class="w">        </span><span class="sd">"""Create rotamers for blocks the other samplers left uncovered.</span>
+
+<span class="sd">        A rotamer of the input conformation is built where the block either</span>
+<span class="sd">        (1) has no allowed block types, so the residue is fixed, or (2) received</span>
+<span class="sd">        no rotamers from any other sampler.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          built_rotamer_counts: Rotamers actually produced per considered block</span>
+<span class="sd">            by every other sampler. Supplied by the rotamer builder, which runs</span>
+<span class="sd">            this sampler last. ``None`` means no other sampler ran.</span>
 <span class="sd">        """</span>
         <span class="n">n_allowed_per_block</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">per_block_is_block_type_allowed</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
             <span class="n">dim</span><span class="o">=</span><span class="mi">2</span>
@@ -516,35 +531,31 @@
         <span class="p">),</span> <span class="s2">"This sampler is not in the PackerTask's conformer samplers"</span>
         <span class="n">self_ind_in_packer_task</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">conformer_sampler_index</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span>
 
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">conformer_samplers</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
-            <span class="n">do_other_samplers_build_for_gbt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
-                <span class="p">[</span>
-                    <span class="n">sampler</span><span class="o">.</span><span class="n">defines_rotamers_for_bts</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_block_type</span><span class="p">)</span>
-                    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">conformer_samplers</span><span class="p">)</span>
-                    <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="n">self_ind_in_packer_task</span>
-                <span class="p">]</span>
-            <span class="p">)</span>
-            <span class="n">any_other_sampler_allowed_for_gbt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
-                <span class="p">[</span>
-                    <span class="n">task</span><span class="o">.</span><span class="n">per_block_conformer_sampler_allowed</span><span class="p">[</span>
-                        <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_pose</span><span class="p">,</span> <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_block</span><span class="p">,</span> <span class="n">i</span>
-                    <span class="p">]</span>
-                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">conformer_samplers</span><span class="p">))</span>
-                    <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="n">self_ind_in_packer_task</span>
-                <span class="p">]</span>
-            <span class="p">)</span>
-            <span class="n">other_sampler_builds_for_gbt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
-                <span class="n">do_other_samplers_build_for_gbt</span><span class="p">,</span>
-                <span class="n">any_other_sampler_allowed_for_gbt</span><span class="p">,</span>
-            <span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># The fallback sampler is the only sampler, so no other samplers build for any block types.</span>
-            <span class="c1"># This seems like a weird case but it can happen.</span>
+        <span class="k">if</span> <span class="n">built_rotamer_counts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># No other sampler ran, so nothing was built anywhere. This is</span>
+            <span class="c1"># unusual but reachable when the fallback is the only sampler.</span>
             <span class="n">other_sampler_builds_for_gbt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
                 <span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">cons_bt_pose</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
                 <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span>
                 <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Aggregate per block, not per considered block type. A design</span>
+            <span class="c1"># position whose other candidates were built is packable, even if</span>
+            <span class="c1"># one candidate -- often the original identity being designed away</span>
+            <span class="c1"># from -- received nothing. Triggering per candidate would offer</span>
+            <span class="c1"># the input conformation back and let it win the position.</span>
+            <span class="n">built</span> <span class="o">=</span> <span class="p">(</span><span class="n">built_rotamer_counts</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+            <span class="n">covered</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                <span class="n">task</span><span class="o">.</span><span class="n">per_block_n_considered_block_types</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">],</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">covered</span><span class="o">.</span><span class="n">index_put_</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">cons_bt_pose</span><span class="p">,</span> <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_block</span><span class="p">),</span> <span class="n">built</span><span class="p">,</span> <span class="n">accumulate</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+            <span class="n">other_sampler_builds_for_gbt</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">covered</span><span class="p">[</span><span class="n">task</span><span class="o">.</span><span class="n">cons_bt_pose</span><span class="p">,</span> <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_block</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span>
             <span class="p">)</span>
 
         <span class="n">is_gbt_orig_block_type</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">per_block_considered_block_types_is_orig</span>

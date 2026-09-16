@@ -417,7 +417,7 @@
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">ClassVar</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Tensor</span><span class="p">,</span>
@@ -474,6 +474,14 @@
 <span class="k">class</span><span class="w"> </span><span class="nc">ConformerSampler</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Interface for creating and applying packing conformer samples."""</span>
 
+    <span class="c1">#: Sample only after every other sampler has run, receiving the rotamer</span>
+    <span class="c1">#: counts they actually produced. A sampler that fills gaps left by others</span>
+    <span class="c1">#: must measure what was built rather than trust what was declared: a</span>
+    <span class="c1">#: sampler may report that it covers a block type and still return no</span>
+    <span class="c1">#: rotamers for a particular block, which would otherwise leave that</span>
+    <span class="c1">#: position with nothing to pack.</span>
+    <span class="n">samples_after_other_samplers</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+
 <div class="viewcode-block" id="ConformerSampler.sampler_name">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.ConformerSampler.sampler_name">[docs]</a>
     <span class="nd">@classmethod</span>
@@ -527,6 +535,10 @@
         <span class="n">task</span><span class="p">:</span> <span class="s2">"PackerTask"</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ConformerSample</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return counts, considered-block index per rotamer, and sampler data.</span>
+
+<span class="sd">        A sampler that sets :py:attr:`samples_after_other_samplers` is called</span>
+<span class="sd">        with an extra ``built_rotamer_counts`` keyword holding the per</span>
+<span class="sd">        considered-block total produced by every other sampler.</span>
 
 <span class="sd">        A producer of joint conformers declares ``correlated_gbts`` in its data:</span>
 <span class="sd">        a tuple of considered-block-index tuples, one per joint group. Rotamer k</span>
