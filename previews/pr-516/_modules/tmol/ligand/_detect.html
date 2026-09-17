@@ -1333,9 +1333,7 @@
     <span class="p">]</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">unknown_starts</span><span class="p">:</span>
         <span class="k">return</span> <span class="p">[]</span>
-    <span class="n">heavy_counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">reduceat</span><span class="p">(</span>
-        <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">element</span><span class="p">,</span> <span class="p">(</span><span class="s2">"H"</span><span class="p">,</span> <span class="s2">"D"</span><span class="p">)),</span> <span class="n">residue_starts</span>
-    <span class="p">)</span>
+    <span class="n">heavy_counts</span> <span class="o">=</span> <span class="n">_resolved_heavy_counts</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">residue_starts</span><span class="p">)</span>
     <span class="n">seen</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
     <span class="n">results</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">NonStandardResidueInfo</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">polymer_names</span> <span class="o">=</span> <span class="n">polymer_entity_residues</span><span class="p">(</span><span class="n">atom_array</span><span class="p">)</span>
@@ -1412,23 +1410,41 @@
 
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_resolved_heavy_counts</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">residue_starts</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Heavy atoms each residue actually places, per residue.</span>
+
+<span class="sd">    An atom left at NaN is declared, not observed, so it cannot be what makes</span>
+<span class="sd">    one copy of a residue a fuller description of the chemistry than another.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">reduceat</span><span class="p">(</span>
+        <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">element</span><span class="p">,</span> <span class="p">(</span><span class="s2">"H"</span><span class="p">,</span> <span class="s2">"D"</span><span class="p">))</span>
+        <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">coord</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">residue_starts</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_representative_instance</span><span class="p">(</span>
     <span class="n">atom_array</span><span class="p">,</span> <span class="n">residue_starts</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">connection_atoms</span><span class="o">=</span><span class="p">(),</span> <span class="n">heavy_counts</span><span class="o">=</span><span class="kc">None</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">"""The copy of this residue to describe the type from.</span>
 
-<span class="sd">    Prefer copies carrying all connection atoms, then the fuller heavy-atom</span>
-<span class="sd">    inventory, then resolved coordinates. A fully observed internal sugar has</span>
-<span class="sd">    lost its anomeric leaving oxygen; using it ahead of a fuller terminal copy</span>
-<span class="sd">    would omit an atom the shared base type must describe.</span>
+<span class="sd">    Prefer copies carrying all connection atoms, then the fuller inventory of</span>
+<span class="sd">    *placed* heavy atoms, then resolved coordinates. A fully observed internal</span>
+<span class="sd">    sugar has lost its anomeric leaving oxygen; using it ahead of a fuller</span>
+<span class="sd">    terminal copy would omit an atom the shared base type must describe.</span>
+
+<span class="sd">    Counting placed atoms rather than declared ones is what keeps that</span>
+<span class="sd">    preference from inverting. A chain-terminal nucleotide declares the</span>
+<span class="sd">    phosphate its terminus does not carry and leaves it at NaN, which made it</span>
+<span class="sd">    outrank an internal copy that places everything it declares -- and then the</span>
+<span class="sd">    loop stopped before reaching that copy, so a file holding a complete</span>
+<span class="sd">    instance still had nothing to describe the residue from.</span>
 <span class="sd">    """</span>
     <span class="n">wanted</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">connection_atoms</span><span class="p">)</span>
 
     <span class="n">ends</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">residue_starts</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">array_length</span><span class="p">())</span>
     <span class="k">if</span> <span class="n">heavy_counts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">heavy_counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">reduceat</span><span class="p">(</span>
-            <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">element</span><span class="p">,</span> <span class="p">(</span><span class="s2">"H"</span><span class="p">,</span> <span class="s2">"D"</span><span class="p">)),</span> <span class="n">residue_starts</span>
-        <span class="p">)</span>
+        <span class="n">heavy_counts</span> <span class="o">=</span> <span class="n">_resolved_heavy_counts</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">residue_starts</span><span class="p">)</span>
     <span class="n">copies</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span>
         <span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">residue_starts</span><span class="p">]</span> <span class="o">==</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">start</span><span class="p">]</span>
     <span class="p">)</span>
