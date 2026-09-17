@@ -514,15 +514,31 @@ def _localize(center, neighbors, n_double, conformer, charge, charges, synthesiz
         )
         return int(used - neutral)
 
-    # A neighbour the file already calls an anion keeps that charge, so giving
-    # it the double bond as well overfills it. Among the rest, prefer one the
-    # double bond does not force positive: a hydroxyl and a phosphodiester's
-    # bridging oxygen would both have to become cations to take it, a carbonyl
-    # oxygen and an amidine's N-H would not. A guanidinium has no such option --
-    # every nitrogen is the cation in some Kekule form -- so there the geometry
-    # decides, as it did before any of this was filtered at all.
-    undeclared = [atom for atom in neighbors if not charges.get(atom.GetIdx(), 0)]
-    eligible = [a for a in undeclared if demanded_charge(a, 2) <= 0] or undeclared
+    def wants_double(atom):
+        """Whether the double bond belongs on this neighbour.
+
+        A neighbour the file charged wants it exactly when the double bond is
+        what that charge describes: a guanidinium's +1 nitrogen is the one
+        holding the double bond, while a carboxylate's -1 oxygen is the one
+        that is not. An uncharged neighbour wants it when taking it leaves it
+        neutral -- a carbonyl oxygen or an amidine's N-H would be, a hydroxyl
+        and a phosphodiester's bridging oxygen would have to become cations.
+        """
+        declared = charges.get(atom.GetIdx())
+        if declared is not None:
+            return declared == demanded_charge(atom, 2)
+        return demanded_charge(atom, 2) <= 0
+
+    # Fall back by degrees. A guanidinium the file left uncharged has no
+    # neutral option at all -- every nitrogen is the cation in some Kekule form
+    # -- so there the geometry decides among the undeclared, as it did before
+    # any of this was filtered. Falling back further, to a neighbour whose
+    # declared charge contradicts the bond it is being handed, leaves a
+    # molecule that will not sanitize: that input describes no arrangement, and
+    # failing there sends it to the fallback reader instead of quietly
+    # inventing a carbanion that balances the books.
+    undeclared = [atom for atom in neighbors if atom.GetIdx() not in charges]
+    eligible = [a for a in neighbors if wants_double(a)] or undeclared or neighbors
     n_double = min(n_double, len(eligible))
     doubled = set(atom.GetIdx() for atom in eligible[:n_double])
 
@@ -602,7 +618,12 @@ def _infer_oxyacid_bonds(mol, charges, delocalized_bonds, synthesized=None):
         # an amidinium's +1, which no arrangement of one double bond and charged
         # singles describes -- falls through to it rather than abandoning the
         # centre unlocalized.
-        declared = [a for a in neighbors if a.GetIdx() in charges]
+        # Only an anionic center can be read off the declared charges: where the
+        # anion is zero -- nitrogen -- "neutral" and "negative" name the same
+        # atoms, so the partition below cannot describe anything and the
+        # geometry path, which reads declared charges directly, is the one that
+        # can.
+        declared = [a for a in neighbors if a.GetIdx() in charges] if anion else []
         if declared:
             neutral = [a for a in neighbors if a.GetFormalCharge() == 0]
             negative = [a for a in neighbors if a.GetFormalCharge() == anion]
