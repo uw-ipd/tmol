@@ -608,6 +608,16 @@
             <span class="n">atom_types</span><span class="o">=</span><span class="n">chem_atom_types</span><span class="p">,</span>
             <span class="n">residues</span><span class="o">=</span><span class="n">unpatched_residue_subset</span><span class="p">,</span>
             <span class="n">variants</span><span class="o">=</span><span class="n">desired_variants</span><span class="p">,</span>
+            <span class="c1"># An alias whose target the subset kept still reads: dropping them</span>
+            <span class="c1"># left the atomworks reader unable to resolve MSE to MET while the</span>
+            <span class="c1"># default database resolved it, so the two disagreed on the same</span>
+            <span class="c1"># file with neither raising. CanonicalOrdering filters again on the</span>
+            <span class="c1"># residue types it ends up with.</span>
+            <span class="n">name3_aliases</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span>
+                <span class="n">alias</span>
+                <span class="k">for</span> <span class="n">alias</span> <span class="ow">in</span> <span class="n">chem_db</span><span class="o">.</span><span class="n">name3_aliases</span>
+                <span class="k">if</span> <span class="n">alias</span><span class="o">.</span><span class="n">read_as</span> <span class="ow">in</span> <span class="n">desired_names</span>
+            <span class="p">),</span>
         <span class="p">)</span>
         <span class="n">patched_chemical_db_subset</span> <span class="o">=</span> <span class="n">PatchedChemicalDatabase</span><span class="o">.</span><span class="n">from_chem_db</span><span class="p">(</span>
             <span class="n">chemical_db_subset</span>
