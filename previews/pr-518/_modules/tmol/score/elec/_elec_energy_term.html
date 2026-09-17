@@ -505,7 +505,15 @@
         <span class="c1"># One most-recent annotation per BT/PBT. A weak owner reference cannot</span>
         <span class="c1"># alias a reused id or keep old parameter databases alive.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">elec_database</span> <span class="o">=</span> <span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">elec</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_block_annotation_key</span> <span class="o">=</span> <span class="n">AnnotationKey</span><span class="o">.</span><span class="n">from_sources</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">elec_database</span><span class="p">)</span>
+        <span class="c1"># genbonded belongs here as well as in the packed key below: the intra</span>
+        <span class="c1"># count-pair rule now reads rosetta_typed, so two terms differing only in</span>
+        <span class="c1"># their genbonded database must not share a block annotation. Evolving</span>
+        <span class="c1"># genbonded leaves scoring.elec the same object, so an elec-only key</span>
+        <span class="c1"># cannot tell them apart and the second term silently inherits the</span>
+        <span class="c1"># first's 1-4 encoding.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_block_annotation_key</span> <span class="o">=</span> <span class="n">AnnotationKey</span><span class="o">.</span><span class="n">from_sources</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">elec_database</span><span class="p">,</span> <span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">genbonded</span>
+        <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_packed_annotation_key</span> <span class="o">=</span> <span class="n">AnnotationKey</span><span class="o">.</span><span class="n">from_sources</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">elec_database</span><span class="p">,</span>
             <span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">genbonded</span><span class="p">,</span>
