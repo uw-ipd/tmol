@@ -458,7 +458,8 @@ def test_cdk2_grid_docking_exact_finalization_and_dg_assembly():
         rtol=0.0,
         atol=0.0,
     )
-    assert torch.all(final.dG[:, 1:] >= final.dG[:, :-1])
+    # Default top_pose_metric="score" sorts candidates by exact complex energy.
+    assert torch.all(final.complex_energies[:, 1:] >= final.complex_energies[:, :-1])
     torch.testing.assert_close(result.ranked_energies, final.dG)
     torch.testing.assert_close(result.dH, final.dH)
     torch.testing.assert_close(result.TdS, final.TdS)

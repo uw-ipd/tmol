@@ -39,7 +39,8 @@ class DockingFinalization:
     """Exact-refined candidates and their RosettaVS ranking components.
 
     Candidate tensors have shape ``[1, top_k]`` and are sorted by the selected
-    metric (``dG`` by default) for the single input ligand. ``pose_stack`` uses
+    metric (exact complex energy by default, Rosetta's ``top_pose_metric="score"``)
+    for the single input ligand. ``pose_stack`` uses
     the same candidate order.
     """
 
@@ -502,7 +503,7 @@ def finalize_ga_docking(
         (1.0, 1e-5, 50),
     ),
     refine_cycles: int = 3,
-    top_pose_metric: str = "dG",
+    top_pose_metric: str = "score",
 ) -> DockingFinalization:
     """Soft-to-hard refine candidates and rank by dG or exact complex score.
 
