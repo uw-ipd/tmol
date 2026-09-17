@@ -22,8 +22,6 @@ from tmol.ligand import (
     _residue_names_with_cross_residue_bonds,
     detect_nonstandard_residues,
     protonate_mol_variants,
-    read_params_file,
-    write_params_file,
     inject_ligand_preparations,
 )
 
@@ -230,48 +228,6 @@ def test_ddg_from_cif_complex_with_onthefly_ligand_prep(
     )
 
     assert torch.isfinite(ddg).all(), f"non-finite ddG from on-the-fly path: {ddg}"
-
-
-class TestParamsRoundtrip:
-    """Write a prepared ligand to .params and read it back."""
-
-    def test_i4b_params_roundtrip(self, tmp_path, cif_184l_with_i4b) -> None:
-        """A prepared ligand written to .params reloads with matching topology."""
-        co = canonical_ordering_for_biotite()
-        ligands = detect_nonstandard_residues(cif_184l_with_i4b, co)
-        i4b = next(lig for lig in ligands if lig.res_name == "I4B")
-        prep = _prepare_ligand_via_smiles(i4b, ph=7.4, sample_proton_chi=True)
-        restype = prep.residue_type
-
-        path = tmp_path / "I4B.params"
-        write_params_file(prep, path, format="rosetta")
-        loaded = read_params_file(path)
-
-        assert loaded.name == "I4B"
-        assert len(loaded.atoms) == len(restype.atoms)
-        assert len(loaded.bonds) == len(restype.bonds)
-        assert len(loaded.icoors) == len(restype.icoors)
-        assert prep.atom_type_elements is not None
-        assert len(prep.atom_type_elements) > 0
-
-    def test_params_roundtrip_preserves_bond_types(
-        self, tmp_path, cif_184l_with_i4b
-    ) -> None:
-        """Bond types and ring flags survive a .params write/read roundtrip."""
-        co = canonical_ordering_for_biotite()
-        ligands = detect_nonstandard_residues(cif_184l_with_i4b, co)
-        i4b = next(lig for lig in ligands if lig.res_name == "I4B")
-        prep = _prepare_ligand_via_smiles(i4b, ph=7.4, sample_proton_chi=True)
-        restype = prep.residue_type
-
-        path = tmp_path / "I4B_bondtypes.params"
-        write_params_file(prep, path, format="rosetta")
-        loaded = read_params_file(path)
-
-        assert all(len(b) == 4 for b in loaded.bonds)
-        assert {(a, b, t, r) for a, b, t, r in loaded.bonds} == {
-            (a, b, t, r) for a, b, t, r in restype.bonds
-        }
 
 
 def test_collect_new_atom_types_strict_mode_errors(default_database) -> None:

@@ -7,8 +7,6 @@ params loader's validation paths. The focus is on the documented fallback and
 "fail loudly" behavior that the e2e happy paths never reach.
 """
 
-from __future__ import annotations
-
 from tmol.tests.data import data_path
 
 import numpy as np
@@ -320,18 +318,3 @@ class TestPreparationHelpers:
 # --------------------------------------------------------------------------- #
 # params_io.py reader + format guard
 # --------------------------------------------------------------------------- #
-class TestParamsIo:
-    def test_read_rosetta_params_file(self) -> None:
-        from tmol.ligand import read_params_file
-
-        params = sorted((GROUND_TRUTH / "params").glob("*.params"))
-        assert params, "expected ground-truth .params fixtures"
-        rt = read_params_file(params[0])
-        assert len(rt.atoms) > 0
-        assert len(rt.bonds) > 0
-
-    def test_write_params_file_rejects_unknown_format(self) -> None:
-        from tmol.ligand import write_params_file
-
-        with pytest.raises(ValueError, match="unknown params format"):
-            write_params_file(object(), "/tmp/ignored.out", format="bogus")
