@@ -28,6 +28,10 @@ SKIP_RESIDUES = frozenset({"HOH", "WAT", "DOD", "VRT"})
 _HALOGEN_ELEMENTS = frozenset({"F", "Cl", "Br", "I", "At", "Ts"})
 _SOURCE_FORMAL_CHARGE_ANNOTATION = "tmol_source_formal_charge"
 _FORMAL_CHARGE_SPECIFIED_ANNOTATION = "tmol_formal_charge_specified"
+# Valence a delocalized-oxyacid or amidine center fills, and the charge its
+# singly-bonded, unprotonated neighbors carry.
+_DELOCALIZED_VALENCE = {"P": 5, "S": 6, "C": 4, "N": 4}
+_DELOCALIZED_ANION = {"O": -1, "S": -1, "N": 0}
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -420,39 +424,102 @@ def _apply_mol2_metadata(mol, text):
     return declared_charges
 
 
-def _infer_oxyacid_bonds(mol, charges, delocalized_bonds):
-    """Localize delocalized oxyacid bonds from explicit oxygen charges."""
-    for center in mol.GetAtoms():
-        oxygens = [
-            atom
-            for atom in center.GetNeighbors()
-            if atom.GetAtomicNum() == 8
-            and atom.GetDegree() == 1
-            and atom.GetProp("_TriposAtomType") == "O.co2"
-            and frozenset((center.GetIdx(), atom.GetIdx())) in delocalized_bonds
-        ]
-        negative = [a for a in oxygens if a.GetFormalCharge() == -1]
-        neutral = [a for a in oxygens if a.GetFormalCharge() == 0]
-        if (
-            center.GetFormalCharge() != 0
-            or len(neutral) != 1
-            or len(negative) + 1 != len(oxygens)
-            or not negative
-            or any(a.GetIdx() not in charges for a in negative)
-        ):
+def _delocalized_neighbors(mol, center, delocalized_bonds):
+    """Acyclic neighbors sharing a source ``ar`` bond with ``center`` only."""
+    ring_info = mol.GetRingInfo()
+    if ring_info.NumAtomRings(center.GetIdx()):
+        return []
+    neighbors = []
+    for atom in center.GetNeighbors():
+        pair = frozenset((center.GetIdx(), atom.GetIdx()))
+        if pair not in delocalized_bonds:
             continue
-        # Acyclic delocalization is not aromaticity. Explicit source bond orders
-        # and ring bonds remain authoritative and are never changed here.
-        for oxygen in oxygens:
-            bond = mol.GetBondBetweenAtoms(center.GetIdx(), oxygen.GetIdx())
-            bond.SetBondType(
-                Chem.BondType.DOUBLE
-                if oxygen.GetFormalCharge() == 0
-                else Chem.BondType.SINGLE
-            )
-            bond.SetIsAromatic(False)
-            oxygen.SetIsAromatic(False)
-        center.SetIsAromatic(False)
+        if ring_info.NumAtomRings(atom.GetIdx()):
+            return []
+        if any(
+            frozenset((bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()))
+            in delocalized_bonds
+            and center.GetIdx() not in (bond.GetBeginAtomIdx(), bond.GetEndAtomIdx())
+            for bond in atom.GetBonds()
+        ):
+            return []
+        neighbors.append(atom)
+    return neighbors
+
+
+def _localize(center, neighbors, n_double, conformer, charge):
+    """Write one X=Y plus single bonds, charging the unprotonated remainder."""
+    if conformer is not None:
+        origin = np.asarray(conformer.GetAtomPosition(center.GetIdx()))
+        neighbors = sorted(
+            neighbors,
+            key=lambda a: float(
+                np.linalg.norm(
+                    np.asarray(conformer.GetAtomPosition(a.GetIdx())) - origin
+                )
+            ),
+        )
+    center.SetIsAromatic(False)
+    center.SetFormalCharge(0)
+    for rank, atom in enumerate(neighbors):
+        bond = center.GetOwningMol().GetBondBetweenAtoms(center.GetIdx(), atom.GetIdx())
+        bond.SetIsAromatic(False)
+        atom.SetIsAromatic(False)
+        double = rank < n_double
+        bond.SetBondType(Chem.BondType.DOUBLE if double else Chem.BondType.SINGLE)
+        if not atom.GetTotalNumHs() and not any(
+            n.GetAtomicNum() == 1 for n in atom.GetNeighbors()
+        ):
+            atom.SetFormalCharge(0 if double else charge)
+
+
+def _infer_oxyacid_bonds(mol, charges, delocalized_bonds):
+    """Localize acyclic delocalized bonds the source writes as Tripos ``ar``.
+
+    Tripos ``ar`` off a ring means delocalization, not aromaticity: a
+    phosphonate, sulfonate, carboxylate or amidine drawn this way has no
+    Kekule structure and cannot be sanitized. Rewrite each such center as one
+    double bond plus charged single bonds. Explicit oxygen charges decide when
+    the file supplies them; otherwise the double bond is the shortest bond and
+    the count comes from the center's valence, which keeps an ester or other
+    substituent on the center accounted for. A neighbor holding a hydrogen is a
+    real hydroxyl and keeps its bond and charge.
+    """
+    # Ring membership decides what may be rewritten, and RingInfo is not
+    # populated until something perceives rings; the mol here is unsanitized.
+    mol.UpdatePropertyCache(strict=False)
+    Chem.FastFindRings(mol)
+    for center in mol.GetAtoms():
+        neighbors = _delocalized_neighbors(mol, center, delocalized_bonds)
+        if len(neighbors) < 2 or len({a.GetSymbol() for a in neighbors}) != 1:
+            continue
+        anion = _DELOCALIZED_ANION.get(neighbors[0].GetSymbol())
+        if anion is None:
+            continue
+
+        declared = [a for a in neighbors if a.GetIdx() in charges]
+        if declared:
+            neutral = [a for a in neighbors if a.GetFormalCharge() == 0]
+            negative = [a for a in neighbors if a.GetFormalCharge() == -1]
+            if len(neutral) != 1 or len(negative) + 1 != len(neighbors):
+                continue
+            _localize(center, neutral + negative, 1, None, anion)
+            continue
+
+        valence = _DELOCALIZED_VALENCE.get(center.GetSymbol())
+        if valence is None:
+            continue
+        spent = sum(
+            bond.GetBondTypeAsDouble()
+            for bond in center.GetBonds()
+            if frozenset((bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()))
+            not in delocalized_bonds
+        )
+        n_double = int(valence - spent - len(neighbors))
+        if not 0 < n_double <= len(neighbors):
+            continue
+        conformer = mol.GetConformer() if mol.GetNumConformers() else None
+        _localize(center, neighbors, n_double, conformer, anion)
     mol.UpdatePropertyCache(strict=False)
 
 
