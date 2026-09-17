@@ -489,6 +489,13 @@
         <span class="k">if</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">d</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">d</span><span class="p">[</span><span class="n">f</span><span class="p">]:</span>
             <span class="k">del</span> <span class="n">d</span><span class="p">[</span><span class="n">f</span><span class="p">]</span>
 
+    <span class="c1"># A connection's bond is not in a ring unless a cut through one made it so.</span>
+    <span class="c1"># Emitting the default on every connection of every file buys nothing; the</span>
+    <span class="c1"># reader supplies it.</span>
+    <span class="k">for</span> <span class="n">conn</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"connections"</span><span class="p">,</span> <span class="p">[]):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">conn</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"in_ring"</span><span class="p">):</span>
+            <span class="n">conn</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"in_ring"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
     <span class="c1"># Trim ``UnresolvedAtom`` defaults inside torsion entries and emit them</span>
     <span class="c1"># flow-style (``{atom: C3}``) — Frank's references keep only ``atom``.</span>
     <span class="k">for</span> <span class="n">tor</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"torsions"</span><span class="p">,</span> <span class="p">[]):</span>

@@ -598,6 +598,12 @@
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">atom</span><span class="p">:</span> <span class="nb">str</span>
     <span class="nb">type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"SINGLE"</span>
+    <span class="c1"># Whether the bond this connection completes closes a ring. Generic bonded</span>
+    <span class="c1"># lookup bins a bond by order *and* ring membership, and the two sets are</span>
+    <span class="c1"># disjoint, so a connection that defaults to False can never match a rule</span>
+    <span class="c1"># written for a ring bond. Only a cut that splits a ring sets this: a</span>
+    <span class="c1"># polymer up/down bond and an ordinary attachment do not close one.</span>
+    <span class="n">in_ring</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 
 
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
