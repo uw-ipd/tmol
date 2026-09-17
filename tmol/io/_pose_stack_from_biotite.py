@@ -413,7 +413,7 @@ def build_context_from_biotite(
     strict_atom_types: bool = False,
     strict_ligands: bool = True,
     ligand_params_files: list[str] | None = None,
-    sample_proton_chi: bool = True,
+    ligand_seed: int | None = None,
 ) -> PoseBuildContext:
     """Build the structure-independent construction context.
 
@@ -444,11 +444,7 @@ def build_context_from_biotite(
             used when prepare_ligands=True.
         ligand_params_files: Optional list of tmol YAML params file paths.
             Residues defined in these files skip the RDKit/OB pipeline.
-        sample_proton_chi: If True, prepared ligands emit PROTON_CHI
-            ``chi_samples`` for polar-hydrogen rotations (driving OptHSampler).
-            Enabled by default; pass False to suppress proton-chi samples. Only
-            used when prepare_ligands=True.
-
+        ligand_seed: Fixed RNG seed for each prepared ligand conformer.
     Returns:
         PoseBuildContext containing canonical ordering, packed block
         types, parameter database, and residue type set.
@@ -467,7 +463,7 @@ def build_context_from_biotite(
             ph=ligand_ph,
             strict_atom_types=strict_atom_types,
             params_files=ligand_params_files,
-            sample_proton_chi=sample_proton_chi,
+            seed=ligand_seed,
             strict_ligands=strict_ligands,
             return_fragment_definitions=True,
         )
@@ -515,7 +511,7 @@ def pose_stack_from_biotite(  # noqa: C901
     strict_atom_types: bool = False,
     strict_ligands: bool = True,
     ligand_params_files: list[str] | None = None,
-    sample_proton_chi: bool = True,
+    ligand_seed: int | None = None,
     return_context: bool = False,
     context: PoseBuildContext | None = None,
     atom37_coords: torch.Tensor | None = None,
@@ -560,10 +556,7 @@ def pose_stack_from_biotite(  # noqa: C901
             be prepared and registered, instead of silently dropping it. Pass
             False to warn-and-skip. Only used when prepare_ligands=True.
         ligand_params_files: Optional list of tmol YAML params file paths.
-        sample_proton_chi: If True, prepared ligands emit PROTON_CHI
-            ``chi_samples`` so OptHSampler samples ligand polar-H rotamers
-            (enabled by default; pass False to disable). Only used when
-            prepare_ligands=True.
+        ligand_seed: Fixed RNG seed for each prepared ligand conformer.
         return_context: If True, return ``(pose_stack, PoseBuildContext)``.
         context: Reusable context from ``build_context_from_biotite``. It must
             be on ``torch_device`` and is mutually exclusive with ``param_db``
@@ -617,7 +610,7 @@ def pose_stack_from_biotite(  # noqa: C901
             strict_atom_types=strict_atom_types,
             strict_ligands=strict_ligands,
             ligand_params_files=ligand_params_files,
-            sample_proton_chi=sample_proton_chi,
+            ligand_seed=ligand_seed,
         )
 
     fragment_mapping = None

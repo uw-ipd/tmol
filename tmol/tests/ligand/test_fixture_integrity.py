@@ -17,7 +17,7 @@ from tmol.tests.ligand import (
 _GROUND_TRUTH = data_path("ligand_ground_truth")
 _ORPHAN_MOL2 = _GROUND_TRUTH / "ref1.mol2"
 _ORPHAN_PARAMS = _GROUND_TRUTH / "ref1.params"
-_DUD80 = _GROUND_TRUTH / "dud80"
+_DUD80 = data_path("ligand_test", "ligand_ground_truth")
 
 # Ethane: heavy C1, C2; six hydrogens. The mol2 keeps generic H names while the
 # params re-derive them by attachment (HC*), exactly as mol2genparams does.
@@ -126,10 +126,6 @@ def test_residue_name_mismatch_is_rejected(tmp_path) -> None:
     assert "residue name" in str(exc.value)
 
 
-@pytest.mark.skipif(
-    not (_DUD80 / "params" / "ace_1.params").exists(),
-    reason="DUD80 dataset not present (git-ignored); paired-fixture check skipped",
-)
 def test_dud80_ace_1_is_a_valid_pair() -> None:
     """The DUD80 ace_1 mol2/params files form a valid pair."""
     mol2 = _DUD80 / "mol2" / "ace_1.mol2"
@@ -167,12 +163,14 @@ def test_charge_model_no_charges_fails_auto(tmp_path) -> None:
     with pytest.raises(FixtureMismatch) as exc:
         require_paired_fixture(mol2, params, expected_charge_model="auto")
     assert "charge model" in str(exc.value)
+    from tmol.ligand import nonstandard_residue_info_from_mol2, prepare_single_ligand
+
+    info = nonstandard_residue_info_from_mol2(mol2)
+    assert info.partial_charges is None and not info.skip_protonation
+    with pytest.raises(ValueError, match="authoritative partial charges"):
+        prepare_single_ligand(info)
 
 
-@pytest.mark.skipif(
-    not (_DUD80 / "params" / "ace_1.params").exists(),
-    reason="DUD80 dataset not present (git-ignored)",
-)
 def test_dud80_ace_1_charge_model_enforced() -> None:
     """The DUD80 ace_1 pair enforces its declared mmff94 charge model."""
     mol2 = _DUD80 / "mol2" / "ace_1.mol2"

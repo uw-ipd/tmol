@@ -35,6 +35,7 @@ class FragmentConnection:
     atom_name: str
     partner_atom_name: str
     bond_type: str
+    in_ring: bool = False
 
 
 @dataclass(frozen=True)
@@ -483,8 +484,15 @@ def build_ligand_fragment_definition(  # noqa: C901
         fa, fb = atom_to_fragment[a], atom_to_fragment[b]
         name_a = f"conn_{cut_index}_{fa}_to_{fb}"
         name_b = f"conn_{cut_index}_{fb}_to_{fa}"
-        conn_a = FragmentConnection(fa, fb, name_a, name_b, a, b, _bond_type_name(bond))
-        conn_b = FragmentConnection(fb, fa, name_b, name_a, b, a, _bond_type_name(bond))
+        # A cut through a ring leaves a connection whose bond is still a ring
+        # bond; only the residue it belonged to has been split.
+        in_ring = bool(bond[3]) if len(bond) > 3 else False
+        conn_a = FragmentConnection(
+            fa, fb, name_a, name_b, a, b, _bond_type_name(bond), in_ring
+        )
+        conn_b = FragmentConnection(
+            fb, fa, name_b, name_a, b, a, _bond_type_name(bond), in_ring
+        )
         connections_by_fragment[fa].append(conn_a)
         connections_by_fragment[fb].append(conn_b)
         directed_connections.extend((conn_a, conn_b))
@@ -576,7 +584,10 @@ def build_ligand_fragment_definition(  # noqa: C901
             bonds=local_bonds,
             connections=tuple(
                 Connection(
-                    name=conn.connection_name, atom=conn.atom_name, type=conn.bond_type
+                    name=conn.connection_name,
+                    atom=conn.atom_name,
+                    type=conn.bond_type,
+                    in_ring=conn.in_ring,
                 )
                 for conn in connections_by_fragment[fragment_id]
             ),
@@ -737,6 +748,21 @@ def expand_fragmented_ligands(  # noqa: C901
         ),
     )
     expanded.set_annotation("res_id", np.asarray(output_residue_labels, dtype=np.int32))
+
+    # Cut bonds belong to the prepared fragment mapping and are installed by
+    # apply_fragment_connections. Leaving them in the input bond table makes
+    # canonical conversion request conjugation patches for the same cuts.
+    # Preserve all bonds within fragments and between original residues.
+    if expanded.bonds is not None:
+        original_residue = np.repeat(
+            np.arange(len(residue_starts)), residue_ends - residue_starts
+        )[atom_order]
+        bonds = expanded.bonds.as_array()
+        a, b = bonds[:, 0], bonds[:, 1]
+        is_cut = (original_residue[a] == original_residue[b]) & (
+            expanded.res_id[a] != expanded.res_id[b]
+        )
+        expanded.bonds = struc.BondList(expanded.array_length(), bonds[~is_cut])
 
     n_poses = len(structure) if isinstance(structure, struc.AtomArrayStack) else 1
     blocks = tuple(
