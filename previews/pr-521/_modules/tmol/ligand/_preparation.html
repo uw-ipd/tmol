@@ -1710,16 +1710,29 @@
                     <span class="ow">and</span> <span class="n">count</span> <span class="o">&gt;</span> <span class="n">base_hydrogens</span>
                 <span class="p">)</span>
                 <span class="n">patch_source</span> <span class="o">=</span> <span class="n">terminal_type</span> <span class="k">if</span> <span class="n">is_terminal_amine</span> <span class="k">else</span> <span class="n">residue_type</span>
-                <span class="n">patch</span> <span class="o">=</span> <span class="n">conjugation_patch</span><span class="p">(</span>
-                    <span class="n">patch_source</span><span class="p">,</span>
-                    <span class="n">atom</span><span class="p">,</span>
-                    <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">,</span>
-                    <span class="n">distance</span><span class="p">,</span>
-                    <span class="n">n_hydrogens</span><span class="o">=</span><span class="n">count</span><span class="p">,</span>
-                    <span class="n">bond_type</span><span class="o">=</span><span class="n">order</span><span class="p">,</span>
-                    <span class="n">heavy_leaving</span><span class="o">=</span><span class="n">leaving</span><span class="p">,</span>
-                    <span class="n">open_geometry</span><span class="o">=</span><span class="n">geometry</span><span class="p">,</span>
-                <span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">patch</span> <span class="o">=</span> <span class="n">conjugation_patch</span><span class="p">(</span>
+                        <span class="n">patch_source</span><span class="p">,</span>
+                        <span class="n">atom</span><span class="p">,</span>
+                        <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">,</span>
+                        <span class="n">distance</span><span class="p">,</span>
+                        <span class="n">n_hydrogens</span><span class="o">=</span><span class="n">count</span><span class="p">,</span>
+                        <span class="n">bond_type</span><span class="o">=</span><span class="n">order</span><span class="p">,</span>
+                        <span class="n">heavy_leaving</span><span class="o">=</span><span class="n">leaving</span><span class="p">,</span>
+                        <span class="n">open_geometry</span><span class="o">=</span><span class="n">geometry</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+                    <span class="c1"># A base type of this class whose site cannot be framed</span>
+                    <span class="c1"># cannot take the attachment at all: CYD is the</span>
+                    <span class="c1"># disulfide-bonded form of cysteine, so a ligand at SG is on</span>
+                    <span class="c1"># CYS. Its siblings are still patched.</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="s2">"No attachment patch for </span><span class="si">%s</span><span class="s2">.</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span>
+                        <span class="n">residue_type</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                        <span class="n">atom</span><span class="p">,</span>
+                        <span class="n">error</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="k">continue</span>
                 <span class="k">if</span> <span class="n">patch</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="k">continue</span>
                 <span class="k">if</span> <span class="n">is_terminal_amine</span><span class="p">:</span>
