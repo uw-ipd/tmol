@@ -14,6 +14,11 @@ def test_identify_sidechain_atoms_from_roots(default_database):
     construct_single_residue_kinforest(leu_rt)
 
     sc_ats = bfs_sidechain_atoms(leu_rt, [leu_rt.atom_to_idx["CB"]])
+    for roots in (("CB", "CG", "CB"), ("CG", "CB", "CD1")):
+        numpy.testing.assert_array_equal(
+            bfs_sidechain_atoms(leu_rt, [leu_rt.atom_to_idx[r] for r in roots]),
+            sc_ats,
+        )
     atom_names = numpy.array([at.name for at in leu_rt.atoms], dtype=str)
     sc_ats = set(atom_names[sc_ats != 0])
     gold_sc_ats = [

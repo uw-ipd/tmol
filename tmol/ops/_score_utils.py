@@ -4,8 +4,11 @@ from tmol.database import ParameterDatabase
 from tmol.pose import PoseStack
 from tmol.score import ScoreFunction, beta2016_score_function
 from tmol.pack import pack_rotamers, PackerTask, PackerPalette
-from tmol.pack.rotamer import IncludeCurrentSampler, FixedAAChiSampler
-from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
+from tmol.pack.rotamer import (
+    ConjugatedSCSampler,
+    IncludeCurrentSampler,
+    SidechainSampler,
+)
 from tmol.optimization import run_cart_min
 from tmol.types import Tensor
 
@@ -167,12 +170,12 @@ def calculate_block_pair_ddg(
 
         if database is None:
             database = getattr(sfxn, "_param_db", None)
-        dun_sampler = create_dunbrack_sampler_from_database(database, pose_stack.device)
-
         task = PackerTask(pose_stack, palette)
-        fixed_sampler = FixedAAChiSampler()
-        task.add_conformer_sampler(dun_sampler)
-        task.add_conformer_sampler(fixed_sampler)
+        task.add_conformer_sampler(
+            ConjugatedSCSampler(
+                SidechainSampler.from_database(database, pose_stack.device)
+            )
+        )
         task.add_conformer_sampler(IncludeCurrentSampler())
         task.restrict_to_repacking()
 
