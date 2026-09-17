@@ -32,9 +32,9 @@ _FORMAL_CHARGE_SPECIFIED_ANNOTATION = "tmol_formal_charge_specified"
 # singly-bonded, unprotonated neighbors carry.
 _DELOCALIZED_VALENCE = {"P": 5, "S": 6, "C": 4, "N": 4}
 _DELOCALIZED_ANION = {"O": -1, "S": -1, "N": 0}
-# Bonds a neutral center of each element carries, for setting its charge from
-# what the rewritten bonds actually use.
-_CENTER_NEUTRAL_VALENCE = {"N": 3, "P": 5, "S": 6, "C": 4}
+# Bonds a neutral atom of each element carries, for setting a charge from what
+# the rewritten bonds actually use and for asking what a neighbour has room for.
+_NEUTRAL_VALENCE = {"N": 3, "O": 2, "P": 5, "S": 6, "C": 4}
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -481,28 +481,48 @@ def _localize(center, neighbors, n_double, conformer, charge, charges, synthesiz
         )
     center.SetIsAromatic(False)
 
-    def terminal(atom):
-        """Whether this neighbour hangs off the center and carries no hydrogen.
+    def protonated(atom):
+        """Whether the file wrote a hydrogen of this neighbour's own.
 
-        A bridging oxygen -- a phosphodiester ester, say -- keeps a second heavy
-        bond, and a hydroxyl keeps its proton. Neither can take the double bond
-        or the anion: doing so overfills it, and the molecule stops sanitizing.
+        Only an explicit one counts. ``GetTotalNumHs`` also reports the implicit
+        hydrogens RDKit fills in from the delocalized bonds still on the atom --
+        the very bonds this routine is replacing -- so believing it makes a
+        heavy-atom-only file look protonated and charges it as if it were.
         """
-        if atom.GetTotalNumHs() or any(
-            n.GetAtomicNum() == 1 for n in atom.GetNeighbors()
-        ):
-            return False
-        heavy = [n for n in atom.GetNeighbors() if n.GetAtomicNum() != 1]
-        return len(heavy) <= 1
+        return any(n.GetAtomicNum() == 1 for n in atom.GetNeighbors())
+
+    def terminal(atom):
+        """Whether this neighbour hangs off the center by its only heavy bond."""
+        return sum(1 for n in atom.GetNeighbors() if n.GetAtomicNum() != 1) <= 1
+
+    def demanded_charge(atom, order):
+        """The charge this neighbour's bonds demand at that order to the center.
+
+        Counts what the file drew -- explicit hydrogens included, since they are
+        bonds. Exact for a protonated neighbour; for a heavy-atom-only one the
+        missing hydrogens make it a lower bound, which is all the caller asks of
+        it there.
+        """
+        neutral = _NEUTRAL_VALENCE.get(atom.GetSymbol())
+        if neutral is None:
+            return 0
+        used = order + sum(
+            bond.GetBondTypeAsDouble()
+            for bond in atom.GetBonds()
+            if bond.GetOtherAtomIdx(atom.GetIdx()) != center.GetIdx()
+            and bond.GetBondType() != Chem.BondType.AROMATIC
+        )
+        return int(used - neutral)
 
     # A neighbour the file already calls an anion keeps that charge, so giving
-    # it the double bond as well overfills it. The double goes to one the file
-    # said nothing about.
-    eligible = [
-        atom
-        for atom in neighbors
-        if terminal(atom) and not charges.get(atom.GetIdx(), 0)
-    ]
+    # it the double bond as well overfills it. Among the rest, prefer one the
+    # double bond does not force positive: a hydroxyl and a phosphodiester's
+    # bridging oxygen would both have to become cations to take it, a carbonyl
+    # oxygen and an amidine's N-H would not. A guanidinium has no such option --
+    # every nitrogen is the cation in some Kekule form -- so there the geometry
+    # decides, as it did before any of this was filtered at all.
+    undeclared = [atom for atom in neighbors if not charges.get(atom.GetIdx(), 0)]
+    eligible = [a for a in undeclared if demanded_charge(a, 2) <= 0] or undeclared
     n_double = min(n_double, len(eligible))
     doubled = set(atom.GetIdx() for atom in eligible[:n_double])
 
@@ -516,14 +536,19 @@ def _localize(center, neighbors, n_double, conformer, charge, charges, synthesiz
             # The file said what this one is; recording it again as synthesized
             # would double it in the net the caller checks against.
             continue
-        if terminal(atom):
-            assigned = 0 if double else charge
-        else:
+        if protonated(atom):
+            # Its hydrogens are on the page, so its bonds settle its charge:
+            # neutral for a hydroxyl or an amide nitrogen, +1 for the nitrogen
+            # a guanidinium's double bond lands on.
+            assigned = demanded_charge(atom, 2 if double else 1)
+        elif double or not terminal(atom):
             # A bridging neighbour is an ordinary two-bonded atom once the bond
             # orders are explicit. Whatever charge aromatic perception guessed
             # for it -- RDKit warns it is guessing when the file has no explicit
             # hydrogens -- describes a molecule that no longer exists.
             assigned = 0
+        else:
+            assigned = charge
         atom.SetFormalCharge(assigned)
         synthesized[atom.GetIdx()] = assigned
 
@@ -535,7 +560,7 @@ def _localize(center, neighbors, n_double, conformer, charge, charges, synthesiz
             sum(bond.GetBondTypeAsDouble() for bond in center.GetBonds())
             + center.GetTotalNumHs()
         )
-        neutral = _CENTER_NEUTRAL_VALENCE.get(center.GetSymbol())
+        neutral = _NEUTRAL_VALENCE.get(center.GetSymbol())
         assigned = int(used - neutral) if neutral is not None else 0
         center.SetFormalCharge(assigned)
         if assigned:

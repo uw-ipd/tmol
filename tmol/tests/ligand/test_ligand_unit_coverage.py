@@ -197,6 +197,74 @@ class TestDetectHelpers:
         ]
         assert sorted(orders) == [1.0, 1.0, 2.0]
 
+    @pytest.mark.parametrize(
+        "neighbors, center, substituents, expected",
+        [
+            (((7, 1, 0), (7, 2, 0)), 6, 1, "CC(=N)N"),
+            (((7, 0, 0), (7, 0, 0)), 6, 1, "CC(=N)N"),
+            (((7, 1, 0), (7, 2, 0), (7, 2, 0)), 6, 0, "N=C(N)N"),
+            (((7, 1, 1), (7, 2, 0), (7, 2, 0)), 6, 0, "C[NH+]=C(N)N"),
+            (((7, 2, 0), (7, 1, 1), (7, 2, 0)), 6, 0, "CNC(N)=[NH2+]"),
+            (((8, 0, 0), (8, 1, 0)), 6, 1, "CC(=O)O"),
+            (((8, 1, 0), (8, 0, 0)), 6, 1, "CC(=O)O"),
+            (((8, 0, 0), (8, 0, 0)), 6, 1, "CC(=O)[O-]"),
+            (((8, 0, 0), (8, 0, 0), (8, 0, 1)), 15, 1, "COP(C)(=O)[O-]"),
+            (((8, 0, 0), (8, 0, 0)), 7, 1, "C[N+](=O)[O-]"),
+        ],
+        ids=[
+            "amidine",
+            "amidine_without_hydrogens",
+            "guanidine",
+            "guanidinium_substituted_nitrogen_nearest",
+            "guanidinium_substituted_nitrogen_second",
+            "carboxylic_acid",
+            "carboxylic_acid_hydroxyl_nearest",
+            "carboxylate",
+            "phosphonate_ester",
+            "nitro",
+        ],
+    )
+    def test_localization_places_the_double_bond_without_reprotonating(
+        self, neighbors, center, substituents, expected
+    ) -> None:
+        """The double bond goes where it does not force a neighbour positive.
+
+        A hydroxyl oxygen and a phosphodiester's bridging oxygen would both have
+        to become cations to take it, so they keep their single bond. A
+        guanidinium has no such option -- every nitrogen is the cation in some
+        Kekule form -- and refusing it there left the center a bond short: a
+        carbanion whose nitrogens come back with an extra hydrogen each.
+        """
+        from tmol.ligand._detect import _infer_oxyacid_bonds
+
+        mol = Chem.RWMol()
+        center_index = mol.AddAtom(Chem.Atom(center))
+        delocalized_bonds = set()
+        # Only the delocalized neighbours' distances matter: among the ones that
+        # may take it, the double bond goes to the nearest.
+        coordinates = {center_index: (0.0, 0.0, 0.0)}
+        for rank, (atomic_number, n_hydrogens, n_substituents) in enumerate(neighbors):
+            index = mol.AddAtom(Chem.Atom(atomic_number))
+            coordinates[index] = (1.25 + 0.2 * rank, 0.0, 0.0)
+            mol.AddBond(center_index, index, Chem.BondType.AROMATIC)
+            delocalized_bonds.add(frozenset((center_index, index)))
+            for _ in range(n_hydrogens):
+                mol.AddBond(index, mol.AddAtom(Chem.Atom(1)), Chem.BondType.SINGLE)
+            for _ in range(n_substituents):
+                mol.AddBond(index, mol.AddAtom(Chem.Atom(6)), Chem.BondType.SINGLE)
+        for _ in range(substituents):
+            mol.AddBond(center_index, mol.AddAtom(Chem.Atom(6)), Chem.BondType.SINGLE)
+        conformer = Chem.Conformer(mol.GetNumAtoms())
+        for index in range(mol.GetNumAtoms()):
+            conformer.SetAtomPosition(index, coordinates.get(index, (0.0, 0.0, 5.0)))
+        mol.AddConformer(conformer)
+
+        molecule = mol.GetMol()
+        _infer_oxyacid_bonds(molecule, {}, delocalized_bonds)
+
+        Chem.SanitizeMol(molecule)
+        assert Chem.MolToSmiles(Chem.RemoveHs(molecule)) == expected
+
     def test_authoritative_neutralized_charges_need_not_match_formal_charge(
         self,
     ) -> None:
