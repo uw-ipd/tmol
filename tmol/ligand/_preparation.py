@@ -578,7 +578,7 @@ def prepare_ligands(  # noqa: C901
             _skip_or_raise(strict_ligands, reason)
             continue
 
-        logger.info("Preparing %s (CCD type: %s)", lig.res_name, lig.ccd_type)
+        logger.info("Preparing %s (CCD type: %s)", lig.res_name, lig.component_type)
         try:
             prep = _prepare_ligand_via_smiles(
                 lig, ph=ph, sample_proton_chi=sample_proton_chi
@@ -679,7 +679,7 @@ def _ligand_info_from_cif(
 
     return NonStandardResidueInfo(
         res_name=resolved,
-        ccd_type=get_chem_comp_type(resolved) or "UNKNOWN",
+        component_type=get_chem_comp_type(resolved) or "UNKNOWN",
         atom_names=tuple(atom_names),
         elements=tuple(str(e) for e in arr.element),
         coords=arr.coord.copy(),

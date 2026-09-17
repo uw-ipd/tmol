@@ -55,9 +55,10 @@ jobs:
 
       - name: build CPU-only package
         env:
+          ATOMWORKS_DEPLOY_KEY: ${{ secrets.ATOMWORKS_DEPLOY_KEY }}
           MAX_JOBS: 4
           TMOL_INSTALL_EXTRAS: dev,docs
-        run: .github/ci/build_cpu_package.sh
+        run: .github/ci/with_atomworks_access.sh .github/ci/build_cpu_package.sh
 
       - name: execute tutorials and build docs
         run: .github/ci/run_docs_cpu_work.sh

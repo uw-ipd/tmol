@@ -24,8 +24,14 @@ classifiers = [
 version = "0.1.56"
 
 dependencies = [
-    # Core ML framework
-    "torch>=2.5",
+    # Core ML framework.
+    # 2.8 is the oldest torch any published wheel is built for (see
+    # scripts/release_matrix.py); nothing below it is built or tested.
+    # A wheel is additionally bound to the exact minor it was compiled
+    # against -- that pairing is carried in the local version tag
+    # (+cu130torch2.13) and is what tmol_build_backend matches on when
+    # it fetches a prebuilt wheel.
+    "torch>=2.8",
     "numpy>=1.24",
     "scipy>=1.11",
     # Data structures & serialization
@@ -58,11 +64,14 @@ dependencies = [
     "astor>=0.8",
     # Structure I/O
     "biotite>=1.4.0",
+    "atomworks @ git+ssh://git@github.com/baker-laboratory/atomworks-dev.git@f85103f77cb5e49b6bf0b50de6f14880420dc1cc",
     # Ligand preparation
     "rdkit>=2024.3",
 ]
 
 [project.optional-dependencies]
+# Compatibility extra: shared chemistry and parsing are core dependencies.
+atomworks = []
 # OpenBabel powers the SMILES -> 3D mol2 ligand-preparation path (conformer
 # search + MMFF94 charges). The CIF/mol2 paths use RDKit and do not need it;
 # it is imported lazily by ligand preparation, so it stays an
@@ -129,7 +138,7 @@ Releases = "https://github.com/uw-ipd/tmol/releases"
 [build-system]
 requires = [
     "scikit-build-core>=0.10",
-    "torch>=2.5",
+    "torch>=2.8",
     "pybind11>=2.12",
     "ninja",
     "packaging",

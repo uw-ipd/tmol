@@ -88,8 +88,9 @@ jobs:
 
       - name: build CPU-only package
         env:
+          ATOMWORKS_DEPLOY_KEY: ${{ secrets.ATOMWORKS_DEPLOY_KEY }}
           MAX_JOBS: ${{ matrix.build_workers }}
-        run: .github/ci/build_cpu_package.sh
+        run: .github/ci/with_atomworks_access.sh .github/ci/build_cpu_package.sh
 
       - name: compile representative CPU JIT extension
         if: matrix.platform == 'linux-x86_64'
@@ -165,6 +166,8 @@ jobs:
 
       - name: build and test
         env:
+          # Apptainer forwards this environment variable through --containall.
+          APPTAINERENV_ATOMWORKS_DEPLOY_KEY: ${{ secrets.ATOMWORKS_DEPLOY_KEY }}
           GPU_ALLOC_SENTINEL: ${{ github.workspace }}/.gpu_alloc_started
         run: |
           rm -f "$GPU_ALLOC_SENTINEL"
