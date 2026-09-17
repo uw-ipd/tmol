@@ -495,7 +495,14 @@ def _localize(center, neighbors, n_double, conformer, charge, charges, synthesiz
         heavy = [n for n in atom.GetNeighbors() if n.GetAtomicNum() != 1]
         return len(heavy) <= 1
 
-    eligible = [atom for atom in neighbors if terminal(atom)]
+    # A neighbour the file already calls an anion keeps that charge, so giving
+    # it the double bond as well overfills it. The double goes to one the file
+    # said nothing about.
+    eligible = [
+        atom
+        for atom in neighbors
+        if terminal(atom) and not charges.get(atom.GetIdx(), 0)
+    ]
     n_double = min(n_double, len(eligible))
     doubled = set(atom.GetIdx() for atom in eligible[:n_double])
 
@@ -505,10 +512,12 @@ def _localize(center, neighbors, n_double, conformer, charge, charges, synthesiz
         atom.SetIsAromatic(False)
         double = atom.GetIdx() in doubled
         bond.SetBondType(Chem.BondType.DOUBLE if double else Chem.BondType.SINGLE)
+        if atom.GetIdx() in charges:
+            # The file said what this one is; recording it again as synthesized
+            # would double it in the net the caller checks against.
+            continue
         if terminal(atom):
             assigned = 0 if double else charge
-        elif atom.GetIdx() in charges:
-            continue
         else:
             # A bridging neighbour is an ordinary two-bonded atom once the bond
             # orders are explicit. Whatever charge aromatic perception guessed
@@ -561,17 +570,22 @@ def _infer_oxyacid_bonds(mol, charges, delocalized_bonds, synthesized=None):
         if anion is None:
             continue
 
+        # Charges the file declares settle the arrangement when they describe a
+        # complete one. Most mol2 files in practice declare none at all, so the
+        # geometry-and-atom-type path below is the ordinary one, and a partial
+        # or unrepresentable declaration -- one oxygen of a mesylate marked, or
+        # an amidinium's +1, which no arrangement of one double bond and charged
+        # singles describes -- falls through to it rather than abandoning the
+        # centre unlocalized.
         declared = [a for a in neighbors if a.GetIdx() in charges]
         if declared:
             neutral = [a for a in neighbors if a.GetFormalCharge() == 0]
             negative = [a for a in neighbors if a.GetFormalCharge() == anion]
-            if len(neutral) != 1 or len(negative) + 1 != len(neighbors):
-                # An amidinium declares +1 on a nitrogen, which no arrangement
-                # of one double bond and charged singles describes. Leave it to
-                # the fallback rather than localize it wrongly.
+            if len(neutral) == 1 and len(negative) + 1 == len(neighbors):
+                _localize(
+                    center, neutral + negative, 1, None, anion, charges, synthesized
+                )
                 continue
-            _localize(center, neutral + negative, 1, None, anion, charges, synthesized)
-            continue
 
         valence = _DELOCALIZED_VALENCE.get(center.GetSymbol())
         if valence is None:
