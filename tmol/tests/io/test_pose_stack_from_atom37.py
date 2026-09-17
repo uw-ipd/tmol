@@ -119,18 +119,44 @@ def test_tensor_path_matches_the_atom_array_path(source, torch_device):
     assert [bt.name for bt in pose.packed_block_types.active_block_types] == [
         bt.name for bt in reference.packed_block_types.active_block_types
     ]
-    # Atoms routed from the input slots are copied, and match to within the
-    # default tolerance. The exception is an atom neither path routes: a
-    # terminus patch's own atoms are rebuilt from internal coordinates on both
-    # sides, so they agree only to the arithmetic's last bits -- measured worst
-    # case 2.3e-4 A on this structure's MET:nterm H1, inside the 1e-3 A the
-    # input coordinates themselves carry.
+    # An atom routed from the input slots is copied, so it must match to the
+    # tolerance the input coordinates themselves carry. A terminus patch's own
+    # atoms are deliberately not routed -- offering one on an interior residue
+    # would disqualify that residue's block types -- so this path rebuilds them
+    # from internal coordinates while the reference reads them from the atom
+    # array. Those land on ideal geometry rather than the observed position, so
+    # they are held to a geometric bound instead, and counted so the exclusion
+    # cannot quietly grow.
+    pbt = pose.packed_block_types
+    rebuilt = torch.zeros_like(pose.real_atoms)
+    for pose_ind, block_types in enumerate(pose.block_type_ind.tolist()):
+        for block, block_type in enumerate(block_types):
+            if block_type < 0:
+                continue
+            bt = pbt.active_block_types[block_type]
+            excluded = set(
+                context.canonical_ordering.termini_only_atoms_by_class.get(
+                    bt.io_equiv_class, ()
+                )
+            )
+            offset = int(pose.block_coord_offset[pose_ind, block])
+            for index, atom in enumerate(bt.atoms):
+                if atom.name in excluded:
+                    rebuilt[pose_ind, offset + index] = True
+
+    routed = pose.real_atoms & ~rebuilt
     torch.testing.assert_close(
-        pose.coords[pose.real_atoms],
-        reference.coords[reference.real_atoms],
-        rtol=0,
-        atol=1e-3,
+        pose.coords[routed], reference.coords[routed], rtol=0, atol=1e-3
     )
+    shared_rebuilt = rebuilt & reference.real_atoms
+    assert int(shared_rebuilt.sum()) <= 8, "more atoms went unrouted than expected"
+    if int(shared_rebuilt.sum()):
+        torch.testing.assert_close(
+            pose.coords[shared_rebuilt],
+            reference.coords[shared_rebuilt],
+            rtol=0,
+            atol=0.1,
+        )
 
     # The whole point of staying on tensors is that gradients survive.
     pose.coords[pose.real_atoms].sum().backward()
