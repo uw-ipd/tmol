@@ -35,6 +35,10 @@ class PoseBuildContext:
     fragment_definitions: tuple[LigandFragmentDefinition, ...] = ()
     # SMILES string -> residue type name, for ligands prepared from a sequence.
     ligand_names: dict[str, str] = field(default_factory=dict)
+    # Residues whose covalent bonds preparation cut because it could not
+    # prepare them and the caller passed strict_ligands=False. Building a pose
+    # must not then reject them as dangling partners.
+    cut_covalent_partners: frozenset[str] = frozenset()
 
     @cached_property
     def _packing_score_function(self) -> ScoreFunction:
