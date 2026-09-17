@@ -452,7 +452,8 @@
     <span class="n">partner_connection_name</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">atom_name</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">partner_atom_name</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">bond_type</span><span class="p">:</span> <span class="nb">str</span></div>
+    <span class="n">bond_type</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">in_ring</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></div>
 
 
 
@@ -911,8 +912,15 @@
         <span class="n">fa</span><span class="p">,</span> <span class="n">fb</span> <span class="o">=</span> <span class="n">atom_to_fragment</span><span class="p">[</span><span class="n">a</span><span class="p">],</span> <span class="n">atom_to_fragment</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>
         <span class="n">name_a</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"conn_</span><span class="si">{</span><span class="n">cut_index</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">fa</span><span class="si">}</span><span class="s2">_to_</span><span class="si">{</span><span class="n">fb</span><span class="si">}</span><span class="s2">"</span>
         <span class="n">name_b</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"conn_</span><span class="si">{</span><span class="n">cut_index</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">fb</span><span class="si">}</span><span class="s2">_to_</span><span class="si">{</span><span class="n">fa</span><span class="si">}</span><span class="s2">"</span>
-        <span class="n">conn_a</span> <span class="o">=</span> <span class="n">FragmentConnection</span><span class="p">(</span><span class="n">fa</span><span class="p">,</span> <span class="n">fb</span><span class="p">,</span> <span class="n">name_a</span><span class="p">,</span> <span class="n">name_b</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">_bond_type_name</span><span class="p">(</span><span class="n">bond</span><span class="p">))</span>
-        <span class="n">conn_b</span> <span class="o">=</span> <span class="n">FragmentConnection</span><span class="p">(</span><span class="n">fb</span><span class="p">,</span> <span class="n">fa</span><span class="p">,</span> <span class="n">name_b</span><span class="p">,</span> <span class="n">name_a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">_bond_type_name</span><span class="p">(</span><span class="n">bond</span><span class="p">))</span>
+        <span class="c1"># A cut through a ring leaves a connection whose bond is still a ring</span>
+        <span class="c1"># bond; only the residue it belonged to has been split.</span>
+        <span class="n">in_ring</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">bond</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bond</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">3</span> <span class="k">else</span> <span class="kc">False</span>
+        <span class="n">conn_a</span> <span class="o">=</span> <span class="n">FragmentConnection</span><span class="p">(</span>
+            <span class="n">fa</span><span class="p">,</span> <span class="n">fb</span><span class="p">,</span> <span class="n">name_a</span><span class="p">,</span> <span class="n">name_b</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">_bond_type_name</span><span class="p">(</span><span class="n">bond</span><span class="p">),</span> <span class="n">in_ring</span>
+        <span class="p">)</span>
+        <span class="n">conn_b</span> <span class="o">=</span> <span class="n">FragmentConnection</span><span class="p">(</span>
+            <span class="n">fb</span><span class="p">,</span> <span class="n">fa</span><span class="p">,</span> <span class="n">name_b</span><span class="p">,</span> <span class="n">name_a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">_bond_type_name</span><span class="p">(</span><span class="n">bond</span><span class="p">),</span> <span class="n">in_ring</span>
+        <span class="p">)</span>
         <span class="n">connections_by_fragment</span><span class="p">[</span><span class="n">fa</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">conn_a</span><span class="p">)</span>
         <span class="n">connections_by_fragment</span><span class="p">[</span><span class="n">fb</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">conn_b</span><span class="p">)</span>
         <span class="n">directed_connections</span><span class="o">.</span><span class="n">extend</span><span class="p">((</span><span class="n">conn_a</span><span class="p">,</span> <span class="n">conn_b</span><span class="p">))</span>
@@ -1004,7 +1012,10 @@
             <span class="n">bonds</span><span class="o">=</span><span class="n">local_bonds</span><span class="p">,</span>
             <span class="n">connections</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span>
                 <span class="n">Connection</span><span class="p">(</span>
-                    <span class="n">name</span><span class="o">=</span><span class="n">conn</span><span class="o">.</span><span class="n">connection_name</span><span class="p">,</span> <span class="n">atom</span><span class="o">=</span><span class="n">conn</span><span class="o">.</span><span class="n">atom_name</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">conn</span><span class="o">.</span><span class="n">bond_type</span>
+                    <span class="n">name</span><span class="o">=</span><span class="n">conn</span><span class="o">.</span><span class="n">connection_name</span><span class="p">,</span>
+                    <span class="n">atom</span><span class="o">=</span><span class="n">conn</span><span class="o">.</span><span class="n">atom_name</span><span class="p">,</span>
+                    <span class="nb">type</span><span class="o">=</span><span class="n">conn</span><span class="o">.</span><span class="n">bond_type</span><span class="p">,</span>
+                    <span class="n">in_ring</span><span class="o">=</span><span class="n">conn</span><span class="o">.</span><span class="n">in_ring</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="k">for</span> <span class="n">conn</span> <span class="ow">in</span> <span class="n">connections_by_fragment</span><span class="p">[</span><span class="n">fragment_id</span><span class="p">]</span>
             <span class="p">),</span>
