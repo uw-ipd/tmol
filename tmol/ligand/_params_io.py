@@ -308,19 +308,22 @@ def write_params_from_mol2(
     out_path: str | Path,
     *,
     res_name: str | None = None,
-    sample_proton_chi: bool = True,
+    ph: float = 7.4,
+    mode: str = "auto",
+    seed: int | None = None,
 ) -> None:
     """Build params from a mol2 file and write a tmol ``.tmol`` file.
 
     Args:
-        mol2_path: Input Tripos mol2 (names, coords, charges preserved verbatim).
+        mol2_path: Input Tripos mol2; see :func:`prepare_ligand_from_mol2`.
         out_path: Output file path (see :func:`write_params_file`).
         res_name: Optional residue name override.
-        sample_proton_chi: Whether to emit PROTON_CHI samples.
+        ph: Target pH for protonation.
+        mode: ``"keep"``, ``"auto"`` (default), or ``"regenerate"``,
+            as in :func:`prepare_ligand_from_mol2`.
+        seed: Reproducible conformer seed when charges must be generated.
     """
-    from tmol.ligand._detect import nonstandard_residue_info_from_mol2
-    from tmol.ligand._preparation import prepare_single_ligand
+    from tmol.ligand._preparation import _prepare_mol2
 
-    info = nonstandard_residue_info_from_mol2(mol2_path, res_name=res_name)
-    prep = prepare_single_ligand(info, sample_proton_chi=sample_proton_chi)
+    prep = _prepare_mol2(mol2_path, res_name, ph=ph, mode=mode, seed=seed)
     write_params_file(prep, out_path)
