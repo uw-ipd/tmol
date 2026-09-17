@@ -7,7 +7,7 @@ on:
   push:
     branches: [master]
   pull_request:
-    branches: [master]
+    # Validate intermediate stack branches as well as changes targeting master.
     types: [opened, synchronize, reopened, closed]
 
 concurrency:
@@ -199,7 +199,7 @@ jobs:
   ci:
     name: ci
     runs-on: ubuntu-latest
-    if: always() && github.event.action != 'closed'
+    if: always() && !cancelled() && github.event.action != 'closed'
     needs: [lint, cpu, gpu]
     steps:
       - name: require every CI lane

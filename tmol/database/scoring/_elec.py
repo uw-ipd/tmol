@@ -1,3 +1,5 @@
+import os
+
 import attr
 import cattr
 from tmol.database._yaml import safe_load
@@ -35,7 +37,14 @@ class ElecDatabase:
     atom_charge_parameters: Tuple[PartialCharges, ...]
 
     @classmethod
-    def from_file(cls, path):
+    def from_file(cls, path, generated=()):
         with open(path, "r") as infile:
             raw = safe_load(infile)
+        for extra in generated:
+            if not os.path.exists(extra):
+                continue
+            with open(extra, "r") as infile:
+                more = safe_load(infile)
+            for section in ("atom_charge_parameters", "atom_cp_reps_parameters"):
+                raw[section].extend(more.get(section, []))
         return cattr.structure(raw, cls)
