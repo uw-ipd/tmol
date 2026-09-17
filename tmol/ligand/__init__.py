@@ -52,6 +52,7 @@ from ._conformer_generation import (  # noqa: F401
     generate_conformer,
 )  # noqa: F401
 from ._detect import (  # noqa: F401
+    chem_comp_types_from_cif,
     NonStandardResidueInfo,
     SKIP_RESIDUES,
     _METAL_SYMBOLS,
@@ -129,8 +130,6 @@ from ._params_file import (  # noqa: F401
     load_params_file,
 )  # noqa: F401
 from ._params_io import (  # noqa: F401
-    _BOND_TOK_TO_TYPE,
-    read_params_file,
     write_params_file,
     write_params_from_mol2,
 )  # noqa: F401
@@ -194,7 +193,6 @@ __all__ = [
     "prepare_ligands",
     "prepare_ligands_from_smiles",
     "prepare_single_ligand",
-    "read_params_file",
     "recombine_fragmented_ligands",
     "unsplit_pose_stack",
     "write_params_file",

@@ -8,8 +8,6 @@ typing branches for aromatics, heterocycles, charged groups and ring amidines
 are covered by a realistic workflow.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import pytest
@@ -79,31 +77,6 @@ def _single_prep():
     return prepare_single_ligand(info, sample_proton_chi=True)
 
 
-def test_write_params_from_mol2_both_formats(tmp_path) -> None:
-    from tmol.ligand import write_params_from_mol2
-
-    rosetta = tmp_path / "lig.params"
-    write_params_from_mol2(str(_smallest_mol2()), str(rosetta), res_name="LG1")
-    assert rosetta.exists() and rosetta.stat().st_size > 0
-
-    tmol_out = tmp_path / "lig.tmol"
-    write_params_from_mol2(
-        str(_smallest_mol2()), str(tmol_out), res_name="LG1", format="tmol"
-    )
-    assert tmol_out.exists() and tmol_out.stat().st_size > 0
-
-
-def test_write_params_file_rosetta_list_to_directory(tmp_path) -> None:
-    from tmol.ligand import write_params_file
-
-    prep = _single_prep()
-    out_dir = tmp_path / "params_out"
-    out_dir.mkdir()
-    write_params_file([prep], str(out_dir), format="rosetta")
-    written = list(out_dir.glob("*.params"))
-    assert written, "expected a per-residue .params file"
-
-
 def test_tmol_params_roundtrip_and_inject(tmp_path) -> None:
     from tmol.ligand import (
         inject_params_file,
@@ -114,7 +87,7 @@ def test_tmol_params_roundtrip_and_inject(tmp_path) -> None:
 
     prep = _single_prep()
     tmol_file = tmp_path / "lig.tmol"
-    write_params_file([prep], str(tmol_file), format="tmol")
+    write_params_file([prep], str(tmol_file))
 
     loaded = load_params_file(tmol_file)
     assert len(loaded) == 1
@@ -132,17 +105,19 @@ def test_tmol_params_roundtrip_and_inject(tmp_path) -> None:
 
 
 def test_tmol_loader_accepts_minor_version_difference(tmp_path) -> None:
+    from dataclasses import replace
+    import yaml
     from tmol.ligand import load_params_file
     from tmol.ligand import write_params_file
 
-    prep = _single_prep()
+    prep = replace(_single_prep(), atom_type_elements=None)
     tmol_file = tmp_path / "lig.tmol"
-    write_params_file([prep], str(tmol_file), format="tmol")
+    write_params_file([prep], str(tmol_file))
     load_params_file(tmol_file)
 
-    text = tmol_file.read_text().replace('version: "1.0"', 'version: "1.9"')
-    assert "1.9" in text
-    tmol_file.write_text(text)
+    payload = yaml.safe_load(tmol_file.read_text())
+    payload["version"] = "1.9"
+    tmol_file.write_text(yaml.safe_dump(payload))
     loaded = load_params_file(tmol_file)
     assert loaded and loaded[0].residue_type.name == prep.residue_type.name
 
@@ -155,7 +130,7 @@ def test_tmol_loader_warns_when_no_charges(tmp_path) -> None:
 
     prep = _single_prep()
     tmol_file = tmp_path / "lig.tmol"
-    write_params_file([prep], str(tmol_file), format="tmol")
+    write_params_file([prep], str(tmol_file))
 
     doc = yaml.safe_load(tmol_file.read_text())
     doc["elec"] = {"atom_charge_parameters": []}
@@ -173,7 +148,7 @@ def test_tmol_loader_warns_when_no_charges(tmp_path) -> None:
     [
         ("- a\n- b\n", "Expected mapping"),
         ("chemical: {}\n", "no 'version' field"),
-        ('version: "2.0"\nchemical: {}\n', "incompatible"),
+        ('version: "99.0"\nchemical: {}\n', "incompatible"),
         ('version: "1.0"\nresidues: []\n', "deprecated flat schema"),
     ],
 )
@@ -346,7 +321,7 @@ def test_prepare_ligands_with_params_files_skips_reprep(tmp_path) -> None:
     info = nonstandard_residue_info_from_mol2(_smallest_mol2(), res_name="LG1")
     prep = prepare_single_ligand(info, sample_proton_chi=True)
     tmol_file = tmp_path / "lg1.tmol"
-    write_params_file([prep], str(tmol_file), format="tmol")
+    write_params_file([prep], str(tmol_file))
 
     arr = _load_full_array(CIF_INPUTS / "ada.ligand.cif")
     param_db, _ = prepare_ligands(

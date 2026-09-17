@@ -640,7 +640,6 @@ def prepare_ligands(  # noqa: C901
             write_params_file(
                 [prep for _, prep in prepared_ligands],
                 params_output,
-                format="tmol",
             )
             logger.info("Wrote params to %s", params_output)
 
