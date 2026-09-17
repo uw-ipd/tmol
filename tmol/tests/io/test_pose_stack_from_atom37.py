@@ -252,6 +252,4 @@ def test_tensor_path_refuses_a_residue_type_the_slot_map_cannot_route(torch_devi
     chain_id = torch.zeros((1, 1), dtype=torch.int32, device=torch_device)
 
     with pytest.raises(ValueError, match="routes no atom of residue type"):
-        canonical_form_from_atom37(
-            coords, res_types, chain_id, context, slot_map=slot_map
-        )
+        canonical_form_from_atom37(coords, res_types, chain_id, co, slot_map=slot_map)
