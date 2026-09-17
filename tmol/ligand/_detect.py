@@ -32,6 +32,9 @@ _FORMAL_CHARGE_SPECIFIED_ANNOTATION = "tmol_formal_charge_specified"
 # singly-bonded, unprotonated neighbors carry.
 _DELOCALIZED_VALENCE = {"P": 5, "S": 6, "C": 4, "N": 4}
 _DELOCALIZED_ANION = {"O": -1, "S": -1, "N": 0}
+# Bonds a neutral center of each element carries, for setting its charge from
+# what the rewritten bonds actually use.
+_CENTER_NEUTRAL_VALENCE = {"N": 3, "P": 5, "S": 6, "C": 4}
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -378,7 +381,14 @@ def _charge_model_is_authoritative(model: str) -> bool:
 
 
 def _apply_mol2_metadata(mol, text):
-    """Preserve source properties and explicit formal charges across either reader."""
+    """Preserve source properties and explicit formal charges across either reader.
+
+    Returns the charges the file declared and, separately, the charges oxyacid
+    localization had to synthesize. Keeping them apart is what lets the caller
+    still tell a rewritten molecule from a merely perceived one: folding the
+    synthesized ones into the declared map makes the comparison below true by
+    construction.
+    """
     indices = {}
     declared_charges = {}
     delocalized_bonds = set()
@@ -420,8 +430,9 @@ def _apply_mol2_metadata(mol, text):
                 atom_id = int(fields[0])
 
     mol.GetConformer().SetPositions(np.asarray(coordinates, dtype=np.float64))
-    _infer_oxyacid_bonds(mol, declared_charges, delocalized_bonds)
-    return declared_charges
+    synthesized_charges: dict = {}
+    _infer_oxyacid_bonds(mol, declared_charges, delocalized_bonds, synthesized_charges)
+    return declared_charges, synthesized_charges
 
 
 def _delocalized_neighbors(mol, center, delocalized_bonds):
@@ -447,7 +458,7 @@ def _delocalized_neighbors(mol, center, delocalized_bonds):
     return neighbors
 
 
-def _localize(center, neighbors, n_double, conformer, charge, charges):
+def _localize(center, neighbors, n_double, conformer, charge, charges, synthesized):
     """Write one X=Y plus single bonds, charging the unprotonated remainder.
 
     ``charges`` is the declared-charge map, read and written. A center the file
@@ -469,23 +480,60 @@ def _localize(center, neighbors, n_double, conformer, charge, charges):
             ),
         )
     center.SetIsAromatic(False)
-    if center.GetIdx() not in charges:
-        center.SetFormalCharge(0)
-    for rank, atom in enumerate(neighbors):
+
+    def terminal(atom):
+        """Whether this neighbour hangs off the center and carries no hydrogen.
+
+        A bridging oxygen -- a phosphodiester ester, say -- keeps a second heavy
+        bond, and a hydroxyl keeps its proton. Neither can take the double bond
+        or the anion: doing so overfills it, and the molecule stops sanitizing.
+        """
+        if atom.GetTotalNumHs() or any(
+            n.GetAtomicNum() == 1 for n in atom.GetNeighbors()
+        ):
+            return False
+        heavy = [n for n in atom.GetNeighbors() if n.GetAtomicNum() != 1]
+        return len(heavy) <= 1
+
+    eligible = [atom for atom in neighbors if terminal(atom)]
+    n_double = min(n_double, len(eligible))
+    doubled = set(atom.GetIdx() for atom in eligible[:n_double])
+
+    for atom in neighbors:
         bond = center.GetOwningMol().GetBondBetweenAtoms(center.GetIdx(), atom.GetIdx())
         bond.SetIsAromatic(False)
         atom.SetIsAromatic(False)
-        double = rank < n_double
+        double = atom.GetIdx() in doubled
         bond.SetBondType(Chem.BondType.DOUBLE if double else Chem.BondType.SINGLE)
-        if not atom.GetTotalNumHs() and not any(
-            n.GetAtomicNum() == 1 for n in atom.GetNeighbors()
-        ):
+        if terminal(atom):
             assigned = 0 if double else charge
-            atom.SetFormalCharge(assigned)
-            charges[atom.GetIdx()] = assigned
+        elif atom.GetIdx() in charges:
+            continue
+        else:
+            # A bridging neighbour is an ordinary two-bonded atom once the bond
+            # orders are explicit. Whatever charge aromatic perception guessed
+            # for it -- RDKit warns it is guessing when the file has no explicit
+            # hydrogens -- describes a molecule that no longer exists.
+            assigned = 0
+        atom.SetFormalCharge(assigned)
+        synthesized[atom.GetIdx()] = assigned
+
+    if center.GetIdx() not in charges:
+        # The center is left holding whatever its bonds now demand. Forcing 0
+        # gives a four-bonded nitro nitrogen no valence for its fourth bond, and
+        # the molecule stops sanitizing; P, S and C come out at 0 either way.
+        used = (
+            sum(bond.GetBondTypeAsDouble() for bond in center.GetBonds())
+            + center.GetTotalNumHs()
+        )
+        neutral = _CENTER_NEUTRAL_VALENCE.get(center.GetSymbol())
+        assigned = int(used - neutral) if neutral is not None else 0
+        center.SetFormalCharge(assigned)
+        if assigned:
+            synthesized[center.GetIdx()] = assigned
 
 
-def _infer_oxyacid_bonds(mol, charges, delocalized_bonds):
+def _infer_oxyacid_bonds(mol, charges, delocalized_bonds, synthesized):
     """Localize acyclic delocalized bonds the source writes as Tripos ``ar``.
 
     Tripos ``ar`` off a ring means delocalization, not aromaticity: a
@@ -512,10 +560,13 @@ def _infer_oxyacid_bonds(mol, charges, delocalized_bonds):
         declared = [a for a in neighbors if a.GetIdx() in charges]
         if declared:
             neutral = [a for a in neighbors if a.GetFormalCharge() == 0]
-            negative = [a for a in neighbors if a.GetFormalCharge() == -1]
+            negative = [a for a in neighbors if a.GetFormalCharge() == anion]
             if len(neutral) != 1 or len(negative) + 1 != len(neighbors):
+                # An amidinium declares +1 on a nitrogen, which no arrangement
+                # of one double bond and charged singles describes. Leave it to
+                # the fallback rather than localize it wrongly.
                 continue
-            _localize(center, neutral + negative, 1, None, anion, charges)
+            _localize(center, neutral + negative, 1, None, anion, charges, synthesized)
             continue
 
         valence = _DELOCALIZED_VALENCE.get(center.GetSymbol())
@@ -531,7 +582,7 @@ def _infer_oxyacid_bonds(mol, charges, delocalized_bonds):
         if not 0 < n_double <= len(neighbors):
             continue
         conformer = mol.GetConformer() if mol.GetNumConformers() else None
-        _localize(center, neighbors, n_double, conformer, anion, charges)
+        _localize(center, neighbors, n_double, conformer, anion, charges, synthesized)
     mol.UpdatePropertyCache(strict=False)
 
 
@@ -589,7 +640,7 @@ def nonstandard_residue_info_from_mol2_block(
                 "failed; OpenBabel fallback also failed or is not installed)"
             )
         logger.info("Used OpenBabel fallback to parse in-memory mol2 block")
-    declared_charges = _apply_mol2_metadata(mol, mol2_block)
+    declared_charges, synthesized_charges = _apply_mol2_metadata(mol, mol2_block)
     probe = Chem.Mol(mol)
     invalid = bool(Chem.SanitizeMol(probe, catchErrors=True))
     charge_model = _mol2_charge_model_from_text(mol2_block)
@@ -598,8 +649,12 @@ def nonstandard_residue_info_from_mol2_block(
     # a pyrrole-type ring nitrogen comes back protonated and cationic. The mol2
     # records every nonzero formal charge, so a net charge that disagrees with
     # what was declared means the chemistry was rewritten, not just perceived.
+    # Localization legitimately adds charges the file never wrote, so the net to
+    # compare against is what the file declared plus what localization put
+    # there. Anything else is the reader having changed the molecule.
     declared_net = sum(declared_charges.values())
-    rewritten = not invalid and Chem.GetFormalCharge(probe) != declared_net
+    expected_net = declared_net + sum(synthesized_charges.values())
+    rewritten = not invalid and Chem.GetFormalCharge(probe) != expected_net
     if invalid or rewritten:
         try:
             alternate = obabel_read_mol2_block(mol2_block)
@@ -608,7 +663,7 @@ def nonstandard_residue_info_from_mol2_block(
         if alternate is not None and [
             a.GetAtomicNum() for a in alternate.GetAtoms()
         ] == [a.GetAtomicNum() for a in mol.GetAtoms()]:
-            _apply_mol2_metadata(alternate, mol2_block)
+            _, alternate_synthesized = _apply_mol2_metadata(alternate, mol2_block)
             from atomworks.io.tools.rdkit import fix_charge_based_on_valence
 
             fix_charge_based_on_valence(alternate)
@@ -625,7 +680,11 @@ def nonstandard_residue_info_from_mol2_block(
                 # When the primary reader is unusable the alternate is the only
                 # candidate; require the declared net charge only when we are
                 # rejecting a primary that parsed but rewrote the chemistry.
-                and (invalid or Chem.GetFormalCharge(alternate) == declared_net)
+                and (
+                    invalid
+                    or Chem.GetFormalCharge(alternate)
+                    == declared_net + sum(alternate_synthesized.values())
+                )
             ):
                 mol = alternate
                 invalid = False
