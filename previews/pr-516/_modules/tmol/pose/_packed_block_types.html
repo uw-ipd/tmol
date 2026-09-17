@@ -882,7 +882,7 @@
         <span class="p">)</span>
         <span class="k">for</span> <span class="n">self_key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">self_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">new_inst</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
-                <span class="nb">setattr</span><span class="p">(</span><span class="n">new_inst</span><span class="p">,</span> <span class="n">self_key</span><span class="p">,</span> <span class="n">cpu_equiv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dict___</span><span class="p">[</span><span class="n">self_key</span><span class="p">]))</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="n">new_inst</span><span class="p">,</span> <span class="n">self_key</span><span class="p">,</span> <span class="n">cpu_equiv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">self_key</span><span class="p">]))</span>
         <span class="k">return</span> <span class="n">new_inst</span></div>
 
 
