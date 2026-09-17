@@ -552,8 +552,14 @@
 
 <span class="sd">    A stable topological sort: an icoor is emitted once its parent, grandparent</span>
 <span class="sd">    and great-grandparent have been, and ties keep the incoming order. A frame</span>
-<span class="sd">    atom no icoor defines -- a connection name -- and an icoor's reference to</span>
-<span class="sd">    itself, as the root has, impose no constraint.</span>
+<span class="sd">    atom no icoor defines -- a connection name -- imposes no constraint.</span>
+
+<span class="sd">    The root is exempt from its whole frame, not just from naming itself. A</span>
+<span class="sd">    residue's root names the next two atoms as its grandparent and</span>
+<span class="sd">    great-grandparent -- SER's is ``N: N, CA, C`` -- and those name it back, so</span>
+<span class="sd">    honouring the root's frame makes a three-cycle that stalls the sort on its</span>
+<span class="sd">    first pass and returns the input untouched. That is inertness dressed as</span>
+<span class="sd">    conservatism: the caller would silently keep whatever order it had.</span>
 <span class="sd">    """</span>
     <span class="n">pending</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">icoors</span><span class="p">)</span>
     <span class="n">defined</span> <span class="o">=</span> <span class="p">{</span><span class="n">icoor</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">icoor</span> <span class="ow">in</span> <span class="n">pending</span><span class="p">}</span>
@@ -562,6 +568,9 @@
         <span class="n">deferred</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">icoor</span> <span class="ow">in</span> <span class="n">pending</span><span class="p">:</span>
             <span class="n">frame</span> <span class="o">=</span> <span class="p">(</span><span class="n">icoor</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span> <span class="n">icoor</span><span class="o">.</span><span class="n">grand_parent</span><span class="p">,</span> <span class="n">icoor</span><span class="o">.</span><span class="n">great_grand_parent</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">icoor</span><span class="o">.</span><span class="n">parent</span> <span class="o">==</span> <span class="n">icoor</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+                <span class="c1"># the root: it is built from nothing, so nothing constrains it</span>
+                <span class="n">frame</span> <span class="o">=</span> <span class="p">()</span>
             <span class="k">if</span> <span class="nb">all</span><span class="p">(</span>
                 <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">defined</span> <span class="ow">or</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">emitted</span> <span class="ow">or</span> <span class="n">name</span> <span class="o">==</span> <span class="n">icoor</span><span class="o">.</span><span class="n">name</span>
                 <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">frame</span>
