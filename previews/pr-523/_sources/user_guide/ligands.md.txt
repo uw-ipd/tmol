@@ -21,6 +21,56 @@ prepared ligand is injected into a new `ParameterDatabase` and can then be
 scored and minimized like a normal residue. These atom-type names do not by
 themselves make a ligand parameterization usable by Rosetta.
 
+## Chemistry Classes
+
+`prepare_ligands`, and `prepare_ligands=True` on the IO entry points, is not
+limited to free small molecules. The backbone is inferred from a residue's own
+connectivity, so every class below enters by the same path and needs no
+hand-written parameter file. Each row names a shipped fixture you can run
+directly.
+
+| Class | Example fixture |
+| --- | --- |
+| Modified alpha-amino acid (PTM) | `ncaa_fixtures/collagen_hyp_1bkv.cif` (4-hydroxyproline), `ncaa_fixtures/phosphopeptide_5ema.cif` (phosphoserine) |
+| N-substituted backbone | `ncaa_fixtures/nmethyl_peptide_6mvz.cif` |
+| Beta and gamma backbones | `ncaa_fixtures/beta_peptide_3c3g.cif`, `ncaa_fixtures/gamma_peptide_1gac.cif` |
+| D-amino acid | `ncaa_fixtures/6dmz_mod_d.cif` (with its L mirror, `6dmz_mod_l.cif`) |
+| Terminal caps | `ncaa_fixtures/capped_peptide_ace_nme.cif`, `capped_peptide_ace_nh2.cif` |
+| Chromophore / macrocycle | `ncaa_fixtures/chromophore_nrq_3svu.cif` |
+| Modified DNA | `ncaa_fixtures/na_dna_5mc_1d17.cif` (5-methylcytosine), `na_dna_8og_183d.cif` (8-oxoguanine), `na_dna_ttd_1ttd.cif` (thymine dimer) |
+| Modified RNA | `ncaa_fixtures/na_rna_psu_1bzt.cif` (pseudouridine), `na_rna_2ome_310d.cif` (2'-O-methyl) |
+| N- and O-glycans | `covalent_fixtures/nglycan_tree_1ax2.cif`, `covalent_fixtures/oglycan_sia_1g1s.cif` |
+| Covalent conjugate | `covalent_fixtures/lys_biotin_1bdo.cif` (biotinylated lysine) |
+| Covalent inhibitor | `covalent_fixtures/peptide_inhibitor_7zv5.cif` |
+
+The call is the same whichever row you pick:
+
+```python
+import torch
+from tmol.io import atom_array_from_cif, pose_stack_from_biotite
+from tmol.tests.data import data_path
+
+array = atom_array_from_cif(data_path("ncaa_fixtures", "collagen_hyp_1bkv.cif"))
+pose, context = pose_stack_from_biotite(
+    array, torch.device("cuda"), prepare_ligands=True, return_context=True
+)
+```
+
+`context.parameter_database` carries the generated chemistry, and
+{func}`tmol.ligand.write_params_file` persists it as `.tmol` so a later run reads
+it back instead of regenerating. Reuse the context across structures that share
+the same components; see [Reuse Prepared Context](#reuse-prepared-context).
+
+A prepared polymer residue records which backbone it was recognized as in
+`properties.polymer.backbone_type`: `alpha_aa`, `nonstandard_aa`, `dna`, `rna`,
+or `nonstandard_na`. That value selects the terminus patches and the torsion
+terms the residue is scored with, so it is the first thing to check when a
+residue is not treated the way you expect.
+
+For how this maps onto Rosetta's `molfile_to_params_polymer.py` / `MakeRotLib`
+workflow, and which of its steps have no counterpart here, see the
+{doc}`Rosetta crosswalk <../tutorial/rosetta_crosswalk>`.
+
 ## Entry Points
 
 There are three single-ligand entry points:
