@@ -645,6 +645,10 @@
     <span class="c1"># cterm patch re-adds the backbone O alongside OXT -- but that atom is base</span>
     <span class="c1"># chemistry present on every residue, so it is not terminus-only.</span>
     <span class="n">termini_only_atoms</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span>
+    <span class="c1"># The same atoms keyed by io-equivalence class, which is what a consumer</span>
+    <span class="c1"># indexing residue types has. Flattening across classes instead would</span>
+    <span class="c1"># unroute H1/H2/H3, base atoms of DG/DA/DT and HOH.</span>
+    <span class="n">termini_only_atoms_by_class</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span>
     <span class="n">cys_inds</span><span class="p">:</span> <span class="n">CysSpecialCaseIndices</span>
     <span class="n">his_inds</span><span class="p">:</span> <span class="n">HisSpecialCaseIndices</span>
     <span class="n">polymer_conn_inds</span><span class="p">:</span> <span class="n">PolymerConnectionIndices</span>
@@ -779,13 +783,29 @@
             <span class="k">for</span> <span class="n">base</span><span class="p">,</span> <span class="n">rt</span> <span class="ow">in</span> <span class="p">{</span><span class="n">r</span><span class="o">.</span><span class="n">base_name</span><span class="p">:</span> <span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">residues</span><span class="p">}</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
             <span class="k">for</span> <span class="n">display</span><span class="p">,</span> <span class="n">patches</span> <span class="ow">in</span> <span class="n">terminal_patches</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
         <span class="p">}</span>
+        <span class="c1"># patch_residue emits [base, *variants], so a last-wins dict here would</span>
+        <span class="c1"># take the deepest variant -- which already carries OXT/H1/H2/H3 -- and</span>
+        <span class="c1"># every difference below would come out empty.</span>
+        <span class="n">unpatched</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">residue</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">residues</span><span class="p">:</span>
+            <span class="n">unpatched</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">residue</span><span class="o">.</span><span class="n">base_name</span><span class="p">,</span> <span class="n">residue</span><span class="p">)</span>
         <span class="n">base_atom_names</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="n">base</span><span class="p">:</span> <span class="p">{</span><span class="n">atom</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">atoms</span><span class="p">}</span>
-            <span class="k">for</span> <span class="n">base</span><span class="p">,</span> <span class="n">rt</span> <span class="ow">in</span> <span class="p">{</span><span class="n">r</span><span class="o">.</span><span class="n">base_name</span><span class="p">:</span> <span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">residues</span><span class="p">}</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="n">base</span><span class="p">:</span> <span class="p">{</span><span class="n">atom</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">atoms</span><span class="p">}</span> <span class="k">for</span> <span class="n">base</span><span class="p">,</span> <span class="n">rt</span> <span class="ow">in</span> <span class="n">unpatched</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
         <span class="p">}</span>
         <span class="n">termini_only_atoms</span> <span class="o">=</span> <span class="p">{</span>
             <span class="n">key</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">added</span><span class="p">)</span> <span class="o">-</span> <span class="n">base_atom_names</span><span class="p">[</span><span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">]]))</span>
             <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">added</span> <span class="ow">in</span> <span class="n">termini_patch_added_atoms</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+        <span class="n">equiv_for_base</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">residue</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">residues</span><span class="p">:</span>
+            <span class="n">equiv_for_base</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">residue</span><span class="o">.</span><span class="n">base_name</span><span class="p">,</span> <span class="n">residue</span><span class="o">.</span><span class="n">io_equiv_class</span><span class="p">)</span>
+        <span class="n">by_class</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">_display</span><span class="p">),</span> <span class="n">atoms</span> <span class="ow">in</span> <span class="n">termini_only_atoms</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">equiv</span> <span class="o">=</span> <span class="n">equiv_for_base</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">equiv</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">by_class</span><span class="p">[</span><span class="n">equiv</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span>
+        <span class="n">termini_only_atoms_by_class</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">equiv</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">atoms</span><span class="p">))</span> <span class="k">for</span> <span class="n">equiv</span><span class="p">,</span> <span class="n">atoms</span> <span class="ow">in</span> <span class="n">by_class</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
         <span class="p">}</span>
 
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
@@ -801,6 +821,7 @@
             <span class="n">up_termini_patches</span><span class="o">=</span><span class="n">up_termini_patches</span><span class="p">,</span>
             <span class="n">termini_patch_added_atoms</span><span class="o">=</span><span class="n">termini_patch_added_atoms</span><span class="p">,</span>
             <span class="n">termini_only_atoms</span><span class="o">=</span><span class="n">termini_only_atoms</span><span class="p">,</span>
+            <span class="n">termini_only_atoms_by_class</span><span class="o">=</span><span class="n">termini_only_atoms_by_class</span><span class="p">,</span>
             <span class="n">name3_aliases</span><span class="o">=</span><span class="p">{</span>
                 <span class="n">alias</span><span class="o">.</span><span class="n">name3</span><span class="p">:</span> <span class="n">alias</span><span class="o">.</span><span class="n">read_as</span>
                 <span class="k">for</span> <span class="n">alias</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">name3_aliases</span>
