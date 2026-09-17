@@ -476,6 +476,9 @@
 <span class="k">class</span><span class="w"> </span><span class="nc">_BlockParameters</span><span class="p">:</span>
     <span class="n">charges</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span>
     <span class="n">geometry</span><span class="p">:</span> <span class="n">_BlockGeometry</span>
+    <span class="c1"># The intra count-pair rule rewrites ligand-typed 1-4 pairs, so the geometry</span>
+    <span class="c1"># describes one genbonded database and cannot be reused against another.</span>
+    <span class="n">rosetta_typed</span><span class="p">:</span> <span class="nb">frozenset</span>
 
 
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -547,8 +550,16 @@
         <span class="n">representative_mapping</span> <span class="o">=</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">param_resolver</span><span class="o">.</span><span class="n">get_bonded_path_length_mapping_for_block</span><span class="p">(</span><span class="n">block_type</span><span class="p">)</span>
         <span class="p">)</span>
-        <span class="k">if</span> <span class="n">previous</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span>
-            <span class="n">representative_mapping</span><span class="p">,</span> <span class="n">previous</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">representatives</span>
+        <span class="c1"># latest_annotation returns the newest snapshot regardless of key, so the</span>
+        <span class="c1"># genbonded component of _block_annotation_key does not reach here;</span>
+        <span class="c1"># compare it explicitly or a term built on a different genbonded database</span>
+        <span class="c1"># silently inherits this one's 1-4 encoding.</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">previous</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="n">previous</span><span class="o">.</span><span class="n">rosetta_typed</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">rosetta_typed</span>
+            <span class="ow">and</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span>
+                <span class="n">representative_mapping</span><span class="p">,</span> <span class="n">previous</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">representatives</span>
+            <span class="p">)</span>
         <span class="p">):</span>
             <span class="n">geometry</span> <span class="o">=</span> <span class="n">previous</span><span class="o">.</span><span class="n">geometry</span>
         <span class="k">else</span><span class="p">:</span>
@@ -573,7 +584,7 @@
         <span class="nb">setattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"elec_partial_charge"</span><span class="p">,</span> <span class="n">partial_charge</span><span class="p">)</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"elec_inter_repr_path_distance"</span><span class="p">,</span> <span class="n">geometry</span><span class="o">.</span><span class="n">inter</span><span class="p">)</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"elec_intra_repr_path_distance"</span><span class="p">,</span> <span class="n">geometry</span><span class="o">.</span><span class="n">intra</span><span class="p">)</span>
-        <span class="n">annotation</span> <span class="o">=</span> <span class="n">_BlockParameters</span><span class="p">(</span><span class="n">partial_charge</span><span class="p">,</span> <span class="n">geometry</span><span class="p">)</span>
+        <span class="n">annotation</span> <span class="o">=</span> <span class="n">_BlockParameters</span><span class="p">(</span><span class="n">partial_charge</span><span class="p">,</span> <span class="n">geometry</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rosetta_typed</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
             <span class="n">block_type</span><span class="p">,</span>
             <span class="s2">"_elec_annotation"</span><span class="p">,</span>
