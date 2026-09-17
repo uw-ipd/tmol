@@ -979,7 +979,7 @@
             <span class="n">synthesized</span><span class="p">[</span><span class="n">center</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()]</span> <span class="o">=</span> <span class="n">assigned</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_infer_oxyacid_bonds</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">charges</span><span class="p">,</span> <span class="n">delocalized_bonds</span><span class="p">,</span> <span class="n">synthesized</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_infer_oxyacid_bonds</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">charges</span><span class="p">,</span> <span class="n">delocalized_bonds</span><span class="p">,</span> <span class="n">synthesized</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Localize acyclic delocalized bonds the source writes as Tripos ``ar``.</span>
 
 <span class="sd">    Tripos ``ar`` off a ring means delocalization, not aromaticity: a</span>
@@ -993,6 +993,10 @@
 <span class="sd">    """</span>
     <span class="c1"># Ring membership decides what may be rewritten, and RingInfo is not</span>
     <span class="c1"># populated until something perceives rings; the mol here is unsanitized.</span>
+    <span class="k">if</span> <span class="n">synthesized</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># A caller that does not ask for the synthesized charges still needs</span>
+        <span class="c1"># somewhere for them to go.</span>
+        <span class="n">synthesized</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">mol</span><span class="o">.</span><span class="n">UpdatePropertyCache</span><span class="p">(</span><span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">Chem</span><span class="o">.</span><span class="n">FastFindRings</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">center</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">():</span>
