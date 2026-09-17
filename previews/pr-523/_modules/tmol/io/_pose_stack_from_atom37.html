@@ -592,6 +592,26 @@
     <span class="n">canonical_atom</span> <span class="o">=</span> <span class="n">slot_map</span><span class="p">[</span><span class="n">lookup</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)][:,</span> <span class="p">:,</span> <span class="p">:</span><span class="n">n_slots</span><span class="p">]</span>
     <span class="n">routed</span> <span class="o">=</span> <span class="p">(</span><span class="n">canonical_atom</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">is_real_residue</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
 
+    <span class="c1"># A residue type the slot map does not describe routes nothing at all, so</span>
+    <span class="c1"># every one of its atoms would be rebuilt from ideal internal coordinates</span>
+    <span class="c1"># and the returned pose would carry no gradient back to atom37_coords for</span>
+    <span class="c1"># it -- a fabricated residue that looks like a measured one. The default</span>
+    <span class="c1"># layout covers the canonical amino acids and UNK only, so anything else in</span>
+    <span class="c1"># this input has to be named rather than silently invented.</span>
+    <span class="n">unroutable</span> <span class="o">=</span> <span class="n">is_real_residue</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">routed</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">unroutable</span><span class="o">.</span><span class="n">any</span><span class="p">()):</span>
+        <span class="n">missing</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">res_types</span><span class="p">[</span><span class="n">unroutable</span><span class="p">])</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="n">classes</span> <span class="o">=</span> <span class="n">canonical_ordering</span><span class="o">.</span><span class="n">restype_io_equiv_classes</span>
+        <span class="n">named</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="n">classes</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">if</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">classes</span><span class="p">)</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">missing</span><span class="p">[:</span><span class="mi">8</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"the slot map routes no atom of residue type(s) </span><span class="si">{</span><span class="n">named</span><span class="si">}</span><span class="s2">, so their "</span>
+            <span class="s2">"coordinates cannot come from atom37_coords. Supply a slot_map that "</span>
+            <span class="s2">"covers them, or build the pose from the atom-array path instead"</span>
+        <span class="p">)</span>
+
     <span class="n">pose_index</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
         <span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
